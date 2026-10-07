@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
-import { useTranslation } from '../../../i18n'
-import MDancingTrek, { type TrekScene } from '../../components/MDancingTrek'
+import { useEffect, useState } from 'react';
+import { useTranslation } from '../../../i18n';
+import MDancingTrek, { type TrekScene } from '../../components/MDancingTrek';
 
 /**
  * Trip-open splash — the TREK mascot acts out a little journey while the trip
@@ -15,41 +15,44 @@ const STEPS: { scene: TrekScene; key: string }[] = [
   { scene: 'transport', key: 'trip.loadingSteps.road' },
   { scene: 'dashboard', key: 'trip.loadingPhotos' },
   { scene: 'collections', key: 'trip.loadingSteps.arrive' },
-]
+];
 
-const STEP_MS = 1400
+const STEP_MS = 1400;
 // Reduced motion parks on the paper-plane / "loading photos" beat.
-const STILL_INDEX = 2
-const REDUCE_MOTION = '(prefers-reduced-motion: reduce)'
+const STILL_INDEX = 2;
+const REDUCE_MOTION = '(prefers-reduced-motion: reduce)';
 
 export default function MTripLoadingSplash({ title }: { title: string }) {
-  const { t } = useTranslation()
-  const [reduceMotion, setReduceMotion] = useState(() => window.matchMedia?.(REDUCE_MOTION)?.matches ?? false)
+  const { t } = useTranslation();
+  const [reduceMotion, setReduceMotion] = useState(() => window.matchMedia?.(REDUCE_MOTION)?.matches ?? false);
   // The splash can be up long enough for the OS setting to be flipped under it.
   useEffect(() => {
-    const mq = window.matchMedia?.(REDUCE_MOTION)
-    if (!mq) return
-    const sync = () => setReduceMotion(mq.matches)
-    sync()
-    mq.addEventListener('change', sync)
-    return () => mq.removeEventListener('change', sync)
-  }, [])
+    const mq = window.matchMedia?.(REDUCE_MOTION);
+    if (!mq) return;
+    const sync = () => setReduceMotion(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
-  const [index, setIndex] = useState(0)
+  const [index, setIndex] = useState(0);
   useEffect(() => {
-    if (reduceMotion) return
-    const id = setInterval(() => setIndex(n => (n + 1) % STEPS.length), STEP_MS)
-    return () => clearInterval(id)
-  }, [reduceMotion])
+    if (reduceMotion) return;
+    const id = setInterval(() => setIndex((n) => (n + 1) % STEPS.length), STEP_MS);
+    return () => clearInterval(id);
+  }, [reduceMotion]);
 
-  const activeIndex = reduceMotion ? STILL_INDEX : index
-  const step = STEPS[activeIndex]
+  const activeIndex = reduceMotion ? STILL_INDEX : index;
+  const step = STEPS[activeIndex];
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] text-m-ink">
       {/* Fixed stage so the travelling mascot never nudges the layout. */}
       <div className="mb-6 flex h-[140px] w-[150px] items-center justify-center overflow-hidden">
-        <div key={step.scene} style={reduceMotion ? undefined : { animation: 'm-trek-beat 460ms cubic-bezier(.34,1.56,.64,1) both' }}>
+        <div
+          key={step.scene}
+          style={reduceMotion ? undefined : { animation: 'm-trek-beat 460ms cubic-bezier(.34,1.56,.64,1) both' }}
+        >
           <MDancingTrek scene={step.scene} mood="happy" size={124} />
         </div>
       </div>
@@ -76,5 +79,5 @@ export default function MTripLoadingSplash({ title }: { title: string }) {
 
       <style>{`@keyframes m-trek-beat { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }`}</style>
     </div>
-  )
+  );
 }

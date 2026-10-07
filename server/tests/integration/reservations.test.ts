@@ -2,10 +2,24 @@
  * Reservations integration tests.
  * Covers RESV-001 to RESV-007.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { authCookie } from '../helpers/auth';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  createReservation,
+  createDayAssignment,
+  addTripMember,
+} from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -21,12 +35,6 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createReservation, createDayAssignment, addTripMember } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -131,9 +139,7 @@ describe('List reservations', () => {
     createReservation(testDb, trip.id, { title: 'Flight Out', type: 'flight' });
     createReservation(testDb, trip.id, { title: 'Hotel Stay', type: 'hotel' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/reservations`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/reservations`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.reservations).toHaveLength(2);
   });
@@ -142,9 +148,7 @@ describe('List reservations', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/reservations`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/reservations`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.reservations).toHaveLength(0);
   });
@@ -154,9 +158,7 @@ describe('List reservations', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/reservations`)
-      .set('Cookie', authCookie(other.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/reservations`).set('Cookie', authCookie(other.id));
     expect(res.status).toBe(404);
   });
 });
@@ -205,14 +207,25 @@ describe('Update reservation', () => {
     const created = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
       .set('Cookie', authCookie(user.id))
-      .send({ title: 'Event', type: 'event', day_id: day1.id, reservation_time: '2025-10-01T09:00', reservation_end_time: '2025-10-01T10:00' });
+      .send({
+        title: 'Event',
+        type: 'event',
+        day_id: day1.id,
+        reservation_time: '2025-10-01T09:00',
+        reservation_end_time: '2025-10-01T10:00',
+      });
     const rid = created.body.reservation.id;
 
     // Re-date to day 3 WITHOUT sending day_id (the modal omits it) — both ends follow.
     const res = await request(app)
       .put(`/api/trips/${trip.id}/reservations/${rid}`)
       .set('Cookie', authCookie(user.id))
-      .send({ title: 'Event', type: 'event', reservation_time: '2025-10-03T00:00', reservation_end_time: '2025-10-03T14:00' });
+      .send({
+        title: 'Event',
+        type: 'event',
+        reservation_time: '2025-10-03T00:00',
+        reservation_end_time: '2025-10-03T14:00',
+      });
     expect(res.status).toBe(200);
     expect(res.body.reservation.day_id).toBe(day3.id);
     expect(res.body.reservation.end_day_id).toBe(day3.id);
@@ -291,7 +304,9 @@ describe('Update reservation', () => {
       .send({ accommodation_id: hexAccId });
     expect(res.status).toBe(200);
 
-    const row = testDb.prepare('SELECT accommodation_id FROM reservations WHERE id = ?').get(resv.id) as { accommodation_id: string | null };
+    const row = testDb.prepare('SELECT accommodation_id FROM reservations WHERE id = ?').get(resv.id) as {
+      accommodation_id: string | null;
+    };
     expect(row.accommodation_id).toBeNull();
   });
 });
@@ -308,12 +323,16 @@ describe('Update reservation', () => {
 // behind with no error anywhere.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('H1 — a booking on a stay is restamped when the trip\'s dates change (DY23)', () => {
+describe("H1 — a booking on a stay is restamped when the trip's dates change (DY23)", () => {
   it('the accommodation_id RS28 stores is the legacy REAL-bound TEXT shape, and a later date change restamps the linked booking', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2026-12-01', end_date: '2026-12-03' });
-    const day1 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? AND date = ?').get(trip.id, '2026-12-01') as { id: number };
-    const day2 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? AND date = ?').get(trip.id, '2026-12-02') as { id: number };
+    const day1 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? AND date = ?').get(trip.id, '2026-12-01') as {
+      id: number;
+    };
+    const day2 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? AND date = ?').get(trip.id, '2026-12-02') as {
+      id: number;
+    };
     const place = createPlace(testDb, trip.id, { name: 'Lighthouse Inn' });
 
     const createRes = await request(app)
@@ -331,7 +350,9 @@ describe('H1 — a booking on a stay is restamped when the trip\'s dates change 
 
     // Stored-shape assert: the legacy REAL-bound TEXT shape (`'<id>.0'`), not
     // the SQL-literal-inlined shape (`'<id>'`) `String(n)` used to store.
-    const stored = testDb.prepare('SELECT accommodation_id FROM reservations WHERE id = ?').get(resvId) as { accommodation_id: string };
+    const stored = testDb.prepare('SELECT accommodation_id FROM reservations WHERE id = ?').get(resvId) as {
+      accommodation_id: string;
+    };
     expect(stored.accommodation_id).toMatch(/^\d+\.0$/);
 
     // Move the whole trip a day later (default date_shift_mode, i.e. NOT
@@ -344,8 +365,10 @@ describe('H1 — a booking on a stay is restamped when the trip\'s dates change 
       .send({ start_date: '2026-12-02', end_date: '2026-12-04' });
     expect(updateRes.status).toBe(200);
 
-    const resvAfter = testDb.prepare('SELECT day_id, reservation_time FROM reservations WHERE id = ?').get(resvId) as
-      { day_id: number; reservation_time: string | null };
+    const resvAfter = testDb.prepare('SELECT day_id, reservation_time FROM reservations WHERE id = ?').get(resvId) as {
+      day_id: number;
+      reservation_time: string | null;
+    };
     expect(resvAfter.day_id).toBe(day1.id);
     // Restamped onto day1's NEW date — red without the fix, where DY23's
     // REAL-bound compare misses a `String(n)`-shaped accommodation_id and
@@ -422,9 +445,7 @@ describe('Delete reservation', () => {
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
 
-    const list = await request(app)
-      .get(`/api/trips/${trip.id}/reservations`)
-      .set('Cookie', authCookie(user.id));
+    const list = await request(app).get(`/api/trips/${trip.id}/reservations`).set('Cookie', authCookie(user.id));
     expect(list.body.reservations).toHaveLength(0);
   });
 
@@ -472,7 +493,12 @@ describe('Batch update positions', () => {
     const res = await request(app)
       .put(`/api/trips/${trip.id}/reservations/positions`)
       .set('Cookie', authCookie(user.id))
-      .send({ positions: [{ id: r2.id, position: 0 }, { id: r1.id, position: 1 }] });
+      .send({
+        positions: [
+          { id: r2.id, position: 0 },
+          { id: r1.id, position: 1 },
+        ],
+      });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
   });
@@ -544,9 +570,7 @@ describe('Reservation budget entry integration', () => {
       });
     expect(res.status).toBe(201);
 
-    const budgetItems = testDb
-      .prepare('SELECT * FROM budget_items WHERE trip_id = ?')
-      .all(trip.id) as any[];
+    const budgetItems = testDb.prepare('SELECT * FROM budget_items WHERE trip_id = ?').all(trip.id) as any[];
     expect(budgetItems).toHaveLength(0);
   });
 
@@ -694,7 +718,9 @@ describe('Reservation budget entry integration', () => {
     const resvId = createRes.body.reservation.id;
 
     // Simulate a manual category pick in the Costs editor.
-    testDb.prepare('UPDATE budget_items SET category = ? WHERE trip_id = ? AND reservation_id = ?').run('fees', trip.id, resvId);
+    testDb
+      .prepare('UPDATE budget_items SET category = ? WHERE trip_id = ? AND reservation_id = ?')
+      .run('fees', trip.id, resvId);
 
     await request(app)
       .put(`/api/trips/${trip.id}/reservations/${resvId}`)
@@ -734,9 +760,7 @@ describe('Reservation accommodation delete', () => {
     const reservationId = createRes.body.reservation.id;
 
     // Verify accommodation was created
-    const accom = testDb.prepare(
-      'SELECT id FROM day_accommodations WHERE trip_id = ?'
-    ).get(trip.id) as any;
+    const accom = testDb.prepare('SELECT id FROM day_accommodations WHERE trip_id = ?').get(trip.id) as any;
     expect(accom).toBeDefined();
 
     // Delete reservation — should also remove the accommodation
@@ -745,9 +769,7 @@ describe('Reservation accommodation delete', () => {
       .set('Cookie', authCookie(user.id));
     expect(delRes.status).toBe(200);
 
-    const accomAfter = testDb.prepare(
-      'SELECT id FROM day_accommodations WHERE id = ?'
-    ).get(accom.id);
+    const accomAfter = testDb.prepare('SELECT id FROM day_accommodations WHERE id = ?').get(accom.id);
     expect(accomAfter).toBeUndefined();
   });
 
@@ -771,9 +793,9 @@ describe('Reservation accommodation delete', () => {
     expect(createRes.status).toBe(201);
     const reservationId = createRes.body.reservation.id;
 
-    const budgetBefore = testDb.prepare(
-      'SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?'
-    ).get(trip.id, reservationId);
+    const budgetBefore = testDb
+      .prepare('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?')
+      .get(trip.id, reservationId);
     expect(budgetBefore).toBeDefined();
 
     // Delete via the reservation endpoint
@@ -782,9 +804,7 @@ describe('Reservation accommodation delete', () => {
       .set('Cookie', authCookie(user.id));
     expect(delRes.status).toBe(200);
 
-    const budgetAfter = testDb.prepare(
-      'SELECT id FROM budget_items WHERE trip_id = ?'
-    ).get(trip.id);
+    const budgetAfter = testDb.prepare('SELECT id FROM budget_items WHERE trip_id = ?').get(trip.id);
     expect(budgetAfter).toBeUndefined();
   });
 });

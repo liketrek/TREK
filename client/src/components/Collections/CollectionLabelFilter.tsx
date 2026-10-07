@@ -1,22 +1,22 @@
-import React from 'react'
-import { Plus, Settings2, Tags } from 'lucide-react'
-import type { LabelOption } from '../../pages/collections/collectionsModel'
-import type { TranslationFn } from '../../types'
+import { Plus, Settings2, Tags } from 'lucide-react';
+import React from 'react';
+import type { LabelOption } from '../../pages/collections/collectionsModel';
+import type { TranslationFn } from '../../types';
 
-export type { LabelOption }
+export type { LabelOption };
 
 interface CollectionLabelFilterProps {
-  labelOptions: LabelOption[]
-  labelFilter: number[]
-  onLabelFilter: (ids: number[]) => void
-  canManageLabels?: boolean
-  onManageLabels?: () => void
+  labelOptions: LabelOption[];
+  labelFilter: number[];
+  onLabelFilter: (ids: number[]) => void;
+  canManageLabels?: boolean;
+  onManageLabels?: () => void;
   /**
    * 'bar' is the filter row above the list, 'map' the strip floating over the
    * map, which needs the same glass treatment as the buttons beside it.
    */
-  variant?: 'bar' | 'map'
-  t: TranslationFn
+  variant?: 'bar' | 'map';
+  t: TranslationFn;
 }
 
 /**
@@ -29,32 +29,37 @@ interface CollectionLabelFilterProps {
  * unreachable.
  */
 export default function CollectionLabelFilter({
-  labelOptions, labelFilter, onLabelFilter, canManageLabels = false, onManageLabels,
-  variant = 'bar', t,
+  labelOptions,
+  labelFilter,
+  onLabelFilter,
+  canManageLabels = false,
+  onManageLabels,
+  variant = 'bar',
+  t,
 }: CollectionLabelFilterProps): React.ReactElement {
   return (
     <div
-      className={`col-labelfilter${variant === 'map' ? ' on-map' : ''}`}
+      className={`col-labelfilter${variant === 'map' ? 'on-map' : ''}`}
       role="group"
       aria-label={t('collections.labels.manage')}
     >
       <Tags size={13} className="col-labelfilter-lead" aria-hidden="true" />
-      {labelOptions.map(l => {
-        const on = labelFilter.includes(l.id)
+      {labelOptions.map((l) => {
+        const on = labelFilter.includes(l.id);
         return (
           <button
             key={l.id}
             type="button"
-            className={`col-labelchip${on ? ' on' : ''}`}
+            className={`col-labelchip${on ? 'on' : ''}`}
             style={{ ['--label' as string]: l.color ?? 'var(--accent)' }}
-            onClick={() => onLabelFilter(on ? labelFilter.filter(id => id !== l.id) : [...labelFilter, l.id])}
+            onClick={() => onLabelFilter(on ? labelFilter.filter((id) => id !== l.id) : [...labelFilter, l.id])}
             aria-pressed={on}
           >
             <span className="col-labelchip-dot" />
             <span className="col-filter-lbl">{l.name}</span>
             {l.count > 0 && <span className="col-filter-count">{l.count}</span>}
           </button>
-        )
+        );
       })}
       {canManageLabels && onManageLabels && (
         <button
@@ -68,5 +73,5 @@ export default function CollectionLabelFilter({
         </button>
       )}
     </div>
-  )
+  );
 }

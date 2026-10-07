@@ -4,12 +4,13 @@
  * common recipient (one hidden, one not), plus an unrelated share that must
  * not leak across owners/recipients.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createUser } from '../../../helpers/factories';
-import { createTestVacaySharesRepo } from '../../../helpers/vacay-repos';
 import type { VacaySharesRepository } from '../../../../src/db/repositories/VacayShares.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestVacaySharesRepo } from '../../../helpers/vacay-repos';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let repo: VacaySharesRepository;
@@ -27,7 +28,8 @@ const LEGACY_LIST_INCOMING = `SELECT s.id, s.owner_id, s.hidden, u.username FROM
 
 function insertShare(ownerId: number, userId: number, hidden = 0): number {
   return Number(
-    testDb.prepare('INSERT INTO vacay_shares (owner_id, user_id, hidden) VALUES (?, ?, ?)').run(ownerId, userId, hidden).lastInsertRowid,
+    testDb.prepare('INSERT INTO vacay_shares (owner_id, user_id, hidden) VALUES (?, ?, ?)').run(ownerId, userId, hidden)
+      .lastInsertRowid,
   );
 }
 
@@ -97,9 +99,15 @@ describe('VacaySharesRepository — VC90 listAvailableForShare parity with the l
     const { user: sharedByOther } = createUser(testDb, { username: 'shared-by-someone-else' });
     createUser(testDb, { username: 'bystander' });
     testDb.prepare('UPDATE users SET is_guest = 1 WHERE id = ?').run(guest.id);
-    const planId = Number(testDb.prepare('INSERT INTO vacay_plans (owner_id) VALUES (?)').run(planOwner.id).lastInsertRowid);
-    testDb.prepare("INSERT INTO vacay_plan_members (plan_id, user_id, status) VALUES (?, ?, 'accepted')").run(planId, accepted.id);
-    testDb.prepare("INSERT INTO vacay_plan_members (plan_id, user_id, status) VALUES (?, ?, 'pending')").run(planId, pending.id);
+    const planId = Number(
+      testDb.prepare('INSERT INTO vacay_plans (owner_id) VALUES (?)').run(planOwner.id).lastInsertRowid,
+    );
+    testDb
+      .prepare("INSERT INTO vacay_plan_members (plan_id, user_id, status) VALUES (?, ?, 'accepted')")
+      .run(planId, accepted.id);
+    testDb
+      .prepare("INSERT INTO vacay_plan_members (plan_id, user_id, status) VALUES (?, ?, 'pending')")
+      .run(planId, pending.id);
     insertShare(caller.id, alreadyShared.id);
     insertShare(planOwner.id, sharedByOther.id); // another owner's share — must not exclude
 

@@ -202,12 +202,14 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.clearResults': '결과 지우기',
   'roadtrip.poi.addManual': '직접 추가',
   'roadtrip.poi.addManualShort': '직접',
-  'roadtrip.poi.manualHint': '장소 검색이 모든 충전소나 주유소를 찾아내지는 못합니다. 이름으로 직접 찾아 주행 중 어디에 들어갈지 지정하세요.',
+  'roadtrip.poi.manualHint':
+    '장소 검색이 모든 충전소나 주유소를 찾아내지는 못합니다. 이름으로 직접 찾아 주행 중 어디에 들어갈지 지정하세요.',
   'roadtrip.poi.addBetween': '사이에 추가',
   'roadtrip.poi.manualOffRoute': '경로에서 {distance} 떨어져 있으니 어느 구간에 속하는지 확인하세요.',
   'roadtrip.poi.manualAppend': '아직 계산된 경로가 없어 {number}일차 마지막에 추가됩니다.',
   'roadtrip.poi.manualNoResults': '장소를 찾지 못했습니다.',
-  'roadtrip.poi.manualNoCoords': '위치가 없으면 주행에 배치되지 않고 여행의 장소 목록에 추가됩니다. 위 검색에서 하나를 고르거나 좌표를 입력하세요.',
+  'roadtrip.poi.manualNoCoords':
+    '위치가 없으면 주행에 배치되지 않고 여행의 장소 목록에 추가됩니다. 위 검색에서 하나를 고르거나 좌표를 입력하세요.',
   'roadtrip.summary.distance': '거리',
   'roadtrip.summary.driving': '운전 시간',
   'roadtrip.alt.ask': '다른 경로',
@@ -276,7 +278,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.summary.partial': '남은 구간을 계산하고 있습니다',
   'roadtrip.stay.releaseTitle': '숙박을 취소할까요?',
   'roadtrip.stay.releaseBody': '“{name}”에서의 숙박이 삭제됩니다. 이 정차지는 휴식으로 경로에 남습니다.',
-  'roadtrip.stay.releaseBookedBody': '“{name}”에서의 숙박이 예약 “{booking}” 및 연결된 지출과 함께 삭제됩니다. 이 정차지는 휴식으로 경로에 남습니다.',
+  'roadtrip.stay.releaseBookedBody':
+    '“{name}”에서의 숙박이 예약 “{booking}” 및 연결된 지출과 함께 삭제됩니다. 이 정차지는 휴식으로 경로에 남습니다.',
   'roadtrip.stay.releaseAction': '휴식으로 바꾸기',
   'roadtrip.ride.departure': '출발 {time}',
   'roadtrip.ride.arrival': '도착 {time}',

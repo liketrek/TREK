@@ -1,26 +1,34 @@
-import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { InjectRepository } from '@mikro-orm/nestjs';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
+import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
+import { emitUserDeleted } from '../../plugin-user-lifecycle';
 import type { User } from '../../types';
-import { avatarUrl } from '../common/avatarUrl';
 import { UserCleanupService } from '../auth/user-cleanup.service';
-import { UnitOfWork } from '../database/unit-of-work';
 import { BudgetService } from '../budget/budget.service';
+import { avatarUrl } from '../common/avatarUrl';
+import { NotFoundError, ValidationError } from '../common/domain-errors';
+import { UnitOfWork } from '../database/unit-of-work';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { emitUserDeleted } from '../../plugin-user-lifecycle';
-import { NotFoundError, ValidationError } from '../common/domain-errors';
-import { NotificationsService } from '../notifications/notifications.service';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { TripMembers } from '../../db/entities/TripMembers.entity';
-import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
-import { Users } from '../../db/entities/Users.entity';
-import type { UsersRepository } from '../../db/repositories/Users.repository';
+
+import { randomUUID } from 'crypto';
 
 export interface AddMemberResult {
-  member: { id: number; username: string; email: string; avatar?: string | null; role: string; avatar_url: string | null };
+  member: {
+    id: number;
+    username: string;
+    email: string;
+    avatar?: string | null;
+    role: string;
+    avatar_url: string | null;
+  };
   targetUserId: number;
   tripTitle: string;
 }
@@ -89,7 +97,12 @@ export class TripMembersService {
     return this.permissions.checkPermission(action, role, ownerId, userId, isMember);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -110,13 +123,15 @@ export class TripMembersService {
     // nothing the module graph does not already give — NotificationsModule
     // reaches nothing in this direction — and it hid the edge while handing the
     // send a second NotificationsService built outside the container.
-    this.notifications.send({
-      event: 'trip_invite',
-      actorId: actor.id,
-      scope: 'user',
-      targetId: targetUserId,
-      params: { trip: tripTitle, actor: actor.email, invitee: inviteeEmail, tripId: String(tripId) },
-    }).catch(() => {});
+    this.notifications
+      .send({
+        event: 'trip_invite',
+        actorId: actor.id,
+        scope: 'user',
+        targetId: targetUserId,
+        params: { trip: tripTitle, actor: actor.email, invitee: inviteeEmail, tripId: String(tripId) },
+      })
+      .catch(() => {});
   }
 
   // ── Members ───────────────────────────────────────────────────────────────
@@ -132,11 +147,16 @@ export class TripMembersService {
 
     return {
       owner: { ...owner, role: 'owner', is_guest: false, avatar_url: avatarUrl(owner!) },
-      members: members.map(m => ({ ...m, is_guest: !!m.is_guest, avatar_url: avatarUrl(m) })),
+      members: members.map((m) => ({ ...m, is_guest: !!m.is_guest, avatar_url: avatarUrl(m) })),
     };
   }
 
-  async addMember(tripId: string | number, identifier: string, tripOwnerId: number, invitedByUserId: number): Promise<AddMemberResult> {
+  async addMember(
+    tripId: string | number,
+    identifier: string,
+    tripOwnerId: number,
+    invitedByUserId: number,
+  ): Promise<AddMemberResult> {
     if (!identifier) throw new ValidationError('Email or username required');
 
     // Guests (#1362) are not invitable accounts — exclude them so a trip-scoped guest
@@ -145,8 +165,7 @@ export class TripMembersService {
 
     if (!target) throw new NotFoundError('User not found');
 
-    if (target.id === tripOwnerId)
-      throw new ValidationError('Trip owner is already a member');
+    if (target.id === tripOwnerId) throw new ValidationError('Trip owner is already a member');
 
     const existing = await this.tripMembersRepo.exists(tripId, target.id);
     if (existing) throw new ValidationError('User already has access');

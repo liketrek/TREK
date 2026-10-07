@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties } from 'react';
 
 /**
  * The map marker for the "open this day in Google Maps" buttons (#2005).
@@ -14,10 +14,14 @@ import type { CSSProperties } from 'react'
  * SystemNoticeModal, `ImmichIcon`/`SynologyIcon` in AddonManager): 24×24 box,
  * `fill="currentColor"`, `aria-hidden` because the button is already labelled.
  */
-export default function GoogleMapsIcon({ size = 14, className, style }: {
-  size?: number
-  className?: string
-  style?: CSSProperties
+export default function GoogleMapsIcon({
+  size = 14,
+  className,
+  style,
+}: {
+  size?: number;
+  className?: string;
+  style?: CSSProperties;
 }) {
   return (
     <svg
@@ -38,5 +42,5 @@ export default function GoogleMapsIcon({ size = 14, className, style }: {
         d="M12 1.5c-4.142 0-7.5 3.358-7.5 7.5 0 5.25 6.09 12.34 6.87 13.222a.84.84 0 0 0 1.26 0C13.41 21.34 19.5 14.25 19.5 9c0-4.142-3.358-7.5-7.5-7.5Zm0 10.25a2.75 2.75 0 1 1 0-5.5 2.75 2.75 0 0 1 0 5.5Z"
       />
     </svg>
-  )
+  );
 }

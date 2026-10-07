@@ -1,22 +1,11 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Headers,
-  HttpException,
-  Param,
-  Post,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
 import type { User } from '../../types';
-import { TodoService } from './todo.service';
-import { TodoCreateItemDto, TodoUpdateItemDto, TodoReorderDto, TodoCategoryAssigneesDto } from './todo.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { toRowId } from '../common/row-id';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { TodoCreateItemDto, TodoUpdateItemDto, TodoReorderDto, TodoCategoryAssigneesDto } from './todo.dto';
+import { TodoService } from './todo.service';
+import { Body, Controller, Delete, Get, Headers, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 /**
  * /api/trips/:tripId/todo — trip-scoped task list.
@@ -37,8 +26,6 @@ import { toRowId } from '../common/row-id';
 export class TodoController {
   constructor(private readonly todo: TodoService) {}
 
-
-
   @Get()
   async list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
     return { items: await this.todo.listItems(tripId) };
@@ -53,18 +40,21 @@ export class TodoController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     const { name, category, due_date, description, assigned_user_id, priority } = body;
-    const item = await this.todo.createItem(tripId, { name, category, due_date, description, assigned_user_id, priority });
+    const item = await this.todo.createItem(tripId, {
+      name,
+      category,
+      due_date,
+      description,
+      assigned_user_id,
+      priority,
+    });
     this.todo.broadcast(tripId, 'todo:created', { item }, socketId);
     return { item };
   }
 
   @RequirePermission('packing_edit')
   @Put('reorder')
-  async reorder(
-    @CurrentUser() user: User,
-    @Param('tripId') tripId: string,
-    @Body() body: TodoReorderDto,
-  ) {
+  async reorder(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body() body: TodoReorderDto) {
     await this.todo.reorderItems(tripId, body.orderedIds);
     return { success: true };
   }
@@ -93,7 +83,15 @@ export class TodoController {
       tripId,
       itemId,
       // checked arrives as boolean or legacy 0/1 — normalize to the 0/1 the SQL binds.
-      { name, checked: checked === undefined ? undefined : checked ? 1 : 0, category, due_date, description, assigned_user_id, priority },
+      {
+        name,
+        checked: checked === undefined ? undefined : checked ? 1 : 0,
+        category,
+        due_date,
+        description,
+        assigned_user_id,
+        priority,
+      },
       Object.keys(body),
     );
     if (!updated) {

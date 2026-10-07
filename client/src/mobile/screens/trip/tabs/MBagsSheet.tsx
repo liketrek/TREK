@@ -1,32 +1,37 @@
-import { useState } from 'react'
-import { Check, Plus, X } from 'lucide-react'
-import type { PackingUpdateBagRequest } from '@trek/shared'
-import MSheet from '../../../components/MSheet'
-import { FIELD_CLS, FormSheetHeader } from '../sheets/PlSheetChrome'
-import { avatarSrc } from '../../../../utils/avatarSrc'
-import type { PackingBag, PackingItem, TripMember } from '../../../../types'
-import type { TripPlanner } from '../MTripShell'
-import { formatWeight } from './listsModel'
-import { bagFillPct, bagTotalWeight, countsTowardsMyLoad, unassignedTotalWeight } from '../../../../components/Packing/packingListPanel.helpers'
+import type { PackingUpdateBagRequest } from '@trek/shared';
+import { Check, Plus, X } from 'lucide-react';
+import { useState } from 'react';
+import {
+  bagFillPct,
+  bagTotalWeight,
+  countsTowardsMyLoad,
+  unassignedTotalWeight,
+} from '../../../../components/Packing/packingListPanel.helpers';
+import type { PackingBag, PackingItem, TripMember } from '../../../../types';
+import { avatarSrc } from '../../../../utils/avatarSrc';
+import MSheet from '../../../components/MSheet';
+import type { TripPlanner } from '../MTripShell';
+import { FIELD_CLS, FormSheetHeader } from '../sheets/PlSheetChrome';
+import { formatWeight } from './listsModel';
 
 export interface MBagsSheetProps {
-  planner: TripPlanner
-  open: boolean
-  onClose: () => void
-  bags: PackingBag[]
+  planner: TripPlanner;
+  open: boolean;
+  onClose: () => void;
+  bags: PackingBag[];
   /** Server-summed weight of everything in no bag (#2191); null when unknown. */
-  unassignedWeightGrams?: number | null
+  unassignedWeightGrams?: number | null;
   /** False while offline, when the server totals are frozen and blind to queued writes. */
-  serverWeightsFresh?: boolean
-  items: PackingItem[]
-  tripMembers: TripMember[]
-  canEdit: boolean
+  serverWeightsFresh?: boolean;
+  items: PackingItem[];
+  tripMembers: TripMember[];
+  canEdit: boolean;
   /** Who is looking — decides whose load the weights describe (#1767). */
-  currentUserId?: number | null
-  onCreateBag: (name: string) => void
-  onUpdateBag: (bagId: number, data: PackingUpdateBagRequest) => void
-  onDeleteBag: (bagId: number) => void
-  onSetBagMembers: (bagId: number, userIds: number[]) => void
+  currentUserId?: number | null;
+  onCreateBag: (name: string) => void;
+  onUpdateBag: (bagId: number, data: PackingUpdateBagRequest) => void;
+  onDeleteBag: (bagId: number) => void;
+  onSetBagMembers: (bagId: number, userIds: number[]) => void;
 }
 
 /**
@@ -35,40 +40,57 @@ export interface MBagsSheetProps {
  * is the caller's business — this sheet just renders whatever bags it's given.
  */
 export default function MBagsSheet({
-  planner, open, onClose, bags, items, unassignedWeightGrams, serverWeightsFresh = true, tripMembers, canEdit, currentUserId, onCreateBag, onUpdateBag, onDeleteBag, onSetBagMembers,
+  planner,
+  open,
+  onClose,
+  bags,
+  items,
+  unassignedWeightGrams,
+  serverWeightsFresh = true,
+  tripMembers,
+  canEdit,
+  currentUserId,
+  onCreateBag,
+  onUpdateBag,
+  onDeleteBag,
+  onSetBagMembers,
 }: MBagsSheetProps) {
-  const { t } = planner
-  const [addingBag, setAddingBag] = useState(false)
-  const [newBagName, setNewBagName] = useState('')
+  const { t } = planner;
+  const [addingBag, setAddingBag] = useState(false);
+  const [newBagName, setNewBagName] = useState('');
 
   // The ITEM LISTS still describe what you are carrying — an item someone shared
   // with you stays in your list, but they are the one bringing it (#1767).
-  const myItems = items.filter(i => countsTowardsMyLoad(i, currentUserId))
+  const myItems = items.filter((i) => countsTowardsMyLoad(i, currentUserId));
   // The WEIGHTS no longer do: a bag's load is the bag's, whoever packed it (#2191).
   const bagWeightOf = (bag: PackingBag) =>
-    bagTotalWeight(bag, myItems.filter(i => i.bag_id === bag.id), serverWeightsFresh)
-  const unassigned = myItems.filter(i => !i.bag_id)
-  const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned, serverWeightsFresh)
-  const totalWeight = bags.reduce((s, b) => s + bagWeightOf(b), 0) + unassignedWeight
+    bagTotalWeight(
+      bag,
+      myItems.filter((i) => i.bag_id === bag.id),
+      serverWeightsFresh
+    );
+  const unassigned = myItems.filter((i) => !i.bag_id);
+  const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned, serverWeightsFresh);
+  const totalWeight = bags.reduce((s, b) => s + bagWeightOf(b), 0) + unassignedWeight;
   // Reference for bags without a limit of their own — computed once instead of per bag.
-  const heaviestBagWeight = Math.max(...bags.map(bagWeightOf), 1)
+  const heaviestBagWeight = Math.max(...bags.map(bagWeightOf), 1);
 
   const submitNewBag = () => {
-    if (!newBagName.trim()) return
-    onCreateBag(newBagName.trim())
-    setNewBagName('')
-    setAddingBag(false)
-  }
+    if (!newBagName.trim()) return;
+    onCreateBag(newBagName.trim());
+    setNewBagName('');
+    setAddingBag(false);
+  };
 
   return (
     <MSheet open={open} onClose={onClose} ariaLabel={t('packing.bags')}>
       <FormSheetHeader title={t('packing.bags')} onClose={onClose} closeLabel={t('common.close')} />
 
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
-        {bags.map(bag => {
-          const bagItems = myItems.filter(i => i.bag_id === bag.id)
-          const bagWeight = bagWeightOf(bag)
-          const pct = bagFillPct(bagWeight, bag.weight_limit_grams, heaviestBagWeight)
+        {bags.map((bag) => {
+          const bagItems = myItems.filter((i) => i.bag_id === bag.id);
+          const bagWeight = bagWeightOf(bag);
+          const pct = bagFillPct(bagWeight, bag.weight_limit_grams, heaviestBagWeight);
           return (
             <BagRow
               key={bag.id}
@@ -79,11 +101,11 @@ export default function MBagsSheet({
               pct={pct}
               tripMembers={tripMembers}
               canEdit={canEdit}
-              onUpdate={data => onUpdateBag(bag.id, data)}
+              onUpdate={(data) => onUpdateBag(bag.id, data)}
               onDelete={() => onDeleteBag(bag.id)}
-              onSetMembers={userIds => onSetBagMembers(bag.id, userIds)}
+              onSetMembers={(userIds) => onSetBagMembers(bag.id, userIds)}
             />
-          )
+          );
         })}
 
         {/* Weight with no visible items still gets a row: the total counts it (#2191). */}
@@ -105,17 +127,20 @@ export default function MBagsSheet({
           <span className="tabular-nums">{formatWeight(totalWeight)}</span>
         </div>
 
-        {canEdit && (
-          addingBag ? (
+        {canEdit &&
+          (addingBag ? (
             <div className="mt-3 flex gap-2">
               <input
                 type="text"
                 autoFocus
                 value={newBagName}
-                onChange={e => setNewBagName(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') submitNewBag()
-                  if (e.key === 'Escape') { setAddingBag(false); setNewBagName('') }
+                onChange={(e) => setNewBagName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') submitNewBag();
+                  if (e.key === 'Escape') {
+                    setAddingBag(false);
+                    setNewBagName('');
+                  }
                 }}
                 placeholder={t('packing.bagName')}
                 className={`${FIELD_CLS} flex-1`}
@@ -139,57 +164,71 @@ export default function MBagsSheet({
               <Plus size={14} strokeWidth={2.2} />
               {t('packing.addBag')}
             </button>
-          )
-        )}
+          ))}
       </div>
     </MSheet>
-  )
+  );
 }
 
-function BagRow({ planner, bag, itemCount, weight, pct, tripMembers, canEdit, onUpdate, onDelete, onSetMembers }: {
-  planner: TripPlanner
-  bag: PackingBag
-  itemCount: number
-  weight: number
-  pct: number
-  tripMembers: TripMember[]
-  canEdit: boolean
-  onUpdate: (data: PackingUpdateBagRequest) => void
-  onDelete: () => void
-  onSetMembers: (userIds: number[]) => void
+function BagRow({
+  planner,
+  bag,
+  itemCount,
+  weight,
+  pct,
+  tripMembers,
+  canEdit,
+  onUpdate,
+  onDelete,
+  onSetMembers,
+}: {
+  planner: TripPlanner;
+  bag: PackingBag;
+  itemCount: number;
+  weight: number;
+  pct: number;
+  tripMembers: TripMember[];
+  canEdit: boolean;
+  onUpdate: (data: PackingUpdateBagRequest) => void;
+  onDelete: () => void;
+  onSetMembers: (userIds: number[]) => void;
 }) {
-  const { t } = planner
-  const [editingName, setEditingName] = useState(false)
-  const [nameVal, setNameVal] = useState(bag.name)
-  const [showPicker, setShowPicker] = useState(false)
+  const { t } = planner;
+  const [editingName, setEditingName] = useState(false);
+  const [nameVal, setNameVal] = useState(bag.name);
+  const [showPicker, setShowPicker] = useState(false);
 
-  const memberIds = (bag.members || []).map(m => m.user_id)
-  const toggleMember = (userId: number) => onSetMembers(memberIds.includes(userId) ? memberIds.filter(id => id !== userId) : [...memberIds, userId])
+  const memberIds = (bag.members || []).map((m) => m.user_id);
+  const toggleMember = (userId: number) =>
+    onSetMembers(memberIds.includes(userId) ? memberIds.filter((id) => id !== userId) : [...memberIds, userId]);
 
   const saveName = () => {
-    const trimmed = nameVal.trim()
-    if (trimmed && trimmed !== bag.name) onUpdate({ name: trimmed })
-    else setNameVal(bag.name)
-    setEditingName(false)
-  }
+    const trimmed = nameVal.trim();
+    if (trimmed && trimmed !== bag.name) onUpdate({ name: trimmed });
+    else setNameVal(bag.name);
+    setEditingName(false);
+  };
 
   // Limits are entered in kg — that is how airlines state them — and stored in grams.
-  const limitToInput = (grams?: number | null) => (grams ? String(grams / 1000) : '')
-  const [editingLimit, setEditingLimit] = useState(false)
-  const [limitVal, setLimitVal] = useState(limitToInput(bag.weight_limit_grams))
+  const limitToInput = (grams?: number | null) => (grams ? String(grams / 1000) : '');
+  const [editingLimit, setEditingLimit] = useState(false);
+  const [limitVal, setLimitVal] = useState(limitToInput(bag.weight_limit_grams));
 
   const saveLimit = () => {
-    setEditingLimit(false)
-    const raw = limitVal.trim().replace(',', '.')
+    setEditingLimit(false);
+    const raw = limitVal.trim().replace(',', '.');
     if (raw === '') {
-      if (bag.weight_limit_grams != null) onUpdate({ weight_limit_grams: null })
-      return
+      if (bag.weight_limit_grams != null) onUpdate({ weight_limit_grams: null });
+      return;
     }
-    const kg = Number(raw)
-    if (!Number.isFinite(kg) || kg <= 0) { setLimitVal(limitToInput(bag.weight_limit_grams)); return }
-    const grams = Math.round(kg * 1000)
-    if (grams !== bag.weight_limit_grams) onUpdate({ weight_limit_grams: grams })
-  }
+    const kg = Number(raw);
+    if (!Number.isFinite(kg) || kg <= 0) {
+      setLimitVal(limitToInput(bag.weight_limit_grams));
+      return;
+    }
+    const grams = Math.round(kg * 1000);
+    if (grams !== bag.weight_limit_grams) onUpdate({ weight_limit_grams: grams });
+  };
 
   return (
     <div className="mb-4">
@@ -200,13 +239,23 @@ function BagRow({ planner, bag, itemCount, weight, pct, tripMembers, canEdit, on
             type="text"
             autoFocus
             value={nameVal}
-            onChange={e => setNameVal(e.target.value)}
+            onChange={(e) => setNameVal(e.target.value)}
             onBlur={saveName}
-            onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') { setEditingName(false); setNameVal(bag.name) } }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') saveName();
+              if (e.key === 'Escape') {
+                setEditingName(false);
+                setNameVal(bag.name);
+              }
+            }}
             className="min-w-0 flex-1 border-b border-[color:var(--m-rowbr)] bg-transparent text-[0.8125rem] font-semibold text-m-ink outline-none"
           />
         ) : (
-          <button type="button" onClick={() => canEdit && setEditingName(true)} className="min-w-0 flex-1 truncate text-left text-[0.8125rem] font-semibold text-m-ink">
+          <button
+            type="button"
+            onClick={() => canEdit && setEditingName(true)}
+            className="min-w-0 flex-1 truncate text-left text-[0.8125rem] font-semibold text-m-ink"
+          >
             {bag.name}
           </button>
         )}
@@ -221,9 +270,15 @@ function BagRow({ planner, bag, itemCount, weight, pct, tripMembers, canEdit, on
                 inputMode="decimal"
                 value={limitVal}
                 aria-label={t('packing.bagLimit')}
-                onChange={e => setLimitVal(e.target.value)}
+                onChange={(e) => setLimitVal(e.target.value)}
                 onBlur={saveLimit}
-                onKeyDown={e => { if (e.key === 'Enter') saveLimit(); if (e.key === 'Escape') { setLimitVal(limitToInput(bag.weight_limit_grams)); setEditingLimit(false) } }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveLimit();
+                  if (e.key === 'Escape') {
+                    setLimitVal(limitToInput(bag.weight_limit_grams));
+                    setEditingLimit(false);
+                  }
+                }}
                 className="w-9 border-b border-[color:var(--m-rowbr)] bg-transparent text-right text-m-ink outline-none"
               />
               <span>kg</span>
@@ -239,14 +294,19 @@ function BagRow({ planner, bag, itemCount, weight, pct, tripMembers, canEdit, on
           ) : null}
         </span>
         {canEdit && (
-          <button type="button" onClick={onDelete} aria-label={t('common.delete')} className="flex flex-none items-center text-m-faint">
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label={t('common.delete')}
+            className="flex flex-none items-center text-m-faint"
+          >
             <X size={14} strokeWidth={2} />
           </button>
         )}
       </div>
 
       <div className="relative mb-[6px] flex flex-wrap items-center gap-1">
-        {(bag.members || []).map(m => (
+        {(bag.members || []).map((m) => (
           <button
             key={m.user_id}
             type="button"
@@ -255,22 +315,22 @@ function BagRow({ planner, bag, itemCount, weight, pct, tripMembers, canEdit, on
             className="h-[22px] w-[22px] flex-none overflow-hidden rounded-full"
             style={{ border: `1.5px solid ${bag.color}` }}
           >
-            {m.avatar
-              ? <img src={m.avatar} alt="" className="h-full w-full object-cover" />
-              : (
-                <span
-                  className="flex h-full w-full items-center justify-center text-[0.5625rem] font-bold"
-                  style={{ background: `${bag.color}25`, color: bag.color }}
-                >
-                  {m.username[0]?.toUpperCase()}
-                </span>
-              )}
+            {m.avatar ? (
+              <img src={m.avatar} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span
+                className="flex h-full w-full items-center justify-center text-[0.5625rem] font-bold"
+                style={{ background: `${bag.color}25`, color: bag.color }}
+              >
+                {m.username[0]?.toUpperCase()}
+              </span>
+            )}
           </button>
         ))}
         {canEdit && (
           <button
             type="button"
-            onClick={() => setShowPicker(v => !v)}
+            onClick={() => setShowPicker((v) => !v)}
             aria-label={t('common.add')}
             className="flex h-[22px] w-[22px] flex-none items-center justify-center rounded-full border-[1.5px] border-dashed border-[color:var(--m-trackoff)] text-m-faint"
           >
@@ -282,9 +342,9 @@ function BagRow({ planner, bag, itemCount, weight, pct, tripMembers, canEdit, on
             {tripMembers.length === 0 && (
               <div className="px-[10px] py-2 font-geist text-[0.6875rem] text-m-faint">{t('packing.noMembers')}</div>
             )}
-            {tripMembers.map(m => {
-              const selected = memberIds.includes(m.id)
-              const src = m.avatar_url || avatarSrc(m.avatar)
+            {tripMembers.map((m) => {
+              const selected = memberIds.includes(m.id);
+              const src = m.avatar_url || avatarSrc(m.avatar);
               return (
                 <button
                   key={m.id}
@@ -293,12 +353,16 @@ function BagRow({ planner, bag, itemCount, weight, pct, tripMembers, canEdit, on
                   className="flex w-full items-center gap-[8px] rounded-[8px] px-[8px] py-[6px] text-left"
                 >
                   <span className="flex h-5 w-5 flex-none items-center justify-center overflow-hidden rounded-full bg-[color:var(--m-ic)] text-[0.5625rem] font-bold text-m-muted">
-                    {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : m.username[0]?.toUpperCase()}
+                    {src ? (
+                      <img src={src} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      m.username[0]?.toUpperCase()
+                    )}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-[0.75rem] font-semibold text-m-ink">{m.username}</span>
                   {selected && <Check size={12} strokeWidth={2.4} className="flex-none text-m-ink" />}
                 </button>
-              )
+              );
             })}
           </div>
         )}
@@ -307,7 +371,9 @@ function BagRow({ planner, bag, itemCount, weight, pct, tripMembers, canEdit, on
       <div className="h-[7px] overflow-hidden rounded-full bg-[color:var(--m-ic)]">
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: bag.color }} />
       </div>
-      <div className="mt-[3px] font-geist text-[0.65625rem] text-m-faint">{itemCount} {t('admin.packingTemplates.items')}</div>
+      <div className="mt-[3px] font-geist text-[0.65625rem] text-m-faint">
+        {itemCount} {t('admin.packingTemplates.items')}
+      </div>
     </div>
-  )
+  );
 }

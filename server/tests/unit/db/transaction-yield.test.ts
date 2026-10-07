@@ -35,15 +35,16 @@
  * docstring: NESTED propagation) rather than the independent, connection-mutex-
  * queued transaction two unrelated concurrent requests actually are.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { createUser, createTrip } from '../../helpers/factories';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
-import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import { withRequestContext } from '../../../src/nest/database/request-context';
+import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser, createTrip } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -57,11 +58,17 @@ beforeAll(async () => {
   trips = t.repo(Trips);
   uow = new UnitOfWork(t.em);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('transaction yield (rule 24)', () => {
-  it('A — another request\'s ORM statement queues behind an open transaction: no interleaving, and its result only becomes observable after the holder commits', async () => {
+  it("A — another request's ORM statement queues behind an open transaction: no interleaving, and its result only becomes observable after the holder commits", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { end_date: '2026-01-01' });
 
@@ -144,7 +151,8 @@ describe('transaction yield (rule 24)', () => {
     // A), so both share the one better-sqlite3 connection directly and run
     // INSIDE the holder's still-open, uncommitted transaction.
     await withRequestContext(t.orm, async () => {
-      const row = testDb.prepare('SELECT end_date FROM trips WHERE id = ?').get(trip.id) as { end_date: string | null } | undefined;
+      const row = testDb.prepare('SELECT end_date FROM trips WHERE id = ?').get(trip.id) as
+        { end_date: string | null } | undefined;
       dirtyRead = row?.end_date;
       testDb.prepare('UPDATE trips SET title = ? WHERE id = ?').run('DIRTY-WRITE-MARKER', trip.id);
     });
@@ -162,7 +170,10 @@ describe('transaction yield (rule 24)', () => {
     // production code: a raw statement issued mid-transaction by ANOTHER
     // request would otherwise report success on a write this rollback just
     // undid.
-    const after = testDb.prepare('SELECT end_date, title FROM trips WHERE id = ?').get(trip.id) as { end_date: string | null; title: string };
+    const after = testDb.prepare('SELECT end_date, title FROM trips WHERE id = ?').get(trip.id) as {
+      end_date: string | null;
+      title: string;
+    };
     expect(after.end_date).toBe('2026-01-01');
     expect(after.title).toBe('Original Title');
   });

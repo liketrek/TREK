@@ -6,22 +6,41 @@
  * than an edge one, and the failure mode of getting it wrong is somebody's
  * afternoon disappearing with no error anywhere.
  */
+import { db as testDb } from '../../../src/db/database';
+import { db as dbConn } from '../../../src/db/database';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
+import { JourneyBookService } from '../../../src/nest/journey/journey-book.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { createUser, createJourney, addJourneyContributor } from '../../helpers/factories';
+import {
+  createTestJourneysRepo,
+  createTestJourneyContributorsRepo,
+  createTestJourneyTripsRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyPhotosRepo,
+  createTestJourneyEntryPhotosRepo,
+} from '../../helpers/journey-repos';
+import { createTestJourneyBooksRepo } from '../../helpers/journey-share-repos';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestUnitOfWork, sharedTestOrm, createTestTripsRepo, createTestPlacesRepo } from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
-    return {
-      db,
-      closeDb: () => {},
-      reinitialize: () => {},
-      getPlaceWithTags: () => null,
-      canAccessTrip: () => null,
-      isOwner: () => false,
-    };
+  return {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: () => null,
+    canAccessTrip: () => null,
+    isOwner: () => false,
+  };
 });
-
 
 vi.mock('../../../src/config', () => ({
   JWT_SECRET: 'test-secret',
@@ -29,23 +48,6 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 vi.mock('../../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createJourney, addJourneyContributor } from '../../helpers/factories';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { JourneyBookService } from '../../../src/nest/journey/journey-book.service';
-import { db as dbConn } from '../../../src/db/database';
-import { createTestUnitOfWork, sharedTestOrm, createTestTripsRepo, createTestPlacesRepo } from '../../helpers/test-uow';
-import {
-  createTestJourneysRepo, createTestJourneyContributorsRepo, createTestJourneyTripsRepo, createTestJourneyEntriesRepo,
-  createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
-} from '../../helpers/journey-repos';
-import { createTestJourneyBooksRepo } from '../../helpers/journey-share-repos';
 
 let domain: JourneyDomainService;
 let books: JourneyBookService;
@@ -64,11 +66,18 @@ beforeAll(async () => {
   const uow = await createTestUnitOfWork(testDb);
   const t = await sharedTestOrm(testDb);
   domain = new JourneyDomainService(
-    new RealtimeService(), new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), await createTestJourneyPhotosRepo(testDb)), uow,
-    await createTestJourneysRepo(testDb), await createTestJourneyContributorsRepo(testDb),
-    await createTestJourneyTripsRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestTripsRepo(testDb),
+    new RealtimeService(),
+    new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), await createTestJourneyPhotosRepo(testDb)),
+    uow,
+    await createTestJourneysRepo(testDb),
+    await createTestJourneyContributorsRepo(testDb),
+    await createTestJourneyTripsRepo(testDb),
+    await createTestJourneyEntriesRepo(testDb),
+    await createTestTripsRepo(testDb),
     // Plan 3g Task 2 constructor-ripple: JourneyPhotosRepository/JourneyEntryPhotosRepository/PlacesRepository.
-    await createTestJourneyPhotosRepo(testDb), await createTestJourneyEntryPhotosRepo(testDb), await createTestPlacesRepo(testDb),
+    await createTestJourneyPhotosRepo(testDb),
+    await createTestJourneyEntryPhotosRepo(testDb),
+    await createTestPlacesRepo(testDb),
   );
   // Plan 3g Task 3: JourneyBooksRepository (JB1-JB7), not `dbs` any more.
   // task-5-fix-brief constructor-ripple (M1): `UnitOfWork`, so `saveBook`'s
@@ -191,9 +200,7 @@ describe('creating and reading', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     testDb
-      .prepare(
-        "INSERT INTO journey_books (journey_id, title, document, version) VALUES (?, 'T', '{not json', 1)",
-      )
+      .prepare("INSERT INTO journey_books (journey_id, title, document, version) VALUES (?, 'T', '{not json', 1)")
       .run(journey.id);
 
     const read = await books.getBook(journey.id, user.id);
@@ -340,7 +347,9 @@ describe('concurrency', () => {
     testDb
       .prepare('UPDATE journey_books SET title = ?, document = ?, version = version + 1 WHERE id = ?')
       .run('Clobbered', JSON.stringify(doc('clobbered')), row.id);
-    const afterMutation = testDb.prepare('SELECT title FROM journey_books WHERE id = ?').get(row.id) as { title: string };
+    const afterMutation = testDb.prepare('SELECT title FROM journey_books WHERE id = ?').get(row.id) as {
+      title: string;
+    };
     expect(afterMutation.title).toBe('Clobbered');
   });
 
@@ -368,10 +377,14 @@ describe('concurrency', () => {
     // other either also lands as {record} (version 2, having taken the
     // update branch against baseVersion undefined -> existing.version) or
     // sees a stale conflict — either way, never a second inserted row.
-    const rows = testDb.prepare('SELECT COUNT(*) AS n FROM journey_books WHERE journey_id = ?').get(journey.id) as { n: number };
+    const rows = testDb.prepare('SELECT COUNT(*) AS n FROM journey_books WHERE journey_id = ?').get(journey.id) as {
+      n: number;
+    };
     expect(rows.n).toBe(1);
 
-    const finalVersion = (testDb.prepare('SELECT version FROM journey_books WHERE journey_id = ?').get(journey.id) as { version: number }).version;
+    const finalVersion = (
+      testDb.prepare('SELECT version FROM journey_books WHERE journey_id = ?').get(journey.id) as { version: number }
+    ).version;
     expect(finalVersion).toBe(2);
   });
 });
@@ -388,12 +401,7 @@ describe('broadcastSaved', () => {
     const spy = vi.spyOn(domain, 'broadcastJourneyEvent').mockImplementation(async () => {});
     await books.broadcastSaved(journey.id, user.id, record!, 'socket-7');
 
-    expect(spy).toHaveBeenCalledWith(
-      journey.id,
-      'journey:book:saved',
-      { version: 1, savedBy: user.id },
-      'socket-7',
-    );
+    expect(spy).toHaveBeenCalledWith(journey.id, 'journey:book:saved', { version: 1, savedBy: user.id }, 'socket-7');
     spy.mockRestore();
   });
 });
@@ -423,9 +431,9 @@ describe('deleting', () => {
 
     testDb.prepare('DELETE FROM journeys WHERE id = ?').run(journey.id);
 
-    const left = testDb
-      .prepare('SELECT COUNT(*) AS n FROM journey_books WHERE journey_id = ?')
-      .get(journey.id) as { n: number };
+    const left = testDb.prepare('SELECT COUNT(*) AS n FROM journey_books WHERE journey_id = ?').get(journey.id) as {
+      n: number;
+    };
     expect(left.n).toBe(0);
   });
 });

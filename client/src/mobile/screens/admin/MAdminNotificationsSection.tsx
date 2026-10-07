@@ -1,14 +1,14 @@
-import { authApi, notificationsApi } from '../../../api/client'
-import type { TranslationFn } from '../../../types'
-import type { useAdmin } from '../../../pages/admin/useAdmin'
-import { SWITCH_ONLY_CHANNELS, useNotificationChannels } from '../../../components/Admin/useNotificationChannels'
-import MToggle from '../../components/MToggle'
-import MAdminNotifyMatrix from './MAdminNotifyMatrix'
-import { MAdminButton, MAdminCard, MAdminCardHead, MAdminField, MAdminInput, MAdminRow } from './MAdminUi'
+import { authApi, notificationsApi } from '../../../api/client';
+import { SWITCH_ONLY_CHANNELS, useNotificationChannels } from '../../../components/Admin/useNotificationChannels';
+import type { useAdmin } from '../../../pages/admin/useAdmin';
+import type { TranslationFn } from '../../../types';
+import MToggle from '../../components/MToggle';
+import MAdminNotifyMatrix from './MAdminNotifyMatrix';
+import { MAdminButton, MAdminCard, MAdminCardHead, MAdminField, MAdminInput, MAdminRow } from './MAdminUi';
 
 interface MAdminNotificationsSectionProps {
-  admin: ReturnType<typeof useAdmin>
-  t: TranslationFn
+  admin: ReturnType<typeof useAdmin>;
+  t: TranslationFn;
 }
 
 const SMTP_FIELDS = [
@@ -17,97 +17,97 @@ const SMTP_FIELDS = [
   { key: 'smtp_user', label: 'SMTP User', placeholder: 'trek@example.com' },
   { key: 'smtp_pass', label: 'SMTP Password', placeholder: '••••••••', type: 'password' },
   { key: 'smtp_from', label: 'From Address', placeholder: 'trek@example.com' },
-]
+];
 
 // Notifications section: channel toggles (email/webhook/ntfy/web push/in-app),
 // SMTP credentials, trip reminders, admin webhook + ntfy targets and the
 // per-event preference matrix: the desktop notifications tab in mobile cards.
 // The channel switches come from useNotificationChannels, shared with desktop.
 export default function MAdminNotificationsSection({ admin, t }: MAdminNotificationsSectionProps) {
-  const { toast, smtpValues, setSmtpValues, smtpLoaded, setTripRemindersEnabled } = admin
+  const { toast, smtpValues, setSmtpValues, smtpLoaded, setTripRemindersEnabled } = admin;
 
-  const channels = useNotificationChannels(admin, t)
-  const emailActive = channels.isActive('email')
-  const tripRemindersActive = smtpValues.notify_trip_reminder !== 'false'
-  const smtpConfigured = !!smtpValues.smtp_host?.trim()
+  const channels = useNotificationChannels(admin, t);
+  const emailActive = channels.isActive('email');
+  const tripRemindersActive = smtpValues.notify_trip_reminder !== 'false';
+  const smtpConfigured = !!smtpValues.smtp_host?.trim();
 
   const saveSmtp = async () => {
     // Saves credentials only — channel activation is auto-saved by the toggle.
-    const notifKeys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_skip_tls_verify']
-    const payload: Record<string, string> = {}
+    const notifKeys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_skip_tls_verify'];
+    const payload: Record<string, string> = {};
     for (const k of notifKeys) {
-      if (smtpValues[k] !== undefined) payload[k] = smtpValues[k]
+      if (smtpValues[k] !== undefined) payload[k] = smtpValues[k];
     }
     try {
-      await authApi.updateAppSettings(payload)
-      toast.success(t('admin.notifications.saved'))
+      await authApi.updateAppSettings(payload);
+      toast.success(t('admin.notifications.saved'));
       authApi
         .getAppConfig()
         .then((c: { trip_reminders_enabled?: boolean }) => {
-          if (c?.trip_reminders_enabled !== undefined) setTripRemindersEnabled(c.trip_reminders_enabled)
+          if (c?.trip_reminders_enabled !== undefined) setTripRemindersEnabled(c.trip_reminders_enabled);
         })
-        .catch(() => {})
+        .catch(() => {});
     } catch {
-      toast.error(t('common.error'))
+      toast.error(t('common.error'));
     }
-  }
+  };
 
   const testSmtp = async () => {
-    const smtpKeys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_skip_tls_verify']
-    const payload: Record<string, string> = {}
+    const smtpKeys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_skip_tls_verify'];
+    const payload: Record<string, string> = {};
     for (const k of smtpKeys) {
-      if (smtpValues[k] !== undefined) payload[k] = smtpValues[k]
+      if (smtpValues[k] !== undefined) payload[k] = smtpValues[k];
     }
-    await authApi.updateAppSettings(payload).catch(() => {})
+    await authApi.updateAppSettings(payload).catch(() => {});
     try {
-      const result = await notificationsApi.testSmtp()
-      if (result.success) toast.success(t('admin.smtp.testSuccess'))
-      else toast.error(result.error || t('admin.smtp.testFailed'))
+      const result = await notificationsApi.testSmtp();
+      if (result.success) toast.success(t('admin.smtp.testSuccess'));
+      else toast.error(result.error || t('admin.smtp.testFailed'));
     } catch {
-      toast.error(t('admin.smtp.testFailed'))
+      toast.error(t('admin.smtp.testFailed'));
     }
-  }
+  };
 
   const toggleTripReminders = async () => {
-    const next = !tripRemindersActive
-    setSmtpValues((prev) => ({ ...prev, notify_trip_reminder: next ? 'true' : 'false' }))
+    const next = !tripRemindersActive;
+    setSmtpValues((prev) => ({ ...prev, notify_trip_reminder: next ? 'true' : 'false' }));
     try {
-      await authApi.updateAppSettings({ notify_trip_reminder: next ? 'true' : 'false' })
+      await authApi.updateAppSettings({ notify_trip_reminder: next ? 'true' : 'false' });
       toast.success(
-        next ? t('admin.notifications.tripReminders.enabled') : t('admin.notifications.tripReminders.disabled'),
-      )
+        next ? t('admin.notifications.tripReminders.enabled') : t('admin.notifications.tripReminders.disabled')
+      );
       authApi
         .getAppConfig()
         .then((c: { trip_reminders_enabled?: boolean }) => {
-          if (c?.trip_reminders_enabled !== undefined) setTripRemindersEnabled(c.trip_reminders_enabled)
+          if (c?.trip_reminders_enabled !== undefined) setTripRemindersEnabled(c.trip_reminders_enabled);
         })
-        .catch(() => {})
+        .catch(() => {});
     } catch {
-      setSmtpValues((prev) => ({ ...prev, notify_trip_reminder: tripRemindersActive ? 'true' : 'false' }))
-      toast.error(t('common.error'))
+      setSmtpValues((prev) => ({ ...prev, notify_trip_reminder: tripRemindersActive ? 'true' : 'false' }));
+      toast.error(t('common.error'));
     }
-  }
+  };
 
   const saveAdminWebhook = async () => {
     try {
-      await authApi.updateAppSettings({ admin_webhook_url: smtpValues.admin_webhook_url || '' })
-      toast.success(t('admin.notifications.adminWebhookPanel.saved'))
+      await authApi.updateAppSettings({ admin_webhook_url: smtpValues.admin_webhook_url || '' });
+      toast.success(t('admin.notifications.adminWebhookPanel.saved'));
     } catch {
-      toast.error(t('common.error'))
+      toast.error(t('common.error'));
     }
-  }
+  };
 
   const testAdminWebhook = async () => {
-    const url = smtpValues.admin_webhook_url === '••••••••' ? undefined : smtpValues.admin_webhook_url
+    const url = smtpValues.admin_webhook_url === '••••••••' ? undefined : smtpValues.admin_webhook_url;
     try {
-      if (url) await authApi.updateAppSettings({ admin_webhook_url: url }).catch(() => {})
-      const result = await notificationsApi.testWebhook(url)
-      if (result.success) toast.success(t('admin.notifications.adminWebhookPanel.testSuccess'))
-      else toast.error(result.error || t('admin.notifications.adminWebhookPanel.testFailed'))
+      if (url) await authApi.updateAppSettings({ admin_webhook_url: url }).catch(() => {});
+      const result = await notificationsApi.testWebhook(url);
+      if (result.success) toast.success(t('admin.notifications.adminWebhookPanel.testSuccess'));
+      else toast.error(result.error || t('admin.notifications.adminWebhookPanel.testFailed'));
     } catch {
-      toast.error(t('admin.notifications.adminWebhookPanel.testFailed'))
+      toast.error(t('admin.notifications.adminWebhookPanel.testFailed'));
     }
-  }
+  };
 
   const saveAdminNtfy = async () => {
     try {
@@ -117,36 +117,36 @@ export default function MAdminNotificationsSection({ admin, t }: MAdminNotificat
         ...(smtpValues.admin_ntfy_token && smtpValues.admin_ntfy_token !== '••••••••'
           ? { admin_ntfy_token: smtpValues.admin_ntfy_token }
           : {}),
-      })
-      toast.success(t('admin.notifications.adminNtfyPanel.saved'))
+      });
+      toast.success(t('admin.notifications.adminNtfyPanel.saved'));
     } catch {
-      toast.error(t('common.error'))
+      toast.error(t('common.error'));
     }
-  }
+  };
 
   const testAdminNtfy = async () => {
-    const topic = smtpValues.admin_ntfy_topic?.trim()
-    if (!topic) return
+    const topic = smtpValues.admin_ntfy_topic?.trim();
+    if (!topic) return;
     try {
       const token =
-        smtpValues.admin_ntfy_token && smtpValues.admin_ntfy_token !== '••••••••' ? smtpValues.admin_ntfy_token : null
-      const result = await notificationsApi.testNtfy({ topic, server: smtpValues.admin_ntfy_server || null, token })
-      if (result.success) toast.success(t('admin.notifications.adminNtfyPanel.testSuccess'))
-      else toast.error(result.error || t('admin.notifications.adminNtfyPanel.testFailed'))
+        smtpValues.admin_ntfy_token && smtpValues.admin_ntfy_token !== '••••••••' ? smtpValues.admin_ntfy_token : null;
+      const result = await notificationsApi.testNtfy({ topic, server: smtpValues.admin_ntfy_server || null, token });
+      if (result.success) toast.success(t('admin.notifications.adminNtfyPanel.testSuccess'));
+      else toast.error(result.error || t('admin.notifications.adminNtfyPanel.testFailed'));
     } catch {
-      toast.error(t('admin.notifications.adminNtfyPanel.testFailed'))
+      toast.error(t('admin.notifications.adminNtfyPanel.testFailed'));
     }
-  }
+  };
 
   const clearNtfyToken = async () => {
     try {
-      await authApi.updateAppSettings({ admin_ntfy_token: '' })
-      setSmtpValues((prev) => ({ ...prev, admin_ntfy_token: '' }))
-      toast.success(t('admin.notifications.adminNtfyPanel.tokenCleared'))
+      await authApi.updateAppSettings({ admin_ntfy_token: '' });
+      setSmtpValues((prev) => ({ ...prev, admin_ntfy_token: '' }));
+      toast.success(t('admin.notifications.adminNtfyPanel.tokenCleared'));
     } catch {
-      toast.error(t('common.error'))
+      toast.error(t('common.error'));
     }
-  }
+  };
 
   return (
     <div className="space-y-3">
@@ -221,7 +221,9 @@ export default function MAdminNotificationsSection({ admin, t }: MAdminNotificat
         <MAdminCardHead
           title={t('admin.notifications.inappPanel.title')}
           hint={t('admin.notifications.inappPanel.hint')}
-          trailing={<MToggle checked disabled ariaLabel={t('admin.notifications.inappPanel.title')} onChange={() => {}} />}
+          trailing={
+            <MToggle checked disabled ariaLabel={t('admin.notifications.inappPanel.title')} onChange={() => {}} />
+          }
         />
       </MAdminCard>
 
@@ -252,7 +254,9 @@ export default function MAdminNotificationsSection({ admin, t }: MAdminNotificat
               type="text"
               value={smtpValues.admin_webhook_url === '••••••••' ? '' : smtpValues.admin_webhook_url || ''}
               onChange={(e) => setSmtpValues((prev) => ({ ...prev, admin_webhook_url: e.target.value }))}
-              placeholder={smtpValues.admin_webhook_url === '••••••••' ? '••••••••' : 'https://discord.com/api/webhooks/...'}
+              placeholder={
+                smtpValues.admin_webhook_url === '••••••••' ? '••••••••' : 'https://discord.com/api/webhooks/...'
+              }
             />
           </div>
         )}
@@ -320,5 +324,5 @@ export default function MAdminNotificationsSection({ admin, t }: MAdminNotificat
 
       <MAdminNotifyMatrix t={t} toast={toast} />
     </div>
-  )
+  );
 }

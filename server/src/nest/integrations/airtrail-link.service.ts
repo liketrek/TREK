@@ -1,21 +1,21 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { ADDON_IDS } from '../../addons';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import { ReservationsRepository } from '../../db/repositories/Reservations.repository';
-import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
-import { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
 import { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { RealtimeService } from '../realtime/realtime.service';
+import { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
+import { ReservationsRepository } from '../../db/repositories/Reservations.repository';
 import { AddonsService } from '../addons/addons.service';
-import { ReservationsReadService } from '../reservations/reservations-read.service';
 import { logError } from '../audit/audit-log.logger';
+import { RealtimeService } from '../realtime/realtime.service';
+import { ReservationsReadService } from '../reservations/reservations-read.service';
+import { buildSavePayload } from './airtrail-sync.helpers';
 import { AirtrailAuthError, type AirtrailCreds, type AirtrailFlightRaw } from './airtrail.client';
 import { AirtrailClient } from './airtrail.client';
-import { AirtrailService } from './airtrail.service';
 import { canonicalHash } from './airtrail.mapper';
-import { buildSavePayload } from './airtrail-sync.helpers';
+import { AirtrailService } from './airtrail.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The AirTrail link lifecycle — the enablement gate, the detach policy, the
@@ -51,7 +51,8 @@ export class AirtrailLinkService {
   async broadcastUpdated(tripId: number, reservationId: number): Promise<void> {
     try {
       const reservation = await this.reads.getReservationWithJoins(reservationId);
-      if (reservation) this.realtime.broadcast(String(tripId), 'reservation:updated', { reservation } as never, undefined);
+      if (reservation)
+        this.realtime.broadcast(String(tripId), 'reservation:updated', { reservation } as never, undefined);
     } catch {
       /* broadcast failure is non-fatal */
     }
@@ -106,7 +107,8 @@ export class AirtrailLinkService {
     // AirTrail is read-only by default (#1240). Only push when the flight's owner has
     // explicitly opted in. A no-op skip (not a detach): the link stays active so the
     // inbound, AirTrail-wins pull keeps the reservation up to date.
-    if (!row.external_owner_user_id || !(await this.airtrail.isAirtrailWriteEnabled(row.external_owner_user_id))) return;
+    if (!row.external_owner_user_id || !(await this.airtrail.isAirtrailWriteEnabled(row.external_owner_user_id)))
+      return;
 
     const creds: AirtrailCreds | null = await this.airtrail.getAirtrailCredentials(row.external_owner_user_id);
     if (!creds) {

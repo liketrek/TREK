@@ -1,12 +1,13 @@
-import crypto from 'node:crypto';
-import { Readable } from 'node:stream';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Response } from 'express';
-import { StorageService } from '../storage/storage.service';
-import { StorageNotFoundError } from '../storage/storage.types';
 import { TrekPhotoCacheMeta } from '../../db/entities/TrekPhotoCacheMeta.entity';
 import type { TrekPhotoCacheMetaRepository } from '../../db/repositories/TrekPhotoCacheMeta.repository';
+import { StorageService } from '../storage/storage.service';
+import { StorageNotFoundError } from '../storage/storage.types';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+
+import { Response } from 'express';
+import crypto from 'node:crypto';
+import { Readable } from 'node:stream';
 
 export const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
@@ -115,7 +116,9 @@ export class TrekPhotoCacheService {
       const key = stat.key.slice(0, -'.bin'.length);
       const exists = await this.cacheMeta.existsByCacheKey(key); // TC7
       if (!exists) {
-        await this.storage.delete('photos-trek', stat.key).catch(() => { /* race */ });
+        await this.storage.delete('photos-trek', stat.key).catch(() => {
+          /* race */
+        });
       }
     }
   }

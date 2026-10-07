@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { McpTokens } from '../../db/entities/McpTokens.entity';
 import { Users } from '../../db/entities/Users.entity';
-import { TokenService } from './token.service';
 import { EphemeralTokenModule } from '../auth/ephemeral-token.module';
+import { TokenService } from './token.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Tokens that are not the login JWT: the long-lived MCP tokens a user manages

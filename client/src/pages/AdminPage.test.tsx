@@ -535,7 +535,8 @@ describe('AdminPage', () => {
       let capturedBody: Record<string, unknown> | null = null;
       server.use(
         http.get('/api/admin/transit-provider', () =>
-          HttpResponse.json({ provider: 'transitous', googleKeySource: 'instance' })),
+          HttpResponse.json({ provider: 'transitous', googleKeySource: 'instance' })
+        ),
         http.put('/api/admin/transit-provider', async ({ request }) => {
           capturedBody = (await request.json()) as Record<string, unknown>;
           return HttpResponse.json({ provider: 'google', googleKeySource: 'instance' });
@@ -561,7 +562,8 @@ describe('AdminPage', () => {
       let puts = 0;
       server.use(
         http.get('/api/admin/transit-provider', () =>
-          HttpResponse.json({ provider: 'transitous', googleKeySource: 'instance' })),
+          HttpResponse.json({ provider: 'transitous', googleKeySource: 'instance' })
+        ),
         http.put('/api/admin/transit-provider', () => {
           puts += 1;
           return HttpResponse.json({ provider: 'google', googleKeySource: 'instance' });
@@ -584,7 +586,7 @@ describe('AdminPage', () => {
       // entry carry the same label, so the entry is the one that is not the trigger.
       const trigger = transitTrigger();
       fireEvent.click(trigger);
-      const entry = screen.getAllByRole('button', { name: /^google$/i }).find(b => b !== trigger);
+      const entry = screen.getAllByRole('button', { name: /^google$/i }).find((b) => b !== trigger);
       fireEvent.click(entry!);
 
       await waitFor(() => expect(transitTrigger()).toHaveTextContent('Google'));
@@ -595,8 +597,7 @@ describe('AdminPage', () => {
   describe('FE-PAGE-ADMIN-023c: Transit provider key warnings (#1699)', () => {
     async function openSettingsWith(googleKeySource: string | null) {
       server.use(
-        http.get('/api/admin/transit-provider', () =>
-          HttpResponse.json({ provider: 'google', googleKeySource })),
+        http.get('/api/admin/transit-provider', () => HttpResponse.json({ provider: 'google', googleKeySource }))
       );
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
       render(<AdminPage />);
@@ -611,7 +612,7 @@ describe('AdminPage', () => {
       expect(await screen.findByText(/no google api key is configured/i)).toBeInTheDocument();
     });
 
-    it('warns that only the admin\'s own key is set, so others fall back', async () => {
+    it("warns that only the admin's own key is set, so others fall back", async () => {
       await openSettingsWith('user-row');
       expect(await screen.findByText(/only your own google key is set/i)).toBeInTheDocument();
     });
@@ -1792,9 +1793,7 @@ describe('AdminPage', () => {
   describe('FE-PAGE-ADMIN-059: Stats fallbacks', () => {
     it('shows a zero file count when the API omits totalFiles', async () => {
       server.use(
-        http.get('/api/admin/stats', () =>
-          HttpResponse.json({ totalUsers: 3, totalTrips: 11, totalPlaces: 42 })
-        )
+        http.get('/api/admin/stats', () => HttpResponse.json({ totalUsers: 3, totalTrips: 11, totalPlaces: 42 }))
       );
 
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });

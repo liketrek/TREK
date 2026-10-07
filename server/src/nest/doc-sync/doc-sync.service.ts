@@ -1,34 +1,25 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
-import { pipeline } from 'node:stream/promises';
-import { Transform } from 'node:stream';
-import { Readable } from 'node:stream';
-import type { DocsyncErrorCode } from '@trek/shared';
-import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
-import { StorageService } from '../storage/storage.service';
-import { UnitOfWork } from '../database/unit-of-work';
-import { FilesService } from '../files/files.service';
-import { AllowedFileTypesService } from '../files/allowed-file-types.service';
-import { RealtimeService } from '../realtime/realtime.service';
-import { MAX_FILE_SIZE, isVideoExtension } from '../files/files.constants';
-import { TripDocumentLinks } from '../../db/entities/TripDocumentLinks.entity';
-import type { TripDocumentLinksRepository } from '../../db/repositories/TripDocumentLinks.repository';
-import { DocumentSyncItems } from '../../db/entities/DocumentSyncItems.entity';
-import type { DocumentSyncIssueRow, DocumentSyncItemsRepository } from '../../db/repositories/DocumentSyncItems.repository';
-import { TripFiles } from '../../db/entities/TripFiles.entity';
-import type { TripFilesRepository } from '../../db/repositories/TripFiles.repository';
-import { FileLinks } from '../../db/entities/FileLinks.entity';
-import type { FileLinksRepository } from '../../db/repositories/FileLinks.repository';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { DocumentSyncItems } from '../../db/entities/DocumentSyncItems.entity';
+import { FileLinks } from '../../db/entities/FileLinks.entity';
+import { TripDocumentLinks } from '../../db/entities/TripDocumentLinks.entity';
+import { TripFiles } from '../../db/entities/TripFiles.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import { DocumentProviderRegistry } from './document-provider.registry';
+import type {
+  DocumentSyncIssueRow,
+  DocumentSyncItemsRepository,
+} from '../../db/repositories/DocumentSyncItems.repository';
+import type { FileLinksRepository } from '../../db/repositories/FileLinks.repository';
+import type { TripDocumentLinksRepository } from '../../db/repositories/TripDocumentLinks.repository';
+import type { TripFilesRepository } from '../../db/repositories/TripFiles.repository';
+import { AddonsService } from '../addons/addons.service';
+import { UnitOfWork } from '../database/unit-of-work';
+import { AllowedFileTypesService } from '../files/allowed-file-types.service';
+import { MAX_FILE_SIZE, isVideoExtension } from '../files/files.constants';
+import { FilesService } from '../files/files.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { StorageService } from '../storage/storage.service';
 import { DocSyncConfigService, type ConnectionRow, type LinkRow } from './doc-sync-config.service';
-import type { DocumentProvider, RemoteDocument } from './document-provider';
-import { docFailed } from './document-provider';
 import {
   ITEM_BACKOFF_SECONDS,
   ITEM_MAX_ATTEMPTS,
@@ -49,6 +40,19 @@ import {
   type PlanAction,
   type SyncItemState,
 } from './doc-sync.helpers';
+import type { DocumentProvider, RemoteDocument } from './document-provider';
+import { docFailed } from './document-provider';
+import { DocumentProviderRegistry } from './document-provider.registry';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, Logger } from '@nestjs/common';
+import type { DocsyncErrorCode } from '@trek/shared';
+
+import crypto from 'crypto';
+import fs from 'fs';
+import { Transform } from 'node:stream';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import path from 'path';
 
 /**
  * The reconciler: it executes what `planReconcile` decided, and does nothing
@@ -161,7 +165,10 @@ export class DocSyncService {
    * off and lets the next link run. One unreachable NAS must not stop the
    * Paperless binding on another trip.
    */
-  async syncLink(link: LinkRow, opts: { full?: boolean } = {}): Promise<{
+  async syncLink(
+    link: LinkRow,
+    opts: { full?: boolean } = {},
+  ): Promise<{
     state: string;
     pulled: number;
     pushed: number;
@@ -184,13 +191,21 @@ export class DocSyncService {
     }
   }
 
-  private async runLink(link: LinkRow, opts: { full?: boolean }): Promise<{
-    state: string; pulled: number; pushed: number; conflicts: number; missing: number; errorCode?: DocsyncErrorCode;
+  private async runLink(
+    link: LinkRow,
+    opts: { full?: boolean },
+  ): Promise<{
+    state: string;
+    pulled: number;
+    pushed: number;
+    conflicts: number;
+    missing: number;
+    errorCode?: DocsyncErrorCode;
   }> {
     // First, before anything that records a failure: a binding whose provider
     // is switched off must come back as it was left. The webhook and a first
     // run after binding reach this without asking beforehand.
-    if ((await this.isSwitchedOff(link))) {
+    if (await this.isSwitchedOff(link)) {
       return { state: 'disabled', pulled: 0, pushed: 0, conflicts: 0, missing: 0 };
     }
     // An orphaned binding runs for nobody. Its credential belongs to somebody
@@ -217,9 +232,19 @@ export class DocSyncService {
     // alternative is re-creating someone's deleted folder and filling it again.
     const resolved = await provider.resolveScope(ref, scope);
     if (docFailed(resolved)) {
-      const code = resolved.error.code === 'not_found' || resolved.error.code === 'scope_missing' ? 'scope_missing' : resolved.error.code;
+      const code =
+        resolved.error.code === 'not_found' || resolved.error.code === 'scope_missing'
+          ? 'scope_missing'
+          : resolved.error.code;
       await this.recordLinkFailure(link, code, code === 'scope_missing' ? 'scope_lost' : undefined);
-      return { state: code === 'scope_missing' ? 'scope_lost' : 'failed', pulled: 0, pushed: 0, conflicts: 0, missing: 0, errorCode: code };
+      return {
+        state: code === 'scope_missing' ? 'scope_lost' : 'failed',
+        pulled: 0,
+        pushed: 0,
+        conflicts: 0,
+        missing: 0,
+        errorCode: code,
+      };
     }
 
     // Read before the listing because they decide how much of it is needed: a
@@ -250,9 +275,18 @@ export class DocSyncService {
     if (plan.massDeleteGuardTripped) {
       // Refusing the whole run is the point: the listing is not trustworthy, so
       // nothing in it should be acted on, not even the parts that look fine.
-      this.logger.warn(`link ${link.id}: mass-delete guard tripped (${plan.missingCount} of ${items.length} gone), run abandoned`);
+      this.logger.warn(
+        `link ${link.id}: mass-delete guard tripped (${plan.missingCount} of ${items.length} gone), run abandoned`,
+      );
       await this.recordLinkFailure(link, 'mass_delete_guard', 'partial');
-      return { state: 'partial', pulled: 0, pushed: 0, conflicts: 0, missing: plan.missingCount, errorCode: 'mass_delete_guard' };
+      return {
+        state: 'partial',
+        pulled: 0,
+        pushed: 0,
+        conflicts: 0,
+        missing: plan.missingCount,
+        errorCode: 'mass_delete_guard',
+      };
     }
 
     let pulled = 0;
@@ -274,9 +308,13 @@ export class DocSyncService {
       }
       if (changesProvider(action, link)) wroteUpstream = true;
       const outcome = await this.applyAction(action, { provider, ref, scope, link, conn });
-      if (outcome === 'pulled') { pulled += 1; transfers += 1; }
-      else if (outcome === 'pushed') { pushed += 1; transfers += 1; }
-      else if (outcome === 'conflict') conflicts += 1;
+      if (outcome === 'pulled') {
+        pulled += 1;
+        transfers += 1;
+      } else if (outcome === 'pushed') {
+        pushed += 1;
+        transfers += 1;
+      } else if (outcome === 'conflict') conflicts += 1;
       else if (outcome && outcome !== 'ok') softFailure = outcome;
     }
 
@@ -308,7 +346,13 @@ export class DocSyncService {
 
   private async applyAction(
     action: PlanAction,
-    ctx: { provider: DocumentProvider; ref: ReturnType<DocSyncConfigService['toRef']>; scope: ReturnType<DocSyncConfigService['toScopeRef']>; link: LinkRow; conn: ConnectionRow },
+    ctx: {
+      provider: DocumentProvider;
+      ref: ReturnType<DocSyncConfigService['toRef']>;
+      scope: ReturnType<DocSyncConfigService['toScopeRef']>;
+      link: LinkRow;
+      conn: ConnectionRow;
+    },
   ): Promise<'ok' | 'pulled' | 'pushed' | 'conflict' | DocsyncErrorCode> {
     switch (action.kind) {
       case 'pull':
@@ -316,7 +360,12 @@ export class DocSyncService {
         return this.pull(action.remote, action.kind === 'pull_update' ? action.itemId : null, ctx);
       case 'push':
       case 'push_update':
-        return this.push(action.local, 'itemId' in action ? action.itemId : null, 'remoteId' in action ? action.remoteId : null, ctx);
+        return this.push(
+          action.local,
+          'itemId' in action ? action.itemId : null,
+          'remoteId' in action ? action.remoteId : null,
+          ctx,
+        );
       case 'relocate': {
         // The id and the version only. `remote_name` is the rename arbiter and
         // keeps the agreed name; the rename, if there was one, is the planner's
@@ -333,7 +382,10 @@ export class DocSyncService {
       case 'rename_remote': {
         const res = await ctx.provider.rename(ctx.ref, ctx.scope, action.remoteId, action.name);
         if (docFailed(res)) return res.error.code;
-        await this.items.applyRenameRemote(action.itemId, { remote_name: action.name, remote_version: res.data.remoteVersion });
+        await this.items.applyRenameRemote(action.itemId, {
+          remote_name: action.name,
+          remote_version: res.data.remoteVersion,
+        });
         return 'ok';
       }
       case 'rename_local': {
@@ -416,7 +468,12 @@ export class DocSyncService {
   private async pull(
     remote: RemoteDocument,
     itemId: number | null,
-    ctx: { provider: DocumentProvider; ref: ReturnType<DocSyncConfigService['toRef']>; scope: ReturnType<DocSyncConfigService['toScopeRef']>; link: LinkRow },
+    ctx: {
+      provider: DocumentProvider;
+      ref: ReturnType<DocSyncConfigService['toRef']>;
+      scope: ReturnType<DocSyncConfigService['toScopeRef']>;
+      link: LinkRow;
+    },
   ): Promise<'pulled' | 'ok' | DocsyncErrorCode> {
     const name = sanitizeIncomingName(remote.name);
 
@@ -459,15 +516,24 @@ export class DocSyncService {
         transform(chunk: Buffer, _enc: BufferEncoding, cb: (e?: Error | null, d?: Buffer) => void) {
           bytes += chunk.length;
           hash.update(chunk);
-          if (bytes > MAX_FILE_SIZE) { cb(new Error('too_large')); return; }
+          if (bytes > MAX_FILE_SIZE) {
+            cb(new Error('too_large'));
+            return;
+          }
           cb(null, chunk);
         },
       });
       await pipeline(fetched.data.body, counting, fs.createWriteStream(tmpPath));
     } catch (err) {
       await fs.promises.rm(tmpPath, { force: true });
-      const code: DocsyncErrorCode = err instanceof Error && err.message === 'too_large' ? 'too_large' : 'provider_error';
-      await this.upsertItem(ctx.link, { itemId, remote, state: code === 'too_large' ? 'too_large' : 'error', errorCode: code });
+      const code: DocsyncErrorCode =
+        err instanceof Error && err.message === 'too_large' ? 'too_large' : 'provider_error';
+      await this.upsertItem(ctx.link, {
+        itemId,
+        remote,
+        state: code === 'too_large' ? 'too_large' : 'error',
+        errorCode: code,
+      });
       return code;
     }
 
@@ -522,7 +588,12 @@ export class DocSyncService {
     const { created, retired } = await this.uow.transactional(async () => {
       const file = await this.files.createFile(
         ctx.link.trip_id,
-        { filename: storageKey, originalname: name, size: bytes, mimetype: remote.mimeType || 'application/octet-stream' },
+        {
+          filename: storageKey,
+          originalname: name,
+          size: bytes,
+          mimetype: remote.mimeType || 'application/octet-stream',
+        },
         // Attributed to the person whose connection brought it in, which is the
         // only honest answer: nobody in TREK uploaded it.
         (await this.config.getConnection(ctx.link.connection_id))?.owner_user_id ?? 0,
@@ -562,7 +633,12 @@ export class DocSyncService {
     local: LocalDocument,
     itemId: number | null,
     remoteId: string | null,
-    ctx: { provider: DocumentProvider; ref: ReturnType<DocSyncConfigService['toRef']>; scope: ReturnType<DocSyncConfigService['toScopeRef']>; link: LinkRow },
+    ctx: {
+      provider: DocumentProvider;
+      ref: ReturnType<DocSyncConfigService['toRef']>;
+      scope: ReturnType<DocSyncConfigService['toScopeRef']>;
+      link: LinkRow;
+    },
   ): Promise<'pushed' | DocsyncErrorCode> {
     const caps = ctx.provider.capabilities(ctx.ref);
     const mime = local.mimeType || 'application/octet-stream';
@@ -570,7 +646,12 @@ export class DocSyncService {
     // Paperless refuses anything outside its parser list with a 400. Checking
     // first turns a recurring hard failure into one visible row that says why.
     if (caps.acceptedMimeTypes && !caps.acceptedMimeTypes.includes(mime)) {
-      await this.upsertItem(ctx.link, { itemId, fileId: local.fileId, state: 'rejected_type', errorCode: 'unsupported_type' });
+      await this.upsertItem(ctx.link, {
+        itemId,
+        fileId: local.fileId,
+        state: 'rejected_type',
+        errorCode: 'unsupported_type',
+      });
       return 'unsupported_type';
     }
     if (caps.maxUploadBytes !== null && local.size > caps.maxUploadBytes) {
@@ -614,7 +695,13 @@ export class DocSyncService {
     });
 
     if (docFailed(res)) {
-      await this.upsertItem(ctx.link, { itemId, fileId: local.fileId, state: 'error', errorCode: res.error.code, trekDocUid: uid });
+      await this.upsertItem(ctx.link, {
+        itemId,
+        fileId: local.fileId,
+        state: 'error',
+        errorCode: res.error.code,
+        trekDocUid: uid,
+      });
       return res.error.code;
     }
 
@@ -811,7 +898,8 @@ export class DocSyncService {
       // (see retryShelvedItems). The repository turns this second count into
       // the DB-clock `datetime('now', ...)` fragment itself (recordAttempt's
       // own docstring).
-      const nextAttemptAfterSeconds = failed && attempts < ITEM_MAX_ATTEMPTS ? backoffSeconds(ITEM_BACKOFF_SECONDS, attempts) : null;
+      const nextAttemptAfterSeconds =
+        failed && attempts < ITEM_MAX_ATTEMPTS ? backoffSeconds(ITEM_BACKOFF_SECONDS, attempts) : null;
 
       await this.items.recordAttempt(patch.itemId, {
         state: patch.state,
@@ -856,7 +944,12 @@ export class DocSyncService {
     });
   }
 
-  private async recordLinkSuccess(link: LinkRow, cursor: string | null, state: string, errorCode: string | null): Promise<void> {
+  private async recordLinkSuccess(
+    link: LinkRow,
+    cursor: string | null,
+    state: string,
+    errorCode: string | null,
+  ): Promise<void> {
     await this.linksRepo.recordSuccess(link.id, { remote_cursor: cursor, state, error_code: errorCode });
   }
 
@@ -1032,7 +1125,9 @@ export class DocSyncService {
 }
 
 function isTransfer(action: PlanAction): boolean {
-  return action.kind === 'pull' || action.kind === 'pull_update' || action.kind === 'push' || action.kind === 'push_update';
+  return (
+    action.kind === 'pull' || action.kind === 'pull_update' || action.kind === 'push' || action.kind === 'push_update'
+  );
 }
 
 /** Whether carrying out the action asks the provider to change something. */

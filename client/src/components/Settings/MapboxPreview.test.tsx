@@ -1,5 +1,5 @@
 // FE-COMP-GLPREVIEW-001 to FE-COMP-GLPREVIEW-014
-import { render, screen, act } from '../../../tests/helpers/render';
+import { act, render, screen } from '../../../tests/helpers/render';
 
 type ClickHandler = (e: { lngLat: { lat: number; lng: number } }) => void;
 
@@ -22,12 +22,16 @@ const glMap = vi.hoisted(() => ({
   setTerrain: vi.fn(),
 }));
 
-const mapboxCtor = vi.hoisted(() => vi.fn(function (_options: Record<string, unknown>) {
-  return glMap;
-}));
-const maplibreCtor = vi.hoisted(() => vi.fn(function (_options: Record<string, unknown>) {
-  return glMap;
-}));
+const mapboxCtor = vi.hoisted(() =>
+  vi.fn(function (_options: Record<string, unknown>) {
+    return glMap;
+  })
+);
+const maplibreCtor = vi.hoisted(() =>
+  vi.fn(function (_options: Record<string, unknown>) {
+    return glMap;
+  })
+);
 const mapboxModule = vi.hoisted(() => ({ accessToken: '', Map: mapboxCtor }));
 
 vi.mock('mapbox-gl', () => ({ default: mapboxModule }));
@@ -42,10 +46,10 @@ vi.mock('../Map/mapboxSetup', () => ({
   addTerrainAndSky: vi.fn(),
 }));
 
-import { isStandardFamily, supportsCustom3d, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup';
-import { MAPBOX_DEFAULT_STYLE, OPENFREEMAP_DEFAULT_STYLE } from '../Map/glProviders';
 import mapboxgl from 'mapbox-gl';
 import maplibregl from 'maplibre-gl';
+import { MAPBOX_DEFAULT_STYLE, OPENFREEMAP_DEFAULT_STYLE } from '../Map/glProviders';
+import { addCustom3dBuildings, addTerrainAndSky, isStandardFamily, supportsCustom3d } from '../Map/mapboxSetup';
 import GlMapPreviewWithEngine from './MapboxPreview';
 
 // The engine is a prop now, not a module import — that is what keeps mapbox-gl and
@@ -111,14 +115,7 @@ describe('GlMapPreview', () => {
 
   it('FE-COMP-GLPREVIEW-005: MapLibre needs no token and never asks for a projection', () => {
     render(
-      <GlMapPreview
-        provider="maplibre-gl"
-        style={OPENFREEMAP_DEFAULT_STYLE}
-        lat={48.8}
-        lng={2.3}
-        zoom={16}
-        enable3d
-      />,
+      <GlMapPreview provider="maplibre-gl" style={OPENFREEMAP_DEFAULT_STYLE} lat={48.8} lng={2.3} zoom={16} enable3d />
     );
 
     expect(maplibreCtor).toHaveBeenCalledTimes(1);
@@ -167,7 +164,9 @@ describe('GlMapPreview', () => {
     glMap.setTerrain.mockImplementationOnce(() => {
       throw new Error('no terrain');
     });
-    render(<GlMapPreview token="pk.test" style={MAPBOX_DEFAULT_STYLE} lat={48.8} lng={2.3} zoom={16} enable3d={false} />);
+    render(
+      <GlMapPreview token="pk.test" style={MAPBOX_DEFAULT_STYLE} lat={48.8} lng={2.3} zoom={16} enable3d={false} />
+    );
 
     expect(() => act(() => glHandlers.load?.())).not.toThrow();
   });
@@ -182,7 +181,9 @@ describe('GlMapPreview', () => {
 
   it('FE-COMP-GLPREVIEW-012: a map click reports the picked coordinates', () => {
     const onClick = vi.fn();
-    render(<GlMapPreview token="pk.test" style={STREETS} lat={48.8} lng={2.3} zoom={16} enable3d={false} onClick={onClick} />);
+    render(
+      <GlMapPreview token="pk.test" style={STREETS} lat={48.8} lng={2.3} zoom={16} enable3d={false} onClick={onClick} />
+    );
 
     act(() => glHandlers.click?.({ lngLat: { lat: 51.5, lng: -0.12 } }));
 
@@ -191,7 +192,7 @@ describe('GlMapPreview', () => {
 
   it('FE-COMP-GLPREVIEW-013: moving the centre recenters instead of rebuilding the map', () => {
     const { rerender } = render(
-      <GlMapPreview token="pk.test" style={STREETS} lat={48.8} lng={2.3} zoom={16} enable3d={false} />,
+      <GlMapPreview token="pk.test" style={STREETS} lat={48.8} lng={2.3} zoom={16} enable3d={false} />
     );
     glMap.jumpTo.mockClear();
 
@@ -206,7 +207,7 @@ describe('GlMapPreview', () => {
       throw new Error('not ready');
     });
     const { unmount } = render(
-      <GlMapPreview token="pk.test" style={STREETS} lat={48.8} lng={2.3} zoom={16} enable3d={false} />,
+      <GlMapPreview token="pk.test" style={STREETS} lat={48.8} lng={2.3} zoom={16} enable3d={false} />
     );
 
     expect(glMap.jumpTo).toHaveBeenCalled();

@@ -1,18 +1,18 @@
-import { ArrowLeft, ArrowRight } from 'lucide-react'
-import { useTranslation } from '../../../i18n/TranslationContext'
-import { DOCUMENT_PROVIDER_ICONS } from '../../shared/DocumentProviderIcons'
-import TrekIcon from '../../shared/TrekIcon'
-import { Badge } from './DocSyncBits'
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { useTranslation } from '../../../i18n/TranslationContext';
+import { DOCUMENT_PROVIDER_ICONS } from '../../shared/DocumentProviderIcons';
+import TrekIcon from '../../shared/TrekIcon';
+import { Badge } from './DocSyncBits';
 
-export type SyncDirection = 'both' | 'pull' | 'push'
+export type SyncDirection = 'both' | 'pull' | 'push';
 
 export interface FlowHoldings {
   /** Documents this trip has in TREK. */
-  inTrek: number
+  inTrek: number;
   /** How many of them the store is holding. */
-  atProvider: number
-  paired: number
-  missing: number
+  atProvider: number;
+  paired: number;
+  missing: number;
 }
 
 /**
@@ -37,32 +37,32 @@ export default function DocSyncFlow({
   disabled,
   onChange,
 }: {
-  direction: SyncDirection
-  providerId: string
-  providerName: string
-  holdings: FlowHoldings
+  direction: SyncDirection;
+  providerId: string;
+  providerName: string;
+  holdings: FlowHoldings;
   /** A run is in flight: the active lanes move while it is. */
-  running?: boolean
-  disabled?: boolean
-  onChange: (next: SyncDirection) => void
+  running?: boolean;
+  disabled?: boolean;
+  onChange: (next: SyncDirection) => void;
 }) {
-  const { t } = useTranslation()
-  const Icon = DOCUMENT_PROVIDER_ICONS[providerId]
-  const pushOn = direction === 'both' || direction === 'push'
-  const pullOn = direction === 'both' || direction === 'pull'
+  const { t } = useTranslation();
+  const Icon = DOCUMENT_PROVIDER_ICONS[providerId];
+  const pushOn = direction === 'both' || direction === 'push';
+  const pullOn = direction === 'both' || direction === 'pull';
 
   const hint = disabled
     ? t(`docsync.flow.summary.${direction}`, { provider: providerName })
-    : t(`docsync.flow.summaryEditable.${direction}`, { provider: providerName })
+    : t(`docsync.flow.summaryEditable.${direction}`, { provider: providerName });
 
   /** Turning a lane off leaves the other one; turning the last one off is refused. */
   const toggle = (lane: 'push' | 'pull') => {
-    if (disabled) return
-    const nextPush = lane === 'push' ? !pushOn : pushOn
-    const nextPull = lane === 'pull' ? !pullOn : pullOn
-    if (!nextPush && !nextPull) return
-    onChange(nextPush && nextPull ? 'both' : nextPush ? 'push' : 'pull')
-  }
+    if (disabled) return;
+    const nextPush = lane === 'push' ? !pushOn : pushOn;
+    const nextPull = lane === 'pull' ? !pullOn : pullOn;
+    if (!nextPush && !nextPull) return;
+    onChange(nextPush && nextPull ? 'both' : nextPush ? 'push' : 'pull');
+  };
 
   return (
     <section className="rounded-2xl border border-edge bg-surface-secondary p-4 sm:p-6">
@@ -107,7 +107,7 @@ export default function DocSyncFlow({
         />
       </div>
     </section>
-  )
+  );
 }
 
 /**
@@ -118,11 +118,9 @@ export default function DocSyncFlow({
  * answered before they read a word.
  */
 function End({ name, count, glyph }: { name: string; count: number; glyph: React.ReactNode }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   return (
-    <div
-      className="flex w-24 shrink-0 flex-col items-center gap-2 rounded-2xl border border-edge bg-surface px-3 py-4 shadow-card sm:w-32"
-    >
+    <div className="flex w-24 shrink-0 flex-col items-center gap-2 rounded-2xl border border-edge bg-surface px-3 py-4 shadow-card sm:w-32">
       <span className="grid h-10 w-10 place-items-center rounded-xl bg-surface-secondary">{glyph}</span>
 
       <span className="flex flex-col items-center gap-1">
@@ -136,7 +134,7 @@ function End({ name, count, glyph }: { name: string; count: number; glyph: React
         <span className="max-w-[6.5rem] truncate">{name}</span>
       </Badge>
     </div>
-  )
+  );
 }
 
 /**
@@ -154,15 +152,15 @@ function Lane({
   onClick,
   children,
 }: {
-  active: boolean
-  running?: boolean
-  disabled?: boolean
-  caption: string
-  reverse?: boolean
-  onClick: () => void
-  children: React.ReactNode
+  active: boolean;
+  running?: boolean;
+  disabled?: boolean;
+  caption: string;
+  reverse?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
 }) {
-  const moving = active && running
+  const moving = active && running;
   return (
     <button
       type="button"
@@ -175,9 +173,7 @@ function Lane({
         // and that line reads as a broken frame rather than as a hatch.
         'group relative flex h-12 items-center gap-3 overflow-hidden rounded-xl px-3 text-caption transition-all duration-200',
         reverse ? 'flex-row-reverse' : '',
-        active
-          ? 'bg-accent-subtle text-accent-on'
-          : 'trek-docsync-lane-off bg-surface text-content-faint',
+        active ? 'bg-accent-subtle text-accent-on' : 'trek-docsync-lane-off bg-surface text-content-faint',
         disabled ? 'cursor-default' : active ? 'hover:brightness-[0.98]' : 'hover:text-content-muted',
       ].join(' ')}
     >
@@ -209,5 +205,5 @@ function Lane({
         />
       )}
     </button>
-  )
+  );
 }

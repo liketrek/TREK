@@ -1,25 +1,25 @@
-import { CalendarMinus } from 'lucide-react'
-import type { ImpactLine, ImpactTone } from '../../utils/dayImpactLines'
+import { CalendarMinus } from 'lucide-react';
+import type { ImpactLine, ImpactTone } from '../../utils/dayImpactLines';
 
 /** The class names one shell draws the list with. */
 export interface ImpactListSkin {
-  list: string
-  row: string
+  list: string;
+  row: string;
   /** Between two rows; the desktop card divides them itself. */
-  divider: string
-  chip: string
+  divider: string;
+  chip: string;
   /** One removed day, named in the row above the content rows. */
-  dayChip: string
-  iconSize: number
-  text: string
-  hint: string
-  chipTone: Record<ImpactTone, string>
-  textTone: Record<ImpactTone, string>
+  dayChip: string;
+  iconSize: number;
+  text: string;
+  hint: string;
+  chipTone: Record<ImpactTone, string>;
+  textTone: Record<ImpactTone, string>;
   /** The whole row per tone: a cancelled stay is tinted from edge to edge, not only in its text. */
-  rowTone: Record<ImpactTone, string>
+  rowTone: Record<ImpactTone, string>;
   /** A day with nothing on it: one quiet line instead of a card. */
-  plain: string
-  plainIcon: string
+  plain: string;
+  plainIcon: string;
 }
 
 const DESKTOP: ImpactListSkin = {
@@ -27,7 +27,8 @@ const DESKTOP: ImpactListSkin = {
   row: 'flex items-start gap-2.5 px-3 py-2',
   divider: '',
   chip: 'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg',
-  dayChip: 'rounded-full border border-edge-faint bg-surface-secondary px-2 py-px text-caption font-medium text-content-secondary',
+  dayChip:
+    'rounded-full border border-edge-faint bg-surface-secondary px-2 py-px text-caption font-medium text-content-secondary',
   iconSize: 14,
   text: 'text-body font-medium leading-snug text-pretty',
   hint: 'mt-px text-caption leading-snug text-content-muted text-pretty',
@@ -42,19 +43,19 @@ const DESKTOP: ImpactListSkin = {
   rowTone: { neutral: '', muted: '', warning: '', danger: 'bg-danger-soft' },
   plain: 'mt-3 flex items-center gap-2 rounded-xl bg-surface-secondary px-3 py-2.5 text-body text-content-muted',
   plainIcon: 'flex-shrink-0 text-content-faint',
-}
+};
 
 interface DayImpactListProps {
-  lines: ImpactLine[]
+  lines: ImpactLine[];
   /**
    * The days themselves, as chips in a first row: when several days go at
    * once, the list names them before it says what is on them.
    */
-  days?: string[]
+  days?: string[];
   /** Names the list for assistive tech; the dialog title usually says it already. */
-  label?: string
+  label?: string;
   /** The phone passes its own; the default is the desktop card. */
-  skin?: ImpactListSkin
+  skin?: ImpactListSkin;
 }
 
 /**
@@ -65,10 +66,10 @@ interface DayImpactListProps {
  * only in their tokens. A day with nothing on it gets one plain line.
  */
 export default function DayImpactList({ lines, days = [], label, skin = DESKTOP }: DayImpactListProps) {
-  if (lines.length === 0) return null
-  const offset = days.length > 0 ? 1 : 0
+  if (lines.length === 0) return null;
+  const offset = days.length > 0 ? 1 : 0;
   if (offset === 0 && lines.length === 1 && lines[0].tone === 'muted') {
-    const { key, icon: Icon, text } = lines[0]
+    const { key, icon: Icon, text } = lines[0];
     return (
       <ul aria-label={label} className="m-0 list-none p-0">
         <li data-tone="muted" data-kind={key} className={skin.plain}>
@@ -76,7 +77,7 @@ export default function DayImpactList({ lines, days = [], label, skin = DESKTOP 
           <span className="min-w-0">{text}</span>
         </li>
       </ul>
-    )
+    );
   }
   return (
     <ul aria-label={label} className={skin.list}>
@@ -86,12 +87,20 @@ export default function DayImpactList({ lines, days = [], label, skin = DESKTOP 
             <CalendarMinus size={skin.iconSize} strokeWidth={2} aria-hidden="true" />
           </span>
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 self-center">
-            {days.map((name, i) => <span key={`${i}-${name}`} className={skin.dayChip}>{name}</span>)}
+            {days.map((name, i) => (
+              <span key={`${i}-${name}`} className={skin.dayChip}>
+                {name}
+              </span>
+            ))}
           </div>
         </li>
       )}
       {lines.map(({ key, icon: Icon, text, hint, tone }, i) => (
-        <li key={key} data-tone={tone} className={`${skin.row} ${skin.rowTone[tone]} ${i + offset > 0 ? skin.divider : ''}`.trim()}>
+        <li
+          key={key}
+          data-tone={tone}
+          className={`${skin.row} ${skin.rowTone[tone]} ${i + offset > 0 ? skin.divider : ''}`.trim()}
+        >
           <span className={`${skin.chip} ${skin.chipTone[tone]}`}>
             <Icon size={skin.iconSize} strokeWidth={2} aria-hidden="true" />
           </span>
@@ -102,5 +111,5 @@ export default function DayImpactList({ lines, days = [], label, skin = DESKTOP 
         </li>
       ))}
     </ul>
-  )
+  );
 }

@@ -10,6 +10,10 @@
  * getPlaceDetails, and getPlacePhoto (all branches including cache logic).
  * fetch is stubbed; DB and ssrfGuard are mocked.
  */
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
+import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import {
   parseOpeningHours,
   normalizeOpeningPeriods,
@@ -29,10 +33,14 @@ import {
   rankCommonsCandidates,
   type RankableCommonsCandidate,
 } from '../../../src/nest/maps/maps.helpers';
-
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { Jimp } from 'jimp';
+import { MapsService, withPhotoFetchSlot, readWikiIdentity } from '../../../src/nest/maps/maps.service';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+// Type-only, so the module stays mocked: this import is erased at runtime.
+import type { SsrfResult } from '../../../src/utils/ssrfGuard';
 import { noGoogleQuota } from '../../helpers/google-quota';
+
+import { Jimp } from 'jimp';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 
 // The seams below stand in for real collaborators, so they are typed from those
 // collaborators' signatures rather than from their own default implementations.
@@ -81,9 +89,7 @@ const {
     filePath: `/tmp/${placeId}.jpg`,
     attribution,
   })),
-  mockCacheGetInFlight: vi.fn(
-    (_placeId: string) => undefined as ReturnType<PlacePhotoCacheService['getInFlight']>,
-  ),
+  mockCacheGetInFlight: vi.fn((_placeId: string) => undefined as ReturnType<PlacePhotoCacheService['getInFlight']>),
   mockCacheSetInFlight: vi.fn(),
   mockServeFilePath: vi.fn((_placeId: string) => null as string | null),
 }));
@@ -172,15 +178,6 @@ const photoCacheStub = {
   serveKey: (placeId: string) => mockServeFilePath(placeId),
 } as unknown as PlacePhotoCacheService;
 
-import { MapsService, withPhotoFetchSlot, readWikiIdentity } from '../../../src/nest/maps/maps.service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
-import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
-// Type-only, so the module stays mocked: this import is erased at runtime.
-import type { SsrfResult } from '../../../src/utils/ssrfGuard';
-
 // resolveMapsKey/resolveAmapKey (maps.service.ts) now read AppSettingsRepository/
 // UsersRepository directly (Plan 3a Task 5) instead of raw SQL through the
 // mocked db module above — these two stubs wire the SAME mockInstanceGet/
@@ -193,7 +190,8 @@ import type { SsrfResult } from '../../../src/utils/ssrfGuard';
 // suite (`mockProviderGet.mockReturnValue(...)`) still drives it.
 const appSettingsStub = {
   getValue: async (key: string) =>
-    (key === 'places_provider' ? mockProviderGet(key) : (mockInstanceGet(key) as { value: string | null } | undefined))?.value ?? null,
+    (key === 'places_provider' ? mockProviderGet(key) : (mockInstanceGet(key) as { value: string | null } | undefined))
+      ?.value ?? null,
 } as unknown as AppSettingsRepository;
 const usersStub = {
   getApiKeyColumn: async (userId: number, name: 'maps_api_key' | 'amap_api_key') => {
@@ -214,7 +212,13 @@ const placeDetailsCacheStub = {
     const row = mockDbGet(placeId, lang) as { payload_json: string; fetched_at: number } | undefined;
     return row ? { payload_json: row.payload_json, fetched_at: row.fetched_at } : null;
   },
-  upsertEntry: async (row: { place_id: string; lang: string; expanded: number; payload_json: string; fetched_at: number }) => {
+  upsertEntry: async (row: {
+    place_id: string;
+    lang: string;
+    expanded: number;
+    payload_json: string;
+    fetched_at: number;
+  }) => {
     mockDbRun(row.place_id, row.lang, row.payload_json, row.fetched_at);
   },
 } as unknown as PlaceDetailsCacheRepository;
@@ -230,7 +234,14 @@ const placesStub = {
 // through a repository stub that flows into the SAME mockDbGet/mockDbRun/
 // mockInstanceGet/mockProviderGet functions, so they keep firing exactly as
 // they did for the legacy module.
-const svc = new MapsService(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
+const svc = new MapsService(
+  photoCacheStub,
+  appSettingsStub,
+  usersStub,
+  placeDetailsCacheStub,
+  placesStub,
+  noGoogleQuota,
+);
 
 /**
  * Switch the TREK Places index off for one case.
@@ -376,7 +387,11 @@ describe('parseOpeningHours', () => {
 
   it('MAPS-007 (ReDoS): opening hours regex on adversarial input < 100ms of CPU', () => {
     const adversarial = 'Mo' + ',Mo'.repeat(500) + ' closed';
-    expect(cpuMillis(() => { parseOpeningHours(adversarial); })).toBeLessThan(100);
+    expect(
+      cpuMillis(() => {
+        parseOpeningHours(adversarial);
+      }),
+    ).toBeLessThan(100);
   });
 
   it('MAPS-007b: emits machine-readable periods in Google day numbering (Sunday = 0)', () => {
@@ -389,17 +404,13 @@ describe('parseOpeningHours', () => {
 
   it('MAPS-007c: a period past midnight closes on the following day', () => {
     const result = parseOpeningHours('Sa 20:00-02:00');
-    expect(result.periods).toEqual([
-      { open: { day: 6, hour: 20, minute: 0 }, close: { day: 0, hour: 2, minute: 0 } },
-    ]);
+    expect(result.periods).toEqual([{ open: { day: 6, hour: 20, minute: 0 }, close: { day: 0, hour: 2, minute: 0 } }]);
   });
 
   it('MAPS-007d: the OSM 24:00 spelling becomes midnight of the next day', () => {
     // Google's clock has no hour 24, so "00:00-24:00" is a full day, not a rejected range.
     const result = parseOpeningHours('Mo 00:00-24:00');
-    expect(result.periods).toEqual([
-      { open: { day: 1, hour: 0, minute: 0 }, close: { day: 2, hour: 0, minute: 0 } },
-    ]);
+    expect(result.periods).toEqual([{ open: { day: 1, hour: 0, minute: 0 }, close: { day: 2, hour: 0, minute: 0 } }]);
   });
 
   it('MAPS-007e: unusable clock values produce no period', () => {
@@ -413,9 +424,9 @@ describe('parseOpeningHours', () => {
 
 describe('normalizeOpeningPeriods', () => {
   it('MAPS-007f: keeps well-formed periods and fills the zeroes proto3 JSON omits', () => {
-    expect(
-      normalizeOpeningPeriods([{ open: { day: 3, hour: 9, minute: 30 }, close: { day: 3, hour: 17 } }]),
-    ).toEqual([{ open: { day: 3, hour: 9, minute: 30 }, close: { day: 3, hour: 17, minute: 0 } }]);
+    expect(normalizeOpeningPeriods([{ open: { day: 3, hour: 9, minute: 30 }, close: { day: 3, hour: 17 } }])).toEqual([
+      { open: { day: 3, hour: 9, minute: 30 }, close: { day: 3, hour: 17, minute: 0 } },
+    ]);
     // Sunday midnight arrives as an empty object.
     expect(normalizeOpeningPeriods([{ open: {} }])).toEqual([{ open: { day: 0, hour: 0, minute: 0 }, close: null }]);
   });
@@ -453,7 +464,9 @@ describe('normalizeSpecialDays', () => {
   });
 
   it('MAPS-007k: skips incomplete or impossible dates and returns null when none are left', () => {
-    expect(normalizeSpecialDays([{}, { date: { year: 2026, month: 13, day: 1 } }, { date: { year: 2026, day: 5 } }])).toBeNull();
+    expect(
+      normalizeSpecialDays([{}, { date: { year: 2026, month: 13, day: 1 } }, { date: { year: 2026, day: 5 } }]),
+    ).toBeNull();
     expect(normalizeSpecialDays(undefined)).toBeNull();
   });
 });
@@ -774,7 +787,9 @@ describe('resolveGoogleMapsUrl coordinate extraction (ReDoS guards)', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(svc.resolveGoogleMapsUrl('https://google.evil.com/maps?cid=999')).rejects.toMatchObject({ status: 400 });
+    await expect(svc.resolveGoogleMapsUrl('https://google.evil.com/maps?cid=999')).rejects.toMatchObject({
+      status: 400,
+    });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -788,27 +803,45 @@ describe('resolveGoogleMapsUrl coordinate extraction (ReDoS guards)', () => {
       };
     });
     vi.stubGlobal('fetch', fetchMock);
-    await expect(svc.resolveGoogleMapsUrl('https://www.google.com/maps?cid=999')).rejects.toMatchObject({ status: 400 });
+    await expect(svc.resolveGoogleMapsUrl('https://www.google.com/maps?cid=999')).rejects.toMatchObject({
+      status: 400,
+    });
   });
 
   it('MAPS-024 (ReDoS): /@(-?\\d+\\.?\\d*),(-?\\d+\\.?\\d*)/ on adversarial input < 500ms of CPU', () => {
     const adversarial = '/@' + '1'.repeat(10000) + '.';
-    expect(cpuMillis(() => { adversarial.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/); })).toBeLessThan(500);
+    expect(
+      cpuMillis(() => {
+        adversarial.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+      }),
+    ).toBeLessThan(500);
   });
 
   it('MAPS-025 (ReDoS): /!3d(-?\\d+\\.?\\d*)!4d/ on adversarial input < 500ms of CPU', () => {
     const adversarial = '!3d' + '1'.repeat(10000) + '.';
-    expect(cpuMillis(() => { adversarial.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/); })).toBeLessThan(500);
+    expect(
+      cpuMillis(() => {
+        adversarial.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/);
+      }),
+    ).toBeLessThan(500);
   });
 
   it('MAPS-026 (ReDoS): /[?&]q=(-?\\d+\\.?\\d*)/ on adversarial input < 500ms of CPU', () => {
     const adversarial = '?q=' + '1'.repeat(10000) + '.';
-    expect(cpuMillis(() => { adversarial.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/); })).toBeLessThan(500);
+    expect(
+      cpuMillis(() => {
+        adversarial.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+      }),
+    ).toBeLessThan(500);
   });
 
   it('MAPS-027 (ReDoS): /<[^>]+>/ HTML strip on adversarial input < 100ms of CPU', () => {
     const adversarial = '<' + 'a'.repeat(10000);
-    expect(cpuMillis(() => { adversarial.replace(/<[^>]+>/g, ''); })).toBeLessThan(100);
+    expect(
+      cpuMillis(() => {
+        adversarial.replace(/<[^>]+>/g, '');
+      }),
+    ).toBeLessThan(100);
   });
 
   it('MAPS-028: throws when no coordinates found in URL', async () => {
@@ -858,9 +891,7 @@ describe('resolveGoogleMapsUrl coordinate extraction (ReDoS guards)', () => {
     // The coordinates are already extracted from the URL — a Nominatim 5xx must
     // not turn the resolution into a 400.
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
-    const result = await svc.resolveGoogleMapsUrl(
-      'https://www.google.com/maps/place/Eiffel+Tower/@48.8584,2.2945,15z',
-    );
+    const result = await svc.resolveGoogleMapsUrl('https://www.google.com/maps/place/Eiffel+Tower/@48.8584,2.2945,15z');
     expect(result.lat).toBeCloseTo(48.8584, 3);
     expect(result.lng).toBeCloseTo(2.2945, 3);
     expect(result.name).toBe('Eiffel Tower');
@@ -1060,9 +1091,27 @@ describe('searchOverpassPois localized names (#1655)', () => {
         ok: true,
         json: async () => ({
           elements: [
-            { type: 'node', id: 1, lat: 41.9, lon: 12.48, tags: { name: 'Gone Forever', tourism: 'attraction', disused: 'yes' } },
-            { type: 'node', id: 2, lat: 41.9, lon: 12.49, tags: { name: 'Ruin', tourism: 'attraction', abandoned: 'yes' } },
-            { type: 'node', id: 3, lat: 41.9, lon: 12.5, tags: { name: 'Shut', tourism: 'attraction', opening_hours: 'closed' } },
+            {
+              type: 'node',
+              id: 1,
+              lat: 41.9,
+              lon: 12.48,
+              tags: { name: 'Gone Forever', tourism: 'attraction', disused: 'yes' },
+            },
+            {
+              type: 'node',
+              id: 2,
+              lat: 41.9,
+              lon: 12.49,
+              tags: { name: 'Ruin', tourism: 'attraction', abandoned: 'yes' },
+            },
+            {
+              type: 'node',
+              id: 3,
+              lat: 41.9,
+              lon: 12.5,
+              tags: { name: 'Shut', tourism: 'attraction', opening_hours: 'closed' },
+            },
             { type: 'node', id: 4, lat: 41.9, lon: 12.51, tags: { name: 'Open For Business', tourism: 'attraction' } },
           ],
         }),
@@ -1507,7 +1556,9 @@ describe('searchPlaces (fetch stubbed)', () => {
       vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
-          places: [{ id: 'gid-null-island', displayName: { text: 'Null Island' }, location: { latitude: 0, longitude: 0 } }],
+          places: [
+            { id: 'gid-null-island', displayName: { text: 'Null Island' }, location: { latitude: 0, longitude: 0 } },
+          ],
         }),
       }),
     );
@@ -2138,8 +2189,9 @@ describe('getPlaceDetails (fetch stubbed)', () => {
     const result = await svc.getPlaceDetailsExpanded(1, 'node:5255005321');
     expect((result.place as any).source).toBe('openstreetmap');
     expect((result.place as any).website).toBe('https://nerja.example');
-    expect(fetchMock.mock.calls.map((call) => String(call[0])).some((url) => url.includes('places.googleapis.com')))
-      .toBe(false);
+    expect(
+      fetchMock.mock.calls.map((call) => String(call[0])).some((url) => url.includes('places.googleapis.com')),
+    ).toBe(false);
   });
 
   it('MAPS-041i: getPlaceDetailsExpanded answers a coordinate pseudo-id with no place at all', async () => {
@@ -2463,8 +2515,9 @@ describe('getPlacePhoto (fetch stubbed)', () => {
       photoUrl: null,
       attribution: null,
     });
-    expect(fetchMock.mock.calls.map((call) => String(call[0])).some((url) => url.includes('places.googleapis.com')))
-      .toBe(false);
+    expect(
+      fetchMock.mock.calls.map((call) => String(call[0])).some((url) => url.includes('places.googleapis.com')),
+    ).toBe(false);
   });
 });
 
@@ -2692,7 +2745,7 @@ describe('searchOverpassPois multi-category', () => {
     expect(body).toContain('amenity"="fuel');
     expect(body).toContain('amenity"="charging_station');
     expect(body).toContain('highway"="services');
-    expect(pois.map(p => [p.name, p.category])).toEqual([
+    expect(pois.map((p) => [p.name, p.category])).toEqual([
       ['Aral', 'fuel'],
       ['Ionity', 'charging'],
       ['Rasthof Taunus', 'rest_area'],
@@ -2710,7 +2763,9 @@ describe('searchOverpassPois multi-category', () => {
   it('MAPS-157: a repeat of the same set is served from the cache whatever the order', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ elements: [{ type: 'node', id: 9, lat: 50.3, lon: 8.3, tags: { name: 'Shell', amenity: 'fuel' } }] }),
+      json: async () => ({
+        elements: [{ type: 'node', id: 9, lat: 50.3, lon: 8.3, tags: { name: 'Shell', amenity: 'fuel' } }],
+      }),
     });
     vi.stubGlobal('fetch', fetchMock);
 
@@ -2757,7 +2812,14 @@ function makeSettingsRepo(row?: { value: string }) {
 }
 
 function settingsSvc(row?: { value: string }) {
-  return new MapsService(photoCacheStub, makeSettingsRepo(row).repo, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
+  return new MapsService(
+    photoCacheStub,
+    makeSettingsRepo(row).repo,
+    usersStub,
+    placeDetailsCacheStub,
+    placesStub,
+    noGoogleQuota,
+  );
 }
 
 describe('kill-switch settings reads', () => {
@@ -2781,7 +2843,14 @@ describe('kill-switch settings reads', () => {
 
   it('queries the matching app_settings key', async () => {
     const { repo: settingsRepo, getValue } = makeSettingsRepo({ value: 'true' });
-    const s = new MapsService(photoCacheStub, settingsRepo, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
+    const s = new MapsService(
+      photoCacheStub,
+      settingsRepo,
+      usersStub,
+      placeDetailsCacheStub,
+      placesStub,
+      noGoogleQuota,
+    );
     await s.autocompleteDisabled();
     expect(getValue).toHaveBeenCalledWith('places_autocomplete_enabled');
     await s.detailsDisabled();
@@ -2808,13 +2877,25 @@ describe('controller-facing wrappers delegate to the folded methods', () => {
   it('search/autocomplete/details/detailsExpanded/photo/reverse/resolveUrl/pois forward their args', async () => {
     const spies = {
       searchPlaces: vi.spyOn(MapsService.prototype, 'searchPlaces').mockResolvedValue({ places: [], source: 'osm' }),
-      autocompletePlaces: vi.spyOn(MapsService.prototype, 'autocompletePlaces').mockResolvedValue({ suggestions: [], source: 'osm' }),
+      autocompletePlaces: vi
+        .spyOn(MapsService.prototype, 'autocompletePlaces')
+        .mockResolvedValue({ suggestions: [], source: 'osm' }),
       getPlaceDetails: vi.spyOn(MapsService.prototype, 'getPlaceDetails').mockResolvedValue({ place: {} }),
-      getPlaceDetailsExpanded: vi.spyOn(MapsService.prototype, 'getPlaceDetailsExpanded').mockResolvedValue({ place: {} }),
-      getPlacePhoto: vi.spyOn(MapsService.prototype, 'getPlacePhoto').mockResolvedValue({ photoUrl: null, attribution: null }),
-      reverseGeocode: vi.spyOn(MapsService.prototype, 'reverseGeocode').mockResolvedValue({ name: null, address: null }),
-      resolveGoogleMapsUrl: vi.spyOn(MapsService.prototype, 'resolveGoogleMapsUrl').mockResolvedValue({ lat: 1, lng: 2, name: null, address: null, google_ftid: null }),
-      searchOverpassPois: vi.spyOn(MapsService.prototype, 'searchOverpassPois').mockResolvedValue({ pois: [], source: 'openstreetmap', truncated: false, clamped: false }),
+      getPlaceDetailsExpanded: vi
+        .spyOn(MapsService.prototype, 'getPlaceDetailsExpanded')
+        .mockResolvedValue({ place: {} }),
+      getPlacePhoto: vi
+        .spyOn(MapsService.prototype, 'getPlacePhoto')
+        .mockResolvedValue({ photoUrl: null, attribution: null }),
+      reverseGeocode: vi
+        .spyOn(MapsService.prototype, 'reverseGeocode')
+        .mockResolvedValue({ name: null, address: null }),
+      resolveGoogleMapsUrl: vi
+        .spyOn(MapsService.prototype, 'resolveGoogleMapsUrl')
+        .mockResolvedValue({ lat: 1, lng: 2, name: null, address: null, google_ftid: null }),
+      searchOverpassPois: vi
+        .spyOn(MapsService.prototype, 'searchOverpassPois')
+        .mockResolvedValue({ pois: [], source: 'openstreetmap', truncated: false, clamped: false }),
     };
     try {
       const circleBias = { lat: 1, lng: 2, radius: 5 };
@@ -2941,7 +3022,9 @@ describe('fetchCommonsCandidates (fetch stubbed)', () => {
       'fetch',
       vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ query: { pages: { '1': page(), '2': page({ thumburl: 'https://commons.org/t2.jpg' }) } } }),
+        json: async () => ({
+          query: { pages: { '1': page(), '2': page({ thumburl: 'https://commons.org/t2.jpg' }) } },
+        }),
       }),
     );
     const out = await svc.fetchCommonsCandidates(48.8, 2.3, 5);
@@ -3107,10 +3190,7 @@ describe('fetchWikiExtract (fetch stubbed)', () => {
   });
 
   it('MAPS-125b: still tries Wikipedia after Wikivoyage threw', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockRejectedValueOnce(new Error('network'))
-      .mockResolvedValueOnce(page('X', 'Ein Ort.'));
+    const fetchMock = vi.fn().mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce(page('X', 'Ein Ort.'));
     vi.stubGlobal('fetch', fetchMock);
 
     expect(await svc.fetchWikiExtract('de:X')).toMatchObject({ source: 'wikipedia' });
@@ -3444,7 +3524,11 @@ describe('rankCommonsCandidates', () => {
 
   it('MAPS-144: stops at the limit', () => {
     const many = Array.from({ length: 9 }, (_, i) =>
-      pic({ pageId: 700 + i, title: `File:Distinct subject ${String.fromCharCode(97 + i)}.jpg`, attribution: `Author ${i}` }),
+      pic({
+        pageId: 700 + i,
+        title: `File:Distinct subject ${String.fromCharCode(97 + i)}.jpg`,
+        attribution: `Author ${i}`,
+      }),
     );
     expect(rankCommonsCandidates(many, 3)).toHaveLength(3);
   });
@@ -3481,11 +3565,13 @@ describe('readWikiIdentity', () => {
 describe('brandLogo', () => {
   // A fresh service per case: the logo cache lives on the instance, and a hit from
   // one case would answer the next one's question before its fetch stub ran.
-  const service = (): MapsService => new MapsService(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
+  const service = (): MapsService =>
+    new MapsService(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
 
   const claimResponse = (file: string | null) => ({
     ok: true,
-    json: async () => (file === null ? { claims: {} } : { claims: { P154: [{ mainsnak: { datavalue: { value: file } } }] } }),
+    json: async () =>
+      file === null ? { claims: {} } : { claims: { P154: [{ mainsnak: { datavalue: { value: file } } }] } },
   });
 
   const imageResponse = (bytes: number, contentType = 'image/png') => ({
@@ -3508,7 +3594,8 @@ describe('brandLogo', () => {
 
   it('MAPS-147: reads the logo claim and flattens the returned bytes onto a square', async () => {
     // A wide, dark wordmark — the shape that used to arrive as a plain white pin.
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(claimResponse('Aral Logo.svg'))
       .mockResolvedValueOnce(pngResponse(await pngBytes(120, 40, 0x1a3d8fff)));
     vi.stubGlobal('fetch', fetchMock);
@@ -3537,7 +3624,8 @@ describe('brandLogo', () => {
 
   it('MAPS-153: a near-white logo gets a dark ground instead of vanishing', async () => {
     // TotalEnergies, Esso and JET all read as white marks; on a white pin they were gone.
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(claimResponse('JET logo.svg'))
       .mockResolvedValueOnce(pngResponse(await pngBytes(64, 64, 0xfafafaff)));
     vi.stubGlobal('fetch', fetchMock);
@@ -3549,7 +3637,8 @@ describe('brandLogo', () => {
   });
 
   it('MAPS-154: a logo smaller than the canvas is left at its own size, not blown up', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(claimResponse('Tiny.png'))
       .mockResolvedValueOnce(pngResponse(await pngBytes(16, 16, 0x203040ff)));
     vi.stubGlobal('fetch', fetchMock);
@@ -3572,7 +3661,8 @@ describe('brandLogo', () => {
   });
 
   it('MAPS-149: answers a repeat from memory instead of asking again', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(claimResponse('Esso.png'))
       .mockResolvedValueOnce(imageResponse(1024));
     vi.stubGlobal('fetch', fetchMock);
@@ -3596,14 +3686,22 @@ describe('brandLogo', () => {
   });
 
   it('MAPS-151: refuses an image that is too big, and one that is not an image', async () => {
-    vi.stubGlobal('fetch', vi.fn()
-      .mockResolvedValueOnce(claimResponse('Huge.png'))
-      .mockResolvedValueOnce(imageResponse(4 * 1024 * 1024)));
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(claimResponse('Huge.png'))
+        .mockResolvedValueOnce(imageResponse(4 * 1024 * 1024)),
+    );
     expect(await service().brandLogo('Q1')).toBeNull();
 
-    vi.stubGlobal('fetch', vi.fn()
-      .mockResolvedValueOnce(claimResponse('NotAnImage.svg'))
-      .mockResolvedValueOnce(imageResponse(500, 'text/html')));
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(claimResponse('NotAnImage.svg'))
+        .mockResolvedValueOnce(imageResponse(500, 'text/html')),
+    );
     expect(await service().brandLogo('Q2')).toBeNull();
   });
 
@@ -3613,7 +3711,7 @@ describe('brandLogo', () => {
 
     expect(await service().brandLogo('Q3')).toBeNull();
   });
-})
+});
 
 // ── Websites without a scheme (#2483) ─────────────────────────────────────────
 //
@@ -3625,9 +3723,9 @@ describe('websites from the map sources (#2483)', () => {
     expect(buildOsmDetails({ website: 'www.example.fr/patrimoine' }, 'way', '1').website).toBe(
       'https://www.example.fr/patrimoine',
     );
-    expect(buildOsmDetails({ 'contact:website': 'mailto:mairie@example.fr', website: 'example.fr' }, 'node', '1').website).toBe(
-      'https://example.fr',
-    );
+    expect(
+      buildOsmDetails({ 'contact:website': 'mailto:mairie@example.fr', website: 'example.fr' }, 'node', '1').website,
+    ).toBe('https://example.fr');
     expect(buildOsmDetails({ website: 'javascript:alert(1)' }, 'node', '1').website).toBeNull();
   });
 
@@ -3638,14 +3736,45 @@ describe('websites from the map sources (#2483)', () => {
         ok: true,
         json: async () => ({
           elements: [
-            { type: 'node', id: 1, lat: 48.03, lon: -3.49, tags: { name: 'Chapelle', tourism: 'attraction', website: 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët' } },
-            { type: 'node', id: 2, lat: 48.04, lon: -3.49, tags: { name: 'Mairie', tourism: 'attraction', website: 'javascript:alert(1)', 'contact:website': '//www.example.fr' } },
-            { type: 'node', id: 3, lat: 48.05, lon: -3.49, tags: { name: 'Halles', tourism: 'attraction', website: 'Halles' } },
+            {
+              type: 'node',
+              id: 1,
+              lat: 48.03,
+              lon: -3.49,
+              tags: {
+                name: 'Chapelle',
+                tourism: 'attraction',
+                website: 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët',
+              },
+            },
+            {
+              type: 'node',
+              id: 2,
+              lat: 48.04,
+              lon: -3.49,
+              tags: {
+                name: 'Mairie',
+                tourism: 'attraction',
+                website: 'javascript:alert(1)',
+                'contact:website': '//www.example.fr',
+              },
+            },
+            {
+              type: 'node',
+              id: 3,
+              lat: 48.05,
+              lon: -3.49,
+              tags: { name: 'Halles', tourism: 'attraction', website: 'Halles' },
+            },
           ],
         }),
       }),
     );
-    const { pois } = await svc.searchOverpassPois('sights', { south: 48.0, west: -3.6, north: 48.1, east: -3.4 }, 'fr-FR');
+    const { pois } = await svc.searchOverpassPois(
+      'sights',
+      { south: 48.0, west: -3.6, north: 48.1, east: -3.4 },
+      'fr-FR',
+    );
     expect(pois.map((p) => p.website)).toEqual([
       'https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët',
       'https://www.example.fr',
@@ -3660,7 +3789,14 @@ describe('websites from the map sources (#2483)', () => {
       vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
-          places: [{ id: 'gid-web', displayName: { text: 'Chapelle' }, location: { latitude: 48, longitude: -3 }, websiteUri: 'www.example.fr' }],
+          places: [
+            {
+              id: 'gid-web',
+              displayName: { text: 'Chapelle' },
+              location: { latitude: 48, longitude: -3 },
+              websiteUri: 'www.example.fr',
+            },
+          ],
         }),
       }),
     );
@@ -3689,7 +3825,10 @@ describe('websites from the map sources (#2483)', () => {
   // A details row cached before the fix still holds the website as the source
   // sent it, and keeps for a week; an expanded row keeps until a refresh. The
   // cache hands it out through the same helper.
-  const cachedRow = (place: Record<string, unknown>) => ({ payload_json: JSON.stringify(place), fetched_at: Date.now() });
+  const cachedRow = (place: Record<string, unknown>) => ({
+    payload_json: JSON.stringify(place),
+    fetched_at: Date.now(),
+  });
 
   it('MAPS-2483-06: a cached details row with a bare website is served with https, without a Google call', async () => {
     const fetchMock = vi.fn();
@@ -3712,9 +3851,15 @@ describe('websites from the map sources (#2483)', () => {
       .mockReturnValueOnce(cachedRow({ google_place_id: 'ChIJOldY', website: 'javascript:alert(1)' }))
       .mockReturnValueOnce({ maps_api_key: 'gkey' })
       .mockReturnValueOnce(cachedRow({ google_place_id: 'ChIJOldZ', name: 'No site' }));
-    expect((await svc.getPlaceDetailsExpanded(1, 'ChIJOldX')).place).toMatchObject({ website: 'https://www.example.fr', reviews: [] });
+    expect((await svc.getPlaceDetailsExpanded(1, 'ChIJOldX')).place).toMatchObject({
+      website: 'https://www.example.fr',
+      reviews: [],
+    });
     expect((await svc.getPlaceDetailsExpanded(1, 'ChIJOldY')).place).toMatchObject({ website: null });
-    expect((await svc.getPlaceDetailsExpanded(1, 'ChIJOldZ')).place).toEqual({ google_place_id: 'ChIJOldZ', name: 'No site' });
+    expect((await svc.getPlaceDetailsExpanded(1, 'ChIJOldZ')).place).toEqual({
+      google_place_id: 'ChIJOldZ',
+      name: 'No site',
+    });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

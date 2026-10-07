@@ -1,14 +1,14 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { AddonsController } from './addons.controller';
-import { AddonsService } from './addons.service';
-import { AddonGuard } from './addon.guard';
-import { AddonsMcp } from './addons.mcp';
 import { Addons } from '../../db/entities/Addons.entity';
-import { PhotoProviders } from '../../db/entities/PhotoProviders.entity';
-import { PhotoProviderFields } from '../../db/entities/PhotoProviderFields.entity';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { PhotoProviderFields } from '../../db/entities/PhotoProviderFields.entity';
+import { PhotoProviders } from '../../db/entities/PhotoProviders.entity';
 import { Users } from '../../db/entities/Users.entity';
+import { AddonGuard } from './addon.guard';
+import { AddonsController } from './addons.controller';
+import { AddonsMcp } from './addons.mcp';
+import { AddonsService } from './addons.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * GET /api/addons — enabled add-ons + photo providers (was an inline handler in

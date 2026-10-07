@@ -3,7 +3,6 @@
 // the same module cycle trip-warnings.mcp.ts documents. Sibling of
 // plugin-event-sink.ts and plugin-user-lifecycle.ts; the plugins layer registers
 // the source at bootstrap and clears it on shutdown.
-
 import type { McpContext, McpDynamicTool } from './nest-mcp';
 
 /**

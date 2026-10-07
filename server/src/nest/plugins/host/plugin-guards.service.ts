@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { PermissionsService } from '../../permissions/permissions.service';
-import { AddonsService } from '../../addons/addons.service';
-import { Users } from '../../../db/entities/Users.entity';
-import type { UsersRepository } from '../../../db/repositories/Users.repository';
 import { Trips } from '../../../db/entities/Trips.entity';
+import { Users } from '../../../db/entities/Users.entity';
 import type { TripsRepository } from '../../../db/repositories/Trips.repository';
+import type { UsersRepository } from '../../../db/repositories/Users.repository';
+import { AddonsService } from '../../addons/addons.service';
+import { PermissionsService } from '../../permissions/permissions.service';
 import { BadParams, ForbiddenResource } from './rpc-errors';
-import { num } from './rpc-params';
 import type { PluginRpcContext } from './rpc-kit/types';
+import { num } from './rpc-params';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The resource gates every plugin RPC handler needs, lifted out of PluginRpcHost's
@@ -66,7 +66,8 @@ export class PluginGuards {
   /** A write is allowed only if the acting user can access AND edit the trip. */
   async requireTripEdit(tripId: number, userId: number, action: string): Promise<void> {
     if (!(await this.trips.findAccessible(tripId, userId))) throw new ForbiddenResource(`no access to trip ${tripId}`);
-    if (!(await this.canEditAs(action, tripId, userId))) throw new ForbiddenResource(`no permission to edit trip ${tripId}`);
+    if (!(await this.canEditAs(action, tripId, userId)))
+      throw new ForbiddenResource(`no permission to edit trip ${tripId}`);
   }
 
   /**

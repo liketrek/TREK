@@ -16,7 +16,14 @@ export interface JourneyTripLinkRow {
 /** The narrow `journey_trips`/`trips`/`places` shape {@link JourneyTripsRepository.listForJourney} needs. */
 interface JourneyTripLinkKyselyDB {
   journey_trips: { journey_id: number; trip_id: number; added_at: number };
-  trips: { id: number; title: string; start_date: string | null; end_date: string | null; cover_image: string | null; currency: string | null };
+  trips: {
+    id: number;
+    title: string;
+    start_date: string | null;
+    end_date: string | null;
+    cover_image: string | null;
+    currency: string | null;
+  };
   places: { id: number; trip_id: number };
 }
 
@@ -50,8 +57,22 @@ export interface AssignmentTimeRow {
 
 /** The narrow `places`/`day_assignments`/`days` shape the sync-engine reads need. */
 interface SyncPlacesKyselyDB {
-  places: { id: number; trip_id: number; name: string; address: string | null; lat: number | null; lng: number | null; place_time: string | null };
-  day_assignments: { id: number; place_id: number; day_id: number; assignment_time: string | null; order_index: number | null };
+  places: {
+    id: number;
+    trip_id: number;
+    name: string;
+    address: string | null;
+    lat: number | null;
+    lng: number | null;
+    place_time: string | null;
+  };
+  day_assignments: {
+    id: number;
+    place_id: number;
+    day_id: number;
+    assignment_time: string | null;
+    order_index: number | null;
+  };
   days: { id: number; date: string | null; day_number: number };
 }
 
@@ -133,7 +154,17 @@ export class JourneyTripsRepository extends TrekRepository<JourneyTrips> {
       .selectFrom('places as p')
       .innerJoin('day_assignments as da', 'da.place_id', 'p.id')
       .innerJoin('days as d', 'd.id', 'da.day_id')
-      .select(['p.id', 'p.name', 'p.address', 'p.lat', 'p.lng', 'p.place_time', 'da.id as assignment_id', 'd.date as day_date', 'da.assignment_time'])
+      .select([
+        'p.id',
+        'p.name',
+        'p.address',
+        'p.lat',
+        'p.lng',
+        'p.place_time',
+        'da.id as assignment_id',
+        'd.date as day_date',
+        'da.assignment_time',
+      ])
       .where('p.trip_id', '=', tripId)
       .orderBy('d.day_number', 'asc')
       .orderBy('da.order_index', 'asc')
@@ -147,7 +178,17 @@ export class JourneyTripsRepository extends TrekRepository<JourneyTrips> {
       .selectFrom('places as p')
       .innerJoin('day_assignments as da', 'da.place_id', 'p.id')
       .innerJoin('days as d', 'd.id', 'da.day_id')
-      .select(['p.id', 'p.name', 'p.address', 'p.lat', 'p.lng', 'p.place_time', 'da.id as assignment_id', 'd.date as day_date', 'da.assignment_time'])
+      .select([
+        'p.id',
+        'p.name',
+        'p.address',
+        'p.lat',
+        'p.lng',
+        'p.place_time',
+        'da.id as assignment_id',
+        'd.date as day_date',
+        'da.assignment_time',
+      ])
       .where('p.id', '=', placeId)
       .orderBy('d.day_number', 'asc')
       .orderBy('da.order_index', 'asc')

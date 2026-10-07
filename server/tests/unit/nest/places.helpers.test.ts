@@ -3,20 +3,6 @@
  * tests/unit/services/kmzUnpack.test.ts when placeService went DI-native — the
  * KMZ unpacker touches no DB, so it lives in places.helpers.ts).
  */
-import { describe, it, expect, vi } from 'vitest';
-import path from 'path';
-import fs from 'fs';
-
-vi.mock('../../../src/db/database', () => ({
-  db: { prepare: vi.fn() },
-  getPlaceWithTags: vi.fn(),
-}));
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
-
 import {
   COORD_DEDUP_TOLERANCE,
   googleMapsFeatureIdFromItem,
@@ -30,6 +16,20 @@ import {
   unpackKmzToKml,
   type DedupSet,
 } from '../../../src/nest/places/places.helpers';
+
+import fs from 'fs';
+import path from 'path';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../../../src/db/database', () => ({
+  db: { prepare: vi.fn() },
+  getPlaceWithTags: vi.fn(),
+}));
+vi.mock('../../../src/config', () => ({
+  JWT_SECRET: 'test',
+  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
+  updateJwtSecret: () => {},
+}));
 
 const KMZ_FIXTURE = path.join(__dirname, '../../fixtures/test.kmz');
 
@@ -116,7 +116,9 @@ describe('isPlaceDuplicate / trackInsertedInDedupSet', () => {
     // The user renamed it in TREK; the list still calls it what Google calls it.
     dedup.names.delete('trattoria da enzo');
     dedup.names.add('dinner tuesday');
-    expect(isPlaceDuplicate({ name: 'Trattoria da Enzo', lat: 41.88, lng: 12.47, google_ftid: '0x1:0x2' }, dedup)).toBe(true);
+    expect(isPlaceDuplicate({ name: 'Trattoria da Enzo', lat: 41.88, lng: 12.47, google_ftid: '0x1:0x2' }, dedup)).toBe(
+      true,
+    );
   });
 
   it('matches on any of the three id columns, and ignores blank ones', () => {
@@ -132,7 +134,9 @@ describe('isPlaceDuplicate / trackInsertedInDedupSet', () => {
     const dedup = emptyDedup();
     // Identical coordinates, different ids: the restaurant and the bar downstairs.
     trackInsertedInDedupSet({ name: 'Rooftop Bar', lat: 52.52, lng: 13.405, google_ftid: '0xaa:0xbb' }, dedup);
-    expect(isPlaceDuplicate({ name: 'Ground Floor Diner', lat: 52.52, lng: 13.405, google_ftid: '0xcc:0xdd' }, dedup)).toBe(false);
+    expect(
+      isPlaceDuplicate({ name: 'Ground Floor Diner', lat: 52.52, lng: 13.405, google_ftid: '0xcc:0xdd' }, dedup),
+    ).toBe(false);
   });
 
   it('leaves id-less imports on their old behaviour', () => {
@@ -169,7 +173,9 @@ describe('googleMapsHexId / googleMapsFeatureIdFromItem', () => {
 
   it('reads the ftid pair from either item slot, else null', () => {
     expect(googleMapsFeatureIdFromItem([null, [0, 0, 0, 0, 0, 0, ['0x1', '0x2']]])).toBe('0x1:0x2');
-    expect(googleMapsFeatureIdFromItem([null, null, null, null, null, null, null, [null, ['0x3', '0x4']]])).toBe('0x3:0x4');
+    expect(googleMapsFeatureIdFromItem([null, null, null, null, null, null, null, [null, ['0x3', '0x4']]])).toBe(
+      '0x3:0x4',
+    );
     expect(googleMapsFeatureIdFromItem([null, [0, 0, 0, 0, 0, 0, ['0x1']]])).toBeNull();
     expect(googleMapsFeatureIdFromItem('not an array')).toBeNull();
   });

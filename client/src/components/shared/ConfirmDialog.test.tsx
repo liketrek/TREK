@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen } from '../../../tests/helpers/render';
 import ConfirmDialog from './ConfirmDialog';
 import Modal from './Modal';
 
@@ -13,16 +13,12 @@ describe('ConfirmDialog', () => {
   });
 
   it('FE-COMP-CONFIRM-001: does not render when isOpen is false', () => {
-    render(
-      <ConfirmDialog isOpen={false} onClose={onClose} onConfirm={onConfirm} message="Are you sure?" />
-    );
+    render(<ConfirmDialog isOpen={false} onClose={onClose} onConfirm={onConfirm} message="Are you sure?" />);
     expect(screen.queryByText('Are you sure?')).toBeNull();
   });
 
   it('FE-COMP-CONFIRM-002: renders with default title "Confirm" and message', () => {
-    render(
-      <ConfirmDialog isOpen={true} onClose={onClose} onConfirm={onConfirm} message="Are you sure?" />
-    );
+    render(<ConfirmDialog isOpen={true} onClose={onClose} onConfirm={onConfirm} message="Are you sure?" />);
     expect(screen.getByText('Confirm')).toBeTruthy();
     expect(screen.getByText('Are you sure?')).toBeTruthy();
   });
@@ -84,7 +80,7 @@ describe('ConfirmDialog', () => {
 
     render(<ConfirmDialog isOpen={true} onClose={onClose} onConfirm={failing} />);
     fireEvent.click(screen.getByRole('button', { name: /delete/i }));
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(failing).toHaveBeenCalledOnce();
     expect(onClose).toHaveBeenCalledOnce();
@@ -95,12 +91,16 @@ describe('ConfirmDialog', () => {
   it('FE-COMP-CONFIRM-010: extra content renders under the message, and the card widens for it', () => {
     render(
       <ConfirmDialog isOpen={true} onClose={onClose} onConfirm={onConfirm} message="Delete it?">
-        <ul aria-label="consequences"><li>Stay at Harbour Hotel</li></ul>
+        <ul aria-label="consequences">
+          <li>Stay at Harbour Hotel</li>
+        </ul>
       </ConfirmDialog>
     );
     const list = screen.getByRole('list', { name: 'consequences' });
     expect(list).toHaveTextContent('Stay at Harbour Hotel');
-    expect(screen.getByText('Delete it?').compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      screen.getByText('Delete it?').compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
     expect(document.querySelector('.max-w-md')).not.toBeNull();
   });
 
@@ -108,7 +108,9 @@ describe('ConfirmDialog', () => {
     const closeModal = vi.fn();
     render(
       <>
-        <Modal isOpen={true} onClose={closeModal} title="Reorder days">rows</Modal>
+        <Modal isOpen={true} onClose={closeModal} title="Reorder days">
+          rows
+        </Modal>
         <ConfirmDialog isOpen={true} onClose={onClose} onConfirm={onConfirm} message="Delete it?" />
       </>
     );
@@ -133,7 +135,11 @@ describe('ConfirmDialog', () => {
   it('FE-COMP-CONFIRM-013: a long list scrolls inside the card, and the buttons stay outside it, always in reach', () => {
     render(
       <ConfirmDialog isOpen={true} onClose={onClose} onConfirm={onConfirm} message="Delete it?">
-        <ul aria-label="consequences">{Array.from({ length: 40 }, (_, i) => <li key={i}>Row {i}</li>)}</ul>
+        <ul aria-label="consequences">
+          {Array.from({ length: 40 }, (_, i) => (
+            <li key={i}>Row {i}</li>
+          ))}
+        </ul>
       </ConfirmDialog>
     );
     const scroller = screen.getByRole('list', { name: 'consequences' }).closest('.overflow-y-auto') as HTMLElement;
@@ -157,12 +163,25 @@ describe('ConfirmDialog', () => {
 
   describe('on a phone', () => {
     const desktopWidth = window.innerWidth;
-    beforeEach(() => { Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 390 }); });
-    afterEach(() => { Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: desktopWidth }); });
+    beforeEach(() => {
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 390 });
+    });
+    afterEach(() => {
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: desktopWidth });
+    });
 
     it('FE-COMP-CONFIRM-014: the phone card answers like the desktop one, and a tap on it does not close it', async () => {
       const user = userEvent.setup();
-      render(<ConfirmDialog isOpen onClose={onClose} onConfirm={onConfirm} title="Delete note?" message="It is gone for good." confirmLabel="Remove" />);
+      render(
+        <ConfirmDialog
+          isOpen
+          onClose={onClose}
+          onConfirm={onConfirm}
+          title="Delete note?"
+          message="It is gone for good."
+          confirmLabel="Remove"
+        />
+      );
       await user.click(screen.getByText('It is gone for good.'));
       expect(onClose).not.toHaveBeenCalled();
       await user.click(screen.getByRole('button', { name: 'Remove' }));
@@ -172,7 +191,11 @@ describe('ConfirmDialog', () => {
 
     it('FE-COMP-CONFIRM-015: the phone card without danger uses the accent and the default labels', async () => {
       const user = userEvent.setup();
-      render(<ConfirmDialog isOpen onClose={onClose} onConfirm={onConfirm} message="Leave?" danger={false}><p>More</p></ConfirmDialog>);
+      render(
+        <ConfirmDialog isOpen onClose={onClose} onConfirm={onConfirm} message="Leave?" danger={false}>
+          <p>More</p>
+        </ConfirmDialog>
+      );
       expect(screen.getByText('Confirm')).toBeInTheDocument();
       expect(screen.getByText('More')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass('bg-accent');

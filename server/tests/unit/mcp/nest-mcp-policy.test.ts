@@ -7,14 +7,15 @@
  * `npm run typecheck` covers — tests are not typechecked, so the bad-group
  * case below has to cast its way past the union on purpose.
  */
-import { describe, it, expect } from 'vitest';
-import { createTestRegistry, McpController, Tool, type McpDeclarativeAccess } from '../../../src/nest-mcp';
 import {
   MCP_ACCESS_GROUPS_MATCH_SCOPE_GROUPS,
   trekMcpAccessPolicy,
   trekMcpValidateAccess,
 } from '../../../src/mcp/nest-mcp-policy';
 import { ALL_SCOPES, type ScopeGroup } from '../../../src/mcp/scopes';
+import { createTestRegistry, McpController, Tool, type McpDeclarativeAccess } from '../../../src/nest-mcp';
+
+import { describe, it, expect } from 'vitest';
 
 const listing = { kind: 'tool' as const, name: 'x', className: 'X', methodName: 'x' };
 
@@ -55,9 +56,7 @@ describe('trekMcpValidateAccess', () => {
         accessPolicy: trekMcpAccessPolicy,
         validateAccess: trekMcpValidateAccess,
       }),
-    ).toThrow(
-      /invalid access declarations: tool "bad_tool" \(BadGroupMcp\.bad\): no 'budgets:write' scope in SCOPES/,
-    );
+    ).toThrow(/invalid access declarations: tool "bad_tool" \(BadGroupMcp\.bad\): no 'budgets:write' scope in SCOPES/);
   });
 
   it('has a compile-checked group union (runtime touchpoint)', () => {

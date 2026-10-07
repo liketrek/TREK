@@ -1,47 +1,49 @@
-import { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
-import { ExternalLink, Download, X, FileText, ChevronLeft, ChevronRight, FileImage } from 'lucide-react'
-import { useTranslation } from '../../i18n'
-import { getAuthUrl } from '../../api/authUrl'
-import { openFile as openFileUrl } from '../../utils/fileDownload'
-import { triggerDownload, isImage } from '../Files/FileManager.helpers'
-import type { BudgetItemReceipt } from '../../types'
+import { ChevronLeft, ChevronRight, Download, ExternalLink, FileImage, FileText, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { getAuthUrl } from '../../api/authUrl';
+import { useTranslation } from '../../i18n';
+import type { BudgetItemReceipt } from '../../types';
+import { openFile as openFileUrl } from '../../utils/fileDownload';
+import { isImage, triggerDownload } from '../Files/FileManager.helpers';
 
 interface ReceiptPreviewModalProps {
-  receipts: BudgetItemReceipt[]
-  initialIndex?: number
-  onClose: () => void
+  receipts: BudgetItemReceipt[];
+  initialIndex?: number;
+  onClose: () => void;
 }
 
 export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: ReceiptPreviewModalProps) {
-  const { t } = useTranslation()
-  const [index, setIndex] = useState(Math.max(0, Math.min(initialIndex, receipts.length - 1)))
-  const [signedUrl, setSignedUrl] = useState('')
-  const [loading, setLoading] = useState(false)
+  const { t } = useTranslation();
+  const [index, setIndex] = useState(Math.max(0, Math.min(initialIndex, receipts.length - 1)));
+  const [signedUrl, setSignedUrl] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const current = receipts[index]
-  const isImg = isImage(current?.mime_type)
-  const isPdf = current?.mime_type === 'application/pdf' || current?.original_name?.toLowerCase().endsWith('.pdf')
+  const current = receipts[index];
+  const isImg = isImage(current?.mime_type);
+  const isPdf = current?.mime_type === 'application/pdf' || current?.original_name?.toLowerCase().endsWith('.pdf');
 
   useEffect(() => {
-    if (!current) return
-    let cancelled = false
-    setLoading(true)
-    setSignedUrl('')
+    if (!current) return;
+    let cancelled = false;
+    setLoading(true);
+    setSignedUrl('');
 
     getAuthUrl(current.url, 'download')
-      .then(url => {
+      .then((url) => {
         if (!cancelled) {
-          setSignedUrl(url)
-          setLoading(false)
+          setSignedUrl(url);
+          setLoading(false);
         }
       })
       .catch(() => {
-        if (!cancelled) setLoading(false)
-      })
+        if (!cancelled) setLoading(false);
+      });
 
-    return () => { cancelled = true }
-  }, [current?.url])
+    return () => {
+      cancelled = true;
+    };
+  }, [current?.url]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -50,29 +52,29 @@ export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: Rec
         // Modal and the phone MSheet close themselves on Escape from a listener
         // on `document`. Without this the one keypress closed the form too and
         // threw away whatever the user had typed into it.
-        e.preventDefault()
-        e.stopPropagation()
-        onClose()
-        return
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+        return;
       }
-      if (e.key === 'ArrowLeft' && index > 0) setIndex(i => i - 1)
-      if (e.key === 'ArrowRight' && index < receipts.length - 1) setIndex(i => i + 1)
-    }
+      if (e.key === 'ArrowLeft' && index > 0) setIndex((i) => i - 1);
+      if (e.key === 'ArrowRight' && index < receipts.length - 1) setIndex((i) => i + 1);
+    };
     // Capture phase, so this runs before the listeners the parents put on
     // `document`; stopPropagation on the bubble phase would be too late.
-    window.addEventListener('keydown', handleKey, true)
-    return () => window.removeEventListener('keydown', handleKey, true)
-  }, [index, receipts.length, onClose])
+    window.addEventListener('keydown', handleKey, true);
+    return () => window.removeEventListener('keydown', handleKey, true);
+  }, [index, receipts.length, onClose]);
 
-  if (!current) return null
+  if (!current) return null;
 
   const handleOpenTab = () => {
-    openFileUrl(current.url, current.original_name).catch(() => {})
-  }
+    openFileUrl(current.url, current.original_name).catch(() => {});
+  };
 
   const handleDownload = () => {
-    triggerDownload(current.url, current.original_name)
-  }
+    triggerDownload(current.url, current.original_name);
+  };
 
   return createPortal(
     <div
@@ -87,8 +89,8 @@ export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: Rec
         justifyContent: 'center',
         padding: 16,
       }}
-      onClick={e => {
-        if (e.target === e.currentTarget) onClose()
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
@@ -104,7 +106,7 @@ export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: Rec
           flexDirection: 'column',
           boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         }}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header - identical to PdfPreviewModal */}
         <div
@@ -148,8 +150,8 @@ export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: Rec
                 borderRadius: 6,
                 transition: 'color 0.15s',
               }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
             >
               <ExternalLink size={13} /> {t('files.openTab')}
             </button>
@@ -170,8 +172,8 @@ export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: Rec
                 borderRadius: 6,
                 transition: 'color 0.15s',
               }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
             >
               <Download size={13} /> {t('files.download') || 'Download'}
             </button>
@@ -188,8 +190,8 @@ export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: Rec
                 borderRadius: 6,
                 transition: 'color 0.15s',
               }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-faint)')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-faint)')}
             >
               <X size={18} />
             </button>
@@ -211,15 +213,19 @@ export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: Rec
             }}
           >
             {receipts.map((r, i) => {
-              const active = i === index
-              const isRImg = isImage(r.mime_type)
-              const Icon = isRImg ? FileImage : FileText
+              const active = i === index;
+              const isRImg = isImage(r.mime_type);
+              const Icon = isRImg ? FileImage : FileText;
               return (
                 <button
                   key={r.id}
                   type="button"
                   onClick={() => setIndex(i)}
-                  className={active ? 'bg-surface-card text-content font-semibold shadow-sm' : 'text-content-muted hover:text-content'}
+                  className={
+                    active
+                      ? 'bg-surface-card font-semibold text-content shadow-sm'
+                      : 'text-content-muted hover:text-content'
+                  }
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -237,9 +243,7 @@ export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: Rec
                   }}
                 >
                   <Icon size={12} className={active ? 'text-content' : 'text-content-faint'} />
-                  <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {r.original_name}
-                  </span>
+                  <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.original_name}</span>
                   <span
                     style={{
                       fontSize: 'calc(10px * var(--fs-scale-caption, 1))',
@@ -250,7 +254,7 @@ export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: Rec
                     #{i + 1}
                   </span>
                 </button>
-              )
+              );
             })}
           </div>
         )}
@@ -271,7 +275,7 @@ export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: Rec
           {receipts.length > 1 && index > 0 && (
             <button
               type="button"
-              onClick={() => setIndex(i => i - 1)}
+              onClick={() => setIndex((i) => i - 1)}
               style={{
                 position: 'absolute',
                 left: 14,
@@ -297,7 +301,7 @@ export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: Rec
           {receipts.length > 1 && index < receipts.length - 1 && (
             <button
               type="button"
-              onClick={() => setIndex(i => i + 1)}
+              onClick={() => setIndex((i) => i + 1)}
               style={{
                 position: 'absolute',
                 right: 14,
@@ -375,8 +379,8 @@ export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: Rec
             </div>
           ) : (
             <div style={{ padding: 40, textAlign: 'center' }}>
-              <FileText size={44} className="text-content-muted mx-auto" style={{ marginBottom: 16 }} />
-              <p className="text-content font-medium" style={{ marginBottom: 14 }}>
+              <FileText size={44} className="mx-auto text-content-muted" style={{ marginBottom: 16 }} />
+              <p className="font-medium text-content" style={{ marginBottom: 14 }}>
                 {current.original_name}
               </p>
               <button
@@ -401,5 +405,5 @@ export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: Rec
       </div>
     </div>,
     document.body
-  )
+  );
 }

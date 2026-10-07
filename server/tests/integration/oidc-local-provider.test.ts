@@ -13,13 +13,18 @@
  * Loopback stands in for the LAN address, being the one address a test can
  * reach; the admin lane OIDC rides on treats the two alike.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
-import request from 'supertest';
-import http from 'node:http';
-import crypto from 'node:crypto';
-import type { AddressInfo } from 'node:net';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { createUser } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import crypto from 'node:crypto';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
 const { answers } = vi.hoisted(() => ({ answers: new Map<string, { address: string; family: number }[]>() }));
 
@@ -51,11 +56,6 @@ vi.mock('dns/promises', async (importOriginal) => {
   return { ...real, default: { ...real, lookup }, lookup };
 });
 
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser } from '../helpers/factories';
-
 const CLIENT_ID = 'trek-local';
 const CLIENT_SECRET = 'local-secret';
 const EMAIL = 'lan-admin@home.test';
@@ -64,7 +64,11 @@ const EMAIL = 'lan-admin@home.test';
 function readCookie(res: request.Response, name: string): string | undefined {
   const raw = res.headers['set-cookie'];
   const all: string[] = Array.isArray(raw) ? raw : raw ? [raw as unknown as string] : [];
-  const value = all.filter((c) => c.startsWith(`${name}=`)).pop()?.split(';')[0].slice(name.length + 1);
+  const value = all
+    .filter((c) => c.startsWith(`${name}=`))
+    .pop()
+    ?.split(';')[0]
+    .slice(name.length + 1);
   return value ? decodeURIComponent(value) : undefined;
 }
 
@@ -82,7 +86,13 @@ const b64 = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('bas
 function signIdToken(issuer: string): string {
   const now = Math.floor(Date.now() / 1000);
   const signingInput = `${b64({ alg: 'RS256', kid: 'k1', typ: 'JWT' })}.${b64({
-    iss: issuer, sub: 'lan-sub-1', aud: CLIENT_ID, iat: now, exp: now + 300, email: EMAIL, email_verified: true,
+    iss: issuer,
+    sub: 'lan-sub-1',
+    aud: CLIENT_ID,
+    iat: now,
+    exp: now + 300,
+    email: EMAIL,
+    email_verified: true,
   })}`;
   return `${signingInput}.${crypto.sign('RSA-SHA256', Buffer.from(signingInput), privateKey).toString('base64url')}`;
 }
@@ -199,7 +209,9 @@ describe('OIDC login against a provider whose name has an fe80:: record (#2506)'
     expect(authorize.searchParams.get('state')).toBe(state);
 
     // The browser's leg: the provider sends it back to /callback with a code.
-    const back = await fetch(`http://127.0.0.1:${port}${authorize.pathname}${authorize.search}`, { redirect: 'manual' });
+    const back = await fetch(`http://127.0.0.1:${port}${authorize.pathname}${authorize.search}`, {
+      redirect: 'manual',
+    });
     const callbackUrl = new URL(back.headers.get('location')!);
     const cb = await request(app)
       .get(`${callbackUrl.pathname}${callbackUrl.search}`)

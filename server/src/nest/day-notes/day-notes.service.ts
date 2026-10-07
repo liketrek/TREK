@@ -1,16 +1,16 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { NOTE_COLORS, type TrekWsPayload, type TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
-import type { DayNote, User } from '../../types';
-import type { TripAccess } from '../../db/repositories/Trips.repository';
 import { DayNotes } from '../../db/entities/DayNotes.entity';
-import type { DayNotesRepository } from '../../db/repositories/DayNotes.repository';
 import { Days } from '../../db/entities/Days.entity';
-import type { DaysRepository } from '../../db/repositories/Days.repository';
 import { Trips } from '../../db/entities/Trips.entity';
+import type { DayNotesRepository } from '../../db/repositories/DayNotes.repository';
+import type { DaysRepository } from '../../db/repositories/Days.repository';
+import type { TripAccess } from '../../db/repositories/Trips.repository';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import type { DayNote, User } from '../../types';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { NOTE_COLORS, type TrekWsPayload, type TrekWsTripEventName } from '@trek/shared';
 
 /**
  * Day-notes domain service — the legacy dayNoteService SQL folded in over
@@ -59,7 +59,12 @@ export class DayNotesService {
     return this.permissions.checkPermission('day_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -75,7 +80,15 @@ export class DayNotesService {
     return this.dayNotes.findByIdDayTrip(id, dayId, tripId);
   }
 
-  async create(dayId: string | number, tripId: string | number, text: string, time?: string | null, icon?: string | null, sortOrder?: number, color?: string | null) {
+  async create(
+    dayId: string | number,
+    tripId: string | number,
+    text: string,
+    time?: string | null,
+    icon?: string | null,
+    sortOrder?: number,
+    color?: string | null,
+  ) {
     // `dayId`/`tripId` bind raw (D4's T5 escape hatch, matching the legacy
     // statement's own no-conversion bind) — `createNote`'s column set wants
     // numbers, but every real caller here already passes an id that matched
@@ -93,7 +106,11 @@ export class DayNotesService {
     });
   }
 
-  async update(id: string | number, current: DayNote, fields: { text?: string; time?: string | null; icon?: string | null; sort_order?: number; color?: string | null }) {
+  async update(
+    id: string | number,
+    current: DayNote,
+    fields: { text?: string; time?: string | null; icon?: string | null; sort_order?: number; color?: string | null },
+  ) {
     return this.dayNotes.updateNote(id, {
       text: fields.text !== undefined ? fields.text.trim() : current.text,
       time: fields.time !== undefined ? fields.time : current.time,

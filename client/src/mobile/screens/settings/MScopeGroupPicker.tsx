@@ -5,23 +5,25 @@
  * group cards, a square tri-state group selector and tap-to-toggle scope rows
  * with a confirm-coloured check.
  */
-import { useState } from 'react'
-import { Check, ChevronDown, ChevronRight, Minus } from 'lucide-react'
-import { getScopesByGroup } from '../../../api/oauthScopes'
-import { useTranslation } from '../../../i18n'
+import { Check, ChevronDown, ChevronRight, Minus } from 'lucide-react';
+import { useState } from 'react';
+import { getScopesByGroup } from '../../../api/oauthScopes';
+import { useTranslation } from '../../../i18n';
 
 interface Props {
-  selected: string[]
-  onChange: (scopes: string[]) => void
+  selected: string[];
+  onChange: (scopes: string[]) => void;
 }
 
 export default function MScopeGroupPicker({ selected, onChange }: Props) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState<Record<string, boolean>>({})
+  const { t } = useTranslation();
+  const [open, setOpen] = useState<Record<string, boolean>>({});
 
-  const scopesByGroup = getScopesByGroup(t)
-  const allScopeKeys = Object.values(scopesByGroup).flat().map((s) => s.scope)
-  const allSelected = allScopeKeys.every((s) => selected.includes(s))
+  const scopesByGroup = getScopesByGroup(t);
+  const allScopeKeys = Object.values(scopesByGroup)
+    .flat()
+    .map((s) => s.scope);
+  const allSelected = allScopeKeys.every((s) => selected.includes(s));
 
   return (
     <div className="space-y-2">
@@ -37,11 +39,11 @@ export default function MScopeGroupPicker({ selected, onChange }: Props) {
 
       <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-[2px]">
         {Object.entries(scopesByGroup).map(([group, groupScopes]) => {
-          const groupScopeKeys = groupScopes.map((s) => s.scope)
-          const allGroupSelected = groupScopeKeys.every((s) => selected.includes(s))
-          const someGroupSelected = groupScopeKeys.some((s) => selected.includes(s))
-          const selectedInGroup = groupScopeKeys.filter((s) => selected.includes(s)).length
-          const isOpen = !!open[group]
+          const groupScopeKeys = groupScopes.map((s) => s.scope);
+          const allGroupSelected = groupScopeKeys.every((s) => selected.includes(s));
+          const someGroupSelected = groupScopeKeys.some((s) => selected.includes(s));
+          const selectedInGroup = groupScopeKeys.filter((s) => selected.includes(s)).length;
+          const isOpen = !!open[group];
 
           return (
             <div key={group} className="overflow-hidden rounded-xl border border-[color:var(--m-rowbr)]">
@@ -92,14 +94,12 @@ export default function MScopeGroupPicker({ selected, onChange }: Props) {
               {isOpen && (
                 <div>
                   {groupScopes.map(({ scope, label, description }) => {
-                    const on = selected.includes(scope)
+                    const on = selected.includes(scope);
                     return (
                       <button
                         key={scope}
                         type="button"
-                        onClick={() =>
-                          onChange(on ? selected.filter((s) => s !== scope) : [...selected, scope])
-                        }
+                        onClick={() => onChange(on ? selected.filter((s) => s !== scope) : [...selected, scope])}
                         className="flex w-full items-start gap-2.5 border-t border-[color:var(--m-rowbr)] px-3 py-2 text-left"
                       >
                         <div className="min-w-0 flex-1">
@@ -116,14 +116,14 @@ export default function MScopeGroupPicker({ selected, onChange }: Props) {
                           />
                         )}
                       </button>
-                    )
+                    );
                   })}
                 </div>
               )}
             </div>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }

@@ -1,12 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import React from 'react';
-import { render, screen, waitFor, fireEvent } from '../../tests/helpers/render';
-import { resetAllStores, seedStore } from '../../tests/helpers/store';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildUser } from '../../tests/helpers/factories';
+import { fireEvent, render, screen, waitFor } from '../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../tests/helpers/store';
+import * as websocket from '../api/websocket';
 import { useAuthStore } from '../store/authStore';
 import { useVacayStore } from '../store/vacayStore';
 import VacayPage from './VacayPage';
-import * as websocket from '../api/websocket';
 
 vi.mock('../components/Vacay/VacayCalendar', () => ({
   default: () => <div data-testid="vacay-calendar" />,
@@ -158,9 +157,12 @@ describe('VacayPage', () => {
 
   // FE-PAGE-VACAY-009
   it('shows incoming invite overlay with username and action buttons', async () => {
-    seedStore(useVacayStore, makeVacayState({
-      incomingInvites: [{ plan_id: 99, owner_username: 'bob' }],
-    }) as any);
+    seedStore(
+      useVacayStore,
+      makeVacayState({
+        incomingInvites: [{ plan_id: 99, owner_username: 'bob' }],
+      }) as any
+    );
     render(<VacayPage />);
     await waitFor(() => {
       expect(screen.getByText('bob')).toBeInTheDocument();
@@ -172,10 +174,13 @@ describe('VacayPage', () => {
   // FE-PAGE-VACAY-010
   it('calls acceptInvite with plan_id on accept button click', async () => {
     const mockAcceptInvite = vi.fn();
-    seedStore(useVacayStore, makeVacayState({
-      incomingInvites: [{ plan_id: 99, owner_username: 'bob' }],
-      acceptInvite: mockAcceptInvite,
-    }) as any);
+    seedStore(
+      useVacayStore,
+      makeVacayState({
+        incomingInvites: [{ plan_id: 99, owner_username: 'bob' }],
+        acceptInvite: mockAcceptInvite,
+      }) as any
+    );
     render(<VacayPage />);
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /accept/i })).toBeInTheDocument();
@@ -187,10 +192,13 @@ describe('VacayPage', () => {
   // FE-PAGE-VACAY-011
   it('calls declineInvite with plan_id on decline button click', async () => {
     const mockDeclineInvite = vi.fn();
-    seedStore(useVacayStore, makeVacayState({
-      incomingInvites: [{ plan_id: 99, owner_username: 'bob' }],
-      declineInvite: mockDeclineInvite,
-    }) as any);
+    seedStore(
+      useVacayStore,
+      makeVacayState({
+        incomingInvites: [{ plan_id: 99, owner_username: 'bob' }],
+        declineInvite: mockDeclineInvite,
+      }) as any
+    );
     render(<VacayPage />);
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /decline/i })).toBeInTheDocument();
@@ -215,7 +223,10 @@ describe('VacayPage', () => {
     const mockLoadEntries = vi.fn().mockResolvedValue(undefined);
     const mockLoadStats = vi.fn().mockResolvedValue(undefined);
     const addListenerMock = websocket.addListener as ReturnType<typeof vi.fn>;
-    seedStore(useVacayStore, makeVacayState({ loadPlan: mockLoadPlan, loadEntries: mockLoadEntries, loadStats: mockLoadStats }) as any);
+    seedStore(
+      useVacayStore,
+      makeVacayState({ loadPlan: mockLoadPlan, loadEntries: mockLoadEntries, loadStats: mockLoadStats }) as any
+    );
     render(<VacayPage />);
     const handler = addListenerMock.mock.calls[0][0];
     handler({ type: 'vacay:update' });
@@ -258,12 +269,20 @@ describe('VacayPage', () => {
     const { container } = render(<VacayPage />);
     // The "add next year" button is the last Plus button in the year selector header
     const plusButtons = container.querySelectorAll('button[title]');
-    const addNextBtn = Array.from(plusButtons).find(btn => btn.getAttribute('title') && btn.getAttribute('title')!.length > 0 && !btn.getAttribute('title')!.toLowerCase().includes('prev'));
+    const addNextBtn = Array.from(plusButtons).find(
+      (btn) =>
+        btn.getAttribute('title') &&
+        btn.getAttribute('title')!.length > 0 &&
+        !btn.getAttribute('title')!.toLowerCase().includes('prev')
+    );
     // Use getAllByTitle or find the second Plus button
     const allPlusButtons = container.querySelectorAll('.p-0\\.5.rounded');
     // Click the rightmost + button (add next year)
-    const rightPlusBtn = container.querySelector('button[title]:last-of-type') ??
-      Array.from(container.querySelectorAll('button')).find(btn => btn.title && !btn.title.toLowerCase().includes('prev'));
+    const rightPlusBtn =
+      container.querySelector('button[title]:last-of-type') ??
+      Array.from(container.querySelectorAll('button')).find(
+        (btn) => btn.title && !btn.title.toLowerCase().includes('prev')
+      );
     if (rightPlusBtn) fireEvent.click(rightPlusBtn);
     expect(mockAddYear).toHaveBeenCalledWith(2026);
   });
@@ -282,7 +301,10 @@ describe('VacayPage', () => {
   // FE-PAGE-VACAY-018: Year tile click calls setSelectedYear
   it('calls setSelectedYear when a year tile is clicked', async () => {
     const mockSetSelectedYear = vi.fn();
-    seedStore(useVacayStore, makeVacayState({ years: [2024, 2025], selectedYear: 2025, setSelectedYear: mockSetSelectedYear }) as any);
+    seedStore(
+      useVacayStore,
+      makeVacayState({ years: [2024, 2025], selectedYear: 2025, setSelectedYear: mockSetSelectedYear }) as any
+    );
     render(<VacayPage />);
     await waitFor(() => {
       expect(screen.getAllByText('2024')[0]).toBeInTheDocument();
@@ -294,15 +316,18 @@ describe('VacayPage', () => {
 
   // FE-PAGE-VACAY-019: Legend renders when plan has holidays enabled
   it('renders legend when plan has holidays_enabled', async () => {
-    seedStore(useVacayStore, makeVacayState({
-      plan: {
-        id: 1,
-        holidays_enabled: true,
-        holiday_calendars: [],
-        company_holidays_enabled: false,
-        block_weekends: false,
-      },
-    }) as any);
+    seedStore(
+      useVacayStore,
+      makeVacayState({
+        plan: {
+          id: 1,
+          holidays_enabled: true,
+          holiday_calendars: [],
+          company_holidays_enabled: false,
+          block_weekends: false,
+        },
+      }) as any
+    );
     render(<VacayPage />);
     await waitFor(() => {
       expect(screen.getAllByText(/legend/i)[0]).toBeInTheDocument();
@@ -311,15 +336,18 @@ describe('VacayPage', () => {
 
   // FE-PAGE-VACAY-020: Legend renders holiday calendar items
   it('renders legend calendar items from plan', async () => {
-    seedStore(useVacayStore, makeVacayState({
-      plan: {
-        id: 1,
-        holidays_enabled: true,
-        holiday_calendars: [{ id: 1, region: 'DE', label: 'Germany', color: '#ef4444', sort_order: 0 }],
-        company_holidays_enabled: false,
-        block_weekends: false,
-      },
-    }) as any);
+    seedStore(
+      useVacayStore,
+      makeVacayState({
+        plan: {
+          id: 1,
+          holidays_enabled: true,
+          holiday_calendars: [{ id: 1, region: 'DE', label: 'Germany', color: '#ef4444', sort_order: 0 }],
+          company_holidays_enabled: false,
+          block_weekends: false,
+        },
+      }) as any
+    );
     render(<VacayPage />);
     await waitFor(() => {
       expect(screen.getByText('Germany')).toBeInTheDocument();
@@ -330,9 +358,10 @@ describe('VacayPage', () => {
   it('opens mobile sidebar drawer when toggle button is clicked', async () => {
     const { container } = render(<VacayPage />);
     // The mobile sidebar toggle button has the SlidersHorizontal icon and no text
-    const mobileToggle = Array.from(container.querySelectorAll('button')).find(
-      btn => btn.className.includes('lg:hidden') || btn.className.includes('SlidersHorizontal')
-    ) ?? container.querySelector('.lg\\:hidden');
+    const mobileToggle =
+      Array.from(container.querySelectorAll('button')).find(
+        (btn) => btn.className.includes('lg:hidden') || btn.className.includes('SlidersHorizontal')
+      ) ?? container.querySelector('.lg\\:hidden');
     expect(mobileToggle).toBeInTheDocument();
     fireEvent.click(mobileToggle as Element);
     await waitFor(() => {
@@ -357,14 +386,18 @@ describe('VacayPage', () => {
   // FE-PAGE-VACAY-023: Delete year modal confirm button calls removeYear
   it('calls removeYear when Remove button is clicked in delete modal', async () => {
     const mockRemoveYear = vi.fn().mockResolvedValue(undefined);
-    seedStore(useVacayStore, makeVacayState({ years: [2024, 2025], selectedYear: 2025, removeYear: mockRemoveYear }) as any);
+    seedStore(
+      useVacayStore,
+      makeVacayState({ years: [2024, 2025], selectedYear: 2025, removeYear: mockRemoveYear }) as any
+    );
     const { container } = render(<VacayPage />);
     await waitFor(() => expect(screen.getAllByText('2024')[0]).toBeInTheDocument());
     fireEvent.click(container.querySelector('.bg-red-500')!);
     await waitFor(() => expect(screen.getByText(/remove year/i)).toBeInTheDocument());
     // The Remove button is the red one in the modal footer (not the year tile delete button)
-    const removeBtn = screen.getByRole('button', { name: /^remove$/i }) ??
-      Array.from(document.querySelectorAll('button')).find(btn => /^remove$/i.test(btn.textContent ?? ''));
+    const removeBtn =
+      screen.getByRole('button', { name: /^remove$/i }) ??
+      Array.from(document.querySelectorAll('button')).find((btn) => /^remove$/i.test(btn.textContent ?? ''));
     if (removeBtn) fireEvent.click(removeBtn);
     await waitFor(() => {
       expect(mockRemoveYear).toHaveBeenCalled();
@@ -384,10 +417,13 @@ describe('VacayPage', () => {
     const mockLoadShares = vi.fn().mockResolvedValue(undefined);
     const mockLoadSharedCalendars = vi.fn().mockResolvedValue(undefined);
     const addListenerMock = websocket.addListener as ReturnType<typeof vi.fn>;
-    seedStore(useVacayStore, makeVacayState({
-      loadShares: mockLoadShares,
-      loadSharedCalendars: mockLoadSharedCalendars,
-    }) as any);
+    seedStore(
+      useVacayStore,
+      makeVacayState({
+        loadShares: mockLoadShares,
+        loadSharedCalendars: mockLoadSharedCalendars,
+      }) as any
+    );
     render(<VacayPage />);
     const handler = addListenerMock.mock.calls[0][0];
     mockLoadSharedCalendars.mockClear();

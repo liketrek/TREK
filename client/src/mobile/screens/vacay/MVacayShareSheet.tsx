@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react'
-import { ChevronDown, Eye, EyeOff, Loader2, Share2, X } from 'lucide-react'
-import MSheet from '../../components/MSheet'
-import MIconBtn from '../../components/MIconBtn'
-import { useVacayStore } from '../../../store/vacayStore'
-import { useTranslation } from '../../../i18n'
-import { useToast } from '../../../components/shared/Toast'
-import { getApiErrorMessage } from '../../../types'
-import apiClient from '../../../api/client'
+import { ChevronDown, Eye, EyeOff, Loader2, Share2, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import apiClient from '../../../api/client';
+import { useToast } from '../../../components/shared/Toast';
+import { useTranslation } from '../../../i18n';
+import { useVacayStore } from '../../../store/vacayStore';
+import { getApiErrorMessage } from '../../../types';
+import MIconBtn from '../../components/MIconBtn';
+import MSheet from '../../components/MSheet';
 
 interface MVacayShareSheetProps {
-  open: boolean
-  onClose: () => void
+  open: boolean;
+  onClose: () => void;
 }
 
 /**
@@ -19,40 +19,41 @@ interface MVacayShareSheetProps {
  * per-person overlay eye toggle) and stop shares in both directions.
  */
 export default function MVacayShareSheet({ open, onClose }: MVacayShareSheetProps) {
-  const { t } = useTranslation()
-  const toast = useToast()
-  const { incomingShares, outgoingShares, shareWith, removeShare, setShareHidden } = useVacayStore()
-  const [available, setAvailable] = useState<{ id: number; username: string }[]>([])
-  const [selected, setSelected] = useState<number | null>(null)
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const [sending, setSending] = useState(false)
+  const { t } = useTranslation();
+  const toast = useToast();
+  const { incomingShares, outgoingShares, shareWith, removeShare, setShareHidden } = useVacayStore();
+  const [available, setAvailable] = useState<{ id: number; username: string }[]>([]);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [sending, setSending] = useState(false);
 
-  const showError = (err: unknown) => toast.error(getApiErrorMessage(err, t('vacay.shareFailed')))
+  const showError = (err: unknown) => toast.error(getApiErrorMessage(err, t('vacay.shareFailed')));
 
   useEffect(() => {
-    if (!open) return
-    setSelected(null)
-    setPickerOpen(false)
-    apiClient.get('/addons/vacay/shares/available-users')
-      .then(r => setAvailable(r.data.users))
-      .catch(() => setAvailable([]))
-  }, [open])
+    if (!open) return;
+    setSelected(null);
+    setPickerOpen(false);
+    apiClient
+      .get('/addons/vacay/shares/available-users')
+      .then((r) => setAvailable(r.data.users))
+      .catch(() => setAvailable([]));
+  }, [open]);
 
-  const selectedUser = available.find(u => u.id === selected)
+  const selectedUser = available.find((u) => u.id === selected);
 
   const handleShare = async () => {
-    if (!selected) return
-    setSending(true)
+    if (!selected) return;
+    setSending(true);
     try {
-      await shareWith(selected)
-      toast.success(t('vacay.shareSent'))
-      setSelected(null)
+      await shareWith(selected);
+      toast.success(t('vacay.shareSent'));
+      setSelected(null);
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('vacay.shareFailed')))
+      toast.error(getApiErrorMessage(err, t('vacay.shareFailed')));
     } finally {
-      setSending(false)
+      setSending(false);
     }
-  }
+  };
 
   return (
     <MSheet open={open} onClose={onClose} variant="card" material="glass" ariaLabel={t('vacay.sharedCalendars')}>
@@ -76,7 +77,7 @@ export default function MVacayShareSheet({ open, onClose }: MVacayShareSheetProp
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setPickerOpen(o => !o)}
+                onClick={() => setPickerOpen((o) => !o)}
                 className="flex min-w-0 flex-1 items-center gap-[9px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-3 text-[0.8125rem] font-semibold"
               >
                 <span className={`min-w-0 flex-1 truncate text-left ${selectedUser ? '' : 'text-m-muted'}`}>
@@ -96,11 +97,14 @@ export default function MVacayShareSheet({ open, onClose }: MVacayShareSheetProp
             </div>
             {pickerOpen && (
               <div className="mt-[6px] max-h-[180px] overflow-y-auto rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-[6px]">
-                {available.map(u => (
+                {available.map((u) => (
                   <button
                     key={u.id}
                     type="button"
-                    onClick={() => { setSelected(u.id); setPickerOpen(false) }}
+                    onClick={() => {
+                      setSelected(u.id);
+                      setPickerOpen(false);
+                    }}
                     className={`flex w-full items-center gap-[9px] rounded-[10px] px-[10px] py-[9px] text-left text-[0.8125rem] font-semibold ${
                       u.id === selected ? 'bg-[color:var(--m-ic)]' : ''
                     }`}
@@ -118,10 +122,18 @@ export default function MVacayShareSheet({ open, onClose }: MVacayShareSheetProp
             <div className="px-1 font-geist text-[0.625rem] font-bold uppercase tracking-[.06em] text-m-faint">
               {t('vacay.sharedWithYou')}
             </div>
-            {incomingShares.map(s => (
-              <div key={s.id} className="flex items-center gap-[9px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] px-[14px] py-[10px]">
-                <span className="h-[11px] w-[11px] flex-none rounded-full" style={{ border: `2.5px solid ${s.color}` }} />
-                <span className={`min-w-0 flex-1 truncate text-[0.8125rem] font-semibold ${s.hidden ? 'text-m-faint' : ''}`}>
+            {incomingShares.map((s) => (
+              <div
+                key={s.id}
+                className="flex items-center gap-[9px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] px-[14px] py-[10px]"
+              >
+                <span
+                  className="h-[11px] w-[11px] flex-none rounded-full"
+                  style={{ border: `2.5px solid ${s.color}` }}
+                />
+                <span
+                  className={`min-w-0 flex-1 truncate text-[0.8125rem] font-semibold ${s.hidden ? 'text-m-faint' : ''}`}
+                >
                   {s.username}
                 </span>
                 <button
@@ -130,9 +142,11 @@ export default function MVacayShareSheet({ open, onClose }: MVacayShareSheetProp
                   aria-label={s.hidden ? t('vacay.showInCalendar') : t('vacay.hideFromCalendar')}
                   className="flex h-[28px] w-[28px] flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)]"
                 >
-                  {s.hidden
-                    ? <EyeOff size={13} strokeWidth={2.2} className="text-m-faint" />
-                    : <Eye size={13} strokeWidth={2.2} className="text-m-muted" />}
+                  {s.hidden ? (
+                    <EyeOff size={13} strokeWidth={2.2} className="text-m-faint" />
+                  ) : (
+                    <Eye size={13} strokeWidth={2.2} className="text-m-muted" />
+                  )}
                 </button>
                 <button
                   type="button"
@@ -151,8 +165,11 @@ export default function MVacayShareSheet({ open, onClose }: MVacayShareSheetProp
             <div className="px-1 font-geist text-[0.625rem] font-bold uppercase tracking-[.06em] text-m-faint">
               {t('vacay.youShareWith')}
             </div>
-            {outgoingShares.map(s => (
-              <div key={s.id} className="flex items-center gap-[9px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] px-[14px] py-[10px]">
+            {outgoingShares.map((s) => (
+              <div
+                key={s.id}
+                className="flex items-center gap-[9px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] px-[14px] py-[10px]"
+              >
                 <Share2 size={13} strokeWidth={2} className="flex-none text-m-faint" />
                 <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">{s.username}</span>
                 <button
@@ -168,5 +185,5 @@ export default function MVacayShareSheet({ open, onClose }: MVacayShareSheetProp
         )}
       </div>
     </MSheet>
-  )
+  );
 }

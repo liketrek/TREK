@@ -1,28 +1,27 @@
-import { Injectable } from '@nestjs/common';
-import { MikroORM } from '@mikro-orm/core';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { CONTINENT_MAP, strongerVisitStatus, todayUtc, tripVisitStatus, VisitStatus } from '@trek/shared';
-import type { AtlasLocateResponse } from '@trek/shared';
-import { UnitOfWork } from '../database/unit-of-work';
-import { withRequestContext } from '../database/request-context';
 import { BucketList } from '../../db/entities/BucketList.entity';
-import type { BucketListRepository, BucketListRow } from '../../db/repositories/BucketList.repository';
 import { HiddenCountries } from '../../db/entities/HiddenCountries.entity';
-import type { HiddenCountriesRepository } from '../../db/repositories/HiddenCountries.repository';
 import { HiddenRegions } from '../../db/entities/HiddenRegions.entity';
-import type { HiddenRegionsRepository } from '../../db/repositories/HiddenRegions.repository';
-import { VisitedCountries } from '../../db/entities/VisitedCountries.entity';
-import type { VisitedCountriesRepository } from '../../db/repositories/VisitedCountries.repository';
-import { VisitedRegions } from '../../db/entities/VisitedRegions.entity';
-import type { VisitedRegionsRepository } from '../../db/repositories/VisitedRegions.repository';
 import { PlaceRegions } from '../../db/entities/PlaceRegions.entity';
-import type { PlaceRegionsRepository } from '../../db/repositories/PlaceRegions.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository, TripRawRow } from '../../db/repositories/Trips.repository';
 import { Places } from '../../db/entities/Places.entity';
-import type { PlacesRepository, PlaceRow } from '../../db/repositories/Places.repository';
 import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
-import type { ReservationEndpointsRepository, TravelerOwnedEndpointRow } from '../../db/repositories/ReservationEndpoints.repository';
+import { Trips } from '../../db/entities/Trips.entity';
+import { VisitedCountries } from '../../db/entities/VisitedCountries.entity';
+import { VisitedRegions } from '../../db/entities/VisitedRegions.entity';
+import type { BucketListRepository, BucketListRow } from '../../db/repositories/BucketList.repository';
+import type { HiddenCountriesRepository } from '../../db/repositories/HiddenCountries.repository';
+import type { HiddenRegionsRepository } from '../../db/repositories/HiddenRegions.repository';
+import type { PlaceRegionsRepository } from '../../db/repositories/PlaceRegions.repository';
+import type { PlacesRepository, PlaceRow } from '../../db/repositories/Places.repository';
+import type {
+  ReservationEndpointsRepository,
+  TravelerOwnedEndpointRow,
+} from '../../db/repositories/ReservationEndpoints.repository';
+import type { TripsRepository, TripRawRow } from '../../db/repositories/Trips.repository';
+import type { VisitedCountriesRepository } from '../../db/repositories/VisitedCountries.repository';
+import type { VisitedRegionsRepository } from '../../db/repositories/VisitedRegions.repository';
+import { haversineKm } from '../common/geo';
+import { withRequestContext } from '../database/request-context';
+import { UnitOfWork } from '../database/unit-of-work';
 import {
   getCountryFromAddress,
   getCountryFromCoords,
@@ -35,11 +34,15 @@ import {
   reverseGeocodeRegion,
 } from './atlas-geo';
 import type { RegionInfo } from './atlas-geo';
-import { KNOWN_COUNTRIES } from './known-countries';
 import { cityFromAddress } from './city-from-address';
+import { KNOWN_COUNTRIES } from './known-countries';
 import { transferEndpointIds } from './transfer-endpoints';
 import { countryVisitDates } from './visit-dates';
-import { haversineKm } from '../common/geo';
+import { MikroORM } from '@mikro-orm/core';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { CONTINENT_MAP, strongerVisitStatus, todayUtc, tripVisitStatus, VisitStatus } from '@trek/shared';
+import type { AtlasLocateResponse } from '@trek/shared';
 
 /** The part of a place that its cached region is derived from. */
 type LocatedPlace = Pick<PlaceRow, 'id' | 'lat' | 'lng' | 'address'>;
@@ -325,7 +328,8 @@ export class AtlasService {
       return same ? null : fresh;
     }
     const countryNow = resolveCountryCodeSync(row);
-    const contradicted = !!countryNow && countryNow !== cachedCountry && getCountryFromAddress(row.address) !== cachedCountry;
+    const contradicted =
+      !!countryNow && countryNow !== cachedCountry && getCountryFromAddress(row.address) !== cachedCountry;
     return contradicted ? 'drop' : null;
   }
 
@@ -488,8 +492,7 @@ export class AtlasService {
       if (!code || hidden.has(code)) continue;
       const existing = countries.find((c) => c.code === code);
       if (existing) existing.status = strongerVisitStatus(existing.status, e.status);
-      else
-        countries.push({ code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null, status: e.status });
+      else countries.push({ code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null, status: e.status });
       const ids = bookingTripIds.get(code) ?? new Set<number>();
       for (const id of e.tripIds) ids.add(id);
       bookingTripIds.set(code, ids);
@@ -557,15 +560,18 @@ export class AtlasService {
     const futureTrips = trips
       .filter((t) => t.start_date && t.start_date > now)
       .sort((a, b) => a.start_date!.localeCompare(b.start_date!));
-    const nextTrip: { id: number; title: string; start_date?: string | null; daysUntil?: number } | null = futureTrips[0]
-      ? { id: futureTrips[0].id, title: futureTrips[0].title, start_date: futureTrips[0].start_date }
-      : null;
+    const nextTrip: { id: number; title: string; start_date?: string | null; daysUntil?: number } | null =
+      futureTrips[0]
+        ? { id: futureTrips[0].id, title: futureTrips[0].title, start_date: futureTrips[0].start_date }
+        : null;
     if (nextTrip) {
       const diff = Math.ceil((new Date(nextTrip.start_date!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
       nextTrip.daysUntil = Math.max(0, diff);
     }
 
-    const tripYears = new Set(trips.filter((t) => t.start_date).map((t) => Number.parseInt(t.start_date!.split('-')[0])));
+    const tripYears = new Set(
+      trips.filter((t) => t.start_date).map((t) => Number.parseInt(t.start_date!.split('-')[0])),
+    );
     let streak = 0;
     const currentYear = new Date().getFullYear();
     for (let y = currentYear; y >= 2000; y--) {
@@ -670,7 +676,9 @@ export class AtlasService {
 
   // ── Mark / unmark country ─────────────────────────────────────────────────
 
-  async listVisitedCountries(userId: number): Promise<{ country_code: string; created_at: string | null; source: string }[]> {
+  async listVisitedCountries(
+    userId: number,
+  ): Promise<{ country_code: string; created_at: string | null; source: string }[]> {
     return this.visitedCountries.listForUser(userId); // AT10
   }
 
@@ -712,7 +720,9 @@ export class AtlasService {
 
   // ── Mark / unmark region ──────────────────────────────────────────────────
 
-  async listManuallyVisitedRegions(userId: number): Promise<{ region_code: string; region_name: string; country_code: string }[]> {
+  async listManuallyVisitedRegions(
+    userId: number,
+  ): Promise<{ region_code: string; region_name: string; country_code: string }[]> {
     return this.visitedRegionsRepo.listForUser(userId); // AT21
   }
 
@@ -740,11 +750,11 @@ export class AtlasService {
   // regions. Used to decide whether removing a region should cascade into hiding the country.
   private async hasVisibleRegionForCountry(userId: number, countryCode: string, hidden: Set<string>): Promise<boolean> {
     const tripIds = (await this.getUserTrips(userId)).map((t) => t.id);
-    const placeIds = (await this.getPlacesForTrips(tripIds))
-      .filter((p) => p.lat && p.lng)
-      .map((p) => p.id);
+    const placeIds = (await this.getPlacesForTrips(tripIds)).filter((p) => p.lat && p.lng).map((p) => p.id);
     const placeRegionCodes =
-      placeIds.length > 0 ? await this.placeRegions.listDistinctRegionCodesForCountryAndPlaces(countryCode, placeIds) : []; // AT23
+      placeIds.length > 0
+        ? await this.placeRegions.listDistinctRegionCodesForCountryAndPlaces(countryCode, placeIds)
+        : []; // AT23
     const manualRegionCodes = await this.visitedRegionsRepo.listRegionCodesForCountry(userId, countryCode); // AT24
     return [...placeRegionCodes, ...manualRegionCodes].some((code) => !hidden.has(code));
   }
@@ -753,7 +763,8 @@ export class AtlasService {
     // One transaction across the delete, the tombstone and the country cascade —
     // MikroORM turns the nested unmarkCountry() transaction into a savepoint.
     await this.uow.transactional(async () => {
-      const countryCode = (await this.visitedRegionsRepo.findCountryCode(userId, code)) || countryCodeFromRegionCode(code); // AT25
+      const countryCode =
+        (await this.visitedRegionsRepo.findCountryCode(userId, code)) || countryCodeFromRegionCode(code); // AT25
 
       await this.visitedRegionsRepo.unmark(userId, code); // AT26
 
@@ -911,7 +922,11 @@ export class AtlasService {
    * `BucketListRepository.findDuplicate`'s own docstring for how the NULL-safe
    * match is reproduced without raw SQL.
    */
-  private async findDuplicateBucketItem(userId: number, key: BucketIdentity, excludeId?: number): Promise<number | null> {
+  private async findDuplicateBucketItem(
+    userId: number,
+    key: BucketIdentity,
+    excludeId?: number,
+  ): Promise<number | null> {
     return this.bucketListRepo.findDuplicate(userId, key, excludeId ?? null); // AT31
   }
 
@@ -1011,7 +1026,9 @@ export class AtlasService {
    * much to spend on a label. An unresolved trip reports an empty list, which the
    * caller renders as "no country" rather than as a wrong one.
    */
-  async lastTrip(userId: number): Promise<{ title: string; start_date: string | null; end_date: string | null; countries: string[] } | null> {
+  async lastTrip(
+    userId: number,
+  ): Promise<{ title: string; start_date: string | null; end_date: string | null; countries: string[] } | null> {
     const trip = await this.trips.lastStartedTrip(userId, todayUtc()); // AT39
     if (!trip) return null;
 
@@ -1033,7 +1050,13 @@ export class AtlasService {
    * are counted against the same UTC `todayUtc()` lastTrip cuts on, so the switch
    * from next to last happens at one moment for both fields.
    */
-  async nextTrip(userId: number): Promise<{ title: string; start_date: string; end_date: string | null; days_until: number; countries: string[] } | null> {
+  async nextTrip(userId: number): Promise<{
+    title: string;
+    start_date: string;
+    end_date: string | null;
+    days_until: number;
+    countries: string[];
+  } | null> {
     const today = todayUtc();
     const trip = await this.trips.nextUpcomingTrip(userId, today); // AT47
     if (!trip) return null;
@@ -1068,11 +1091,11 @@ export class AtlasService {
     const cities = new Set<string>();
     const coords: { lat: number; lng: number }[] = [];
 
-    places.forEach(p => {
+    places.forEach((p) => {
       // Explicit null checks: lat/lng of exactly 0 (equator / prime meridian)
       // are valid coordinates the former falsy check silently dropped.
       if (p.lat != null && p.lng != null) coords.push({ lat: p.lat, lng: p.lng });
-      const cityPart = cityFromAddress(p.address, part => KNOWN_COUNTRIES.has(part), p.region_name);
+      const cityPart = cityFromAddress(p.address, (part) => KNOWN_COUNTRIES.has(part), p.region_name);
       if (cityPart) cities.add(cityPart);
     });
 
@@ -1080,13 +1103,17 @@ export class AtlasService {
     // auto-resolved place regions plus countries the user marked manually.
     const countryCodes = new Set<string>();
     const manualCountries = await this.visitedCountries.listCodesForUser(userId); // AT43
-    manualCountries.forEach(code => { if (code) countryCodes.add(code.toUpperCase()); });
+    manualCountries.forEach((code) => {
+      if (code) countryCodes.add(code.toUpperCase());
+    });
 
     // Only trips that have already started count as visited — a country you have merely
     // booked a trip to isn't stamped in the passport yet, and one you jotted down without
     // any dates even less so (#1048). date('now') is UTC, matching tripVisitStatus.
     const placeRegionCodes = await this.placeRegions.listVisitedCountryCodesForUser(userId, today); // AT44
-    placeRegionCodes.forEach(code => { if (code) countryCodes.add(code.toUpperCase()); });
+    placeRegionCodes.forEach((code) => {
+      if (code) countryCodes.add(code.toUpperCase());
+    });
 
     // Transport bookings don't create a place row, so their geocoded endpoints never
     // reached place_regions — a country reached only by a flight/train (no lodging or
@@ -1098,7 +1125,7 @@ export class AtlasService {
     // instead, because there it is stored as a legitimate 'to'/'from' pair (#1535).
     const endpointRows: EndpointRow[] = await this.reservationEndpoints.listOwnedEndpointsForUser(userId, today); // AT45, TRAVELER_OWNS (#1966)
     const transfers = transferEndpointIds(
-      endpointRows.filter(e => e.reservation_type === 'flight' && e.reservation_status !== 'cancelled')
+      endpointRows.filter((e) => e.reservation_type === 'flight' && e.reservation_status !== 'cancelled'),
     );
     // The DISTINCT no longer collapses per coordinate now that the endpoint id has to be
     // in the projection, so collapse here instead: getCountryFromCoords is a

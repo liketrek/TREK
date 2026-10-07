@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor } from '../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { server } from '../../tests/helpers/msw/server';
-import { resetAllStores, seedStore } from '../../tests/helpers/store';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildUser } from '../../tests/helpers/factories';
+import { server } from '../../tests/helpers/msw/server';
+import { render, screen, waitFor } from '../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../tests/helpers/store';
 import { useAuthStore } from '../store/authStore';
 import { useInAppNotificationStore } from '../store/inAppNotificationStore';
 import InAppNotificationsPage from './InAppNotificationsPage';
@@ -12,10 +12,7 @@ import InAppNotificationsPage from './InAppNotificationsPage';
 // Mock InAppNotificationItem to simplify rendering
 vi.mock('../components/Notifications/InAppNotificationItem', () => ({
   default: ({ notification }: { notification: { id: number; is_read: number } }) => (
-    <div
-      data-testid={`notification-${notification.id}`}
-      data-read={notification.is_read}
-    >
+    <div data-testid={`notification-${notification.id}`} data-read={notification.is_read}>
       Notification {notification.id}
     </div>
   ),
@@ -83,7 +80,7 @@ describe('InAppNotificationsPage', () => {
             total: 0,
             unread_count: 0,
           });
-        }),
+        })
       );
 
       render(<InAppNotificationsPage />);
@@ -113,23 +110,45 @@ describe('InAppNotificationsPage', () => {
 
       // Seed store with known mix of read/unread
       const unreadNotif = {
-        id: 100, is_read: 0, type: 'simple',
-        scope: 'trip', target: 1, sender_id: 2,
-        sender_username: 'alice', sender_avatar: null,
-        recipient_id: 1, title_key: 'n', title_params: '{}',
-        text_key: 'n', text_params: '{}',
-        positive_text_key: null, negative_text_key: null,
-        response: null, navigate_text_key: null, navigate_target: null,
+        id: 100,
+        is_read: 0,
+        type: 'simple',
+        scope: 'trip',
+        target: 1,
+        sender_id: 2,
+        sender_username: 'alice',
+        sender_avatar: null,
+        recipient_id: 1,
+        title_key: 'n',
+        title_params: '{}',
+        text_key: 'n',
+        text_params: '{}',
+        positive_text_key: null,
+        negative_text_key: null,
+        response: null,
+        navigate_text_key: null,
+        navigate_target: null,
         created_at: '2025-01-01T00:00:00Z',
       };
       const readNotif = {
-        id: 101, is_read: 1, type: 'simple',
-        scope: 'trip', target: 1, sender_id: 2,
-        sender_username: 'alice', sender_avatar: null,
-        recipient_id: 1, title_key: 'n', title_params: '{}',
-        text_key: 'n', text_params: '{}',
-        positive_text_key: null, negative_text_key: null,
-        response: null, navigate_text_key: null, navigate_target: null,
+        id: 101,
+        is_read: 1,
+        type: 'simple',
+        scope: 'trip',
+        target: 1,
+        sender_id: 2,
+        sender_username: 'alice',
+        sender_avatar: null,
+        recipient_id: 1,
+        title_key: 'n',
+        title_params: '{}',
+        text_key: 'n',
+        text_params: '{}',
+        positive_text_key: null,
+        negative_text_key: null,
+        response: null,
+        navigate_text_key: null,
+        navigate_target: null,
         created_at: '2025-01-01T00:00:00Z',
       };
 

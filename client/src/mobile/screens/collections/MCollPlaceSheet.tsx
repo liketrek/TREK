@@ -1,50 +1,65 @@
-import { useEffect, useRef, useState } from 'react'
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
-import { Camera, Check, Copy, ExternalLink, Loader2, MapPin, Navigation, Pencil, Trash2, X } from 'lucide-react'
-import type { CollectionLabel, CollectionLink, CollectionPlace, CollectionStatus } from '@trek/shared'
-import type { Category, TranslationFn } from '../../../types'
-import { mapsApi } from '../../../api/client'
-import { useToast } from '../../../components/shared/Toast'
-import { normalizeImageFile } from '../../../utils/convertHeic'
-import { getApiErrorMessage } from '../../../utils/apiError'
-import { normalizeLinkUrl, STATUS_ORDER } from '../../../pages/collections/collectionsModel'
-import MSheet from '../../components/MSheet'
-import PlaceRating from '../../../components/shared/StarRating'
-import MCollCategoryPicker from './MCollCategoryPicker'
-import MCollLinksEditor from './MCollLinksEditor'
-import { STATUS_SPEC } from './collectionsMobileModel'
-import { CancelPill, Eyebrow, INPUT_CLS, PrimaryPill, TEXTAREA_CLS } from './MCollSheetKit'
-import { getNavigationTargets, navigationTargetLabel, openNavigationTarget } from '../../../components/Planner/placeNavigation'
-import { NavigationMenu } from '../../../components/shared/NavigationMenu'
+import type { CollectionLabel, CollectionLink, CollectionPlace, CollectionStatus } from '@trek/shared';
+import { Camera, Check, Copy, ExternalLink, Loader2, MapPin, Navigation, Pencil, Trash2, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import Markdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
+import { mapsApi } from '../../../api/client';
+import {
+  getNavigationTargets,
+  navigationTargetLabel,
+  openNavigationTarget,
+} from '../../../components/Planner/placeNavigation';
+import { NavigationMenu } from '../../../components/shared/NavigationMenu';
+import PlaceRating from '../../../components/shared/StarRating';
+import { useToast } from '../../../components/shared/Toast';
+import { normalizeLinkUrl, STATUS_ORDER } from '../../../pages/collections/collectionsModel';
+import type { Category, TranslationFn } from '../../../types';
+import { getApiErrorMessage } from '../../../utils/apiError';
+import { normalizeImageFile } from '../../../utils/convertHeic';
+import MSheet from '../../components/MSheet';
+import { STATUS_SPEC } from './collectionsMobileModel';
+import MCollCategoryPicker from './MCollCategoryPicker';
+import MCollLinksEditor from './MCollLinksEditor';
+import { CancelPill, Eyebrow, INPUT_CLS, PrimaryPill, TEXTAREA_CLS } from './MCollSheetKit';
 
 function linkHost(url: string): string {
-  try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
 }
 
 // Hero chrome sits on a photo/gradient — fixed white/black scrims in both themes.
 const HERO_CAT_CHIP =
-  'inline-flex min-w-0 items-center gap-1 rounded-full bg-[rgba(255,255,255,.9)] px-[10px] py-[3px] font-geist text-[0.59375rem] font-extrabold text-[#101013]' // theme-lint-disable
+  'inline-flex min-w-0 items-center gap-1 rounded-full bg-[rgba(255,255,255,.9)] px-[10px] py-[3px] font-geist text-[0.59375rem] font-extrabold text-[#101013]'; // theme-lint-disable
 // Close and the cover controls beside it.
-const HERO_BTN =
-  'flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(0,0,0,.28)] text-white' // theme-lint-disable
+const HERO_BTN = 'flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(0,0,0,.28)] text-white'; // theme-lint-disable
 
 interface MCollPlaceSheetProps {
-  place: CollectionPlace | null
-  canEdit: boolean
-  canDelete: boolean
-  categories: Category[]
-  labels: CollectionLabel[]
-  onClose: () => void
-  onSetStatus: (status: CollectionStatus) => void
-  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[]; image_url?: string | null; address?: string | null }) => Promise<void>
-  onUploadImage?: (file: File) => Promise<void>
-  onCopyToTrip: () => void
-  onRemove: () => void
+  place: CollectionPlace | null;
+  canEdit: boolean;
+  canDelete: boolean;
+  categories: Category[];
+  labels: CollectionLabel[];
+  onClose: () => void;
+  onSetStatus: (status: CollectionStatus) => void;
+  onSave: (patch: {
+    name?: string;
+    description?: string | null;
+    links?: CollectionLink[];
+    category_id?: number | null;
+    label_ids?: number[];
+    image_url?: string | null;
+    address?: string | null;
+  }) => Promise<void>;
+  onUploadImage?: (file: File) => Promise<void>;
+  onCopyToTrip: () => void;
+  onRemove: () => void;
   /** Cast/clear the current user's star vote (#1435); every member may vote. */
-  onRate?: (rating: number | null) => Promise<void> | void
-  t: TranslationFn
+  onRate?: (rating: number | null) => Promise<void> | void;
+  t: TranslationFn;
 }
 
 /**
@@ -54,109 +69,137 @@ interface MCollPlaceSheetProps {
  * description / links.
  */
 export default function MCollPlaceSheet({
-  place, canEdit, canDelete, categories, labels, onClose, onSetStatus, onSave, onUploadImage, onCopyToTrip, onRemove, onRate, t,
+  place,
+  canEdit,
+  canDelete,
+  categories,
+  labels,
+  onClose,
+  onSetStatus,
+  onSave,
+  onUploadImage,
+  onCopyToTrip,
+  onRemove,
+  onRate,
+  t,
 }: MCollPlaceSheetProps) {
-  const toast = useToast()
-  const imageInputRef = useRef<HTMLInputElement | null>(null)
-  const [imgBusy, setImgBusy] = useState(false)
+  const toast = useToast();
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const [imgBusy, setImgBusy] = useState(false);
   // Hold the last place through the exit animation.
-  const [held, setHeld] = useState<CollectionPlace | null>(place)
-  if (place && place !== held) setHeld(place)
+  const [held, setHeld] = useState<CollectionPlace | null>(place);
+  if (place && place !== held) setHeld(place);
 
-  const [editing, setEditing] = useState(false)
-  const [name, setName] = useState('')
-  const [address, setAddress] = useState('')
-  const [categoryId, setCategoryId] = useState<number | null>(null)
-  const [description, setDescription] = useState('')
-  const [links, setLinks] = useState<CollectionLink[]>([])
-  const [labelIds, setLabelIds] = useState<number[]>([])
-  const [saving, setSaving] = useState(false)
-  const [fetchedPhoto, setFetchedPhoto] = useState<string | null>(null)
-  const [navOpen, setNavOpen] = useState(false)
-  const navBtnRef = useRef<HTMLButtonElement | null>(null)
-  const heldId = held?.id
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [description, setDescription] = useState('');
+  const [links, setLinks] = useState<CollectionLink[]>([]);
+  const [labelIds, setLabelIds] = useState<number[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [fetchedPhoto, setFetchedPhoto] = useState<string | null>(null);
+  const [navOpen, setNavOpen] = useState(false);
+  const navBtnRef = useRef<HTMLButtonElement | null>(null);
+  const heldId = held?.id;
 
   // Reseed the form + cover fetch when a different place is opened.
-  const seededId = useRef<number | null>(null)
+  const seededId = useRef<number | null>(null);
   useEffect(() => {
-    if (!held || seededId.current === held.id) return
-    seededId.current = held.id
-    setEditing(false)
-    setName(held.name)
-    setAddress(held.address ?? '')
-    setCategoryId(held.category_id ?? null)
-    setDescription(held.description ?? '')
-    setLinks(held.links ?? [])
-    setLabelIds(held.label_ids ?? [])
-    setFetchedPhoto(null)
-    if (held.image_url) return
-    const photoId = held.google_place_id || held.osm_id || (held.lat != null && held.lng != null ? `${held.lat},${held.lng}` : null)
-    if (!photoId) return
-    let cancelled = false
-    mapsApi.placePhoto(photoId, held.lat ?? undefined, held.lng ?? undefined, held.name)
-      .then(res => { if (!cancelled && res?.photoUrl) setFetchedPhoto(res.photoUrl) })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [held, heldId])
+    if (!held || seededId.current === held.id) return;
+    seededId.current = held.id;
+    setEditing(false);
+    setName(held.name);
+    setAddress(held.address ?? '');
+    setCategoryId(held.category_id ?? null);
+    setDescription(held.description ?? '');
+    setLinks(held.links ?? []);
+    setLabelIds(held.label_ids ?? []);
+    setFetchedPhoto(null);
+    if (held.image_url) return;
+    const photoId =
+      held.google_place_id || held.osm_id || (held.lat != null && held.lng != null ? `${held.lat},${held.lng}` : null);
+    if (!photoId) return;
+    let cancelled = false;
+    mapsApi
+      .placePhoto(photoId, held.lat ?? undefined, held.lng ?? undefined, held.name)
+      .then((res) => {
+        if (!cancelled && res?.photoUrl) setFetchedPhoto(res.photoUrl);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [held, heldId]);
 
   const save = async () => {
-    if (!held) return
-    const cleanLinks = links.map(l => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) })).filter(l => l.url)
-    setSaving(true)
+    if (!held) return;
+    const cleanLinks = links
+      .map((l) => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) }))
+      .filter((l) => l.url);
+    setSaving(true);
     try {
-      await onSave({ name: name.trim() || held.name, address: address.trim() || null, description: description.trim() || null, links: cleanLinks, category_id: categoryId, label_ids: labelIds })
-      setEditing(false)
+      await onSave({
+        name: name.trim() || held.name,
+        address: address.trim() || null,
+        description: description.trim() || null,
+        links: cleanLinks,
+        category_id: categoryId,
+        label_ids: labelIds,
+      });
+      setEditing(false);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
+      toast.error(getApiErrorMessage(err, t('common.error')));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const cancelEdit = () => {
-    if (!held) return
-    setEditing(false)
-    setName(held.name)
-    setAddress(held.address ?? '')
-    setCategoryId(held.category_id ?? null)
-    setDescription(held.description ?? '')
-    setLinks(held.links ?? [])
-    setLabelIds(held.label_ids ?? [])
-  }
+    if (!held) return;
+    setEditing(false);
+    setName(held.name);
+    setAddress(held.address ?? '');
+    setCategoryId(held.category_id ?? null);
+    setDescription(held.description ?? '');
+    setLinks(held.links ?? []);
+    setLabelIds(held.label_ids ?? []);
+  };
 
-  const cover = held?.image_url || fetchedPhoto
+  const cover = held?.image_url || fetchedPhoto;
 
   const handleImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file || !held || !onUploadImage) return
-    setImgBusy(true)
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !held || !onUploadImage) return;
+    setImgBusy(true);
     try {
-      await onUploadImage(await normalizeImageFile(file))
+      await onUploadImage(await normalizeImageFile(file));
     } catch (err) {
-      toast.error(getApiErrorMessage(err, t('places.imageUploadError')))
+      toast.error(getApiErrorMessage(err, t('places.imageUploadError')));
     } finally {
-      setImgBusy(false)
+      setImgBusy(false);
     }
-  }
+  };
 
   const handleImageRemove = async () => {
-    setImgBusy(true)
+    setImgBusy(true);
     try {
-      await onSave({ image_url: null })
+      await onSave({ image_url: null });
     } catch (err) {
-      toast.error(getApiErrorMessage(err, t('places.imageUploadError')))
+      toast.error(getApiErrorMessage(err, t('places.imageUploadError')));
     } finally {
-      setImgBusy(false)
+      setImgBusy(false);
     }
-  }
+  };
 
-  const assignedLabels = labels.filter(l => (held?.label_ids ?? []).includes(l.id))
-  const toggleLabel = (id: number) => setLabelIds(labelIds.includes(id) ? labelIds.filter(x => x !== id) : [...labelIds, id])
+  const assignedLabels = labels.filter((l) => (held?.label_ids ?? []).includes(l.id));
+  const toggleLabel = (id: number) =>
+    setLabelIds(labelIds.includes(id) ? labelIds.filter((x) => x !== id) : [...labelIds, id]);
 
-  const navTargets = getNavigationTargets(held)
+  const navTargets = getNavigationTargets(held);
   const actionBtn =
-    'flex flex-1 items-center justify-center gap-[6px] rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-2 py-[11px] text-[0.78125rem] font-semibold text-m-ink'
+    'flex flex-1 items-center justify-center gap-[6px] rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-2 py-[11px] text-[0.78125rem] font-semibold text-m-ink';
 
   return (
     <MSheet open={place != null} onClose={onClose} material="opaque" className="!rounded-[24px]" ariaLabel={held?.name}>
@@ -187,19 +230,36 @@ export default function MCollPlaceSheet({
               <div className="-me-1 ms-auto flex flex-none gap-[6px]">
                 {canEdit && onUploadImage && (
                   <>
-                    <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,.heic,.heif" className="hidden" onChange={handleImagePick} />
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp,.heic,.heif"
+                      className="hidden"
+                      onChange={handleImagePick}
+                    />
                     {held.image_url && !imgBusy && (
-                      <button type="button" onClick={handleImageRemove} aria-label={t('places.removeImage')} className={HERO_BTN}>
+                      <button
+                        type="button"
+                        onClick={handleImageRemove}
+                        aria-label={t('places.removeImage')}
+                        className={HERO_BTN}
+                      >
                         <Trash2 size={15} strokeWidth={2.2} />
                       </button>
                     )}
                     <button
                       type="button"
-                      onClick={() => { if (!imgBusy) imageInputRef.current?.click() }}
+                      onClick={() => {
+                        if (!imgBusy) imageInputRef.current?.click();
+                      }}
                       aria-label={held.image_url ? t('places.changeImage') : t('places.uploadImage')}
                       className={HERO_BTN}
                     >
-                      {imgBusy ? <Loader2 size={15} strokeWidth={2.2} className="animate-spin" /> : <Camera size={15} strokeWidth={2.2} />}
+                      {imgBusy ? (
+                        <Loader2 size={15} strokeWidth={2.2} className="animate-spin" />
+                      ) : (
+                        <Camera size={15} strokeWidth={2.2} />
+                      )}
                     </button>
                   </>
                 )}
@@ -220,10 +280,10 @@ export default function MCollPlaceSheet({
 
             {/* Status cycle */}
             <div className="mt-3 flex gap-[6px]">
-              {STATUS_ORDER.map(s => {
-                const meta = STATUS_SPEC[s]
-                const Icon = meta.icon
-                const on = held.status === s
+              {STATUS_ORDER.map((s) => {
+                const meta = STATUS_SPEC[s];
+                const Icon = meta.icon;
+                const on = held.status === s;
                 return (
                   <button
                     key={s}
@@ -238,7 +298,7 @@ export default function MCollPlaceSheet({
                     <Icon size={13} strokeWidth={2.2} style={on ? undefined : { color: meta.color }} />
                     <span className="truncate">{t(meta.labelKey)}</span>
                   </button>
-                )
+                );
               })}
             </div>
 
@@ -252,19 +312,24 @@ export default function MCollPlaceSheet({
             {editing ? (
               <>
                 <Eyebrow className="mb-[6px] mt-4">{t('common.name').toUpperCase()}</Eyebrow>
-                <input value={name} onChange={e => setName(e.target.value)} className={INPUT_CLS} />
+                <input value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLS} />
                 {/* Address (#1870): free text, same as the add sheet offers */}
                 <Eyebrow className="mb-[6px] mt-[14px]">{t('places.formAddress').toUpperCase()}</Eyebrow>
-                <input value={address} onChange={e => setAddress(e.target.value)} placeholder={t('places.formAddressPlaceholder')} className={INPUT_CLS} />
+                <input
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder={t('places.formAddressPlaceholder')}
+                  className={INPUT_CLS}
+                />
                 <Eyebrow className="mb-[6px] mt-[14px]">{t('collections.category').toUpperCase()}</Eyebrow>
                 <MCollCategoryPicker categories={categories} value={categoryId} onChange={setCategoryId} t={t} />
                 {labels.length > 0 && (
                   <>
                     <Eyebrow className="mb-[6px] mt-[14px]">{t('collections.labels.title').toUpperCase()}</Eyebrow>
                     <div className="flex flex-wrap gap-[6px]">
-                      {labels.map(l => {
-                        const on = labelIds.includes(l.id)
-                        const color = l.color || '#6366F1'
+                      {labels.map((l) => {
+                        const on = labelIds.includes(l.id);
+                        const color = l.color || '#6366F1';
                         return (
                           <button
                             key={l.id}
@@ -272,24 +337,34 @@ export default function MCollPlaceSheet({
                             onClick={() => toggleLabel(l.id)}
                             aria-pressed={on}
                             className="flex items-center gap-[5px] rounded-full border px-3 py-[7px] text-[0.71875rem] font-bold"
-                            style={on
-                              ? { background: `${color}18`, color, borderColor: `${color}2e` }
-                              : { background: 'var(--m-ic)', color: 'var(--m-ink)', borderColor: 'var(--m-rowbr)' }}
+                            style={
+                              on
+                                ? { background: `${color}18`, color, borderColor: `${color}2e` }
+                                : { background: 'var(--m-ic)', color: 'var(--m-ink)', borderColor: 'var(--m-rowbr)' }
+                            }
                           >
                             <span className="h-[7px] w-[7px] rounded-full" style={{ background: color }} />
                             {l.name}
                           </button>
-                        )
+                        );
                       })}
                     </div>
                   </>
                 )}
                 <Eyebrow className="mb-[6px] mt-[14px]">{t('collections.description').toUpperCase()}</Eyebrow>
-                <textarea rows={4} value={description} onChange={e => setDescription(e.target.value)} placeholder={t('collections.descriptionPlaceholder')} className={TEXTAREA_CLS} />
+                <textarea
+                  rows={4}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder={t('collections.descriptionPlaceholder')}
+                  className={TEXTAREA_CLS}
+                />
                 <Eyebrow className="mb-[6px] mt-[14px]">{t('collections.links').toUpperCase()}</Eyebrow>
                 <MCollLinksEditor links={links} onChange={setLinks} t={t} />
                 <div className="mt-4 flex items-center gap-2">
-                  <CancelPill className="ml-auto" onClick={cancelEdit}>{t('common.cancel')}</CancelPill>
+                  <CancelPill className="ml-auto" onClick={cancelEdit}>
+                    {t('common.cancel')}
+                  </CancelPill>
                   <PrimaryPill onClick={save} disabled={saving}>
                     <Check size={14} strokeWidth={2.4} /> {t('common.save')}
                   </PrimaryPill>
@@ -299,8 +374,8 @@ export default function MCollPlaceSheet({
               <>
                 {assignedLabels.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-[6px]">
-                    {assignedLabels.map(l => {
-                      const color = l.color || '#6366F1'
+                    {assignedLabels.map((l) => {
+                      const color = l.color || '#6366F1';
                       return (
                         <span
                           key={l.id}
@@ -310,7 +385,7 @@ export default function MCollPlaceSheet({
                           <span className="h-[7px] w-[7px] rounded-full" style={{ background: color }} />
                           {l.name}
                         </span>
-                      )
+                      );
                     })}
                   </div>
                 )}
@@ -383,5 +458,5 @@ export default function MCollPlaceSheet({
         </>
       )}
     </MSheet>
-  )
+  );
 }

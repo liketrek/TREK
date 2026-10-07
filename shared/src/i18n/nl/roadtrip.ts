@@ -283,7 +283,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.summary.partial': 'De rest van de rit wordt nog berekend',
   'roadtrip.stay.releaseTitle': 'Overnachting laten vervallen?',
   'roadtrip.stay.releaseBody': 'De nacht bij ‘{name}’ wordt verwijderd. De stop blijft als pauze op de route.',
-  'roadtrip.stay.releaseBookedBody': 'De nacht bij ‘{name}’ wordt verwijderd, samen met de boeking ‘{booking}’ en elke gekoppelde uitgave. De stop blijft als pauze op de route.',
+  'roadtrip.stay.releaseBookedBody':
+    'De nacht bij ‘{name}’ wordt verwijderd, samen met de boeking ‘{booking}’ en elke gekoppelde uitgave. De stop blijft als pauze op de route.',
   'roadtrip.stay.releaseAction': 'Maak er een pauze van',
   'roadtrip.ride.departure': 'Vertrek {time}',
   'roadtrip.ride.arrival': 'Aankomst {time}',

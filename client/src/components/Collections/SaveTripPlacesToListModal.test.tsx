@@ -1,9 +1,9 @@
 // FE-COMP-SAVETRIPPL-001 to FE-COMP-SAVETRIPPL-015
-import React from 'react';
-import { afterEach, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import type { Collection, CollectionListResponse } from '@trek/shared';
+import React from 'react';
+import { afterEach, beforeEach } from 'vitest';
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
 import { collectionsApi } from '../../api/collections';
 import SaveTripPlacesToListModal from './SaveTripPlacesToListModal';
 
@@ -57,7 +57,7 @@ describe('SaveTripPlacesToListModal', () => {
 
   it('FE-COMP-SAVETRIPPL-002: lists shared with the user are dropped — they cannot be written to', async () => {
     vi.spyOn(collectionsApi, 'list').mockResolvedValue(
-      listResponse([FAVORITES, list({ id: 3, name: 'Team ideas', is_owner: false })]),
+      listResponse([FAVORITES, list({ id: 3, name: 'Team ideas', is_owner: false })])
     );
     renderModal();
     expect(await screen.findByText('Favorites')).toBeInTheDocument();
@@ -66,7 +66,11 @@ describe('SaveTripPlacesToListModal', () => {
 
   it('FE-COMP-SAVETRIPPL-003: shows the spinner until the lists arrive', async () => {
     let resolve!: (v: CollectionListResponse) => void;
-    vi.spyOn(collectionsApi, 'list').mockReturnValue(new Promise(r => { resolve = r; }));
+    vi.spyOn(collectionsApi, 'list').mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
+      })
+    );
     renderModal();
     expect(document.querySelector('.animate-spin')).not.toBeNull();
     expect(screen.queryByText('You have no lists yet')).not.toBeInTheDocument();
@@ -77,7 +81,9 @@ describe('SaveTripPlacesToListModal', () => {
 
   it('FE-COMP-SAVETRIPPL-004: an absent or failing collections response falls back to the empty copy', async () => {
     vi.spyOn(collectionsApi, 'list').mockResolvedValue({ incomingInvites: [] } as unknown as CollectionListResponse);
-    const { unmount } = render(<SaveTripPlacesToListModal isOpen tripId={5} placeIds={[11]} onClose={vi.fn()} onDone={vi.fn()} />);
+    const { unmount } = render(
+      <SaveTripPlacesToListModal isOpen tripId={5} placeIds={[11]} onClose={vi.fn()} onDone={vi.fn()} />
+    );
     expect(await screen.findByText('You have no lists yet')).toBeInTheDocument();
     unmount();
 
@@ -94,7 +100,7 @@ describe('SaveTripPlacesToListModal', () => {
   });
 
   it('FE-COMP-SAVETRIPPL-006: the search box appears above five lists and filters by name', async () => {
-    const many = [1, 2, 3, 4, 5, 6].map(id => list({ id, name: `List ${id}` }));
+    const many = [1, 2, 3, 4, 5, 6].map((id) => list({ id, name: `List ${id}` }));
     vi.spyOn(collectionsApi, 'list').mockResolvedValue(listResponse(many));
     renderModal();
 
@@ -126,7 +132,10 @@ describe('SaveTripPlacesToListModal', () => {
   });
 
   it('FE-COMP-SAVETRIPPL-009: server-side duplicates are reported separately', async () => {
-    vi.spyOn(collectionsApi, 'saveFromTripMany').mockResolvedValue({ copied: 1, skipped: [{ id: 12, name: 'Louvre' }] });
+    vi.spyOn(collectionsApi, 'saveFromTripMany').mockResolvedValue({
+      copied: 1,
+      skipped: [{ id: 12, name: 'Louvre' }],
+    });
     renderModal();
 
     fireEvent.click(await screen.findByText('Favorites'));
@@ -155,7 +164,11 @@ describe('SaveTripPlacesToListModal', () => {
 
   it('FE-COMP-SAVETRIPPL-012: every row locks while a save runs, and an empty selection never reaches the server', async () => {
     let resolve!: (v: SaveManyResult) => void;
-    const save = vi.spyOn(collectionsApi, 'saveFromTripMany').mockReturnValue(new Promise(r => { resolve = r; }));
+    const save = vi.spyOn(collectionsApi, 'saveFromTripMany').mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
+      })
+    );
     const props = renderModal();
 
     const favorites = await screen.findByRole('button', { name: /Favorites/ });
@@ -174,14 +187,22 @@ describe('SaveTripPlacesToListModal', () => {
     const closed = <SaveTripPlacesToListModal isOpen tripId={5} placeIds={[11]} onClose={vi.fn()} onDone={vi.fn()} />;
 
     let resolve!: (v: CollectionListResponse) => void;
-    const spy = vi.spyOn(collectionsApi, 'list').mockReturnValue(new Promise(r => { resolve = r; }));
+    const spy = vi.spyOn(collectionsApi, 'list').mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
+      })
+    );
     render(closed).unmount();
     resolve(listResponse([FAVORITES]));
     await Promise.resolve();
     expect(screen.queryByText('Favorites')).not.toBeInTheDocument();
 
     let reject!: (e: Error) => void;
-    spy.mockReturnValue(new Promise((_, r) => { reject = r; }));
+    spy.mockReturnValue(
+      new Promise((_, r) => {
+        reject = r;
+      })
+    );
     render(closed).unmount();
     reject(new Error('offline'));
     await Promise.resolve();
@@ -190,7 +211,7 @@ describe('SaveTripPlacesToListModal', () => {
 
   it('FE-COMP-SAVETRIPPL-015: a list the server sent without a count still renders a countable row', async () => {
     vi.spyOn(collectionsApi, 'list').mockResolvedValue(
-      listResponse([{ id: 9, owner_id: 7, name: 'Untracked' } as Collection]),
+      listResponse([{ id: 9, owner_id: 7, name: 'Untracked' } as Collection])
     );
     renderModal();
 

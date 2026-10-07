@@ -29,7 +29,13 @@ export interface JourneyTrackSourceRow {
 /** The narrow `journey_entries`/`places` shape {@link JourneyEntriesRepository.listTracksSource} needs. */
 interface JourneyTracksKyselyDB {
   journey_entries: { journey_id: number; source_trip_id: number | null };
-  places: { id: number; trip_id: number; name: string | null; route_color: string | null; route_geometry: string | null };
+  places: {
+    id: number;
+    trip_id: number;
+    name: string | null;
+    route_color: string | null;
+    route_geometry: string | null;
+  };
 }
 
 /** The narrow `journey_entries` shape a bare `entry_date`/`sort_order` MAX-per-date read needs. */
@@ -50,7 +56,13 @@ interface PhotoPlacementKyselyDB {
   trek_photos: { id: number; lat: number | null; lng: number | null };
   journey_photos: { id: number; photo_id: number };
   journey_entry_photos: { entry_id: number; journey_photo_id: number; sort_order: number | null };
-  journey_entries: { id: number; journey_id: number; location_lat: number | null; location_lng: number | null; type: string };
+  journey_entries: {
+    id: number;
+    journey_id: number;
+    location_lat: number | null;
+    location_lng: number | null;
+    type: string;
+  };
   journeys: { id: number; photo_location: number };
 }
 
@@ -117,7 +129,14 @@ interface PlaceRegionsKyselyDB {
 
 /** The narrow `trips`/`trip_members`/`places`/`day_assignments`/`journey_trips` shape JG120/JG121's trip-picker reads need. */
 interface TripPickerKyselyDB {
-  trips: { id: number; title: string; start_date: string | null; end_date: string | null; cover_image: string | null; user_id: number };
+  trips: {
+    id: number;
+    title: string;
+    start_date: string | null;
+    end_date: string | null;
+    cover_image: string | null;
+    user_id: number;
+  };
   trip_members: { trip_id: number; user_id: number };
   places: { id: number; trip_id: number };
   day_assignments: { id: number; place_id: number };
@@ -210,7 +229,10 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
    * "fixed" into a redundant one.
    */
   async detachAllFilledForTrip(tripId: number): Promise<void> {
-    await this.nativeUpdate({ sourceTrip: tripId }, { sourcePlace: null, sourceTrip: null, source_assignment_id: null });
+    await this.nativeUpdate(
+      { sourceTrip: tripId },
+      { sourcePlace: null, sourceTrip: null, source_assignment_id: null },
+    );
   }
 
   /**
@@ -224,7 +246,10 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
   }
 
   /** JG35 — `syncTripPlaces`'s existing-skeleton dedup-key read: `SELECT source_place_id, source_assignment_id FROM journey_entries WHERE journey_id = ? AND source_trip_id = ?`. */
-  async listSourceKeysForTrip(journeyId: number, tripId: number): Promise<{ source_place_id: number; source_assignment_id: number | null }[]> {
+  async listSourceKeysForTrip(
+    journeyId: number,
+    tripId: number,
+  ): Promise<{ source_place_id: number; source_assignment_id: number | null }[]> {
     return await this.qb('je')
       .select(['je.sourcePlace', 'je.source_assignment_id'])
       .where({ journey: journeyId, sourceTrip: tripId })
@@ -333,7 +358,13 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
   /** JG47/JG59 — the location-only silent update (`onPlaceUpdated`'s filled-entry branch, `reconcileTripSkeletons`'s stale-filled-entry branch), one statement text. */
   async updateLocationOnly(
     id: number,
-    patch: { location_name: string; location_lat: number | null; location_lng: number | null; country_code: string | null; updated_at: number },
+    patch: {
+      location_name: string;
+      location_lat: number | null;
+      location_lng: number | null;
+      country_code: string | null;
+      updated_at: number;
+    },
   ): Promise<void> {
     await this.nativeUpdate({ id }, patch);
   }
@@ -400,7 +431,17 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
    */
   async listStatsRows(journeyId: number): Promise<StatsEntryRow[]> {
     return await this.qb('je')
-      .select(['je.id', 'je.title', 'je.location_name', 'je.location_lat', 'je.location_lng', 'je.entry_date', 'je.sourceTrip', 'je.sourcePlace', 'je.stats_excluded'])
+      .select([
+        'je.id',
+        'je.title',
+        'je.location_name',
+        'je.location_lat',
+        'je.location_lng',
+        'je.entry_date',
+        'je.sourceTrip',
+        'je.sourcePlace',
+        'je.stats_excluded',
+      ])
       .where({ journey: journeyId, dismissed: 0 })
       .orderBy({ entry_date: 'asc', sort_order: 'asc', id: 'asc' })
       .execute<StatsEntryRow[]>('all', false);
@@ -441,7 +482,15 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
       .innerJoin('places as p', 'p.trip_id', 'jt.trip_id')
       .leftJoin('day_assignments as da', 'da.place_id', 'p.id')
       .leftJoin('days as d', 'd.id', 'da.day_id')
-      .select((eb) => ['p.id', 'p.name', 'p.lat', 'p.lng', 'p.trip_id as tripId', eb.fn.min<string | null>('d.date').as('day'), eb.fn.min<number | null>('da.order_index').as('ord')])
+      .select((eb) => [
+        'p.id',
+        'p.name',
+        'p.lat',
+        'p.lng',
+        'p.trip_id as tripId',
+        eb.fn.min<string | null>('d.date').as('day'),
+        eb.fn.min<number | null>('da.order_index').as('ord'),
+      ])
       .where('jt.journey_id', '=', journeyId)
       .groupBy('p.id')
       .orderBy((eb) => eb(eb.fn.min<string | null>('d.date'), 'is', null), 'asc')
@@ -476,7 +525,9 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
    * (r.country_code)` filter and the `.toUpperCase()` call both stay in the
    * SERVICE, matching the legacy code's own JS-side handling.
    */
-  async listCachedCountriesForPlaceIds(placeIds: number[]): Promise<{ place_id: number; country_code: string | null }[]> {
+  async listCachedCountriesForPlaceIds(
+    placeIds: number[],
+  ): Promise<{ place_id: number; country_code: string | null }[]> {
     const out: { place_id: number; country_code: string | null }[] = [];
     for (let i = 0; i < placeIds.length; i += 400) {
       // M4 (task-5-review.md) — `chunk` can never be empty here: the loop
@@ -607,7 +658,18 @@ export class JourneyEntriesRepository extends TrekRepository<JourneyEntries> {
 
   /** JG85 — `deleteEntry`'s revert-to-skeleton write (a filled, trip-sourced entry is "deleted" by reverting it, not removed — {@link deleteById} (JG50/61/86) is the true hard delete, for entries with no trip origin). */
   async revertToSkeleton(id: number, updatedAt: number): Promise<void> {
-    await this.nativeUpdate({ id }, { type: 'skeleton', story: null, mood: null, weather: null, pros_cons: null, visibility: 'private', updated_at: updatedAt });
+    await this.nativeUpdate(
+      { id },
+      {
+        type: 'skeleton',
+        story: null,
+        mood: null,
+        weather: null,
+        pros_cons: null,
+        visibility: 'private',
+        updated_at: updatedAt,
+      },
+    );
   }
 
   /** JG87 — `promoteSkeletonIfNeeded`'s write: `UPDATE journey_entries SET type = ?, updated_at = ? WHERE id = ?`, called only when the entry is still a skeleton (the SERVICE's own `if (entry.type !== 'skeleton') return;` guard, unchanged). */

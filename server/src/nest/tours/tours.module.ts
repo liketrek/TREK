@@ -1,15 +1,15 @@
+import { Places } from '../../db/entities/Places.entity';
+import { TourWaypoints } from '../../db/entities/TourWaypoints.entity';
+import { Tours } from '../../db/entities/Tours.entity';
+import { AddonsModule } from '../addons/addons.module';
+import { AuthModule } from '../auth/auth.module';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { PlacesModule } from '../places/places.module';
+import { ToursImportController } from './tours-import.controller';
+import { ToursController } from './tours.controller';
+import { ToursService } from './tours.service';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
-import { Places } from '../../db/entities/Places.entity';
-import { Tours } from '../../db/entities/Tours.entity';
-import { TourWaypoints } from '../../db/entities/TourWaypoints.entity';
-import { ToursController } from './tours.controller';
-import { ToursImportController } from './tours-import.controller';
-import { ToursService } from './tours.service';
-import { PlacesModule } from '../places/places.module';
-import { PermissionsModule } from '../permissions/permissions.module';
-import { AuthModule } from '../auth/auth.module';
-import { AddonsModule } from '../addons/addons.module';
 
 /**
  * Tours domain: an isolated bounded context that imports PlacesModule to reuse

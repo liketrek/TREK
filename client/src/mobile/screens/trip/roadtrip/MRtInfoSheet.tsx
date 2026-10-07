@@ -1,20 +1,20 @@
-import type { ReactNode } from 'react'
-import { Car, Fuel, Zap } from 'lucide-react'
-import MSheet from '../../../components/MSheet'
-import MToggle from '../../../components/MToggle'
-import type { MTripSheetsProps } from '../MTripShell'
-import { useTranslation } from '../../../../i18n'
-import { useSettingsStore } from '../../../../store/settingsStore'
-import { useRoadtripSettings } from '../../../../hooks/useRoadtripSettings'
-import { useVehicleRange } from '../../../../components/Roadtrip/useVehicleRange'
-import { useHotelBookends } from '../../../../components/Roadtrip/useHotelBookends'
-import { blockMask } from '../../../../components/Roadtrip/RangeStrip'
-import { dayWindow } from '../../../../components/Roadtrip/dayWindow'
-import { formatDurationShort, parseAvoid } from '../../../../components/Roadtrip/roadtripModel'
-import { valhallaAvailable } from '../../../../components/Map/valhallaRoute'
-import { convertDistance, formatDistance, getDistanceUnitLabel } from '../../../../utils/units'
-import { Eyebrow, TileHeader } from '../sheets/MTripSheetUi'
-import type { DistanceUnit } from '../../../../types'
+import { Car, Fuel, Zap } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { valhallaAvailable } from '../../../../components/Map/valhallaRoute';
+import { blockMask } from '../../../../components/Roadtrip/RangeStrip';
+import { dayWindow } from '../../../../components/Roadtrip/dayWindow';
+import { formatDurationShort, parseAvoid } from '../../../../components/Roadtrip/roadtripModel';
+import { useHotelBookends } from '../../../../components/Roadtrip/useHotelBookends';
+import { useVehicleRange } from '../../../../components/Roadtrip/useVehicleRange';
+import { useRoadtripSettings } from '../../../../hooks/useRoadtripSettings';
+import { useTranslation } from '../../../../i18n';
+import { useSettingsStore } from '../../../../store/settingsStore';
+import type { DistanceUnit } from '../../../../types';
+import { convertDistance, formatDistance, getDistanceUnitLabel } from '../../../../utils/units';
+import MSheet from '../../../components/MSheet';
+import MToggle from '../../../components/MToggle';
+import type { MTripSheetsProps } from '../MTripShell';
+import { Eyebrow, TileHeader } from '../sheets/MTripSheetUi';
 
 /**
  * The figures the stage plans with, read out loud.
@@ -48,17 +48,24 @@ import type { DistanceUnit } from '../../../../types'
  * from that module so the two pictures cannot drift apart; the figure the note quotes is
  * the one thing it does not hand out, so it is stated once here.
  */
-const BLOCK_KM = 50
+const BLOCK_KM = 50;
 
 /** One value of the driving limits, with the row rule above every row but the first. */
-function LimitLine({ label, value, fallback, first }: {
-  label: string
-  value: string | null
-  fallback: string
-  first: boolean
+function LimitLine({
+  label,
+  value,
+  fallback,
+  first,
+}: {
+  label: string;
+  value: string | null;
+  fallback: string;
+  first: boolean;
 }) {
   return (
-    <div className={`flex items-center justify-between gap-3 py-2 ${first ? '' : 'border-t border-[color:var(--m-rowbr)]'}`}>
+    <div
+      className={`flex items-center justify-between gap-3 py-2 ${first ? '' : 'border-t border-[color:var(--m-rowbr)]'}`}
+    >
       <span className="min-w-0 flex-1 text-[0.8125rem] text-m-muted">{label}</span>
       <span
         className={`flex-none text-[0.8125rem] font-semibold tabular-nums ${value ? 'text-m-ink' : 'text-m-faint'}`}
@@ -66,7 +73,7 @@ function LimitLine({ label, value, fallback, first }: {
         {value ?? fallback}
       </span>
     </div>
-  )
+  );
 }
 
 /** One card of the sheet: eyebrow plus whatever the section is made of. */
@@ -76,7 +83,7 @@ function InfoCard({ label, children }: { label: string; children: ReactNode }) {
       <Eyebrow>{label}</Eyebrow>
       {children}
     </div>
-  )
+  );
 }
 
 /**
@@ -85,67 +92,64 @@ function InfoCard({ label, children }: { label: string; children: ReactNode }) {
  * the switch that starts and ends each day at the stay.
  */
 export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
-  const { t } = useTranslation()
-  const open = shell.sheet?.id === 'rtinfo'
-  const tripId = planner.tripId
+  const { t } = useTranslation();
+  const open = shell.sheet?.id === 'rtinfo';
+  const tripId = planner.tripId;
 
-  const unitSetting = useSettingsStore(s => s.settings.distance_unit)
-  const unit: DistanceUnit = unitSetting === 'imperial' ? 'imperial' : 'metric'
+  const unitSetting = useSettingsStore((s) => s.settings.distance_unit);
+  const unit: DistanceUnit = unitSetting === 'imperial' ? 'imperial' : 'metric';
 
   // The same range the stage plans with: the vehicle's own figures when they add up,
   // the typed one otherwise. Reading it through the shared hook is what keeps the sheet
   // from becoming a second opinion about the tank.
-  const { vehicleKind, rangeKm } = useVehicleRange(tripId)
-  const legMinutes = useRoadtripSettings(s => s.roadtrip_leg_minutes, tripId)
-  const dayMinutes = useRoadtripSettings(s => s.roadtrip_day_minutes, tripId)
-  const dayStart = useRoadtripSettings(s => s.roadtrip_day_start, tripId)
-  const dayEnd = useRoadtripSettings(s => s.roadtrip_day_end, tripId)
-  const fillPercent = useRoadtripSettings(s => s.roadtrip_fill_percent, tripId)
-  const degradation = useRoadtripSettings(s => s.roadtrip_battery_degradation, tripId)
-  const avoidRaw = useRoadtripSettings(s => s.roadtrip_avoid, tripId)
-  const bookends = useHotelBookends(planner.saveRoadtripLimit, tripId)
+  const { vehicleKind, rangeKm } = useVehicleRange(tripId);
+  const legMinutes = useRoadtripSettings((s) => s.roadtrip_leg_minutes, tripId);
+  const dayMinutes = useRoadtripSettings((s) => s.roadtrip_day_minutes, tripId);
+  const dayStart = useRoadtripSettings((s) => s.roadtrip_day_start, tripId);
+  const dayEnd = useRoadtripSettings((s) => s.roadtrip_day_end, tripId);
+  const fillPercent = useRoadtripSettings((s) => s.roadtrip_fill_percent, tripId);
+  const degradation = useRoadtripSettings((s) => s.roadtrip_battery_degradation, tripId);
+  const avoidRaw = useRoadtripSettings((s) => s.roadtrip_avoid, tripId);
+  const bookends = useHotelBookends(planner.saveRoadtripLimit, tripId);
 
-  const electric = vehicleKind === 'electric'
-  const VehicleIcon = electric ? Zap : vehicleKind === 'combustion' ? Fuel : Car
+  const electric = vehicleKind === 'electric';
+  const VehicleIcon = electric ? Zap : vehicleKind === 'combustion' ? Fuel : Car;
 
   // Capped where the arithmetic caps it, so no picture can claim a battery is gone. The
   // range above the bar already has this taken off it, which is exactly why it gets said.
-  const wear = electric ? Math.min(90, Math.max(0, degradation ?? 0)) : 0
-  const fill = fillPercent && fillPercent > 0 && fillPercent < 100 ? fillPercent : 100
+  const wear = electric ? Math.min(90, Math.max(0, degradation ?? 0)) : 0;
+  const fill = fillPercent && fillPercent > 0 && fillPercent < 100 ? fillPercent : 100;
 
   // Split rather than formatted whole, so the unit can sit smaller beside the figure. The
   // rounding is formatDistance's own, because the stage header uses that and the two must
   // not disagree by a tenth.
-  const shown = rangeKm ? Math.round(convertDistance(rangeKm, unit) * 10) / 10 : null
-  const mask = blockMask(rangeKm)
+  const shown = rangeKm ? Math.round(convertDistance(rangeKm, unit) * 10) / 10 : null;
+  const mask = blockMask(rangeKm);
 
   const notes = [
     shown === null ? t('roadtrip.limit.rangeEmptyHint') : null,
     shown !== null && fill < 100
-      ? t('roadtrip.limit.afterFill', { percent: fill, distance: formatDistance((rangeKm ?? 0) * fill / 100, unit) })
+      ? t('roadtrip.limit.afterFill', { percent: fill, distance: formatDistance(((rangeKm ?? 0) * fill) / 100, unit) })
       : null,
     mask ? t('roadtrip.limit.blockNote', { distance: formatDistance(BLOCK_KM, unit) }) : null,
     wear > 0 ? t('roadtrip.limit.wearNote', { percent: wear }) : null,
-  ].filter((note): note is string => note !== null)
+  ].filter((note): note is string => note !== null);
 
-  const unitLabel = getDistanceUnitLabel(unit)
-  const perLabel = t(electric ? 'roadtrip.limit.perCharge' : 'roadtrip.limit.perFill')
-  const barLabel = shown === null
-    ? t('roadtrip.limit.rangeEmpty')
-    : `${shown} ${unitLabel} ${perLabel}`
+  const unitLabel = getDistanceUnitLabel(unit);
+  const perLabel = t(electric ? 'roadtrip.limit.perCharge' : 'roadtrip.limit.perFill');
+  const barLabel = shown === null ? t('roadtrip.limit.rangeEmpty') : `${shown} ${unitLabel} ${perLabel}`;
 
   // Both times on one line, in the separator the desktop badge already uses. A dash
   // between two clock readings is the one place a phone line breaks in the wrong spot.
-  const windowText = dayWindow(dayStart, dayEnd) ? `${dayStart} · ${dayEnd}` : null
+  const windowText = dayWindow(dayStart, dayEnd) ? `${dayStart} · ${dayEnd}` : null;
 
   // No second routing engine, no avoidance: the stored classes would be a promise the
   // router cannot keep, so the row says the same "off" it would say with none set.
-  const avoiding = parseAvoid(avoidRaw)
-  const avoidText = valhallaAvailable() && avoiding.length > 0
-    ? t('roadtrip.avoid.badge', { count: avoiding.length })
-    : null
+  const avoiding = parseAvoid(avoidRaw);
+  const avoidText =
+    valhallaAvailable() && avoiding.length > 0 ? t('roadtrip.avoid.badge', { count: avoiding.length }) : null;
 
-  const off = t('roadtrip.limit.off')
+  const off = t('roadtrip.limit.off');
   const lines: { key: string; label: string; value: string | null; fallback: string }[] = [
     {
       key: 'leg',
@@ -169,10 +173,16 @@ export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
       fallback: t('roadtrip.limit.fillFull'),
     },
     { key: 'avoid', label: t('roadtrip.avoid.section'), value: avoidText, fallback: off },
-  ]
+  ];
 
   return (
-    <MSheet open={open} onClose={shell.closeSheet} variant="bottom" material="opaque" ariaLabel={t('mobileTrip.rtInfoTitle')}>
+    <MSheet
+      open={open}
+      onClose={shell.closeSheet}
+      variant="bottom"
+      material="opaque"
+      ariaLabel={t('mobileTrip.rtInfoTitle')}
+    >
       <div className="flex-none px-[18px] pt-4">
         <TileHeader
           icon={<VehicleIcon size={19} strokeWidth={1.8} />}
@@ -188,7 +198,7 @@ export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
           <InfoCard label={t('roadtrip.limit.sectionVehicle')}>
             <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
               <span className="flex items-baseline gap-1">
-                <span className="text-[1.375rem] font-extrabold leading-none tabular-nums text-m-ink">
+                <span className="text-[1.375rem] font-extrabold tabular-nums leading-none text-m-ink">
                   {shown ?? '-'}
                 </span>
                 {shown !== null && (
@@ -217,9 +227,7 @@ export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
             </div>
 
             {notes.length > 0 && (
-              <div className="mt-2 font-geist text-[0.65625rem] leading-snug text-m-faint">
-                {notes.join(' · ')}
-              </div>
+              <div className="mt-2 font-geist text-[0.65625rem] leading-snug text-m-faint">{notes.join(' · ')}</div>
             )}
           </InfoCard>
         </div>
@@ -242,9 +250,7 @@ export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
         </div>
 
         {/* Under the figures it speaks of, and above the switch it does not. */}
-        <p className="mt-2.5 font-geist text-[0.6875rem] leading-snug text-m-faint">
-          {t('mobileTrip.rtDesktopNote')}
-        </p>
+        <p className="mt-2.5 font-geist text-[0.6875rem] leading-snug text-m-faint">{t('mobileTrip.rtDesktopNote')}</p>
 
         {/* ── The one switch: whether a day starts and ends at the stay ── */}
         <div className="mt-3">
@@ -265,5 +271,5 @@ export default function MRtInfoSheet({ planner, shell }: MTripSheetsProps) {
         </div>
       </div>
     </MSheet>
-  )
+  );
 }

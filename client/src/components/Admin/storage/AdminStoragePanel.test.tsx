@@ -1,22 +1,46 @@
+import { MASKED_SETTING_VALUE, type StorageAdminState, type StorageCategory, type StorageConfig } from '@trek/shared';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { MASKED_SETTING_VALUE, type StorageAdminState, type StorageCategory, type StorageConfig } from '@trek/shared';
 import { server } from '../../../../tests/helpers/msw/server';
 import { fireEvent, render, screen, waitFor, within } from '../../../../tests/helpers/render';
 import { ToastContainer } from '../../shared/Toast';
 import AdminStoragePanel from './AdminStoragePanel';
 
 const S3_MASKED = {
-  endpoint: 'http://127.0.0.1:9000', bucket: 'trek', accessKeyId: 'ak',
-  secretAccessKey: MASKED_SETTING_VALUE, region: 'us-east-1', keyPrefix: '', retries: 1, timeoutMs: 30000,
+  endpoint: 'http://127.0.0.1:9000',
+  bucket: 'trek',
+  accessKeyId: 'ak',
+  secretAccessKey: MASKED_SETTING_VALUE,
+  region: 'us-east-1',
+  keyPrefix: '',
+  retries: 1,
+  timeoutMs: 30000,
 };
 
 function baseState(overrides: Partial<StorageAdminState> = {}): StorageAdminState {
   return {
     backends: [
-      { name: 'uploads-local', type: 'local', source: 'built-in', options: { root: '/data/uploads' }, categories: ['files', 'journey', 'covers', 'avatars', 'photos-google', 'photos-trek'] },
-      { name: 'backups-local', type: 'local', source: 'built-in', options: { root: '/data/backups' }, categories: ['backups'] },
-      { name: 'place-photos-local', type: 'local', source: 'env', options: { root: '/photos' }, categories: ['places'] },
+      {
+        name: 'uploads-local',
+        type: 'local',
+        source: 'built-in',
+        options: { root: '/data/uploads' },
+        categories: ['files', 'journey', 'covers', 'avatars', 'photos-google', 'photos-trek'],
+      },
+      {
+        name: 'backups-local',
+        type: 'local',
+        source: 'built-in',
+        options: { root: '/data/backups' },
+        categories: ['backups'],
+      },
+      {
+        name: 'place-photos-local',
+        type: 'local',
+        source: 'env',
+        options: { root: '/photos' },
+        categories: ['places'],
+      },
       { name: 'off-box', type: 's3', source: 'settings', options: S3_MASKED, categories: ['covers'] },
       // Unassigned on purpose: the only row the mirror-target picker may
       // offer, since a backend that serves a category can never also be a
@@ -54,8 +78,11 @@ function mirroredState(): StorageAdminState {
   state.backends.find((b) => b.name === 'uploads-local')!.categories.push('covers');
   state.categories.covers = { backend: 'uploads-local', source: 'default' };
   state.backends.push({
-    name: 'mirror', type: 'mirror', source: 'settings',
-    options: { primary: 'backups-local', replicas: ['off-box'] }, categories: ['backups'],
+    name: 'mirror',
+    type: 'mirror',
+    source: 'settings',
+    options: { primary: 'backups-local', replicas: ['off-box'] },
+    categories: ['backups'],
   });
   state.categories.backups = { backend: 'mirror', source: 'settings' };
   return state;
@@ -71,7 +98,7 @@ async function renderPanel(state: StorageAdminState = baseState()) {
     <>
       <ToastContainer />
       <AdminStoragePanel />
-    </>,
+    </>
   );
   await waitFor(() => expect(screen.getByText('Backends')).toBeInTheDocument());
 }
@@ -107,7 +134,7 @@ describe('AdminStoragePanel', () => {
       http.put('/api/admin/storage', async ({ request }) => {
         putBody = await request.json();
         return HttpResponse.json(baseState());
-      }),
+      })
     );
     fireEvent.click(within(backendRow('off-box')).getByRole('button', { name: 'Edit' }));
     expect(screen.getByLabelText(/Secret access key/)).toHaveValue(MASKED_SETTING_VALUE);
@@ -126,7 +153,7 @@ describe('AdminStoragePanel', () => {
       http.put('/api/admin/storage', async ({ request }) => {
         putBody = await request.json();
         return HttpResponse.json(baseState());
-      }),
+      })
     );
     // Touch something to enable Save: reassign the files category.
     fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
@@ -176,7 +203,7 @@ describe('AdminStoragePanel', () => {
       http.put('/api/admin/storage', async ({ request }) => {
         putBody = await request.json();
         return HttpResponse.json(baseState());
-      }),
+      })
     );
     fireEvent.click(within(backendRow('off-box')).getByRole('button', { name: 'Remove' }));
     expect(screen.getByText(/Still assigned to: Cover images/)).toBeInTheDocument();
@@ -198,7 +225,7 @@ describe('AdminStoragePanel', () => {
           ok,
           targets: [{ name: body.backend.name, ok, ...(ok ? {} : { error: 'connect ECONNREFUSED' }) }],
         });
-      }),
+      })
     );
     fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Test' }));
     await within(backendRow('backups-local')).findByText('Test failed');
@@ -216,7 +243,7 @@ describe('AdminStoragePanel', () => {
         const body = (await request.json()) as { backend: { name: string; options: Record<string, unknown> } };
         posted.push(body.backend);
         return HttpResponse.json({ ok: true, targets: [{ name: body.backend.name, ok: true }] });
-      }),
+      })
     );
     // Edit the replica (off-box) in the draft without saving — an unsaved endpoint change.
     fireEvent.click(within(backendRow('off-box')).getByRole('button', { name: 'Edit' }));
@@ -232,8 +259,12 @@ describe('AdminStoragePanel', () => {
     const now = Date.now();
     await renderPanel(
       baseState({
-        health: { replicaFailures: [{ backend: 'off-box', key: 'backups/db.sqlite3', op: 'put', error: 'timeout', at: now - 120_000 }] },
-      }),
+        health: {
+          replicaFailures: [
+            { backend: 'off-box', key: 'backups/db.sqlite3', op: 'put', error: 'timeout', at: now - 120_000 },
+          ],
+        },
+      })
     );
     expect(screen.getByText(/put of backups\/db\.sqlite3 on off-box failed: timeout/)).toBeInTheDocument();
     expect(screen.getByText(/2 minutes ago/)).toBeInTheDocument();
@@ -251,9 +282,9 @@ describe('AdminStoragePanel', () => {
       http.get('/api/admin/storage', () =>
         HttpResponse.json(
           { error: 'This is configured by the operator of this instance.', code: 'MANAGED_FORBIDDEN' },
-          { status: 403 },
-        ),
-      ),
+          { status: 403 }
+        )
+      )
     );
     render(<AdminStoragePanel />);
     expect(await screen.findByText('This is configured by the operator of this instance.')).toBeInTheDocument();
@@ -276,7 +307,7 @@ describe('AdminStoragePanel', () => {
       http.put('/api/admin/storage', async ({ request }) => {
         putBody = await request.json();
         return HttpResponse.json(baseState());
-      }),
+      })
     );
     fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Edit' }));
     // off-box serves covers, so the picker never offers it as a replica.
@@ -287,10 +318,11 @@ describe('AdminStoragePanel', () => {
     await screen.findByText('Storage configuration saved');
     const body = putBody as StorageConfig;
     expect(body.backends.map((b) => b.name)).toEqual(
-      expect.arrayContaining(['off-box', 'backups-local', 'backups-local-mirror']),
+      expect.arrayContaining(['off-box', 'backups-local', 'backups-local-mirror'])
     );
     expect(body.backends.find((b) => b.name === 'backups-local-mirror')!.options).toEqual({
-      primary: 'backups-local', replicas: ['cold-store'],
+      primary: 'backups-local',
+      replicas: ['cold-store'],
     });
     expect(body.categories.backups).toBe('backups-local-mirror'); // default-sourced category rewritten
   });
@@ -302,7 +334,7 @@ describe('AdminStoragePanel', () => {
       http.put('/api/admin/storage', async ({ request }) => {
         putBody = await request.json();
         return HttpResponse.json(mirroredState());
-      }),
+      })
     );
     fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Edit' }));
     expect(screen.getByRole('checkbox', { name: 'off-box' })).toBeChecked(); // initialTargets from the fold
@@ -337,7 +369,7 @@ describe('AdminStoragePanel', () => {
       http.put('/api/admin/storage', async ({ request }) => {
         putBody = await request.json();
         return HttpResponse.json(baseState());
-      }),
+      })
     );
     fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Edit' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'off-box' })); // uncheck the only target
@@ -357,7 +389,7 @@ describe('AdminStoragePanel', () => {
       http.put('/api/admin/storage', async ({ request }) => {
         putBody = await request.json();
         return HttpResponse.json(mirroredState());
-      }),
+      })
     );
     // The backups row displays the PRIMARY name, never 'mirror'.
     expect(within(categoryRow('backups')).getByText('backups-local')).toBeInTheDocument();
@@ -379,8 +411,11 @@ describe('AdminStoragePanel', () => {
   it('FE-ADMIN-STOR-016: a second mirror on the same primary renders unfolded with the degenerate note, Test+Remove only', async () => {
     const state = mirroredState();
     state.backends.push({
-      name: 'mirror2', type: 'mirror', source: 'settings',
-      options: { primary: 'backups-local', replicas: ['cold-store'] }, categories: [],
+      name: 'mirror2',
+      type: 'mirror',
+      source: 'settings',
+      options: { primary: 'backups-local', replicas: ['cold-store'] },
+      categories: [],
     });
     await renderPanel(state);
     const row = screen.getByTestId('storage-backend-mirror2');
@@ -405,8 +440,8 @@ describe('AdminStoragePanel', () => {
       computedAt: Date.now() - 3_600_000,
       categories: Object.fromEntries(
         (['files', 'journey', 'covers', 'avatars', 'places', 'photos-google', 'photos-trek', 'backups'] as const).map(
-          (c) => [c, { objects: 2, bytes: 1024 * 1024 }],
-        ),
+          (c) => [c, { objects: 2, bytes: 1024 * 1024 }]
+        )
       ),
       legacyPhotos: { objects: 0, bytes: 0 },
     };
@@ -424,13 +459,13 @@ describe('AdminStoragePanel', () => {
         HttpResponse.json({
           computedAt: Date.now(),
           categories: Object.fromEntries(
-            (['files', 'journey', 'covers', 'avatars', 'places', 'photos-google', 'photos-trek', 'backups'] as const).map(
-              (c) => [c, { objects: 1, bytes: 2048 }],
-            ),
+            (
+              ['files', 'journey', 'covers', 'avatars', 'places', 'photos-google', 'photos-trek', 'backups'] as const
+            ).map((c) => [c, { objects: 1, bytes: 2048 }])
           ),
           legacyPhotos: { objects: 0, bytes: 0 },
-        }),
-      ),
+        })
+      )
     );
     fireEvent.click(screen.getByRole('button', { name: 'Compute now' }));
     await screen.findByText(/Usage computed/);
@@ -447,10 +482,35 @@ describe('AdminStoragePanel', () => {
         const state = mirroredState();
         (state as StorageAdminState).backfills =
           polls < 3
-            ? [{ backend: 'mirror', status: 'running', done: 3, total: 10, copied: 2, skipped: 1, failed: 0, deleted: 0, startedAt: 1 }]
-            : [{ backend: 'mirror', status: 'done', done: 10, total: 10, copied: 8, skipped: 2, failed: 0, deleted: 1, startedAt: 1, finishedAt: 2 }];
+            ? [
+                {
+                  backend: 'mirror',
+                  status: 'running',
+                  done: 3,
+                  total: 10,
+                  copied: 2,
+                  skipped: 1,
+                  failed: 0,
+                  deleted: 0,
+                  startedAt: 1,
+                },
+              ]
+            : [
+                {
+                  backend: 'mirror',
+                  status: 'done',
+                  done: 10,
+                  total: 10,
+                  copied: 8,
+                  skipped: 2,
+                  failed: 0,
+                  deleted: 1,
+                  startedAt: 1,
+                  finishedAt: 2,
+                },
+              ];
         return HttpResponse.json(state);
-      }),
+      })
     );
     fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Sync now' }));
     await within(backendRow('backups-local')).findByText(/Syncing… 3\/10/);
@@ -462,14 +522,24 @@ describe('AdminStoragePanel', () => {
     let cancelled = false;
     const state = mirroredState();
     (state as StorageAdminState).backfills = [
-      { backend: 'mirror', status: 'running', done: 1, total: 10, copied: 1, skipped: 0, failed: 0, deleted: 0, startedAt: 1 },
+      {
+        backend: 'mirror',
+        status: 'running',
+        done: 1,
+        total: 10,
+        copied: 1,
+        skipped: 0,
+        failed: 0,
+        deleted: 0,
+        startedAt: 1,
+      },
     ];
     await renderPanel(state);
     server.use(
       http.delete('/api/admin/storage/backends/mirror/backfill', () => {
         cancelled = true;
         return HttpResponse.json({ cancelled: true });
-      }),
+      })
     );
     fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Cancel sync' }));
     await waitFor(() => expect(cancelled).toBe(true));
@@ -477,9 +547,7 @@ describe('AdminStoragePanel', () => {
 
   it('FE-ADMIN-STOR-022: a save that ADDED mirror targets raises the sync prompt on that row; dismiss clears it', async () => {
     await renderPanel(); // no mirror yet
-    server.use(
-      http.put('/api/admin/storage', async () => HttpResponse.json(mirroredState())),
-    );
+    server.use(http.put('/api/admin/storage', async () => HttpResponse.json(mirroredState())));
     fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Edit' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'cold-store' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
@@ -492,7 +560,17 @@ describe('AdminStoragePanel', () => {
   it('FE-ADMIN-STOR-023: the poll never clobbers a dirty draft', async () => {
     const state = mirroredState();
     (state as StorageAdminState).backfills = [
-      { backend: 'mirror', status: 'running', done: 1, total: 5, copied: 1, skipped: 0, failed: 0, deleted: 0, startedAt: 1 },
+      {
+        backend: 'mirror',
+        status: 'running',
+        done: 1,
+        total: 5,
+        copied: 1,
+        skipped: 0,
+        failed: 0,
+        deleted: 0,
+        startedAt: 1,
+      },
     ];
     await renderPanel(state);
     // Dirty the draft: reassign files.
@@ -509,7 +587,17 @@ describe('AdminStoragePanel', () => {
   it('FE-ADMIN-STOR-024: a poll GET that resolves after a save must not overwrite the saved state', async () => {
     const runningState = mirroredState();
     (runningState as StorageAdminState).backfills = [
-      { backend: 'mirror', status: 'running', done: 1, total: 5, copied: 1, skipped: 0, failed: 0, deleted: 0, startedAt: 1 },
+      {
+        backend: 'mirror',
+        status: 'running',
+        done: 1,
+        total: 5,
+        copied: 1,
+        skipped: 0,
+        failed: 0,
+        deleted: 0,
+        startedAt: 1,
+      },
     ];
     await renderPanel(runningState);
 
@@ -538,7 +626,7 @@ describe('AdminStoragePanel', () => {
         return new Promise<Response>((resolve) => {
           releaseStalePoll = () => resolve(HttpResponse.json(runningState) as unknown as Response);
         });
-      }),
+      })
     );
     // Wait for the 50ms interval to fire and get stuck on the deferred GET.
     await waitFor(() => expect(releaseStalePoll).toBeDefined());
@@ -548,7 +636,7 @@ describe('AdminStoragePanel', () => {
         await request.json();
         putLanded = true;
         return HttpResponse.json(savedState);
-      }),
+      })
     );
     fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
     const choices = screen.getAllByText('off-box');
@@ -590,7 +678,7 @@ describe('AdminStoragePanel', () => {
       http.post('/api/admin/storage/migrations', async ({ request }) => {
         migrationBody = await request.json();
         return HttpResponse.json({ started: true });
-      }),
+      })
     );
     fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
     const choices = screen.getAllByText('off-box');
@@ -633,7 +721,7 @@ describe('AdminStoragePanel', () => {
       http.post('/api/admin/storage/migrations', () => {
         migrationPosted = true;
         return HttpResponse.json({ started: true });
-      }),
+      })
     );
     fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
     const choices = screen.getAllByText('off-box');
@@ -666,7 +754,7 @@ describe('AdminStoragePanel', () => {
       http.post('/api/admin/storage/migrations', async ({ request }) => {
         migrationBody = await request.json();
         return HttpResponse.json({ started: true });
-      }),
+      })
     );
     fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
     const choices = screen.getAllByText('backups-local');
@@ -675,7 +763,9 @@ describe('AdminStoragePanel', () => {
 
     expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
     // The prompt still displays the PRIMARY name — the mirror stays hidden.
-    expect(screen.getByText(/Trip documents: 3 objects \(3\.0 KB\) from uploads-local to backups-local/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Trip documents: 3 objects \(3\.0 KB\) from uploads-local to backups-local/)
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Move existing objects' }));
     await screen.findByText('Storage configuration saved');
@@ -693,7 +783,17 @@ describe('AdminStoragePanel', () => {
     };
     const state = mirroredState();
     (state as StorageAdminState).backfills = [
-      { backend: 'mirror', status: 'running', done: 1, total: 5, copied: 1, skipped: 0, failed: 0, deleted: 0, startedAt: 1 },
+      {
+        backend: 'mirror',
+        status: 'running',
+        done: 1,
+        total: 5,
+        copied: 1,
+        skipped: 0,
+        failed: 0,
+        deleted: 0,
+        startedAt: 1,
+      },
     ];
     await renderPanel({ ...state, usage } as StorageAdminState);
     const savedState = mirroredState();
@@ -701,7 +801,17 @@ describe('AdminStoragePanel', () => {
     // The save itself doesn't touch the backfill — a real server's PUT
     // response reflects it still running, exactly like the GET poll below.
     (savedState as StorageAdminState).backfills = [
-      { backend: 'mirror', status: 'running', done: 1, total: 5, copied: 1, skipped: 0, failed: 0, deleted: 0, startedAt: 1 },
+      {
+        backend: 'mirror',
+        status: 'running',
+        done: 1,
+        total: 5,
+        copied: 1,
+        skipped: 0,
+        failed: 0,
+        deleted: 0,
+        startedAt: 1,
+      },
     ];
     (savedState as StorageAdminState).usage = usage as StorageAdminState['usage'];
     let migrationPosted = false;
@@ -730,13 +840,20 @@ describe('AdminStoragePanel', () => {
         const next = putSeen ? { ...savedState } : ({ ...mirroredState(), usage } as StorageAdminState);
         next.backfills = [
           {
-            backend: 'mirror', status: backfillDone ? 'done' : 'running', done: backfillDone ? 5 : 1, total: 5,
-            copied: backfillDone ? 5 : 1, skipped: 0, failed: 0, deleted: 0, startedAt: 1,
+            backend: 'mirror',
+            status: backfillDone ? 'done' : 'running',
+            done: backfillDone ? 5 : 1,
+            total: 5,
+            copied: backfillDone ? 5 : 1,
+            skipped: 0,
+            failed: 0,
+            deleted: 0,
+            startedAt: 1,
             ...(backfillDone ? { finishedAt: 2 } : {}),
           },
         ];
         return HttpResponse.json(next);
-      }),
+      })
     );
     fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
     fireEvent.click(screen.getAllByText('off-box')[screen.getAllByText('off-box').length - 1]!);
@@ -770,7 +887,7 @@ describe('AdminStoragePanel', () => {
       http.put('/api/admin/storage', async ({ request }) => {
         putBody = await request.json();
         return HttpResponse.json(baseState());
-      }),
+      })
     );
     fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
     const choices = screen.getAllByText('off-box');
@@ -803,14 +920,14 @@ describe('AdminStoragePanel', () => {
       <>
         <ToastContainer />
         <AdminStoragePanel />
-      </>,
+      </>
     );
     await waitFor(() => expect(screen.getByText('Backends')).toBeInTheDocument());
     server.use(
       http.put('/api/admin/storage', async ({ request }) => {
-        putVersion = (await request.json() as StorageConfig & { version: number }).version;
+        putVersion = ((await request.json()) as StorageConfig & { version: number }).version;
         return HttpResponse.json({ error: 'stale' }, { status: 409 });
-      }),
+      })
     );
     fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
     const choices = screen.getAllByText('off-box');
@@ -820,8 +937,8 @@ describe('AdminStoragePanel', () => {
     // The version this PUT submits is the one the draft was loaded at.
     expect(
       await screen.findByText(
-        'Storage settings changed since you loaded them, so your changes were not saved. Discard them and reload the saved settings to start over.',
-      ),
+        'Storage settings changed since you loaded them, so your changes were not saved. Discard them and reload the saved settings to start over.'
+      )
     ).toBeInTheDocument();
     // The copy points at a real escape, and the escape is on screen.
     expect(screen.getByRole('button', { name: 'Discard my changes and reload' })).toBeInTheDocument();
@@ -850,7 +967,7 @@ describe('AdminStoragePanel', () => {
       <>
         <ToastContainer />
         <AdminStoragePanel />
-      </>,
+      </>
     );
     await waitFor(() => expect(screen.getByText('Backends')).toBeInTheDocument());
     server.use(
@@ -861,7 +978,7 @@ describe('AdminStoragePanel', () => {
         return body.version === 4
           ? HttpResponse.json({ ...refreshed, version: 5 })
           : HttpResponse.json({ error: 'stale' }, { status: 409 });
-      }),
+      })
     );
 
     const reassignFiles = () => {
@@ -926,14 +1043,21 @@ describe('AdminStoragePanel', () => {
             ? []
             : [
                 {
-                  category: migrationPosts[0]!.category, from: 'uploads-local', to: migrationPosts[0]!.to,
-                  status: firstDone ? 'done' : 'running', done: firstDone ? 3 : 1, total: 3,
-                  copied: firstDone ? 3 : 1, skipped: 0, failed: 0, startedAt: 1,
+                  category: migrationPosts[0]!.category,
+                  from: 'uploads-local',
+                  to: migrationPosts[0]!.to,
+                  status: firstDone ? 'done' : 'running',
+                  done: firstDone ? 3 : 1,
+                  total: 3,
+                  copied: firstDone ? 3 : 1,
+                  skipped: 0,
+                  failed: 0,
+                  startedAt: 1,
                   ...(firstDone ? { finishedAt: 2 } : {}),
                 },
               ];
         return HttpResponse.json(state);
-      }),
+      })
     );
     fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
     fireEvent.click(screen.getAllByText('off-box')[screen.getAllByText('off-box').length - 1]!);
@@ -964,12 +1088,29 @@ describe('AdminStoragePanel', () => {
     const state = baseState();
     (state as StorageAdminState).migrations = [
       {
-        category: 'files', from: 'uploads-local', to: 'off-box',
-        status: 'running', done: 2, total: 5, copied: 1, skipped: 1, failed: 0, startedAt: 1,
+        category: 'files',
+        from: 'uploads-local',
+        to: 'off-box',
+        status: 'running',
+        done: 2,
+        total: 5,
+        copied: 1,
+        skipped: 1,
+        failed: 0,
+        startedAt: 1,
       },
       {
-        category: 'journey', from: 'uploads-local', to: 'off-box',
-        status: 'done', done: 4, total: 4, copied: 4, skipped: 0, failed: 0, startedAt: 1, finishedAt: 2,
+        category: 'journey',
+        from: 'uploads-local',
+        to: 'off-box',
+        status: 'done',
+        done: 4,
+        total: 4,
+        copied: 4,
+        skipped: 0,
+        failed: 0,
+        startedAt: 1,
+        finishedAt: 2,
         reclaimable: { objects: 4, bytes: 4096 },
       },
     ];
@@ -978,7 +1119,7 @@ describe('AdminStoragePanel', () => {
       http.delete('/api/admin/storage/migrations/files', () => {
         cancelledCategory = 'files';
         return HttpResponse.json({ cancelled: true });
-      }),
+      })
     );
     expect(screen.getByText(/Moving Trip documents… 2\/5/)).toBeInTheDocument();
     expect(screen.getByText(/Move finished: 4 copied, 0 skipped/)).toBeInTheDocument();
@@ -991,12 +1132,30 @@ describe('AdminStoragePanel', () => {
     const state = baseState();
     (state as StorageAdminState).migrations = [
       {
-        category: 'files', from: 'uploads-local', to: 'off-box',
-        status: 'done', done: 4, total: 4, copied: 3, skipped: 0, failed: 2, startedAt: 1, finishedAt: 2,
+        category: 'files',
+        from: 'uploads-local',
+        to: 'off-box',
+        status: 'done',
+        done: 4,
+        total: 4,
+        copied: 3,
+        skipped: 0,
+        failed: 2,
+        startedAt: 1,
+        finishedAt: 2,
       },
       {
-        category: 'journey', from: 'uploads-local', to: 'off-box',
-        status: 'done', done: 4, total: 4, copied: 4, skipped: 0, failed: 0, startedAt: 1, finishedAt: 2,
+        category: 'journey',
+        from: 'uploads-local',
+        to: 'off-box',
+        status: 'done',
+        done: 4,
+        total: 4,
+        copied: 4,
+        skipped: 0,
+        failed: 0,
+        startedAt: 1,
+        finishedAt: 2,
       },
     ];
     await renderPanel(state);
@@ -1019,8 +1178,10 @@ describe('AdminStoragePanel', () => {
     // that lands a world whose mirror targets grew. With the pending-prompt
     // snapshot disarmed by the failed save, the sync prompt must never appear.
     server.use(
-      http.post('/api/admin/storage/backends/backups-local-mirror/backfill', () => HttpResponse.json({ started: true })),
-      http.get('/api/admin/storage', () => HttpResponse.json(mirroredState())),
+      http.post('/api/admin/storage/backends/backups-local-mirror/backfill', () =>
+        HttpResponse.json({ started: true })
+      ),
+      http.get('/api/admin/storage', () => HttpResponse.json(mirroredState()))
     );
     fireEvent.click(within(backendRow('backups-local')).getByRole('button', { name: 'Sync now' }));
     await new Promise((r) => setTimeout(r, 100));
@@ -1030,7 +1191,7 @@ describe('AdminStoragePanel', () => {
   it('FE-ADMIN-STOR-040: a non-null configError renders a warning banner naming the error; save stays enabled', async () => {
     await renderPanel(baseState({ configError: "'storage.categories' must be a JSON object" }));
     const banner = screen.getByText(
-      "Stored storage settings failed to load — saving will replace them: 'storage.categories' must be a JSON object",
+      "Stored storage settings failed to load — saving will replace them: 'storage.categories' must be a JSON object"
     );
     expect(banner).toHaveAttribute('role', 'alert');
     // Save is the recovery path — it must not be force-disabled by the banner
@@ -1066,7 +1227,7 @@ describe('AdminStoragePanel', () => {
       http.post('/api/admin/storage/migrations', async ({ request }) => {
         migrationBodies.push(await request.json());
         return HttpResponse.json({ started: true });
-      }),
+      })
     );
     fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
     fireEvent.click(screen.getAllByText('off-box')[screen.getAllByText('off-box').length - 1]!);
@@ -1096,7 +1257,7 @@ describe('AdminStoragePanel', () => {
       expect.arrayContaining([
         { category: 'files', to: 'off-box' },
         { category: 'journey', to: 'off-box' },
-      ]),
+      ])
     );
   });
 
@@ -1112,7 +1273,7 @@ describe('AdminStoragePanel', () => {
       http.put('/api/admin/storage', () => {
         putCalled = true;
         return HttpResponse.json(baseState());
-      }),
+      })
     );
     fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
     const choices = screen.getAllByText('off-box');
@@ -1151,7 +1312,7 @@ describe('AdminStoragePanel', () => {
       http.get('/api/admin/storage', () => {
         getCalls += 1;
         return HttpResponse.json(savedState);
-      }),
+      })
     );
     fireEvent.click(within(categoryRow('files')).getByText('uploads-local (default)'));
     fireEvent.click(screen.getAllByText('off-box')[screen.getAllByText('off-box').length - 1]!);
@@ -1178,7 +1339,18 @@ describe('AdminStoragePanel', () => {
   it('FE-ADMIN-STOR-046: a done sync still renders Sync now alongside the done line — re-runnable without a reload', async () => {
     const state = mirroredState();
     (state as StorageAdminState).backfills = [
-      { backend: 'mirror', status: 'done', done: 5, total: 5, copied: 5, skipped: 0, failed: 0, deleted: 0, startedAt: 1, finishedAt: 2 },
+      {
+        backend: 'mirror',
+        status: 'done',
+        done: 5,
+        total: 5,
+        copied: 5,
+        skipped: 0,
+        failed: 0,
+        deleted: 0,
+        startedAt: 1,
+        finishedAt: 2,
+      },
     ];
     let started = false;
     await renderPanel(state);
@@ -1186,7 +1358,7 @@ describe('AdminStoragePanel', () => {
       http.post('/api/admin/storage/backends/mirror/backfill', () => {
         started = true;
         return HttpResponse.json({ started: true });
-      }),
+      })
     );
     const row = backendRow('backups-local');
     expect(within(row).getByText(/Sync finished: 5 copied, 0 deleted, 0 failed/)).toBeInTheDocument();
@@ -1197,7 +1369,18 @@ describe('AdminStoragePanel', () => {
   it('FE-ADMIN-STOR-047: an errored sync also still renders Sync now alongside the error line', async () => {
     const state = mirroredState();
     (state as StorageAdminState).backfills = [
-      { backend: 'mirror', status: 'error', done: 2, total: 5, copied: 1, skipped: 0, failed: 1, deleted: 0, startedAt: 1, error: 'disk full' },
+      {
+        backend: 'mirror',
+        status: 'error',
+        done: 2,
+        total: 5,
+        copied: 1,
+        skipped: 0,
+        failed: 1,
+        deleted: 0,
+        startedAt: 1,
+        error: 'disk full',
+      },
     ];
     await renderPanel(state);
     const row = backendRow('backups-local');

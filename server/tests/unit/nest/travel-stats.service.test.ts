@@ -1,3 +1,25 @@
+import { db as testDb } from '../../../src/db/database';
+import { AtlasService } from '../../../src/nest/atlas/atlas.service';
+import {
+  createTestBucketListRepo,
+  createTestHiddenCountriesRepo,
+  createTestHiddenRegionsRepo,
+  createTestVisitedCountriesRepo,
+  createTestVisitedRegionsRepo,
+  createTestPlaceRegionsRepo,
+} from '../../helpers/atlas-repos';
+import { createUser, createTrip, createPlace, createReservation, addTripMember } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+import {
+  createTestUnitOfWork,
+  createTestTripsRepo,
+  createTestPlacesRepo,
+  createTestReservationEndpointsRepo,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+
 /**
  * travel-stats.service.test.ts
  *
@@ -12,29 +34,11 @@
  */
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: () => undefined, isOwner: () => false };
-    return mock;
+  return mock;
 });
-
-
-
-import { db as testDb } from '../../../src/db/database';
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createPlace, createReservation, addTripMember } from '../../helpers/factories';
-import { AtlasService } from '../../../src/nest/atlas/atlas.service';
-import { createTestUnitOfWork, createTestTripsRepo, createTestPlacesRepo, createTestReservationEndpointsRepo, sharedTestOrm } from '../../helpers/test-uow';
-import {
-  createTestBucketListRepo,
-  createTestHiddenCountriesRepo,
-  createTestHiddenRegionsRepo,
-  createTestVisitedCountriesRepo,
-  createTestVisitedRegionsRepo,
-  createTestPlaceRegionsRepo,
-} from '../../helpers/atlas-repos';
 
 let atlas: AtlasService;
 
@@ -53,8 +57,13 @@ beforeAll(async () => {
     (await sharedTestOrm(testDb)).orm,
   );
 });
-beforeEach(() => { resetTestDb(testDb); vi.clearAllMocks(); });
-afterAll(() => { testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  vi.clearAllMocks();
+});
+afterAll(() => {
+  testDb.close();
+});
 
 // ---------------------------------------------------------------------------
 // getTravelStats — moved here from auth.service.test.ts together with the
@@ -71,11 +80,13 @@ describe('getTravelStats', () => {
     lng: number,
     code: string | null = null,
     localDate: string | null = null,
-    localTime: string | null = null
+    localTime: string | null = null,
   ) {
-    testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng, code, local_date, local_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(reservationId, role, sequence, `Endpoint ${sequence}`, lat, lng, code, localDate, localTime);
+    testDb
+      .prepare(
+        'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng, code, local_date, local_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      )
+      .run(reservationId, role, sequence, `Endpoint ${sequence}`, lat, lng, code, localDate, localTime);
   }
 
   // Every trip below is dated in the past: since #1048 the passport card only counts
@@ -88,8 +99,8 @@ describe('getTravelStats', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Tokyo Trip', start_date: PAST_START, end_date: PAST_END });
     const res = createReservation(testDb, trip.id, { type: 'flight' });
-    endpoint(res.id, 'from', 0, 50.9014, 4.4844);   // Brussels
-    endpoint(res.id, 'to', 1, 35.6762, 139.6503);   // Tokyo
+    endpoint(res.id, 'from', 0, 50.9014, 4.4844); // Brussels
+    endpoint(res.id, 'to', 1, 35.6762, 139.6503); // Tokyo
 
     const stats = await atlas.getTravelStats(user.id);
     expect(stats.countries).toContain('BE');
@@ -102,9 +113,9 @@ describe('getTravelStats', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Connection Trip', start_date: PAST_START, end_date: PAST_END });
     const res = createReservation(testDb, trip.id, { type: 'flight' });
-    endpoint(res.id, 'from', 0, 50.9014, 4.4844);     // Brussels
-    endpoint(res.id, 'stop', 1, 35.6762, 139.6503);   // Tokyo — never leaves the airport
-    endpoint(res.id, 'to', 2, -33.8688, 151.2093);    // Sydney
+    endpoint(res.id, 'from', 0, 50.9014, 4.4844); // Brussels
+    endpoint(res.id, 'stop', 1, 35.6762, 139.6503); // Tokyo — never leaves the airport
+    endpoint(res.id, 'to', 2, -33.8688, 151.2093); // Sydney
 
     const stats = await atlas.getTravelStats(user.id);
     expect(stats.countries).toContain('BE');
@@ -135,7 +146,9 @@ describe('getTravelStats', () => {
   function placeInRegion(tripId: number, countryCode: string, regionCode: string) {
     const place = createPlace(testDb, tripId, { name: `Place in ${countryCode}` });
     testDb
-      .prepare('INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)')
+      .prepare(
+        'INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)',
+      )
       .run(place.id, countryCode, regionCode, regionCode);
   }
 
@@ -168,8 +181,8 @@ describe('getTravelStats', () => {
     const { user } = createUser(testDb);
     const future = createTrip(testDb, user.id, { title: 'Tokyo, next month', start_date: iso(30), end_date: iso(40) });
     const res = createReservation(testDb, future.id, { type: 'flight' });
-    endpoint(res.id, 'from', 0, 50.9014, 4.4844);   // Brussels
-    endpoint(res.id, 'to', 1, 35.6762, 139.6503);   // Tokyo
+    endpoint(res.id, 'from', 0, 50.9014, 4.4844); // Brussels
+    endpoint(res.id, 'to', 1, 35.6762, 139.6503); // Tokyo
 
     const stats = await atlas.getTravelStats(user.id);
 
@@ -193,7 +206,11 @@ describe('getTravelStats', () => {
 
   it('AUTH-DB-099: #1535 a plane change booked as two flights does not stamp the hub country', async () => {
     const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'New York via Helsinki', start_date: PAST_START, end_date: PAST_END });
+    const trip = createTrip(testDb, user.id, {
+      title: 'New York via Helsinki',
+      start_date: PAST_START,
+      end_date: PAST_END,
+    });
     splitChainThroughHelsinki(trip.id, '2023-05-01', '11:00');
 
     const stats = await atlas.getTravelStats(user.id);
@@ -204,7 +221,11 @@ describe('getTravelStats', () => {
 
   it('AUTH-DB-100: #1535 a stopover of two days still stamps the hub country', async () => {
     const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Helsinki stopover', start_date: PAST_START, end_date: PAST_END });
+    const trip = createTrip(testDb, user.id, {
+      title: 'Helsinki stopover',
+      start_date: PAST_START,
+      end_date: PAST_END,
+    });
     splitChainThroughHelsinki(trip.id, '2023-05-03', '11:00');
 
     expect((await atlas.getTravelStats(user.id)).countries).toContain('FI');
@@ -212,7 +233,11 @@ describe('getTravelStats', () => {
 
   it('AUTH-DB-101: #1490 removing a country still subtracts it around the layover pairing', async () => {
     const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'New York via Helsinki', start_date: PAST_START, end_date: PAST_END });
+    const trip = createTrip(testDb, user.id, {
+      title: 'New York via Helsinki',
+      start_date: PAST_START,
+      end_date: PAST_END,
+    });
     splitChainThroughHelsinki(trip.id, '2023-05-01', '11:00');
 
     await atlas.unmarkCountry(user.id, 'BE');
@@ -240,7 +265,9 @@ describe('travel-stats quirk fixes', () => {
   it('AUTH-DB-089: getTravelStats keeps a place at lat 0 / lng 0 (equator, prime meridian)', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Null Island' });
-    testDb.prepare('INSERT INTO places (trip_id, name, lat, lng) VALUES (?, ?, ?, ?)').run(trip.id, 'Null Island', 0, 0);
+    testDb
+      .prepare('INSERT INTO places (trip_id, name, lat, lng) VALUES (?, ?, ?, ?)')
+      .run(trip.id, 'Null Island', 0, 0);
     const stats = await atlas.getTravelStats(user.id);
     expect(stats.coords).toContainEqual({ lat: 0, lng: 0 });
   });
@@ -264,13 +291,24 @@ describe('personal figures on a shared trip (#1966)', () => {
   const PAST_START = '2023-05-01';
   const PAST_END = '2023-05-10';
 
-  const endpoint = (reservationId: number, role: 'from' | 'to', sequence: number, lat: number, lng: number, code: string) =>
-    testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng, code) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).run(reservationId, role, sequence, `Endpoint ${sequence}`, lat, lng, code);
+  const endpoint = (
+    reservationId: number,
+    role: 'from' | 'to',
+    sequence: number,
+    lat: number,
+    lng: number,
+    code: string,
+  ) =>
+    testDb
+      .prepare(
+        'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng, code) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      )
+      .run(reservationId, role, sequence, `Endpoint ${sequence}`, lat, lng, code);
 
   const assignTo = (reservationId: number, userId: number) =>
-    testDb.prepare('INSERT INTO reservation_travelers (reservation_id, user_id) VALUES (?, ?)').run(reservationId, userId);
+    testDb
+      .prepare('INSERT INTO reservation_travelers (reservation_id, user_id) VALUES (?, ?)')
+      .run(reservationId, userId);
 
   /** A shared trip: A flies Rome→New York, B flies Mexico City→New York. */
   function sharedTrip() {

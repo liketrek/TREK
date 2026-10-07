@@ -1,17 +1,17 @@
-import React, { useEffect, useRef } from 'react'
-import Plyr from 'plyr'
-import 'plyr/dist/plyr.css'
+import Plyr from 'plyr';
+import 'plyr/dist/plyr.css';
+import React, { useEffect, useRef } from 'react';
 // The control icons, served from this origin. Plyr's default points at cdn.plyr.io,
 // which connect-src refuses: the player worked but every button in it was blank.
 // A file, not a data URL, because Plyr tells same-origin from cross-origin by the
 // host and would fetch a data URL over XHR, which connect-src refuses as well.
-import plyrSprite from 'plyr/dist/plyr.svg?no-inline'
+import plyrSprite from 'plyr/dist/plyr.svg?no-inline';
 
 interface Props {
-  src: string
-  poster?: string
-  autoPlay?: boolean
-  style?: React.CSSProperties
+  src: string;
+  poster?: string;
+  autoPlay?: boolean;
+  style?: React.CSSProperties;
 }
 
 /**
@@ -27,27 +27,18 @@ interface Props {
  * screen under the next one's name.
  */
 export default function VideoPlayer(props: Props): React.ReactElement {
-  return <PlyrVideo key={props.src} {...props} />
+  return <PlyrVideo key={props.src} {...props} />;
 }
 
 function PlyrVideo({ src, poster, autoPlay = true, style }: Props): React.ReactElement {
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    const el = videoRef.current
-    if (!el) return
+    const el = videoRef.current;
+    if (!el) return;
 
     const player = new Plyr(el, {
-      controls: [
-        'play-large',
-        'play',
-        'progress',
-        'current-time',
-        'duration',
-        'mute',
-        'volume',
-        'fullscreen',
-      ],
+      controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'fullscreen'],
       autoplay: autoPlay,
       clickToPlay: true,
       hideControls: false,
@@ -57,16 +48,16 @@ function PlyrVideo({ src, poster, autoPlay = true, style }: Props): React.ReactE
       // aborts the stream just the same, and the element is out of the document
       // by then, so the error it would otherwise report has nowhere to show.
       blankVideo: '',
-    })
+    });
 
     return () => {
       try {
-        player.destroy()
+        player.destroy();
       } catch {
         /* already torn down */
       }
-    }
-  }, [autoPlay])
+    };
+  }, [autoPlay]);
 
   return (
     <div
@@ -104,5 +95,5 @@ function PlyrVideo({ src, poster, autoPlay = true, style }: Props): React.ReactE
         <track kind="captions" />
       </video>
     </div>
-  )
+  );
 }

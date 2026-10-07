@@ -1,7 +1,7 @@
-import { render, screen, fireEvent, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
+import { Edit, Trash2 } from 'lucide-react';
+import { act, render, screen } from '../../../tests/helpers/render';
 import { ContextMenu } from './ContextMenu';
-import { Trash2, Edit } from 'lucide-react';
 
 const makeMenu = (x = 100, y = 200, overrides?: object[]) => ({
   x,
@@ -62,9 +62,7 @@ describe('ContextMenu', () => {
   });
 
   it('FE-COMP-CTX-005: danger items have red color styling', () => {
-    const menu = makeMenu(100, 200, [
-      { label: 'Remove', onClick: vi.fn(), danger: true },
-    ]);
+    const menu = makeMenu(100, 200, [{ label: 'Remove', onClick: vi.fn(), danger: true }]);
     render(<ContextMenu menu={menu} onClose={onClose} />);
     const btn = screen.getByRole('button', { name: /remove/i });
     // Danger buttons use color #ef4444 inline style
@@ -81,11 +79,16 @@ describe('ContextMenu', () => {
   });
 
   it('does not activate a disabled menu item', () => {
-    const onClick = vi.fn()
-    render(<ContextMenu menu={makeMenu(100, 200, [{ label: 'Already assigned', onClick, disabled: true }])} onClose={onClose} />)
-    const item = screen.getByRole('button', { name: 'Already assigned' })
-    expect(item).toBeDisabled()
-    fireEvent.click(item)
-    expect(onClick).not.toHaveBeenCalled()
-  })
+    const onClick = vi.fn();
+    render(
+      <ContextMenu
+        menu={makeMenu(100, 200, [{ label: 'Already assigned', onClick, disabled: true }])}
+        onClose={onClose}
+      />
+    );
+    const item = screen.getByRole('button', { name: 'Already assigned' });
+    expect(item).toBeDisabled();
+    fireEvent.click(item);
+    expect(onClick).not.toHaveBeenCalled();
+  });
 });

@@ -1,22 +1,11 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Headers,
-  HttpException,
-  Param,
-  Post,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
 import type { User } from '../../types';
-import { DaysService, DayReorderError, DayAppendError, type DatedDayAppend } from './days.service';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { DayRemovalService, DayDeleteError, type DayRemoval } from './day-removal.service';
 import { DayCreateDto, DayReorderDto, DayTransportDto, DayUpdateDto } from './days.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { DaysService, DayReorderError, DayAppendError, type DatedDayAppend } from './days.service';
+import { Body, Controller, Delete, Get, Headers, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 /**
  * /api/trips/:tripId/days — trip itinerary days.
@@ -33,7 +22,10 @@ import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.g
 // go through that method, and this keeps the two from drifting.
 @UseGuards(JwtAuthGuard, TripAccessGuard)
 export class DaysController {
-  constructor(private readonly days: DaysService, private readonly removal: DayRemovalService) {}
+  constructor(
+    private readonly days: DaysService,
+    private readonly removal: DayRemovalService,
+  ) {}
 
   @Get()
   async list(@CurrentUser() user: User, @Param('tripId') tripId: string) {

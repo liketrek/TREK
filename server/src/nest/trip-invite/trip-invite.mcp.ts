@@ -1,19 +1,25 @@
-import {
-  McpController, Tool, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, ok,
-} from '../../nest-mcp';
-import { z } from 'zod';
 import { getAppUrl } from '../../app-config';
-import { AuditService } from '../audit/audit.service';
-import { RuntimeEnvService } from '../app-config/runtime-env.service';
-import { DemoService } from '../common/demo.service';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { canShareTrips, canWrite } from '../../mcp/scopes';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
+import {
+  McpController,
+  Tool,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  demoDenied,
+  ok,
+} from '../../nest-mcp';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { AuditService } from '../audit/audit.service';
+import { DemoService } from '../common/demo.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { TripInviteService, type TripInviteInfo } from './trip-invite.service';
 import { tripInviteLinkCreateRequestSchema } from '@trek/shared';
 import type { TripInviteLinkCreateRequest } from '@trek/shared';
-import { TripInviteService, type TripInviteInfo } from './trip-invite.service';
+
+import { z } from 'zod';
 
 /**
  * Invite-link MCP surface, mirroring TripInviteLinkController. The join half of
@@ -58,7 +64,8 @@ export class TripInviteMcp {
 
   @Tool({
     name: 'get_trip_invite_link',
-    description: 'Get the trip\'s current invite link, the one that adds whoever opens it to the trip as a member. Returns null when the trip has none. This is not the read-only public view link: get_share_link is that one.',
+    description:
+      "Get the trip's current invite link, the one that adds whoever opens it to the trip as a member. Returns null when the trip has none. This is not the read-only public view link: get_share_link is that one.",
     inputSchema: {
       tripId: z.number().int().positive(),
     },
@@ -67,18 +74,20 @@ export class TripInviteMcp {
   })
   async getTripInviteLink({ tripId }: { tripId: number }, ctx: McpContext) {
     const denied = await this.denyManage(tripId, ctx.userId);
-    if ((await denied)) return denied;
+    if (await denied) return denied;
     const info = await this.invites.get(tripId);
     return ok({ invite_link: info ? this.describe(info) : null });
   }
 
   @Tool({
     name: 'create_trip_invite_link',
-    description: 'Create the trip\'s invite link, or rotate it: a trip has exactly one, so calling this again issues a fresh token and the previous link stops working immediately. Anyone with a TREK account who opens the link and signs in becomes a member of the trip, which makes it a different and far stronger thing than create_share_link, whose link only shows a read-only public view. Use add_trip_member instead when the person already has an account and is known by name or email.',
+    description:
+      "Create the trip's invite link, or rotate it: a trip has exactly one, so calling this again issues a fresh token and the previous link stops working immediately. Anyone with a TREK account who opens the link and signs in becomes a member of the trip, which makes it a different and far stronger thing than create_share_link, whose link only shows a read-only public view. Use add_trip_member instead when the person already has an account and is known by name or email.",
     inputSchema: {
       tripId: z.number().int().positive(),
-      expires_in_days: tripInviteLinkCreateRequestSchema.shape.expires_in_days
-        .describe('Days until the link stops working; omit, null or 0 leaves it valid until it is rotated or deleted'),
+      expires_in_days: tripInviteLinkCreateRequestSchema.shape.expires_in_days.describe(
+        'Days until the link stops working; omit, null or 0 leaves it valid until it is rotated or deleted',
+      ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: (ctx) => canShareTrips(ctx.scopes) && canWrite(ctx.scopes, 'trips'),
@@ -89,13 +98,14 @@ export class TripInviteMcp {
   ) {
     if (await this.isDemoUser(ctx.userId)) return demoDenied();
     const denied = await this.denyManage(tripId, ctx.userId);
-    if ((await denied)) return denied;
+    if (await denied) return denied;
     // The route's own coercion, kept verbatim: the shared contract admits a
     // digits-only string as well as a number, and anything that does not parse
     // to a finite value means no expiry rather than an error.
-    const parsed = expires_in_days != null && String(expires_in_days).trim() !== ''
-      ? Number.parseInt(String(expires_in_days))
-      : null;
+    const parsed =
+      expires_in_days != null && String(expires_in_days).trim() !== ''
+        ? Number.parseInt(String(expires_in_days))
+        : null;
     const days = Number.isFinite(parsed as number) ? parsed : null;
     const info = await this.invites.createOrRotate(tripId, ctx.userId, days);
     // Minting a membership credential is audited wherever it happens, so an
@@ -113,7 +123,8 @@ export class TripInviteMcp {
 
   @Tool({
     name: 'delete_trip_invite_link',
-    description: 'Revoke the trip\'s invite link. The URL stops working at once, so nobody else can join through it. Members who already joined stay on the trip: remove_trip_member is what takes somebody off it.',
+    description:
+      "Revoke the trip's invite link. The URL stops working at once, so nobody else can join through it. Members who already joined stay on the trip: remove_trip_member is what takes somebody off it.",
     inputSchema: {
       tripId: z.number().int().positive(),
     },
@@ -123,7 +134,7 @@ export class TripInviteMcp {
   async deleteTripInviteLink({ tripId }: { tripId: number }, ctx: McpContext) {
     if (await this.isDemoUser(ctx.userId)) return demoDenied();
     const denied = await this.denyManage(tripId, ctx.userId);
-    if ((await denied)) return denied;
+    if (await denied) return denied;
     await this.invites.remove(tripId);
     await this.audit.writeAudit({
       userId: ctx.userId,

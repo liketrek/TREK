@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { Category } from '@trek/shared';
 import { Categories } from '../../db/entities/Categories.entity';
 import type { CategoriesRepository } from '../../db/repositories/Categories.repository';
 import { toRowId } from '../common/row-id';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type { Category } from '@trek/shared';
 
 /**
  * Categories domain service — owns the category business rules (moved off

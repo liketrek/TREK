@@ -10,18 +10,21 @@
  * parity assertions below can run the SAME legacy raw statement this
  * service replaced, on the same seeded rows, and compare full-key.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { ConflictException } from '@nestjs/common';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { sharedTestOrm, createTestUnitOfWork } from '../../helpers/test-uow';
-import {
-  createTestSchoolHolidayCountriesRepo, createTestSchoolHolidayRegionsRepo,
-  createTestSchoolHolidayPeriodsRepo, createTestVacayHolidayCalendarsRepo,
-} from '../../helpers/school-holidays-repos';
-import type { TestOrm } from '../../helpers/test-orm';
 import { SchoolHolidaysService } from '../../../src/nest/school-holidays/school-holidays.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser } from '../../helpers/factories';
+import {
+  createTestSchoolHolidayCountriesRepo,
+  createTestSchoolHolidayRegionsRepo,
+  createTestSchoolHolidayPeriodsRepo,
+  createTestVacayHolidayCalendarsRepo,
+} from '../../helpers/school-holidays-repos';
+import { resetTestDb } from '../../helpers/test-db';
+import type { TestOrm } from '../../helpers/test-orm';
+import { sharedTestOrm, createTestUnitOfWork } from '../../helpers/test-uow';
+import { ConflictException } from '@nestjs/common';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 
@@ -69,7 +72,9 @@ describe('catalog / region parity', () => {
     await svc.createCountry({ code: 'DE', name: 'Germany' });
 
     const legacyCountries = testDb.prepare('SELECT code, name FROM school_holiday_countries ORDER BY name, code').all();
-    const legacyRegions = testDb.prepare("SELECT *, country || '-MANUAL-' || id AS code FROM school_holiday_regions ORDER BY name, id").all();
+    const legacyRegions = testDb
+      .prepare("SELECT *, country || '-MANUAL-' || id AS code FROM school_holiday_regions ORDER BY name, id")
+      .all();
 
     expect(await svc.catalog()).toEqual({ countries: legacyCountries, regions: legacyRegions });
   });
@@ -77,9 +82,13 @@ describe('catalog / region parity', () => {
   it('SH-SVC-002: region() is full-key identical to the legacy region + periods SELECTs, including the synthesized code column', async () => {
     const region = await seedRegion();
 
-    const legacyRegion = testDb.prepare("SELECT *, country || '-MANUAL-' || id AS code FROM school_holiday_regions WHERE id = ?").get(region.id);
+    const legacyRegion = testDb
+      .prepare("SELECT *, country || '-MANUAL-' || id AS code FROM school_holiday_regions WHERE id = ?")
+      .get(region.id);
     const legacyHolidays = testDb
-      .prepare('SELECT name, start_date AS startDate, end_date AS endDate FROM school_holiday_periods WHERE region_id = ? ORDER BY start_date, end_date, name')
+      .prepare(
+        'SELECT name, start_date AS startDate, end_date AS endDate FROM school_holiday_periods WHERE region_id = ? ORDER BY start_date, end_date, name',
+      )
       .all(region.id);
 
     expect(await svc.region(region.id)).toEqual({ ...(legacyRegion as object), holidays: legacyHolidays });
@@ -100,8 +109,12 @@ describe('catalog / region parity', () => {
 describe('checkName (collateNoCase)', () => {
   it('SH-SVC-004: a same-country, case-different name is rejected as a duplicate (COLLATE NOCASE, not lower())', async () => {
     await seedRegion();
-    await expect(svc.createRegion('US', { name: 'SEATTLE SCHOOLS', revision: 0, holidays: [] })).rejects.toThrow(ConflictException);
-    await expect(svc.createRegion('US', { name: 'seattle schools', revision: 0, holidays: [] })).rejects.toThrow('already exists');
+    await expect(svc.createRegion('US', { name: 'SEATTLE SCHOOLS', revision: 0, holidays: [] })).rejects.toThrow(
+      ConflictException,
+    );
+    await expect(svc.createRegion('US', { name: 'seattle schools', revision: 0, holidays: [] })).rejects.toThrow(
+      'already exists',
+    );
   });
 
   it('SH-SVC-005: a different country with the same name is not a duplicate', async () => {
@@ -110,7 +123,7 @@ describe('checkName (collateNoCase)', () => {
     await expect(svc.createRegion('CA', { name: 'Seattle schools', revision: 0, holidays: [] })).resolves.toBeDefined();
   });
 
-  it("SH-SVC-006: renaming a region to its OWN current name is not a self-collision (id != ? excludes it)", async () => {
+  it('SH-SVC-006: renaming a region to its OWN current name is not a self-collision (id != ? excludes it)', async () => {
     const region = await seedRegion();
     await expect(svc.updateRegion(region.id, { name: region.name, revision: 1, holidays: [] })).resolves.toBeDefined();
   });
@@ -122,7 +135,9 @@ describe('updateRegion optimistic concurrency', () => {
   it('SH-SVC-007: a stale revision is rejected with ConflictException, and the row is unchanged', async () => {
     const region = await seedRegion();
     await svc.updateRegion(region.id, { name: 'Renamed once', revision: 1, holidays: [] });
-    await expect(svc.updateRegion(region.id, { name: 'Stale write', revision: 1, holidays: [winter] })).rejects.toThrow(ConflictException);
+    await expect(svc.updateRegion(region.id, { name: 'Stale write', revision: 1, holidays: [winter] })).rejects.toThrow(
+      ConflictException,
+    );
     const current = await svc.region(region.id);
     expect(current.name).toBe('Renamed once');
     expect(current.revision).toBe(2);
@@ -151,7 +166,9 @@ describe('deleteRegion cross-domain integrity guard (existsForSchoolRegion)', ()
     const region = await seedRegion();
     const { user } = createUser(testDb);
     const plan = testDb.prepare('INSERT INTO vacay_plans (owner_id) VALUES (?)').run(user.id);
-    testDb.prepare("INSERT INTO vacay_holiday_calendars (plan_id, type, region) VALUES (?, 'school_holiday', ?)").run(plan.lastInsertRowid, region.code);
+    testDb
+      .prepare("INSERT INTO vacay_holiday_calendars (plan_id, type, region) VALUES (?, 'school_holiday', ?)")
+      .run(plan.lastInsertRowid, region.code);
 
     await expect(svc.deleteRegion(region.id, region.revision)).rejects.toThrow(ConflictException);
     // Untouched — the region and its periods are still there.
@@ -162,7 +179,9 @@ describe('deleteRegion cross-domain integrity guard (existsForSchoolRegion)', ()
     const region = await seedRegion();
     const { user } = createUser(testDb);
     const plan = testDb.prepare('INSERT INTO vacay_plans (owner_id) VALUES (?)').run(user.id);
-    testDb.prepare("INSERT INTO vacay_holiday_calendars (plan_id, type, region) VALUES (?, 'public_holiday', ?)").run(plan.lastInsertRowid, region.code);
+    testDb
+      .prepare("INSERT INTO vacay_holiday_calendars (plan_id, type, region) VALUES (?, 'public_holiday', ?)")
+      .run(plan.lastInsertRowid, region.code);
 
     await expect(svc.deleteRegion(region.id, region.revision)).resolves.toEqual({ success: true });
   });
@@ -171,7 +190,9 @@ describe('deleteRegion cross-domain integrity guard (existsForSchoolRegion)', ()
     const region = await seedRegion();
     const { user } = createUser(testDb);
     const plan = testDb.prepare('INSERT INTO vacay_plans (owner_id) VALUES (?)').run(user.id);
-    testDb.prepare("INSERT INTO vacay_holiday_calendars (plan_id, type, region) VALUES (?, 'school_holiday', ?)").run(plan.lastInsertRowid, region.code);
+    testDb
+      .prepare("INSERT INTO vacay_holiday_calendars (plan_id, type, region) VALUES (?, 'school_holiday', ?)")
+      .run(plan.lastInsertRowid, region.code);
     testDb.exec('DELETE FROM vacay_holiday_calendars');
 
     await expect(svc.deleteRegion(region.id, region.revision)).resolves.toEqual({ success: true });

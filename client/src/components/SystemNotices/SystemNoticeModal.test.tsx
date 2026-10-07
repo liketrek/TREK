@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { ComponentType, ReactNode } from 'react';
 import { act } from '@testing-library/react';
-import { render, screen, fireEvent } from '../../../tests/helpers/render';
 import { http, HttpResponse } from 'msw';
+import type { ComponentType, ReactNode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { server } from '../../../tests/helpers/msw/server';
+import { fireEvent, render, screen } from '../../../tests/helpers/render';
+import type { SystemNoticeDTO } from '../../store/systemNoticeStore';
 import { useSystemNoticeStore } from '../../store/systemNoticeStore';
 import { registerNoticeAction } from './noticeActions';
 import { ModalRenderer } from './SystemNoticeModal';
-import type { SystemNoticeDTO } from '../../store/systemNoticeStore';
 
 const routerMocks = vi.hoisted(() => ({ navigate: vi.fn((_to: string) => {}) }));
 vi.mock('react-router', async () => {
@@ -18,7 +18,7 @@ vi.mock('react-router', async () => {
 // Flips isRtlLanguage on demand so the mirrored arrow-key / swipe branches can be
 // driven without loading a real RTL locale bundle.
 const i18nEnv = vi.hoisted(() => ({ rtl: false }));
-vi.mock('../../i18n/index.js', async importOriginal => {
+vi.mock('../../i18n/index.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../i18n/index')>();
   return {
     ...actual,
@@ -53,11 +53,17 @@ function MarkdownOverrideProbe({ c }: { c: MarkdownOverrides }) {
       <c.p>{'— a closing line that runs past the signature length limit'}</c.p>
       <c.p>{'a plain paragraph'}</c.p>
       <c.p>{[<em key="only">no string child</em>]}</c.p>
-      <c.p><em>single element child</em></c.p>
+      <c.p>
+        <em>single element child</em>
+      </c.p>
       <c.hr />
       <c.strong>bold bit</c.strong>
-      <c.ul><li>bullet</li></c.ul>
-      <c.ol><li>numbered</li></c.ol>
+      <c.ul>
+        <li>bullet</li>
+      </c.ul>
+      <c.ol>
+        <li>numbered</li>
+      </c.ol>
     </span>
   );
 }
@@ -86,11 +92,7 @@ const mqChangeListeners: Array<(e: MediaQueryListEvent) => void> = [];
 function stubMatchMedia({ mobile = false, reducedMotion = false }: MediaEnv = {}) {
   mqChangeListeners.length = 0;
   window.matchMedia = ((query: string) => ({
-    matches: query.includes('prefers-reduced-motion')
-      ? reducedMotion
-      : query.includes('max-width')
-        ? mobile
-        : false,
+    matches: query.includes('prefers-reduced-motion') ? reducedMotion : query.includes('max-width') ? mobile : false,
     media: query,
     onchange: null,
     addListener: () => {},
@@ -168,7 +170,7 @@ describe('ModalRenderer', () => {
     server.use(
       http.post('/api/system-notices/:id/dismiss', () => {
         return new HttpResponse(null, { status: 204 });
-      }),
+      })
     );
     useSystemNoticeStore.setState({ notices: [], loaded: true });
     realMatchMedia = window.matchMedia;
@@ -252,7 +254,11 @@ describe('ModalRenderer', () => {
   it('FE-SN-MODAL-005: CTA nav button dismisses all notices (not just current)', async () => {
     // CTA is only shown on the last page; navigate there first
     const noticeA = makeNotice({ id: 'n-a', titleKey: 'Notice A' });
-    const noticeB = makeNotice({ id: 'n-b', titleKey: 'Notice B', cta: { kind: 'nav', labelKey: 'Go to trips', href: '/trips' } });
+    const noticeB = makeNotice({
+      id: 'n-b',
+      titleKey: 'Notice B',
+      cta: { kind: 'nav', labelKey: 'Go to trips', href: '/trips' },
+    });
     useSystemNoticeStore.setState({ notices: [noticeA, noticeB], loaded: true });
 
     const dismissSpy = vi.spyOn(useSystemNoticeStore.getState(), 'dismiss');
@@ -375,10 +381,7 @@ describe('ModalRenderer', () => {
   });
 
   it('FE-SN-MODAL-012: ArrowRight / ArrowLeft keys navigate between pages', async () => {
-    const notices = [
-      makeNotice({ id: 'n1', titleKey: 'Notice A' }),
-      makeNotice({ id: 'n2', titleKey: 'Notice B' }),
-    ];
+    const notices = [makeNotice({ id: 'n1', titleKey: 'Notice A' }), makeNotice({ id: 'n2', titleKey: 'Notice B' })];
     render(<ModalRenderer notices={notices} />);
     await flushGraceDelay();
 
@@ -589,7 +592,12 @@ describe('ModalRenderer', () => {
     });
     const withoutRatio = makeNotice({
       id: 'inline-2',
-      media: { src: '/uploads/plain.png', srcDark: '/uploads/plain-dark.png', altKey: 'Plain shot', placement: 'inline' },
+      media: {
+        src: '/uploads/plain.png',
+        srcDark: '/uploads/plain-dark.png',
+        altKey: 'Plain shot',
+        placement: 'inline',
+      },
     });
 
     const { rerender } = render(<ModalRenderer notices={[withRatio]} />);
@@ -852,10 +860,7 @@ describe('ModalRenderer', () => {
   // ── Pager edge cases ───────────────────────────────────────────────────────
 
   it('FE-SN-MODAL-033: ArrowLeft on the first page stays put', async () => {
-    const notices = [
-      makeNotice({ id: 'n1', titleKey: 'Notice A' }),
-      makeNotice({ id: 'n2', titleKey: 'Notice B' }),
-    ];
+    const notices = [makeNotice({ id: 'n1', titleKey: 'Notice A' }), makeNotice({ id: 'n2', titleKey: 'Notice B' })];
     render(<ModalRenderer notices={notices} />);
     await flushGraceDelay();
 
@@ -872,10 +877,7 @@ describe('ModalRenderer', () => {
   });
 
   it('FE-SN-MODAL-034: clicking the dot of the current page is a no-op', async () => {
-    const notices = [
-      makeNotice({ id: 'n1', titleKey: 'Notice A' }),
-      makeNotice({ id: 'n2', titleKey: 'Notice B' }),
-    ];
+    const notices = [makeNotice({ id: 'n1', titleKey: 'Notice A' }), makeNotice({ id: 'n2', titleKey: 'Notice B' })];
     render(<ModalRenderer notices={notices} />);
     await flushGraceDelay();
 
@@ -953,10 +955,7 @@ describe('ModalRenderer', () => {
   });
 
   it('FE-SN-MODAL-038: the page slide clears its inline transform once the transition ends', async () => {
-    const notices = [
-      makeNotice({ id: 'n1', titleKey: 'Notice A' }),
-      makeNotice({ id: 'n2', titleKey: 'Notice B' }),
-    ];
+    const notices = [makeNotice({ id: 'n1', titleKey: 'Notice A' }), makeNotice({ id: 'n2', titleKey: 'Notice B' })];
     render(<ModalRenderer notices={notices} />);
     await flushGraceDelay();
 
@@ -980,10 +979,7 @@ describe('ModalRenderer', () => {
 
   it('FE-SN-MODAL-039: RTL layouts mirror the arrow keys', async () => {
     i18nEnv.rtl = true;
-    const notices = [
-      makeNotice({ id: 'n1', titleKey: 'Notice A' }),
-      makeNotice({ id: 'n2', titleKey: 'Notice B' }),
-    ];
+    const notices = [makeNotice({ id: 'n1', titleKey: 'Notice A' }), makeNotice({ id: 'n2', titleKey: 'Notice B' })];
     render(<ModalRenderer notices={notices} />);
     await flushGraceDelay();
 
@@ -999,10 +995,7 @@ describe('ModalRenderer', () => {
 
   it('FE-SN-MODAL-040: reduced motion swaps to the short fade and skips the slide transform', async () => {
     stubMatchMedia({ reducedMotion: true });
-    const notices = [
-      makeNotice({ id: 'n1', titleKey: 'Notice A' }),
-      makeNotice({ id: 'n2', titleKey: 'Notice B' }),
-    ];
+    const notices = [makeNotice({ id: 'n1', titleKey: 'Notice A' }), makeNotice({ id: 'n2', titleKey: 'Notice B' })];
     render(<ModalRenderer notices={notices} />);
 
     const dialog = screen.getByRole('dialog');
@@ -1050,7 +1043,7 @@ describe('ModalRenderer', () => {
     expect(screen.getByRole('dialog').className).toContain('rounded-2xl');
 
     await act(async () => {
-      mqChangeListeners.forEach(cb => cb({ matches: true } as MediaQueryListEvent));
+      mqChangeListeners.forEach((cb) => cb({ matches: true } as MediaQueryListEvent));
     });
 
     expect(screen.getByRole('dialog').className).toContain('rounded-t-3xl');
@@ -1160,10 +1153,7 @@ describe('ModalRenderer', () => {
 
   it('FE-SN-MODAL-048: a swipe short of the threshold springs back to the current page', async () => {
     stubMatchMedia({ mobile: true });
-    const notices = [
-      makeNotice({ id: 'n1', titleKey: 'Notice A' }),
-      makeNotice({ id: 'n2', titleKey: 'Notice B' }),
-    ];
+    const notices = [makeNotice({ id: 'n1', titleKey: 'Notice A' }), makeNotice({ id: 'n2', titleKey: 'Notice B' })];
     render(<ModalRenderer notices={notices} />);
     await flushGraceDelay();
 
@@ -1191,10 +1181,7 @@ describe('ModalRenderer', () => {
   it('FE-SN-MODAL-049: RTL swipes are mirrored', async () => {
     i18nEnv.rtl = true;
     stubMatchMedia({ mobile: true });
-    const notices = [
-      makeNotice({ id: 'n1', titleKey: 'Notice A' }),
-      makeNotice({ id: 'n2', titleKey: 'Notice B' }),
-    ];
+    const notices = [makeNotice({ id: 'n1', titleKey: 'Notice A' }), makeNotice({ id: 'n2', titleKey: 'Notice B' })];
     render(<ModalRenderer notices={notices} />);
     await flushGraceDelay();
 
@@ -1359,7 +1346,7 @@ describe('ModalRenderer', () => {
     // the next slot renders page 2's pager, whose "previous" button is enabled —
     // pressing it must not move the sheet below the first page
     const prevButtons = screen.getAllByLabelText('Previous notice') as HTMLButtonElement[];
-    const enabledPrev = prevButtons.find(b => !b.disabled) as HTMLButtonElement;
+    const enabledPrev = prevButtons.find((b) => !b.disabled) as HTMLButtonElement;
     await act(async () => {
       fireEvent.click(enabledPrev);
     });
@@ -1378,7 +1365,7 @@ describe('ModalRenderer', () => {
     expect(sheetParts().centerSlot.textContent).toContain('Notice C');
 
     const nextButtons = screen.getAllByLabelText('Next notice') as HTMLButtonElement[];
-    const enabledNext = nextButtons.find(b => !b.disabled) as HTMLButtonElement;
+    const enabledNext = nextButtons.find((b) => !b.disabled) as HTMLButtonElement;
     await act(async () => {
       fireEvent.click(enabledNext);
     });

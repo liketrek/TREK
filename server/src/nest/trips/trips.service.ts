@@ -1,31 +1,44 @@
-import { Injectable } from '@nestjs/common';
-import path from 'path';
-import { EntityManager } from '@mikro-orm/core';
-import { Trips } from '../../db/entities/Trips.entity';
-import { Days } from '../../db/entities/Days.entity';
-import { JourneyEntries } from '../../db/entities/JourneyEntries.entity';
-import { Users } from '../../db/entities/Users.entity';
-import { Places } from '../../db/entities/Places.entity';
-import { DayAssignments } from '../../db/entities/DayAssignments.entity';
 import { AssignmentParticipants } from '../../db/entities/AssignmentParticipants.entity';
-import { Tags } from '../../db/entities/Tags.entity';
-import { DayNotes } from '../../db/entities/DayNotes.entity';
-import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
-import { RoadtripDayTracks } from '../../db/entities/RoadtripDayTracks.entity';
-import { RoadtripPreferences } from '../../db/entities/RoadtripPreferences.entity';
-import { RoadtripDayBoundaries } from '../../db/entities/RoadtripDayBoundaries.entity';
-import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import { BudgetItems } from '../../db/entities/BudgetItems.entity';
+import { BudgetCategoryOrder } from '../../db/entities/BudgetCategoryOrder.entity';
 import { BudgetItemMembers } from '../../db/entities/BudgetItemMembers.entity';
 import { BudgetItemPayers } from '../../db/entities/BudgetItemPayers.entity';
-import { BudgetCategoryOrder } from '../../db/entities/BudgetCategoryOrder.entity';
+import { BudgetItems } from '../../db/entities/BudgetItems.entity';
+import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
+import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { DayNotes } from '../../db/entities/DayNotes.entity';
+import { Days } from '../../db/entities/Days.entity';
+import { JourneyEntries } from '../../db/entities/JourneyEntries.entity';
 import { PackingBags } from '../../db/entities/PackingBags.entity';
 import { PackingItems } from '../../db/entities/PackingItems.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { RoadtripDayBoundaries } from '../../db/entities/RoadtripDayBoundaries.entity';
+import { RoadtripDayTracks } from '../../db/entities/RoadtripDayTracks.entity';
+import { RoadtripPreferences } from '../../db/entities/RoadtripPreferences.entity';
+import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
+import { Tags } from '../../db/entities/Tags.entity';
 import { TodoItems } from '../../db/entities/TodoItems.entity';
-import { Tours } from '../../db/entities/Tours.entity';
 import { TourWaypoints } from '../../db/entities/TourWaypoints.entity';
+import { Tours } from '../../db/entities/Tours.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
 import type { TourWaypointRow } from '../../db/repositories/TourWaypoints.repository';
+import type { Trip, User } from '../../types';
+import { BudgetService } from '../budget/budget.service';
+import { NotFoundError, ValidationError } from '../common/domain-errors';
+import { legacyBoundIntegerText } from '../common/row-id';
+import { UnitOfWork } from '../database/unit-of-work';
+import { DaysService } from '../days/days.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { escapeLikePattern } from '../places/places.helpers';
+import { RealtimeService } from '../realtime/realtime.service';
+import { ReservationsService } from '../reservations/reservations.service';
+import { SettingsService } from '../settings/settings.service';
+import { StorageService } from '../storage/storage.service';
+import { UnsplashService } from '../unsplash/unsplash.service';
+import { VacayService } from '../vacay/vacay.service';
+import { EntityManager } from '@mikro-orm/core';
+import { Injectable } from '@nestjs/common';
 import {
   MAX_TRIP_DAYS,
   planDayGrid,
@@ -37,20 +50,8 @@ import {
   type TrekWsPayload,
   type TrekWsTripEventName,
 } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
-import type { Trip, User } from '../../types';
-import { DaysService } from '../days/days.service';
-import { BudgetService } from '../budget/budget.service';
-import { ReservationsService } from '../reservations/reservations.service';
-import { VacayService } from '../vacay/vacay.service';
-import { UnsplashService } from '../unsplash/unsplash.service';
-import { StorageService } from '../storage/storage.service';
-import { SettingsService } from '../settings/settings.service';
-import { escapeLikePattern } from '../places/places.helpers';
-import { NotFoundError, ValidationError } from '../common/domain-errors';
-import { UnitOfWork } from '../database/unit-of-work';
-import { legacyBoundIntegerText } from '../common/row-id';
+
+import path from 'path';
 
 /**
  * The date range is refused, not cut short: generateDays used to clip the day
@@ -78,7 +79,6 @@ export function withoutFeedToken<T>(row: T): T {
   if (row && typeof row === 'object') delete (row as Record<string, unknown>).feed_token;
   return row;
 }
-
 
 interface CreateTripData {
   title: string;
@@ -126,7 +126,14 @@ export interface DeleteTripInfo {
 }
 
 export interface AddMemberResult {
-  member: { id: number; username: string; email: string; avatar?: string | null; role: string; avatar_url: string | null };
+  member: {
+    id: number;
+    username: string;
+    email: string;
+    avatar?: string | null;
+    role: string;
+    avatar_url: string | null;
+  };
   targetUserId: number;
   tripTitle: string;
 }
@@ -348,7 +355,12 @@ export class TripsService {
     return this.permissions.checkPermission(action, role, ownerId, userId, isMember);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -368,28 +380,40 @@ export class TripsService {
    * runs in one `uow.transactional` — a savepoint when `updateTrip`'s own
    * block already holds the transaction, its own transaction from `create`.
    */
-  async generateDays(tripId: number | bigint | string, startDate: string | null, endDate: string | null, dayCount?: number): Promise<DayGridPlan> {
+  async generateDays(
+    tripId: number | bigint | string,
+    startDate: string | null,
+    endDate: string | null,
+    dayCount?: number,
+  ): Promise<DayGridPlan> {
     const trip_id = Number(tripId);
     return await this.uow.transactional(async () => {
       const existing = await this.daysRepo.listForDayGrid(trip_id); // TP77
       const stays = await this.daysRepo.listDayGridStays(trip_id); // TP78
 
       const plan = planDayGrid({
-        days: existing.map(d => ({ id: d.id, day_number: d.day_number, date: d.date, hasPlanItems: !!d.has_plan_items })),
+        days: existing.map((d) => ({
+          id: d.id,
+          day_number: d.day_number,
+          date: d.date,
+          hasPlanItems: !!d.has_plan_items,
+        })),
         stays,
         startDate,
         endDate,
         dayCount,
       });
 
-      const dateBefore = new Map(existing.map(d => [d.id, d.date]));
+      const dateBefore = new Map(existing.map((d) => [d.id, d.date]));
       for (let i = 0; i < existing.length; i++) await this.daysRepo.setDayNumber(existing[i].id, -(i + 1)); // TP2
       for (let i = 0; i < plan.rows.length; i++) {
         const row = plan.rows[i];
-        if (row.id === null) await this.daysRepo.insertDay({ trip_id, day_number: i + 1, date: row.date }); // TP10
+        if (row.id === null)
+          await this.daysRepo.insertDay({ trip_id, day_number: i + 1, date: row.date }); // TP10
         // A row that had no date and gets none is only renumbered, so an odd
         // stored value is left as it was, the way the rebuild always treated it.
-        else if (row.date === null && !dateBefore.get(row.id)) await this.daysRepo.setDayNumber(row.id, i + 1); // TP2
+        else if (row.date === null && !dateBefore.get(row.id))
+          await this.daysRepo.setDayNumber(row.id, i + 1); // TP2
         else await this.daysRepo.setDayNumberAndDate(row.id, i + 1, row.date); // TP9
       }
       for (const gone of plan.removed) await this.daysRepo.deleteById(gone.id); // TP11
@@ -406,11 +430,15 @@ export class TripsService {
 
   async create(userId: number, data: CreateTripData) {
     if (data.start_date && data.end_date) assertTripSpan(data.start_date, data.end_date);
-    const rd = data.reminder_days !== undefined
-      ? (Number(data.reminder_days) >= 0 && Number(data.reminder_days) <= 30 ? Number(data.reminder_days) : 3)
-      : 3;
+    const rd =
+      data.reminder_days !== undefined
+        ? Number(data.reminder_days) >= 0 && Number(data.reminder_days) <= 30
+          ? Number(data.reminder_days)
+          : 3
+        : 3;
 
-    const tripId = await this.tripsRepo.insertTrip({ // TP18
+    const tripId = await this.tripsRepo.insertTrip({
+      // TP18
       user_id: userId,
       title: data.title,
       description: data.description || null,
@@ -428,7 +456,7 @@ export class TripsService {
 
   /** TP20 — `TripsRepository.findForViewer`: `TRIP_SELECT` scoped to one trip AND the access predicate. */
   async get(tripId: string | number, userId: number) {
-    return await this.tripsRepo.findForViewer(tripId, userId) as Trip | undefined;
+    return (await this.tripsRepo.findForViewer(tripId, userId)) as Trip | undefined;
   }
 
   /**
@@ -444,7 +472,7 @@ export class TripsService {
    */
   /** TP21 — `TripsRepository.activeTrip`: the triple `CASE WHEN … relevance` projection and the double-`CASE WHEN` `ORDER BY`. */
   async activeTrip(userId: number, today = new Date().toISOString().slice(0, 10)) {
-    return await this.tripsRepo.activeTrip(userId, today) as ActiveTrip & { relevance: number } | undefined;
+    return (await this.tripsRepo.activeTrip(userId, today)) as (ActiveTrip & { relevance: number }) | undefined;
   }
 
   /**
@@ -493,8 +521,13 @@ export class TripsService {
    * `generateDays` throws, the transaction rolls back the day rows but the
    * trip keeps its new dates. Flagged, not fixed, per the ruling.
    */
-  async updateTrip(tripId: string | number, userId: number, data: UpdateTripData, userRole: string): Promise<UpdateTripResult> {
-    const trip = await this.tripsRepo.findRaw(tripId) as (Trip & { reminder_days?: number }) | null; // TP24
+  async updateTrip(
+    tripId: string | number,
+    userId: number,
+    data: UpdateTripData,
+    userRole: string,
+  ): Promise<UpdateTripResult> {
+    const trip = (await this.tripsRepo.findRaw(tripId)) as (Trip & { reminder_days?: number }) | null; // TP24
     if (!trip) throw new NotFoundError('Trip not found');
 
     const { title, description, currency, is_archived, cover_image, reminder_days } = data;
@@ -506,12 +539,16 @@ export class TripsService {
     const newArchived = is_archived !== undefined ? (is_archived ? 1 : 0) : trip.is_archived;
     const newCover = cover_image !== undefined ? cover_image : trip.cover_image;
     const oldReminder = (trip as any).reminder_days ?? 3;
-    const newReminder = reminder_days !== undefined
-      ? (Number(reminder_days) >= 0 && Number(reminder_days) <= 30 ? Number(reminder_days) : oldReminder)
-      : oldReminder;
+    const newReminder =
+      reminder_days !== undefined
+        ? Number(reminder_days) >= 0 && Number(reminder_days) <= 30
+          ? Number(reminder_days)
+          : oldReminder
+        : oldReminder;
 
     const tripIdNum = Number(tripId); // safe: `trip` above only resolved through the raw-bind seam on a real row (Task 6 review's own ruling on this exact conversion)
-    await this.tripsRepo.updateTripRow(tripIdNum, { // TP25
+    await this.tripsRepo.updateTripRow(tripIdNum, {
+      // TP25
       title: newTitle,
       description: newDesc ?? null,
       start_date: newStart || null,
@@ -536,13 +573,13 @@ export class TripsService {
         // Accommodations have no absolute date columns, so their pre-change dates must be
         // snapshotted before generateDays re-dates the day rows in place.
         const prevDays = await this.daysRepo.listOrderedForReorder(tripIdNum); // TP26
-        const prevDateByDayId = new Map(prevDays.map(d => [d.id, d.date]));
+        const prevDateByDayId = new Map(prevDays.map((d) => [d.id, d.date]));
         removedDays = (await this.generateDays(tripId, newStart || null, newEnd || null, dayCount)).removed;
         if (data.date_shift_mode === 'shift_all') {
           // Explicit "shift everything": bookings stay glued to their (re-dated) day rows,
           // so re-stamp reservation_time to follow — same rules as reorderDays/insertDay.
           const newDays = await this.daysRepo.listOrderedForReorder(tripIdNum); // TP27
-          const newDateByDayId = new Map(newDays.map(d => [d.id, d.date]));
+          const newDateByDayId = new Map(newDays.map((d) => [d.id, d.date]));
           // `tripIdNum`, not `tripId` (Task 9 fix wave, H2): `restampReservationDates`
           // now takes the parsed row id, the same value every other DaysService
           // survivor takes — see its own docstring.
@@ -677,7 +714,8 @@ export class TripsService {
     const newTitle = title || src.title;
 
     return await this.uow.transactional(async () => {
-      const newTripId = await this.tripsRepo.insertTripCopy({ // TP37
+      const newTripId = await this.tripsRepo.insertTripCopy({
+        // TP37
         user_id: newOwnerId,
         title: newTitle,
         description: src.description,
@@ -691,8 +729,13 @@ export class TripsService {
       const oldDays = await this.daysRepo.listByTrip(Number(sourceTripId)); // TP38
       const dayMap = new Map<number, number>();
       for (const d of oldDays) {
-        const newDayId = await this.daysRepo.insertDayCopy({ // TP39
-          trip_id: newTripId, day_number: d.day_number, date: d.date, notes: d.notes, title: d.title,
+        const newDayId = await this.daysRepo.insertDayCopy({
+          // TP39
+          trip_id: newTripId,
+          day_number: d.day_number,
+          date: d.date,
+          notes: d.notes,
+          title: d.title,
         });
         dayMap.set(d.id, newDayId);
       }
@@ -700,15 +743,35 @@ export class TripsService {
       const oldPlaces = await this.placesRepo.listAllForTrip(sourceTripId); // TP40
       const placeMap = new Map<number, number>();
       for (const p of oldPlaces) {
-        const newPlaceId = await this.placesRepo.insertPlaceCopy({ // TP41
-          trip_id: newTripId, name: p.name, description: p.description, lat: p.lat, lng: p.lng,
-          address: p.address, category_id: p.category_id, price: p.price, currency: p.currency,
-          reservation_status: p.reservation_status, reservation_notes: p.reservation_notes,
-          reservation_datetime: p.reservation_datetime, place_time: p.place_time, end_time: p.end_time,
-          duration_minutes: p.duration_minutes, notes: p.notes, image_url: p.image_url,
-          google_place_id: p.google_place_id, google_ftid: p.google_ftid, website: p.website, phone: p.phone,
-          transport_mode: p.transport_mode, osm_id: p.osm_id, amap_poi_id: p.amap_poi_id,
-          route_geometry: p.route_geometry, route_color: p.route_color, stop_type: p.stop_type,
+        const newPlaceId = await this.placesRepo.insertPlaceCopy({
+          // TP41
+          trip_id: newTripId,
+          name: p.name,
+          description: p.description,
+          lat: p.lat,
+          lng: p.lng,
+          address: p.address,
+          category_id: p.category_id,
+          price: p.price,
+          currency: p.currency,
+          reservation_status: p.reservation_status,
+          reservation_notes: p.reservation_notes,
+          reservation_datetime: p.reservation_datetime,
+          place_time: p.place_time,
+          end_time: p.end_time,
+          duration_minutes: p.duration_minutes,
+          notes: p.notes,
+          image_url: p.image_url,
+          google_place_id: p.google_place_id,
+          google_ftid: p.google_ftid,
+          website: p.website,
+          phone: p.phone,
+          transport_mode: p.transport_mode,
+          osm_id: p.osm_id,
+          amap_poi_id: p.amap_poi_id,
+          route_geometry: p.route_geometry,
+          route_color: p.route_color,
+          stop_type: p.stop_type,
           fill_percent: p.fill_percent,
         });
         placeMap.set(p.id, newPlaceId);
@@ -724,7 +787,13 @@ export class TripsService {
       for (const v of oldVias) {
         const newDayId = dayMap.get(v.day_id);
         if (newDayId) {
-          await this.roadtripViasRepo.insertVia({ day_id: newDayId, after_order_index: v.after_order_index, sequence: v.sequence, lat: v.lat, lng: v.lng }); // TP43
+          await this.roadtripViasRepo.insertVia({
+            day_id: newDayId,
+            after_order_index: v.after_order_index,
+            sequence: v.sequence,
+            lat: v.lat,
+            lng: v.lng,
+          }); // TP43
         }
       }
 
@@ -780,11 +849,18 @@ export class TripsService {
         const newDayId = dayMap.get(a.day_id);
         const newPlaceId = placeMap.get(a.place_id);
         if (newDayId && newPlaceId) {
-          const newAssignmentId = await this.dayAssignmentsRepo.insertAssignmentCopy({ // TP49
-            day_id: newDayId, place_id: newPlaceId, order_index: a.order_index, notes: a.notes,
-            reservation_status: a.reservation_status, reservation_notes: a.reservation_notes,
-            reservation_datetime: a.reservation_datetime, assignment_time: a.assignment_time,
-            assignment_end_time: a.assignment_end_time, end_day: a.end_day ?? 0,
+          const newAssignmentId = await this.dayAssignmentsRepo.insertAssignmentCopy({
+            // TP49
+            day_id: newDayId,
+            place_id: newPlaceId,
+            order_index: a.order_index,
+            notes: a.notes,
+            reservation_status: a.reservation_status,
+            reservation_notes: a.reservation_notes,
+            reservation_datetime: a.reservation_datetime,
+            assignment_time: a.assignment_time,
+            assignment_end_time: a.assignment_end_time,
+            end_day: a.end_day ?? 0,
           });
           assignmentMap.set(a.id, newAssignmentId);
         }
@@ -803,7 +879,12 @@ export class TripsService {
         // new trip's `roadtrip_day_boundaries` starts empty, same reasoning
         // as the via/track upserts above.
         if (from && to !== undefined) {
-          await this.roadtripDayBoundariesRepo.upsertBoundary(newTripId, { day_number: boundary.day_number, from_assignment_id: from, to_assignment_id: to, fraction: boundary.fraction }); // TP52
+          await this.roadtripDayBoundariesRepo.upsertBoundary(newTripId, {
+            day_number: boundary.day_number,
+            from_assignment_id: from,
+            to_assignment_id: to,
+            fraction: boundary.fraction,
+          }); // TP52
         }
       }
 
@@ -820,9 +901,17 @@ export class TripsService {
         const newStartDay = dayMap.get(a.start_day_id);
         const newEndDay = dayMap.get(a.end_day_id);
         if (newPlaceId && newStartDay && newEndDay) {
-          const newAccomId = await this.dayAccommodationsRepo.insertStay({ // TP56
-            trip_id: newTripId, place_id: newPlaceId, start_day_id: newStartDay, end_day_id: newEndDay,
-            check_in: a.check_in, check_in_end: a.check_in_end, check_out: a.check_out, confirmation: a.confirmation, notes: a.notes,
+          const newAccomId = await this.dayAccommodationsRepo.insertStay({
+            // TP56
+            trip_id: newTripId,
+            place_id: newPlaceId,
+            start_day_id: newStartDay,
+            end_day_id: newEndDay,
+            check_in: a.check_in,
+            check_in_end: a.check_in_end,
+            check_out: a.check_out,
+            confirmation: a.confirmation,
+            notes: a.notes,
           });
           accomMap.set(a.id, newAccomId);
         }
@@ -859,12 +948,22 @@ export class TripsService {
           // the NEW value is re-formatted to the legacy raw-bound `'<id>.0'`
           // TEXT shape on the way back out — see `legacyBoundIntegerText`.
           accommodation_id: newAccomId != null ? legacyBoundIntegerText(newAccomId) : null,
-          title: r.title, reservation_time: r.reservation_time, reservation_end_time: r.reservation_end_time,
-          location: r.location, confirmation_number: r.confirmation_number, notes: r.notes, url: r.url, status: r.status, type: r.type,
+          title: r.title,
+          reservation_time: r.reservation_time,
+          reservation_end_time: r.reservation_end_time,
+          location: r.location,
+          confirmation_number: r.confirmation_number,
+          notes: r.notes,
+          url: r.url,
+          status: r.status,
+          type: r.type,
           // ingest_state travels with the copy: a staged booking must not turn
           // 'live' just because the trip was duplicated, or it lands in the
           // duplicate's public feed.
-          metadata: r.metadata, day_plan_position: r.day_plan_position, needs_review: r.needs_review ?? 0, ingest_state: r.ingest_state ?? 'live',
+          metadata: r.metadata,
+          day_plan_position: r.day_plan_position,
+          needs_review: r.needs_review ?? 0,
+          ingest_state: r.ingest_state ?? 'live',
         }); // TP59
         reservationMap.set(r.id, newReservationId);
       }
@@ -875,11 +974,20 @@ export class TripsService {
       for (const b of oldBudget) {
         // TP61 — Plan 3e Task 2, converted (`insertCopy`, carries `paid_by_user_id` verbatim).
         const newItemId = await this.budgetItemsRepo.insertCopy({
-          trip_id: newTripId, category: b.category, name: b.name, total_price: b.total_price, persons: b.persons, days: b.days,
-          note: b.note, sort_order: b.sort_order,
+          trip_id: newTripId,
+          category: b.category,
+          name: b.name,
+          total_price: b.total_price,
+          persons: b.persons,
+          days: b.days,
+          note: b.note,
+          sort_order: b.sort_order,
           reservation_id: b.reservation_id ? (reservationMap.get(b.reservation_id) ?? null) : null,
-          currency: b.currency, exchange_rate: b.exchange_rate ?? 1, expense_date: b.expense_date,
-          ticket_json: b.ticket_json, paid_by_user_id: b.paid_by_user_id,
+          currency: b.currency,
+          exchange_rate: b.exchange_rate ?? 1,
+          expense_date: b.expense_date,
+          ticket_json: b.ticket_json,
+          paid_by_user_id: b.paid_by_user_id,
         });
         budgetMap.set(b.id, newItemId);
       }
@@ -889,7 +997,13 @@ export class TripsService {
       for (const bm of oldBudgetMembers) {
         const newItemId = budgetMap.get(bm.budget_item_id);
         // TP63 — Plan 3e Task 2, converted.
-        if (newItemId) await this.budgetItemMembersRepo.insertIgnore({ budget_item_id: newItemId, user_id: bm.user_id, paid: bm.paid ?? 0, amount: bm.amount });
+        if (newItemId)
+          await this.budgetItemMembersRepo.insertIgnore({
+            budget_item_id: newItemId,
+            user_id: bm.user_id,
+            paid: bm.paid ?? 0,
+            amount: bm.amount,
+          });
       }
 
       // TP64 — Plan 3e Task 2, converted.
@@ -897,7 +1011,12 @@ export class TripsService {
       for (const bp of oldBudgetPayers) {
         const newItemId = budgetMap.get(bp.budget_item_id);
         // TP65 — Plan 3e Task 2, converted.
-        if (newItemId) await this.budgetItemPayersRepo.insertIgnore({ budget_item_id: newItemId, user_id: bp.user_id, amount: bp.amount ?? 0 });
+        if (newItemId)
+          await this.budgetItemPayersRepo.insertIgnore({
+            budget_item_id: newItemId,
+            user_id: bp.user_id,
+            amount: bp.amount ?? 0,
+          });
       }
 
       // TP66 — Plan 3e Task 3, converted.
@@ -906,7 +1025,11 @@ export class TripsService {
       for (const bag of oldBags) {
         // TP67 — Plan 3e Task 3, converted (`insertBag`, PK42's own column set).
         const newBagId = await this.packingBagsRepo.insertBag({
-          trip_id: newTripId, name: bag.name, color: bag.color, sort_order: bag.sort_order, weight_limit_grams: bag.weight_limit_grams,
+          trip_id: newTripId,
+          name: bag.name,
+          color: bag.color,
+          sort_order: bag.sort_order,
+          weight_limit_grams: bag.weight_limit_grams,
         });
         bagMap.set(bag.id, newBagId);
       }
@@ -923,9 +1046,14 @@ export class TripsService {
         const isPrivate = p.is_private ? 1 : 0;
         // TP69 — Plan 3e Task 3, converted.
         await this.packingItemsRepo.insertCopy({
-          trip_id: newTripId, name: p.name, category: p.category, sort_order: p.sort_order, weight_grams: p.weight_grams,
+          trip_id: newTripId,
+          name: p.name,
+          category: p.category,
+          sort_order: p.sort_order,
+          weight_grams: p.weight_grams,
           bag_id: p.bag_id ? (bagMap.get(p.bag_id) ?? null) : null,
-          is_private: isPrivate, owner_id: isPrivate ? newOwnerId : null,
+          is_private: isPrivate,
+          owner_id: isPrivate ? newOwnerId : null,
         });
       }
 
@@ -933,8 +1061,14 @@ export class TripsService {
       for (const n of oldNotes) {
         const newDayId = dayMap.get(n.day_id);
         if (newDayId) {
-          await this.dayNotesRepo.insertNoteCopy({ // TP71
-            day_id: newDayId, trip_id: newTripId, text: n.text, time: n.time, icon: n.icon, sort_order: n.sort_order,
+          await this.dayNotesRepo.insertNoteCopy({
+            // TP71
+            day_id: newDayId,
+            trip_id: newTripId,
+            text: n.text,
+            time: n.time,
+            icon: n.icon,
+            sort_order: n.sort_order,
           });
         }
       }
@@ -944,8 +1078,13 @@ export class TripsService {
       for (const t of oldTodos) {
         // TP73 — Plan 3e Task 4, converted (`assigned_user_id` deliberately not carried over).
         await this.todoItemsRepo.insertCopy({
-          trip_id: newTripId, name: t.name, category: t.category, sort_order: t.sort_order,
-          due_date: t.due_date, description: t.description, priority: t.priority,
+          trip_id: newTripId,
+          name: t.name,
+          category: t.category,
+          sort_order: t.sort_order,
+          due_date: t.due_date,
+          description: t.description,
+          priority: t.priority,
         });
       }
 
@@ -964,7 +1103,6 @@ export class TripsService {
   async getCopiedTrip(newTripId: number, userId: number) {
     return await this.tripsRepo.findForViewer(newTripId, userId);
   }
-
 }
 
 // Defined in common/ so calendar and maps can raise them without importing the

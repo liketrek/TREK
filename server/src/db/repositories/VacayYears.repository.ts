@@ -44,7 +44,10 @@ export class VacayYearsRepository extends TrekRepository<VacayYears> {
 
   /** VC108 — `SELECT year FROM vacay_years WHERE plan_id = ? AND year < ? ORDER BY year DESC LIMIT 1` (`deleteYear`'s new-previous-year lookup). */
   async previousYear(planId: number, beforeYear: number): Promise<number | null> {
-    const row = await this.findOne({ plan: planId, year: { $lt: beforeYear } }, { fields: ['year'], orderBy: { year: 'desc' } });
+    const row = await this.findOne(
+      { plan: planId, year: { $lt: beforeYear } },
+      { fields: ['year'], orderBy: { year: 'desc' } },
+    );
     return row?.year ?? null;
   }
 

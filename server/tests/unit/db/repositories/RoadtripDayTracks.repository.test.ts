@@ -16,13 +16,14 @@
  * repository (RT8-GUARD-001 below, at the service level — a repository
  * unit test cannot express a `null` argument a typed signature rejects).
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createDay, createPlace, createTrip, createUser } from '../../../helpers/factories';
 import { RoadtripDayTracks } from '../../../../src/db/entities/RoadtripDayTracks.entity';
 import type { RoadtripDayTracksRepository } from '../../../../src/db/repositories/RoadtripDayTracks.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createDay, createPlace, createTrip, createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -32,8 +33,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   tracks = t.repo(RoadtripDayTracks);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function fixture() {
   const { user } = createUser(testDb);
@@ -45,7 +52,9 @@ function fixture() {
 }
 
 function rawRows(): { day_id: number; place_id: number; stray_km: number | null; created_at: string | null }[] {
-  return testDb.prepare('SELECT day_id, place_id, stray_km, created_at FROM roadtrip_day_tracks ORDER BY day_id').all() as never[];
+  return testDb
+    .prepare('SELECT day_id, place_id, stray_km, created_at FROM roadtrip_day_tracks ORDER BY day_id')
+    .all() as never[];
 }
 
 describe('RoadtripDayTracksRepository', () => {
@@ -70,7 +79,7 @@ describe('RoadtripDayTracksRepository', () => {
     expect(rows).toEqual([{ day_id: dayA.id, place_id: placeA.id, stray_km: 1.5, created_at: expect.any(String) }]);
   });
 
-  it('UPSERTTRACKREPO-002: re-upserting the SAME day_id updates in place — one row, the second call\'s place_id/stray_km, created_at untouched', async () => {
+  it("UPSERTTRACKREPO-002: re-upserting the SAME day_id updates in place — one row, the second call's place_id/stray_km, created_at untouched", async () => {
     const { dayA, placeA, placeB } = fixture();
     await tracks.upsertTrack(dayA.id, placeA.id, 1.5);
     const before = rawRows()[0]!;
@@ -88,7 +97,7 @@ describe('RoadtripDayTracksRepository', () => {
     expect(after[0]).toEqual({ day_id: dayA.id, place_id: placeB.id, stray_km: 9.25, created_at: before.created_at });
   });
 
-  it('UPSERTTRACKREPO-003: a track for a different day never touches this one\'s row', async () => {
+  it("UPSERTTRACKREPO-003: a track for a different day never touches this one's row", async () => {
     const { trip, dayA, placeA } = fixture();
     const dayB = createDay(testDb, trip.id);
     await tracks.upsertTrack(dayA.id, placeA.id, null);
@@ -107,7 +116,9 @@ describe('RoadtripDayTracksRepository', () => {
     // spy.mockRestore() }` ahead of this read empties `.calls` first.
     const calls = [...spy.mock.calls];
     spy.mockRestore();
-    const upsertCall = calls.find((call) => typeof call[0] === 'string' && call[0].includes('roadtrip_day_tracks') && /insert/i.test(call[0]));
+    const upsertCall = calls.find(
+      (call) => typeof call[0] === 'string' && call[0].includes('roadtrip_day_tracks') && /insert/i.test(call[0]),
+    );
     expect(upsertCall).toBeDefined();
     const sql = String(upsertCall![0]);
     expect(sql).toMatch(/on conflict\s*\(\s*`?day_id`?\s*\)/i);
@@ -127,7 +138,7 @@ describe('RoadtripDayTracksRepository', () => {
     ]);
   });
 
-  it('RT12REPO-002: listForTrip never returns another trip\'s tracks', async () => {
+  it("RT12REPO-002: listForTrip never returns another trip's tracks", async () => {
     const { dayA, placeA } = fixture();
     const { user: otherUser } = createUser(testDb);
     const otherTrip = createTrip(testDb, otherUser.id);

@@ -5,7 +5,17 @@
 
 /** Getting there and sleeping there: every transport type, and the hotel. */
 const TRAVEL_BOOKING_TYPES = new Set([
-  'flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transit', 'transport_other',
+  'flight',
+  'train',
+  'bus',
+  'car',
+  'taxi',
+  'bicycle',
+  'cruise',
+  'ferry',
+  'cable_car',
+  'transit',
+  'transport_other',
   'hotel',
 ]);
 
@@ -14,7 +24,10 @@ export function isTravelBooking(type: unknown): boolean {
 }
 
 interface ShareSnapshot {
-  assignments: Record<number, Array<{ accommodation_id?: number | null; place?: { id: number; image_url?: string | null } }>>;
+  assignments: Record<
+    number,
+    Array<{ accommodation_id?: number | null; place?: { id: number; image_url?: string | null } }>
+  >;
   dayNotes: Record<number, unknown[]>;
   places: Array<{ id: number; image_url?: string | null }>;
   reservations: Array<{ type?: unknown }>;
@@ -29,15 +42,15 @@ interface ShareSnapshot {
 export function travelOnly<T extends ShareSnapshot>(data: T, stayPlaceIds: ReadonlySet<number>): T {
   const assignments: T['assignments'] = {};
   for (const [dayId, rows] of Object.entries(data.assignments)) {
-    const kept = rows.filter(a => a.accommodation_id != null);
+    const kept = rows.filter((a) => a.accommodation_id != null);
     if (kept.length) assignments[Number(dayId)] = kept;
   }
   return {
     ...data,
     assignments,
     dayNotes: {},
-    places: data.places.filter(p => stayPlaceIds.has(p.id)),
-    reservations: data.reservations.filter(r => isTravelBooking(r.type)),
+    places: data.places.filter((p) => stayPlaceIds.has(p.id)),
+    reservations: data.reservations.filter((r) => isTravelBooking(r.type)),
   };
 }
 
@@ -45,7 +58,7 @@ export function travelOnly<T extends ShareSnapshot>(data: T, stayPlaceIds: Reado
 export function withoutImages<T extends ShareSnapshot>(data: T): T {
   const assignments: T['assignments'] = {};
   for (const [dayId, rows] of Object.entries(data.assignments)) {
-    assignments[Number(dayId)] = rows.map(a => (a.place ? { ...a, place: { ...a.place, image_url: null } } : a));
+    assignments[Number(dayId)] = rows.map((a) => (a.place ? { ...a, place: { ...a.place, image_url: null } } : a));
   }
-  return { ...data, assignments, places: data.places.map(p => ({ ...p, image_url: null })) };
+  return { ...data, assignments, places: data.places.map((p) => ({ ...p, image_url: null })) };
 }

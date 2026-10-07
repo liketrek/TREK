@@ -1,10 +1,6 @@
+import { decideRange, isNotModified, validatorsFor, type Validators } from '../../../../src/nest/storage/http-serving';
+
 import { describe, it, expect } from 'vitest';
-import {
-  decideRange,
-  isNotModified,
-  validatorsFor,
-  type Validators,
-} from '../../../../src/nest/storage/http-serving';
 
 // The pure half of the remote-serving parity work (task C4): every decision a
 // proxying byte-path makes BEFORE it touches a driver or a socket. Kept

@@ -6,10 +6,28 @@
  * the same order and with the same bodies (parity with AddonGuard and
  * TripAccessGuard).
  */
+import { AddonGuard } from '../../../src/nest/addons/addon.guard';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { REQUIRE_ADDON } from '../../../src/nest/addons/require-addon.decorator';
+import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
+import { TRIP_PERMISSION_KEY, TripAccessGuard } from '../../../src/nest/permissions/trip-access.guard';
+import type { PlacesService } from '../../../src/nest/places/places.service';
+import { ToursImportController } from '../../../src/nest/tours/tours-import.controller';
+import { ToursController } from '../../../src/nest/tours/tours.controller';
+import type { ToursService } from '../../../src/nest/tours/tours.service';
+import type { User } from '../../../src/types';
+import { HttpException, RequestMethod } from '@nestjs/common';
+import {
+  GUARDS_METADATA,
+  HTTP_CODE_METADATA,
+  INTERCEPTORS_METADATA,
+  METHOD_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants';
+import type { TourCreateRequest } from '@trek/shared';
+
 import 'reflect-metadata';
 import { describe, expect, it, vi } from 'vitest';
-import { HttpException, RequestMethod } from '@nestjs/common';
-import { GUARDS_METADATA, HTTP_CODE_METADATA, INTERCEPTORS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 
 const { legacyDatabaseAccess } = vi.hoisted(() => ({
   legacyDatabaseAccess: vi.fn((property: string | symbol): never => {
@@ -23,9 +41,12 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: vi.fn(),
 }));
 vi.mock('../../../src/db/database', () => ({
-  db: new Proxy({}, {
-    get: (_target, property: string | symbol) => legacyDatabaseAccess(property),
-  }),
+  db: new Proxy(
+    {},
+    {
+      get: (_target, property: string | symbol) => legacyDatabaseAccess(property),
+    },
+  ),
 }));
 vi.mock('../../../src/nest/permissions/permissions.service', () => ({ PermissionsService: class {} }));
 vi.mock('../../../src/nest/addons/addons.service', () => ({ AddonsService: class {} }));
@@ -33,22 +54,13 @@ vi.mock('../../../src/nest/places/places.service', () => ({ PlacesService: class
 vi.mock('../../../src/nest/tours/tours.service', () => ({ ToursService: class {} }));
 vi.mock('../../../src/nest/auth/jwt-verify', () => ({ extractToken: vi.fn(), verifyJwtAndLoadUser: vi.fn() }));
 
-import type { TourCreateRequest } from '@trek/shared';
-import { ToursController } from '../../../src/nest/tours/tours.controller';
-import { ToursImportController } from '../../../src/nest/tours/tours-import.controller';
-import type { ToursService } from '../../../src/nest/tours/tours.service';
-import type { PlacesService } from '../../../src/nest/places/places.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import { AddonGuard } from '../../../src/nest/addons/addon.guard';
-import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
-import { TRIP_PERMISSION_KEY, TripAccessGuard } from '../../../src/nest/permissions/trip-access.guard';
-import { REQUIRE_ADDON } from '../../../src/nest/addons/require-addon.decorator';
-import type { User } from '../../../src/types';
-
 const request: TourCreateRequest = {
   name: 'Ridge walk',
   tour_type: 'hike' as const,
-  route_geometry: [[48, 11, 600], [48.02, 11.04, 630]] as [number, number, number][],
+  route_geometry: [
+    [48, 11, 600],
+    [48.02, 11.04, 630],
+  ] as [number, number, number][],
   waypoints: [
     { lat: 48, lng: 11, role: 'start' as const, sequence: 0 },
     { lat: 48.02, lng: 11.04, role: 'end' as const, sequence: 1 },
@@ -62,7 +74,9 @@ const trip = { id: 7, user_id: 1 };
 const file = { buffer: Buffer.from('<gpx/>'), originalname: 'ridge.gpx' } as Express.Multer.File;
 
 async function thrownAsync(fn: () => Promise<unknown>): Promise<{ status: number; body: unknown }> {
-  try { await fn(); } catch (err) {
+  try {
+    await fn();
+  } catch (err) {
     expect(err).toBeInstanceOf(HttpException);
     const e = err as HttpException;
     return { status: e.getStatus(), body: e.getResponse() };
@@ -70,7 +84,9 @@ async function thrownAsync(fn: () => Promise<unknown>): Promise<{ status: number
   throw new Error('expected throw');
 }
 
-function importFixture(o: { addon?: boolean; trip?: typeof trip | undefined; canEdit?: boolean; result?: unknown } = {}) {
+function importFixture(
+  o: { addon?: boolean; trip?: typeof trip | undefined; canEdit?: boolean; result?: unknown } = {},
+) {
   const addons = { isAddonEnabled: vi.fn(async () => o.addon ?? true) };
   const places = {
     verifyTripAccess: vi.fn(async () => ('trip' in o ? o.trip : trip)),
@@ -182,7 +198,8 @@ describe('ToursImportController (POST /api/trips/:tripId/tours/import/gpx)', () 
     const { controller, places, tours, addons } = importFixture({ addon: false });
 
     expect(await thrownAsync(() => controller.importGpx(user, '7', file))).toEqual({
-      status: 404, body: { error: 'Tours addon is not enabled' },
+      status: 404,
+      body: { error: 'Tours addon is not enabled' },
     });
     expect(addons.isAddonEnabled).toHaveBeenCalledWith('tours');
     expect(places.verifyTripAccess).not.toHaveBeenCalled();
@@ -193,7 +210,8 @@ describe('ToursImportController (POST /api/trips/:tripId/tours/import/gpx)', () 
     const { controller, places, tours } = importFixture({ trip: undefined });
 
     expect(await thrownAsync(() => controller.importGpx(user, '8', file))).toEqual({
-      status: 404, body: { error: 'Trip not found' },
+      status: 404,
+      body: { error: 'Trip not found' },
     });
     expect(places.verifyTripAccess).toHaveBeenCalledWith('8', user.id);
     expect(places.canEdit).not.toHaveBeenCalled();
@@ -204,7 +222,8 @@ describe('ToursImportController (POST /api/trips/:tripId/tours/import/gpx)', () 
     const { controller, tours } = importFixture({ canEdit: false });
 
     expect(await thrownAsync(() => controller.importGpx(user, '7', undefined))).toEqual({
-      status: 403, body: { error: 'No permission' },
+      status: 403,
+      body: { error: 'No permission' },
     });
     expect(tours.importGpxAsTour).not.toHaveBeenCalled();
   });
@@ -213,7 +232,8 @@ describe('ToursImportController (POST /api/trips/:tripId/tours/import/gpx)', () 
     const { controller, tours } = importFixture();
 
     expect(await thrownAsync(() => controller.importGpx(user, '7', undefined))).toEqual({
-      status: 400, body: { error: 'No file uploaded' },
+      status: 400,
+      body: { error: 'No file uploaded' },
     });
     expect(tours.importGpxAsTour).not.toHaveBeenCalled();
   });
@@ -222,7 +242,8 @@ describe('ToursImportController (POST /api/trips/:tripId/tours/import/gpx)', () 
     const { controller } = importFixture({ result: null });
 
     expect(await thrownAsync(() => controller.importGpx(user, '7', file))).toEqual({
-      status: 400, body: { error: 'No track or route found in GPX file' },
+      status: 400,
+      body: { error: 'No track or route found in GPX file' },
     });
   });
 });

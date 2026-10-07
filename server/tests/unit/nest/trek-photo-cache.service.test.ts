@@ -11,16 +11,16 @@
  * stub-registry fixture rooted in a throwaway dir — the real uploads tree is
  * never touched.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-import fs from 'node:fs';
-import path from 'node:path';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import { TrekPhotoCacheMeta } from '../../../src/db/entities/TrekPhotoCacheMeta.entity';
 import { TrekPhotoCacheService, CACHE_TTL } from '../../../src/nest/memories/trek-photo-cache.service';
 import { StorageNotFoundError } from '../../../src/nest/storage/storage.types';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
 import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const fx = makeStorageFixture('photos/trek/');
 const testDb = createSnapshotTestDb();
@@ -78,7 +78,8 @@ describe('put / getFresh', () => {
   it('CACHE-004: an entry past its TTL is a miss and its metadata row is dropped', async () => {
     const key = freshKey('stale');
     await svc.put(key, Buffer.from('old'), 'image/jpeg');
-    testDb.prepare('UPDATE trek_photo_cache_meta SET fetched_at = ? WHERE cache_key = ?')
+    testDb
+      .prepare('UPDATE trek_photo_cache_meta SET fetched_at = ? WHERE cache_key = ?')
       .run(Date.now() - CACHE_TTL - 1000, key);
 
     expect(await svc.getFresh(key)).toBeNull();
@@ -87,7 +88,8 @@ describe('put / getFresh', () => {
 
   it('CACHE-005: metadata without its object is a miss and the row is dropped', async () => {
     const key = 'orphan-meta-row';
-    testDb.prepare('INSERT INTO trek_photo_cache_meta (cache_key, content_type, fetched_at) VALUES (?, ?, ?)')
+    testDb
+      .prepare('INSERT INTO trek_photo_cache_meta (cache_key, content_type, fetched_at) VALUES (?, ?, ?)')
       .run(key, 'image/jpeg', Date.now());
 
     expect(await svc.getFresh(key)).toBeNull();
@@ -132,7 +134,8 @@ describe('serveFresh', () => {
   it('CACHE-013: a getFresh→send delete race reads as a miss, not a crash', async () => {
     const key = freshKey('race');
     await svc.put(key, Buffer.from('bytes'), 'image/webp');
-    const send = vi.spyOn(fx.storage, 'sendToResponse')
+    const send = vi
+      .spyOn(fx.storage, 'sendToResponse')
       .mockRejectedValueOnce(new StorageNotFoundError(`photos/trek/${key}.bin`));
     const res = { set: vi.fn(), headersSent: false };
 
@@ -142,10 +145,12 @@ describe('serveFresh', () => {
 });
 
 describe('the stampede guard', () => {
-  it('CACHE-009: a second caller gets the first caller\'s in-flight promise', async () => {
+  it("CACHE-009: a second caller gets the first caller's in-flight promise", async () => {
     const key = 'inflight-key';
     let resolveFetch!: (b: Buffer) => void;
-    const fetch = new Promise<Buffer | null>((resolve) => { resolveFetch = resolve as (b: Buffer) => void; });
+    const fetch = new Promise<Buffer | null>((resolve) => {
+      resolveFetch = resolve as (b: Buffer) => void;
+    });
 
     svc.setInFlight(key, fetch);
     expect(svc.getInFlight(key)).toBe(fetch);
@@ -174,7 +179,8 @@ describe('sweepExpired', () => {
     const freshKeyId = freshKey('sweep-fresh');
     await svc.put(staleKey, Buffer.from('old'), 'image/jpeg');
     await svc.put(freshKeyId, Buffer.from('new'), 'image/jpeg');
-    testDb.prepare('UPDATE trek_photo_cache_meta SET fetched_at = ? WHERE cache_key = ?')
+    testDb
+      .prepare('UPDATE trek_photo_cache_meta SET fetched_at = ? WHERE cache_key = ?')
       .run(Date.now() - CACHE_TTL * 2 - 1000, staleKey);
 
     await svc.sweepExpired();
@@ -186,7 +192,8 @@ describe('sweepExpired', () => {
 
   it('CACHE-012: survives a metadata row whose object is already gone', async () => {
     const key = 'sweep-orphan';
-    testDb.prepare('INSERT INTO trek_photo_cache_meta (cache_key, content_type, fetched_at) VALUES (?, ?, ?)')
+    testDb
+      .prepare('INSERT INTO trek_photo_cache_meta (cache_key, content_type, fetched_at) VALUES (?, ?, ?)')
       .run(key, 'image/jpeg', Date.now() - CACHE_TTL * 3);
 
     await expect(svc.sweepExpired()).resolves.toBeUndefined();

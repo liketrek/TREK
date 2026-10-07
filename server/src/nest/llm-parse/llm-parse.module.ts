@@ -1,14 +1,14 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { LlmParseService } from './llm-parse.service';
-import { LlmLocalService } from './llm-local.service';
-import { LlmLocalController } from './llm-local.controller';
-import { LlmCapabilitiesController } from './llm-capabilities.controller';
-import { LlmConfigResolver } from './llm-config.resolver';
-import { SettingsModule } from '../settings/settings.module';
+import { Addons } from '../../db/entities/Addons.entity';
 import { AddonsModule } from '../addons/addons.module';
 import { AppConfigModule } from '../app-config/app-config.module';
-import { Addons } from '../../db/entities/Addons.entity';
+import { SettingsModule } from '../settings/settings.module';
+import { LlmCapabilitiesController } from './llm-capabilities.controller';
+import { LlmConfigResolver } from './llm-config.resolver';
+import { LlmLocalController } from './llm-local.controller';
+import { LlmLocalService } from './llm-local.service';
+import { LlmParseService } from './llm-parse.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Provides the LLM booking-import fallback; imported by BookingImportModule.

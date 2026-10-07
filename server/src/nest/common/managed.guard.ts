@@ -1,7 +1,7 @@
-import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { MANAGED_FORBIDDEN, MANAGED_FORBIDDEN_ERROR } from './managed';
+import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 
 /**
  * Refuses the routes a centrally administered instance does not hand to its own
@@ -31,10 +31,10 @@ export class ManagedGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     if (!this.env.isManaged()) return true;
 
-    const marked = this.reflector.getAllAndOverride<{ enforcedInHandler?: boolean } | undefined>(
-      MANAGED_FORBIDDEN,
-      [context.getHandler(), context.getClass()],
-    );
+    const marked = this.reflector.getAllAndOverride<{ enforcedInHandler?: boolean } | undefined>(MANAGED_FORBIDDEN, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     if (!marked) return true;
 
     // A multipart handler checks for itself, after the interceptor has drained

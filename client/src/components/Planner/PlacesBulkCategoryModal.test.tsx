@@ -1,9 +1,12 @@
 // FE-PLANNER-BULKCAT-001 to FE-PLANNER-BULKCAT-004
-import { render, screen, fireEvent } from '../../../tests/helpers/render';
 import { buildCategory } from '../../../tests/helpers/factories';
-import { PlacesBulkCategoryModal, CategoryTile } from './PlacesBulkCategoryModal';
+import { fireEvent, render, screen } from '../../../tests/helpers/render';
+import { CategoryTile, PlacesBulkCategoryModal } from './PlacesBulkCategoryModal';
 
-const CATS = [buildCategory({ id: 1, name: 'Museum', color: '#3b82f6' }), buildCategory({ id: 2, name: 'Food', color: null })];
+const CATS = [
+  buildCategory({ id: 1, name: 'Museum', color: '#3b82f6' }),
+  buildCategory({ id: 2, name: 'Food', color: null }),
+];
 
 describe('PlacesBulkCategoryModal', () => {
   it('FE-PLANNER-BULKCAT-001: names the dialog and says how many places it changes', () => {

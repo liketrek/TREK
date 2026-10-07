@@ -8,12 +8,37 @@
  * fields, linkPreview, avatarUrl, createMessage reply validation. Uses a real
  * in-memory SQLite DB so SQL logic is exercised faithfully.
  */
+import { db as testDb } from '../../../src/db/database';
+import type { CollabLinksRepository } from '../../../src/db/repositories/CollabLinks.repository';
+import type { CollabMessageReactionsRepository } from '../../../src/db/repositories/CollabMessageReactions.repository';
+import type { CollabMessagesRepository } from '../../../src/db/repositories/CollabMessages.repository';
+import type { CollabNotesRepository } from '../../../src/db/repositories/CollabNotes.repository';
+import type { CollabPollVotesRepository } from '../../../src/db/repositories/CollabPollVotes.repository';
+import type { CollabPollsRepository } from '../../../src/db/repositories/CollabPolls.repository';
+import { CollabService } from '../../../src/nest/collab/collab.service';
+import { avatarUrl } from '../../../src/nest/common/avatarUrl';
+import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import {
+  createTestCollabNotesRepo,
+  createTestCollabMessageReactionsRepo,
+  createTestCollabPollsRepo,
+  createTestCollabPollVotesRepo,
+  createTestCollabLinksRepo,
+  createTestCollabMessagesRepo,
+} from '../../helpers/collab-repos';
+import { createUser, createTrip } from '../../helpers/factories';
+import { notificationsStub } from '../../helpers/notifications';
+import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestUnitOfWork, createTestAppSettingsRepo, createTestTripsRepo } from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
 // ── DB setup ─────────────────────────────────────────────────────────────────
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -22,17 +47,20 @@ vi.mock('../../../src/db/database', async () => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
-    return mock;
+  return mock;
 });
-
 
 vi.mock('../../../src/config', () => ({
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
@@ -45,9 +73,11 @@ vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 // checkSsrf rather than from the default implementation below, so the stubbed results
 // stay full SsrfResult objects instead of whatever shape the first fixture happened to have.
 const { mockCheckSsrf, mockCreatePinnedDispatcher } = vi.hoisted(() => ({
-  mockCheckSsrf: vi.fn<typeof import('../../../src/utils/ssrfGuard').checkSsrf>(
-    async () => ({ allowed: true, isPrivate: false, resolvedIp: '93.184.216.34' }),
-  ),
+  mockCheckSsrf: vi.fn<typeof import('../../../src/utils/ssrfGuard').checkSsrf>(async () => ({
+    allowed: true,
+    isPrivate: false,
+    resolvedIp: '93.184.216.34',
+  })),
   mockCreatePinnedDispatcher: vi.fn(() => ({})),
 }));
 vi.mock('../../../src/utils/ssrfGuard', () => {
@@ -64,7 +94,7 @@ vi.mock('../../../src/utils/ssrfGuard', () => {
     // The notification transports go through safeFetchFollow now, so the fake
     // has to guard and then hand over to the stubbed fetch the way it does.
     safeFetchFollow: vi.fn(async (url: string, init?: RequestInit) => {
-      const verdict = await (mockCheckSsrf)(url);
+      const verdict = await mockCheckSsrf(url);
       if (!verdict.allowed) {
         throw new SsrfBlockedError((verdict as { error?: string }).error ?? 'Request blocked by SSRF guard');
       }
@@ -72,32 +102,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => {
     }),
   };
 });
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { avatarUrl } from '../../../src/nest/common/avatarUrl';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { CollabService } from '../../../src/nest/collab/collab.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { notificationsStub } from '../../helpers/notifications';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
-import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestTripsRepo } from '../../helpers/test-uow';
-import {
-  createTestCollabNotesRepo,
-  createTestCollabMessageReactionsRepo,
-  createTestCollabPollsRepo,
-  createTestCollabPollVotesRepo,
-  createTestCollabLinksRepo,
-  createTestCollabMessagesRepo,
-} from '../../helpers/collab-repos';
-import type { CollabNotesRepository } from '../../../src/db/repositories/CollabNotes.repository';
-import type { CollabMessageReactionsRepository } from '../../../src/db/repositories/CollabMessageReactions.repository';
-import type { CollabPollsRepository } from '../../../src/db/repositories/CollabPolls.repository';
-import type { CollabPollVotesRepository } from '../../../src/db/repositories/CollabPollVotes.repository';
-import type { CollabLinksRepository } from '../../../src/db/repositories/CollabLinks.repository';
-import type { CollabMessagesRepository } from '../../../src/db/repositories/CollabMessages.repository';
 
 const collabFx = makeStorageFixture('files/');
 const rateLimit = new RateLimitService();
@@ -261,7 +265,7 @@ describe('listMessages', () => {
     const result = await svc.createMessage(trip.id, user1.id, 'look at these', undefined, files);
 
     expect(result.message!.attachments).toHaveLength(2);
-    const names = result.message!.attachments.map(a => a.original_name).sort();
+    const names = result.message!.attachments.map((a) => a.original_name).sort();
     expect(names).toEqual(['a.png', 'b.png']);
   });
 
@@ -274,7 +278,7 @@ describe('listMessages', () => {
     const id3 = r3.message!.id;
     const msgs = await svc.listMessages(trip.id, id3);
     expect(msgs.length).toBe(2);
-    const texts = msgs.map(m => m.text);
+    const texts = msgs.map((m) => m.text);
     expect(texts).toContain('First');
     expect(texts).toContain('Second');
     expect(texts).not.toContain('Third');
@@ -324,7 +328,7 @@ describe('listMessages', () => {
     await svc.deleteMessage(trip.id, original.message!.id, user1.id);
 
     const msgs = await svc.listMessages(trip.id);
-    const reply = msgs.find(m => m.text === 'Quoting it')!;
+    const reply = msgs.find((m) => m.text === 'Quoting it')!;
     expect(reply.reply_text).toBe('');
   });
 
@@ -334,7 +338,9 @@ describe('listMessages', () => {
     await svc.deleteMessage(trip.id, original.message!.id, user1.id);
 
     // Replying to something that is no longer there is refused outright.
-    expect(await svc.createMessage(trip.id, user1.id, 'Too late', original.message!.id)).toEqual({ error: 'reply_not_found' });
+    expect(await svc.createMessage(trip.id, user1.id, 'Too late', original.message!.id)).toEqual({
+      error: 'reply_not_found',
+    });
 
     // And the row the create path returns carries the same blanking listMessages
     // does, for a message quoted before the original was deleted.
@@ -342,14 +348,16 @@ describe('listMessages', () => {
     const quoting = await svc.createMessage(trip.id, user1.id, 'Quoting it', second.message!.id);
     expect(quoting.message!.reply_text).toBe('Another secret');
     await svc.deleteMessage(trip.id, second.message!.id, user1.id);
-    expect((await svc.listMessages(trip.id)).find(m => m.text === 'Quoting it')!.reply_text).toBe('');
+    expect((await svc.listMessages(trip.id)).find((m) => m.text === 'Quoting it')!.reply_text).toBe('');
   });
 
   it('COLLAB-SVC-013: includes reactions grouped by emoji', async () => {
     const { user1, trip } = setup();
     const r = await svc.createMessage(trip.id, user1.id, 'React me');
     const msgId = r.message!.id;
-    testDb.prepare('INSERT INTO collab_message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)').run(msgId, user1.id, '👍');
+    testDb
+      .prepare('INSERT INTO collab_message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)')
+      .run(msgId, user1.id, '👍');
 
     const msgs = await svc.listMessages(trip.id);
     expect(msgs[0].reactions).toBeDefined();
@@ -415,7 +423,11 @@ describe('deleteMessage', () => {
 describe('updateNote', () => {
   it('COLLAB-SVC-019: updates only title when other fields are undefined', async () => {
     const { user1, trip } = setup();
-    const note = await svc.createNote(trip.id, user1.id, { title: 'Original', content: 'Some content', website: 'https://example.com' });
+    const note = await svc.createNote(trip.id, user1.id, {
+      title: 'Original',
+      content: 'Some content',
+      website: 'https://example.com',
+    });
 
     await svc.updateNote(trip.id, note.id, { title: 'Updated' });
 
@@ -492,9 +504,11 @@ describe('linkPreview', () => {
   });
 
   it('COLLAB-SVC-025: returns OG title and description from HTML', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () => `
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => `
         <html>
           <head>
             <meta property="og:title" content="Test Title" />
@@ -504,7 +518,8 @@ describe('linkPreview', () => {
           </head>
         </html>
       `,
-    }));
+      }),
+    );
 
     const result = await svc.linkPreview('https://example.com/page');
     expect(result.title).toBe('Test Title');
@@ -514,20 +529,26 @@ describe('linkPreview', () => {
   });
 
   it('COLLAB-SVC-026: falls back to <title> tag when no og:title', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () => `<html><head><title>Page Title</title></head></html>`,
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => `<html><head><title>Page Title</title></head></html>`,
+      }),
+    );
 
     const result = await svc.linkPreview('https://example.com/');
     expect(result.title).toBe('Page Title');
   });
 
   it('COLLAB-SVC-027: returns fallback when fetch response is not ok', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      text: async () => '',
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        text: async () => '',
+      }),
+    );
 
     const result = await svc.linkPreview('https://example.com/bad');
     expect(result.title).toBeNull();
@@ -552,11 +573,14 @@ describe('linkPreview', () => {
   });
 
   it('COLLAB-SVC-030a: returns the fallback when the page declares a body over the cap', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      headers: { get: (h: string) => (h === 'content-length' ? String(10 * 1024 * 1024) : null) },
-      text: async () => '<html><head><title>Huge</title></head></html>',
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: (h: string) => (h === 'content-length' ? String(10 * 1024 * 1024) : null) },
+        text: async () => '<html><head><title>Huge</title></head></html>',
+      }),
+    );
 
     const result = await svc.linkPreview('https://example.com/huge');
     expect(result.title).toBeNull();
@@ -569,16 +593,21 @@ describe('linkPreview', () => {
       new TextEncoder().encode('x'.repeat(1024 * 1024)),
     ];
     let i = 0;
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      headers: { get: () => null },
-      body: {
-        getReader: () => ({
-          read: async () => (i < chunks.length ? { done: false, value: chunks[i++] } : { done: true }),
-          cancel: async () => { cancelled = true; },
-        }),
-      },
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => null },
+        body: {
+          getReader: () => ({
+            read: async () => (i < chunks.length ? { done: false, value: chunks[i++] } : { done: true }),
+            cancel: async () => {
+              cancelled = true;
+            },
+          }),
+        },
+      }),
+    );
 
     const result = await svc.linkPreview('https://example.com/streamed');
     // The head arrives first, so the scrape still works; the megabyte of padding
@@ -588,14 +617,17 @@ describe('linkPreview', () => {
   });
 
   it('COLLAB-SVC-030: falls back to meta description tag when no og:description', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      text: async () => `
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => `
         <html><head>
           <meta name="description" content="Meta description here" />
         </head></html>
       `,
-    }));
+      }),
+    );
 
     const result = await svc.linkPreview('https://example.com/meta');
     expect(result.description).toBe('Meta description here');
@@ -646,7 +678,13 @@ describe('linkPreview hardening', () => {
     // The guard distinguishes "could not resolve", "private address" and
     // "loopback". Relaying that verbatim turns the route into a probe for the
     // internal DNS of the server, one guessed hostname at a time.
-    mockCheckSsrf.mockResolvedValue({ allowed: false, isPrivate: true, resolvedIp: '10.0.0.5', error: 'Requests to private/internal network addresses are not allowed. Set ALLOW_INTERNAL_NETWORK=true to permit this for self-hosted setups.' });
+    mockCheckSsrf.mockResolvedValue({
+      allowed: false,
+      isPrivate: true,
+      resolvedIp: '10.0.0.5',
+      error:
+        'Requests to private/internal network addresses are not allowed. Set ALLOW_INTERNAL_NETWORK=true to permit this for self-hosted setups.',
+    });
     const result = await (await freshSvc()).linkPreview('http://nas.internal/');
     expect(result.error).toBe('URL not allowed');
     expect(JSON.stringify(result)).not.toContain('ALLOW_INTERNAL_NETWORK');
@@ -733,7 +771,9 @@ describe('linkPreview hardening', () => {
     // same link posted twenty times arrives as twenty requests at once — none of
     // which finds a cache entry, because the first has not answered yet.
     let release: (() => void) | undefined;
-    const gate = new Promise<void>(resolve => { release = resolve; });
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
     const fetchMock = vi.fn().mockImplementation(async () => {
       await gate;
       return { ok: true, headers: { get: () => null }, text: async () => '<title>Geteilt</title>' };
@@ -746,9 +786,9 @@ describe('linkPreview hardening', () => {
     const results = await all;
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(results.every(r => r.title === 'Geteilt')).toBe(true);
+    expect(results.every((r) => r.title === 'Geteilt')).toBe(true);
     // And the nineteen that joined were not charged for a fetch they did not make.
-    expect(results.some(r => r.rateLimited)).toBe(false);
+    expect(results.some((r) => r.rateLimited)).toBe(false);
   });
 
   it('COLLAB-SVC-047: a body over the cap, and one behind a failed response, are both released', async () => {
@@ -757,7 +797,11 @@ describe('linkPreview hardening', () => {
       { ok: false },
     ]) {
       const cancel = vi.fn().mockResolvedValue(undefined);
-      stubFetch({ ...response, body: { getReader: () => ({ read: async () => ({ done: true }), cancel }), cancel }, text: async () => '' });
+      stubFetch({
+        ...response,
+        body: { getReader: () => ({ read: async () => ({ done: true }), cancel }), cancel },
+        text: async () => '',
+      });
       const result = await (await freshSvc()).linkPreview(`https://example.com/drop-${String(response.ok)}`);
       expect(result.title).toBeNull();
       expect(cancel).toHaveBeenCalled();
@@ -782,13 +826,17 @@ describe('hardening', () => {
     // goes through `pollVotesRepo.insertVote`, not a raw `db.run` call — the
     // `files.service.test.ts` R2-rollback-test shape (spy on the injected
     // repository directly).
-    const spy = vi.spyOn(pollVotesRepo, 'insertVote').mockImplementation(() => { throw new Error('boom'); });
+    const spy = vi.spyOn(pollVotesRepo, 'insertVote').mockImplementation(() => {
+      throw new Error('boom');
+    });
     // Single-choice switch: DELETE prior votes, then the INSERT fails — the
     // transaction must roll the DELETE back too.
     await expect(failing.votePoll(trip.id, poll!.id, user1.id, 1)).rejects.toThrow('boom');
     spy.mockRestore();
 
-    const votes = testDb.prepare('SELECT option_index FROM collab_poll_votes WHERE poll_id = ?').all(poll!.id) as { option_index: number }[];
+    const votes = testDb.prepare('SELECT option_index FROM collab_poll_votes WHERE poll_id = ?').all(poll!.id) as {
+      option_index: number;
+    }[];
     expect(votes).toEqual([{ option_index: 0 }]);
   });
 
@@ -796,13 +844,16 @@ describe('hardening', () => {
     const { user1, trip } = setup();
     const failing = await buildCollabService();
     const note = await failing.createNote(trip.id, user1.id, { title: 'With file' });
-    testDb.prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
+    testDb
+      .prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
       .run(trip.id, note.id, 'files/a.pdf', 'a.pdf');
 
     // Repository-level spy (not `dbs.run`): the row delete this proof targets
     // now goes through `notesRepo.delete`, the last statement inside
     // `deleteNote`'s transaction.
-    const spy = vi.spyOn(notesRepo, 'delete').mockImplementation(() => { throw new Error('boom'); });
+    const spy = vi.spyOn(notesRepo, 'delete').mockImplementation(() => {
+      throw new Error('boom');
+    });
     await expect(failing.deleteNote(trip.id, note.id)).rejects.toThrow('boom');
     spy.mockRestore();
 
@@ -813,16 +864,20 @@ describe('hardening', () => {
   it('COLLAB-SVC-036: a failing storage delete is swallowed — note + file deletes still succeed', async () => {
     const { user1, trip } = setup();
     const failingStorage = { delete: vi.fn().mockRejectedValue(new Error('EACCES')) };
-    const failing = await buildCollabService(failingStorage as unknown as import('../../../src/nest/storage/storage.service').StorageService);
+    const failing = await buildCollabService(
+      failingStorage as unknown as import('../../../src/nest/storage/storage.service').StorageService,
+    );
     const note = await failing.createNote(trip.id, user1.id, { title: 'Sticky file' });
-    testDb.prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
+    testDb
+      .prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
       .run(trip.id, note.id, 'stuck.pdf', 'stuck.pdf');
     const fileId = (testDb.prepare('SELECT id FROM trip_files WHERE note_id = ?').get(note.id) as { id: number }).id;
 
     expect(await failing.deleteNoteFile(trip.id, note.id, fileId)).toBe(true);
     expect(testDb.prepare('SELECT COUNT(*) as c FROM trip_files WHERE id = ?').get(fileId)).toEqual({ c: 0 });
 
-    testDb.prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
+    testDb
+      .prepare('INSERT INTO trip_files (trip_id, note_id, filename, original_name) VALUES (?, ?, ?, ?)')
       .run(trip.id, note.id, 'stuck2.pdf', 'stuck2.pdf');
     expect(await failing.deleteNote(trip.id, note.id)).toBe(true);
     expect(testDb.prepare('SELECT COUNT(*) as c FROM collab_notes WHERE id = ?').get(note.id)).toEqual({ c: 0 });
@@ -844,7 +899,9 @@ describe('hardening', () => {
 
     expect((await svc.votePoll(trip.id, poll!.id, user1.id, '0' as unknown as number)).error).toBe('invalid_index');
     expect((await svc.votePoll(trip.id, poll!.id, user1.id, 0.5)).error).toBe('invalid_index');
-    expect(testDb.prepare('SELECT COUNT(*) as c FROM collab_poll_votes WHERE poll_id = ?').get(poll!.id)).toEqual({ c: 0 });
+    expect(testDb.prepare('SELECT COUNT(*) as c FROM collab_poll_votes WHERE poll_id = ?').get(poll!.id)).toEqual({
+      c: 0,
+    });
   });
 
   it('COLLAB-SVC-038: linkPreview returns the fallback for a malformed URL without throwing', async () => {
@@ -862,37 +919,71 @@ describe('hardening', () => {
 describe('repository parity', () => {
   it('COLLAB-REPO-001: CollabNotesRepository matches the legacy joined SELECTs for a note with attachments', async () => {
     const { user1, trip } = setup();
-    const note = await svc.createNote(trip.id, user1.id, { title: 'Full note', content: 'Body', category: 'Ideas', color: '#123456', website: 'https://x.example', pinned: true });
-    await svc.addNoteFile(trip.id, note.id, { filename: 'a.pdf', originalname: 'a.pdf', size: 10, mimetype: 'application/pdf' });
-    await svc.addNoteFile(trip.id, note.id, { filename: 'b.png', originalname: 'b.png', size: 20, mimetype: 'image/png' });
+    const note = await svc.createNote(trip.id, user1.id, {
+      title: 'Full note',
+      content: 'Body',
+      category: 'Ideas',
+      color: '#123456',
+      website: 'https://x.example',
+      pinned: true,
+    });
+    await svc.addNoteFile(trip.id, note.id, {
+      filename: 'a.pdf',
+      originalname: 'a.pdf',
+      size: 10,
+      mimetype: 'application/pdf',
+    });
+    await svc.addNoteFile(trip.id, note.id, {
+      filename: 'b.png',
+      originalname: 'b.png',
+      size: 20,
+      mimetype: 'image/png',
+    });
 
     // CB9/CB12/CB20's shared shape.
-    const legacyNote = testDb.prepare('SELECT n.*, u.username, u.avatar FROM collab_notes n JOIN users u ON n.user_id = u.id WHERE n.id = ?').get(note.id);
+    const legacyNote = testDb
+      .prepare('SELECT n.*, u.username, u.avatar FROM collab_notes n JOIN users u ON n.user_id = u.id WHERE n.id = ?')
+      .get(note.id);
     expect(await notesRepo.findWithUser(note.id)).toEqual(legacyNote);
     expect(await notesRepo.findWithUserInTrip(note.id, trip.id)).toEqual(legacyNote);
 
     // CB6's narrow attachment projection.
-    const legacyAttachments = testDb.prepare('SELECT id, filename, original_name, file_size, mime_type FROM trip_files WHERE note_id = ? ORDER BY id ASC').all(note.id);
+    const legacyAttachments = testDb
+      .prepare(
+        'SELECT id, filename, original_name, file_size, mime_type FROM trip_files WHERE note_id = ? ORDER BY id ASC',
+      )
+      .all(note.id);
     expect(await notesRepo.listAttachmentsForNote(note.id)).toEqual(legacyAttachments);
   });
 
   it('COLLAB-REPO-002: CollabPollsRepository/CollabPollVotesRepository match the legacy queries for a multiple-choice poll voted on every option', async () => {
     const { user1, user2, trip } = setup();
-    const poll = await svc.createPoll(trip.id, user1.id, { question: 'Pick', options: ['A', 'B', 'C'], multiple: true });
+    const poll = await svc.createPoll(trip.id, user1.id, {
+      question: 'Pick',
+      options: ['A', 'B', 'C'],
+      multiple: true,
+    });
     await svc.votePoll(trip.id, poll!.id, user1.id, 0);
     await svc.votePoll(trip.id, poll!.id, user1.id, 1);
     await svc.votePoll(trip.id, poll!.id, user2.id, 2);
     await svc.votePoll(trip.id, poll!.id, user2.id, 0);
 
     // CB23's poll half.
-    const legacyPoll = testDb.prepare('SELECT p.*, u.username, u.avatar FROM collab_polls p JOIN users u ON p.user_id = u.id WHERE p.id = ?').get(poll!.id);
+    const legacyPoll = testDb
+      .prepare('SELECT p.*, u.username, u.avatar FROM collab_polls p JOIN users u ON p.user_id = u.id WHERE p.id = ?')
+      .get(poll!.id);
     expect(await pollsRepo.findWithUser(poll!.id)).toEqual(legacyPoll);
 
     // CB24's votes half — every option has at least one vote, including the
     // multi-select case (user1 voted twice). No ORDER BY on either side, so
     // both are sorted the same deterministic way before comparing.
-    const sortVotes = (rows: { option_index: number; user_id: number }[]) => [...rows].sort((a, b) => a.option_index - b.option_index || a.user_id - b.user_id);
-    const legacyVotes = testDb.prepare('SELECT v.option_index, v.user_id, u.username, u.avatar FROM collab_poll_votes v JOIN users u ON v.user_id = u.id WHERE v.poll_id = ?').all(poll!.id) as { option_index: number; user_id: number }[];
+    const sortVotes = (rows: { option_index: number; user_id: number }[]) =>
+      [...rows].sort((a, b) => a.option_index - b.option_index || a.user_id - b.user_id);
+    const legacyVotes = testDb
+      .prepare(
+        'SELECT v.option_index, v.user_id, u.username, u.avatar FROM collab_poll_votes v JOIN users u ON v.user_id = u.id WHERE v.poll_id = ?',
+      )
+      .all(poll!.id) as { option_index: number; user_id: number }[];
     const repoVotes = await pollVotesRepo.listForPoll(poll!.id);
     expect(sortVotes(repoVotes)).toEqual(sortVotes(legacyVotes));
     expect(repoVotes).toHaveLength(4);
@@ -904,7 +995,9 @@ describe('repository parity', () => {
     const reply = await svc.createMessage(trip.id, user1.id, 'Reply text', original.message!.id);
     await svc.deleteMessage(trip.id, original.message!.id, user1.id);
 
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT m.*, u.username, u.avatar,
         CASE WHEN rm.deleted = 1 THEN '' ELSE rm.text END AS reply_text,
         ru.username AS reply_username
@@ -915,12 +1008,14 @@ describe('repository parity', () => {
       WHERE m.trip_id = ?
       ORDER BY m.id DESC
       LIMIT 100
-    `).all(trip.id);
+    `,
+      )
+      .all(trip.id);
 
     const repoRows = await messagesRepo.listForTrip(trip.id);
     expect(repoRows).toEqual(legacy);
 
-    const replyRow = repoRows.find(r => r.id === reply.message!.id)!;
+    const replyRow = repoRows.find((r) => r.id === reply.message!.id)!;
     expect(replyRow.reply_text).toBe(''); // the quoted message is soft-deleted — blanked, not the raw text.
     expect(replyRow.reply_username).toBe(user1.username);
   });
@@ -929,19 +1024,34 @@ describe('repository parity', () => {
     const { user1, user2, trip } = setup();
     const msg = await svc.createMessage(trip.id, user1.id, 'React away');
     const msgId = msg.message!.id;
-    testDb.prepare('INSERT INTO collab_message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)').run(msgId, user1.id, '👍');
-    testDb.prepare('INSERT INTO collab_message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)').run(msgId, user2.id, '👍');
-    testDb.prepare('INSERT INTO collab_message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)').run(msgId, user2.id, '🎉');
+    testDb
+      .prepare('INSERT INTO collab_message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)')
+      .run(msgId, user1.id, '👍');
+    testDb
+      .prepare('INSERT INTO collab_message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)')
+      .run(msgId, user2.id, '👍');
+    testDb
+      .prepare('INSERT INTO collab_message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)')
+      .run(msgId, user2.id, '🎉');
 
-    const sortReactions = (rows: { emoji: string; user_id: number }[]) => [...rows].sort((a, b) => a.emoji.localeCompare(b.emoji) || a.user_id - b.user_id);
+    const sortReactions = (rows: { emoji: string; user_id: number }[]) =>
+      [...rows].sort((a, b) => a.emoji.localeCompare(b.emoji) || a.user_id - b.user_id);
 
     // CB1.
-    const legacySingle = testDb.prepare('SELECT r.emoji, r.user_id, u.username FROM collab_message_reactions r JOIN users u ON r.user_id = u.id WHERE r.message_id = ?').all(msgId) as { emoji: string; user_id: number }[];
+    const legacySingle = testDb
+      .prepare(
+        'SELECT r.emoji, r.user_id, u.username FROM collab_message_reactions r JOIN users u ON r.user_id = u.id WHERE r.message_id = ?',
+      )
+      .all(msgId) as { emoji: string; user_id: number }[];
     const repoSingle = await messageReactionsRepo.listForMessage(msgId);
     expect(sortReactions(repoSingle)).toEqual(sortReactions(legacySingle));
 
     // CB46 (the batch form `listMessages` uses).
-    const legacyBatch = testDb.prepare('SELECT r.message_id, r.emoji, r.user_id, u.username FROM collab_message_reactions r JOIN users u ON r.user_id = u.id WHERE r.message_id IN (?)').all(msgId) as { emoji: string; user_id: number }[];
+    const legacyBatch = testDb
+      .prepare(
+        'SELECT r.message_id, r.emoji, r.user_id, u.username FROM collab_message_reactions r JOIN users u ON r.user_id = u.id WHERE r.message_id IN (?)',
+      )
+      .all(msgId) as { emoji: string; user_id: number }[];
     const repoBatch = await messageReactionsRepo.listForMessages([msgId]);
     expect(sortReactions(repoBatch)).toEqual(sortReactions(legacyBatch));
     expect(repoBatch).toHaveLength(3);
@@ -949,12 +1059,22 @@ describe('repository parity', () => {
 
   it('COLLAB-REPO-005: CollabLinksRepository matches the legacy joined SELECTs for a pinned link', async () => {
     const { user1, trip } = setup();
-    const link = await svc.createLink(trip.id, user1.id, { title: 'Guide', url: 'https://example.com/guide', pinned: true });
+    const link = await svc.createLink(trip.id, user1.id, {
+      title: 'Guide',
+      url: 'https://example.com/guide',
+      pinned: true,
+    });
 
-    const legacy = testDb.prepare('SELECT l.*, u.username FROM collab_links l JOIN users u ON u.id = l.user_id WHERE l.id = ?').get(link!.id);
+    const legacy = testDb
+      .prepare('SELECT l.*, u.username FROM collab_links l JOIN users u ON u.id = l.user_id WHERE l.id = ?')
+      .get(link!.id);
     expect(await linksRepo.findWithUser(link!.id)).toEqual(legacy);
 
-    const legacyList = testDb.prepare('SELECT l.*, u.username FROM collab_links l JOIN users u ON u.id = l.user_id WHERE l.trip_id = ? ORDER BY l.pinned DESC, l.created_at DESC').all(trip.id);
+    const legacyList = testDb
+      .prepare(
+        'SELECT l.*, u.username FROM collab_links l JOIN users u ON u.id = l.user_id WHERE l.trip_id = ? ORDER BY l.pinned DESC, l.created_at DESC',
+      )
+      .all(trip.id);
     expect(await linksRepo.listForTrip(trip.id)).toEqual(legacyList);
   });
 });
@@ -974,7 +1094,12 @@ describe('deleteNoteFile IDOR guard', () => {
     // `trip_id` constant and only `note_id` differs.
     const note1 = await svc.createNote(trip.id, user1.id, { title: 'Note 1' });
     const note2 = await svc.createNote(trip.id, user1.id, { title: 'Note 2' });
-    const file2 = await svc.addNoteFile(trip.id, note2.id, { filename: 'note2.pdf', originalname: 'note2.pdf', size: 1, mimetype: 'application/pdf' });
+    const file2 = await svc.addNoteFile(trip.id, note2.id, {
+      filename: 'note2.pdf',
+      originalname: 'note2.pdf',
+      size: 1,
+      mimetype: 'application/pdf',
+    });
 
     // `id` and `trip_id` both match; only `note_id` is wrong (asking for
     // note1's scope with a file that actually belongs to note2) — red if the
@@ -989,10 +1114,17 @@ describe('deleteNoteFile IDOR guard', () => {
     // the legacy doc comment names: a caller access-checked for `trip` alone
     // enumerating a foreign note/file id pair.
     const foreignNote = await svc.createNote(otherTrip.id, user1.id, { title: 'Foreign note' });
-    const foreignFile = await svc.addNoteFile(otherTrip.id, foreignNote.id, { filename: 'foreign.pdf', originalname: 'foreign.pdf', size: 1, mimetype: 'application/pdf' });
+    const foreignFile = await svc.addNoteFile(otherTrip.id, foreignNote.id, {
+      filename: 'foreign.pdf',
+      originalname: 'foreign.pdf',
+      size: 1,
+      mimetype: 'application/pdf',
+    });
 
     expect(await svc.deleteNoteFile(trip.id, foreignNote.id, foreignFile!.file.id)).toBe(false);
-    expect(testDb.prepare('SELECT COUNT(*) as c FROM trip_files WHERE id = ?').get(foreignFile!.file.id)).toEqual({ c: 1 });
+    expect(testDb.prepare('SELECT COUNT(*) as c FROM trip_files WHERE id = ?').get(foreignFile!.file.id)).toEqual({
+      c: 1,
+    });
 
     // Sanity: the SAME file, scoped correctly, does succeed — the guard
     // isn't just refusing everything.

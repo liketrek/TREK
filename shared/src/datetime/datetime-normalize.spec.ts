@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { parseMeridiemClock, splitLocalDateTime, normalizeLocalDateTime } from './datetime-normalize';
+
+import { describe, it, expect } from 'vitest';
 
 describe('parseMeridiemClock', () => {
   it('resolves the half of the day', () => {

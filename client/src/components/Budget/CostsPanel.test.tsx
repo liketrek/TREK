@@ -1,39 +1,43 @@
 // FE-COMP-COSTS: settlements surfaced inline in the Costs ledger (issue #1241)
 // FE-W5COSTS-001 to FE-W5COSTS-096: the rest of the Costs panel
-import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render'
-import userEvent from '@testing-library/user-event'
-import { http, HttpResponse } from 'msw'
-import { server } from '../../../tests/helpers/msw/server'
-import { useAuthStore } from '../../store/authStore'
-import { useTripStore } from '../../store/tripStore'
-import { useSettingsStore } from '../../store/settingsStore'
-import { usePermissionsStore } from '../../store/permissionsStore'
-import { clearExchangeRateCache } from '../../hooks/useExchangeRates'
-import { resetAllStores, seedStore } from '../../../tests/helpers/store'
-import { buildUser, buildTrip, buildBudgetItem, buildSettings } from '../../../tests/helpers/factories'
-import type { BudgetParticipantFinal } from '@trek/shared'
-import type { BudgetItem } from '../../types'
-import CostsPanel, { ExpenseModal } from './CostsPanel'
-import { splitEqualShares, calculateTicketShares, type TicketItem } from './CostsPanel.helpers'
-import { resetFreezeAttempts } from './useFreezeMissingRates'
+import userEvent from '@testing-library/user-event';
+import type { BudgetParticipantFinal } from '@trek/shared';
+import { http, HttpResponse } from 'msw';
+import { buildBudgetItem, buildSettings, buildTrip, buildUser } from '../../../tests/helpers/factories';
+import { server } from '../../../tests/helpers/msw/server';
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { clearExchangeRateCache } from '../../hooks/useExchangeRates';
+import { useAuthStore } from '../../store/authStore';
+import { usePermissionsStore } from '../../store/permissionsStore';
+import { useSettingsStore } from '../../store/settingsStore';
+import { useTripStore } from '../../store/tripStore';
+import type { BudgetItem } from '../../types';
+import CostsPanel, { ExpenseModal } from './CostsPanel';
+import { calculateTicketShares, splitEqualShares, type TicketItem } from './CostsPanel.helpers';
+import { resetFreezeAttempts } from './useFreezeMissingRates';
 
 const tripMembers = [
   { id: 1, username: 'alice', avatar_url: null },
   { id: 2, username: 'bob', avatar_url: null },
-]
+];
 
 /** Bob's buttons in the expense form — his final-budget row in the sidebar answers to his name too. */
-const bobInForm = () => screen.getAllByRole('checkbox', { name: /bob/i })
+const bobInForm = () => screen.getAllByRole('checkbox', { name: /bob/i });
 
 beforeEach(() => {
-  resetAllStores()
-  seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true })
-  seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR' }) })
-})
+  resetAllStores();
+  seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
+  seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR' }) });
+});
 
 describe('CostsPanel — settlements in the ledger', () => {
   it('renders a settle-up payment as a ledger row with an undo action', async () => {
-    const item = { ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner' }), total_price: 90, expense_date: '2025-06-15' }
+    const item = {
+      ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner' }),
+      total_price: 90,
+      expense_date: '2025-06-15',
+    };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
       http.get('/api/trips/1/budget/settlement', () =>
@@ -41,45 +45,58 @@ describe('CostsPanel — settlements in the ledger', () => {
           balances: [],
           flows: [],
           settlements: [
-            { id: 7, trip_id: 1, from_user_id: 2, to_user_id: 1, amount: 30, created_at: '2025-06-16 10:00:00', from_username: 'bob', to_username: 'alice' },
+            {
+              id: 7,
+              trip_id: 1,
+              from_user_id: 2,
+              to_user_id: 1,
+              amount: 30,
+              created_at: '2025-06-16 10:00:00',
+              from_username: 'bob',
+              to_username: 'alice',
+            },
           ],
         })
-      ),
-    )
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+      )
+    );
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
     // The expense and the settlement (payment) both appear in the unified ledger.
-    await screen.findByText('Dinner')
-    await screen.findByText('Payment')
+    await screen.findByText('Dinner');
+    await screen.findByText('Payment');
     // The payment row exposes an inline undo (no need to open a separate History modal).
-    expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument()
-  })
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+  });
 
   it('records a manual payment via the Add payment button', async () => {
-    let posted: Record<string, unknown> | null = null
+    let posted: Record<string, unknown> | null = null;
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
       http.post('/api/trips/1/budget/settlements', async ({ request }) => {
-        posted = await request.json() as Record<string, unknown>
-        return HttpResponse.json({ settlement: { id: 1, ...posted } })
-      }),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ settlement: { id: 1, ...posted } });
+      })
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0,00'), '25')
+    await user.click(await screen.findByRole('button', { name: 'Add payment' }));
+    await user.type(await screen.findByPlaceholderText('0,00'), '25');
     // The footer submit is the second "Add payment" control once the modal is open.
-    const addButtons = screen.getAllByRole('button', { name: 'Add payment' })
-    const submit = addButtons[addButtons.length - 1]
-    await user.click(submit)
-    await waitFor(() => expect(posted).toMatchObject({ amount: 25 }))
-  })
+    const addButtons = screen.getAllByRole('button', { name: 'Add payment' });
+    const submit = addButtons[addButtons.length - 1];
+    await user.click(submit);
+    await waitFor(() => expect(posted).toMatchObject({ amount: 25 }));
+  });
 
   it('hides payment rows while a text search is active', async () => {
-    const item = { ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner' }), total_price: 90, expense_date: '2025-06-15' }
+    const item = {
+      ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner' }),
+      total_price: 90,
+      expense_date: '2025-06-15',
+    };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
       http.get('/api/trips/1/budget/settlement', () =>
@@ -87,122 +104,136 @@ describe('CostsPanel — settlements in the ledger', () => {
           balances: [],
           flows: [],
           settlements: [
-            { id: 7, trip_id: 1, from_user_id: 2, to_user_id: 1, amount: 30, created_at: '2025-06-16 10:00:00', from_username: 'bob', to_username: 'alice' },
+            {
+              id: 7,
+              trip_id: 1,
+              from_user_id: 2,
+              to_user_id: 1,
+              amount: 30,
+              created_at: '2025-06-16 10:00:00',
+              from_username: 'bob',
+              to_username: 'alice',
+            },
           ],
         })
-      ),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+      )
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await screen.findByText('Payment')
-    await user.type(screen.getByPlaceholderText('Search expenses…'), 'Dinner')
+    await screen.findByText('Payment');
+    await user.type(screen.getByPlaceholderText('Search expenses…'), 'Dinner');
     // Payment rows have no name, so a search hides them while the matching expense stays.
-    expect(screen.queryByText('Payment')).not.toBeInTheDocument()
-    expect(screen.getByText('Dinner')).toBeInTheDocument()
-  })
+    expect(screen.queryByText('Payment')).not.toBeInTheDocument();
+    expect(screen.getByText('Dinner')).toBeInTheDocument();
+  });
 
   it('supports custom split amounts on save', async () => {
-    let posted: Record<string, unknown> | null = null
+    let posted: Record<string, unknown> | null = null;
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
       http.post('/api/trips/1/budget', async ({ request }) => {
-        posted = await request.json() as Record<string, unknown>
-        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'Dinner' }), id: 5 } })
-      }),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'Dinner' }), id: 5 } });
+      })
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
-    const nums = () => screen.getAllByPlaceholderText('0,00') as HTMLInputElement[]
-    await user.type(nums()[0], '100') // total = 100
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner');
+    const nums = () => screen.getAllByPlaceholderText('0,00') as HTMLInputElement[];
+    await user.type(nums()[0], '100'); // total = 100
 
-    await user.click(screen.getByRole('button', { name: /Custom/i }))
+    await user.click(screen.getByRole('button', { name: /Custom/i }));
 
-    const customInputs = screen.getAllByPlaceholderText('50,00')
-    await user.type(customInputs[0], '30')
-    await user.type(customInputs[1], '70')
+    const customInputs = screen.getAllByPlaceholderText('50,00');
+    await user.type(customInputs[0], '30');
+    await user.type(customInputs[1], '70');
 
-    const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
-    await user.click(addBtns[addBtns.length - 1]) // footer submit
-    await waitFor(() => expect(posted).toBeTruthy())
-    expect(posted!.total_price).toBe(100)
-    expect(posted!.payers).toEqual([
-      expect.objectContaining({ amount: 100 })
-    ])
-    expect(posted!.members).toEqual(expect.arrayContaining([
-      expect.objectContaining({ user_id: 1, amount: 30 }),
-      expect.objectContaining({ user_id: 2, amount: 70 }),
-    ]))
-  })
+    const addBtns = screen.getAllByRole('button', { name: 'Add expense' });
+    await user.click(addBtns[addBtns.length - 1]); // footer submit
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted!.total_price).toBe(100);
+    expect(posted!.payers).toEqual([expect.objectContaining({ amount: 100 })]);
+    expect(posted!.members).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ user_id: 1, amount: 30 }),
+        expect.objectContaining({ user_id: 2, amount: 70 }),
+      ])
+    );
+  });
 
   it('accepts a comma as the decimal separator in the total amount (#1256)', async () => {
-    let posted: Record<string, unknown> | null = null
+    let posted: Record<string, unknown> | null = null;
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
       http.post('/api/trips/1/budget', async ({ request }) => {
-        posted = await request.json() as Record<string, unknown>
-        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'AirTags' }), id: 6 } })
-      }),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'AirTags' }), id: 6 } });
+      })
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'AirTags')
-    await user.type(screen.getAllByPlaceholderText('0,00')[0], '39,99') // comma → normalized to 39.99
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'AirTags');
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '39,99'); // comma → normalized to 39.99
 
-    const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
-    await user.click(addBtns[addBtns.length - 1]) // footer submit
-    await waitFor(() => expect(posted).toBeTruthy())
-    expect(posted!.total_price).toBe(39.99)
-  })
+    const addBtns = screen.getAllByRole('button', { name: 'Add expense' });
+    await user.click(addBtns[addBtns.length - 1]); // footer submit
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted!.total_price).toBe(39.99);
+  });
 
   it('marks an expense with no payer as Unfinished', async () => {
-    const item = { ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Hotel' }), total_price: 90, payers: [], members: [{ user_id: 1, username: 'alice', paid: 0 }] }
+    const item = {
+      ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Hotel' }),
+      total_price: 90,
+      payers: [],
+      members: [{ user_id: 1, username: 'alice', paid: 0 }],
+    };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
-    )
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
-    await screen.findByText('Hotel')
-    expect(screen.getByText('Unfinished')).toBeInTheDocument()
-  })
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] }))
+    );
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
+    await screen.findByText('Hotel');
+    expect(screen.getByText('Unfinished')).toBeInTheDocument();
+  });
 
   // ── Notes on an expense (#1658) ────────────────────────────────────────────
 
   it('shows a note on the row and expands it on click', async () => {
-    const long = 'Bought the whole week of breakfasts here, Ben pays back his half once the card statement lands'
+    const long = 'Bought the whole week of breakfasts here, Ben pays back his half once the card statement lands';
     const item = {
       ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Supermarket' }),
       total_price: 60,
       note: long,
       payers: [{ user_id: 1, amount: 60, username: 'alice' }],
-    }
+    };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
-    )
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] }))
+    );
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
     // Re-queried after each click: the row is re-created on every render of the
     // panel, so a handle taken before the click points at a detached node.
-    const noteToggle = () => screen.getByRole('button', { name: new RegExp(long.slice(0, 20)) })
-    await screen.findByText('Supermarket')
-    expect(noteToggle()).toHaveAttribute('aria-expanded', 'false')
-    await user.click(noteToggle())
-    expect(noteToggle()).toHaveAttribute('aria-expanded', 'true')
-    await user.click(noteToggle())
-    expect(noteToggle()).toHaveAttribute('aria-expanded', 'false')
-  })
+    const noteToggle = () => screen.getByRole('button', { name: new RegExp(long.slice(0, 20)) });
+    await screen.findByText('Supermarket');
+    expect(noteToggle()).toHaveAttribute('aria-expanded', 'false');
+    await user.click(noteToggle());
+    expect(noteToggle()).toHaveAttribute('aria-expanded', 'true');
+    await user.click(noteToggle());
+    expect(noteToggle()).toHaveAttribute('aria-expanded', 'false');
+  });
 
   it('never renders a receipt blob as a note', async () => {
     const item = {
@@ -211,16 +242,16 @@ describe('CostsPanel — settlements in the ledger', () => {
       // How the receipt was stored before it got its own column.
       note: 'TICKETJSON:{"items":[{"name":"Cheese","price":"20","parts":[1]}]}',
       payers: [{ user_id: 1, amount: 20, username: 'alice' }],
-    }
+    };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
-    )
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] }))
+    );
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await screen.findByText('Market')
-    expect(screen.queryByText(/TICKETJSON/)).toBeNull()
-  })
+    await screen.findByText('Market');
+    expect(screen.queryByText(/TICKETJSON/)).toBeNull();
+  });
 
   it('keeps an existing note when the expense is saved again', async () => {
     const item = {
@@ -228,255 +259,297 @@ describe('CostsPanel — settlements in the ledger', () => {
       total_price: 30,
       note: 'split with the neighbours',
       payers: [{ user_id: 1, amount: 30, username: 'alice' }],
-    }
-    let patched: Record<string, unknown> | null = null
+    };
+    let patched: Record<string, unknown> | null = null;
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
       http.put('/api/trips/1/budget/:id', async ({ request }) => {
-        patched = (await request.json()) as Record<string, unknown>
-        return HttpResponse.json({ item: { ...item, ...patched } })
-      }),
-    )
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        patched = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: { ...item, ...patched } });
+      })
+    );
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await screen.findByText('Lunch')
-    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0])
-    await user.click(await screen.findByRole('button', { name: 'Save' }))
+    await screen.findByText('Lunch');
+    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+    await user.click(await screen.findByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(patched).toBeTruthy())
-    expect(patched!.note).toBe('split with the neighbours')
-  })
+    await waitFor(() => expect(patched).toBeTruthy());
+    expect(patched!.note).toBe('split with the neighbours');
+  });
 
   it('shows the net hint on a settled expense row and hides it while unfinished', async () => {
-    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true });
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } });
     // alice fronted the whole 90 for a two-way split, so she is 45 up.
     const lent = {
       ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner' }),
       total_price: 90,
       payers: [{ user_id: 1, amount: 90, username: 'alice' }],
-      members: [{ user_id: 1, username: 'alice', paid: 1 }, { user_id: 2, username: 'bob', paid: 0 }],
-    }
+      members: [
+        { user_id: 1, username: 'alice', paid: 1 },
+        { user_id: 2, username: 'bob', paid: 0 },
+      ],
+    };
     const unpaid = {
       ...buildBudgetItem({ trip_id: 1, category: 'lodging', name: 'Hotel' }),
       total_price: 90,
       payers: [],
-      members: [{ user_id: 1, username: 'alice', paid: 0 }, { user_id: 2, username: 'bob', paid: 0 }],
-    }
+      members: [
+        { user_id: 1, username: 'alice', paid: 0 },
+        { user_id: 2, username: 'bob', paid: 0 },
+      ],
+    };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [lent, unpaid] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
-    )
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] }))
+    );
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    const dinnerRow = (await screen.findByText('Dinner')).closest('.exp-row') as HTMLElement
-    expect(within(dinnerRow).getByText(/you lent/)).toHaveTextContent('45')
+    const dinnerRow = (await screen.findByText('Dinner')).closest('.exp-row') as HTMLElement;
+    expect(within(dinnerRow).getByText(/you lent/)).toHaveTextContent('45');
 
-    const hotelRow = (await screen.findByText('Hotel')).closest('.exp-row') as HTMLElement
-    expect(within(hotelRow).queryByText(/you lent|you borrowed/)).toBeNull()
-  })
+    const hotelRow = (await screen.findByText('Hotel')).closest('.exp-row') as HTMLElement;
+    expect(within(hotelRow).queryByText(/you lent|you borrowed/)).toBeNull();
+  });
 
   it('lists who an expense is split between, with each part, in the row (#1763)', async () => {
-    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true });
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } });
     const custom = {
       ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner' }),
       total_price: 90,
       payers: [{ user_id: 1, amount: 90, username: 'alice' }],
-      members: [{ user_id: 1, username: 'alice', paid: 1, amount: 60 }, { user_id: 2, username: 'bob', paid: 0, amount: 30 }],
-    }
+      members: [
+        { user_id: 1, username: 'alice', paid: 1, amount: 60 },
+        { user_id: 2, username: 'bob', paid: 0, amount: 30 },
+      ],
+    };
     const crowd = {
       ...buildBudgetItem({ trip_id: 1, category: 'activity', name: 'Boat' }),
       total_price: 80,
       payers: [{ user_id: 1, amount: 80, username: 'alice' }],
       members: Array.from({ length: 8 }, (_, i) => ({ user_id: i + 1, username: `p${i + 1}`, paid: 0 })),
-    }
+    };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [custom, crowd] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
-    )
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] }))
+    );
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    const dinnerRow = (await screen.findByText('Dinner')).closest('.exp-row') as HTMLElement
-    const chips = within(dinnerRow).getAllByTestId('split-chip')
-    expect(chips).toHaveLength(2)
-    expect(chips[0]).toHaveTextContent('60')
-    expect(chips[1]).toHaveTextContent('30')
+    const dinnerRow = (await screen.findByText('Dinner')).closest('.exp-row') as HTMLElement;
+    const chips = within(dinnerRow).getAllByTestId('split-chip');
+    expect(chips).toHaveLength(2);
+    expect(chips[0]).toHaveTextContent('60');
+    expect(chips[1]).toHaveTextContent('30');
     // alice marked her part as paid; bob has not.
-    expect(within(chips[0]).getByLabelText('paid')).toBeInTheDocument()
-    expect(within(chips[1]).queryByLabelText('paid')).toBeNull()
+    expect(within(chips[0]).getByLabelText('paid')).toBeInTheDocument();
+    expect(within(chips[1]).queryByLabelText('paid')).toBeNull();
 
     // Eight people fold into five chips and a "+3".
-    const boatRow = (await screen.findByText('Boat')).closest('.exp-row') as HTMLElement
-    expect(within(boatRow).getAllByTestId('split-chip')).toHaveLength(5)
-    expect(within(boatRow).getByText('+3')).toBeInTheDocument()
-    expect(within(boatRow).getAllByTestId('split-chip')[0]).toHaveTextContent('10')
-  })
+    const boatRow = (await screen.findByText('Boat')).closest('.exp-row') as HTMLElement;
+    expect(within(boatRow).getAllByTestId('split-chip')).toHaveLength(5);
+    expect(within(boatRow).getByText('+3')).toBeInTheDocument();
+    expect(within(boatRow).getAllByTestId('split-chip')[0]).toHaveTextContent('10');
+  });
 
   it('sums only unfinished expenses in the Outstanding amount card', async () => {
     // Display in the trip's own currency so FX conversion is an identity — keeps the asserted sum deterministic.
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
-    const paid = { ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner' }), total_price: 60, payers: [{ user_id: 1, amount: 60, username: 'alice' }], members: [{ user_id: 1, username: 'alice', paid: 1 }] }
-    const unfinishedA = { ...buildBudgetItem({ trip_id: 1, category: 'lodging', name: 'Hotel' }), total_price: 90, payers: [], members: [{ user_id: 1, username: 'alice', paid: 0 }] }
-    const unfinishedB = { ...buildBudgetItem({ trip_id: 1, category: 'transport', name: 'Taxi' }), total_price: 30, payers: [], members: [{ user_id: 1, username: 'alice', paid: 0 }] }
-    const zero = { ...buildBudgetItem({ trip_id: 1, category: 'misc', name: 'Freebie' }), total_price: 0, payers: [], members: [{ user_id: 1, username: 'alice', paid: 0 }] }
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } });
+    const paid = {
+      ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner' }),
+      total_price: 60,
+      payers: [{ user_id: 1, amount: 60, username: 'alice' }],
+      members: [{ user_id: 1, username: 'alice', paid: 1 }],
+    };
+    const unfinishedA = {
+      ...buildBudgetItem({ trip_id: 1, category: 'lodging', name: 'Hotel' }),
+      total_price: 90,
+      payers: [],
+      members: [{ user_id: 1, username: 'alice', paid: 0 }],
+    };
+    const unfinishedB = {
+      ...buildBudgetItem({ trip_id: 1, category: 'transport', name: 'Taxi' }),
+      total_price: 30,
+      payers: [],
+      members: [{ user_id: 1, username: 'alice', paid: 0 }],
+    };
+    const zero = {
+      ...buildBudgetItem({ trip_id: 1, category: 'misc', name: 'Freebie' }),
+      total_price: 0,
+      payers: [],
+      members: [{ user_id: 1, username: 'alice', paid: 0 }],
+    };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [paid, unfinishedA, unfinishedB, zero] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
-    )
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] }))
+    );
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
     // Footer only shows the count once unfinished expenses have loaded.
-    const foot = await screen.findByText('expenses need a payer')
-    expect(foot).toHaveTextContent('2 expenses need a payer') // the two payer-less, non-zero expenses
+    const foot = await screen.findByText('expenses need a payer');
+    expect(foot).toHaveTextContent('2 expenses need a payer'); // the two payer-less, non-zero expenses
     // Sum is 90 + 30 = 120 — the paid (60) and zero-total items are excluded.
     // Sum is 90 + 30 = 120 — the paid (60) and zero-total items are excluded.
-    const card = screen.getByRole('region', { name: 'Outstanding amount' })
-    expect(card).toHaveTextContent('120') // 120,00 € (locale separator), i.e. 90 + 30
-  })
+    const card = screen.getByRole('region', { name: 'Outstanding amount' });
+    expect(card).toHaveTextContent('120'); // 120,00 € (locale separator), i.e. 90 + 30
+  });
 
   // #2225 follow-up — the ledger stopped charging payer-less expenses, but this
   // tile kept counting them, so it contradicted the balances right beside it.
   it('keeps a payer-less expense out of Your share, like the balances do', async () => {
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
-    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
-    const paid = { ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner' }), total_price: 60, payers: [{ user_id: 1, amount: 60, username: 'alice' }], members: [{ user_id: 1, username: 'alice', paid: 1 }] }
-    const noPayer = { ...buildBudgetItem({ trip_id: 1, category: 'transport', name: 'Taxi' }), total_price: 40, payers: [], members: [{ user_id: 1, username: 'alice', paid: 0 }] }
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } });
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true });
+    const paid = {
+      ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner' }),
+      total_price: 60,
+      payers: [{ user_id: 1, amount: 60, username: 'alice' }],
+      members: [{ user_id: 1, username: 'alice', paid: 1 }],
+    };
+    const noPayer = {
+      ...buildBudgetItem({ trip_id: 1, category: 'transport', name: 'Taxi' }),
+      total_price: 40,
+      payers: [],
+      members: [{ user_id: 1, username: 'alice', paid: 0 }],
+    };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [paid, noPayer] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
-    )
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] }))
+    );
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await screen.findByText('Taxi')
+    await screen.findByText('Taxi');
     // "Your share" is the first of the two bold figures in the Total spend card's
     // footer; the second is "You paid". 60 from the paid expense only — the 40
     // nobody has paid for is not a share, though it still counts as spend.
-    const card = screen.getByRole('region', { name: 'Total trip spend' })!
-    const figures = [...card.querySelectorAll('b')].map(b => b.textContent ?? '')
-    expect(figures[0]).toContain('60')
-    expect(figures[0]).not.toContain('100')
-  })
+    const card = screen.getByRole('region', { name: 'Total trip spend' })!;
+    const figures = [...card.querySelectorAll('b')].map((b) => b.textContent ?? '');
+    expect(figures[0]).toContain('60');
+    expect(figures[0]).not.toContain('100');
+  });
 
   it('records a recorded-total expense with nobody to split with (#1286)', async () => {
-    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
-    let posted: Record<string, unknown> | null = null
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true });
+    let posted: Record<string, unknown> | null = null;
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
       http.post('/api/trips/1/budget', async ({ request }) => {
-        posted = await request.json() as Record<string, unknown>
-        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'Hotel' }), id: 9 } })
-      }),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'Hotel' }), id: 9 } });
+      })
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Hotel')
-    await user.type(screen.getAllByPlaceholderText('0,00')[0], '120') // total only, paid on-site later
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Hotel');
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '120'); // total only, paid on-site later
 
     // Deselect everyone so the cost carries no split, and mark it as unpaid: a picked
     // payer now always goes out (#1766), so "nobody paid" must be said explicitly.
-    await user.click(screen.getByRole('checkbox', { name: 'You' }))
-    await user.click(screen.getByRole('checkbox', { name: 'bob' }))
-    await user.click(screen.getByRole('radio', { name: 'No one paid yet' }))
+    await user.click(screen.getByRole('checkbox', { name: 'You' }));
+    await user.click(screen.getByRole('checkbox', { name: 'bob' }));
+    await user.click(screen.getByRole('radio', { name: 'No one paid yet' }));
 
-    const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
-    const submit = addBtns[addBtns.length - 1] // footer submit
-    expect(submit).not.toBeDisabled()
-    await user.click(submit)
+    const addBtns = screen.getAllByRole('button', { name: 'Add expense' });
+    const submit = addBtns[addBtns.length - 1]; // footer submit
+    expect(submit).not.toBeDisabled();
+    await user.click(submit);
 
-    await waitFor(() => expect(posted).toBeTruthy())
-    expect(posted!.total_price).toBe(120)
-    expect(posted!.member_ids).toEqual([])
-    expect(posted!.payers).toEqual([])
-  })
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted!.total_price).toBe(120);
+    expect(posted!.member_ids).toEqual([]);
+    expect(posted!.payers).toEqual([]);
+  });
 
   it('keeps a picked payer when nobody splits the expense (#1766)', async () => {
-    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
-    let posted: Record<string, unknown> | null = null
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true });
+    let posted: Record<string, unknown> | null = null;
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
       http.post('/api/trips/1/budget', async ({ request }) => {
-        posted = await request.json() as Record<string, unknown>
-        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'Flight' }), id: 11 } })
-      }),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'Flight' }), id: 11 } });
+      })
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Flight')
-    await user.type(screen.getAllByPlaceholderText('0,00')[0], '100')
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Flight');
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '100');
 
     // A personal expense: alice (the default "You" payer) fronted it, but nobody shares
     // the split. The web used to drop the payer once no participants remained.
-    await user.click(screen.getByRole('checkbox', { name: 'You' }))
-    await user.click(screen.getByRole('checkbox', { name: 'bob' }))
+    await user.click(screen.getByRole('checkbox', { name: 'You' }));
+    await user.click(screen.getByRole('checkbox', { name: 'bob' }));
 
-    const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
-    const submit = addBtns[addBtns.length - 1] // footer submit
-    expect(submit).not.toBeDisabled()
-    await user.click(submit)
+    const addBtns = screen.getAllByRole('button', { name: 'Add expense' });
+    const submit = addBtns[addBtns.length - 1]; // footer submit
+    expect(submit).not.toBeDisabled();
+    await user.click(submit);
 
-    await waitFor(() => expect(posted).toBeTruthy())
-    expect(posted!.member_ids).toEqual([])
-    expect(posted!.payers).toEqual([{ user_id: 1, amount: 100 }])
-  })
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted!.member_ids).toEqual([]);
+    expect(posted!.payers).toEqual([{ user_id: 1, amount: 100 }]);
+  });
 
   it('keeps "no one paid yet" when reopening a payer-less expense (#1533)', async () => {
-    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
-    let put: Record<string, unknown> | null = null
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true });
+    let put: Record<string, unknown> | null = null;
     const item = {
       ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Hotel' }),
       id: 5,
       total_price: 120,
       payers: [],
-      members: [{ user_id: 1, username: 'alice', paid: 0 }, { user_id: 2, username: 'bob', paid: 0 }],
-    }
+      members: [
+        { user_id: 1, username: 'alice', paid: 0 },
+        { user_id: 2, username: 'bob', paid: 0 },
+      ],
+    };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
       http.put('/api/trips/1/budget/5', async ({ request }) => {
-        put = await request.json() as Record<string, unknown>
-        return HttpResponse.json({ item })
-      }),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        put = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item });
+      })
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await screen.findByText('Hotel')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await screen.findByText('Hotel');
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
 
     // Nobody paid this expense — reopening it must not silently reselect "You".
-    expect(await screen.findByRole('radio', { name: 'No one paid yet' })).toBeChecked()
+    expect(await screen.findByRole('radio', { name: 'No one paid yet' })).toBeChecked();
 
     // …and saving an untouched edit must not assign the current user as payer.
-    await user.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(put).toBeTruthy())
-    expect(put!.payers).toEqual([])
-  })
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(put).toBeTruthy());
+    expect(put!.payers).toEqual([]);
+  });
 
   it('still defaults a brand-new expense to "You" as the payer', async () => {
-    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true });
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] }))
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    expect(await screen.findByRole('radio', { name: 'You' })).toBeChecked()
-  })
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    expect(await screen.findByRole('radio', { name: 'You' })).toBeChecked();
+  });
 
   // ── Multi-payer (#1426 regression) ─────────────────────────────────────────
   // 3.2.0 collapsed payers[] to a single payer, so a bill fronted by two people
@@ -484,273 +557,297 @@ describe('CostsPanel — settlements in the ledger', () => {
   // payers; only the form could no longer send them.
 
   it('records an expense paid by two people with their own amounts', async () => {
-    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
-    let posted: Record<string, unknown> | null = null
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true });
+    let posted: Record<string, unknown> | null = null;
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
       http.post('/api/trips/1/budget', async ({ request }) => {
-        posted = await request.json() as Record<string, unknown>
-        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'Dinner' }), id: 11 } })
-      }),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'Dinner' }), id: 11 } });
+      })
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
-    await user.type(screen.getAllByPlaceholderText('0,00')[0], '90')
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner');
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '90');
 
-    await user.click(screen.getByRole('button', { name: 'Multiple people paid' }))
+    await user.click(screen.getByRole('button', { name: 'Multiple people paid' }));
 
     // Alice (me) is seeded as the sole payer; including Bob rebalances to 45/45.
-    await user.click(screen.getAllByTestId('payer-toggle')[1])
-    expect(screen.getAllByTestId('payer-amount').map(i => (i as HTMLInputElement).value))
-      .toEqual(['45,00', '45,00'])
+    await user.click(screen.getAllByTestId('payer-toggle')[1]);
+    expect(screen.getAllByTestId('payer-amount').map((i) => (i as HTMLInputElement).value)).toEqual(['45,00', '45,00']);
 
-    const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
-    await user.click(addBtns[addBtns.length - 1])
+    const addBtns = screen.getAllByRole('button', { name: 'Add expense' });
+    await user.click(addBtns[addBtns.length - 1]);
 
-    await waitFor(() => expect(posted).toBeTruthy())
-    expect(posted!.total_price).toBe(90)
-    expect(posted!.payers).toEqual(expect.arrayContaining([
-      { user_id: 1, amount: 45 },
-      { user_id: 2, amount: 45 },
-    ]))
-    expect(posted!.payers).toHaveLength(2)
-  })
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted!.total_price).toBe(90);
+    expect(posted!.payers).toEqual(
+      expect.arrayContaining([
+        { user_id: 1, amount: 45 },
+        { user_id: 2, amount: 45 },
+      ])
+    );
+    expect(posted!.payers).toHaveLength(2);
+  });
 
   it('blocks saving when the payer amounts do not add up to the total', async () => {
-    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
-    let posted: Record<string, unknown> | null = null
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true });
+    let posted: Record<string, unknown> | null = null;
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
       http.post('/api/trips/1/budget', async ({ request }) => {
-        posted = await request.json() as Record<string, unknown>
-        return HttpResponse.json({ item: buildBudgetItem({ trip_id: 1, name: 'Dinner' }) })
-      }),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: buildBudgetItem({ trip_id: 1, name: 'Dinner' }) });
+      })
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
-    await user.type(screen.getAllByPlaceholderText('0,00')[0], '90')
-    await user.click(screen.getByRole('button', { name: 'Multiple people paid' }))
-    await user.click(screen.getAllByTestId('payer-toggle')[1])
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner');
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '90');
+    await user.click(screen.getByRole('button', { name: 'Multiple people paid' }));
+    await user.click(screen.getAllByTestId('payer-toggle')[1]);
 
     // Pin both payers at 20 of a 90 bill, so nobody is left to absorb the rest.
-    const amounts = () => screen.getAllByTestId('payer-amount') as HTMLInputElement[]
-    await user.clear(amounts()[0])
-    await user.type(amounts()[0], '20')
-    await user.clear(amounts()[1])
-    await user.type(amounts()[1], '20')
+    const amounts = () => screen.getAllByTestId('payer-amount') as HTMLInputElement[];
+    await user.clear(amounts()[0]);
+    await user.type(amounts()[0], '20');
+    await user.clear(amounts()[1]);
+    await user.type(amounts()[1], '20');
 
     // An unbalanced payer list would make the server re-derive total_price as 40.
-    expect(screen.getByText(/must add up to/i)).toBeInTheDocument()
-    const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
-    expect(addBtns[addBtns.length - 1]).toBeDisabled()
-    expect(posted).toBeNull()
-  })
+    expect(screen.getByText(/must add up to/i)).toBeInTheDocument();
+    const addBtns = screen.getAllByRole('button', { name: 'Add expense' });
+    expect(addBtns[addBtns.length - 1]).toBeDisabled();
+    expect(posted).toBeNull();
+  });
 
   it('reopens a two-payer expense with both payers intact', async () => {
-    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
-    let put: Record<string, unknown> | null = null
+    seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true });
+    let put: Record<string, unknown> | null = null;
     const item = {
       ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner' }),
       id: 7,
       total_price: 90,
-      payers: [{ user_id: 1, amount: 45, username: 'alice' }, { user_id: 2, amount: 45, username: 'bob' }],
-      members: [{ user_id: 1, username: 'alice', paid: 0 }, { user_id: 2, username: 'bob', paid: 0 }],
-    }
+      payers: [
+        { user_id: 1, amount: 45, username: 'alice' },
+        { user_id: 2, amount: 45, username: 'bob' },
+      ],
+      members: [
+        { user_id: 1, username: 'alice', paid: 0 },
+        { user_id: 2, username: 'bob', paid: 0 },
+      ],
+    };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
       http.put('/api/trips/1/budget/7', async ({ request }) => {
-        put = await request.json() as Record<string, unknown>
-        return HttpResponse.json({ item })
-      }),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        put = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item });
+      })
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await screen.findByText('Dinner')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await screen.findByText('Dinner');
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
 
     // Loading used to be payers.find(...), which silently dropped the second payer.
     // Seeded with two decimals since #2175, localized for EUR.
-    const amounts = await screen.findAllByTestId('payer-amount')
-    expect(amounts.map(i => (i as HTMLInputElement).value)).toEqual(['45,00', '45,00'])
+    const amounts = await screen.findAllByTestId('payer-amount');
+    expect(amounts.map((i) => (i as HTMLInputElement).value)).toEqual(['45,00', '45,00']);
 
-    await user.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(put).toBeTruthy())
-    expect(put!.payers).toHaveLength(2)
-  })
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(put).toBeTruthy());
+    expect(put!.payers).toHaveLength(2);
+  });
 
   it('exports the expenses as a CSV download (#1500)', async () => {
     // Display in the trip's own currency so FX conversion is an identity.
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
-    let exported: Blob | null = null
-    const createObjURL = vi.spyOn(URL, 'createObjectURL').mockImplementation(b => { exported = b as Blob; return 'blob:mock' })
-    const revokeObjURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
-    const item = { ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner; tapas' }), total_price: 90, expense_date: '2025-06-15' }
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } });
+    let exported: Blob | null = null;
+    const createObjURL = vi.spyOn(URL, 'createObjectURL').mockImplementation((b) => {
+      exported = b as Blob;
+      return 'blob:mock';
+    });
+    const revokeObjURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const item = {
+      ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Dinner; tapas' }),
+      total_price: 90,
+      expense_date: '2025-06-15',
+    };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] }))
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await screen.findByText('Dinner; tapas')
-    await user.click(screen.getByRole('button', { name: 'Export CSV' }))
+    await screen.findByText('Dinner; tapas');
+    await user.click(screen.getByRole('button', { name: 'Export CSV' }));
 
-    expect(exported).toBeTruthy()
-    const text = await exported!.text()
-    expect(text).toContain('Date;Name;Category;Amount;Currency;Amount (EUR);Note')
-    expect(text).toContain('"Dinner; tapas"') // separator inside the name gets quoted
-    expect(text).toContain('Food & drink')    // category label, not the raw key
-    expect(text).toContain('90.00;EUR')
-    createObjURL.mockRestore(); revokeObjURL.mockRestore(); clickSpy.mockRestore()
-  })
+    expect(exported).toBeTruthy();
+    const text = await exported!.text();
+    expect(text).toContain('Date;Name;Category;Amount;Currency;Amount (EUR);Note');
+    expect(text).toContain('"Dinner; tapas"'); // separator inside the name gets quoted
+    expect(text).toContain('Food & drink'); // category label, not the raw key
+    expect(text).toContain('90.00;EUR');
+    createObjURL.mockRestore();
+    revokeObjURL.mockRestore();
+    clickSpy.mockRestore();
+  });
 
   it('supports itemized receipt ticket manual entry and split assignment', async () => {
-    let posted: Record<string, unknown> | null = null
+    let posted: Record<string, unknown> | null = null;
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
       http.post('/api/trips/1/budget', async ({ request }) => {
-        posted = await request.json() as Record<string, unknown>
-        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'Dinner' }), id: 10 } })
-      }),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'Dinner' }), id: 10 } });
+      })
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner');
 
-    await user.click(screen.getByRole('button', { name: 'Ticket' }))
+    await user.click(screen.getByRole('button', { name: 'Ticket' }));
 
-    const addBtn = screen.getByRole('button', { name: /Add item/i })
-    await user.click(addBtn)
-    await user.click(addBtn)
-    await user.click(addBtn)
+    const addBtn = screen.getByRole('button', { name: /Add item/i });
+    await user.click(addBtn);
+    await user.click(addBtn);
+    await user.click(addBtn);
 
-    const itemNames = screen.getAllByPlaceholderText('Item name')
-    const itemPrices = screen.getAllByPlaceholderText('0,00')
-    
-    await user.type(itemNames[0], 'Apples')
-    await user.type(itemPrices[1], '10')
+    const itemNames = screen.getAllByPlaceholderText('Item name');
+    const itemPrices = screen.getAllByPlaceholderText('0,00');
 
-    await user.type(itemNames[1], 'chocolate cake')
-    await user.type(itemPrices[2], '50')
-    const bobButtons = bobInForm()
-    await user.click(bobButtons[1])
+    await user.type(itemNames[0], 'Apples');
+    await user.type(itemPrices[1], '10');
 
-    await user.type(itemNames[2], 'Milk')
-    await user.type(itemPrices[3], '40')
+    await user.type(itemNames[1], 'chocolate cake');
+    await user.type(itemPrices[2], '50');
+    const bobButtons = bobInForm();
+    await user.click(bobButtons[1]);
 
-    expect(screen.getByDisplayValue('100,00')).toBeDisabled()
+    await user.type(itemNames[2], 'Milk');
+    await user.type(itemPrices[3], '40');
 
-    expect(screen.getByText('Individual shares')).toBeInTheDocument()
-    expect(screen.getByText(/75,00/)).toBeInTheDocument()
-    expect(screen.getByText(/25,00/)).toBeInTheDocument()
+    expect(screen.getByDisplayValue('100,00')).toBeDisabled();
 
-    const addBtns = screen.getAllByRole('button', { name: 'Add expense' })
-    await user.click(addBtns[addBtns.length - 1])
+    expect(screen.getByText('Individual shares')).toBeInTheDocument();
+    expect(screen.getByText(/75,00/)).toBeInTheDocument();
+    expect(screen.getByText(/25,00/)).toBeInTheDocument();
 
-    await waitFor(() => expect(posted).toBeTruthy())
-    expect(posted!.total_price).toBe(100)
-    expect(posted!.members).toEqual(expect.arrayContaining([
-      expect.objectContaining({ user_id: 1, amount: 75 }),
-      expect.objectContaining({ user_id: 2, amount: 25 }),
-    ]))
+    const addBtns = screen.getAllByRole('button', { name: 'Add expense' });
+    await user.click(addBtns[addBtns.length - 1]);
+
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted!.total_price).toBe(100);
+    expect(posted!.members).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ user_id: 1, amount: 75 }),
+        expect.objectContaining({ user_id: 2, amount: 25 }),
+      ])
+    );
     // The receipt has its own column since #1658; `note` is the user's text.
-    expect(JSON.parse(posted!.ticket_json as string).items).toHaveLength(3)
-    expect(posted!.note).toBeNull()
-  })
+    expect(JSON.parse(posted!.ticket_json as string).items).toHaveLength(3);
+    expect(posted!.note).toBeNull();
+  });
 
   // ── Display currency ───────────────────────────────────────────────────────
 
   it('shows amounts in the trip currency when the user has no display currency set', async () => {
     // No personal preference → the trip's own currency wins, instead of a hardcoded one.
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: '' } })
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'JPY' }) })
-    const item = { ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Sushi' }), total_price: 3000, currency: 'JPY', payers: [], members: [{ user_id: 1, username: 'alice', paid: 0 }] }
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: '' } });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'JPY' }) });
+    const item = {
+      ...buildBudgetItem({ trip_id: 1, category: 'food', name: 'Sushi' }),
+      total_price: 3000,
+      currency: 'JPY',
+      payers: [],
+      members: [{ user_id: 1, username: 'alice', paid: 0 }],
+    };
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
-    )
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] }))
+    );
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await screen.findByText('Sushi')
-    const card = screen.getByRole('region', { name: 'Total trip spend' })
+    await screen.findByText('Sushi');
+    const card = screen.getByRole('region', { name: 'Total trip spend' });
     // Yen, unconverted and with JPY's zero decimals — not a euro/dollar default.
-    expect(card).toHaveTextContent('￥3,000')
-  })
+    expect(card).toHaveTextContent('￥3,000');
+  });
 
   // ── Payment currency ───────────────────────────────────────────────────────
   // A transfer settling a shared bill can be made in any currency, so it carries its
   // own rather than being assumed to be in the display one.
 
   it('records a payment in the display currency by default', async () => {
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
-    let posted: Record<string, unknown> | null = null
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } });
+    let posted: Record<string, unknown> | null = null;
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
       http.post('/api/trips/1/budget/settlements', async ({ request }) => {
-        posted = await request.json() as Record<string, unknown>
-        return HttpResponse.json({ settlement: { id: 1, ...posted } })
-      }),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ settlement: { id: 1, ...posted } });
+      })
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0,00'), '25')
-    const addButtons = screen.getAllByRole('button', { name: 'Add payment' })
-    await user.click(addButtons[addButtons.length - 1])
+    await user.click(await screen.findByRole('button', { name: 'Add payment' }));
+    await user.type(await screen.findByPlaceholderText('0,00'), '25');
+    const addButtons = screen.getAllByRole('button', { name: 'Add payment' });
+    await user.click(addButtons[addButtons.length - 1]);
 
-    await waitFor(() => expect(posted).toMatchObject({ amount: 25, currency: 'EUR' }))
-  })
+    await waitFor(() => expect(posted).toMatchObject({ amount: 25, currency: 'EUR' }));
+  });
 
   it('records a payment made in another currency', async () => {
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
-    let posted: Record<string, unknown> | null = null
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } });
+    let posted: Record<string, unknown> | null = null;
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
       http.post('/api/trips/1/budget/settlements', async ({ request }) => {
-        posted = await request.json() as Record<string, unknown>
-        return HttpResponse.json({ settlement: { id: 1, ...posted } })
-      }),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ settlement: { id: 1, ...posted } });
+      })
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0,00'), '25')
+    await user.click(await screen.findByRole('button', { name: 'Add payment' }));
+    await user.type(await screen.findByPlaceholderText('0,00'), '25');
     // Bob paid me back in dollars — the server freezes the USD rate on write.
-    await user.click(screen.getByText(/^EUR/))
-    await user.click(await screen.findByText(/^USD/))
-    const addButtons = screen.getAllByRole('button', { name: 'Add payment' })
-    await user.click(addButtons[addButtons.length - 1])
+    await user.click(screen.getByText(/^EUR/));
+    await user.click(await screen.findByText(/^USD/));
+    const addButtons = screen.getAllByRole('button', { name: 'Add payment' });
+    await user.click(addButtons[addButtons.length - 1]);
 
-    await waitFor(() => expect(posted).toMatchObject({ amount: 25, currency: 'USD' }))
-  })
+    await waitFor(() => expect(posted).toMatchObject({ amount: 25, currency: 'USD' }));
+  });
 
   it('reopens a foreign-currency payment with its own currency', async () => {
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } });
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () =>
@@ -758,98 +855,150 @@ describe('CostsPanel — settlements in the ledger', () => {
           balances: [],
           flows: [],
           settlements: [
-            { id: 7, trip_id: 1, from_user_id: 2, to_user_id: 1, amount: 30, currency: 'USD', exchange_rate: 1.1, created_at: '2025-06-16 10:00:00', from_username: 'bob', to_username: 'alice' },
+            {
+              id: 7,
+              trip_id: 1,
+              from_user_id: 2,
+              to_user_id: 1,
+              amount: 30,
+              currency: 'USD',
+              exchange_rate: 1.1,
+              created_at: '2025-06-16 10:00:00',
+              from_username: 'bob',
+              to_username: 'alice',
+            },
           ],
         })
-      ),
-    )
-    const { default: userEvent } = await import('@testing-library/user-event')
-    const user = userEvent.setup()
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+      )
+    );
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await screen.findByText('Payment')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await screen.findByText('Payment');
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
 
     // The stored USD amount comes back as-is (padded to two decimals, #2175),
     // not silently reread as euros.
-    expect((await screen.findByPlaceholderText('0.00') as HTMLInputElement).value).toBe('30.00')
-    expect(screen.getByText(/^USD/)).toBeInTheDocument()
-  })
-})
+    expect(((await screen.findByPlaceholderText('0.00')) as HTMLInputElement).value).toBe('30.00');
+    expect(screen.getByText(/^USD/)).toBeInTheDocument();
+  });
+});
 
 // ── The rest of the panel ────────────────────────────────────────────────────
 
-type Flow = { from: { user_id: number; username: string }; to: { user_id: number; username: string }; amount: number }
-type Balance = { user_id: number; username: string; avatar_url: string | null; balance: number }
-type Payment = { id: number; from_user_id: number; to_user_id: number; amount: number; currency?: string | null; exchange_rate?: number; created_at?: string; settled_at?: string | null }
+type Flow = { from: { user_id: number; username: string }; to: { user_id: number; username: string }; amount: number };
+type Balance = { user_id: number; username: string; avatar_url: string | null; balance: number };
+type Payment = {
+  id: number;
+  from_user_id: number;
+  to_user_id: number;
+  amount: number;
+  currency?: string | null;
+  exchange_rate?: number;
+  created_at?: string;
+  settled_at?: string | null;
+};
 
 // `members` here is the wire shape the panel reads; `paid` is only set by the server.
-type MemberFixture = { user_id: number; username?: string; amount?: number; paid?: number }
+type MemberFixture = { user_id: number; username?: string; amount?: number; paid?: number };
 const expense = (over: Partial<Omit<BudgetItem, 'members'>> & { members?: MemberFixture[] }): BudgetItem =>
-  ({ ...buildBudgetItem({ trip_id: 1 }), payers: [], members: [], ...over }) as unknown as BudgetItem
+  ({ ...buildBudgetItem({ trip_id: 1 }), payers: [], members: [], ...over }) as unknown as BudgetItem;
 
 function mount(
   items: BudgetItem[],
-  settlement: { balances?: Balance[]; flows?: Flow[]; settlements?: Payment[]; finalBudgets?: BudgetParticipantFinal[] } = {},
-  entries?: string[],
+  settlement: {
+    balances?: Balance[];
+    flows?: Flow[];
+    settlements?: Payment[];
+    finalBudgets?: BudgetParticipantFinal[];
+  } = {},
+  entries?: string[]
 ) {
   server.use(
     http.get('/api/trips/1/budget', () => HttpResponse.json({ items })),
     http.get('/api/trips/1/budget/settlement', () =>
-      HttpResponse.json({ balances: [], flows: [], settlements: [], ...settlement })),
-  )
-  return render(<CostsPanel tripId={1} tripMembers={tripMembers} />, entries ? { initialEntries: entries } : undefined)
+      HttpResponse.json({ balances: [], flows: [], settlements: [], ...settlement })
+    )
+  );
+  return render(<CostsPanel tripId={1} tripMembers={tripMembers} />, entries ? { initialEntries: entries } : undefined);
 }
 
 /** CustomSelect renders its options into a body portal. */
 function pickOption(label: string | RegExp) {
-  const dropdown = document.querySelector('div[style*="z-index: 99999"]') as HTMLElement
-  fireEvent.click(within(dropdown).getByRole('button', { name: label }))
+  const dropdown = document.querySelector('div[style*="z-index: 99999"]') as HTMLElement;
+  fireEvent.click(within(dropdown).getByRole('button', { name: label }));
 }
 
 // Alice is the signed-in user throughout; the euro display currency keeps FX an identity.
 function seedAlice() {
-  seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true })
-  seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
+  seedStore(useAuthStore, { user: buildUser({ id: 1, username: 'alice' }), isAuthenticated: true });
+  seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } });
 }
 
-const dinner = () => expense({
-  id: 101, name: 'Dinner', category: 'food', total_price: 90, expense_date: '2025-06-15',
-  payers: [{ user_id: 1, amount: 90 }],
-  members: [{ user_id: 1, username: 'alice' }, { user_id: 2, username: 'bob' }],
-})
-const taxi = () => expense({
-  id: 102, name: 'Taxi', category: 'transport', total_price: 30, expense_date: '2025-06-16',
-  payers: [{ user_id: 2, amount: 30 }],
-  members: [{ user_id: 1, username: 'alice' }, { user_id: 2, username: 'bob' }],
-})
+const dinner = () =>
+  expense({
+    id: 101,
+    name: 'Dinner',
+    category: 'food',
+    total_price: 90,
+    expense_date: '2025-06-15',
+    payers: [{ user_id: 1, amount: 90 }],
+    members: [
+      { user_id: 1, username: 'alice' },
+      { user_id: 2, username: 'bob' },
+    ],
+  });
+const taxi = () =>
+  expense({
+    id: 102,
+    name: 'Taxi',
+    category: 'transport',
+    total_price: 30,
+    expense_date: '2025-06-16',
+    payers: [{ user_id: 2, amount: 30 }],
+    members: [
+      { user_id: 1, username: 'alice' },
+      { user_id: 2, username: 'bob' },
+    ],
+  });
 
 describe('CostsPanel — overview', () => {
-  beforeEach(seedAlice)
+  beforeEach(seedAlice);
 
   it('FE-W5COSTS-001: heads the panel with the trip span and the traveler chips', async () => {
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR', start_date: '2025-06-01', end_date: '2025-06-05' }) })
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1, currency: 'EUR', start_date: '2025-06-01', end_date: '2025-06-05' }),
+    });
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
-    )
-    render(<CostsPanel tripId={1} tripMembers={[{ id: 1, username: 'alice', avatar_url: '/uploads/avatars/a.png' }, { id: 2, username: 'bob', avatar_url: null }]} />)
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] }))
+    );
+    render(
+      <CostsPanel
+        tripId={1}
+        tripMembers={[
+          { id: 1, username: 'alice', avatar_url: '/uploads/avatars/a.png' },
+          { id: 2, username: 'bob', avatar_url: null },
+        ]}
+      />
+    );
 
-    const span = await screen.findByText('5 days')
-    expect(span.parentElement).toHaveTextContent('Jun 1 – Jun 5')
-    expect(screen.getByText('2 travelers')).toBeInTheDocument()
+    const span = await screen.findByText('5 days');
+    expect(span.parentElement).toHaveTextContent('Jun 1 – Jun 5');
+    expect(screen.getByText('2 travelers')).toBeInTheDocument();
     // Alice has an uploaded avatar, Bob falls back to his initial.
-    expect(document.querySelectorAll('img[src="/uploads/avatars/a.png"]').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('B').length).toBeGreaterThan(0)
-  })
+    expect(document.querySelectorAll('img[src="/uploads/avatars/a.png"]').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('B').length).toBeGreaterThan(0);
+  });
 
   it('FE-W5COSTS-002: a trip without dates gets no span chip', async () => {
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR', start_date: null, end_date: null } as never) })
-    mount([])
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR', start_date: null, end_date: null } as never) });
+    mount([]);
 
-    expect(await screen.findByText('2 travelers')).toBeInTheDocument()
-    expect(screen.queryByText(/^\d+ days$/)).toBeNull()
-  })
+    expect(await screen.findByText('2 travelers')).toBeInTheDocument();
+    expect(screen.queryByText(/^\d+ days$/)).toBeNull();
+  });
 
   it('FE-W5COSTS-003: balances render credit, debt and a settled zero', async () => {
     mount([], {
@@ -857,36 +1006,44 @@ describe('CostsPanel — overview', () => {
         { user_id: 1, username: 'alice', avatar_url: null, balance: 45 },
         { user_id: 2, username: 'bob', avatar_url: null, balance: -45 },
       ],
-    })
+    });
 
-    expect(await screen.findByText('+45,00 €')).toBeInTheDocument()
-    expect(screen.getByText('−45,00 €')).toBeInTheDocument()
-  })
+    expect(await screen.findByText('+45,00 €')).toBeInTheDocument();
+    expect(screen.getByText('−45,00 €')).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-004: a member with no balance row is shown as square', async () => {
-    mount([], { balances: [{ user_id: 1, username: 'alice', avatar_url: null, balance: 0 }] })
+    mount([], { balances: [{ user_id: 1, username: 'alice', avatar_url: null, balance: 0 }] });
 
     // Both travellers appear; neither has a signed amount.
-    const balances = (await screen.findByRole('region', { name: 'Balances' })) as HTMLElement
-    expect(within(balances).getAllByText('0,00 €')).toHaveLength(2)
-  })
+    const balances = (await screen.findByRole('region', { name: 'Balances' })) as HTMLElement;
+    expect(within(balances).getAllByText('0,00 €')).toHaveLength(2);
+  });
 
   it('FE-W5COSTS-004b: the final budget gives one amount per traveler and its arithmetic on click', async () => {
     // Dinner is 100 USD fronted by Alice, booked by the server at the rate frozen
     // on entry as 92 €; taxi 30 € by Bob; both split evenly, so the trip costs each
     // of them 61. Bob has sent 15 of the 31 he owed, 16 is still open. No live rate
     // is loaded here, so a client converting the dinner itself would print 100 €.
-    const user = userEvent.setup()
+    const user = userEvent.setup();
     mount([{ ...dinner(), currency: 'USD', total_price: 100, payers: [{ user_id: 1, amount: 100 }] }, taxi()], {
       balances: [
         { user_id: 1, username: 'alice', avatar_url: null, balance: 16 },
         { user_id: 2, username: 'bob', avatar_url: null, balance: -16 },
       ],
       flows: [{ from: { user_id: 2, username: 'bob' }, to: { user_id: 1, username: 'alice' }, amount: 16 }],
-      settlements: [{ id: 9, from_user_id: 2, to_user_id: 1, amount: 15, currency: 'EUR', created_at: '2025-06-17 10:00:00' }],
+      settlements: [
+        { id: 9, from_user_id: 2, to_user_id: 1, amount: 15, currency: 'EUR', created_at: '2025-06-17 10:00:00' },
+      ],
       finalBudgets: [
         {
-          user_id: 1, username: 'alice', avatar_url: null, expenses: 92, reimbursed: 15, pending: 16, final: 61,
+          user_id: 1,
+          username: 'alice',
+          avatar_url: null,
+          expenses: 92,
+          reimbursed: 15,
+          pending: 16,
+          final: 61,
           sources: {
             fronted: [{ item_id: 101, cents: 9200 }],
             moved: [{ settlement_id: 9, from_user_id: 2, to_user_id: 1, cents: 1500 }],
@@ -894,7 +1051,13 @@ describe('CostsPanel — overview', () => {
           },
         },
         {
-          user_id: 2, username: 'bob', avatar_url: null, expenses: 30, reimbursed: -15, pending: -16, final: 61,
+          user_id: 2,
+          username: 'bob',
+          avatar_url: null,
+          expenses: 30,
+          reimbursed: -15,
+          pending: -16,
+          final: 61,
           sources: {
             fronted: [{ item_id: 102, cents: 3000 }],
             moved: [{ settlement_id: 9, from_user_id: 2, to_user_id: 1, cents: -1500 }],
@@ -902,389 +1065,450 @@ describe('CostsPanel — overview', () => {
           },
         },
       ],
-    })
+    });
 
-    const card = (await screen.findByRole('region', { name: 'Final budget' })) as HTMLElement
-    await waitFor(() => expect(within(card).getAllByText('61,00 €')).toHaveLength(2))
+    const card = (await screen.findByRole('region', { name: 'Final budget' })) as HTMLElement;
+    await waitFor(() => expect(within(card).getAllByText('61,00 €')).toHaveLength(2));
     // The main view stays one figure per person until someone asks for more.
-    expect(within(card).queryByText('Expenses paid')).toBeNull()
+    expect(within(card).queryByText('Expenses paid')).toBeNull();
 
-    const alice = within(card).getByRole('button', { name: /You/ })
-    await user.click(alice)
-    expect(alice).toHaveAttribute('aria-expanded', 'true')
+    const alice = within(card).getByRole('button', { name: /You/ });
+    await user.click(alice);
+    expect(alice).toHaveAttribute('aria-expanded', 'true');
     // The dinner is the server's 92 €, once as the line and once as its only row; the
     // 100 USD is never converted again here. What was entered labels the row (#2525).
-    expect(within(card).getAllByText('+92,00 €')).toHaveLength(2)
-    expect(within(card).queryByText(/100,00/)).toBeNull()
-    expect(within(card).getByText('$100.00')).toBeInTheDocument()
+    expect(within(card).getAllByText('+92,00 €')).toHaveLength(2);
+    expect(within(card).queryByText(/100,00/)).toBeNull();
+    expect(within(card).getByText('$100.00')).toBeInTheDocument();
     // Received and still pending both lower her cost, each line with its one row.
-    expect(within(card).getAllByText('−15,00 €')).toHaveLength(2)
-    expect(within(card).getAllByText('−16,00 €')).toHaveLength(2)
-    expect(within(card).getByText('Dinner')).toBeInTheDocument()
-    expect(within(card).queryByText('Taxi')).toBeNull()
-    expect(within(card).getAllByText(/^bob → /)).toHaveLength(2)
+    expect(within(card).getAllByText('−15,00 €')).toHaveLength(2);
+    expect(within(card).getAllByText('−16,00 €')).toHaveLength(2);
+    expect(within(card).getByText('Dinner')).toBeInTheDocument();
+    expect(within(card).queryByText('Taxi')).toBeNull();
+    expect(within(card).getAllByText(/^bob → /)).toHaveLength(2);
 
     // Opening Bob closes Alice: what he sent back and what he still owes raise his.
-    await user.click(within(card).getByRole('button', { name: /bob/ }))
-    expect(alice).toHaveAttribute('aria-expanded', 'false')
-    expect(within(card).getAllByText('+30,00 €')).toHaveLength(2)
-    expect(within(card).getAllByText('+15,00 €')).toHaveLength(2)
-    expect(within(card).getAllByText('+16,00 €')).toHaveLength(2)
-    expect(within(card).getByText('Taxi')).toBeInTheDocument()
-    expect(within(card).queryByText('Dinner')).toBeNull()
-  })
+    await user.click(within(card).getByRole('button', { name: /bob/ }));
+    expect(alice).toHaveAttribute('aria-expanded', 'false');
+    expect(within(card).getAllByText('+30,00 €')).toHaveLength(2);
+    expect(within(card).getAllByText('+15,00 €')).toHaveLength(2);
+    expect(within(card).getAllByText('+16,00 €')).toHaveLength(2);
+    expect(within(card).getByText('Taxi')).toBeInTheDocument();
+    expect(within(card).queryByText('Dinner')).toBeNull();
+  });
 
   it('FE-W5COSTS-005: the category breakdown ranks categories by spend', async () => {
-    mount([dinner(), taxi()])
+    mount([dinner(), taxi()]);
 
-    await screen.findByText('Dinner')
-    const breakdown = screen.getByRole('region', { name: 'By category' }) as HTMLElement
-    const labels = within(breakdown).getAllByText(/Food & drink|Transport/).map(el => el.textContent)
+    await screen.findByText('Dinner');
+    const breakdown = screen.getByRole('region', { name: 'By category' }) as HTMLElement;
+    const labels = within(breakdown)
+      .getAllByText(/Food & drink|Transport/)
+      .map((el) => el.textContent);
     // Bars are ordered by spend, so the 90 € food row comes before the 30 € taxi.
-    expect(labels).toEqual(['Food & drink', 'Transport'])
-    expect(within(breakdown).getByText('90 €')).toBeInTheDocument()
-    expect(within(breakdown).getByText('30 €')).toBeInTheDocument()
-  })
+    expect(labels).toEqual(['Food & drink', 'Transport']);
+    expect(within(breakdown).getByText('90 €')).toBeInTheDocument();
+    expect(within(breakdown).getByText('30 €')).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-006: an empty trip shows the empty ledger and the empty breakdown', async () => {
-    mount([])
+    mount([]);
 
-    expect(await screen.findByText('No expenses yet. Add your first one.')).toBeInTheDocument()
-    expect(screen.getByText('No expenses yet.')).toBeInTheDocument()
-    expect(screen.getByText("Everyone's square")).toBeInTheDocument()
-  })
+    expect(await screen.findByText('No expenses yet. Add your first one.')).toBeInTheDocument();
+    expect(screen.getByText('No expenses yet.')).toBeInTheDocument();
+    expect(screen.getByText("Everyone's square")).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-007: an unknown currency falls back to a plainly formatted amount', async () => {
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: '' } })
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'XX' }) })
-    mount([expense({ id: 110, name: 'Mystery', category: 'other', total_price: 90 })])
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: '' } });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'XX' }) });
+    mount([expense({ id: 110, name: 'Mystery', category: 'other', total_price: 90 })]);
 
-    await screen.findByText('Mystery')
-    const card = screen.getByRole('region', { name: 'Total trip spend' })
-    expect(card).toHaveTextContent('90.00 XX')
-  })
-})
+    await screen.findByText('Mystery');
+    const card = screen.getByRole('region', { name: 'Total trip spend' });
+    expect(card).toHaveTextContent('90.00 XX');
+  });
+});
 
 describe('CostsPanel — settle up', () => {
-  beforeEach(seedAlice)
+  beforeEach(seedAlice);
 
   const flows: Flow[] = [
     { from: { user_id: 2, username: 'bob' }, to: { user_id: 1, username: 'alice' }, amount: 45 },
     { from: { user_id: 3, username: 'cara' }, to: { user_id: 1, username: 'alice' }, amount: 15 },
-  ]
+  ];
 
   it('FE-W5COSTS-008: outstanding flows are listed and settling one records the transfer', async () => {
-    const posted: Record<string, unknown>[] = []
-    server.use(http.post('/api/trips/1/budget/settlements', async ({ request }) => {
-      posted.push(await request.json() as Record<string, unknown>)
-      return HttpResponse.json({ settlement: { id: 1 } })
-    }))
-    mount([], { flows: [flows[0]] })
+    const posted: Record<string, unknown>[] = [];
+    server.use(
+      http.post('/api/trips/1/budget/settlements', async ({ request }) => {
+        posted.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ settlement: { id: 1 } });
+      })
+    );
+    mount([], { flows: [flows[0]] });
 
-    await screen.findByText('45,00 €')
+    await screen.findByText('45,00 €');
     // The "you're owed" card names who still owes me.
-    expect(screen.getByText("You're owed")).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Settle' }))
+    expect(screen.getByText("You're owed")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Settle' }));
 
-    await waitFor(() => expect(posted).toHaveLength(1))
-    expect(posted[0]).toMatchObject({ from_user_id: 2, to_user_id: 1, amount: 45, currency: 'EUR' })
-  })
+    await waitFor(() => expect(posted).toHaveLength(1));
+    expect(posted[0]).toMatchObject({ from_user_id: 2, to_user_id: 1, amount: 45, currency: 'EUR' });
+  });
 
   it('FE-W5COSTS-009: Settle up clears every outstanding flow at once', async () => {
-    const posted: Record<string, unknown>[] = []
-    server.use(http.post('/api/trips/1/budget/settlements', async ({ request }) => {
-      posted.push(await request.json() as Record<string, unknown>)
-      return HttpResponse.json({ settlement: { id: 1 } })
-    }))
-    mount([], { flows })
+    const posted: Record<string, unknown>[] = [];
+    server.use(
+      http.post('/api/trips/1/budget/settlements', async ({ request }) => {
+        posted.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ settlement: { id: 1 } });
+      })
+    );
+    mount([], { flows });
 
-    const settleAll = await screen.findByRole('button', { name: 'Settle up' })
-    await waitFor(() => expect(settleAll).not.toBeDisabled())
-    fireEvent.click(settleAll)
+    const settleAll = await screen.findByRole('button', { name: 'Settle up' });
+    await waitFor(() => expect(settleAll).not.toBeDisabled());
+    fireEvent.click(settleAll);
 
-    await waitFor(() => expect(posted).toHaveLength(2))
-    expect(posted.map(p => p.amount)).toEqual([45, 15])
-  })
+    await waitFor(() => expect(posted).toHaveLength(2));
+    expect(posted.map((p) => p.amount)).toEqual([45, 15]);
+  });
 
   it('FE-W5COSTS-010: Settle up is disabled while nothing is outstanding', async () => {
-    mount([])
+    mount([]);
 
-    expect(await screen.findByRole('button', { name: 'Settle up' })).toBeDisabled()
-  })
+    expect(await screen.findByRole('button', { name: 'Settle up' })).toBeDisabled();
+  });
 
   it('FE-W5COSTS-011: a failing settle surfaces an error toast', async () => {
-    const addToast = vi.fn()
-    window.__addToast = addToast as unknown as typeof window.__addToast
-    server.use(http.post('/api/trips/1/budget/settlements', () => HttpResponse.json({ error: 'no' }, { status: 500 })))
-    mount([], { flows: [flows[0]] })
+    const addToast = vi.fn();
+    window.__addToast = addToast as unknown as typeof window.__addToast;
+    server.use(http.post('/api/trips/1/budget/settlements', () => HttpResponse.json({ error: 'no' }, { status: 500 })));
+    mount([], { flows: [flows[0]] });
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Settle' }))
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined))
+    fireEvent.click(await screen.findByRole('button', { name: 'Settle' }));
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined));
 
-    addToast.mockClear()
-    fireEvent.click(screen.getByRole('button', { name: 'Settle up' }))
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined))
-    delete window.__addToast
-  })
+    addToast.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'Settle up' }));
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined));
+    delete window.__addToast;
+  });
 
   it('FE-W5COSTS-012: undoing a payment deletes it, and a failure is reported', async () => {
-    const addToast = vi.fn()
-    window.__addToast = addToast as unknown as typeof window.__addToast
-    let deleted = 0
-    server.use(http.delete('/api/trips/1/budget/settlements/7', () => {
-      deleted += 1
-      return deleted === 1 ? HttpResponse.json({ success: true }) : HttpResponse.json({ error: 'no' }, { status: 500 })
-    }))
-    mount([], { settlements: [{ id: 7, from_user_id: 2, to_user_id: 1, amount: 30, created_at: '2025-06-16 10:00:00' }] })
+    const addToast = vi.fn();
+    window.__addToast = addToast as unknown as typeof window.__addToast;
+    let deleted = 0;
+    server.use(
+      http.delete('/api/trips/1/budget/settlements/7', () => {
+        deleted += 1;
+        return deleted === 1
+          ? HttpResponse.json({ success: true })
+          : HttpResponse.json({ error: 'no' }, { status: 500 });
+      })
+    );
+    mount([], {
+      settlements: [{ id: 7, from_user_id: 2, to_user_id: 1, amount: 30, created_at: '2025-06-16 10:00:00' }],
+    });
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
-    await waitFor(() => expect(deleted).toBe(1))
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(deleted).toBe(1));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined))
-    delete window.__addToast
-  })
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined));
+    delete window.__addToast;
+  });
 
   it('FE-W5COSTS-059: a settle-up that fails midway still reloads the transfers that went through', async () => {
-    const addToast = vi.fn()
-    window.__addToast = addToast as unknown as typeof window.__addToast
-    let posted = 0
-    let reads = 0
+    const addToast = vi.fn();
+    window.__addToast = addToast as unknown as typeof window.__addToast;
+    let posted = 0;
+    let reads = 0;
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () => {
-        reads += 1
-        return HttpResponse.json({ balances: [], flows: posted > 0 ? [flows[1]] : flows, settlements: [] })
+        reads += 1;
+        return HttpResponse.json({ balances: [], flows: posted > 0 ? [flows[1]] : flows, settlements: [] });
       }),
       http.post('/api/trips/1/budget/settlements', () => {
-        posted += 1
-        return posted === 1 ? HttpResponse.json({ settlement: { id: 1 } }) : HttpResponse.json({ error: 'no' }, { status: 500 })
-      }),
-    )
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        posted += 1;
+        return posted === 1
+          ? HttpResponse.json({ settlement: { id: 1 } })
+          : HttpResponse.json({ error: 'no' }, { status: 500 });
+      })
+    );
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    const settleAll = await screen.findByRole('button', { name: 'Settle up' })
-    await waitFor(() => expect(settleAll).not.toBeDisabled())
-    const readsBefore = reads
-    fireEvent.click(settleAll)
+    const settleAll = await screen.findByRole('button', { name: 'Settle up' });
+    await waitFor(() => expect(settleAll).not.toBeDisabled());
+    const readsBefore = reads;
+    fireEvent.click(settleAll);
 
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined))
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined));
     // The failed second transfer must not swallow the refresh: bob's 45 € was
     // recorded, and leaving it listed invites a second, doubled settle-up.
-    await waitFor(() => expect(reads).toBeGreaterThan(readsBefore))
-    expect(posted).toBe(2)
-    delete window.__addToast
-  })
+    await waitFor(() => expect(reads).toBeGreaterThan(readsBefore));
+    expect(posted).toBe(2);
+    delete window.__addToast;
+  });
 
   it('FE-W5COSTS-060: a settlement read that fails says so instead of claiming everyone is square', async () => {
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ error: 'no' }, { status: 500 })),
-    )
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ error: 'no' }, { status: 500 }))
+    );
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await screen.findByText('Balances')
+    await screen.findByText('Balances');
     // Settle up, Balances and Final budget all hang off the one failed request.
-    await waitFor(() => expect(screen.getAllByText('Unknown error')).toHaveLength(3))
-    expect(screen.queryByText("Everyone's square")).toBeNull()
-  })
+    await waitFor(() => expect(screen.getAllByText('Unknown error')).toHaveLength(3));
+    expect(screen.queryByText("Everyone's square")).toBeNull();
+  });
 
   it('FE-W5COSTS-013: the "you owe" card lists who I still have to pay', async () => {
-    mount([], { flows: [{ from: { user_id: 1, username: 'alice' }, to: { user_id: 2, username: 'bob' }, amount: 20 }] })
+    mount([], {
+      flows: [{ from: { user_id: 1, username: 'alice' }, to: { user_id: 2, username: 'bob' }, amount: 20 }],
+    });
 
-    await screen.findByText('You owe')
-    const card = screen.getByRole('region', { name: 'You owe' }) as HTMLElement
-    expect(within(card).getByText('To')).toBeInTheDocument()
-    expect(within(card).getByText('bob')).toBeInTheDocument()
-    expect(screen.getByText('Nothing owed to you')).toBeInTheDocument()
-  })
-})
+    await screen.findByText('You owe');
+    const card = screen.getByRole('region', { name: 'You owe' }) as HTMLElement;
+    expect(within(card).getByText('To')).toBeInTheDocument();
+    expect(within(card).getByText('bob')).toBeInTheDocument();
+    expect(screen.getByText('Nothing owed to you')).toBeInTheDocument();
+  });
+});
 
 describe('CostsPanel — filtering the ledger', () => {
-  beforeEach(seedAlice)
+  beforeEach(seedAlice);
 
-  const payment: Payment = { id: 7, from_user_id: 2, to_user_id: 1, amount: 30, created_at: '2025-06-16 10:00:00' }
+  const payment: Payment = { id: 7, from_user_id: 2, to_user_id: 1, amount: 30, created_at: '2025-06-16 10:00:00' };
 
   it('FE-W5COSTS-014: "Paid by me" keeps only the expenses I fronted', async () => {
-    mount([dinner(), taxi()], { settlements: [payment] })
+    mount([dinner(), taxi()], { settlements: [payment] });
 
-    await screen.findByText('Taxi')
-    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Paid by me' }))
+    await screen.findByText('Taxi');
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Paid by me' }));
 
-    expect(screen.getByText('Dinner')).toBeInTheDocument()
-    expect(screen.queryByText('Taxi')).not.toBeInTheDocument()
+    expect(screen.getByText('Dinner')).toBeInTheDocument();
+    expect(screen.queryByText('Taxi')).not.toBeInTheDocument();
     // A transfer I'm part of stays visible under "mine".
-    expect(screen.getByText('Payment')).toBeInTheDocument()
-  })
+    expect(screen.getByText('Payment')).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-015: "I\'m owed" keeps the expenses I am net positive on and drops payments', async () => {
-    mount([dinner(), taxi()], { settlements: [payment] })
+    mount([dinner(), taxi()], { settlements: [payment] });
 
-    await screen.findByText('Taxi')
-    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
-    fireEvent.click(screen.getByRole('button', { name: "I'm owed" }))
+    await screen.findByText('Taxi');
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: "I'm owed" }));
 
-    expect(screen.getByText('Dinner')).toBeInTheDocument()
-    expect(screen.queryByText('Taxi')).not.toBeInTheDocument()
-    expect(screen.queryByText('Payment')).not.toBeInTheDocument()
-  })
+    expect(screen.getByText('Dinner')).toBeInTheDocument();
+    expect(screen.queryByText('Taxi')).not.toBeInTheDocument();
+    expect(screen.queryByText('Payment')).not.toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-016: the category filter narrows the ledger and hides payments', async () => {
-    mount([dinner(), taxi()], { settlements: [payment] })
+    mount([dinner(), taxi()], { settlements: [payment] });
 
-    await screen.findByText('Taxi')
-    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
-    fireEvent.click(within(screen.getByRole('menu')).getByRole('button', { name: 'Transport' }))
+    await screen.findByText('Taxi');
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('button', { name: 'Transport' }));
 
-    expect(screen.getByText('Taxi')).toBeInTheDocument()
-    expect(screen.queryByText('Dinner')).not.toBeInTheDocument()
-    expect(screen.queryByText('Payment')).not.toBeInTheDocument()
-  })
+    expect(screen.getByText('Taxi')).toBeInTheDocument();
+    expect(screen.queryByText('Dinner')).not.toBeInTheDocument();
+    expect(screen.queryByText('Payment')).not.toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-017: picking a single day banners it with that day’s total', async () => {
-    mount([dinner(), taxi()], { settlements: [payment] })
+    mount([dinner(), taxi()], { settlements: [payment] });
 
-    await screen.findByText('Taxi')
-    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
-    fireEvent.click(within(screen.getByRole('menu')).getByRole('button', { name: 'Sun, Jun 15' }))
+    await screen.findByText('Taxi');
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('button', { name: 'Sun, Jun 15' }));
 
-    expect(screen.getByText('Sunday, June 15')).toBeInTheDocument()
-    expect(screen.getByText('1 expenses')).toBeInTheDocument()
-    expect(screen.getByText('Dinner')).toBeInTheDocument()
-    expect(screen.queryByText('Taxi')).not.toBeInTheDocument()
+    expect(screen.getByText('Sunday, June 15')).toBeInTheDocument();
+    expect(screen.getByText('1 expenses')).toBeInTheDocument();
+    expect(screen.getByText('Dinner')).toBeInTheDocument();
+    expect(screen.queryByText('Taxi')).not.toBeInTheDocument();
     // The 16th carries the payment, so it is filtered out with the day too.
-    expect(screen.queryByText('Payment')).not.toBeInTheDocument()
-  })
+    expect(screen.queryByText('Payment')).not.toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-076: a payment groups by its own settled day, not the day it was recorded', async () => {
     // Recorded (created_at) on the 16th, but settled on the 15th — the ledger
     // must follow settled_at, the same way it already follows expense_date over
     // an expense's own created_at.
-    mount([dinner(), taxi()], { settlements: [{ ...payment, settled_at: '2025-06-15' }] })
+    mount([dinner(), taxi()], { settlements: [{ ...payment, settled_at: '2025-06-15' }] });
 
-    await screen.findByText('Taxi')
-    fireEvent.click(screen.getByRole('button', { name: 'Filter' }))
-    fireEvent.click(within(screen.getByRole('menu')).getByRole('button', { name: 'Sun, Jun 15' }))
+    await screen.findByText('Taxi');
+    fireEvent.click(screen.getByRole('button', { name: 'Filter' }));
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('button', { name: 'Sun, Jun 15' }));
 
-    expect(screen.getByText('Dinner')).toBeInTheDocument()
-    expect(screen.queryByText('Taxi')).not.toBeInTheDocument()
-    expect(screen.getByText('Payment')).toBeInTheDocument()
-  })
+    expect(screen.getByText('Dinner')).toBeInTheDocument();
+    expect(screen.queryByText('Taxi')).not.toBeInTheDocument();
+    expect(screen.getByText('Payment')).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-018: expenses without a date are grouped under "No date"', async () => {
-    mount([expense({ id: 120, name: 'Souvenirs', category: 'shopping', total_price: 12, expense_date: null })])
+    mount([expense({ id: 120, name: 'Souvenirs', category: 'shopping', total_price: 12, expense_date: null })]);
 
-    expect(await screen.findByText('No date')).toBeInTheDocument()
-  })
+    expect(await screen.findByText('No date')).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-019: a search with no hits shows the no-match copy', async () => {
-    const user = userEvent.setup()
-    mount([dinner()])
+    const user = userEvent.setup();
+    mount([dinner()]);
 
-    await screen.findByText('Dinner')
-    await user.type(screen.getByPlaceholderText('Search expenses…'), 'zzz')
+    await screen.findByText('Dinner');
+    await user.type(screen.getByPlaceholderText('Search expenses…'), 'zzz');
 
-    expect(screen.getByText('No expenses match your search.')).toBeInTheDocument()
-    expect(screen.queryByText('Dinner')).not.toBeInTheDocument()
-  })
-})
+    expect(screen.getByText('No expenses match your search.')).toBeInTheDocument();
+    expect(screen.queryByText('Dinner')).not.toBeInTheDocument();
+  });
+});
 
 describe('CostsPanel — expense rows', () => {
   beforeEach(() => {
-    seedAlice()
-    clearExchangeRateCache()
-  })
-  afterEach(clearExchangeRateCache)
+    seedAlice();
+    clearExchangeRateCache();
+  });
+  afterEach(clearExchangeRateCache);
 
   it('FE-W5COSTS-020: each expense row shows who fronted it and the day subtotal', async () => {
-    mount([dinner(), taxi()])
+    mount([dinner(), taxi()]);
 
-    await screen.findByText('Dinner')
+    await screen.findByText('Dinner');
     // Each row carries a payer chip plus the row total, both in the base currency.
-    expect(screen.getAllByText('90,00 €')).toHaveLength(2)
-    expect(screen.getAllByText('30,00 €')).toHaveLength(2)
+    expect(screen.getAllByText('90,00 €')).toHaveLength(2);
+    expect(screen.getAllByText('30,00 €')).toHaveLength(2);
     // Days are grouped, each with its own spent line.
-    expect(screen.getByText('90,00 € spent')).toBeInTheDocument()
-    expect(screen.getByText('30,00 € spent')).toBeInTheDocument()
+    expect(screen.getByText('90,00 € spent')).toBeInTheDocument();
+    expect(screen.getByText('30,00 € spent')).toBeInTheDocument();
     // Same-currency rows show the category alone, with no conversion suffix.
-    expect(screen.getAllByText('Food & drink')).toHaveLength(2)
-  })
+    expect(screen.getAllByText('Food & drink')).toHaveLength(2);
+  });
 
   it('FE-W5COSTS-021: a foreign-currency expense shows the original and the converted amount', async () => {
-    localStorage.setItem('trek_fx_EUR', JSON.stringify({ rates: { EUR: 1, USD: 2 }, ts: Date.now() }))
-    mount([expense({
-      id: 130, name: 'Diner', category: 'food', total_price: 100, currency: 'USD', expense_date: '2025-06-15',
-      payers: [{ user_id: 1, amount: 100 }],
-      members: [{ user_id: 1, username: 'alice' }, { user_id: 2, username: 'bob' }],
-    })], { settlements: [{ id: 8, from_user_id: 2, to_user_id: 1, amount: 20, currency: 'USD', created_at: '2025-06-15 09:00:00' }] })
+    localStorage.setItem('trek_fx_EUR', JSON.stringify({ rates: { EUR: 1, USD: 2 }, ts: Date.now() }));
+    mount(
+      [
+        expense({
+          id: 130,
+          name: 'Diner',
+          category: 'food',
+          total_price: 100,
+          currency: 'USD',
+          expense_date: '2025-06-15',
+          payers: [{ user_id: 1, amount: 100 }],
+          members: [
+            { user_id: 1, username: 'alice' },
+            { user_id: 2, username: 'bob' },
+          ],
+        }),
+      ],
+      {
+        settlements: [
+          { id: 8, from_user_id: 2, to_user_id: 1, amount: 20, currency: 'USD', created_at: '2025-06-15 09:00:00' },
+        ],
+      }
+    );
 
-    await screen.findByText('Diner')
-    expect(screen.getByText(/\$100\.00 → 50,00 €/)).toBeInTheDocument()
+    await screen.findByText('Diner');
+    expect(screen.getByText(/\$100\.00 → 50,00 €/)).toBeInTheDocument();
     // The payer chip and the settlement row are converted the same way.
-    expect(screen.getByText(/\$20\.00 → 10,00 €/)).toBeInTheDocument()
-  })
+    expect(screen.getByText(/\$20\.00 → 10,00 €/)).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-078: a booked rate outlives the live one, for the expense and for the transfer', async () => {
     // What a tester hit after settling up: the euro moved, and so did a bill that had
     // already been paid. A cost is money that changed hands at a rate that was true that
     // day, so the frozen rate wins over whatever the market says this morning.
-    localStorage.setItem('trek_fx_EUR', JSON.stringify({ rates: { EUR: 1, USD: 2 }, ts: Date.now() }))
-    mount([expense({
-      id: 131, name: 'Diner', category: 'food', total_price: 120, currency: 'USD', exchange_rate: 1.2,
-      expense_date: '2025-06-15',
-      payers: [{ user_id: 1, amount: 120 }],
-      members: [{ user_id: 1, username: 'alice' }, { user_id: 2, username: 'bob' }],
-    })], { settlements: [{ id: 9, from_user_id: 2, to_user_id: 1, amount: 24, currency: 'USD', exchange_rate: 1.2, created_at: '2025-06-15 09:00:00' }] })
+    localStorage.setItem('trek_fx_EUR', JSON.stringify({ rates: { EUR: 1, USD: 2 }, ts: Date.now() }));
+    mount(
+      [
+        expense({
+          id: 131,
+          name: 'Diner',
+          category: 'food',
+          total_price: 120,
+          currency: 'USD',
+          exchange_rate: 1.2,
+          expense_date: '2025-06-15',
+          payers: [{ user_id: 1, amount: 120 }],
+          members: [
+            { user_id: 1, username: 'alice' },
+            { user_id: 2, username: 'bob' },
+          ],
+        }),
+      ],
+      {
+        settlements: [
+          {
+            id: 9,
+            from_user_id: 2,
+            to_user_id: 1,
+            amount: 24,
+            currency: 'USD',
+            exchange_rate: 1.2,
+            created_at: '2025-06-15 09:00:00',
+          },
+        ],
+      }
+    );
 
-    await screen.findByText('Diner')
+    await screen.findByText('Diner');
     // 120 USD at the booked 1.2 per euro is 100 euro. At today's 2 it would read 60,00 euro.
-    expect(screen.getByText(/\$120\.00 → 100,00 €/)).toBeInTheDocument()
-    expect(screen.queryByText(/60,00 €/)).toBeNull()
+    expect(screen.getByText(/\$120\.00 → 100,00 €/)).toBeInTheDocument();
+    expect(screen.queryByText(/60,00 €/)).toBeNull();
     // The settled transfer is read back the same way: 24 USD booked at 1.2 is 20 euro.
-    expect(screen.getByText(/\$24\.00 → 20,00 €/)).toBeInTheDocument()
-  })
+    expect(screen.getByText(/\$24\.00 → 20,00 €/)).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-022: deleting an expense removes it, and a failure is reported', async () => {
-    const addToast = vi.fn()
-    window.__addToast = addToast as unknown as typeof window.__addToast
-    server.use(http.delete('/api/trips/1/budget/101', () => HttpResponse.json({ error: 'no' }, { status: 500 })))
-    mount([dinner()])
+    const addToast = vi.fn();
+    window.__addToast = addToast as unknown as typeof window.__addToast;
+    server.use(http.delete('/api/trips/1/budget/101', () => HttpResponse.json({ error: 'no' }, { status: 500 })));
+    mount([dinner()]);
 
-    await screen.findByText('Dinner')
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await screen.findByText('Dinner');
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined))
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined));
     // The optimistic removal is rolled back by the store.
-    expect(await screen.findByText('Dinner')).toBeInTheDocument()
-    delete window.__addToast
-  })
+    expect(await screen.findByText('Dinner')).toBeInTheDocument();
+    delete window.__addToast;
+  });
 
   it('FE-W5COSTS-023: ?create=expense opens the add modal straight away', async () => {
-    mount([], {}, ['/trips/1?create=expense'])
+    mount([], {}, ['/trips/1?create=expense']);
 
-    expect(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…')).toBeInTheDocument()
-  })
+    expect(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…')).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-024: a viewer without edit rights gets no write affordances', async () => {
-    seedStore(usePermissionsStore, { permissions: { budget_edit: 'admin' } })
-    mount([dinner()], { flows: [{ from: { user_id: 2, username: 'bob' }, to: { user_id: 1, username: 'alice' }, amount: 45 }], settlements: [{ id: 7, from_user_id: 2, to_user_id: 1, amount: 30, created_at: '2025-06-16 10:00:00' }] })
+    seedStore(usePermissionsStore, { permissions: { budget_edit: 'admin' } });
+    mount([dinner()], {
+      flows: [{ from: { user_id: 2, username: 'bob' }, to: { user_id: 1, username: 'alice' }, amount: 45 }],
+      settlements: [{ id: 7, from_user_id: 2, to_user_id: 1, amount: 30, created_at: '2025-06-16 10:00:00' }],
+    });
 
-    await screen.findByText('Dinner')
-    expect(screen.queryByRole('button', { name: 'Add expense' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Settle up' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Add payment' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Settle' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument()
-  })
-})
+    await screen.findByText('Dinner');
+    expect(screen.queryByRole('button', { name: 'Add expense' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Settle up' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add payment' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Settle' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument();
+  });
+});
 
 describe('CostsPanel — mobile layout', () => {
-  const desktopMatchMedia = window.matchMedia
+  const desktopMatchMedia = window.matchMedia;
 
   beforeEach(() => {
-    seedAlice()
+    seedAlice();
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
       matches: query.includes('1023'),
       media: query,
@@ -1294,793 +1518,1034 @@ describe('CostsPanel — mobile layout', () => {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
       dispatchEvent: vi.fn(),
-    })) as unknown as typeof window.matchMedia
-  })
+    })) as unknown as typeof window.matchMedia;
+  });
 
-  afterEach(() => { window.matchMedia = desktopMatchMedia })
+  afterEach(() => {
+    window.matchMedia = desktopMatchMedia;
+  });
 
   it('FE-W5COSTS-025: the mobile column stacks the totals, owe/owed and outstanding cards', async () => {
-    mount([dinner(), expense({ id: 140, name: 'Hotel', category: 'accommodation', total_price: 60, payers: [], members: [{ user_id: 1, username: 'alice' }] })], {
-      flows: [{ from: { user_id: 2, username: 'bob' }, to: { user_id: 1, username: 'alice' }, amount: 45 }],
-    })
+    mount(
+      [
+        dinner(),
+        expense({
+          id: 140,
+          name: 'Hotel',
+          category: 'accommodation',
+          total_price: 60,
+          payers: [],
+          members: [{ user_id: 1, username: 'alice' }],
+        }),
+      ],
+      {
+        flows: [{ from: { user_id: 2, username: 'bob' }, to: { user_id: 1, username: 'alice' }, amount: 45 }],
+      }
+    );
 
-    await screen.findByText('Hotel')
+    await screen.findByText('Hotel');
     // The desktop summary grid is replaced by the mobile stack.
-    expect(document.querySelector('.costs-summary')).toBeNull()
-    expect(screen.getByText('Total trip spend')).toBeInTheDocument()
-    expect(screen.getByText('You owe')).toBeInTheDocument()
-    expect(screen.getByText("You're owed")).toBeInTheDocument()
-    expect(screen.getByText('Outstanding amount')).toBeInTheDocument()
+    expect(document.querySelector('.costs-summary')).toBeNull();
+    expect(screen.getByText('Total trip spend')).toBeInTheDocument();
+    expect(screen.getByText('You owe')).toBeInTheDocument();
+    expect(screen.getByText("You're owed")).toBeInTheDocument();
+    expect(screen.getByText('Outstanding amount')).toBeInTheDocument();
     // The unfinished expense is flagged with a badge on its icon instead of a pill.
-    expect(screen.getByRole('img', { name: 'Total only: not settled yet' })).toHaveTextContent('!')
-    expect(screen.queryByText('Unfinished')).not.toBeInTheDocument()
-  })
+    expect(screen.getByRole('img', { name: 'Total only: not settled yet' })).toHaveTextContent('!');
+    expect(screen.queryByText('Unfinished')).not.toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-026: the mobile ledger keeps search, filters and the empty text', async () => {
-    const user = userEvent.setup()
-    mount([dinner()])
+    const user = userEvent.setup();
+    mount([dinner()]);
 
-    await screen.findByText('Dinner')
-    await user.type(screen.getByPlaceholderText('Search expenses…'), 'zzz')
-    expect(screen.getByText('No expenses match your search.')).toBeInTheDocument()
+    await screen.findByText('Dinner');
+    await user.type(screen.getByPlaceholderText('Search expenses…'), 'zzz');
+    expect(screen.getByText('No expenses match your search.')).toBeInTheDocument();
 
-    await user.clear(screen.getByPlaceholderText('Search expenses…'))
-    fireEvent.click(screen.getByRole('button', { name: /All days/ }))
-    pickOption('Sun, Jun 15')
-    expect(screen.getByText('Sunday, June 15')).toBeInTheDocument()
-  })
+    await user.clear(screen.getByPlaceholderText('Search expenses…'));
+    fireEvent.click(screen.getByRole('button', { name: /All days/ }));
+    pickOption('Sun, Jun 15');
+    expect(screen.getByText('Sunday, June 15')).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-027: the mobile total card opens the add-expense modal', async () => {
-    mount([])
+    mount([]);
 
     // isMobile settles in an effect, which swaps the whole body out.
-    await waitFor(() => expect(document.querySelector('.costs-summary')).toBeNull())
-    fireEvent.click(screen.getByRole('button', { name: 'Add expense' }))
+    await waitFor(() => expect(document.querySelector('.costs-summary')).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Add expense' }));
 
-    expect(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…')).toBeInTheDocument()
-  })
-})
+    expect(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…')).toBeInTheDocument();
+  });
+});
 
 describe('CostsPanel — payment modal', () => {
-  beforeEach(seedAlice)
+  beforeEach(seedAlice);
 
   it('FE-W5COSTS-028: editing a payment updates it in place', async () => {
-    const user = userEvent.setup()
-    let put: Record<string, unknown> | null = null
-    server.use(http.put('/api/trips/1/budget/settlements/7', async ({ request }) => {
-      put = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ settlement: { id: 7 } })
-    }))
-    mount([], { settlements: [{ id: 7, from_user_id: 2, to_user_id: 1, amount: 30, created_at: '2025-06-16 10:00:00' }] })
+    const user = userEvent.setup();
+    let put: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/trips/1/budget/settlements/7', async ({ request }) => {
+        put = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ settlement: { id: 7 } });
+      })
+    );
+    mount([], {
+      settlements: [{ id: 7, from_user_id: 2, to_user_id: 1, amount: 30, created_at: '2025-06-16 10:00:00' }],
+    });
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }))
-    const amount = await screen.findByPlaceholderText('0,00')
-    await user.clear(amount)
-    await user.type(amount, '12,50')
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    const amount = await screen.findByPlaceholderText('0,00');
+    await user.clear(amount);
+    await user.type(amount, '12,50');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(put).toBeTruthy())
-    expect(put).toMatchObject({ from_user_id: 2, to_user_id: 1, amount: 12.5 })
-  })
+    await waitFor(() => expect(put).toBeTruthy());
+    expect(put).toMatchObject({ from_user_id: 2, to_user_id: 1, amount: 12.5 });
+  });
 
   it('FE-W5COSTS-029: a transfer to yourself cannot be saved', async () => {
-    const user = userEvent.setup()
-    mount([])
+    const user = userEvent.setup();
+    mount([]);
 
-    await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0,00'), '10')
+    await user.click(await screen.findByRole('button', { name: 'Add payment' }));
+    await user.type(await screen.findByPlaceholderText('0,00'), '10');
 
     // Default is You → bob; pointing "to" back at me makes it a no-op transfer.
-    await user.click(screen.getByRole('button', { name: 'bob' }))
-    pickOption('You')
+    await user.click(screen.getByRole('button', { name: 'bob' }));
+    pickOption('You');
 
-    const submits = screen.getAllByRole('button', { name: 'Add payment' })
-    expect(submits[submits.length - 1]).toBeDisabled()
-  })
+    const submits = screen.getAllByRole('button', { name: 'Add payment' });
+    expect(submits[submits.length - 1]).toBeDisabled();
+  });
 
   it('FE-W5COSTS-030: a failing payment save is reported', async () => {
-    const user = userEvent.setup()
-    const addToast = vi.fn()
-    window.__addToast = addToast as unknown as typeof window.__addToast
-    server.use(http.post('/api/trips/1/budget/settlements', () => HttpResponse.json({ error: 'no' }, { status: 500 })))
-    mount([])
+    const user = userEvent.setup();
+    const addToast = vi.fn();
+    window.__addToast = addToast as unknown as typeof window.__addToast;
+    server.use(http.post('/api/trips/1/budget/settlements', () => HttpResponse.json({ error: 'no' }, { status: 500 })));
+    mount([]);
 
-    await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0,00'), '10')
-    const submits = screen.getAllByRole('button', { name: 'Add payment' })
-    await user.click(submits[submits.length - 1])
+    await user.click(await screen.findByRole('button', { name: 'Add payment' }));
+    await user.type(await screen.findByPlaceholderText('0,00'), '10');
+    const submits = screen.getAllByRole('button', { name: 'Add payment' });
+    await user.click(submits[submits.length - 1]);
 
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined))
-    delete window.__addToast
-  })
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined));
+    delete window.__addToast;
+  });
 
   it('FE-W5COSTS-074: a new payment defaults its day to today, by the local calendar', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
-    const behindUtc = new Date(2026, 7, 12).getTimezoneOffset() > 0
-    vi.setSystemTime(new Date(2026, 7, 12, behindUtc ? 23 : 1, 30, 0))
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    let posted: Record<string, unknown> | null = null
-    server.use(http.post('/api/trips/1/budget/settlements', async ({ request }) => {
-      posted = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ settlement: { id: 9 } })
-    }))
-    mount([])
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const behindUtc = new Date(2026, 7, 12).getTimezoneOffset() > 0;
+    vi.setSystemTime(new Date(2026, 7, 12, behindUtc ? 23 : 1, 30, 0));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/budget/settlements', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ settlement: { id: 9 } });
+      })
+    );
+    mount([]);
 
     try {
-      await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-      await user.type(await screen.findByPlaceholderText('0,00'), '10')
-      const submits = screen.getAllByRole('button', { name: 'Add payment' })
-      await user.click(submits[submits.length - 1])
+      await user.click(await screen.findByRole('button', { name: 'Add payment' }));
+      await user.type(await screen.findByPlaceholderText('0,00'), '10');
+      const submits = screen.getAllByRole('button', { name: 'Add payment' });
+      await user.click(submits[submits.length - 1]);
 
-      await waitFor(() => expect(posted).toBeTruthy())
-      expect(posted!.settled_at).toBe('2026-08-12')
+      await waitFor(() => expect(posted).toBeTruthy());
+      expect(posted!.settled_at).toBe('2026-08-12');
     } finally {
-      vi.useRealTimers()
+      vi.useRealTimers();
     }
-  })
+  });
 
   it('FE-W5COSTS-075: editing a payment keeps its own settled day, not the day it was recorded', async () => {
-    const user = userEvent.setup()
-    let put: Record<string, unknown> | null = null
-    server.use(http.put('/api/trips/1/budget/settlements/7', async ({ request }) => {
-      put = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ settlement: { id: 7 } })
-    }))
-    mount([], { settlements: [{ id: 7, from_user_id: 2, to_user_id: 1, amount: 30, settled_at: '2025-06-10', created_at: '2025-06-16 10:00:00' }] })
+    const user = userEvent.setup();
+    let put: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/trips/1/budget/settlements/7', async ({ request }) => {
+        put = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ settlement: { id: 7 } });
+      })
+    );
+    mount([], {
+      settlements: [
+        {
+          id: 7,
+          from_user_id: 2,
+          to_user_id: 1,
+          amount: 30,
+          settled_at: '2025-06-10',
+          created_at: '2025-06-16 10:00:00',
+        },
+      ],
+    });
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }))
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(put).toBeTruthy())
-    expect(put!.settled_at).toBe('2025-06-10')
-  })
+    await waitFor(() => expect(put).toBeTruthy());
+    expect(put!.settled_at).toBe('2025-06-10');
+  });
 
   it('FE-W5COSTS-077: a payment cannot be saved without a day', async () => {
     // Cleared, the server would store NULL and the ledger would quietly move
     // the payment back to the day it was recorded on.
-    const user = userEvent.setup()
-    mount([], { settlements: [{ id: 7, from_user_id: 2, to_user_id: 1, amount: 30, settled_at: '2025-06-10', created_at: '2025-06-16 10:00:00' }] })
+    const user = userEvent.setup();
+    mount([], {
+      settlements: [
+        {
+          id: 7,
+          from_user_id: 2,
+          to_user_id: 1,
+          amount: 30,
+          settled_at: '2025-06-10',
+          created_at: '2025-06-16 10:00:00',
+        },
+      ],
+    });
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }))
-    const save = screen.getByRole('button', { name: 'Save' })
-    expect(save).toBeEnabled()
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
+    const save = screen.getByRole('button', { name: 'Save' });
+    expect(save).toBeEnabled();
 
-    await user.click(document.querySelector('button[aria-haspopup="dialog"]') as HTMLElement)
-    await user.click(screen.getByRole('button', { name: 'Clear date' }))
-    expect(save).toBeDisabled()
-  })
-})
+    await user.click(document.querySelector('button[aria-haspopup="dialog"]') as HTMLElement);
+    await user.click(screen.getByRole('button', { name: 'Clear date' }));
+    expect(save).toBeDisabled();
+  });
+});
 
 describe('CostsPanel — expense modal', () => {
   beforeEach(() => {
-    seedAlice()
-    clearExchangeRateCache()
-  })
-  afterEach(clearExchangeRateCache)
+    seedAlice();
+    clearExchangeRateCache();
+  });
+  afterEach(clearExchangeRateCache);
 
   const openAdd = async (user: ReturnType<typeof userEvent.setup>) => {
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…')
-  }
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…');
+  };
 
   it('FE-W5COSTS-031: reopening a ticket expense restores its items and lets them be edited', async () => {
-    const user = userEvent.setup()
-    let put: Record<string, unknown> | null = null
-    const note = 'TICKETJSON:' + JSON.stringify({ items: [
-      { name: 'Apples', price: '10', parts: [1, 2] },
-      { name: 'Cake', price: '20', parts: [2] },
-    ] })
-    server.use(http.put('/api/trips/1/budget/150', async ({ request }) => {
-      put = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ item: dinner() })
-    }))
-    mount([expense({ id: 150, name: 'Market run', category: 'groceries', total_price: 30, note, payers: [{ user_id: 1, amount: 30 }], members: [{ user_id: 1, username: 'alice', amount: 15 }, { user_id: 2, username: 'bob', amount: 15 }] })])
+    const user = userEvent.setup();
+    let put: Record<string, unknown> | null = null;
+    const note =
+      'TICKETJSON:' +
+      JSON.stringify({
+        items: [
+          { name: 'Apples', price: '10', parts: [1, 2] },
+          { name: 'Cake', price: '20', parts: [2] },
+        ],
+      });
+    server.use(
+      http.put('/api/trips/1/budget/150', async ({ request }) => {
+        put = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: dinner() });
+      })
+    );
+    mount([
+      expense({
+        id: 150,
+        name: 'Market run',
+        category: 'groceries',
+        total_price: 30,
+        note,
+        payers: [{ user_id: 1, amount: 30 }],
+        members: [
+          { user_id: 1, username: 'alice', amount: 15 },
+          { user_id: 2, username: 'bob', amount: 15 },
+        ],
+      }),
+    ]);
 
-    await screen.findByText('Market run')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await screen.findByText('Market run');
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
 
-    expect(await screen.findByDisplayValue('Apples')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('Cake')).toBeInTheDocument()
+    expect(await screen.findByDisplayValue('Apples')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Cake')).toBeInTheDocument();
 
     // Drop the second item and take Bob off the first one.
-    const rows = screen.getAllByPlaceholderText('Item name')
-    await user.click(rows[1].parentElement!.parentElement!.querySelectorAll('button')[0])
-    expect(screen.queryByDisplayValue('Cake')).not.toBeInTheDocument()
-    await user.click(bobInForm()[0])
+    const rows = screen.getAllByPlaceholderText('Item name');
+    await user.click(rows[1].parentElement!.parentElement!.querySelectorAll('button')[0]);
+    expect(screen.queryByDisplayValue('Cake')).not.toBeInTheDocument();
+    await user.click(bobInForm()[0]);
 
-    await user.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(put).toBeTruthy())
-    expect(put!.total_price).toBe(10)
-    expect(put!.members).toEqual(expect.arrayContaining([expect.objectContaining({ user_id: 1, amount: 10 })]))
-  })
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(put).toBeTruthy());
+    expect(put!.total_price).toBe(10);
+    expect(put!.members).toEqual(expect.arrayContaining([expect.objectContaining({ user_id: 1, amount: 10 })]));
+  });
 
   it('FE-W5COSTS-032: an unparsable ticket note opens with an empty item list', async () => {
-    const user = userEvent.setup()
-    mount([expense({ id: 151, name: 'Market run', category: 'groceries', total_price: 30, note: 'TICKETJSON:{oops', payers: [{ user_id: 1, amount: 30 }], members: [{ user_id: 1, username: 'alice' }] })])
+    const user = userEvent.setup();
+    mount([
+      expense({
+        id: 151,
+        name: 'Market run',
+        category: 'groceries',
+        total_price: 30,
+        note: 'TICKETJSON:{oops',
+        payers: [{ user_id: 1, amount: 30 }],
+        members: [{ user_id: 1, username: 'alice' }],
+      }),
+    ]);
 
-    await screen.findByText('Market run')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await screen.findByText('Market run');
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
 
-    expect(await screen.findByRole('button', { name: /Add item/i })).toBeInTheDocument()
-    expect(screen.queryByPlaceholderText('Item name')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
-  })
+    expect(await screen.findByRole('button', { name: /Add item/i })).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Item name')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
 
   it('FE-W5COSTS-033: reopening a custom split restores the per-member amounts', async () => {
-    const user = userEvent.setup()
-    let put: Record<string, unknown> | null = null
-    server.use(http.put('/api/trips/1/budget/160', async ({ request }) => {
-      put = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ item: dinner() })
-    }))
-    mount([expense({
-      id: 160, name: 'Dinner', category: 'food', total_price: 100,
-      payers: [{ user_id: 1, amount: 100 }],
-      members: [{ user_id: 1, username: 'alice', amount: 70 }, { user_id: 2, username: 'bob', amount: 30 }],
-    })])
+    const user = userEvent.setup();
+    let put: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/trips/1/budget/160', async ({ request }) => {
+        put = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: dinner() });
+      })
+    );
+    mount([
+      expense({
+        id: 160,
+        name: 'Dinner',
+        category: 'food',
+        total_price: 100,
+        payers: [{ user_id: 1, amount: 100 }],
+        members: [
+          { user_id: 1, username: 'alice', amount: 70 },
+          { user_id: 2, username: 'bob', amount: 30 },
+        ],
+      }),
+    ]);
 
-    await screen.findByText('Dinner')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await screen.findByText('Dinner');
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
 
     // Custom shares reopen padded to two decimals (#2175), localized for EUR.
-    expect((await screen.findByDisplayValue('70,00')).tagName).toBe('INPUT')
-    expect(screen.getByDisplayValue('30,00')).toBeInTheDocument()
+    expect((await screen.findByDisplayValue('70,00')).tagName).toBe('INPUT');
+    expect(screen.getByDisplayValue('30,00')).toBeInTheDocument();
 
     // Excluding Bob drops his amount; the split no longer matches the total.
-    expect(bobInForm()).toHaveLength(1)
-    await user.click(bobInForm()[0])
-    expect(screen.getByText(/Sum of splits/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+    expect(bobInForm()).toHaveLength(1);
+    await user.click(bobInForm()[0]);
+    expect(screen.getByText(/Sum of splits/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
 
     // Bringing him back in via the excluded-state hint restores an empty field,
     // pre-filled as a placeholder with what is still missing from the total.
-    await user.click(bobInForm()[0])
-    await user.type(screen.getByPlaceholderText('30,00'), '30')
+    await user.click(bobInForm()[0]);
+    await user.type(screen.getByPlaceholderText('30,00'), '30');
 
-    expect(screen.getByText('Split matches total')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(put).toBeTruthy())
-    expect(put!.members).toEqual([{ user_id: 1, amount: 70 }, { user_id: 2, amount: 30 }])
-  })
+    expect(screen.getByText('Split matches total')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(put).toBeTruthy());
+    expect(put!.members).toEqual([
+      { user_id: 1, amount: 70 },
+      { user_id: 2, amount: 30 },
+    ]);
+  });
 
   it('FE-W5COSTS-034: changing the currency previews the converted total', async () => {
-    const user = userEvent.setup()
-    localStorage.setItem('trek_fx_EUR', JSON.stringify({ rates: { EUR: 1, USD: 2 }, ts: Date.now() }))
-    let posted: Record<string, unknown> | null = null
-    server.use(http.post('/api/trips/1/budget', async ({ request }) => {
-      posted = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ item: dinner() })
-    }))
-    mount([])
-    await openAdd(user)
+    const user = userEvent.setup();
+    localStorage.setItem('trek_fx_EUR', JSON.stringify({ rates: { EUR: 1, USD: 2 }, ts: Date.now() }));
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/budget', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: dinner() });
+      })
+    );
+    mount([]);
+    await openAdd(user);
 
-    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Diner')
-    await user.type(screen.getAllByPlaceholderText('0,00')[0], '100')
-    await user.click(screen.getByText(/^EUR/))
-    await user.click(await screen.findByText(/^USD/))
+    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Diner');
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '100');
+    await user.click(screen.getByText(/^EUR/));
+    await user.click(await screen.findByText(/^USD/));
 
-    expect(screen.getByText('live rate', { exact: false })).toBeInTheDocument()
-    expect(screen.getByText('$100.00')).toBeInTheDocument()
-    expect(screen.getByText('50,00 €')).toBeInTheDocument()
+    expect(screen.getByText('live rate', { exact: false })).toBeInTheDocument();
+    expect(screen.getByText('$100.00')).toBeInTheDocument();
+    expect(screen.getByText('50,00 €')).toBeInTheDocument();
 
     // A different category than the default is carried into the payload.
-    await user.click(screen.getByRole('button', { name: /^Category:/ }))
-    await user.click(screen.getByRole('button', { name: 'Sightseeing' }))
-    const submits = screen.getAllByRole('button', { name: 'Add expense' })
-    await user.click(submits[submits.length - 1])
+    await user.click(screen.getByRole('button', { name: /^Category:/ }));
+    await user.click(screen.getByRole('button', { name: 'Sightseeing' }));
+    const submits = screen.getAllByRole('button', { name: 'Add expense' });
+    await user.click(submits[submits.length - 1]);
 
-    await waitFor(() => expect(posted).toBeTruthy())
-    expect(posted).toMatchObject({ currency: 'USD', category: 'sightseeing', total_price: 100 })
-  })
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted).toMatchObject({ currency: 'USD', category: 'sightseeing', total_price: 100 });
+  });
 
   it('FE-W5COSTS-035: collapsing multi-payer mode keeps the first payer for the whole bill', async () => {
-    const user = userEvent.setup()
-    let posted: Record<string, unknown> | null = null
-    server.use(http.post('/api/trips/1/budget', async ({ request }) => {
-      posted = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ item: dinner() })
-    }))
-    mount([])
-    await openAdd(user)
+    const user = userEvent.setup();
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/budget', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: dinner() });
+      })
+    );
+    mount([]);
+    await openAdd(user);
 
-    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
-    await user.type(screen.getAllByPlaceholderText('0,00')[0], '90')
-    await user.click(screen.getByRole('button', { name: 'Multiple people paid' }))
-    await user.click(screen.getAllByTestId('payer-toggle')[1])
+    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner');
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '90');
+    await user.click(screen.getByRole('button', { name: 'Multiple people paid' }));
+    await user.click(screen.getAllByTestId('payer-toggle')[1]);
     // Dropping Bob again leaves Alice absorbing the whole amount.
-    await user.click(screen.getAllByTestId('payer-toggle')[1])
-    expect(screen.getAllByTestId('payer-toggle')[1]).toHaveAttribute('aria-checked', 'false')
-    await user.click(screen.getByRole('button', { name: 'One person paid' }))
+    await user.click(screen.getAllByTestId('payer-toggle')[1]);
+    expect(screen.getAllByTestId('payer-toggle')[1]).toHaveAttribute('aria-checked', 'false');
+    await user.click(screen.getByRole('button', { name: 'One person paid' }));
 
-    const submits = screen.getAllByRole('button', { name: 'Add expense' })
-    await user.click(submits[submits.length - 1])
+    const submits = screen.getAllByRole('button', { name: 'Add expense' });
+    await user.click(submits[submits.length - 1]);
 
-    await waitFor(() => expect(posted).toBeTruthy())
-    expect(posted!.payers).toEqual([{ user_id: 1, amount: 90 }])
-  })
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted!.payers).toEqual([{ user_id: 1, amount: 90 }]);
+  });
 
   it('FE-W5COSTS-036: a nobody-paid expense can be recorded from the payer dropdown', async () => {
-    const user = userEvent.setup()
-    let posted: Record<string, unknown> | null = null
-    server.use(http.post('/api/trips/1/budget', async ({ request }) => {
-      posted = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ item: dinner() })
-    }))
-    mount([])
-    await openAdd(user)
+    const user = userEvent.setup();
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/budget', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: dinner() });
+      })
+    );
+    mount([]);
+    await openAdd(user);
 
-    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Hotel')
-    await user.type(screen.getAllByPlaceholderText('0,00')[0], '120')
-    await user.click(screen.getByRole('radio', { name: 'No one paid yet' }))
+    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Hotel');
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '120');
+    await user.click(screen.getByRole('radio', { name: 'No one paid yet' }));
 
-    const submits = screen.getAllByRole('button', { name: 'Add expense' })
-    await user.click(submits[submits.length - 1])
+    const submits = screen.getAllByRole('button', { name: 'Add expense' });
+    await user.click(submits[submits.length - 1]);
 
-    await waitFor(() => expect(posted).toBeTruthy())
-    expect(posted!.payers).toEqual([])
-    expect(posted!.member_ids).toEqual([1, 2])
-  })
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted!.payers).toEqual([]);
+    expect(posted!.member_ids).toEqual([1, 2]);
+  });
 
   it('FE-W5COSTS-037: a failing expense save is reported and the modal stays open', async () => {
-    const user = userEvent.setup()
-    const addToast = vi.fn()
-    window.__addToast = addToast as unknown as typeof window.__addToast
-    server.use(http.post('/api/trips/1/budget', () => HttpResponse.json({ error: 'no' }, { status: 500 })))
-    mount([])
-    await openAdd(user)
+    const user = userEvent.setup();
+    const addToast = vi.fn();
+    window.__addToast = addToast as unknown as typeof window.__addToast;
+    server.use(http.post('/api/trips/1/budget', () => HttpResponse.json({ error: 'no' }, { status: 500 })));
+    mount([]);
+    await openAdd(user);
 
-    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
-    await user.type(screen.getAllByPlaceholderText('0,00')[0], '90')
-    const submits = screen.getAllByRole('button', { name: 'Add expense' })
-    await user.click(submits[submits.length - 1])
+    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner');
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '90');
+    const submits = screen.getAllByRole('button', { name: 'Add expense' });
+    await user.click(submits[submits.length - 1]);
 
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined))
-    expect(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…')).toBeInTheDocument()
-    delete window.__addToast
-  })
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Unknown error', 'error', undefined));
+    expect(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…')).toBeInTheDocument();
+    delete window.__addToast;
+  });
 
   it('FE-W5COSTS-038: a prefilled expense opens with the booking’s name, amount and category', async () => {
-    const user = userEvent.setup()
-    let posted: Record<string, unknown> | null = null
-    server.use(http.post('/api/trips/1/budget', async ({ request }) => {
-      posted = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ item: dinner() })
-    }))
-    const onSaved = vi.fn()
+    const user = userEvent.setup();
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/budget', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: dinner() });
+      })
+    );
+    const onSaved = vi.fn();
     render(
-      <ExpenseModal tripId={1} base="EUR" people={tripMembers} me={1} editing={null}
+      <ExpenseModal
+        tripId={1}
+        base="EUR"
+        people={tripMembers}
+        me={1}
+        editing={null}
         prefill={{ name: 'Hotel Astoria', category: 'accommodation', amount: 240, reservationId: 12 }}
-        onClose={() => {}} onSaved={onSaved} />
-    )
+        onClose={() => {}}
+        onSaved={onSaved}
+      />
+    );
 
-    expect(screen.getByDisplayValue('Hotel Astoria')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Hotel Astoria')).toBeInTheDocument();
     // The prefilled amount is padded to the base currency's decimals (#2175).
-    expect(screen.getByDisplayValue('240,00')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Add expense' }))
+    expect(screen.getByDisplayValue('240,00')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Add expense' }));
 
-    await waitFor(() => expect(posted).toBeTruthy())
-    expect(posted).toMatchObject({ name: 'Hotel Astoria', category: 'accommodation', total_price: 240, reservation_id: 12 })
-    expect(onSaved).toHaveBeenCalled()
-  })
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted).toMatchObject({
+      name: 'Hotel Astoria',
+      category: 'accommodation',
+      total_price: 240,
+      reservation_id: 12,
+    });
+    expect(onSaved).toHaveBeenCalled();
+  });
 
   it('FE-W5COSTS-096: offers Scan receipt beside Add expense only when the AI model reads images', async () => {
-    server.use(http.get('/api/llm/capabilities', () => HttpResponse.json({ images: true })))
-    const { unmount } = render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Scan receipt' }))[0])
-    expect(screen.getByRole('dialog', { name: 'Scan a receipt' })).toBeInTheDocument()
-    unmount()
+    server.use(http.get('/api/llm/capabilities', () => HttpResponse.json({ images: true })));
+    const { unmount } = render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Scan receipt' }))[0]);
+    expect(screen.getByRole('dialog', { name: 'Scan a receipt' })).toBeInTheDocument();
+    unmount();
 
-    server.use(http.get('/api/llm/capabilities', () => HttpResponse.json({ images: false })))
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
-    await screen.findAllByRole('button', { name: 'Add expense' })
-    expect(screen.queryByRole('button', { name: 'Scan receipt' })).not.toBeInTheDocument()
-  })
+    server.use(http.get('/api/llm/capabilities', () => HttpResponse.json({ images: false })));
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
+    await screen.findAllByRole('button', { name: 'Add expense' });
+    expect(screen.queryByRole('button', { name: 'Scan receipt' })).not.toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-095: a scanned receipt opens in its own currency and day, with its photo waiting to be attached', () => {
-    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' });
     render(
-      <ExpenseModal tripId={1} base="EUR" people={tripMembers} me={1} editing={null}
-        prefill={{ name: 'Sushi Dai', amount: 4200, currency: 'JPY', date: '2026-09-20', lines: [{ name: 'Omakase', price: 4200 }], receiptFiles: [photo] }}
-        onClose={() => {}} onSaved={() => {}} />
-    )
+      <ExpenseModal
+        tripId={1}
+        base="EUR"
+        people={tripMembers}
+        me={1}
+        editing={null}
+        prefill={{
+          name: 'Sushi Dai',
+          amount: 4200,
+          currency: 'JPY',
+          date: '2026-09-20',
+          lines: [{ name: 'Omakase', price: 4200 }],
+          receiptFiles: [photo],
+        }}
+        onClose={() => {}}
+        onSaved={() => {}}
+      />
+    );
 
-    expect(screen.getByDisplayValue('Sushi Dai')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Sushi Dai')).toBeInTheDocument();
     // Yen has no minor unit, so the amount is not padded.
-    expect(screen.getByDisplayValue('4200')).toBeInTheDocument()
-    expect(screen.getByText('bill.jpg')).toBeInTheDocument()
-  })
+    expect(screen.getByDisplayValue('4200')).toBeInTheDocument();
+    expect(screen.getByText('bill.jpg')).toBeInTheDocument();
+  });
 
   // The mobile sheet already dates a new expense by the traveller's own clock;
   // the desktop modal filed it under the UTC day, so the same expense entered
   // late in Tokyo or early in Los Angeles landed on a different day per surface.
   it('FE-W5COSTS-065: a new expense is dated by the local calendar day, not the UTC one', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.useFakeTimers({ toFake: ['Date'] });
     // A wall-clock time on whichever side of midnight puts the runner's UTC date
     // on a different day. On UTC itself the two spellings agree and there is
     // nothing here to catch.
-    const behindUtc = new Date(2026, 7, 12).getTimezoneOffset() > 0
-    vi.setSystemTime(new Date(2026, 7, 12, behindUtc ? 23 : 1, 30, 0))
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    let posted: Record<string, unknown> | null = null
-    server.use(http.post('/api/trips/1/budget', async ({ request }) => {
-      posted = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ item: dinner() })
-    }))
+    const behindUtc = new Date(2026, 7, 12).getTimezoneOffset() > 0;
+    vi.setSystemTime(new Date(2026, 7, 12, behindUtc ? 23 : 1, 30, 0));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/budget', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: dinner() });
+      })
+    );
     render(
-      <ExpenseModal tripId={1} base="EUR" people={tripMembers} me={1} editing={null}
+      <ExpenseModal
+        tripId={1}
+        base="EUR"
+        people={tripMembers}
+        me={1}
+        editing={null}
         prefill={{ name: 'Ramen', category: 'food', amount: 18 }}
-        onClose={() => {}} onSaved={vi.fn()} />
-    )
+        onClose={() => {}}
+        onSaved={vi.fn()}
+      />
+    );
 
-    await user.click(screen.getByRole('button', { name: 'Add expense' }))
+    await user.click(screen.getByRole('button', { name: 'Add expense' }));
 
     try {
-      await waitFor(() => expect(posted).toBeTruthy())
-      expect(posted!.expense_date).toBe('2026-08-12')
+      await waitFor(() => expect(posted).toBeTruthy());
+      expect(posted!.expense_date).toBe('2026-08-12');
     } finally {
-      vi.useRealTimers()
+      vi.useRealTimers();
     }
-  })
+  });
 
   it('FE-W5COSTS-038b: a prefill from a place links the expense to that place (#1298)', async () => {
-    const user = userEvent.setup()
-    let posted: Record<string, unknown> | null = null
-    server.use(http.post('/api/trips/1/budget', async ({ request }) => {
-      posted = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ item: dinner() })
-    }))
+    const user = userEvent.setup();
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/budget', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: dinner() });
+      })
+    );
     render(
-      <ExpenseModal tripId={1} base="EUR" people={tripMembers} me={1} editing={null}
+      <ExpenseModal
+        tripId={1}
+        base="EUR"
+        people={tripMembers}
+        me={1}
+        editing={null}
         prefill={{ name: 'Louvre', category: 'activities', amount: 34, placeId: 7 }}
-        onClose={() => {}} onSaved={vi.fn()} />
-    )
+        onClose={() => {}}
+        onSaved={vi.fn()}
+      />
+    );
 
-    await user.click(screen.getByRole('button', { name: 'Add expense' }))
+    await user.click(screen.getByRole('button', { name: 'Add expense' }));
 
     await waitFor(() => expect(posted).toBeTruthy());
-    expect(posted).toMatchObject({ name: 'Louvre', category: 'activities', total_price: 34, place_id: 7 })
-    expect(posted).not.toHaveProperty('reservation_id')
-  })
-})
+    expect(posted).toMatchObject({ name: 'Louvre', category: 'activities', total_price: 34, place_id: 7 });
+    expect(posted).not.toHaveProperty('reservation_id');
+  });
+});
 
 describe('CostsPanel — remaining paths', () => {
-  beforeEach(seedAlice)
+  beforeEach(seedAlice);
 
   it('FE-W5COSTS-042: the CSV export escapes, orders and strips ticket notes', async () => {
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR', title: '///' }) })
-    let exported: Blob | null = null
-    let downloadName = ''
-    const createObjURL = vi.spyOn(URL, 'createObjectURL').mockImplementation(b => { exported = b as Blob; return 'blob:mock' })
-    const revokeObjURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click')
-      .mockImplementation(function (this: HTMLAnchorElement) { downloadName = this.download })
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR', title: '///' }) });
+    let exported: Blob | null = null;
+    let downloadName = '';
+    const createObjURL = vi.spyOn(URL, 'createObjectURL').mockImplementation((b) => {
+      exported = b as Blob;
+      return 'blob:mock';
+    });
+    const revokeObjURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement
+    ) {
+      downloadName = this.download;
+    });
     mount([
-      expense({ id: 201, name: 'Dinner "deluxe"', category: 'food', total_price: 90, expense_date: '2025-06-15', note: 'with;semicolon' }),
-      expense({ id: 202, name: 'Tickets', category: 'activities', total_price: 20, expense_date: '2025-06-14', note: 'TICKETJSON:{"items":[]}' }),
+      expense({
+        id: 201,
+        name: 'Dinner "deluxe"',
+        category: 'food',
+        total_price: 90,
+        expense_date: '2025-06-15',
+        note: 'with;semicolon',
+      }),
+      expense({
+        id: 202,
+        name: 'Tickets',
+        category: 'activities',
+        total_price: 20,
+        expense_date: '2025-06-14',
+        note: 'TICKETJSON:{"items":[]}',
+      }),
       expense({ id: 203, name: 'Tip', category: 'tips', total_price: 5, expense_date: null, note: null }),
-    ])
+    ]);
 
-    await screen.findByText('Tip')
-    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }))
+    await screen.findByText('Tip');
+    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
 
-    const lines = (await exported!.text()).replace(/^\uFEFF/, '').split('\r\n')
-    expect(lines[0]).toBe('Date;Name;Category;Amount;Currency;Amount (EUR);Note')
+    const lines = (await exported!.text()).replace(/^\uFEFF/, '').split('\r\n');
+    expect(lines[0]).toBe('Date;Name;Category;Amount;Currency;Amount (EUR);Note');
     // Oldest first, dateless rows leading.
-    expect(lines[1]).toBe(';Tip;Tips;5.00;EUR;5.00;')
+    expect(lines[1]).toBe(';Tip;Tips;5.00;EUR;5.00;');
     // The ticket payload is machine data, so it never reaches the note column.
-    expect(lines[2]).toBe('06/14/2025;Tickets;Activities;20.00;EUR;20.00;')
-    expect(lines[3]).toBe('06/15/2025;"Dinner ""deluxe""";Food & drink;90.00;EUR;90.00;"with;semicolon"')
+    expect(lines[2]).toBe('06/14/2025;Tickets;Activities;20.00;EUR;20.00;');
+    expect(lines[3]).toBe('06/15/2025;"Dinner ""deluxe""";Food & drink;90.00;EUR;90.00;"with;semicolon"');
     // A title made only of illegal characters still yields a usable file name.
-    expect(downloadName).toBe('costs-.csv')
-    createObjURL.mockRestore(); revokeObjURL.mockRestore(); clickSpy.mockRestore()
-  })
+    expect(downloadName).toBe('costs-.csv');
+    createObjURL.mockRestore();
+    revokeObjURL.mockRestore();
+    clickSpy.mockRestore();
+  });
 
   it('FE-W5COSTS-061: the CSV export neutralises names a spreadsheet would run as a formula', async () => {
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR', title: 'Rome' }) })
-    let exported: Blob | null = null
-    const createObjURL = vi.spyOn(URL, 'createObjectURL').mockImplementation(b => { exported = b as Blob; return 'blob:mock' })
-    const revokeObjURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR', title: 'Rome' }) });
+    let exported: Blob | null = null;
+    const createObjURL = vi.spyOn(URL, 'createObjectURL').mockImplementation((b) => {
+      exported = b as Blob;
+      return 'blob:mock';
+    });
+    const revokeObjURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     mount([
-      expense({ id: 204, name: '=HYPERLINK("http://evil","click")', category: 'food', total_price: 12, expense_date: '2025-06-15', note: '@SUM(A1:A9)' }),
+      expense({
+        id: 204,
+        name: '=HYPERLINK("http://evil","click")',
+        category: 'food',
+        total_price: 12,
+        expense_date: '2025-06-15',
+        note: '@SUM(A1:A9)',
+      }),
       expense({ id: 205, name: '-5 refund', category: 'misc', total_price: 5, expense_date: '2025-06-16', note: null }),
-    ])
+    ]);
 
-    await screen.findByText('-5 refund')
-    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }))
+    await screen.findByText('-5 refund');
+    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
 
-    const lines = (await exported!.text()).replace(/^\uFEFF/, '').split('\r\n')
-    expect(lines[1]).toBe('06/15/2025;"\'=HYPERLINK(""http://evil"",""click"")";Food & drink;12.00;EUR;12.00;\'@SUM(A1:A9)')
-    expect(lines[2]).toBe('06/16/2025;\'-5 refund;Other;5.00;EUR;5.00;')
-    createObjURL.mockRestore(); revokeObjURL.mockRestore(); clickSpy.mockRestore()
-  })
+    const lines = (await exported!.text()).replace(/^\uFEFF/, '').split('\r\n');
+    expect(lines[1]).toBe(
+      '06/15/2025;"\'=HYPERLINK(""http://evil"",""click"")";Food & drink;12.00;EUR;12.00;\'@SUM(A1:A9)'
+    );
+    expect(lines[2]).toBe("06/16/2025;'-5 refund;Other;5.00;EUR;5.00;");
+    createObjURL.mockRestore();
+    revokeObjURL.mockRestore();
+    clickSpy.mockRestore();
+  });
 
   it('FE-W5COSTS-043: deleting an expense drops it from the ledger', async () => {
-    let deleted = false
-    server.use(http.delete('/api/trips/1/budget/101', () => { deleted = true; return HttpResponse.json({ success: true }) }))
-    mount([dinner()])
+    let deleted = false;
+    server.use(
+      http.delete('/api/trips/1/budget/101', () => {
+        deleted = true;
+        return HttpResponse.json({ success: true });
+      })
+    );
+    mount([dinner()]);
 
-    await screen.findByText('Dinner')
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await screen.findByText('Dinner');
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
-    await waitFor(() => expect(deleted).toBe(true))
-    expect(screen.queryByText('Dinner')).not.toBeInTheDocument()
-  })
+    await waitFor(() => expect(deleted).toBe(true));
+    expect(screen.queryByText('Dinner')).not.toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-044: both modals can be dismissed with Cancel', async () => {
-    const user = userEvent.setup()
-    mount([])
+    const user = userEvent.setup();
+    mount([]);
 
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.queryByPlaceholderText('e.g. Dinner, souvenirs, gas…')).not.toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByPlaceholderText('e.g. Dinner, souvenirs, gas…')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Add payment' }))
-    await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(screen.queryByPlaceholderText('0.00')).not.toBeInTheDocument()
-  })
+    await user.click(screen.getByRole('button', { name: 'Add payment' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByPlaceholderText('0.00')).not.toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-045: an explicit member amount is used as my share instead of an equal split', async () => {
-    mount([expense({
-      id: 210, name: 'Dinner', category: 'food', total_price: 100,
-      payers: [{ user_id: 2, amount: 100 }],
-      members: [{ user_id: 1, username: 'alice', amount: 80 }, { user_id: 2, username: 'bob', amount: 20 }],
-    })])
+    mount([
+      expense({
+        id: 210,
+        name: 'Dinner',
+        category: 'food',
+        total_price: 100,
+        payers: [{ user_id: 2, amount: 100 }],
+        members: [
+          { user_id: 1, username: 'alice', amount: 80 },
+          { user_id: 2, username: 'bob', amount: 20 },
+        ],
+      }),
+    ]);
 
-    await screen.findByText('Dinner')
-    const card = screen.getByRole('region', { name: 'Total trip spend' }) as HTMLElement
+    await screen.findByText('Dinner');
+    const card = screen.getByRole('region', { name: 'Total trip spend' }) as HTMLElement;
     // Not the 50/50 an equal split would have produced.
-    expect(within(card).getByText('80 €')).toBeInTheDocument()
-    expect(within(card).getByText('0 €')).toBeInTheDocument()
-  })
+    expect(within(card).getByText('80 €')).toBeInTheDocument();
+    expect(within(card).getByText('0 €')).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-046: an expense I am not part of contributes nothing to my share', async () => {
-    mount([expense({
-      id: 211, name: 'Bob solo', category: 'food', total_price: 40,
-      payers: [{ user_id: 2, amount: 40 }],
-      members: [{ user_id: 2, username: 'bob' }],
-    })])
+    mount([
+      expense({
+        id: 211,
+        name: 'Bob solo',
+        category: 'food',
+        total_price: 40,
+        payers: [{ user_id: 2, amount: 40 }],
+        members: [{ user_id: 2, username: 'bob' }],
+      }),
+    ]);
 
-    await screen.findByText('Bob solo')
-    const card = screen.getByRole('region', { name: 'Total trip spend' }) as HTMLElement
-    expect(within(card).getAllByText('0 €')).toHaveLength(2)
-  })
+    await screen.findByText('Bob solo');
+    const card = screen.getByRole('region', { name: 'Total trip spend' }) as HTMLElement;
+    expect(within(card).getAllByText('0 €')).toHaveLength(2);
+  });
 
   it('FE-W5COSTS-047: with no display and no trip currency the panel falls back to euro', async () => {
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: '' } })
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: '' }) })
-    mount([expense({ id: 220, name: 'Dinner', category: 'food', total_price: 90, currency: null })])
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: '' } });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: '' }) });
+    mount([expense({ id: 220, name: 'Dinner', category: 'food', total_price: 90, currency: null })]);
 
-    await screen.findByText('Dinner')
-    const card = screen.getByRole('region', { name: 'Total trip spend' })
-    expect(card).toHaveTextContent('90,00 €')
-  })
+    await screen.findByText('Dinner');
+    const card = screen.getByRole('region', { name: 'Total trip spend' });
+    expect(card).toHaveTextContent('90,00 €');
+  });
 
   it('FE-W5COSTS-048: a payment in a currency with no symbol keeps its code, and the sender can be swapped', async () => {
-    const user = userEvent.setup()
-    let put: Record<string, unknown> | null = null
-    server.use(http.put('/api/trips/1/budget/settlements/9', async ({ request }) => {
-      put = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ settlement: { id: 9 } })
-    }))
+    const user = userEvent.setup();
+    let put: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/trips/1/budget/settlements/9', async ({ request }) => {
+        put = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ settlement: { id: 9 } });
+      })
+    );
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({
-        balances: [], flows: [],
-        settlements: [{ id: 9, from_user_id: 2, to_user_id: 1, amount: 30, currency: 'XBT', created_at: '2025-06-16 10:00:00' }],
-      })),
-    )
-    render(<CostsPanel tripId={1} tripMembers={[...tripMembers, { id: 3, username: 'cara', avatar_url: null }]} />)
+      http.get('/api/trips/1/budget/settlement', () =>
+        HttpResponse.json({
+          balances: [],
+          flows: [],
+          settlements: [
+            { id: 9, from_user_id: 2, to_user_id: 1, amount: 30, currency: 'XBT', created_at: '2025-06-16 10:00:00' },
+          ],
+        })
+      )
+    );
+    render(<CostsPanel tripId={1} tripMembers={[...tripMembers, { id: 3, username: 'cara', avatar_url: null }]} />);
 
-    await user.click(await screen.findByRole('button', { name: 'Edit' }))
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
     // No symbol is known, so the code itself prefixes the amount and labels the option.
-    await screen.findByPlaceholderText('0.00')
-    expect(screen.getAllByText('XBT').length).toBeGreaterThanOrEqual(2)
+    await screen.findByPlaceholderText('0.00');
+    expect(screen.getAllByText('XBT').length).toBeGreaterThanOrEqual(2);
 
-    await user.click(screen.getByRole('button', { name: 'bob' }))
-    pickOption('cara')
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'bob' }));
+    pickOption('cara');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(put).toBeTruthy())
-    expect(put).toMatchObject({ from_user_id: 3, to_user_id: 1, amount: 30, currency: 'XBT' })
-  })
+    await waitFor(() => expect(put).toBeTruthy());
+    expect(put).toMatchObject({ from_user_id: 3, to_user_id: 1, amount: 30, currency: 'XBT' });
+  });
 
   it('FE-W5COSTS-055: an expense in a currency with no symbol prefixes the code', async () => {
-    const user = userEvent.setup()
-    mount([expense({ id: 240, name: 'Mining rig', category: 'other', total_price: 2, currency: 'XBT', payers: [{ user_id: 1, amount: 2 }], members: [{ user_id: 1, username: 'alice' }] })])
+    const user = userEvent.setup();
+    mount([
+      expense({
+        id: 240,
+        name: 'Mining rig',
+        category: 'other',
+        total_price: 2,
+        currency: 'XBT',
+        payers: [{ user_id: 1, amount: 2 }],
+        members: [{ user_id: 1, username: 'alice' }],
+      }),
+    ]);
 
-    await screen.findByText('Mining rig')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await screen.findByText('Mining rig');
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
 
     // XBT is unknown to the locale map → dot separator, two decimals (#2175).
-    expect(await screen.findByDisplayValue('2.00')).toBeInTheDocument()
-    expect(screen.getAllByText('XBT').length).toBeGreaterThanOrEqual(2)
-  })
+    expect(await screen.findByDisplayValue('2.00')).toBeInTheDocument();
+    expect(screen.getAllByText('XBT').length).toBeGreaterThanOrEqual(2);
+  });
 
   it('FE-W5COSTS-049: a solo trip defaults the payment counterpart to myself', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
-    )
-    render(<CostsPanel tripId={1} tripMembers={[{ id: 1, username: 'alice', avatar_url: null }]} />)
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] }))
+    );
+    render(<CostsPanel tripId={1} tripMembers={[{ id: 1, username: 'alice', avatar_url: null }]} />);
 
-    await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0,00'), '10')
+    await user.click(await screen.findByRole('button', { name: 'Add payment' }));
+    await user.type(await screen.findByPlaceholderText('0,00'), '10');
 
     // From and To both resolve to me, so the transfer stays unsavable.
-    const submits = screen.getAllByRole('button', { name: 'Add payment' })
-    expect(submits[submits.length - 1]).toBeDisabled()
-  })
+    const submits = screen.getAllByRole('button', { name: 'Add payment' });
+    expect(submits[submits.length - 1]).toBeDisabled();
+  });
 
   it('FE-W5COSTS-050: the expense modal shows uploaded avatars and rejects over-precise input', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
-    )
-    render(<CostsPanel tripId={1} tripMembers={[
-      { id: 1, username: 'alice', avatar_url: '/uploads/avatars/a.png' },
-      { id: 2, username: 'bob', avatar_url: '/uploads/avatars/b.png' },
-    ]} />)
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] }))
+    );
+    render(
+      <CostsPanel
+        tripId={1}
+        tripMembers={[
+          { id: 1, username: 'alice', avatar_url: '/uploads/avatars/a.png' },
+          { id: 2, username: 'bob', avatar_url: '/uploads/avatars/b.png' },
+        ]}
+      />
+    );
 
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
-    await user.type(screen.getAllByPlaceholderText('0,00')[0], '100')
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner');
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '100');
 
     // Payer rows and split rows both fall back to the uploaded picture.
-    await user.click(screen.getByRole('button', { name: 'Multiple people paid' }))
-    expect(document.querySelectorAll('img[src="/uploads/avatars/b.png"]').length).toBeGreaterThanOrEqual(2)
+    await user.click(screen.getByRole('button', { name: 'Multiple people paid' }));
+    expect(document.querySelectorAll('img[src="/uploads/avatars/b.png"]').length).toBeGreaterThanOrEqual(2);
 
     // Excluding Bob leaves the include hint; tapping it puts him back on the bill.
-    await user.click(screen.getAllByTestId('payer-toggle')[1])
-    await user.click(screen.getAllByTestId('payer-toggle')[1])
-    await user.click(screen.getAllByTestId('payer-toggle')[1])
-    expect(screen.getAllByTestId('payer-amount')).toHaveLength(2)
+    await user.click(screen.getAllByTestId('payer-toggle')[1]);
+    await user.click(screen.getAllByTestId('payer-toggle')[1]);
+    await user.click(screen.getAllByTestId('payer-toggle')[1]);
+    expect(screen.getAllByTestId('payer-amount')).toHaveLength(2);
 
     // Three decimals are not a valid money amount, so the field ignores them.
-    await user.click(screen.getByRole('button', { name: 'Custom' }))
-    const splitInput = screen.getAllByPlaceholderText('50,00')[0] as HTMLInputElement
-    await user.type(splitInput, '12,345')
-    expect(splitInput.value).toBe('12,34')
-  })
+    await user.click(screen.getByRole('button', { name: 'Custom' }));
+    const splitInput = screen.getAllByPlaceholderText('50,00')[0] as HTMLInputElement;
+    await user.type(splitInput, '12,345');
+    expect(splitInput.value).toBe('12,34');
+  });
 
   it('FE-W5COSTS-051: ticket prices ignore an over-precise entry and participants toggle back on', async () => {
-    const user = userEvent.setup()
-    mount([])
+    const user = userEvent.setup();
+    mount([]);
 
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Groceries')
-    await user.click(screen.getByRole('button', { name: 'Ticket' }))
-    await user.click(screen.getByRole('button', { name: /Add item/i }))
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Groceries');
+    await user.click(screen.getByRole('button', { name: 'Ticket' }));
+    await user.click(screen.getByRole('button', { name: /Add item/i }));
 
-    await user.type(screen.getByPlaceholderText('Item name'), 'Apples')
-    const price = screen.getAllByPlaceholderText('0,00')[1] as HTMLInputElement
-    await user.type(price, '10,999')
-    expect(price.value).toBe('10,99')
+    await user.type(screen.getByPlaceholderText('Item name'), 'Apples');
+    const price = screen.getAllByPlaceholderText('0,00')[1] as HTMLInputElement;
+    await user.type(price, '10,999');
+    expect(price.value).toBe('10,99');
 
     // Toggling a participant off and on again leaves the shares unchanged.
-    const bob = screen.getAllByRole('checkbox', { name: /bob/i })[0]
-    await user.click(bob)
-    await user.click(bob)
+    const bob = screen.getAllByRole('checkbox', { name: /bob/i })[0];
+    await user.click(bob);
+    await user.click(bob);
     // 10.99 across two people leaves the odd cent with the lower user id.
-    expect(screen.getByText('Individual shares')).toBeInTheDocument()
-    expect(screen.getByText('5,50 €')).toBeInTheDocument()
-    expect(screen.getByText('5,49 €')).toBeInTheDocument()
-  })
-})
+    expect(screen.getByText('Individual shares')).toBeInTheDocument();
+    expect(screen.getByText('5,50 €')).toBeInTheDocument();
+    expect(screen.getByText('5,49 €')).toBeInTheDocument();
+  });
+});
 
 describe('CostsPanel — split modes and guests', () => {
-  beforeEach(seedAlice)
+  beforeEach(seedAlice);
 
   it('FE-W5COSTS-056: switching back to an equal split restores the per-head amounts', async () => {
-    const user = userEvent.setup()
-    let posted: Record<string, unknown> | null = null
-    server.use(http.post('/api/trips/1/budget', async ({ request }) => {
-      posted = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ item: dinner() })
-    }))
-    mount([])
+    const user = userEvent.setup();
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/budget', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: dinner() });
+      })
+    );
+    mount([]);
 
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner')
-    await user.type(screen.getAllByPlaceholderText('0,00')[0], '90')
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Dinner');
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '90');
 
-    await user.click(screen.getByRole('button', { name: 'Custom' }))
-    expect(screen.getByText(/Sum of splits/)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Equally' }))
-    expect(screen.getByText('45,00 € per person')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Custom' }));
+    expect(screen.getByText(/Sum of splits/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Equally' }));
+    expect(screen.getByText('45,00 € per person')).toBeInTheDocument();
 
-    const submits = screen.getAllByRole('button', { name: 'Add expense' })
-    await user.click(submits[submits.length - 1])
-    await waitFor(() => expect(posted).toBeTruthy())
-    expect(posted!.members).toEqual([{ user_id: 1, amount: null }, { user_id: 2, amount: null }])
-  })
+    const submits = screen.getAllByRole('button', { name: 'Add expense' });
+    await user.click(submits[submits.length - 1]);
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted!.members).toEqual([
+      { user_id: 1, amount: null },
+      { user_id: 2, amount: null },
+    ]);
+  });
 
   it('FE-W5COSTS-1709: a custom split typed in percent saves the matching amounts', async () => {
-    const user = userEvent.setup()
-    let posted: Record<string, unknown> | null = null
-    server.use(http.post('/api/trips/1/budget', async ({ request }) => {
-      posted = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ item: dinner() })
-    }))
-    mount([])
+    const user = userEvent.setup();
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/budget', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: dinner() });
+      })
+    );
+    mount([]);
 
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Bag storage')
-    await user.type(screen.getAllByPlaceholderText('0,00')[0], '30')
-    await user.click(screen.getByRole('button', { name: 'Custom' }))
-    await user.click(screen.getByRole('button', { name: '%' }))
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Bag storage');
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '30');
+    await user.click(screen.getByRole('button', { name: 'Custom' }));
+    await user.click(screen.getByRole('button', { name: '%' }));
 
-    const [alice, bob] = screen.getAllByRole('textbox', { name: / %$/ })
-    await user.type(alice, '60')
-    expect(screen.getByText('60 % of 100 % assigned')).toBeInTheDocument()
-    await user.type(bob, '40')
-    expect(screen.getByText('Split matches total')).toBeInTheDocument()
-    expect(screen.getByText('18,00 €')).toBeInTheDocument()
+    const [alice, bob] = screen.getAllByRole('textbox', { name: / %$/ });
+    await user.type(alice, '60');
+    expect(screen.getByText('60 % of 100 % assigned')).toBeInTheDocument();
+    await user.type(bob, '40');
+    expect(screen.getByText('Split matches total')).toBeInTheDocument();
+    expect(screen.getByText('18,00 €')).toBeInTheDocument();
 
-    const submits = screen.getAllByRole('button', { name: 'Add expense' })
-    await user.click(submits[submits.length - 1])
-    await waitFor(() => expect(posted).toBeTruthy())
-    expect(posted!.members).toEqual([{ user_id: 1, amount: 18 }, { user_id: 2, amount: 12 }])
-  })
+    const submits = screen.getAllByRole('button', { name: 'Add expense' });
+    await user.click(submits[submits.length - 1]);
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted!.members).toEqual([
+      { user_id: 1, amount: 18 },
+      { user_id: 2, amount: 12 },
+    ]);
+  });
 
   it('FE-W5COSTS-057: multi-payer on a payer-less expense seeds and collapses back to me', async () => {
-    const user = userEvent.setup()
-    let put: Record<string, unknown> | null = null
-    server.use(http.put('/api/trips/1/budget/250', async ({ request }) => {
-      put = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ item: dinner() })
-    }))
-    mount([expense({
-      id: 250, name: 'Hotel', category: 'accommodation', total_price: 120,
-      payers: [], members: [{ user_id: 1, username: 'alice' }, { user_id: 2, username: 'bob' }],
-    })])
+    const user = userEvent.setup();
+    let put: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/trips/1/budget/250', async ({ request }) => {
+        put = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: dinner() });
+      })
+    );
+    mount([
+      expense({
+        id: 250,
+        name: 'Hotel',
+        category: 'accommodation',
+        total_price: 120,
+        payers: [],
+        members: [
+          { user_id: 1, username: 'alice' },
+          { user_id: 2, username: 'bob' },
+        ],
+      }),
+    ]);
 
-    await screen.findByText('Hotel')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await screen.findByText('Hotel');
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
 
     // Nobody paid, so switching to multi-payer seeds me as the only payer.
-    await user.click(await screen.findByRole('button', { name: 'Multiple people paid' }))
-    expect(screen.getAllByTestId('payer-amount')).toHaveLength(1)
+    await user.click(await screen.findByRole('button', { name: 'Multiple people paid' }));
+    expect(screen.getAllByTestId('payer-amount')).toHaveLength(1);
 
     // Dropping myself leaves the list empty; collapsing then falls back to me.
-    await user.click(screen.getAllByTestId('payer-toggle')[0])
-    expect(screen.queryAllByTestId('payer-amount')).toHaveLength(0)
-    await user.click(screen.getByRole('button', { name: 'One person paid' }))
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getAllByTestId('payer-toggle')[0]);
+    expect(screen.queryAllByTestId('payer-amount')).toHaveLength(0);
+    await user.click(screen.getByRole('button', { name: 'One person paid' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    await waitFor(() => expect(put).toBeTruthy())
-    expect(put!.payers).toEqual([{ user_id: 1, amount: 120 }])
-  })
+    await waitFor(() => expect(put).toBeTruthy());
+    expect(put!.payers).toEqual([{ user_id: 1, amount: 120 }]);
+  });
 
   it('FE-W5COSTS-058: a guest traveler is badged in the split list', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
-    )
-    render(<CostsPanel tripId={1} tripMembers={[
-      { id: 1, username: 'alice', avatar_url: null },
-      { id: 2, username: 'gus', avatar_url: '/uploads/avatars/g.png', is_guest: true },
-    ]} />)
+      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] }))
+    );
+    render(
+      <CostsPanel
+        tripId={1}
+        tripMembers={[
+          { id: 1, username: 'alice', avatar_url: null },
+          { id: 2, username: 'gus', avatar_url: '/uploads/avatars/g.png', is_guest: true },
+        ]}
+      />
+    );
 
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    await user.click(screen.getByRole('button', { name: 'Ticket' }))
-    await user.click(screen.getByRole('button', { name: /Add item/i }))
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    await user.click(screen.getByRole('button', { name: 'Ticket' }));
+    await user.click(screen.getByRole('button', { name: /Add item/i }));
 
     // The uploaded picture is reused for the per-item participant chips.
-    expect(document.querySelectorAll('img[src="/uploads/avatars/g.png"]').length).toBeGreaterThanOrEqual(2)
-    await user.click(screen.getByRole('button', { name: 'Equally' }))
-    expect(screen.getByText('Guest')).toBeInTheDocument()
-  })
-})
+    expect(document.querySelectorAll('img[src="/uploads/avatars/g.png"]').length).toBeGreaterThanOrEqual(2);
+    await user.click(screen.getByRole('button', { name: 'Equally' }));
+    expect(screen.getByText('Guest')).toBeInTheDocument();
+  });
+});
 
 describe('CostsPanel — mobile extras', () => {
-  const desktopMatchMedia = window.matchMedia
+  const desktopMatchMedia = window.matchMedia;
 
   beforeEach(() => {
-    seedAlice()
+    seedAlice();
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
       matches: query.includes('1023'),
       media: query,
@@ -2090,305 +2555,419 @@ describe('CostsPanel — mobile extras', () => {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
       dispatchEvent: vi.fn(),
-    })) as unknown as typeof window.matchMedia
-  })
+    })) as unknown as typeof window.matchMedia;
+  });
 
-  afterEach(() => { window.matchMedia = desktopMatchMedia })
+  afterEach(() => {
+    window.matchMedia = desktopMatchMedia;
+  });
 
   it('FE-W5COSTS-052: the mobile ledger filters by owner and by category', async () => {
-    mount([dinner(), taxi()])
+    mount([dinner(), taxi()]);
 
-    await screen.findByText('Taxi')
-    fireEvent.click(screen.getByRole('button', { name: 'Paid by me' }))
-    expect(screen.queryByText('Taxi')).not.toBeInTheDocument()
+    await screen.findByText('Taxi');
+    fireEvent.click(screen.getByRole('button', { name: 'Paid by me' }));
+    expect(screen.queryByText('Taxi')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'All' }))
-    fireEvent.click(screen.getByRole('button', { name: /All categories/ }))
-    pickOption('Transport')
-    expect(screen.getByText('Taxi')).toBeInTheDocument()
-    expect(screen.queryByText('Dinner')).not.toBeInTheDocument()
-  })
+    fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    fireEvent.click(screen.getByRole('button', { name: /All categories/ }));
+    pickOption('Transport');
+    expect(screen.getByText('Taxi')).toBeInTheDocument();
+    expect(screen.queryByText('Dinner')).not.toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-053: the mobile settle-up card can record a manual payment', async () => {
-    mount([])
+    mount([]);
 
-    await waitFor(() => expect(document.querySelector('.costs-summary')).toBeNull())
-    fireEvent.click(screen.getByRole('button', { name: 'Add payment' }))
+    await waitFor(() => expect(document.querySelector('.costs-summary')).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Add payment' }));
 
-    expect(await screen.findByPlaceholderText('0,00')).toBeInTheDocument()
-  })
+    expect(await screen.findByPlaceholderText('0,00')).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-062: the mobile search box keeps the caret across keystrokes', async () => {
-    const user = userEvent.setup()
-    mount([dinner(), taxi()])
+    const user = userEvent.setup();
+    mount([dinner(), taxi()]);
 
-    await screen.findByText('Taxi')
-    const box = screen.getByPlaceholderText('Search expenses…')
-    await user.type(box, 'din')
+    await screen.findByText('Taxi');
+    const box = screen.getByPlaceholderText('Search expenses…');
+    await user.type(box, 'din');
 
     // The whole word has to land: if the body is remounted per keystroke the input
     // loses focus and everything after the first character goes nowhere.
-    expect((box as HTMLInputElement).value).toBe('din')
-    expect(document.activeElement).toBe(box)
-    expect(screen.queryByText('Taxi')).not.toBeInTheDocument()
-  })
+    expect((box as HTMLInputElement).value).toBe('din');
+    expect(document.activeElement).toBe(box);
+    expect(screen.queryByText('Taxi')).not.toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-054: an unknown currency degrades to a plain amount on mobile too', async () => {
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: '' } })
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'XX' }) })
-    mount([expense({ id: 230, name: 'Mystery', category: 'other', total_price: 90 })])
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: '' } });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'XX' }) });
+    mount([expense({ id: 230, name: 'Mystery', category: 'other', total_price: 90 })]);
 
-    await screen.findByText('Mystery')
-    expect(screen.getByText('Total trip spend').parentElement).toHaveTextContent('90.00 XX')
-  })
-})
+    await screen.findByText('Mystery');
+    expect(screen.getByText('Total trip spend').parentElement).toHaveTextContent('90.00 XX');
+  });
+});
 
 // ── #2175: edit inputs are padded to the currency's decimals ────────────────
 describe('CostsPanel — decimal padding on edit (#2175)', () => {
   beforeEach(() => {
-    seedAlice()
-    clearExchangeRateCache()
-  })
-  afterEach(clearExchangeRateCache)
+    seedAlice();
+    clearExchangeRateCache();
+  });
+  afterEach(clearExchangeRateCache);
 
   it('FE-W5COSTS-066: reopens 4,90 as "4,90" and 5,00 as "5,00", not "4,9" and "5"', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
     mount([
-      expense({ id: 301, name: 'Coffee', category: 'food', total_price: 4.9, payers: [{ user_id: 1, amount: 4.9 }], members: [{ user_id: 1, username: 'alice' }] }),
-      expense({ id: 302, name: 'Toll', category: 'transport', total_price: 5, payers: [{ user_id: 1, amount: 5 }], members: [{ user_id: 1, username: 'alice' }] }),
-    ])
+      expense({
+        id: 301,
+        name: 'Coffee',
+        category: 'food',
+        total_price: 4.9,
+        payers: [{ user_id: 1, amount: 4.9 }],
+        members: [{ user_id: 1, username: 'alice' }],
+      }),
+      expense({
+        id: 302,
+        name: 'Toll',
+        category: 'transport',
+        total_price: 5,
+        payers: [{ user_id: 1, amount: 5 }],
+        members: [{ user_id: 1, username: 'alice' }],
+      }),
+    ]);
 
-    await screen.findByText('Coffee')
-    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0])
-    expect(await screen.findByDisplayValue('4,90')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    await screen.findByText('Coffee');
+    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+    expect(await screen.findByDisplayValue('4,90')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    await user.click(screen.getAllByRole('button', { name: 'Edit' })[1])
-    expect(await screen.findByDisplayValue('5,00')).toBeInTheDocument()
-  })
+    await user.click(screen.getAllByRole('button', { name: 'Edit' })[1]);
+    expect(await screen.findByDisplayValue('5,00')).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-071: a three-decimal currency seeds three places and the split field still takes input', async () => {
-    const user = userEvent.setup()
-    render(<ExpenseModal tripId={1} base="KWD" people={tripMembers} me={1} onClose={() => {}} onSaved={vi.fn()}
-      editing={expense({
-        id: 340, name: 'Museum', category: 'activities', currency: 'KWD', total_price: 3,
-        payers: [{ user_id: 1, amount: 3 }],
-        members: [{ user_id: 1, username: 'alice', amount: 1.5 }, { user_id: 2, username: 'bob', amount: 1.5 }],
-      })} />)
+    const user = userEvent.setup();
+    render(
+      <ExpenseModal
+        tripId={1}
+        base="KWD"
+        people={tripMembers}
+        me={1}
+        onClose={() => {}}
+        onSaved={vi.fn()}
+        editing={expense({
+          id: 340,
+          name: 'Museum',
+          category: 'activities',
+          currency: 'KWD',
+          total_price: 3,
+          payers: [{ user_id: 1, amount: 3 }],
+          members: [
+            { user_id: 1, username: 'alice', amount: 1.5 },
+            { user_id: 2, username: 'bob', amount: 1.5 },
+          ],
+        })}
+      />
+    );
 
-    expect(await screen.findByDisplayValue('3.000')).toBeInTheDocument()
-    const shares = screen.getAllByDisplayValue('1.500') as HTMLInputElement[]
+    expect(await screen.findByDisplayValue('3.000')).toBeInTheDocument();
+    const shares = screen.getAllByDisplayValue('1.500') as HTMLInputElement[];
 
     // The seed is three decimals, so a two-decimal guard would reject every further
     // keystroke, including one typed in front of the decimal point.
-    await user.type(shares[0], '2', { initialSelectionStart: 0, initialSelectionEnd: 0 })
-    expect(shares[0].value).toBe('21.500')
+    await user.type(shares[0], '2', { initialSelectionStart: 0, initialSelectionEnd: 0 });
+    expect(shares[0].value).toBe('21.500');
 
     // A fourth decimal is still not a fils.
-    await user.clear(shares[1])
-    await user.type(shares[1], '1.5005')
-    expect(shares[1].value).toBe('1.500')
-  })
-})
+    await user.clear(shares[1]);
+    await user.type(shares[1], '1.5005');
+    expect(shares[1].value).toBe('1.500');
+  });
+});
 
 // ── #2176: negative amounts record partial reimbursements ───────────────────
 describe('CostsPanel — negative amounts (#2176)', () => {
   beforeEach(() => {
-    seedAlice()
-    clearExchangeRateCache()
-  })
-  afterEach(clearExchangeRateCache)
+    seedAlice();
+    clearExchangeRateCache();
+  });
+  afterEach(clearExchangeRateCache);
 
   it('FE-W5COSTS-067: "-100" can be typed and saves a negative expense with its payer', async () => {
-    const user = userEvent.setup()
-    let posted: Record<string, unknown> | null = null
-    server.use(http.post('/api/trips/1/budget', async ({ request }) => {
-      posted = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'Hotel refund' }), id: 12 } })
-    }))
-    mount([])
+    const user = userEvent.setup();
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/budget', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: { ...buildBudgetItem({ trip_id: 1, name: 'Hotel refund' }), id: 12 } });
+      })
+    );
+    mount([]);
 
-    await user.click(await screen.findByRole('button', { name: 'Add expense' }))
-    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Hotel refund')
+    await user.click(await screen.findByRole('button', { name: 'Add expense' }));
+    await user.type(await screen.findByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Hotel refund');
     // The reported symptom: the '-' was stripped on input, so this was untypeable.
-    await user.type(screen.getAllByPlaceholderText('0,00')[0], '-100')
+    await user.type(screen.getAllByPlaceholderText('0,00')[0], '-100');
 
-    const submits = screen.getAllByRole('button', { name: 'Add expense' })
-    expect(submits[submits.length - 1]).not.toBeDisabled()
-    await user.click(submits[submits.length - 1])
+    const submits = screen.getAllByRole('button', { name: 'Add expense' });
+    expect(submits[submits.length - 1]).not.toBeDisabled();
+    await user.click(submits[submits.length - 1]);
 
-    await waitFor(() => expect(posted).toBeTruthy())
-    expect(posted!.total_price).toBe(-100)
-    expect(posted!.payers).toEqual([{ user_id: 1, amount: -100 }])
-    expect(posted!.member_ids).toEqual([1, 2])
-  })
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted!.total_price).toBe(-100);
+    expect(posted!.payers).toEqual([{ user_id: 1, amount: -100 }]);
+    expect(posted!.member_ids).toEqual([1, 2]);
+  });
 
   it('FE-W5COSTS-068: a refund reopens with its negative payer intact and saves it back', async () => {
-    const user = userEvent.setup()
-    let put: Record<string, unknown> | null = null
-    server.use(http.put('/api/trips/1/budget/310', async ({ request }) => {
-      put = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ item: dinner() })
-    }))
-    mount([expense({
-      id: 310, name: 'Hotel refund', category: 'lodging', total_price: -100,
-      payers: [{ user_id: 1, amount: -100 }],
-      members: [{ user_id: 1, username: 'alice' }, { user_id: 2, username: 'bob' }],
-    })])
+    const user = userEvent.setup();
+    let put: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/trips/1/budget/310', async ({ request }) => {
+        put = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: dinner() });
+      })
+    );
+    mount([
+      expense({
+        id: 310,
+        name: 'Hotel refund',
+        category: 'lodging',
+        total_price: -100,
+        payers: [{ user_id: 1, amount: -100 }],
+        members: [
+          { user_id: 1, username: 'alice' },
+          { user_id: 2, username: 'bob' },
+        ],
+      }),
+    ]);
 
     // The row shows the amount twice — total pill and the payer chip, which used
     // to be filtered to positive amounts and left the refund's recipient invisible.
-    const row = (await screen.findByText('Hotel refund')).closest('.exp-row') as HTMLElement
-    expect(within(row).getAllByText(/100,00/).length).toBeGreaterThanOrEqual(2)
+    const row = (await screen.findByText('Hotel refund')).closest('.exp-row') as HTMLElement;
+    expect(within(row).getAllByText(/100,00/).length).toBeGreaterThanOrEqual(2);
     // Not "Unfinished": the refund has its recipient recorded.
-    expect(within(row).queryByText('Unfinished')).toBeNull()
+    expect(within(row).queryByText('Unfinished')).toBeNull();
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
     // The negative payer reopens selected instead of resetting to "Nobody",
     // and the total is seeded signed and padded.
-    expect(await screen.findByRole('radio', { name: 'You' })).toBeChecked()
-    expect(screen.getByDisplayValue('-100,00')).toBeInTheDocument()
+    expect(await screen.findByRole('radio', { name: 'You' })).toBeChecked();
+    expect(screen.getByDisplayValue('-100,00')).toBeInTheDocument();
 
     // Saving untouched must not silently drop the negative payer.
-    await user.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(put).toBeTruthy())
-    expect(put!.total_price).toBe(-100)
-    expect(put!.payers).toEqual([{ user_id: 1, amount: -100 }])
-  })
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(put).toBeTruthy());
+    expect(put!.total_price).toBe(-100);
+    expect(put!.payers).toEqual([{ user_id: 1, amount: -100 }]);
+  });
 
   it('FE-W5COSTS-069: a payer-less refund is marked Unfinished like a payer-less bill', async () => {
-    mount([expense({ id: 320, name: 'Pending refund', category: 'misc', total_price: -50, payers: [], members: [{ user_id: 1, username: 'alice' }] })])
+    mount([
+      expense({
+        id: 320,
+        name: 'Pending refund',
+        category: 'misc',
+        total_price: -50,
+        payers: [],
+        members: [{ user_id: 1, username: 'alice' }],
+      }),
+    ]);
 
-    await screen.findByText('Pending refund')
-    expect(screen.getByText('Unfinished')).toBeInTheDocument()
-  })
+    await screen.findByText('Pending refund');
+    expect(screen.getByText('Unfinished')).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-070: the category breakdown nets refunds and keeps a net-negative category listed', async () => {
     mount([
-      expense({ id: 330, name: 'Dinner', category: 'food', total_price: 90, payers: [{ user_id: 1, amount: 90 }], members: [{ user_id: 1, username: 'alice' }] }),
-      expense({ id: 331, name: 'Meal refund', category: 'food', total_price: -30, payers: [{ user_id: 1, amount: -30 }], members: [{ user_id: 1, username: 'alice' }] }),
-      expense({ id: 332, name: 'Cancelled tour', category: 'activities', total_price: -20, payers: [{ user_id: 1, amount: -20 }], members: [{ user_id: 1, username: 'alice' }] }),
-    ])
+      expense({
+        id: 330,
+        name: 'Dinner',
+        category: 'food',
+        total_price: 90,
+        payers: [{ user_id: 1, amount: 90 }],
+        members: [{ user_id: 1, username: 'alice' }],
+      }),
+      expense({
+        id: 331,
+        name: 'Meal refund',
+        category: 'food',
+        total_price: -30,
+        payers: [{ user_id: 1, amount: -30 }],
+        members: [{ user_id: 1, username: 'alice' }],
+      }),
+      expense({
+        id: 332,
+        name: 'Cancelled tour',
+        category: 'activities',
+        total_price: -20,
+        payers: [{ user_id: 1, amount: -20 }],
+        members: [{ user_id: 1, username: 'alice' }],
+      }),
+    ]);
 
-    await screen.findByText('Dinner')
-    const breakdown = screen.getByRole('region', { name: 'By category' }) as HTMLElement
+    await screen.findByText('Dinner');
+    const breakdown = screen.getByRole('region', { name: 'By category' }) as HTMLElement;
     // Food nets 90 − 30 = 60; the fully refunded tour keeps a row of its own.
-    expect(within(breakdown).getByText('60 €')).toBeInTheDocument()
-    expect(within(breakdown).getByText(/[-−]20\s*€/)).toBeInTheDocument()
-  })
+    expect(within(breakdown).getByText('60 €')).toBeInTheDocument();
+    expect(within(breakdown).getByText(/[-−]20\s*€/)).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-072: the custom-split hint reads under and over the right way round on a refund', async () => {
-    const user = userEvent.setup()
-    render(<ExpenseModal tripId={1} base="EUR" people={tripMembers} me={1} onClose={() => {}} onSaved={vi.fn()}
-      editing={expense({
-        id: 341, name: 'Hotel refund', category: 'accommodation', total_price: -100,
-        payers: [{ user_id: 1, amount: -100 }],
-        members: [{ user_id: 1, username: 'alice', amount: -70 }, { user_id: 2, username: 'bob' }],
-      })} />)
+    const user = userEvent.setup();
+    render(
+      <ExpenseModal
+        tripId={1}
+        base="EUR"
+        people={tripMembers}
+        me={1}
+        onClose={() => {}}
+        onSaved={vi.fn()}
+        editing={expense({
+          id: 341,
+          name: 'Hotel refund',
+          category: 'accommodation',
+          total_price: -100,
+          payers: [{ user_id: 1, amount: -100 }],
+          members: [
+            { user_id: 1, username: 'alice', amount: -70 },
+            { user_id: 2, username: 'bob' },
+          ],
+        })}
+      />
+    );
 
     // -70 of -100: 30 still to hand out, not 30 too much.
-    expect(await screen.findByText('Sum of splits: -70,00 € of -100,00 € (under by 30,00 €)')).toBeInTheDocument()
+    expect(await screen.findByText('Sum of splits: -70,00 € of -100,00 € (under by 30,00 €)')).toBeInTheDocument();
 
-    await user.type(screen.getByPlaceholderText('-30,00'), '-40')
-    expect(screen.getByText('Sum of splits: -110,00 € of -100,00 € (over by 10,00 €)')).toBeInTheDocument()
-  })
+    await user.type(screen.getByPlaceholderText('-30,00'), '-40');
+    expect(screen.getByText('Sum of splits: -110,00 € of -100,00 € (over by 10,00 €)')).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-073: the total can be turned into a refund without a minus key', async () => {
-    const user = userEvent.setup()
-    render(<ExpenseModal tripId={1} base="EUR" people={tripMembers} me={1} editing={null}
-      onClose={() => {}} onSaved={vi.fn()} />)
+    const user = userEvent.setup();
+    render(
+      <ExpenseModal
+        tripId={1}
+        base="EUR"
+        people={tripMembers}
+        me={1}
+        editing={null}
+        onClose={() => {}}
+        onSaved={vi.fn()}
+      />
+    );
 
-    const total = (await screen.findAllByPlaceholderText('0,00'))[0] as HTMLInputElement
-    await user.type(total, '100')
+    const total = (await screen.findAllByPlaceholderText('0,00'))[0] as HTMLInputElement;
+    await user.type(total, '100');
 
     // The iOS decimal pad has no minus key, so the sign has to be reachable without one.
-    const toggle = screen.getByRole('button', { name: 'Switch between expense and refund' })
-    await user.click(toggle)
+    const toggle = screen.getByRole('button', { name: 'Switch between expense and refund' });
+    await user.click(toggle);
 
-    expect(total.value).toBe('-100')
-    expect(toggle).toHaveAttribute('aria-pressed', 'true')
-  })
-})
+    expect(total.value).toBe('-100');
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  });
+});
 
 describe('CostsPanel — split maths', () => {
   it('FE-W5COSTS-039: an equal split with nobody to split with is empty', () => {
-    expect(splitEqualShares(90, [], 1)).toEqual({})
-  })
+    expect(splitEqualShares(90, [], 1)).toEqual({});
+  });
 
   it('FE-W5COSTS-040: the equal split spreads the remainder cents by item id', () => {
     // 10.00 over 3 people = 3.34 / 3.33 / 3.33, with the extra cent rotating per item.
-    expect(splitEqualShares(10, [{ user_id: 1 }, { user_id: 2 }, { user_id: 3 }], 0)).toEqual({ 1: 3.34, 2: 3.33, 3: 3.33 })
-    expect(splitEqualShares(10, [{ user_id: 1 }, { user_id: 2 }, { user_id: 3 }], 1)).toEqual({ 1: 3.33, 2: 3.34, 3: 3.33 })
-  })
+    expect(splitEqualShares(10, [{ user_id: 1 }, { user_id: 2 }, { user_id: 3 }], 0)).toEqual({
+      1: 3.34,
+      2: 3.33,
+      3: 3.33,
+    });
+    expect(splitEqualShares(10, [{ user_id: 1 }, { user_id: 2 }, { user_id: 3 }], 1)).toEqual({
+      1: 3.33,
+      2: 3.34,
+      3: 3.33,
+    });
+  });
 
   it('FE-W5COSTS-041: a receipt line nobody is assigned to is carried by everyone on the receipt', () => {
     const items: TicketItem[] = [
       { id: 'a', name: 'Apples', price: '10', participants: new Set([1, 2]) },
       { id: 'b', name: 'Service', price: '5', participants: new Set() },
       { id: 'c', name: 'Cake', price: 'x', participants: new Set([2]) },
-    ]
+    ];
 
     // The service line used to count toward the total without landing on anyone,
     // so the shares stayed a permanent 5.00 short of it (#1382).
-    expect(calculateTicketShares(items)).toEqual({ shares: { 1: 7.5, 2: 7.5 }, total: 15 })
-  })
-})
+    expect(calculateTicketShares(items)).toEqual({ shares: { 1: 7.5, 2: 7.5 }, total: 15 });
+  });
+});
 
 // The reworked expense modal shipped with English written straight into the JSX,
 // so the receipt panel and the split summary stayed English on a German phone
 // while everything around them translated.
 describe('CostsPanel — expense modal in another language', () => {
   beforeEach(() => {
-    seedAlice()
-    seedStore(useSettingsStore, { settings: buildSettings({ language: 'de', default_currency: 'EUR' }) })
-    clearExchangeRateCache()
-  })
-  afterEach(clearExchangeRateCache)
+    seedAlice();
+    seedStore(useSettingsStore, { settings: buildSettings({ language: 'de', default_currency: 'EUR' }) });
+    clearExchangeRateCache();
+  });
+  afterEach(clearExchangeRateCache);
 
-  const openModal = () => render(
-    <ExpenseModal tripId={1} base="EUR" people={tripMembers} me={1} editing={null}
-      onClose={() => {}} onSaved={vi.fn()} />
-  )
+  const openModal = () =>
+    render(
+      <ExpenseModal
+        tripId={1}
+        base="EUR"
+        people={tripMembers}
+        me={1}
+        editing={null}
+        onClose={() => {}}
+        onSaved={vi.fn()}
+      />
+    );
 
   it('FE-W5COSTS-063: the receipt panel is translated', async () => {
-    const user = userEvent.setup()
-    openModal()
+    const user = userEvent.setup();
+    openModal();
 
     // The locale bundle is fetched, so the first paint is still English.
-    await user.click(await screen.findByRole('button', { name: 'Beleg' }))
-    await user.click(screen.getByRole('button', { name: /Artikel hinzufügen/ }))
+    await user.click(await screen.findByRole('button', { name: 'Beleg' }));
+    await user.click(screen.getByRole('button', { name: /Artikel hinzufügen/ }));
 
-    expect(screen.getByPlaceholderText('Artikelname')).toBeInTheDocument()
-    expect(screen.getByText('Aufteilen auf:')).toBeInTheDocument()
-    expect(screen.getByText('Anteil pro Person')).toBeInTheDocument()
-    expect(screen.queryByText('Individual shares')).not.toBeInTheDocument()
-  })
+    expect(screen.getByPlaceholderText('Artikelname')).toBeInTheDocument();
+    expect(screen.getByText('Aufteilen auf:')).toBeInTheDocument();
+    expect(screen.getByText('Anteil pro Person')).toBeInTheDocument();
+    expect(screen.queryByText('Individual shares')).not.toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-064: the split summary and the excluded marker are translated', async () => {
-    const user = userEvent.setup()
-    openModal()
+    const user = userEvent.setup();
+    openModal();
 
-    await user.type(await screen.findByPlaceholderText('0,00'), '90')
-    await user.click(screen.getByRole('button', { name: 'Individuell' }))
+    await user.type(await screen.findByPlaceholderText('0,00'), '90');
+    await user.click(screen.getByRole('button', { name: 'Individuell' }));
 
     // Nothing entered yet, so the whole 90 is still unaccounted for.
-    expect(screen.getByText('Summe der Anteile: 0,00 € von 90,00 € (es fehlen 90,00 €)')).toBeInTheDocument()
+    expect(screen.getByText('Summe der Anteile: 0,00 € von 90,00 € (es fehlen 90,00 €)')).toBeInTheDocument();
 
-    const shares = screen.getAllByPlaceholderText('45,00')
-    await user.type(shares[0], '90')
-    expect(screen.getByText('Aufteilung passt zur Summe')).toBeInTheDocument()
+    const shares = screen.getAllByPlaceholderText('45,00');
+    await user.type(shares[0], '90');
+    expect(screen.getByText('Aufteilung passt zur Summe')).toBeInTheDocument();
 
-    await user.type(shares[1], '10')
-    expect(screen.getByText('Summe der Anteile: 100,00 € von 90,00 € (10,00 € zu viel)')).toBeInTheDocument()
+    await user.type(shares[1], '10');
+    expect(screen.getByText('Summe der Anteile: 100,00 € von 90,00 € (10,00 € zu viel)')).toBeInTheDocument();
 
     // Back to the equal split: a member taken out of it is marked, not dropped.
-    await user.click(screen.getByRole('button', { name: 'Gleichmäßig' }))
+    await user.click(screen.getByRole('button', { name: 'Gleichmäßig' }));
     // Taken out, the box is simply unticked; no English word leaks into the German dialog.
-    await user.click(screen.getByRole('checkbox', { name: /bob/i }))
-    expect(screen.getByRole('checkbox', { name: /bob/i })).not.toBeChecked()
-    expect(screen.queryByText('Excluded')).not.toBeInTheDocument()
-  })
-})
+    await user.click(screen.getByRole('checkbox', { name: /bob/i }));
+    expect(screen.getByRole('checkbox', { name: /bob/i })).not.toBeChecked();
+    expect(screen.queryByText('Excluded')).not.toBeInTheDocument();
+  });
+});
 
 // ── #2525: a bill entered in the display currency on a trip kept in another ───
 describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
@@ -2398,162 +2977,227 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
   // euros are $791.55. The dollar's own quote is rounded separately (0.865706 per
   // dollar is 1.155126 per euro), which is why the panel converts with the euro's.
   beforeEach(() => {
-    seedAlice()
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'USD' } })
-    clearExchangeRateCache()
-    localStorage.setItem('trek_fx_USD', JSON.stringify({ rates: { USD: 1, EUR: 0.865706 }, ts: Date.now() }))
-    localStorage.setItem('trek_fx_EUR', JSON.stringify({ rates: { EUR: 1, USD: 1.1551, SEK: 10 }, ts: Date.now() }))
-  })
-  afterEach(clearExchangeRateCache)
+    seedAlice();
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'USD' } });
+    clearExchangeRateCache();
+    localStorage.setItem('trek_fx_USD', JSON.stringify({ rates: { USD: 1, EUR: 0.865706 }, ts: Date.now() }));
+    localStorage.setItem('trek_fx_EUR', JSON.stringify({ rates: { EUR: 1, USD: 1.1551, SEK: 10 }, ts: Date.now() }));
+  });
+  afterEach(clearExchangeRateCache);
 
-  const hotel = (over: Partial<BudgetItem> = {}) => expense({
-    id: 401, name: 'Aparthotel Silver', category: 'accommodation', total_price: 801.76, currency: 'USD', exchange_rate: 1.17,
-    expense_date: '2026-08-06',
-    payers: [{ user_id: 1, amount: 801.76 }],
-    members: [{ user_id: 1, username: 'alice' }, { user_id: 2, username: 'bob' }],
-    ...over,
-  })
+  const hotel = (over: Partial<BudgetItem> = {}) =>
+    expense({
+      id: 401,
+      name: 'Aparthotel Silver',
+      category: 'accommodation',
+      total_price: 801.76,
+      currency: 'USD',
+      exchange_rate: 1.17,
+      expense_date: '2026-08-06',
+      payers: [{ user_id: 1, amount: 801.76 }],
+      members: [
+        { user_id: 1, username: 'alice' },
+        { user_id: 2, username: 'bob' },
+      ],
+      ...over,
+    });
 
   it('FE-W5COSTS-079: a bill whose rate moved shows what was entered and what it was booked at', async () => {
-    mount([hotel()])
+    mount([hotel()]);
 
-    await screen.findByText('Aparthotel Silver')
+    await screen.findByText('Aparthotel Silver');
     // The entered amount was nowhere on the row, so $791.57 read as a wrong copy of
     // the 801.76 in the dialog. The pill beside the line is the last step.
-    expect(screen.getByText(/^\$801\.76 → 685,26\s€$/)).toBeInTheDocument()
+    expect(screen.getByText(/^\$801\.76 → 685,26\s€$/)).toBeInTheDocument();
     // Row total and payer chip stay the booked euros at today's rate, and so does what
     // I lent: half of 685.26 EUR, the figure settle-up offers. Printing $400.88 here
     // had Bob pay back more than he owed and reopened the trip.
-    expect(screen.getAllByText('$791.55')).toHaveLength(2)
-    expect(screen.getByText('you lent $395.77')).toBeInTheDocument()
-    expect(screen.queryByText('you lent $400.88')).toBeNull()
-  })
+    expect(screen.getAllByText('$791.55')).toHaveLength(2);
+    expect(screen.getByText('you lent $395.77')).toBeInTheDocument();
+    expect(screen.queryByText('you lent $400.88')).toBeNull();
+  });
 
-  it('FE-W5COSTS-087: a bill booked at today\'s rate reads exactly as typed everywhere on the page', async () => {
+  it("FE-W5COSTS-087: a bill booked at today's rate reads exactly as typed everywhere on the page", async () => {
     mount([
-      hotel({ id: 407, name: 'Villa', total_price: 12345.67, exchange_rate: 1.1551, payers: [{ user_id: 1, amount: 12345.67 }] }),
+      hotel({
+        id: 407,
+        name: 'Villa',
+        total_price: 12345.67,
+        exchange_rate: 1.1551,
+        payers: [{ user_id: 1, amount: 12345.67 }],
+      }),
       hotel({ id: 408, name: 'Unpaid deposit', total_price: 250, exchange_rate: 1.1551, payers: [], members: [] }),
-    ])
+    ]);
 
-    await screen.findByText('Villa')
+    await screen.findByText('Villa');
     // Pill and payer chip; converting back with the dollar's own quote gave $12,346.05.
-    expect(screen.getAllByText('$12,345.67')).toHaveLength(2)
-    expect(screen.queryByText(/12,346\.0[56]/)).toBeNull()
-    expect(screen.getByText('$12,595.67 spent')).toBeInTheDocument()
-    const total = screen.getByText('Total trip spend').parentElement!.parentElement!.parentElement!
-    expect(total.textContent).toContain('$12,595.67')
-    const outstanding = screen.getByText('Outstanding amount').parentElement!.parentElement!.parentElement!
-    expect(outstanding.textContent).toContain('$250.00')
+    expect(screen.getAllByText('$12,345.67')).toHaveLength(2);
+    expect(screen.queryByText(/12,346\.0[56]/)).toBeNull();
+    expect(screen.getByText('$12,595.67 spent')).toBeInTheDocument();
+    const total = screen.getByText('Total trip spend').parentElement!.parentElement!.parentElement!;
+    expect(total.textContent).toContain('$12,595.67');
+    const outstanding = screen.getByText('Outstanding amount').parentElement!.parentElement!.parentElement!;
+    expect(outstanding.textContent).toContain('$250.00');
     // Nothing to explain under either row.
-    expect(screen.queryByText(/^\$12,345\.67 →/)).toBeNull()
-    expect(screen.queryByText(/^\$250\.00 →/)).toBeNull()
-  })
+    expect(screen.queryByText(/^\$12,345\.67 →/)).toBeNull();
+    expect(screen.queryByText(/^\$250\.00 →/)).toBeNull();
+  });
 
   it('FE-W5COSTS-088: the CSV export adds the trip-currency amount every sum is built from', async () => {
-    let exported: Blob | null = null
-    const createObjURL = vi.spyOn(URL, 'createObjectURL').mockImplementation(b => { exported = b as Blob; return 'blob:mock' })
-    const revokeObjURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    let exported: Blob | null = null;
+    const createObjURL = vi.spyOn(URL, 'createObjectURL').mockImplementation((b) => {
+      exported = b as Blob;
+      return 'blob:mock';
+    });
+    const revokeObjURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     try {
-      mount([hotel()])
-      await screen.findByText('Aparthotel Silver')
-      fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }))
-      await waitFor(() => expect(exported).toBeTruthy())
-      const lines = (await exported!.text()).replace(/^\uFEFF/, '').split('\r\n')
-      expect(lines[0]).toBe('Date;Name;Category;Amount;Currency;Amount (EUR);Amount (USD);Note')
-      expect(lines[1]).toMatch(/;801\.76;USD;685\.26;791\.55;$/)
+      mount([hotel()]);
+      await screen.findByText('Aparthotel Silver');
+      fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+      await waitFor(() => expect(exported).toBeTruthy());
+      const lines = (await exported!.text()).replace(/^\uFEFF/, '').split('\r\n');
+      expect(lines[0]).toBe('Date;Name;Category;Amount;Currency;Amount (EUR);Amount (USD);Note');
+      expect(lines[1]).toMatch(/;801\.76;USD;685\.26;791\.55;$/);
     } finally {
-      createObjURL.mockRestore(); revokeObjURL.mockRestore(); clickSpy.mockRestore()
+      createObjURL.mockRestore();
+      revokeObjURL.mockRestore();
+      clickSpy.mockRestore();
     }
-  })
+  });
 
   it('FE-W5COSTS-080: the totals add up the figures the rows show', async () => {
     mount([
       hotel(),
       hotel({ id: 402, name: 'Dinner', category: 'food', total_price: 120, payers: [{ user_id: 2, amount: 120 }] }),
-    ])
+    ]);
 
-    await screen.findByText('Aparthotel Silver')
+    await screen.findByText('Aparthotel Silver');
     // 120 USD at 1.17 is 102.56 EUR, $118.47 today; with the hotel's $791.55 that is
     // $910.02, on the day header and on the total spend card.
-    expect(screen.getByText(/^\$120\.00 → 102,56\s€$/)).toBeInTheDocument()
-    expect(screen.getByText('$910.02 spent')).toBeInTheDocument()
+    expect(screen.getByText(/^\$120\.00 → 102,56\s€$/)).toBeInTheDocument();
+    expect(screen.getByText('$910.02 spent')).toBeInTheDocument();
     // Label, its text block, the header row, then the card itself.
-    const card = screen.getByText('Total trip spend').parentElement!.parentElement!.parentElement!
-    expect(card.textContent).toContain('$910.02')
-  })
+    const card = screen.getByText('Total trip spend').parentElement!.parentElement!.parentElement!;
+    expect(card.textContent).toContain('$910.02');
+  });
 
   it('FE-W5COSTS-084: the totals follow the rates when they arrive after the expenses', async () => {
     // Nothing cached: the rates land after the expenses and the settlement, and the
     // totals used to keep the figure they were first added up with.
-    clearExchangeRateCache()
-    server.use(http.get('https://api.frankfurter.dev/v2/rates', async () => {
-      await new Promise(r => setTimeout(r, 150))
-      return HttpResponse.json([{ quote: 'EUR', rate: 0.8 }])
-    }))
-    mount([hotel({ id: 406, name: 'Museum', category: 'activities', total_price: 100, currency: 'EUR', exchange_rate: 1, payers: [{ user_id: 1, amount: 100 }] })])
+    clearExchangeRateCache();
+    server.use(
+      http.get('https://api.frankfurter.dev/v2/rates', async () => {
+        await new Promise((r) => setTimeout(r, 150));
+        return HttpResponse.json([{ quote: 'EUR', rate: 0.8 }]);
+      })
+    );
+    mount([
+      hotel({
+        id: 406,
+        name: 'Museum',
+        category: 'activities',
+        total_price: 100,
+        currency: 'EUR',
+        exchange_rate: 1,
+        payers: [{ user_id: 1, amount: 100 }],
+      }),
+    ]);
 
     // 100 euro at 0.8 euro to the dollar.
-    expect(await screen.findByText(/100,00\s€ → \$125\.00/)).toBeInTheDocument()
-    const card = screen.getByText('Total trip spend').parentElement!.parentElement!.parentElement!
-    await waitFor(() => expect(card.textContent).toContain('$125.00'))
-  })
+    expect(await screen.findByText(/100,00\s€ → \$125\.00/)).toBeInTheDocument();
+    const card = screen.getByText('Total trip spend').parentElement!.parentElement!.parentElement!;
+    await waitFor(() => expect(card.textContent).toContain('$125.00'));
+  });
 
   it('FE-W5COSTS-081: a euro row converts live, a third currency shows the euros it was booked at', async () => {
     mount([
-      hotel({ id: 403, name: 'Museum', category: 'activities', total_price: 100, currency: 'EUR', exchange_rate: 1, payers: [{ user_id: 1, amount: 100 }] }),
-      hotel({ id: 404, name: 'Ferry', category: 'transport', total_price: 1000, currency: 'SEK', exchange_rate: 10, payers: [{ user_id: 1, amount: 1000 }] }),
+      hotel({
+        id: 403,
+        name: 'Museum',
+        category: 'activities',
+        total_price: 100,
+        currency: 'EUR',
+        exchange_rate: 1,
+        payers: [{ user_id: 1, amount: 100 }],
+      }),
+      hotel({
+        id: 404,
+        name: 'Ferry',
+        category: 'transport',
+        total_price: 1000,
+        currency: 'SEK',
+        exchange_rate: 10,
+        payers: [{ user_id: 1, amount: 1000 }],
+      }),
       // Written before the freeze existed: nothing was booked, so dollars stay dollars.
-      hotel({ id: 405, name: 'Old taxi', category: 'transport', total_price: 50, currency: 'USD', exchange_rate: 1, payers: [{ user_id: 1, amount: 50 }] }),
-    ])
+      hotel({
+        id: 405,
+        name: 'Old taxi',
+        category: 'transport',
+        total_price: 50,
+        currency: 'USD',
+        exchange_rate: 1,
+        payers: [{ user_id: 1, amount: 50 }],
+      }),
+    ]);
 
-    await screen.findByText('Museum')
+    await screen.findByText('Museum');
     // The trip currency has no frozen rate of its own and goes to dollars live.
-    expect(screen.getByText(/^100,00\s€ → \$115\.51$/)).toBeInTheDocument()
+    expect(screen.getByText(/^100,00\s€ → \$115\.51$/)).toBeInTheDocument();
     // 1000 SEK at 10 per euro is 100 euro, then live to dollars in the pill.
-    expect(screen.getByText(/^1\s000,00\skr → 100,00\s€$/)).toBeInTheDocument()
-    expect(screen.getAllByText('$50.00').length).toBeGreaterThanOrEqual(2)
-    expect(screen.queryByText(/^\$50\.00 →/)).toBeNull()
-  })
+    expect(screen.getByText(/^1\s000,00\skr → 100,00\s€$/)).toBeInTheDocument();
+    expect(screen.getAllByText('$50.00').length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText(/^\$50\.00 →/)).toBeNull();
+  });
 
   it('FE-W5COSTS-082: a payment recorded in dollars is booked like an expense, a legacy one stays as entered', async () => {
     mount([hotel()], {
       settlements: [
-        { id: 21, from_user_id: 2, to_user_id: 1, amount: 400.88, currency: 'USD', exchange_rate: 1.17, created_at: '2026-08-07 09:00:00' },
+        {
+          id: 21,
+          from_user_id: 2,
+          to_user_id: 1,
+          amount: 400.88,
+          currency: 'USD',
+          exchange_rate: 1.17,
+          created_at: '2026-08-07 09:00:00',
+        },
         // Rows from before transfers had a currency were entered in the display
         // currency, which is how the server settles them.
         { id: 22, from_user_id: 2, to_user_id: 1, amount: 30, currency: null, created_at: '2026-08-08 09:00:00' },
       ],
-    })
+    });
 
-    await screen.findByText('Aparthotel Silver')
-    expect(screen.getByText(/\$400\.88 → 342,63\s€$/)).toBeInTheDocument()
+    await screen.findByText('Aparthotel Silver');
+    expect(screen.getByText(/\$400\.88 → 342,63\s€$/)).toBeInTheDocument();
     // The hotel's split chips can carry the same figure, so look past them to the payment.
-    const outsideChips = (text: string) => screen.queryAllByText(text).filter(el => !el.closest('[data-testid="split-chip"]'))
-    expect(outsideChips('$395.77')).toHaveLength(1)
-    expect(outsideChips('$30.00')).toHaveLength(1)
-    expect(screen.queryByText('$34.65')).toBeNull()
-  })
+    const outsideChips = (text: string) =>
+      screen.queryAllByText(text).filter((el) => !el.closest('[data-testid="split-chip"]'));
+    expect(outsideChips('$395.77')).toHaveLength(1);
+    expect(outsideChips('$30.00')).toHaveLength(1);
+    expect(screen.queryByText('$34.65')).toBeNull();
+  });
 
   it('FE-W5COSTS-085: the edit dialog previews the rate the save keeps, the one the row was booked at', async () => {
-    const user = userEvent.setup()
-    mount([hotel()])
+    const user = userEvent.setup();
+    mount([hotel()]);
 
-    await screen.findByText('Aparthotel Silver')
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
-    expect(await screen.findByDisplayValue('801.76')).toBeInTheDocument()
+    await screen.findByText('Aparthotel Silver');
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(await screen.findByDisplayValue('801.76')).toBeInTheDocument();
     // Same currency as the list, so the dialog said nothing, and 801.76 there beside
     // $791.57 in the list looked like two different expenses.
-    const hint = screen.getByText(/live rate/).parentElement as HTMLElement
-    expect(within(hint).getByText('$801.76')).toBeInTheDocument()
-    expect(within(hint).getByText(/^685,26\s€$/)).toBeInTheDocument()
-    expect(within(hint).getByText('$791.55')).toBeInTheDocument()
+    const hint = screen.getByText(/live rate/).parentElement as HTMLElement;
+    expect(within(hint).getByText('$801.76')).toBeInTheDocument();
+    expect(within(hint).getByText(/^685,26\s€$/)).toBeInTheDocument();
+    expect(within(hint).getByText('$791.55')).toBeInTheDocument();
     // Each share next to what it counts as, the figure the row's "you lent" is made of.
-    expect(screen.getByText(/\$400\.88 → \$395\.77 per person/)).toBeInTheDocument()
-  })
+    expect(screen.getByText(/\$400\.88 → \$395\.77 per person/)).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-086: the final budget names the bill by what was entered beside its booked figure', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
     mount([hotel()], {
       balances: [
         { user_id: 1, username: 'alice', avatar_url: null, balance: 395.78 },
@@ -2562,21 +3206,31 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
       flows: [{ from: { user_id: 2, username: 'bob' }, to: { user_id: 1, username: 'alice' }, amount: 395.78 }],
       finalBudgets: [
         {
-          user_id: 1, username: 'alice', avatar_url: null, expenses: 791.55, reimbursed: 0, pending: 395.78, final: 395.77,
-          sources: { fronted: [{ item_id: 401, cents: 79155 }], moved: [], outstanding: [{ from_user_id: 2, to_user_id: 1, cents: 39578 }] },
+          user_id: 1,
+          username: 'alice',
+          avatar_url: null,
+          expenses: 791.55,
+          reimbursed: 0,
+          pending: 395.78,
+          final: 395.77,
+          sources: {
+            fronted: [{ item_id: 401, cents: 79155 }],
+            moved: [],
+            outstanding: [{ from_user_id: 2, to_user_id: 1, cents: 39578 }],
+          },
         },
       ],
-    })
+    });
 
-    const card = (await screen.findByRole('region', { name: 'Final budget' })) as HTMLElement
-    await user.click(await within(card).findByRole('button', { name: /You/ }))
-    expect(within(card).getAllByText('+$791.55')).toHaveLength(2)
-    expect(within(card).getByText('Aparthotel Silver')).toBeInTheDocument()
-    expect(within(card).getByText('$801.76')).toBeInTheDocument()
-  })
+    const card = (await screen.findByRole('region', { name: 'Final budget' })) as HTMLElement;
+    await user.click(await within(card).findByRole('button', { name: /You/ }));
+    expect(within(card).getAllByText('+$791.55')).toHaveLength(2);
+    expect(within(card).getByText('Aparthotel Silver')).toBeInTheDocument();
+    expect(within(card).getByText('$801.76')).toBeInTheDocument();
+  });
 
   it('FE-W5COSTS-089: the final budget lists a bill that reads as typed without a second amount', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
     mount([hotel({ exchange_rate: 1.1551 })], {
       balances: [
         { user_id: 1, username: 'alice', avatar_url: null, balance: 400.88 },
@@ -2585,43 +3239,65 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
       flows: [{ from: { user_id: 2, username: 'bob' }, to: { user_id: 1, username: 'alice' }, amount: 400.88 }],
       finalBudgets: [
         {
-          user_id: 1, username: 'alice', avatar_url: null, expenses: 801.76, reimbursed: 0, pending: 400.88, final: 400.88,
-          sources: { fronted: [{ item_id: 401, cents: 80176 }], moved: [], outstanding: [{ from_user_id: 2, to_user_id: 1, cents: 40088 }] },
+          user_id: 1,
+          username: 'alice',
+          avatar_url: null,
+          expenses: 801.76,
+          reimbursed: 0,
+          pending: 400.88,
+          final: 400.88,
+          sources: {
+            fronted: [{ item_id: 401, cents: 80176 }],
+            moved: [],
+            outstanding: [{ from_user_id: 2, to_user_id: 1, cents: 40088 }],
+          },
         },
       ],
-    })
+    });
 
-    const card = (await screen.findByRole('region', { name: 'Final budget' })) as HTMLElement
-    await user.click(await within(card).findByRole('button', { name: /You/ }))
-    expect(within(card).getAllByText('+$801.76')).toHaveLength(2)
-    expect(within(card).queryByText('$801.76')).toBeNull()
-  })
+    const card = (await screen.findByRole('region', { name: 'Final budget' })) as HTMLElement;
+    await user.click(await within(card).findByRole('button', { name: /You/ }));
+    expect(within(card).getAllByText('+$801.76')).toHaveLength(2);
+    expect(within(card).queryByText('$801.76')).toBeNull();
+  });
 
   it('FE-W5COSTS-083: an expense saved without a currency opens in the trip currency, not the display one', async () => {
-    const user = userEvent.setup()
-    let put: Record<string, unknown> | null = null
-    server.use(http.put('/api/trips/1/budget/405', async ({ request }) => {
-      put = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ item: hotel({ id: 405, currency: 'EUR' }) })
-    }))
-    mount([hotel({ id: 405, name: 'Tram pass', category: 'transport', total_price: 100, currency: null, exchange_rate: 1, payers: [{ user_id: 1, amount: 100 }] })])
+    const user = userEvent.setup();
+    let put: Record<string, unknown> | null = null;
+    server.use(
+      http.put('/api/trips/1/budget/405', async ({ request }) => {
+        put = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: hotel({ id: 405, currency: 'EUR' }) });
+      })
+    );
+    mount([
+      hotel({
+        id: 405,
+        name: 'Tram pass',
+        category: 'transport',
+        total_price: 100,
+        currency: null,
+        exchange_rate: 1,
+        payers: [{ user_id: 1, amount: 100 }],
+      }),
+    ]);
 
-    await screen.findByText('Tram pass')
+    await screen.findByText('Tram pass');
     // The list reads the missing currency as the trip's own.
-    expect(screen.getByText(/100,00\s€ → \$115\.51/)).toBeInTheDocument()
+    expect(screen.getByText(/100,00\s€ → \$115\.51/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
-    expect(await screen.findByDisplayValue('100,00')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(await screen.findByDisplayValue('100,00')).toBeInTheDocument();
     // Seeding the display currency here would label 100 euro as 100 dollars, and a
     // plain save would then store it that way.
-    expect(screen.getByText(/^EUR/)).toBeInTheDocument()
-    expect(screen.queryByText(/^USD/)).toBeNull()
+    expect(screen.getByText(/^EUR/)).toBeInTheDocument();
+    expect(screen.queryByText(/^USD/)).toBeNull();
 
     // Saving without touching anything keeps the 100 euro.
-    await user.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(put).toMatchObject({ total_price: 100, currency: 'EUR' }))
-  })
-})
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(put).toMatchObject({ total_price: 100, currency: 'EUR' }));
+  });
+});
 
 // ── A bill the server cannot convert: VND on an AUD trip ────────────────────────
 describe('CostsPanel: a bill the server cannot convert', () => {
@@ -2629,152 +3305,194 @@ describe('CostsPanel: a bill the server cannot convert', () => {
   // can. An 8,920,000 VND dinner that never froze a rate was counted as 8,920,000 AUD.
   // The settlement now leaves it out and lists it, and an editor's browser lends its AUD
   // table to freeze a rate on it.
-  const pho = () => expense({
-    id: 501, name: 'Pho', category: 'food', total_price: 8920000, currency: 'VND', exchange_rate: 1,
-    expense_date: '2026-09-20',
-    payers: [{ user_id: 1, amount: 8920000 }],
-    members: [{ user_id: 1, username: 'alice' }, { user_id: 2, username: 'bob' }],
-  })
-  const leftOut = { balances: [], flows: [], settlements: [], currency: 'AUD', unconverted: { item_ids: [501], settlement_ids: [], currencies: ['VND'] } }
+  const pho = () =>
+    expense({
+      id: 501,
+      name: 'Pho',
+      category: 'food',
+      total_price: 8920000,
+      currency: 'VND',
+      exchange_rate: 1,
+      expense_date: '2026-09-20',
+      payers: [{ user_id: 1, amount: 8920000 }],
+      members: [
+        { user_id: 1, username: 'alice' },
+        { user_id: 2, username: 'bob' },
+      ],
+    });
+  const leftOut = {
+    balances: [],
+    flows: [],
+    settlements: [],
+    currency: 'AUD',
+    unconverted: { item_ids: [501], settlement_ids: [], currencies: ['VND'] },
+  };
 
   beforeEach(() => {
-    seedAlice()
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'AUD' } })
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'AUD' }) })
-    clearExchangeRateCache()
-    resetFreezeAttempts()
-    localStorage.setItem('trek_fx_AUD', JSON.stringify({ rates: { AUD: 1, VND: 18241.3, EUR: 0.61 }, ts: Date.now() }))
-  })
-  afterEach(clearExchangeRateCache)
+    seedAlice();
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'AUD' } });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'AUD' }) });
+    clearExchangeRateCache();
+    resetFreezeAttempts();
+    localStorage.setItem('trek_fx_AUD', JSON.stringify({ rates: { AUD: 1, VND: 18241.3, EUR: 0.61 }, ts: Date.now() }));
+  });
+  afterEach(clearExchangeRateCache);
 
   it('FE-W5COSTS-090: VND/AUD regression: an editor heals the bill with the cached quote and the healed balances load', async () => {
-    let healed = false
-    const frozen: unknown[] = []
+    let healed = false;
+    const frozen: unknown[] = [];
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [pho()] })),
-      http.get('/api/trips/1/budget/settlement', () => HttpResponse.json(healed
-        ? {
-            // 8,920,000 VND at 18,241.3 is 489.00 AUD, half of it Bob's.
-            balances: [
-              { user_id: 1, username: 'alice', avatar_url: null, balance: 244.5 },
-              { user_id: 2, username: 'bob', avatar_url: null, balance: -244.5 },
-            ],
-            flows: [{ from: { user_id: 2, username: 'bob' }, to: { user_id: 1, username: 'alice' }, amount: 244.5 }],
-            settlements: [],
-            currency: 'AUD',
-            unconverted: { item_ids: [], settlement_ids: [], currencies: [] },
-          }
-        : leftOut)),
+      http.get('/api/trips/1/budget/settlement', () =>
+        HttpResponse.json(
+          healed
+            ? {
+                // 8,920,000 VND at 18,241.3 is 489.00 AUD, half of it Bob's.
+                balances: [
+                  { user_id: 1, username: 'alice', avatar_url: null, balance: 244.5 },
+                  { user_id: 2, username: 'bob', avatar_url: null, balance: -244.5 },
+                ],
+                flows: [
+                  { from: { user_id: 2, username: 'bob' }, to: { user_id: 1, username: 'alice' }, amount: 244.5 },
+                ],
+                settlements: [],
+                currency: 'AUD',
+                unconverted: { item_ids: [], settlement_ids: [], currencies: [] },
+              }
+            : leftOut
+        )
+      ),
       http.post('/api/trips/1/budget/freeze-rates', async ({ request }) => {
-        frozen.push(await request.json())
-        healed = true
-        return HttpResponse.json({ items: [{ ...pho(), exchange_rate: 18241.3 }], settlements: [], unresolved: [] })
-      }),
-    )
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        frozen.push(await request.json());
+        healed = true;
+        return HttpResponse.json({ items: [{ ...pho(), exchange_rate: 18241.3 }], settlements: [], unresolved: [] });
+      })
+    );
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
     // Only the currency the settlement is missing, at the rate the browser holds.
-    await waitFor(() => expect(frozen).toEqual([{ fallback_fx: { base: 'AUD', rates: { VND: 18241.3 } } }]))
+    await waitFor(() => expect(frozen).toEqual([{ fallback_fx: { base: 'AUD', rates: { VND: 18241.3 } } }]));
     // The settlement is read again and Bob's half can be settled.
-    expect(await screen.findByRole('button', { name: 'Settle' })).toBeInTheDocument()
-    expect(screen.getAllByText(/244\.50/).length).toBeGreaterThan(0)
+    expect(await screen.findByRole('button', { name: 'Settle' })).toBeInTheDocument();
+    expect(screen.getAllByText(/244\.50/).length).toBeGreaterThan(0);
     // Nothing on the page counts the bill as 8,920,000 dollars any more.
-    expect(screen.queryByText(/\$8,920,000/)).toBeNull()
-    expect(frozen).toHaveLength(1)
-  })
+    expect(screen.queryByText(/\$8,920,000/)).toBeNull();
+    expect(frozen).toHaveLength(1);
+  });
 
-  it('FE-W5COSTS-091: a viewer\'s browser never freezes anything', async () => {
-    seedStore(usePermissionsStore, { permissions: { budget_edit: 'admin' } })
-    let frozen = 0
-    server.use(http.post('/api/trips/1/budget/freeze-rates', () => {
-      frozen += 1
-      return HttpResponse.json({ items: [], settlements: [], unresolved: [] })
-    }))
-    mount([pho()], leftOut)
+  it("FE-W5COSTS-091: a viewer's browser never freezes anything", async () => {
+    seedStore(usePermissionsStore, { permissions: { budget_edit: 'admin' } });
+    let frozen = 0;
+    server.use(
+      http.post('/api/trips/1/budget/freeze-rates', () => {
+        frozen += 1;
+        return HttpResponse.json({ items: [], settlements: [], unresolved: [] });
+      })
+    );
+    mount([pho()], leftOut);
 
-    await screen.findByText('Pho')
-    await new Promise(r => setTimeout(r, 50))
-    expect(frozen).toBe(0)
-  })
+    await screen.findByText('Pho');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(frozen).toBe(0);
+  });
 
   it('FE-W5COSTS-092: settle-up in the display currency lends its rate and asks the settlement in it', async () => {
     // Read in euros: the browser has the AUD table, the server has no quote at all.
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
-    const asked: { base: string | null; baseRate: string | null }[] = []
-    const posted: Record<string, unknown>[] = []
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } });
+    const asked: { base: string | null; baseRate: string | null }[] = [];
+    const posted: Record<string, unknown>[] = [];
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', ({ request }) => {
-        const url = new URL(request.url)
-        asked.push({ base: url.searchParams.get('base'), baseRate: url.searchParams.get('base_rate') })
+        const url = new URL(request.url);
+        asked.push({ base: url.searchParams.get('base'), baseRate: url.searchParams.get('base_rate') });
         return HttpResponse.json({
-          balances: [], settlements: [], currency: 'EUR', unconverted: { item_ids: [], settlement_ids: [], currencies: [] },
+          balances: [],
+          settlements: [],
+          currency: 'EUR',
+          unconverted: { item_ids: [], settlement_ids: [], currencies: [] },
           flows: [{ from: { user_id: 2, username: 'bob' }, to: { user_id: 1, username: 'alice' }, amount: 20 }],
-        })
+        });
       }),
       http.post('/api/trips/1/budget/settlements', async ({ request }) => {
-        posted.push(await request.json() as Record<string, unknown>)
-        return HttpResponse.json({ settlement: { id: 1 } })
-      }),
-    )
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+        posted.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ settlement: { id: 1 } });
+      })
+    );
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Settle' }))
-    await waitFor(() => expect(posted).toHaveLength(1))
+    fireEvent.click(await screen.findByRole('button', { name: 'Settle' }));
+    await waitFor(() => expect(posted).toHaveLength(1));
     // The transfer freezes at the rate the settlement was labelled with, so it cancels its
     // flow to the cent.
-    expect(posted[0]).toMatchObject({ from_user_id: 2, to_user_id: 1, amount: 20, currency: 'EUR', fallback_fx: { base: 'AUD', rates: { EUR: 0.61 } } })
-    expect(asked.length).toBeGreaterThan(0)
-    expect(asked.every(a => a.base === 'EUR' && a.baseRate === '0.61')).toBe(true)
+    expect(posted[0]).toMatchObject({
+      from_user_id: 2,
+      to_user_id: 1,
+      amount: 20,
+      currency: 'EUR',
+      fallback_fx: { base: 'AUD', rates: { EUR: 0.61 } },
+    });
+    expect(asked.length).toBeGreaterThan(0);
+    expect(asked.every((a) => a.base === 'EUR' && a.baseRate === '0.61')).toBe(true);
 
-    const settleAll = screen.getByRole('button', { name: 'Settle up' })
-    fireEvent.click(settleAll)
-    await waitFor(() => expect(posted).toHaveLength(2))
-    expect(posted[1]).toMatchObject({ amount: 20, currency: 'EUR', fallback_fx: { base: 'AUD', rates: { EUR: 0.61 } } })
-  })
+    const settleAll = screen.getByRole('button', { name: 'Settle up' });
+    fireEvent.click(settleAll);
+    await waitFor(() => expect(posted).toHaveLength(2));
+    expect(posted[1]).toMatchObject({
+      amount: 20,
+      currency: 'EUR',
+      fallback_fx: { base: 'AUD', rates: { EUR: 0.61 } },
+    });
+  });
 
   it('FE-W5COSTS-093: a payment added by hand lends the rate for its currency too', async () => {
-    const user = userEvent.setup()
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } })
-    let posted: Record<string, unknown> | null = null
-    server.use(http.post('/api/trips/1/budget/settlements', async ({ request }) => {
-      posted = await request.json() as Record<string, unknown>
-      return HttpResponse.json({ settlement: { id: 1 } })
-    }))
-    mount([])
+    const user = userEvent.setup();
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'EUR' } });
+    let posted: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/budget/settlements', async ({ request }) => {
+        posted = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ settlement: { id: 1 } });
+      })
+    );
+    mount([]);
 
-    await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0,00'), '25')
-    const submits = screen.getAllByRole('button', { name: 'Add payment' })
-    await user.click(submits[submits.length - 1])
+    await user.click(await screen.findByRole('button', { name: 'Add payment' }));
+    await user.type(await screen.findByPlaceholderText('0,00'), '25');
+    const submits = screen.getAllByRole('button', { name: 'Add payment' });
+    await user.click(submits[submits.length - 1]);
 
-    await waitFor(() => expect(posted).toBeTruthy())
-    expect(posted).toMatchObject({ amount: 25, currency: 'EUR', fallback_fx: { base: 'AUD', rates: { EUR: 0.61 } } })
-  })
+    await waitFor(() => expect(posted).toBeTruthy());
+    expect(posted).toMatchObject({ amount: 25, currency: 'EUR', fallback_fx: { base: 'AUD', rates: { EUR: 0.61 } } });
+  });
 
   it('FE-W5COSTS-094: a display rate the settlement query would refuse is not sent', async () => {
     // A trip in gold read in rials: 2.6 billion rials to the ounce is past the 1e9 the query
     // takes, and sent as `base_rate` it would fail the whole settlement with a 400.
-    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'XAU' }) })
-    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'IRR' } })
-    localStorage.setItem('trek_fx_XAU', JSON.stringify({ rates: { XAU: 1, IRR: 2.6e9 }, ts: Date.now() }))
-    localStorage.setItem('trek_fx_IRR', JSON.stringify({ rates: { IRR: 1, XAU: 1 / 2.6e9 }, ts: Date.now() }))
-    const asked: { base: string | null; baseRate: string | null }[] = []
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'XAU' }) });
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'IRR' } });
+    localStorage.setItem('trek_fx_XAU', JSON.stringify({ rates: { XAU: 1, IRR: 2.6e9 }, ts: Date.now() }));
+    localStorage.setItem('trek_fx_IRR', JSON.stringify({ rates: { IRR: 1, XAU: 1 / 2.6e9 }, ts: Date.now() }));
+    const asked: { base: string | null; baseRate: string | null }[] = [];
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', ({ request }) => {
-        const url = new URL(request.url)
-        asked.push({ base: url.searchParams.get('base'), baseRate: url.searchParams.get('base_rate') })
+        const url = new URL(request.url);
+        asked.push({ base: url.searchParams.get('base'), baseRate: url.searchParams.get('base_rate') });
         return HttpResponse.json({
-          balances: [], flows: [], settlements: [], currency: 'XAU', unconverted: { item_ids: [], settlement_ids: [], currencies: [] },
-        })
-      }),
-    )
-    render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
+          balances: [],
+          flows: [],
+          settlements: [],
+          currency: 'XAU',
+          unconverted: { item_ids: [], settlement_ids: [], currencies: [] },
+        });
+      })
+    );
+    render(<CostsPanel tripId={1} tripMembers={tripMembers} />);
 
-    await waitFor(() => expect(asked.length).toBeGreaterThan(0))
+    await waitFor(() => expect(asked.length).toBeGreaterThan(0));
     // Still asked in rials, only without the figure; the server answers in the trip
     // currency when it has no quote of its own.
-    expect(asked.every(a => a.base === 'IRR' && a.baseRate === null)).toBe(true)
-  })
-})
+    expect(asked.every((a) => a.base === 'IRR' && a.baseRate === null)).toBe(true);
+  });
+});

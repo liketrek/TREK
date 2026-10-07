@@ -3,7 +3,6 @@
  * the global ZodValidationPipe (APP_PIPE) validates bodies by metatype — the
  * shared Zod schemas stay the single source of truth.
  */
-import { createZodDto } from 'nestjs-zod';
 import {
   vacayAddHolidayCalendarRequestSchema,
   vacayAddYearRequestSchema,
@@ -19,6 +18,8 @@ import {
   vacayUpdateStatsRequestSchema,
   vacayYearSettingsRequestSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 export class VacayUpdatePlanDto extends createZodDto(vacayUpdatePlanRequestSchema) {}
 export class VacayAddHolidayCalendarDto extends createZodDto(vacayAddHolidayCalendarRequestSchema) {}

@@ -1,11 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../../../helpers/db-mock';
-import { resetTestDb } from '../../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../../helpers/test-orm';
-import { createTag, createUser } from '../../../../helpers/factories';
 import { Tags } from '../../../../../src/db/entities/Tags.entity';
 import type { TagsRepository } from '../../../../../src/db/repositories/Tags.repository';
 import { findOwnedByUser, listForOwner } from '../../../../../src/db/repositories/_shared/owned-lookup';
+import { createSnapshotTestDb } from '../../../../helpers/db-mock';
+import { createTag, createUser } from '../../../../helpers/factories';
+import { resetTestDb } from '../../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -15,8 +16,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   tags = t.repo(Tags);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('listForOwner', () => {
   it('OWNEDLOOKUP-001: lists only the owner’s rows, ordered by the given field ascending — Tags (a strictly-owned entity, user_id NOT NULL)', async () => {

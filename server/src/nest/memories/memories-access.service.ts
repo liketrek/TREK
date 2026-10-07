@@ -1,22 +1,22 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { fail, success, type ServiceResult } from './memories.helpers';
-import { toRowId } from '../common/row-id';
-import { TripPhotos } from '../../db/entities/TripPhotos.entity';
-import type { TripPhotosRepository } from '../../db/repositories/TripPhotos.repository';
-import { TrekPhotos } from '../../db/entities/TrekPhotos.entity';
-import type { TrekPhotosRepository } from '../../db/repositories/TrekPhotos.repository';
-import { TripAlbumLinks } from '../../db/entities/TripAlbumLinks.entity';
-import type { TripAlbumLinksRepository } from '../../db/repositories/TripAlbumLinks.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { Journeys } from '../../db/entities/Journeys.entity';
-import type { JourneysRepository } from '../../db/repositories/Journeys.repository';
 import { JourneyContributors } from '../../db/entities/JourneyContributors.entity';
-import type { JourneyContributorsRepository } from '../../db/repositories/JourneyContributors.repository';
 import { JourneyPhotos } from '../../db/entities/JourneyPhotos.entity';
+import { Journeys } from '../../db/entities/Journeys.entity';
+import { TrekPhotos } from '../../db/entities/TrekPhotos.entity';
+import { TripAlbumLinks } from '../../db/entities/TripAlbumLinks.entity';
+import { TripPhotos } from '../../db/entities/TripPhotos.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { JourneyContributorsRepository } from '../../db/repositories/JourneyContributors.repository';
 import type { JourneyPhotosRepository } from '../../db/repositories/JourneyPhotos.repository';
+import type { JourneysRepository } from '../../db/repositories/Journeys.repository';
+import type { TrekPhotosRepository } from '../../db/repositories/TrekPhotos.repository';
+import type { TripAlbumLinksRepository } from '../../db/repositories/TripAlbumLinks.repository';
+import type { TripPhotosRepository } from '../../db/repositories/TripPhotos.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { toRowId } from '../common/row-id';
+import { fail, success, type ServiceResult } from './memories.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Who may see which photo, and the album-link lookups the provider syncs need.
@@ -60,7 +60,13 @@ export class MemoriesAccessService {
     return await this.journeyContributors.existsForUser(journeyId, userId);
   }
 
-  async canAccessUserPhoto(requestingUserId: number, ownerUserId: number, tripId: string, assetId: string, provider: string): Promise<boolean> {
+  async canAccessUserPhoto(
+    requestingUserId: number,
+    ownerUserId: number,
+    tripId: string,
+    assetId: string,
+    provider: string,
+  ): Promise<boolean> {
     if (requestingUserId === ownerUserId) {
       return true;
     }
@@ -77,9 +83,8 @@ export class MemoriesAccessService {
 
     // Regular trip photos — join through trek_photos (MA3).
     const tripIdNum = toRowId(tripId);
-    const sharedAsset = tripIdNum != null
-      ? await this.tripPhotos.existsSharedForUser(tripIdNum, ownerUserId, assetId, provider)
-      : false;
+    const sharedAsset =
+      tripIdNum != null ? await this.tripPhotos.existsSharedForUser(tripIdNum, ownerUserId, assetId, provider) : false;
 
     if (!sharedAsset) {
       return false;
@@ -147,7 +152,11 @@ export class MemoriesAccessService {
     }
   }
 
-  async getAlbumLinkForSync(tripId: string, linkId: string, userId: number): Promise<ServiceResult<{ albumId: string; passphrase?: string }>> {
+  async getAlbumLinkForSync(
+    tripId: string,
+    linkId: string,
+    userId: number,
+  ): Promise<ServiceResult<{ albumId: string; passphrase?: string }>> {
     const access = await this.trips.findAccessible(tripId, userId);
     if (!access) return fail('Trip not found or access denied', 404);
 
@@ -159,7 +168,7 @@ export class MemoriesAccessService {
 
       if (!row) return fail('Album link not found', 404);
 
-      const decrypted = row.passphrase ? decrypt_api_key(row.passphrase) ?? undefined : undefined;
+      const decrypted = row.passphrase ? (decrypt_api_key(row.passphrase) ?? undefined) : undefined;
       return success({ albumId: row.album_id, passphrase: decrypted || undefined });
     } catch {
       return fail('Failed to retrieve album link', 500);

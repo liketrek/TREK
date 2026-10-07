@@ -1,15 +1,15 @@
 // FE-COMP-COLDETAIL-001 to FE-COMP-COLDETAIL-048
-import React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
-import { server } from '../../../tests/helpers/msw/server';
-import { useAuthStore } from '../../store/authStore';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser } from '../../../tests/helpers/factories';
 import type { CollectionLabel, CollectionPlace } from '@trek/shared';
-import type { Category } from '../../types';
+import { http, HttpResponse } from 'msw';
+import React from 'react';
+import { buildUser } from '../../../tests/helpers/factories';
+import { server } from '../../../tests/helpers/msw/server';
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useTranslation } from '../../i18n/TranslationContext';
+import { useAuthStore } from '../../store/authStore';
+import type { Category } from '../../types';
 import CollectionPlaceDetail from './CollectionPlaceDetail';
 
 // The component takes `t` as a PROP (not from context), so wrap it in a tiny
@@ -72,11 +72,7 @@ beforeEach(() => {
   window.__addToast = addToast as unknown as typeof window.__addToast;
   // The detail sheet asks the maps provider for a cover photo on mount when a
   // place carries no image of its own — stub it so nothing hits the network.
-  server.use(
-    http.get('/api/maps/place-photo/:id', () =>
-      HttpResponse.json({ photoUrl: null, attribution: null }),
-    ),
-  );
+  server.use(http.get('/api/maps/place-photo/:id', () => HttpResponse.json({ photoUrl: null, attribution: null })));
 });
 
 afterEach(() => {
@@ -242,19 +238,24 @@ describe('CollectionPlaceDetail', () => {
   it('FE-COMP-COLDETAIL-018: the cover renders the fetched provider photo when the place has none', async () => {
     server.use(
       http.get('/api/maps/place-photo/:id', () =>
-        HttpResponse.json({ photoUrl: 'https://cdn.example/photo.jpg', attribution: null }),
-      ),
+        HttpResponse.json({ photoUrl: 'https://cdn.example/photo.jpg', attribution: null })
+      )
     );
     renderDetail({ place: { ...place, google_place_id: 'gp-1' } });
 
     await waitFor(() =>
-      expect(document.querySelector('.col-detail-cover img')).toHaveAttribute('src', 'https://cdn.example/photo.jpg'),
+      expect(document.querySelector('.col-detail-cover img')).toHaveAttribute('src', 'https://cdn.example/photo.jpg')
     );
   });
 
   it('FE-COMP-COLDETAIL-018b: a place with its own image never asks the provider for a photo', async () => {
     const photo = vi.fn();
-    server.use(http.get('/api/maps/place-photo/:id', () => { photo(); return HttpResponse.json({ photoUrl: null }); }));
+    server.use(
+      http.get('/api/maps/place-photo/:id', () => {
+        photo();
+        return HttpResponse.json({ photoUrl: null });
+      })
+    );
     renderDetail({ place: { ...place, image_url: '/uploads/places/mine.jpg', google_place_id: 'gp-1' } });
 
     await screen.findByRole('heading', { name: 'Test Cafe' });
@@ -354,12 +355,14 @@ describe('CollectionPlaceDetail', () => {
     await user.click(screen.getByRole('button', { name: /Save/ }));
 
     await waitFor(() => expect(props.onSave).toHaveBeenCalled());
-    expect(props.onSave).toHaveBeenCalledWith(expect.objectContaining({
-      name: 'Test Cafe',
-      description: null,
-      lat: null,
-      lng: null,
-    }));
+    expect(props.onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Test Cafe',
+        description: null,
+        lat: null,
+        lng: null,
+      })
+    );
   });
 
   it('FE-COMP-COLDETAIL-025: a failed save toasts the server message and keeps the form open', async () => {
@@ -397,9 +400,11 @@ describe('CollectionPlaceDetail', () => {
     await user.click(screen.getByRole('button', { name: /Save/ }));
     await waitFor(() => expect(props.onSave).toHaveBeenCalled());
     // A bare host is normalized to an absolute https url before it is saved.
-    expect(props.onSave).toHaveBeenCalledWith(expect.objectContaining({
-      links: [{ label: 'Site', url: 'https://example.com/menu' }],
-    }));
+    expect(props.onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        links: [{ label: 'Site', url: 'https://example.com/menu' }],
+      })
+    );
   });
 
   it('FE-COMP-COLDETAIL-028: an emptied link row is dropped from the saved patch', async () => {
@@ -628,7 +633,11 @@ describe('CollectionPlaceDetail: cover controls', () => {
     const remove = screen.getByRole('button', { name: 'Remove image' });
     const close = screen.getByRole('button', { name: 'Close' });
 
-    expect(Array.from((close.parentElement as HTMLElement).querySelectorAll('button'))).toEqual([remove, change, close]);
+    expect(Array.from((close.parentElement as HTMLElement).querySelectorAll('button'))).toEqual([
+      remove,
+      change,
+      close,
+    ]);
     expect(remove).toHaveClass('col-detail-close');
 
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -663,7 +672,11 @@ describe('CollectionPlaceDetail: cover controls', () => {
     renderDetail({
       canEdit: true,
       onUploadImage: vi.fn(),
-      place: { ...place, image_url: '/uploads/places/mock.jpg', category: { id: 1, name: long, color: '#f00', icon: null } },
+      place: {
+        ...place,
+        image_url: '/uploads/places/mock.jpg',
+        category: { id: 1, name: long, color: '#f00', icon: null },
+      },
     });
     const controls = (await screen.findByRole('button', { name: 'Close' })).parentElement as HTMLElement;
     const text = screen.getByText(long);

@@ -1,65 +1,72 @@
-import React, { useEffect, useState, useRef, ReactNode, Suspense } from 'react'
-import { Routes, Route, Navigate, useLocation } from 'react-router'
-import { useAuthStore } from './store/authStore'
-import { useSettingsStore } from './store/settingsStore'
-import { applyAppearance } from './theme/applyAppearance'
-import { useAddonStore } from './store/addonStore'
-import { usePluginStore } from './store/pluginStore'
+import React, { ReactNode, Suspense, useEffect, useRef, useState } from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router';
+import { useAddonStore } from './store/addonStore';
+import { useAuthStore } from './store/authStore';
+import { usePluginStore } from './store/pluginStore';
+import { useSettingsStore } from './store/settingsStore';
+import { applyAppearance } from './theme/applyAppearance';
 // The one page that stays in the entry chunk. Anyone logged out lands here, and
 // every other route redirects here first — a chunk round trip in front of the login
 // form would slow down the single screen that has to be there immediately.
-import LoginPage from './pages/LoginPage'
-import { ToastContainer } from './components/shared/Toast'
-import SaveToCollectionModal from './components/Collections/SaveToCollectionModal'
-import MSaveToCollectionSheet from './components/Collections/MSaveToCollectionSheet'
-import BackgroundTasksWidget from './components/BackgroundTasks/BackgroundTasksWidget'
-import MobileShell from './mobile/MobileShell'
-import MRouteFallback from './mobile/components/MRouteFallback'
-import ErrorBoundary from './components/shared/ErrorBoundary'
-import { lazyWithRetry } from './utils/lazyWithRetry'
-import { reconcileAppVersion } from './utils/versionHandover'
-import { useIsPhone } from './mobile/useIsPhone'
-import { TranslationProvider, useTranslation } from './i18n'
-import { authApi, isAuthPublicPath } from './api/client'
-import { tripRepo } from './repo/tripRepo'
-import { readStartDestination, tripStartPath, DEFAULT_START_PAGE, DEFAULT_START_TRIP_TAB, SETTINGS_WAIT_MS, START_DESTINATION_ROUTE } from './utils/startDestination'
-import { takeResumeRoute, useRememberRoute } from './utils/resumeRoute'
-import { usePermissionsStore, PermissionLevel } from './store/permissionsStore'
-import { useInAppNotificationListener } from './hooks/useInAppNotificationListener.ts'
-import { useRoadtripPreferencesSync } from './hooks/useRoadtripPreferencesSync'
-import { registerSyncTriggers, unregisterSyncTriggers } from './sync/syncTriggers'
-import OfflineBanner from './components/Layout/OfflineBanner'
-import { SystemNoticeHost } from './components/SystemNotices/SystemNoticeHost.js'
-import HelpPanel from './components/Help/HelpPanel'
+import { authApi, isAuthPublicPath } from './api/client';
+import BackgroundTasksWidget from './components/BackgroundTasks/BackgroundTasksWidget';
+import MSaveToCollectionSheet from './components/Collections/MSaveToCollectionSheet';
+import SaveToCollectionModal from './components/Collections/SaveToCollectionModal';
+import HelpPanel from './components/Help/HelpPanel';
+import OfflineBanner from './components/Layout/OfflineBanner';
+import { SystemNoticeHost } from './components/SystemNotices/SystemNoticeHost.js';
+import ErrorBoundary from './components/shared/ErrorBoundary';
+import { ToastContainer } from './components/shared/Toast';
+import { useInAppNotificationListener } from './hooks/useInAppNotificationListener.ts';
+import { useRoadtripPreferencesSync } from './hooks/useRoadtripPreferencesSync';
+import { TranslationProvider, useTranslation } from './i18n';
+import MobileShell from './mobile/MobileShell';
+import MRouteFallback from './mobile/components/MRouteFallback';
+import { useIsPhone } from './mobile/useIsPhone';
+import LoginPage from './pages/LoginPage';
+import { tripRepo } from './repo/tripRepo';
+import { PermissionLevel, usePermissionsStore } from './store/permissionsStore';
+import { registerSyncTriggers, unregisterSyncTriggers } from './sync/syncTriggers';
+import { lazyWithRetry } from './utils/lazyWithRetry';
+import { takeResumeRoute, useRememberRoute } from './utils/resumeRoute';
+import {
+  DEFAULT_START_PAGE,
+  DEFAULT_START_TRIP_TAB,
+  readStartDestination,
+  SETTINGS_WAIT_MS,
+  START_DESTINATION_ROUTE,
+  tripStartPath,
+} from './utils/startDestination';
+import { reconcileAppVersion } from './utils/versionHandover';
 // Notice action registrations (side-effect imports):
-import './pages/Trips/noticeActions.js'
-import { managedRoutes } from './managed'
+import { managedRoutes } from './managed';
+import './pages/Trips/noticeActions.js';
 
 // Every page below loads on demand. The entry chunk used to carry all twenty of
 // them eagerly, so opening /dashboard also paid for the planner, the journal, the
 // atlas and the vacation planner. lazyWithRetry rather than lazy: a chunk that
 // fails once gets a second, cache-busted attempt before the route boundary reaches
 // for a reload.
-const PluginPage = lazyWithRetry(() => import('./pages/PluginPage'))
-const ForgotPasswordPage = lazyWithRetry(() => import('./pages/ForgotPasswordPage'))
-const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'))
-const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'))
-const TripPlannerPage = lazyWithRetry(() => import('./pages/TripPlannerPage'))
-const FilesPage = lazyWithRetry(() => import('./pages/FilesPage'))
-const AdminPage = lazyWithRetry(() => import('./pages/AdminPage'))
-const SettingsPage = lazyWithRetry(() => import('./pages/SettingsPage'))
-const VacayPage = lazyWithRetry(() => import('./pages/VacayPage'))
-const HelpPage = lazyWithRetry(() => import('./pages/HelpPage'))
-const AtlasPage = lazyWithRetry(() => import('./pages/AtlasPage'))
-const JourneyPage = lazyWithRetry(() => import('./pages/JourneyPage'))
-const JourneyDetailPage = lazyWithRetry(() => import('./pages/JourneyDetailPage'))
-const JourneyStudioPage = lazyWithRetry(() => import('./pages/JourneyStudioPage'))
-const CollectionsPage = lazyWithRetry(() => import('./pages/CollectionsPage'))
-const JourneyPublicPage = lazyWithRetry(() => import('./pages/JourneyPublicPage'))
-const SharedTripPage = lazyWithRetry(() => import('./pages/SharedTripPage'))
-const JoinTripPage = lazyWithRetry(() => import('./pages/JoinTripPage'))
-const InAppNotificationsPage = lazyWithRetry(() => import('./pages/InAppNotificationsPage.tsx'))
-const OAuthAuthorizePage = lazyWithRetry(() => import('./pages/OAuthAuthorizePage'))
+const PluginPage = lazyWithRetry(() => import('./pages/PluginPage'));
+const ForgotPasswordPage = lazyWithRetry(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'));
+const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'));
+const TripPlannerPage = lazyWithRetry(() => import('./pages/TripPlannerPage'));
+const FilesPage = lazyWithRetry(() => import('./pages/FilesPage'));
+const AdminPage = lazyWithRetry(() => import('./pages/AdminPage'));
+const SettingsPage = lazyWithRetry(() => import('./pages/SettingsPage'));
+const VacayPage = lazyWithRetry(() => import('./pages/VacayPage'));
+const HelpPage = lazyWithRetry(() => import('./pages/HelpPage'));
+const AtlasPage = lazyWithRetry(() => import('./pages/AtlasPage'));
+const JourneyPage = lazyWithRetry(() => import('./pages/JourneyPage'));
+const JourneyDetailPage = lazyWithRetry(() => import('./pages/JourneyDetailPage'));
+const JourneyStudioPage = lazyWithRetry(() => import('./pages/JourneyStudioPage'));
+const CollectionsPage = lazyWithRetry(() => import('./pages/CollectionsPage'));
+const JourneyPublicPage = lazyWithRetry(() => import('./pages/JourneyPublicPage'));
+const SharedTripPage = lazyWithRetry(() => import('./pages/SharedTripPage'));
+const JoinTripPage = lazyWithRetry(() => import('./pages/JoinTripPage'));
+const InAppNotificationsPage = lazyWithRetry(() => import('./pages/InAppNotificationsPage.tsx'));
+const OAuthAuthorizePage = lazyWithRetry(() => import('./pages/OAuthAuthorizePage'));
 
 // The ten phone screens are chunks of their own, alongside the desktop pages
 // rather than inside them. Each page used to import its M screen statically and
@@ -67,69 +74,64 @@ const OAuthAuthorizePage = lazyWithRetry(() => import('./pages/OAuthAuthorizePag
 // viewport only picked which half stayed dark. Here the branch decides the
 // chunk: a phone never loads the desktop planner, a desktop never the mobile
 // shell.
-const MDashboardScreen = lazyWithRetry(() => import('./mobile/screens/dashboard/MDashboard'))
-const MTripScreen = lazyWithRetry(() => import('./mobile/screens/trip/MTripShell'))
-const MAdminScreen = lazyWithRetry(() => import('./mobile/screens/admin/MAdmin'))
-const MSettingsScreen = lazyWithRetry(() => import('./mobile/screens/settings/MSettings'))
-const MVacayScreen = lazyWithRetry(() => import('./mobile/screens/vacay/MVacay'))
-const MAtlasScreen = lazyWithRetry(() => import('./mobile/screens/atlas/MAtlas'))
-const MJourneyScreen = lazyWithRetry(() => import('./mobile/screens/journey/MJourney'))
-const MJourneyDetailScreen = lazyWithRetry(() => import('./mobile/screens/journey/MJourneyDetail'))
-const MCollectionsScreen = lazyWithRetry(() => import('./mobile/screens/collections/MCollections'))
-const MNotificationsScreen = lazyWithRetry(() => import('./mobile/screens/notifications/MNotifications'))
+const MDashboardScreen = lazyWithRetry(() => import('./mobile/screens/dashboard/MDashboard'));
+const MTripScreen = lazyWithRetry(() => import('./mobile/screens/trip/MTripShell'));
+const MAdminScreen = lazyWithRetry(() => import('./mobile/screens/admin/MAdmin'));
+const MSettingsScreen = lazyWithRetry(() => import('./mobile/screens/settings/MSettings'));
+const MVacayScreen = lazyWithRetry(() => import('./mobile/screens/vacay/MVacay'));
+const MAtlasScreen = lazyWithRetry(() => import('./mobile/screens/atlas/MAtlas'));
+const MJourneyScreen = lazyWithRetry(() => import('./mobile/screens/journey/MJourney'));
+const MJourneyDetailScreen = lazyWithRetry(() => import('./mobile/screens/journey/MJourneyDetail'));
+const MCollectionsScreen = lazyWithRetry(() => import('./mobile/screens/collections/MCollections'));
+const MNotificationsScreen = lazyWithRetry(() => import('./mobile/screens/notifications/MNotifications'));
 
 interface ProtectedRouteProps {
-  children: ReactNode
-  adminRequired?: boolean
-  addonId?: string
+  children: ReactNode;
+  adminRequired?: boolean;
+  addonId?: string;
 }
 
 function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedRouteProps) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const user = useAuthStore((s) => s.user)
-  const isLoading = useAuthStore((s) => s.isLoading)
-  const appRequireMfa = useAuthStore((s) => s.appRequireMfa)
-  const loggingOut = useAuthStore((s) => s.loggingOut)
-  const addonStore = useAddonStore()
-  const { t } = useTranslation()
-  const location = useLocation()
-  const isPhone = useIsPhone()
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const appRequireMfa = useAuthStore((s) => s.appRequireMfa);
+  const loggingOut = useAuthStore((s) => s.loggingOut);
+  const addonStore = useAddonStore();
+  const { t } = useTranslation();
+  const location = useLocation();
+  const isPhone = useIsPhone();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
-          <p className="text-slate-500 text-sm">{t('common.loading')}</p>
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900"></div>
+          <p className="text-sm text-slate-500">{t('common.loading')}</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (!isAuthenticated) {
     // A session that ended on its own should come back to where it left off; a
     // deliberate sign-out is a fresh start and gets no return ticket, so the
     // startup destination decides where the next login lands.
-    if (loggingOut) return <Navigate to="/login" replace state={{ noRedirect: true }} />
-    const redirectParam = encodeURIComponent(location.pathname + location.search + location.hash)
-    return <Navigate to={`/login?redirect=${redirectParam}`} replace />
+    if (loggingOut) return <Navigate to="/login" replace state={{ noRedirect: true }} />;
+    const redirectParam = encodeURIComponent(location.pathname + location.search + location.hash);
+    return <Navigate to={`/login?redirect=${redirectParam}`} replace />;
   }
 
-  if (
-    appRequireMfa &&
-    user &&
-    !user.mfa_enabled &&
-    location.pathname !== '/settings'
-  ) {
-    return <Navigate to="/settings?mfa=required" replace />
+  if (appRequireMfa && user && !user.mfa_enabled && location.pathname !== '/settings') {
+    return <Navigate to="/settings?mfa=required" replace />;
   }
 
   if (adminRequired && user && user.role !== 'admin') {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/dashboard" replace />;
   }
 
   if (addonId && addonStore.loaded && !addonStore.isEnabled(addonId)) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/dashboard" replace />;
   }
 
   // Below the md breakpoint the new mobile shell owns chrome (tokens, dock,
@@ -146,16 +148,11 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
   return (
     <MobileShell isPhone={isPhone}>
       <RouteMemory />
-      <ErrorBoundary
-        key={location.pathname}
-        boundaryId="route"
-        level="route"
-        variant={isPhone ? 'mobile' : 'desktop'}
-      >
+      <ErrorBoundary key={location.pathname} boundaryId="route" level="route" variant={isPhone ? 'mobile' : 'desktop'}>
         {children}
       </ErrorBoundary>
     </MobileShell>
-  )
+  );
 }
 
 /**
@@ -164,7 +161,7 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
  * failed, and the two anonymous share pages.
  */
 function PublicRoute({ children, redirectAuthed = false }: { children: React.ReactNode; redirectAuthed?: boolean }) {
-  const location = useLocation()
+  const location = useLocation();
   // redirectAuthed (only /login and /register) bounces a visitor who is already
   // authenticated when they land here — manual URL, browser back button (#1810).
   // Only on a bare URL, because every parameter this page takes is a flow that
@@ -178,15 +175,15 @@ function PublicRoute({ children, redirectAuthed = false }: { children: React.Rea
   // useLogin navigates away.
   // The target is START_DESTINATION_ROUTE, not /dashboard, so the bounce honours
   // the start-page preference the same way useLogin does.
-  const wasAuthenticated = useRef(useAuthStore.getState().isAuthenticated)
+  const wasAuthenticated = useRef(useAuthStore.getState().isAuthenticated);
   if (redirectAuthed && wasAuthenticated.current && !location.search) {
-    return <Navigate to={START_DESTINATION_ROUTE} replace />
+    return <Navigate to={START_DESTINATION_ROUTE} replace />;
   }
   return (
     <ErrorBoundary key={location.pathname} boundaryId="public-route" level="route">
       {children}
     </ErrorBoundary>
-  )
+  );
 }
 
 /**
@@ -195,12 +192,15 @@ function PublicRoute({ children, redirectAuthed = false }: { children: React.Rea
  * point: the ternary that used to sit in each page only ran once the browser
  * had already paid for both trees.
  */
-function ViewportRoute({ phone: Phone, desktop: Desktop }: {
-  phone: React.ComponentType
-  desktop: React.ComponentType
+function ViewportRoute({
+  phone: Phone,
+  desktop: Desktop,
+}: {
+  phone: React.ComponentType;
+  desktop: React.ComponentType;
 }): React.ReactElement {
-  const isPhone = useIsPhone()
-  return isPhone ? <Phone /> : <Desktop />
+  const isPhone = useIsPhone();
+  return isPhone ? <Phone /> : <Desktop />;
 }
 
 /**
@@ -218,65 +218,78 @@ function ViewportRoute({ phone: Phone, desktop: Desktop }: {
  */
 /** Remembers the protected route for the installed app's relaunch (#1024). Renders nothing. */
 function RouteMemory() {
-  useRememberRoute()
-  return null
+  useRememberRoute();
+  return null;
 }
 
 function RootRedirect() {
-  const { isAuthenticated, isLoading } = useAuthStore()
-  const settingsLoaded = useSettingsStore((s) => s.isLoaded)
-  const settings = useSettingsStore((s) => s.settings)
-  const loadSettings = useSettingsStore((s) => s.loadSettings)
-  const [target, setTarget] = useState<string | null>(null)
+  const { isAuthenticated, isLoading } = useAuthStore();
+  const settingsLoaded = useSettingsStore((s) => s.isLoaded);
+  const settings = useSettingsStore((s) => s.settings);
+  const loadSettings = useSettingsStore((s) => s.loadSettings);
+  const [target, setTarget] = useState<string | null>(null);
   // Bounds the wait below: loadSettings deliberately leaves isLoaded false on a
   // failed request so it can retry, which would otherwise strand a launch that
   // started offline on the spinner.
-  const [settingsGaveUp, setSettingsGaveUp] = useState(false)
+  const [settingsGaveUp, setSettingsGaveUp] = useState(false);
 
   useEffect(() => {
-    if (settingsLoaded) return
-    const timer = setTimeout(() => setSettingsGaveUp(true), SETTINGS_WAIT_MS)
-    return () => clearTimeout(timer)
-  }, [settingsLoaded])
+    if (settingsLoaded) return;
+    const timer = setTimeout(() => setSettingsGaveUp(true), SETTINGS_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [settingsLoaded]);
 
   useEffect(() => {
-    if (isLoading || !isAuthenticated || target) return
+    if (isLoading || !isAuthenticated || target) return;
     // The installed app coming back after the system threw it away (#1024):
     // back to the trip and tab it was in, ahead of the start page.
-    const resume = takeResumeRoute()
-    if (resume) { setTarget(resume); return }
-    const mirrored = readStartDestination()
+    const resume = takeResumeRoute();
+    if (resume) {
+      setTarget(resume);
+      return;
+    }
+    const mirrored = readStartDestination();
     if (!mirrored && !settingsLoaded && !settingsGaveUp) {
       // Ask for the settings instead of waiting for whoever else might. The
       // store de-dupes concurrent loads, so this is free when one is already in
       // flight — and it stops the decision from riding on where that request
       // happens to land in the queue behind everything else a launch fires off.
-      loadSettings()
-      return
+      loadSettings();
+      return;
     }
     // Loaded settings are the truth; the mirror is what we knew last time.
     const { page, tab } = settingsLoaded
       ? { page: settings.start_page ?? DEFAULT_START_PAGE, tab: settings.start_trip_tab ?? DEFAULT_START_TRIP_TAB }
-      : (mirrored ?? { page: DEFAULT_START_PAGE, tab: DEFAULT_START_TRIP_TAB })
-    if (page !== 'active_trip') { setTarget('/dashboard'); return }
-    let cancelled = false
+      : (mirrored ?? { page: DEFAULT_START_PAGE, tab: DEFAULT_START_TRIP_TAB });
+    if (page !== 'active_trip') {
+      setTarget('/dashboard');
+      return;
+    }
+    let cancelled = false;
     // Through the repo, not the api: offline this answers from Dexie instead of
     // bouncing a cached trip to the dashboard.
-    tripRepo.active()
-      .then(({ trip }) => { if (!cancelled) setTarget(trip ? tripStartPath(trip.id, tab) : '/dashboard') })
-      .catch(() => { if (!cancelled) setTarget('/dashboard') })
-    return () => { cancelled = true }
-  }, [isLoading, isAuthenticated, settingsLoaded, settingsGaveUp, settings, target])
+    tripRepo
+      .active()
+      .then(({ trip }) => {
+        if (!cancelled) setTarget(trip ? tripStartPath(trip.id, tab) : '/dashboard');
+      })
+      .catch(() => {
+        if (!cancelled) setTarget('/dashboard');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoading, isAuthenticated, settingsLoaded, settingsGaveUp, settings, target]);
 
   if (isLoading || (isAuthenticated && !target)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900"></div>
       </div>
-    )
+    );
   }
 
-  return <Navigate to={isAuthenticated ? (target ?? '/dashboard') : '/login'} replace />
+  return <Navigate to={isAuthenticated ? (target ?? '/dashboard') : '/login'} replace />;
 }
 
 /**
@@ -288,77 +301,127 @@ function RouteFallback() {
   // The fallback renders above MobileShell, so it has to pick its own palette —
   // on a phone the desktop spinner on bg-surface would be a foreign white sheet
   // in front of the mobile screen.
-  const isPhone = useIsPhone()
-  if (isPhone) return <MRouteFallback />
+  const isPhone = useIsPhone();
+  if (isPhone) return <MRouteFallback />;
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface">
-      <div className="w-10 h-10 border-4 border-edge border-t-content rounded-full animate-spin"></div>
+    <div className="flex min-h-screen items-center justify-center bg-surface">
+      <div className="h-10 w-10 animate-spin rounded-full border-4 border-edge border-t-content"></div>
     </div>
-  )
+  );
 }
 
 export default function App() {
-  const { loadUser, isAuthenticated, demoMode, setManaged, setDemoMode, setDevMode, setIsPrerelease, setAppVersion, setHasMapsKey, setHasAmapKey, setPlacesProvider, setServerTimezone, setAppRequireMfa, setTripRemindersEnabled, setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setPlacesEnrichEnabled, setPlaceShadowEnabled } = useAuthStore()
-  const { loadSettings } = useSettingsStore()
-  const { loadAddons } = useAddonStore()
-  const { loadPlugins } = usePluginStore()
+  const {
+    loadUser,
+    isAuthenticated,
+    demoMode,
+    setManaged,
+    setDemoMode,
+    setDevMode,
+    setIsPrerelease,
+    setAppVersion,
+    setHasMapsKey,
+    setHasAmapKey,
+    setPlacesProvider,
+    setServerTimezone,
+    setAppRequireMfa,
+    setTripRemindersEnabled,
+    setPlacesPhotosEnabled,
+    setPlacesAutocompleteEnabled,
+    setPlacesDetailsEnabled,
+    setPlacesEnrichEnabled,
+    setPlaceShadowEnabled,
+  } = useAuthStore();
+  const { loadSettings } = useSettingsStore();
+  const { loadAddons } = useAddonStore();
+  const { loadPlugins } = usePluginStore();
 
   useEffect(() => {
-    if (!location.pathname.startsWith('/shared/') && !location.pathname.startsWith('/public/') && !location.pathname.startsWith('/login')) {
+    if (
+      !location.pathname.startsWith('/shared/') &&
+      !location.pathname.startsWith('/public/') &&
+      !location.pathname.startsWith('/login')
+    ) {
       // If the persist snapshot already has an authenticated user, validate
       // silently so the PWA shell renders immediately without a spinner.
-      const alreadyAuthenticated = useAuthStore.getState().isAuthenticated
+      const alreadyAuthenticated = useAuthStore.getState().isAuthenticated;
       if (alreadyAuthenticated) {
-        useAuthStore.setState({ isLoading: false })
-        loadUser({ silent: true })
+        useAuthStore.setState({ isLoading: false });
+        loadUser({ silent: true });
       } else {
-        loadUser()
+        loadUser();
       }
     }
-    authApi.getAppConfig().then(async (config: { managed?: boolean; demo_mode?: boolean; dev_mode?: boolean; is_prerelease?: boolean; has_maps_key?: boolean; has_amap_key?: boolean; places_provider?: string; version?: string; timezone?: string; require_mfa?: boolean; trip_reminders_enabled?: boolean; places_photos_enabled?: boolean; places_autocomplete_enabled?: boolean; places_details_enabled?: boolean; places_enrich_enabled?: boolean; place_shadow_enabled?: boolean; max_upload_mb?: number; permissions?: Record<string, PermissionLevel> }) => {
-      setManaged(!!config?.managed)
-      setDemoMode(!!config?.demo_mode)
-      if (config?.dev_mode) setDevMode(true)
-      if (config?.is_prerelease !== undefined) setIsPrerelease(config.is_prerelease)
-      if (config?.version) setAppVersion(config.version)
-      if (config?.has_maps_key !== undefined) setHasMapsKey(config.has_maps_key)
-      if (config?.has_amap_key !== undefined) setHasAmapKey(config.has_amap_key)
-      if (config?.places_provider) setPlacesProvider(config.places_provider)
-      if (config?.timezone) setServerTimezone(config.timezone)
-      if (config?.require_mfa !== undefined) setAppRequireMfa(!!config.require_mfa)
-      if (config?.trip_reminders_enabled !== undefined) setTripRemindersEnabled(config.trip_reminders_enabled)
-      if (config?.places_photos_enabled !== undefined) setPlacesPhotosEnabled(config.places_photos_enabled)
-      if (config?.places_autocomplete_enabled !== undefined) setPlacesAutocompleteEnabled(config.places_autocomplete_enabled)
-      if (config?.places_details_enabled !== undefined) setPlacesDetailsEnabled(config.places_details_enabled)
-      if (config?.places_enrich_enabled !== undefined) setPlacesEnrichEnabled(config.places_enrich_enabled)
-      if (config?.place_shadow_enabled !== undefined) setPlaceShadowEnabled(config.place_shadow_enabled)
-      if (typeof config?.max_upload_mb === 'number' && config.max_upload_mb > 0) useAuthStore.getState().setMaxUploadMb(config.max_upload_mb)
-      if (config?.permissions) usePermissionsStore.getState().setPermissions(config.permissions)
-      // Last, since a new release reloads the page from here.
-      await reconcileAppVersion(config?.version)
-    }).catch(() => {})
-  }, [])
+    authApi
+      .getAppConfig()
+      .then(
+        async (config: {
+          managed?: boolean;
+          demo_mode?: boolean;
+          dev_mode?: boolean;
+          is_prerelease?: boolean;
+          has_maps_key?: boolean;
+          has_amap_key?: boolean;
+          places_provider?: string;
+          version?: string;
+          timezone?: string;
+          require_mfa?: boolean;
+          trip_reminders_enabled?: boolean;
+          places_photos_enabled?: boolean;
+          places_autocomplete_enabled?: boolean;
+          places_details_enabled?: boolean;
+          places_enrich_enabled?: boolean;
+          place_shadow_enabled?: boolean;
+          max_upload_mb?: number;
+          permissions?: Record<string, PermissionLevel>;
+        }) => {
+          setManaged(!!config?.managed);
+          setDemoMode(!!config?.demo_mode);
+          if (config?.dev_mode) setDevMode(true);
+          if (config?.is_prerelease !== undefined) setIsPrerelease(config.is_prerelease);
+          if (config?.version) setAppVersion(config.version);
+          if (config?.has_maps_key !== undefined) setHasMapsKey(config.has_maps_key);
+          if (config?.has_amap_key !== undefined) setHasAmapKey(config.has_amap_key);
+          if (config?.places_provider) setPlacesProvider(config.places_provider);
+          if (config?.timezone) setServerTimezone(config.timezone);
+          if (config?.require_mfa !== undefined) setAppRequireMfa(!!config.require_mfa);
+          if (config?.trip_reminders_enabled !== undefined) setTripRemindersEnabled(config.trip_reminders_enabled);
+          if (config?.places_photos_enabled !== undefined) setPlacesPhotosEnabled(config.places_photos_enabled);
+          if (config?.places_autocomplete_enabled !== undefined)
+            setPlacesAutocompleteEnabled(config.places_autocomplete_enabled);
+          if (config?.places_details_enabled !== undefined) setPlacesDetailsEnabled(config.places_details_enabled);
+          if (config?.places_enrich_enabled !== undefined) setPlacesEnrichEnabled(config.places_enrich_enabled);
+          if (config?.place_shadow_enabled !== undefined) setPlaceShadowEnabled(config.place_shadow_enabled);
+          if (typeof config?.max_upload_mb === 'number' && config.max_upload_mb > 0)
+            useAuthStore.getState().setMaxUploadMb(config.max_upload_mb);
+          if (config?.permissions) usePermissionsStore.getState().setPermissions(config.permissions);
+          // Last, since a new release reloads the page from here.
+          await reconcileAppVersion(config?.version);
+        }
+      )
+      .catch(() => {});
+  }, []);
 
-  const { settings } = useSettingsStore()
+  const { settings } = useSettingsStore();
 
-  useInAppNotificationListener()
-  useRoadtripPreferencesSync()
+  useInAppNotificationListener();
+  useRoadtripPreferencesSync();
 
   useEffect(() => {
     if (isAuthenticated) {
-      loadSettings()
-      loadAddons()
-      loadPlugins()
+      loadSettings();
+      loadAddons();
+      loadPlugins();
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    registerSyncTriggers()
-    return () => unregisterSyncTriggers()
-  }, [])
+    registerSyncTriggers();
+    return () => unregisterSyncTriggers();
+  }, []);
 
-  const location = useLocation()
-  const isSharedPage = location.pathname.startsWith('/shared/')
+  const location = useLocation();
+  const isSharedPage = location.pathname.startsWith('/shared/');
 
   useEffect(() => {
     const run = () =>
@@ -366,22 +429,23 @@ export default function App() {
         darkMode: settings.dark_mode,
         appearance: settings.appearance,
         isSharedPage,
-      })
-    run()
+      });
+    run();
     // Re-resolve on OS theme change while in auto mode.
     if (!isSharedPage && settings.dark_mode === 'auto') {
-      const mq = window.matchMedia('(prefers-color-scheme: dark)')
-      const handler = () => run()
-      mq.addEventListener('change', handler)
-      return () => mq.removeEventListener('change', handler)
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      const handler = () => run();
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
     }
-  }, [settings.dark_mode, settings.appearance, isSharedPage])
+  }, [settings.dark_mode, settings.appearance, isSharedPage]);
 
-  const isPhone = useIsPhone()
-  const isAuthPage = location.pathname.startsWith('/login')
-    || location.pathname.startsWith('/register')
-    || location.pathname.startsWith('/forgot-password')
-    || location.pathname.startsWith('/reset-password')
+  const isPhone = useIsPhone();
+  const isAuthPage =
+    location.pathname.startsWith('/login') ||
+    location.pathname.startsWith('/register') ||
+    location.pathname.startsWith('/forgot-password') ||
+    location.pathname.startsWith('/reset-password');
   // No session on these, so authenticated-only widgets (system notices,
   // background tasks, save-to-collection) have nothing to do and would only fire
   // a doomed authenticated request on mount.
@@ -390,16 +454,32 @@ export default function App() {
   // drifted, this one naming only /public/journey/ while the response
   // interceptor's covers all of /public/. A route that is public to one and not
   // to the other is exactly the seam that puts a 401 back.
-  const hideAuthedWidgets = isAuthPage || isAuthPublicPath(location.pathname)
+  const hideAuthedWidgets = isAuthPage || isAuthPublicPath(location.pathname);
 
   return (
     <TranslationProvider>
-      {!hideAuthedWidgets && <ErrorBoundary boundaryId="widget:system-notice" fallback={null}><SystemNoticeHost /></ErrorBoundary>}
-      {!hideAuthedWidgets && <ErrorBoundary boundaryId="widget:help-panel" fallback={null}><HelpPanel /></ErrorBoundary>}
-      <ErrorBoundary boundaryId="widget:toast" fallback={null}><ToastContainer /></ErrorBoundary>
-      {!hideAuthedWidgets && <ErrorBoundary boundaryId="widget:background-tasks" fallback={null}><BackgroundTasksWidget /></ErrorBoundary>}
+      {!hideAuthedWidgets && (
+        <ErrorBoundary boundaryId="widget:system-notice" fallback={null}>
+          <SystemNoticeHost />
+        </ErrorBoundary>
+      )}
+      {!hideAuthedWidgets && (
+        <ErrorBoundary boundaryId="widget:help-panel" fallback={null}>
+          <HelpPanel />
+        </ErrorBoundary>
+      )}
+      <ErrorBoundary boundaryId="widget:toast" fallback={null}>
+        <ToastContainer />
+      </ErrorBoundary>
+      {!hideAuthedWidgets && (
+        <ErrorBoundary boundaryId="widget:background-tasks" fallback={null}>
+          <BackgroundTasksWidget />
+        </ErrorBoundary>
+      )}
       {!hideAuthedWidgets && (isPhone ? <MSaveToCollectionSheet /> : <SaveToCollectionModal />)}
-      <ErrorBoundary boundaryId="widget:offline-banner" fallback={null}><OfflineBanner /></ErrorBoundary>
+      <ErrorBoundary boundaryId="widget:offline-banner" fallback={null}>
+        <OfflineBanner />
+      </ErrorBoundary>
       {/* One boundary for all route chunks, above <Routes> so it stays mounted
           across navigations. react-router runs location updates inside a transition,
           so a mounted boundary keeps the current page on screen instead of flashing
@@ -407,14 +487,63 @@ export default function App() {
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/" element={<RootRedirect />} />
-          <Route path="/login" element={<PublicRoute redirectAuthed><LoginPage /></PublicRoute>} />
-          <Route path="/shared/:token" element={<PublicRoute><SharedTripPage /></PublicRoute>} />
-          <Route path="/public/journey/:token" element={<PublicRoute><JourneyPublicPage /></PublicRoute>} />
-          <Route path="/register" element={<PublicRoute redirectAuthed><LoginPage /></PublicRoute>} />
-          <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
-          <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
+          <Route
+            path="/login"
+            element={
+              <PublicRoute redirectAuthed>
+                <LoginPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/shared/:token"
+            element={
+              <PublicRoute>
+                <SharedTripPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/public/journey/:token"
+            element={
+              <PublicRoute>
+                <JourneyPublicPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicRoute redirectAuthed>
+                <LoginPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <PublicRoute>
+                <ForgotPasswordPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/reset-password"
+            element={
+              <PublicRoute>
+                <ResetPasswordPage />
+              </PublicRoute>
+            }
+          />
           {/* OAuth 2.1 consent page — intentionally outside ProtectedRoute */}
-          <Route path="/oauth/consent" element={<PublicRoute><OAuthAuthorizePage /></PublicRoute>} />
+          <Route
+            path="/oauth/consent"
+            element={
+              <PublicRoute>
+                <OAuthAuthorizePage />
+              </PublicRoute>
+            }
+          />
           <Route
             path="/dashboard"
             element={
@@ -491,7 +620,7 @@ export default function App() {
           />
           {/* Empty in this repository, and read unconditionally so the public
               build walks the same path as any other. See client/src/managed. */}
-          {managedRoutes.map(r => (
+          {managedRoutes.map((r) => (
             <Route
               key={r.path}
               path={r.path}
@@ -563,5 +692,5 @@ export default function App() {
         </Routes>
       </Suspense>
     </TranslationProvider>
-  )
+  );
 }

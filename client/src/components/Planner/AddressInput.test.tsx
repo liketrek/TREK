@@ -1,9 +1,9 @@
 // FE-PLANNER-ADDRIN-001 to FE-PLANNER-ADDRIN-015
-import { useState } from 'react';
-import { delay, http, HttpResponse } from 'msw';
 import userEvent from '@testing-library/user-event';
-import { render, screen, fireEvent, waitFor, act } from '../../../tests/helpers/render';
+import { delay, http, HttpResponse } from 'msw';
+import { useState } from 'react';
 import { server } from '../../../tests/helpers/msw/server';
+import { act, fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import AddressInput from './AddressInput';
 
 interface SearchHit {
@@ -18,7 +18,9 @@ const CAFE = { name: 'Cafe Central', address: 'Herrengasse 14, Vienna', osm_id: 
 
 /** Let the debounce fire and any in-flight request settle. */
 async function settle(ms = 450) {
-  await act(async () => { await new Promise((r) => setTimeout(r, ms)); });
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, ms));
+  });
 }
 
 function searchRoute(places: SearchHit[] | (() => Response | Promise<Response>)) {
@@ -32,7 +34,10 @@ function Host({ initial = '', onText }: { initial?: string; onText?: (v: string)
   return (
     <AddressInput
       value={value}
-      onChange={(v) => { setValue(v); onText?.(v); }}
+      onChange={(v) => {
+        setValue(v);
+        onText?.(v);
+      }}
       placeholder="Street and number"
       className="addr"
     />
@@ -62,7 +67,12 @@ describe('AddressInput', () => {
   it('FE-PLANNER-ADDRIN-003: focusing a prefilled field does not search', async () => {
     const user = userEvent.setup();
     let calls = 0;
-    server.use(searchRoute(() => { calls++; return HttpResponse.json({ places: [HOTEL] }); }));
+    server.use(
+      searchRoute(() => {
+        calls++;
+        return HttpResponse.json({ places: [HOTEL] });
+      })
+    );
 
     render(<Host initial="Philharmoniker Str. 4" />);
     await user.click(screen.getByPlaceholderText('Street and number'));
@@ -75,7 +85,12 @@ describe('AddressInput', () => {
   it('FE-PLANNER-ADDRIN-004: fewer than three characters never reach the API', async () => {
     const user = userEvent.setup();
     let calls = 0;
-    server.use(searchRoute(() => { calls++; return HttpResponse.json({ places: [HOTEL] }); }));
+    server.use(
+      searchRoute(() => {
+        calls++;
+        return HttpResponse.json({ places: [HOTEL] });
+      })
+    );
 
     render(<Host />);
     await user.type(screen.getByPlaceholderText('Street and number'), 'He');
@@ -112,7 +127,12 @@ describe('AddressInput', () => {
 
   it('FE-PLANNER-ADDRIN-007: shows the loading row while the request is in flight', async () => {
     const user = userEvent.setup();
-    server.use(searchRoute(async () => { await delay(200); return HttpResponse.json({ places: [HOTEL] }); }));
+    server.use(
+      searchRoute(async () => {
+        await delay(200);
+        return HttpResponse.json({ places: [HOTEL] });
+      })
+    );
 
     render(<Host />);
     await user.type(screen.getByPlaceholderText('Street and number'), 'Sacher');
@@ -209,11 +229,16 @@ describe('AddressInput', () => {
   it('FE-PLANNER-ADDRIN-015: a slow earlier search cannot overwrite the newer results', async () => {
     // The debounce only cancels the timer; a request already on its way keeps
     // going, and this one answers last.
-    server.use(http.post('/api/maps/search', async ({ request }) => {
-      const { query } = await request.json() as { query: string };
-      if (query === 'Sacher') { await delay(600); return HttpResponse.json({ places: [HOTEL] }); }
-      return HttpResponse.json({ places: [CAFE] });
-    }));
+    server.use(
+      http.post('/api/maps/search', async ({ request }) => {
+        const { query } = (await request.json()) as { query: string };
+        if (query === 'Sacher') {
+          await delay(600);
+          return HttpResponse.json({ places: [HOTEL] });
+        }
+        return HttpResponse.json({ places: [CAFE] });
+      })
+    );
 
     render(<Host />);
     const input = screen.getByPlaceholderText('Street and number');

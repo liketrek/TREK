@@ -1,5 +1,6 @@
-import { CronJob, validateCronExpression } from 'cron';
 import { JOBS_PERMISSION } from '../protocol/envelope';
+
+import { CronJob, validateCronExpression } from 'cron';
 
 /**
  * Host-side scheduler for a plugin's declared background jobs (#plugins).

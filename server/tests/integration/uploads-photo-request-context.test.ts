@@ -23,14 +23,23 @@
  *    the Plan 3b Rulings) — proving the wrapper is what makes PHOTOCTX-002
  *    succeed, not an accident of the test setup.
  */
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
-import request from 'supertest';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { Users } from '../../src/db/entities/Users.entity';
+import { applyPlatformUploads } from '../../src/nest/platform/platform.routes';
+import { StorageService } from '../../src/nest/storage/storage.service';
+import { generateToken } from '../helpers/auth';
+import { createUser, createTrip } from '../helpers/factories';
+import { resetTestDb } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
+import type { INestApplication } from '@nestjs/common';
+
 import express from 'express';
 import type { Application } from 'express';
-import type { INestApplication } from '@nestjs/common';
 import fs from 'node:fs';
 import path from 'node:path';
-import { MikroORM } from '@mikro-orm/core';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -46,15 +55,6 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb } from '../helpers/test-db';
-import { createUser, createTrip } from '../helpers/factories';
-import { generateToken } from '../helpers/auth';
-import { applyPlatformUploads } from '../../src/nest/platform/platform.routes';
-import { StorageService } from '../../src/nest/storage/storage.service';
-import { Users } from '../../src/db/entities/Users.entity';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -75,7 +75,11 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await nestApp.close();
-  try { fs.unlinkSync(photoFile); } catch { /* ignore */ }
+  try {
+    fs.unlinkSync(photoFile);
+  } catch {
+    /* ignore */
+  }
 });
 
 beforeEach(() => {
@@ -136,8 +140,12 @@ describe('GET /uploads/photos/:filename — request context (Plan 3b Task 0, D6)
   it('PHOTOCTX-004 (R1): a valid share token serves the SAME photo bytes as the JWT path, byte-identical', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    testDb.prepare('INSERT INTO photos (trip_id, filename, original_name) VALUES (?, ?, ?)').run(trip.id, photoName, photoName);
-    testDb.prepare('INSERT INTO share_tokens (trip_id, token, created_by) VALUES (?, ?, ?)').run(trip.id, 'ratchet-valid-token', user.id);
+    testDb
+      .prepare('INSERT INTO photos (trip_id, filename, original_name) VALUES (?, ?, ?)')
+      .run(trip.id, photoName, photoName);
+    testDb
+      .prepare('INSERT INTO share_tokens (trip_id, token, created_by) VALUES (?, ?, ?)')
+      .run(trip.id, 'ratchet-valid-token', user.id);
 
     const res = await request(app).get(`/uploads/photos/${photoName}?token=ratchet-valid-token`);
 
@@ -148,7 +156,9 @@ describe('GET /uploads/photos/:filename — request context (Plan 3b Task 0, D6)
   it('PHOTOCTX-005 (R1): an invalid/unknown share token answers the legacy 401 — never `cannotUseGlobalContext`', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    testDb.prepare('INSERT INTO photos (trip_id, filename, original_name) VALUES (?, ?, ?)').run(trip.id, photoName, photoName);
+    testDb
+      .prepare('INSERT INTO photos (trip_id, filename, original_name) VALUES (?, ?, ?)')
+      .run(trip.id, photoName, photoName);
     // No matching share_tokens row for this token at all.
 
     const res = await request(app).get(`/uploads/photos/${photoName}?token=ratchet-unknown-token`);

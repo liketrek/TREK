@@ -27,37 +27,37 @@
  *    none.** `title` wins over `label` as the hover text, so a pointer user can
  *    be told more than the accessible name says.
  */
-import React from 'react'
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, act } from '../../../tests/helpers/render'
-import { fireEvent } from '@testing-library/react'
-import DawarichBadge from './DawarichBadge'
+import { fireEvent } from '@testing-library/react';
+import React from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, render, screen } from '../../../tests/helpers/render';
+import DawarichBadge from './DawarichBadge';
 
-type BadgeProps = React.ComponentProps<typeof DawarichBadge>
+type BadgeProps = React.ComponentProps<typeof DawarichBadge>;
 
 // The clock goes in before anything renders, the way Tooltip's own suite does
 // it: swapping timers out from under a mounted tree leaves whatever it already
 // scheduled on the real clock. `shouldAdvanceTime` keeps real time moving, so
 // the locale promise the render helper's provider starts still settles.
 beforeEach(() => {
-  vi.useFakeTimers({ shouldAdvanceTime: true })
-})
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+});
 
 afterEach(() => {
-  vi.useRealTimers()
-})
+  vi.useRealTimers();
+});
 
 /**
  * Stands in for a lucide icon. All the badge does with one is hand it a
  * className, so that string is the only thing worth asserting about it.
  */
 function StubIcon({ className }: { className?: string }) {
-  return <svg data-testid="badge-icon" className={className} />
+  return <svg data-testid="badge-icon" className={className} />;
 }
 
 function badge(props: BadgeProps) {
-  const view = render(<DawarichBadge {...props} />)
-  return { ...view, el: view.container.firstElementChild as HTMLElement }
+  const view = render(<DawarichBadge {...props} />);
+  return { ...view, el: view.container.firstElementChild as HTMLElement };
 }
 
 /**
@@ -67,64 +67,66 @@ function badge(props: BadgeProps) {
  * rather than merely early.
  */
 function hoverText(el: HTMLElement): string | null {
-  fireEvent.mouseEnter(el)
+  fireEvent.mouseEnter(el);
   // One window covers both steps: the 250 ms open timer, and the effect that
   // measures the trigger afterwards. Until that effect lands the portal is
   // `visibility: hidden`, which is invisible to a role query as well as to a
   // reader, so a half-flushed tooltip would read as no tooltip at all.
-  act(() => { vi.advanceTimersByTime(300) })
-  return screen.queryByRole('tooltip')?.textContent ?? null
+  act(() => {
+    vi.advanceTimersByTime(300);
+  });
+  return screen.queryByRole('tooltip')?.textContent ?? null;
 }
 
 describe('DawarichBadge', () => {
   it('FE-DAWARICH-BADGE-001: the default pill is neutral, xs, and says nothing on hover', () => {
-    const { el } = badge({ children: '3 stays' })
+    const { el } = badge({ children: '3 stays' });
 
-    expect(el).toHaveTextContent('3 stays')
-    expect(el).toHaveClass('h-[18px]', 'px-1.5', 'bg-surface-secondary', 'text-content-secondary')
+    expect(el).toHaveTextContent('3 stays');
+    expect(el).toHaveClass('h-[18px]', 'px-1.5', 'bg-surface-secondary', 'text-content-secondary');
     // A pill that already reads "3 stays" needs no image role and no name of
     // its own: both would make a screen reader announce the same thing twice.
-    expect(el).not.toHaveAttribute('role')
-    expect(el).not.toHaveAttribute('aria-label')
-    expect(el.style.fontSize).toBe('calc(10px * var(--fs-scale-caption, 1))')
-    expect(el.querySelector('[data-testid="badge-icon"]')).toBeNull()
+    expect(el).not.toHaveAttribute('role');
+    expect(el).not.toHaveAttribute('aria-label');
+    expect(el.style.fontSize).toBe('calc(10px * var(--fs-scale-caption, 1))');
+    expect(el.querySelector('[data-testid="badge-icon"]')).toBeNull();
     // No title and no label, so there is nothing a tooltip could add.
-    expect(hoverText(el)).toBeNull()
-  })
+    expect(hoverText(el)).toBeNull();
+  });
 
   it('FE-DAWARICH-BADGE-002: sm raises the box, the icon and the type together', () => {
-    const { el } = badge({ icon: StubIcon, size: 'sm', children: '2 h 25 min' })
+    const { el } = badge({ icon: StubIcon, size: 'sm', children: '2 h 25 min' });
 
-    expect(el).toHaveClass('h-[20px]', 'px-1.5')
-    expect(el.style.fontSize).toBe('calc(11px * var(--fs-scale-caption, 1))')
-    expect(screen.getByTestId('badge-icon').getAttribute('class')).toBe('w-3 h-3 flex-shrink-0')
+    expect(el).toHaveClass('h-[20px]', 'px-1.5');
+    expect(el.style.fontSize).toBe('calc(11px * var(--fs-scale-caption, 1))');
+    expect(screen.getByTestId('badge-icon').getAttribute('class')).toBe('w-3 h-3 flex-shrink-0');
     // The text truncates and the glyph does not: a long name must run out of
     // room before it squeezes the icon out of shape.
-    expect(el.querySelector('.truncate')).toHaveTextContent('2 h 25 min')
-  })
+    expect(el.querySelector('.truncate')).toHaveTextContent('2 h 25 min');
+  });
 
   it('FE-DAWARICH-BADGE-003: an icon-only pill is square, named, and offers its name on hover', () => {
-    const { el } = badge({ icon: StubIcon, tone: 'warning', label: 'Low confidence' })
+    const { el } = badge({ icon: StubIcon, tone: 'warning', label: 'Low confidence' });
 
-    expect(el).toHaveAttribute('role', 'img')
-    expect(el).toHaveAttribute('aria-label', 'Low confidence')
-    expect(el).toHaveClass('w-[18px]', 'justify-center', 'bg-warning-soft', 'text-warning')
+    expect(el).toHaveAttribute('role', 'img');
+    expect(el).toHaveAttribute('aria-label', 'Low confidence');
+    expect(el).toHaveClass('w-[18px]', 'justify-center', 'bg-warning-soft', 'text-warning');
     // Side padding would make the circle an oval, and there is no text to pad
     // away from in the first place.
-    expect(el).not.toHaveClass('px-1.5')
-    expect(el.querySelector('.truncate')).toBeNull()
-    expect(screen.getByTestId('badge-icon').getAttribute('class')).toBe('w-2.5 h-2.5 flex-shrink-0')
+    expect(el).not.toHaveClass('px-1.5');
+    expect(el.querySelector('.truncate')).toBeNull();
+    expect(screen.getByTestId('badge-icon').getAttribute('class')).toBe('w-2.5 h-2.5 flex-shrink-0');
     // No title, so the accessible name doubles as the hover text and a pointer
     // user is told exactly what a screen reader is told.
-    expect(hoverText(el)).toBe('Low confidence')
-  })
+    expect(hoverText(el)).toBe('Low confidence');
+  });
 
   it('FE-DAWARICH-BADGE-004: the square grows with the size, so the dot stays a circle', () => {
-    const { el } = badge({ icon: StubIcon, size: 'sm', label: 'Source gone' })
+    const { el } = badge({ icon: StubIcon, size: 'sm', label: 'Source gone' });
 
-    expect(el).toHaveClass('h-[20px]', 'w-[20px]', 'justify-center')
-    expect(el).not.toHaveClass('w-[18px]')
-  })
+    expect(el).toHaveClass('h-[20px]', 'w-[20px]', 'justify-center');
+    expect(el).not.toHaveClass('w-[18px]');
+  });
 
   it('FE-DAWARICH-BADGE-005: title is the hover text, label stays the name', () => {
     const { el } = badge({
@@ -132,13 +134,13 @@ describe('DawarichBadge', () => {
       tone: 'warning',
       label: 'Low confidence',
       title: 'Dawarich is not sure this stay happened',
-    })
+    });
 
     // The two are not interchangeable: the name is what the badge is, the title
     // is what it has to add, and a screen reader would drown in the long one.
-    expect(el).toHaveAttribute('aria-label', 'Low confidence')
-    expect(hoverText(el)).toBe('Dawarich is not sure this stay happened')
-  })
+    expect(el).toHaveAttribute('aria-label', 'Low confidence');
+    expect(hoverText(el)).toBe('Dawarich is not sure this stay happened');
+  });
 
   it('FE-DAWARICH-BADGE-006: every tone keeps its own pair of theme tokens', () => {
     const tones: Array<[NonNullable<BadgeProps['tone']>, string[]]> = [
@@ -147,26 +149,26 @@ describe('DawarichBadge', () => {
       ['accent', ['bg-accent-subtle', 'text-accent-on']],
       ['success', ['bg-success-soft', 'text-success']],
       ['warning', ['bg-warning-soft', 'text-warning']],
-    ]
+    ];
 
     for (const [tone, classes] of tones) {
-      const { el, unmount } = badge({ tone, children: tone })
+      const { el, unmount } = badge({ tone, children: tone });
       // Tokens rather than colour literals, or the badge stops following the
       // user's scheme the moment they pick one.
-      expect(el).toHaveClass(...classes)
-      unmount()
+      expect(el).toHaveClass(...classes);
+      unmount();
     }
-  })
+  });
 
   it('FE-DAWARICH-BADGE-007: a zero is a child, not an absent one', () => {
     // The day header counts its stays with the array length. Icon-only is
     // `children === undefined` and not a falsy check for exactly this reason: a
     // count of 0 that turned into an unlabelled dot would be a day that lost
     // its number.
-    const { el } = badge({ tone: 'quiet', children: 0 })
+    const { el } = badge({ tone: 'quiet', children: 0 });
 
-    expect(el).toHaveTextContent('0')
-    expect(el).not.toHaveAttribute('role')
-    expect(el).toHaveClass('px-1.5')
-  })
-})
+    expect(el).toHaveTextContent('0');
+    expect(el).not.toHaveAttribute('role');
+    expect(el).toHaveClass('px-1.5');
+  });
+});

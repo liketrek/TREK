@@ -1,9 +1,9 @@
-import React from 'react'
-import { Plug, Save, RefreshCw, Unplug } from 'lucide-react'
-import { useTranslation } from '../../../i18n'
-import { useDawarichConnection } from '../../../hooks/useDawarichConnection'
-import { MSetCard, MSetRow, MSetInput, MSetButton, MSetHint } from './MSettingsUi'
-import MToggle from '../../components/MToggle'
+import { Plug, RefreshCw, Save, Unplug } from 'lucide-react';
+import React from 'react';
+import { useDawarichConnection } from '../../../hooks/useDawarichConnection';
+import { useTranslation } from '../../../i18n';
+import MToggle from '../../components/MToggle';
+import { MSetButton, MSetCard, MSetHint, MSetInput, MSetRow } from './MSettingsUi';
 
 /**
  * Phone twin of components/Settings/DawarichConnectionSection.
@@ -14,8 +14,8 @@ import MToggle from '../../components/MToggle'
  * sync logic would spend the whole budget on its own.
  */
 export default function MDawarichConnectionSection(): React.ReactElement {
-  const { t, locale } = useTranslation()
-  const S = useDawarichConnection()
+  const { t, locale } = useTranslation();
+  const S = useDawarichConnection();
 
   return (
     <MSetCard title={t('dawarich.title')} icon={Plug} className="mt-3">
@@ -27,7 +27,7 @@ export default function MDawarichConnectionSection(): React.ReactElement {
             type="url"
             inputMode="url"
             value={S.url}
-            onChange={e => S.setUrl(e.target.value)}
+            onChange={(e) => S.setUrl(e.target.value)}
             placeholder="https://dawarich.example.com"
             aria-label={t('dawarich.url')}
           />
@@ -37,7 +37,7 @@ export default function MDawarichConnectionSection(): React.ReactElement {
           <MSetInput
             type="password"
             value={S.apiKey}
-            onChange={e => S.setApiKey(e.target.value)}
+            onChange={(e) => S.setApiKey(e.target.value)}
             autoComplete="off"
             placeholder={S.connected && !S.apiKey ? '••••••••' : t('dawarich.apiKeyPlaceholder')}
             aria-label={t('dawarich.apiKey')}
@@ -51,9 +51,7 @@ export default function MDawarichConnectionSection(): React.ReactElement {
           first
           label={t('dawarich.syncEnabled')}
           sub={t('dawarich.syncEnabledHint')}
-          trailing={
-            <MToggle checked={S.syncEnabled} onChange={S.toggleSync} ariaLabel={t('dawarich.syncEnabled')} />
-          }
+          trailing={<MToggle checked={S.syncEnabled} onChange={S.toggleSync} ariaLabel={t('dawarich.syncEnabled')} />}
         />
         <MSetRow
           label={t('dawarich.allowInsecureTls')}
@@ -86,9 +84,7 @@ export default function MDawarichConnectionSection(): React.ReactElement {
         <p className="font-geist text-[0.6875rem] font-semibold text-m-ink">
           {S.connected ? t('dawarich.connected') : t('dawarich.notConnected')}
         </p>
-        {S.probeMessage && (
-          <p className="font-geist text-[0.625rem] leading-relaxed text-m-muted">{S.probeMessage}</p>
-        )}
+        {S.probeMessage && <p className="font-geist text-[0.625rem] leading-relaxed text-m-muted">{S.probeMessage}</p>}
         {S.connected && (
           <p className="font-geist text-[0.625rem] leading-relaxed text-m-muted">
             {S.lastSyncAt
@@ -116,5 +112,5 @@ export default function MDawarichConnectionSection(): React.ReactElement {
         </div>
       )}
     </MSetCard>
-  )
+  );
 }

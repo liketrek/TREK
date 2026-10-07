@@ -1,8 +1,7 @@
-import React from 'react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { server } from '../../../tests/helpers/msw/server';
+import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import CollectionsWidget from './CollectionsWidget';
 
 // FE-COMP-COLWIDGET-001 onwards
@@ -12,7 +11,12 @@ function collections(list: unknown[]) {
 }
 
 const list = (over: Record<string, unknown> = {}) => ({
-  id: 1, name: 'Tokyo eats', color: '#ff0000', cover_image: null, place_count: 12, ...over,
+  id: 1,
+  name: 'Tokyo eats',
+  color: '#ff0000',
+  cover_image: null,
+  place_count: 12,
+  ...over,
 });
 
 beforeEach(() => {
@@ -28,7 +32,7 @@ describe('CollectionsWidget', () => {
   });
 
   it('FE-COMP-COLWIDGET-002: renders at most six badges with their counts', async () => {
-    collections([1, 2, 3, 4, 5, 6, 7].map(id => list({ id, name: `List ${id}`, place_count: id })));
+    collections([1, 2, 3, 4, 5, 6, 7].map((id) => list({ id, name: `List ${id}`, place_count: id })));
     render(<CollectionsWidget onOpen={() => {}} />);
 
     expect(await screen.findByText('List 1')).toBeInTheDocument();

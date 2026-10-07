@@ -1,8 +1,8 @@
-import { useTranslation } from '../../i18n'
-import { Tooltip } from '../shared/Tooltip'
-import DawarichIcon from '../shared/DawarichIcon'
-import { MAP_CONTROL_SHADOW } from './mapControlShadow'
-import type { DawarichTrailStatus } from './useDawarichTrail'
+import { useTranslation } from '../../i18n';
+import DawarichIcon from '../shared/DawarichIcon';
+import { Tooltip } from '../shared/Tooltip';
+import { MAP_CONTROL_SHADOW } from './mapControlShadow';
+import type { DawarichTrailStatus } from './useDawarichTrail';
 
 /**
  * Toggle for the recorded-route overlay (#2279), in the same frosted shell as
@@ -19,11 +19,11 @@ export function DawarichTrailPill({
   status,
   onToggle,
 }: {
-  active: boolean
-  status: DawarichTrailStatus
-  onToggle: () => void
+  active: boolean;
+  status: DawarichTrailStatus;
+  onToggle: () => void;
 }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   const label = !active
     ? t('dawarich.trail.show')
@@ -35,15 +35,15 @@ export function DawarichTrailPill({
           ? t('dawarich.trail.offline')
           : status === 'unavailable'
             ? t('dawarich.trail.unavailable')
-            : t('dawarich.trail.hide')
+            : t('dawarich.trail.hide');
 
   // A problem worth seeing without reading the tooltip: the layer is on and
   // there is nothing to show.
-  const muted = active && (status === 'empty' || status === 'offline' || status === 'unavailable')
+  const muted = active && (status === 'empty' || status === 'offline' || status === 'unavailable');
   // Loading has to be visible too. A first fetch from somebody's own server can
   // take a while, and with nothing on the button it looked exactly like "done,
   // but no line", so testers reloaded the page to find out.
-  const loading = active && status === 'loading'
+  const loading = active && status === 'loading';
 
   return (
     <div
@@ -64,35 +64,39 @@ export function DawarichTrailPill({
           appears on a touch device, and this control's whole job is to explain
           why there is no line. */}
       <Tooltip label={label} placement="left">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label={label}
-        aria-pressed={active}
-        aria-busy={loading}
-        data-testid="dawarich-trail-pill"
-        style={{
-          display: 'block',
-          width: 34,
-          height: 34,
-          borderRadius: 999,
-          border: 'none',
-          cursor: 'pointer',
-          background: 'transparent',
-          padding: 0,
-          // The mark fills the circle and is clipped by it, so the control reads
-          // as the Dawarich button rather than as a frame with a logo in it.
-          overflow: 'hidden',
-          // Its own colours stay; on/off is carried by opacity, because a
-          // recoloured logo is a different logo.
-          opacity: muted ? 0.35 : active ? 1 : 0.6,
-          transition: 'opacity 0.14s, transform 0.14s',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)' }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'none' }}
-      >
-        <DawarichIcon fill />
-      </button>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={label}
+          aria-pressed={active}
+          aria-busy={loading}
+          data-testid="dawarich-trail-pill"
+          style={{
+            display: 'block',
+            width: 34,
+            height: 34,
+            borderRadius: 999,
+            border: 'none',
+            cursor: 'pointer',
+            background: 'transparent',
+            padding: 0,
+            // The mark fills the circle and is clipped by it, so the control reads
+            // as the Dawarich button rather than as a frame with a logo in it.
+            overflow: 'hidden',
+            // Its own colours stay; on/off is carried by opacity, because a
+            // recoloured logo is a different logo.
+            opacity: muted ? 0.35 : active ? 1 : 0.6,
+            transition: 'opacity 0.14s, transform 0.14s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.06)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'none';
+          }}
+        >
+          <DawarichIcon fill />
+        </button>
       </Tooltip>
       {loading && (
         <span
@@ -111,5 +115,5 @@ export function DawarichTrailPill({
         />
       )}
     </div>
-  )
+  );
 }

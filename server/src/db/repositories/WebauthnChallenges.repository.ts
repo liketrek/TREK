@@ -90,7 +90,11 @@ export class WebauthnChallengesRepository extends TrekRepository<WebauthnChallen
    * validation gap the base class closes for every other repository path —
    * the base's `kysely()` helper validates first, then delegates.
    */
-  async claimChallenge(challenge: string, type: 'registration' | 'authentication', now: number): Promise<{ user_id: number | null } | null> {
+  async claimChallenge(
+    challenge: string,
+    type: 'registration' | 'authentication',
+    now: number,
+  ): Promise<{ user_id: number | null } | null> {
     const row = await this.kysely<WebauthnChallengesKyselyDB>()
       .deleteFrom('webauthn_challenges')
       .where('challenge', '=', challenge)

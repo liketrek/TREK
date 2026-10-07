@@ -52,7 +52,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNotificationsHint':
     'Määra, millised kanalid edastavad ainult administraatorile mõeldud teavitusi (nt uue versiooni teated).',
   'admin.notificationDefaults.title': 'Kasutajate vaikeväärtused',
-  'admin.notificationDefaults.hint': 'Nii algavad iga kasutaja teavitused. „Väljas“ saab kasutaja ise sisse lülitada, „Blokeeritud“ lülitab kõigile välja ja kuvatakse nende seadetes lukustatuna. Kehtib kõigile, kes pole lahtrit ise muutnud.',
+  'admin.notificationDefaults.hint':
+    'Nii algavad iga kasutaja teavitused. „Väljas“ saab kasutaja ise sisse lülitada, „Blokeeritud“ lülitab kõigile välja ja kuvatakse nende seadetes lukustatuna. Kehtib kõigile, kes pole lahtrit ise muutnud.',
   'admin.notificationDefaults.on': 'Sees',
   'admin.notificationDefaults.off': 'Väljas',
   'admin.notificationDefaults.blocked': 'Blokeeritud',
@@ -227,7 +228,8 @@ const admin: TranslationStrings = {
   'admin.placesGoogleOnly.otherProvider':
     "Vajab kohtade teenusepakkujana Google'it. Kui valitud on Amap või OpenStreetMap, ei lähe otsing kunagi Google'isse, olenemata selle lüliti asendist.",
   'admin.googleQuota.title': "Google'i päringute päevapiirang",
-  'admin.googleQuota.subtitle': "Kui piir täis saab, ei pöördu TREK Google'i poole järgmise päevani (UTC) ja otsib OpenStreetMapiga. Tühi tähendab piiranguta.",
+  'admin.googleQuota.subtitle':
+    "Kui piir täis saab, ei pöördu TREK Google'i poole järgmise päevani (UTC) ja otsib OpenStreetMapiga. Tühi tähendab piiranguta.",
   'admin.googleQuota.placeholder': 'Piiranguta',
   'admin.googleQuota.usedToday': 'Täna: {used}',
   'admin.googleQuota.usedOfLimit': 'Täna: {used} / {limit}',
@@ -698,7 +700,8 @@ const admin: TranslationStrings = {
   'admin.addons.llm.vision.on': 'Jah',
   'admin.addons.llm.vision.off': 'Ei',
   'admin.addons.llm.vision.hintLocal': 'Automaatne küsib Ollama serverilt, kas see mudel loeb pilte.',
-  'admin.addons.llm.vision.hintCloud': 'Pilvemudeli puhul tähendab Automaatne „ei”. Vali Jah, kui see mudel loeb pilte.',
+  'admin.addons.llm.vision.hintCloud':
+    'Pilvemudeli puhul tähendab Automaatne „ei”. Vali Jah, kui see mudel loeb pilte.',
   'admin.addons.enabled': 'Lubatud',
   'admin.addons.disabled': 'Keelatud',
   'admin.addons.type.trip': 'Reis',

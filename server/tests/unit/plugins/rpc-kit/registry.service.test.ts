@@ -3,10 +3,11 @@
  * validates at boot so a wrong decorator argument fails the app start rather than a
  * single plugin activation.
  */
-import { describe, it, expect, vi } from 'vitest';
-import type { DiscoveryService, MetadataScanner } from '@nestjs/core';
-import { PluginRpcRegistryService } from '../../../../src/nest/plugins/host/rpc-kit/registry.service';
 import { PluginController, PluginMethod } from '../../../../src/nest/plugins/host/rpc-kit/decorators';
+import { PluginRpcRegistryService } from '../../../../src/nest/plugins/host/rpc-kit/registry.service';
+import type { DiscoveryService, MetadataScanner } from '@nestjs/core';
+
+import { describe, it, expect, vi } from 'vitest';
 
 @PluginController()
 class TagsRpc {
@@ -36,8 +37,7 @@ function serviceFor(instances: object[]): PluginRpcRegistryService {
     getProviders: () => instances.map((instance) => ({ instance, metatype: instance.constructor })),
   } as unknown as DiscoveryService;
   const scanner = {
-    getAllMethodNames: (proto: object) =>
-      Object.getOwnPropertyNames(proto).filter((n) => n !== 'constructor'),
+    getAllMethodNames: (proto: object) => Object.getOwnPropertyNames(proto).filter((n) => n !== 'constructor'),
   } as unknown as MetadataScanner;
   return new PluginRpcRegistryService(discovery, scanner);
 }
@@ -66,7 +66,10 @@ describe('PluginRpcRegistryService', () => {
 
   it('RPCKIT-SVC-004 a null instance is skipped', () => {
     const discovery = {
-      getProviders: () => [{ instance: null, metatype: TagsRpc }, { instance: undefined, metatype: TagsRpc }],
+      getProviders: () => [
+        { instance: null, metatype: TagsRpc },
+        { instance: undefined, metatype: TagsRpc },
+      ],
     } as unknown as DiscoveryService;
     const scanner = { getAllMethodNames: () => [] } as unknown as MetadataScanner;
     const service = new PluginRpcRegistryService(discovery, scanner);

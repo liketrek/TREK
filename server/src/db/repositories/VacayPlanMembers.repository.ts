@@ -176,13 +176,19 @@ export class VacayPlanMembersRepository extends TrekRepository<VacayPlanMembers>
       .select(['u.id', 'u.username', 'u.email'])
       .where('u.id', '!=', userId)
       .where((eb) => eb(eb.fn.coalesce('u.is_guest', eb.val(0)), '=', 0))
-      .where('u.id', 'not in', (eb) => eb.selectFrom('vacay_plan_members').select('user_id').where('plan_id', '=', planId))
-      .where('u.id', 'not in', (eb) => eb.selectFrom('vacay_plan_members').select('user_id').where('status', '=', 'accepted'))
+      .where('u.id', 'not in', (eb) =>
+        eb.selectFrom('vacay_plan_members').select('user_id').where('plan_id', '=', planId),
+      )
+      .where('u.id', 'not in', (eb) =>
+        eb.selectFrom('vacay_plan_members').select('user_id').where('status', '=', 'accepted'),
+      )
       .where('u.id', 'not in', (eb) =>
         eb
           .selectFrom('vacay_plans')
           .select('owner_id')
-          .where('id', 'in', (eb2) => eb2.selectFrom('vacay_plan_members').select('plan_id').where('status', '=', 'accepted')),
+          .where('id', 'in', (eb2) =>
+            eb2.selectFrom('vacay_plan_members').select('plan_id').where('status', '=', 'accepted'),
+          ),
       )
       .orderBy('u.username', 'asc')
       .execute();

@@ -9,15 +9,21 @@
  * interval read now goes through CronRegistrarService.runOnBoot instead of
  * running inline in onApplicationBootstrap — AIRTRAIL-JOB-009/010 pin that.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-const logMock = vi.hoisted(() => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
-vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
-
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import { AirtrailSyncJob } from '../../../src/nest/integrations/airtrail-sync.job';
 import type { AirtrailSyncService } from '../../../src/nest/integrations/airtrail-sync.service';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const logMock = vi.hoisted(() => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+  logDebug: vi.fn(),
+}));
+vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
 
 const SETTING_KEY = 'airtrail_poll_interval_minutes';
 
@@ -30,7 +36,9 @@ function makeJob(intervalSetting?: string, enabled = true) {
       return enabled;
     }),
     unregister: vi.fn(),
-    runOnBoot: vi.fn(async (_name: string, fn: () => void | Promise<void>) => { await fn(); }),
+    runOnBoot: vi.fn(async (_name: string, fn: () => void | Promise<void>) => {
+      await fn();
+    }),
   };
   const appSettings = {
     getValue: vi.fn((_key: string) => Promise.resolve(intervalSetting === undefined ? null : intervalSetting)),
@@ -105,7 +113,9 @@ describe('AirtrailSyncJob bootstrap', () => {
 
   it('AIRTRAIL-JOB-010: registers at the default 5m cadence if runOnBoot declines to run fn (no ORM available)', async () => {
     const { job, registrar, appSettings } = makeJob('30');
-    registrar.runOnBoot.mockImplementationOnce(async () => { /* simulates no ORM available — fn never runs */ });
+    registrar.runOnBoot.mockImplementationOnce(async () => {
+      /* simulates no ORM available — fn never runs */
+    });
     await job.onApplicationBootstrap();
     expect(appSettings.getValue).not.toHaveBeenCalled();
     expect(registrar.register).toHaveBeenCalledWith('airtrail-sync', '*/5 * * * *', expect.any(Function));

@@ -5,12 +5,18 @@
  * (ZodValidationPipe), the masked-sentinel no-op, status codes and the actual
  * persisted rows.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { SettingsModule } from '../../src/nest/settings/settings.module';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -27,18 +33,14 @@ const { db } = vi.hoisted(() => {
 
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 
-import { SettingsModule } from '../../src/nest/settings/settings.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
-
 describe('Settings e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), SettingsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), SettingsModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -82,28 +84,44 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('POST /bulk 400 without a settings object (pipe envelope via SettingsBulkDto)', async () => {
-    const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(1)).send({ settings: null });
+    const res = await request(server)
+      .post('/api/settings/bulk')
+      .set('Cookie', sessionCookie(1))
+      .send({ settings: null });
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/^settings: /);
   });
 
   it('PUT persists the setting', async () => {
-    const res = await request(server).put('/api/settings').set('Cookie', sessionCookie(1)).send({ key: 'language', value: 'fr' });
+    const res = await request(server)
+      .put('/api/settings')
+      .set('Cookie', sessionCookie(1))
+      .send({ key: 'language', value: 'fr' });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true, key: 'language', value: 'fr' });
-    const row = db.prepare("SELECT value FROM settings WHERE user_id = 1 AND key = 'language'").get() as { value: string };
+    const row = db.prepare("SELECT value FROM settings WHERE user_id = 1 AND key = 'language'").get() as {
+      value: string;
+    };
     expect(row.value).toBe('fr');
   });
 
   it('PUT no-ops on the masked sentinel', async () => {
-    const res = await request(server).put('/api/settings').set('Cookie', sessionCookie(1)).send({ key: 'secret', value: '••••••••' });
+    const res = await request(server)
+      .put('/api/settings')
+      .set('Cookie', sessionCookie(1))
+      .send({ key: 'secret', value: '••••••••' });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true, key: 'secret', unchanged: true });
-    expect(db.prepare("SELECT COUNT(*) AS n FROM settings WHERE user_id = 1 AND key = 'secret'").get()).toEqual({ n: 0 });
+    expect(db.prepare("SELECT COUNT(*) AS n FROM settings WHERE user_id = 1 AND key = 'secret'").get()).toEqual({
+      n: 0,
+    });
   });
 
   it('POST /bulk 200', async () => {
-    const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(1)).send({ settings: { a: 1, b: 2 } });
+    const res = await request(server)
+      .post('/api/settings/bulk')
+      .set('Cookie', sessionCookie(1))
+      .send({ settings: { a: 1, b: 2 } });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true, updated: 2 });
     const rows = db.prepare('SELECT key, value FROM settings WHERE user_id = 1 ORDER BY key').all();
@@ -115,11 +133,15 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
 
   it('POST /bulk skips masked-sentinel values (a stored secret survives)', async () => {
     db.prepare("INSERT INTO settings (user_id, key, value) VALUES (1, 'ntfy_token', 'tok-real')").run();
-    const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(1))
+    const res = await request(server)
+      .post('/api/settings/bulk')
+      .set('Cookie', sessionCookie(1))
       .send({ settings: { ntfy_topic: 'trek', ntfy_token: '••••••••' } });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true, updated: 1 });
-    expect(db.prepare("SELECT value FROM settings WHERE user_id = 1 AND key = 'ntfy_token'").get()).toEqual({ value: 'tok-real' });
+    expect(db.prepare("SELECT value FROM settings WHERE user_id = 1 AND key = 'ntfy_token'").get()).toEqual({
+      value: 'tok-real',
+    });
   });
 
   // #1772: a free-form LLM endpoint is admin-only. The resolver ignores such a
@@ -128,7 +150,9 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
     const countRows = () => (db.prepare('SELECT COUNT(*) AS n FROM settings').get() as { n: number }).n;
 
     it('PUT 403 for a non-admin naming a base URL', async () => {
-      const res = await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
+      const res = await request(server)
+        .put('/api/settings')
+        .set('Cookie', sessionCookie(1))
         .send({ key: 'llm_base_url', value: 'http://192.168.1.5:11434' });
       expect(res.status).toBe(403);
       expect(res.body).toEqual({ error: 'Admin access required' });
@@ -136,19 +160,34 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('PUT 403 for a non-admin picking the local provider', async () => {
-      const res = await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
+      const res = await request(server)
+        .put('/api/settings')
+        .set('Cookie', sessionCookie(1))
         .send({ key: 'llm_provider', value: 'local' });
       expect(res.status).toBe(403);
       expect(countRows()).toBe(0);
     });
 
     it('PUT lets a non-admin clear the base URL and pick a hosted provider', async () => {
-      expect((await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
-        .send({ key: 'llm_base_url', value: '  ' })).status).toBe(200);
-      expect((await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
-        .send({ key: 'llm_provider', value: 'anthropic' })).status).toBe(200);
-      expect(db.prepare("SELECT value FROM settings WHERE user_id = 1 AND key = 'llm_provider'").get())
-        .toEqual({ value: 'anthropic' });
+      expect(
+        (
+          await request(server)
+            .put('/api/settings')
+            .set('Cookie', sessionCookie(1))
+            .send({ key: 'llm_base_url', value: '  ' })
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await request(server)
+            .put('/api/settings')
+            .set('Cookie', sessionCookie(1))
+            .send({ key: 'llm_provider', value: 'anthropic' })
+        ).status,
+      ).toBe(200);
+      expect(db.prepare("SELECT value FROM settings WHERE user_id = 1 AND key = 'llm_provider'").get()).toEqual({
+        value: 'anthropic',
+      });
     });
 
     it('PUT 403 for a non-admin naming a routing engine (#1797)', async () => {
@@ -157,7 +196,9 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
       // admin default. A value on a personal row is read by the route
       // calculator and then refused by the browser, so the app stops routing
       // with no error it could report. Refusing tells the caller instead.
-      const res = await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
+      const res = await request(server)
+        .put('/api/settings')
+        .set('Cookie', sessionCookie(1))
         .send({ key: 'routing_base_url', value: 'https://osrm.example.org' });
       expect(res.status).toBe(403);
       expect(res.body).toEqual({ error: 'Admin access required' });
@@ -165,12 +206,20 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('PUT lets a non-admin clear a routing engine somebody set before the rule', async () => {
-      expect((await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
-        .send({ key: 'routing_base_url', value: '' })).status).toBe(200);
+      expect(
+        (
+          await request(server)
+            .put('/api/settings')
+            .set('Cookie', sessionCookie(1))
+            .send({ key: 'routing_base_url', value: '' })
+        ).status,
+      ).toBe(200);
     });
 
     it('POST bulk refuses a routing engine from a non-admin', async () => {
-      const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(1))
+      const res = await request(server)
+        .post('/api/settings/bulk')
+        .set('Cookie', sessionCookie(1))
         .send({ settings: { routing_base_url: 'https://osrm.example.org' } });
       expect(res.status).toBe(403);
       expect(countRows()).toBe(0);
@@ -181,7 +230,9 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
       // origin has to be in the boot-time connect-src, which is assembled from the
       // admin default alone. A personal row would be read by the route calculator and
       // then refused by the browser, so "other ways" would quietly stop offering any.
-      const res = await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
+      const res = await request(server)
+        .put('/api/settings')
+        .set('Cookie', sessionCookie(1))
         .send({ key: 'valhalla_base_url', value: 'https://valhalla.example.org' });
       expect(res.status).toBe(403);
       expect(res.body).toEqual({ error: 'Admin access required' });
@@ -189,26 +240,40 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('PUT lets a non-admin clear the second routing engine', async () => {
-      expect((await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
-        .send({ key: 'valhalla_base_url', value: '' })).status).toBe(200);
+      expect(
+        (
+          await request(server)
+            .put('/api/settings')
+            .set('Cookie', sessionCookie(1))
+            .send({ key: 'valhalla_base_url', value: '' })
+        ).status,
+      ).toBe(200);
     });
 
     it('PUT is unaffected for a non-LLM key with the same value', async () => {
-      const res = await request(server).put('/api/settings').set('Cookie', sessionCookie(1))
+      const res = await request(server)
+        .put('/api/settings')
+        .set('Cookie', sessionCookie(1))
         .send({ key: 'start_page', value: 'local' });
       expect(res.status).toBe(200);
     });
 
     it('POST /bulk 403 for a non-admin, and nothing in the payload is written', async () => {
-      const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(1))
-        .send({ settings: { llm_provider: 'local', llm_base_url: 'http://192.168.1.5:11434', llm_model: 'nuextract' } });
+      const res = await request(server)
+        .post('/api/settings/bulk')
+        .set('Cookie', sessionCookie(1))
+        .send({
+          settings: { llm_provider: 'local', llm_base_url: 'http://192.168.1.5:11434', llm_model: 'nuextract' },
+        });
       expect(res.status).toBe(403);
       expect(res.body).toEqual({ error: 'Admin access required' });
       expect(countRows()).toBe(0);
     });
 
     it('POST /bulk 200 for a non-admin bringing their own hosted key', async () => {
-      const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(1))
+      const res = await request(server)
+        .post('/api/settings/bulk')
+        .set('Cookie', sessionCookie(1))
         .send({ settings: { llm_provider: 'anthropic', llm_base_url: '', llm_model: 'claude-sonnet' } });
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ success: true, updated: 3 });
@@ -218,7 +283,9 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
       // An instance has one endpoint and it is set on the addon, or through
       // PUT /api/admin/default-user-settings. A personal row would be a second,
       // invisible place for the same value, so the route refuses it for everyone.
-      const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(2))
+      const res = await request(server)
+        .post('/api/settings/bulk')
+        .set('Cookie', sessionCookie(2))
         .send({ settings: { llm_provider: 'local', llm_base_url: 'http://192.168.1.5:11434' } });
       expect(res.status).toBe(403);
       expect(res.body).toEqual({ error: 'Admin access required' });
@@ -226,17 +293,22 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('POST /bulk 200 for an admin bringing their own hosted key', async () => {
-      const res = await request(server).post('/api/settings/bulk').set('Cookie', sessionCookie(2))
+      const res = await request(server)
+        .post('/api/settings/bulk')
+        .set('Cookie', sessionCookie(2))
         .send({ settings: { llm_provider: 'openai', llm_base_url: '', llm_model: 'gpt-4o-mini' } });
       expect(res.status).toBe(200);
-      expect(db.prepare("SELECT value FROM settings WHERE user_id = 2 AND key = 'llm_provider'").get())
-        .toEqual({ value: 'openai' });
+      expect(db.prepare("SELECT value FROM settings WHERE user_id = 2 AND key = 'llm_provider'").get()).toEqual({
+        value: 'openai',
+      });
     });
   });
 
   describe('week_start (#2029)', () => {
     it('an admin default reaches a user who never picked a first weekday', async () => {
-      const put = await request(server).put('/api/admin/default-user-settings').set('Cookie', sessionCookie(2))
+      const put = await request(server)
+        .put('/api/admin/default-user-settings')
+        .set('Cookie', sessionCookie(2))
         .send({ week_start: 'sunday' });
       expect(put.status).toBe(200);
       const res = await request(server).get('/api/settings').set('Cookie', sessionCookie(1));
@@ -245,10 +317,14 @@ describe('Settings e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('PUT /api/admin/default-user-settings 400 for a weekday the pickers do not offer', async () => {
-      const res = await request(server).put('/api/admin/default-user-settings').set('Cookie', sessionCookie(2))
+      const res = await request(server)
+        .put('/api/admin/default-user-settings')
+        .set('Cookie', sessionCookie(2))
         .send({ week_start: 'friday' });
       expect(res.status).toBe(400);
-      expect(db.prepare("SELECT value FROM app_settings WHERE key = 'default_user_setting_week_start'").get()).toBeUndefined();
+      expect(
+        db.prepare("SELECT value FROM app_settings WHERE key = 'default_user_setting_week_start'").get(),
+      ).toBeUndefined();
     });
   });
 });

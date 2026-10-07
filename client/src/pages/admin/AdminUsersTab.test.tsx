@@ -1,8 +1,7 @@
 // FE-ADMUSR-001 to FE-ADMUSR-024
-import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, within } from '../../../tests/helpers/render';
 import { buildAdminHook, buildAdminUser, type AdminHook } from '../../../tests/helpers/mobileAdmin';
+import { fireEvent, render, screen, within } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { useTranslation } from '../../i18n';
 import AdminUsersTab from './AdminUsersTab';
@@ -132,7 +131,9 @@ describe('AdminUsersTab', () => {
     fireEvent.click(deleteButtons[1]);
 
     expect(admin.handleDeleteUser).not.toHaveBeenCalled();
-    expect(screen.getByText(`Delete user "${alice.username}"? All trips will be permanently deleted.`)).toBeInTheDocument();
+    expect(
+      screen.getByText(`Delete user "${alice.username}"? All trips will be permanently deleted.`)
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
     expect(admin.handleDeleteUser).toHaveBeenCalledWith(alice, { confirmed: true });
@@ -144,7 +145,9 @@ describe('AdminUsersTab', () => {
     fireEvent.click(screen.getAllByLabelText('Delete user')[1]);
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(screen.queryByText(`Delete user "${alice.username}"? All trips will be permanently deleted.`)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(`Delete user "${alice.username}"? All trips will be permanently deleted.`)
+    ).not.toBeInTheDocument();
     expect(admin.handleDeleteUser).not.toHaveBeenCalled();
   });
 

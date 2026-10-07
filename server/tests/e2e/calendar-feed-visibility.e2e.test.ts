@@ -8,10 +8,16 @@
  * real migrated SQLite instead, and asserts on the bytes a calendar client
  * would receive.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
-import type { Server } from 'http';
+import { db } from '../../src/db/database';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { FeedsModule } from '../../src/nest/feeds/feeds.module';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
 import { Test } from '@nestjs/testing';
+
+import type { Server } from 'http';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb } = await import('../helpers/db-mock');
@@ -27,19 +33,15 @@ vi.mock('../../src/db/database', async () => {
   };
 });
 
-import { db } from '../../src/db/database';
-import { FeedsModule } from '../../src/nest/feeds/feeds.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
-
 describe('Calendar feed visibility e2e (real CalendarService over temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
   let feedToken: string;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), FeedsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), FeedsModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.useGlobalFilters(new TrekExceptionFilter());
     await nest.init();
@@ -55,10 +57,14 @@ describe('Calendar feed visibility e2e (real CalendarService over temp SQLite)',
       "INSERT INTO trips (id, user_id, title, start_date, end_date, feed_token) VALUES (1, 1, 'Kyoto', '2026-09-01', '2026-09-05', ?)",
     ).run(feedToken);
     db.prepare("INSERT INTO days (id, trip_id, day_number, date) VALUES (1, 1, 1, '2026-09-01')").run();
-    db.prepare(`INSERT INTO reservations (trip_id, day_id, title, type, status, reservation_time, confirmation_number, ingest_state)
-      VALUES (1, 1, 'Parked Flight', 'flight', 'confirmed', '2026-09-01T08:00', 'SECRET1', 'staged')`).run();
-    db.prepare(`INSERT INTO reservations (trip_id, day_id, title, type, status, reservation_time, confirmation_number)
-      VALUES (1, 1, 'Booked Flight', 'flight', 'confirmed', '2026-09-01T12:00', 'OPEN1')`).run();
+    db.prepare(
+      `INSERT INTO reservations (trip_id, day_id, title, type, status, reservation_time, confirmation_number, ingest_state)
+      VALUES (1, 1, 'Parked Flight', 'flight', 'confirmed', '2026-09-01T08:00', 'SECRET1', 'staged')`,
+    ).run();
+    db.prepare(
+      `INSERT INTO reservations (trip_id, day_id, title, type, status, reservation_time, confirmation_number)
+      VALUES (1, 1, 'Booked Flight', 'flight', 'confirmed', '2026-09-01T12:00', 'OPEN1')`,
+    ).run();
 
     app = await build();
     server = app.getHttpServer();

@@ -1,16 +1,22 @@
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { TourCreateRequest, TourCreateResponse, TourDetailResponse, TourListItem, TourWaypoint } from '@trek/shared';
 import { Places } from '../../db/entities/Places.entity';
-import { Tours } from '../../db/entities/Tours.entity';
 import { TourWaypoints } from '../../db/entities/TourWaypoints.entity';
+import { Tours } from '../../db/entities/Tours.entity';
 import type { PlacesRepository } from '../../db/repositories/Places.repository';
-import type { TourListRow, ToursRepository, TourUpdate } from '../../db/repositories/Tours.repository';
 import type { TourWaypointsRepository } from '../../db/repositories/TourWaypoints.repository';
+import type { TourListRow, ToursRepository, TourUpdate } from '../../db/repositories/Tours.repository';
 import { toRowId } from '../common/row-id';
 import { UnitOfWork } from '../database/unit-of-work';
 import { PlacesService } from '../places/places.service';
 import { computeTourMetrics, parseRouteGeometry, LOW_CONFIDENCE_THRESHOLD, type GeometryPoint } from './tours.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import type {
+  TourCreateRequest,
+  TourCreateResponse,
+  TourDetailResponse,
+  TourListItem,
+  TourWaypoint,
+} from '@trek/shared';
 
 export interface ImportGpxAsTourResult {
   tours: TourListItem[];
@@ -76,7 +82,7 @@ export class ToursService {
     const tid = toRowId(tripId);
     if (tid === null) return [];
     const rows = await this.toursRepo.listForTrip(tid);
-    return rows.map(r => this.toItem(r));
+    return rows.map((r) => this.toItem(r));
   }
 
   /** One saved tour plus the persisted routing controls needed by the editor. */
@@ -116,7 +122,11 @@ export class ToursService {
 
     const placeId = await this.uow.transactional(async () => {
       const id = await this.placesRepo.insertTourPlace({
-        trip_id: tid, name: input.name, lat: start[0], lng: start[1], route_geometry: JSON.stringify(input.route_geometry),
+        trip_id: tid,
+        name: input.name,
+        lat: start[0],
+        lng: start[1],
+        route_geometry: JSON.stringify(input.route_geometry),
       });
       await this.toursRepo.insertTour({ place_id: id, ...fields });
       await this.waypointsRepo.insertForPlace(id, input.waypoints);
@@ -140,7 +150,12 @@ export class ToursService {
   }
 
   /** Replace a saved tour's derived route and routing controls as one write. */
-  async updateTour(tripId: string, placeId: string, input: TourCreateRequest, socketId?: string): Promise<TourDetailResponse> {
+  async updateTour(
+    tripId: string,
+    placeId: string,
+    input: TourCreateRequest,
+    socketId?: string,
+  ): Promise<TourDetailResponse> {
     const tid = toRowId(tripId);
     const pid = toRowId(placeId);
     if (tid === null || pid === null) throw new NotFoundException('Tour not found');
@@ -154,7 +169,10 @@ export class ToursService {
       // waypoint insert on its foreign key.
       if (!(await this.toursRepo.findInTrip(tid, pid))) throw new NotFoundException('Tour not found');
       const placeUpdated = await this.placesRepo.updateTourRoute(pid, tid, {
-        name: input.name, lat: start[0], lng: start[1], route_geometry: JSON.stringify(input.route_geometry),
+        name: input.name,
+        lat: start[0],
+        lng: start[1],
+        route_geometry: JSON.stringify(input.route_geometry),
       });
       if (!placeUpdated) throw new NotFoundException('Tour not found');
       if (!(await this.toursRepo.updateInTrip(tid, pid, fields))) throw new NotFoundException('Tour not found');
@@ -192,9 +210,17 @@ export class ToursService {
    * a track without elevation still imports, just flagged with a low
    * match_confidence so the client can surface a "with caution" toast.
    */
-  async importGpxAsTour(tripId: string, fileBuffer: Buffer, defaultName?: string, socketId?: string): Promise<ImportGpxAsTourResult | null> {
+  async importGpxAsTour(
+    tripId: string,
+    fileBuffer: Buffer,
+    defaultName?: string,
+    socketId?: string,
+  ): Promise<ImportGpxAsTourResult | null> {
     const rows = this.places.prepareGpxRows(fileBuffer, {
-      importWaypoints: false, importRoutes: true, importTracks: true, defaultName,
+      importWaypoints: false,
+      importRoutes: true,
+      importTracks: true,
+      defaultName,
     });
     if (rows.length === 0) return null;
 
@@ -215,28 +241,34 @@ export class ToursService {
           match_confidence: matchConfidence,
           max_hiking_difficulty: 2,
         });
-        tours.push(this.toItem({
-          place_id: place.id,
-          name: place.name,
-          tour_type: 'hike',
-          distance: metrics.distanceKm,
-          elevation_gain: metrics.elevationGainM,
-          elevation_loss: metrics.elevationLossM,
-          duration: null,
-          difficulty: null,
-          wanderer_ref: null,
-          match_confidence: matchConfidence,
-          tour_group_id: null,
-          max_hiking_difficulty: 2,
-          planned: 0,
-          has_waypoints: 0,
-        }));
+        tours.push(
+          this.toItem({
+            place_id: place.id,
+            name: place.name,
+            tour_type: 'hike',
+            distance: metrics.distanceKm,
+            elevation_gain: metrics.elevationGainM,
+            elevation_loss: metrics.elevationLossM,
+            duration: null,
+            difficulty: null,
+            wanderer_ref: null,
+            match_confidence: matchConfidence,
+            tour_group_id: null,
+            max_hiking_difficulty: 2,
+            planned: 0,
+            has_waypoints: 0,
+          }),
+        );
       }
       return imported;
     });
 
     if (result.places.length === 0) return { tours: [], caution: false, skipped: result.skipped };
-    this.broadcastToursChanged(tripId, result.places.map(place => place.id), socketId);
+    this.broadcastToursChanged(
+      tripId,
+      result.places.map((place) => place.id),
+      socketId,
+    );
     for (const place of result.places) {
       try {
         this.places.broadcast(tripId, 'place:created', { place }, socketId);
@@ -244,6 +276,6 @@ export class ToursService {
         this.logger.warn(`Committed GPX place ${place.id}: realtime notification failed`);
       }
     }
-    return { tours, caution: tours.some(t => t.caution), skipped: result.skipped };
+    return { tours, caution: tours.some((t) => t.caution), skipped: result.skipped };
   }
 }

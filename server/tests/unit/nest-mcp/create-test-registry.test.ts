@@ -43,7 +43,10 @@ describe('createTestRegistry', () => {
     };
     const registry = createTestRegistry([new Two()], { accessPolicy: policy });
     // A denied entry is filtered before any server interaction, so a stub suffices.
-    await registry.attach({} as Parameters<McpRegistry['attach']>[0], { userId: 1 } as Parameters<McpRegistry['attach']>[1]);
+    await registry.attach(
+      {} as Parameters<McpRegistry['attach']>[0],
+      { userId: 1 } as Parameters<McpRegistry['attach']>[1],
+    );
     expect(calls).toEqual(['trips:write:1']);
   });
 });

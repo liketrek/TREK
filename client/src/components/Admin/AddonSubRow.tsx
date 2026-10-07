@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
-import ToggleSwitch from '../Settings/ToggleSwitch'
-import { fs } from '../shared/DialogShell'
+import type { ReactNode } from 'react';
+import ToggleSwitch from '../Settings/ToggleSwitch';
+import { fs } from '../shared/DialogShell';
 
 /**
  * One child row inside an {@link AddonTile}'s sub-shelf: bag tracking under
@@ -23,21 +23,31 @@ export default function AddonSubRow({
   onToggle,
 }: {
   /** Vendor mark or lucide glyph at 14px. Omit it and the slot keeps its width. */
-  icon?: ReactNode
-  title: string
-  description?: string
-  enabled: boolean
-  onToggle: () => void
+  icon?: ReactNode;
+  title: string;
+  description?: string;
+  enabled: boolean;
+  onToggle: () => void;
 }) {
   return (
     <li className="flex min-h-[44px] items-center gap-2.5 px-3 py-1.5">
-      {icon
-        ? <span className={`grid h-6 w-6 flex-none place-items-center ${enabled ? 'text-content-muted' : 'text-content-faint'}`}>{icon}</span>
-        : <span className="w-6 flex-none" aria-hidden />}
-      <span className={`min-w-0 flex-1 truncate font-medium ${enabled ? 'text-content' : 'text-content-muted'}`} style={fs(12.5, 'body')} title={description}>
+      {icon ? (
+        <span
+          className={`grid h-6 w-6 flex-none place-items-center ${enabled ? 'text-content-muted' : 'text-content-faint'}`}
+        >
+          {icon}
+        </span>
+      ) : (
+        <span className="w-6 flex-none" aria-hidden />
+      )}
+      <span
+        className={`min-w-0 flex-1 truncate font-medium ${enabled ? 'text-content' : 'text-content-muted'}`}
+        style={fs(12.5, 'body')}
+        title={description}
+      >
         {title}
       </span>
       <ToggleSwitch on={enabled} onToggle={onToggle} label={title} />
     </li>
-  )
+  );
 }

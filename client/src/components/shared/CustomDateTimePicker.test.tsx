@@ -1,7 +1,7 @@
 import userEvent from '@testing-library/user-event';
-import { localIsoDate } from '../../utils/localDate';
 import { act, fireEvent, render, screen } from '../../../tests/helpers/render';
 import { useSettingsStore } from '../../store/settingsStore';
+import { localIsoDate } from '../../utils/localDate';
 import { CustomDatePicker, CustomDateTimePicker } from './CustomDateTimePicker';
 
 // ─── CustomDatePicker ─────────────────────────────────────────────────────────
@@ -569,7 +569,17 @@ describe('CustomDatePicker branches', () => {
     const originalRect = Element.prototype.getBoundingClientRect;
     const originalWidth = window.innerWidth;
     Element.prototype.getBoundingClientRect = function () {
-      return { left: 900, top: 700, right: 1100, bottom: 740, width: 200, height: 40, x: 900, y: 700, toJSON: () => ({}) } as DOMRect;
+      return {
+        left: 900,
+        top: 700,
+        right: 1100,
+        bottom: 740,
+        width: 200,
+        height: 40,
+        x: 900,
+        y: 700,
+        toJSON: () => ({}),
+      } as DOMRect;
     };
     Object.defineProperty(window, 'innerWidth', { value: 320, configurable: true });
 
@@ -592,7 +602,17 @@ describe('CustomDatePicker branches', () => {
   it('FE-W5DP-017: the popup prefers the visual viewport height when one is reported', () => {
     const originalRect = Element.prototype.getBoundingClientRect;
     Element.prototype.getBoundingClientRect = function () {
-      return { left: 20, top: 40, right: 220, bottom: 80, width: 200, height: 40, x: 20, y: 40, toJSON: () => ({}) } as DOMRect;
+      return {
+        left: 20,
+        top: 40,
+        right: 220,
+        bottom: 80,
+        width: 200,
+        height: 40,
+        x: 20,
+        y: 40,
+        toJSON: () => ({}),
+      } as DOMRect;
     };
     Object.defineProperty(window, 'visualViewport', { value: { height: 900 }, configurable: true });
 
@@ -615,7 +635,17 @@ describe('CustomDatePicker branches', () => {
     // fields higher up the form instead of right above its own trigger.
     const originalRect = Element.prototype.getBoundingClientRect;
     Element.prototype.getBoundingClientRect = function () {
-      return { left: 440, top: 529, right: 803, bottom: 566, width: 363, height: 37, x: 440, y: 529, toJSON: () => ({}) } as DOMRect;
+      return {
+        left: 440,
+        top: 529,
+        right: 803,
+        bottom: 566,
+        width: 363,
+        height: 37,
+        x: 440,
+        y: 529,
+        toJSON: () => ({}),
+      } as DOMRect;
     };
 
     try {
@@ -640,7 +670,17 @@ describe('CustomDatePicker branches', () => {
     const originalRect = Element.prototype.getBoundingClientRect;
     const originalHeight = window.innerHeight;
     Element.prototype.getBoundingClientRect = function () {
-      return { left: 20, top: 150, right: 220, bottom: 190, width: 200, height: 40, x: 20, y: 150, toJSON: () => ({}) } as DOMRect;
+      return {
+        left: 20,
+        top: 150,
+        right: 220,
+        bottom: 190,
+        width: 200,
+        height: 40,
+        x: 20,
+        y: 150,
+        toJSON: () => ({}),
+      } as DOMRect;
     };
     Object.defineProperty(window, 'innerHeight', { value: 375, configurable: true });
 
@@ -768,7 +808,10 @@ describe('CustomDateTimePicker branches', () => {
 
   it('FE-W5DTP-003: setting a time without a date falls back to today', () => {
     render(<CustomDateTimePicker value="" onChange={onChange} />);
-    const clockBtn = screen.getAllByRole('button').filter((b) => b.textContent?.trim() === '').pop();
+    const clockBtn = screen
+      .getAllByRole('button')
+      .filter((b) => b.textContent?.trim() === '')
+      .pop();
     fireEvent.click(clockBtn!);
     // hour up on an empty time yields 01:00 on today's date
     const steppers = screen.getAllByRole('button').filter((b) => b.textContent?.trim() === '');
@@ -780,7 +823,10 @@ describe('CustomDateTimePicker branches', () => {
 
   it('FE-W5DTP-002: clearing the time keeps the date part', () => {
     render(<CustomDateTimePicker value="2026-03-15T09:30" onChange={onChange} />);
-    const clockBtn = screen.getAllByRole('button').filter((b) => b.textContent?.trim() === '').pop();
+    const clockBtn = screen
+      .getAllByRole('button')
+      .filter((b) => b.textContent?.trim() === '')
+      .pop();
     fireEvent.click(clockBtn!);
     fireEvent.click(screen.getByText('✕'));
 

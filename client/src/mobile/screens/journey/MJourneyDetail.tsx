@@ -1,34 +1,34 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router'
-import { ChevronLeft, MapPin, Grid3x3, MoreHorizontal, Play, Image, Camera, EyeOff, Settings2 } from 'lucide-react'
-import JourneyMap from '../../../components/Journey/JourneyMapAuto'
-import type { JourneyMapAutoHandle } from '../../../components/Journey/JourneyMapAuto'
-import PhotoLightbox from '../../../components/Journey/PhotoLightbox'
-import ContributorInviteDialog from '../../../components/Journey/ContributorInviteDialog'
-import ConfirmDialog from '../../../components/shared/ConfirmDialog'
-import { ProviderPicker } from '../../../components/Journey/JourneyDetailPageProviderPicker'
-import { photoUrl, posterlessVideo } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
-import { useJourneyDetail } from '../../../pages/journeyDetail/useJourneyDetail'
-import { useJourneyStore } from '../../../store/journeyStore'
-import { useAddonStore } from '../../../store/addonStore'
-import DawarichIcon from '../../../components/shared/DawarichIcon'
-import DawarichSuggestionsPanel from '../../../components/Dawarich/DawarichSuggestionsPanel'
-import { FormSheetHeader } from '../trip/sheets/PlSheetChrome'
-import type { JourneyEntry, GalleryPhoto } from '../../../store/journeyStore'
-import { useAuthStore } from '../../../store/authStore'
-import { journeyApi, addonsApi, memoriesApi } from '../../../api/client'
-import { normalizeImageFiles } from '../../../utils/convertHeic'
-import { isVideoFile } from '../../../utils/videoPoster'
-import { getApiErrorMessage } from '../../../types'
-import MSheet from '../../components/MSheet'
-import MDancingTrek from '../../components/MDancingTrek'
-import MListRow from '../../components/MListRow'
-import MToggle from '../../components/MToggle'
-import JourneyEntryCover from '../../../components/Journey/JourneyEntryCover'
-import JourneyDayScrubber from '../../../components/Journey/JourneyDayScrubber'
-import { dayColorOf, journeyDays } from '../../../components/Journey/journeyCard'
-import MJourneyEntrySheet from './MJourneyEntrySheet'
-import MJourneySettingsSheet from './MJourneySettingsSheet'
+import { Camera, ChevronLeft, EyeOff, Grid3x3, Image, MapPin, MoreHorizontal, Play, Settings2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router';
+import { addonsApi, journeyApi, memoriesApi } from '../../../api/client';
+import DawarichSuggestionsPanel from '../../../components/Dawarich/DawarichSuggestionsPanel';
+import ContributorInviteDialog from '../../../components/Journey/ContributorInviteDialog';
+import JourneyDayScrubber from '../../../components/Journey/JourneyDayScrubber';
+import { ProviderPicker } from '../../../components/Journey/JourneyDetailPageProviderPicker';
+import JourneyEntryCover from '../../../components/Journey/JourneyEntryCover';
+import type { JourneyMapAutoHandle } from '../../../components/Journey/JourneyMapAuto';
+import JourneyMap from '../../../components/Journey/JourneyMapAuto';
+import PhotoLightbox from '../../../components/Journey/PhotoLightbox';
+import { dayColorOf, journeyDays } from '../../../components/Journey/journeyCard';
+import ConfirmDialog from '../../../components/shared/ConfirmDialog';
+import DawarichIcon from '../../../components/shared/DawarichIcon';
+import { photoUrl, posterlessVideo } from '../../../pages/journeyDetail/JourneyDetailPage.helpers';
+import { useJourneyDetail } from '../../../pages/journeyDetail/useJourneyDetail';
+import { useAddonStore } from '../../../store/addonStore';
+import { useAuthStore } from '../../../store/authStore';
+import type { GalleryPhoto, JourneyEntry } from '../../../store/journeyStore';
+import { useJourneyStore } from '../../../store/journeyStore';
+import { getApiErrorMessage } from '../../../types';
+import { normalizeImageFiles } from '../../../utils/convertHeic';
+import { isVideoFile } from '../../../utils/videoPoster';
+import MDancingTrek from '../../components/MDancingTrek';
+import MListRow from '../../components/MListRow';
+import MSheet from '../../components/MSheet';
+import MToggle from '../../components/MToggle';
+import { FormSheetHeader } from '../trip/sheets/PlSheetChrome';
+import MJourneyEntrySheet from './MJourneyEntrySheet';
+import MJourneySettingsSheet from './MJourneySettingsSheet';
 
 /**
  * Journey detail — integrated map with the horizontal 280px card timeline
@@ -37,106 +37,135 @@ import MJourneySettingsSheet from './MJourneySettingsSheet'
  */
 export default function MJourneyDetail() {
   const {
-    id, navigate, toast, t,
-    current, loading,
-    canEditEntries, canEditJourney,
-    view, setView,
-    editingEntry, setEditingEntry,
-    lightbox, setLightbox, deleteTarget, setDeleteTarget,
-    showInvite, setShowInvite,
-    showSettings, setShowSettings,
-    hideSkeletons, setHideSkeletons,
-    sidebarMapItems, tracks,
-    dismissSuggestion, restoreSuggestions, openAtEntryId,
-    loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos,
-    addPickedProviderPhotos, addEntryProviderPhotos,
-  } = useJourneyDetail()
+    id,
+    navigate,
+    toast,
+    t,
+    current,
+    loading,
+    canEditEntries,
+    canEditJourney,
+    view,
+    setView,
+    editingEntry,
+    setEditingEntry,
+    lightbox,
+    setLightbox,
+    deleteTarget,
+    setDeleteTarget,
+    showInvite,
+    setShowInvite,
+    showSettings,
+    setShowSettings,
+    hideSkeletons,
+    setHideSkeletons,
+    sidebarMapItems,
+    tracks,
+    dismissSuggestion,
+    restoreSuggestions,
+    openAtEntryId,
+    loadJourney,
+    updateEntry,
+    deleteEntry,
+    reorderEntries,
+    uploadPhotos,
+    addPickedProviderPhotos,
+    addEntryProviderPhotos,
+  } = useJourneyDetail();
 
   // The dock's FAB is a sibling of this screen: on the Gallery it becomes the
   // upload button, so it has to know which tab is open — and it stops knowing
   // when this screen goes away.
-  const setMobileGalleryOpen = useJourneyStore(state => state.setMobileGalleryOpen)
+  const setMobileGalleryOpen = useJourneyStore((state) => state.setMobileGalleryOpen);
   useEffect(() => {
-    setMobileGalleryOpen(view === 'gallery')
-    return () => setMobileGalleryOpen(false)
-  }, [view, setMobileGalleryOpen])
+    setMobileGalleryOpen(view === 'gallery');
+    return () => setMobileGalleryOpen(false);
+  }, [view, setMobileGalleryOpen]);
 
-  const mapRef = useRef<JourneyMapAutoHandle>(null)
-  const carouselRef = useRef<HTMLDivElement>(null)
-  const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map())
-  const [activeIndex, setActiveIndex] = useState(0)
+  const mapRef = useRef<JourneyMapAutoHandle>(null);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const [activeIndex, setActiveIndex] = useState(0);
 
   // Stable identity: the scroll effect below re-attaches on every change and
   // would otherwise drop the pending settle timer on any unrelated render.
   const entries = useMemo(
-    () => (current?.entries || []).filter(e => !hideSkeletons || e.type !== 'skeleton'),
-    [current?.entries, hideSkeletons],
-  )
+    () => (current?.entries || []).filter((e) => !hideSkeletons || e.type !== 'skeleton'),
+    [current?.entries, hideSkeletons]
+  );
 
-  const syncMapToCard = useCallback((index: number) => {
-    const entry = entries[index]
-    if (!entry) return
-    const mapEntry = sidebarMapItems.find(m => String(m.id) === String(entry.id))
-    try {
-      if (mapEntry) mapRef.current?.focusMarker(String(mapEntry.id))
-      else mapRef.current?.highlightMarker(null)
-    } catch { /* map not initialised yet */ }
-  }, [entries, sidebarMapItems])
+  const syncMapToCard = useCallback(
+    (index: number) => {
+      const entry = entries[index];
+      if (!entry) return;
+      const mapEntry = sidebarMapItems.find((m) => String(m.id) === String(entry.id));
+      try {
+        if (mapEntry) mapRef.current?.focusMarker(String(mapEntry.id));
+        else mapRef.current?.highlightMarker(null);
+      } catch {
+        /* map not initialised yet */
+      }
+    },
+    [entries, sidebarMapItems]
+  );
 
   // Pick the card closest to the horizontal center once scrolling settles.
   const pickNearestCard = useCallback(() => {
-    const el = carouselRef.current
-    if (!el) return
-    const center = el.getBoundingClientRect().left + el.clientWidth / 2
-    let bestIdx = 0
-    let bestDist = Infinity
+    const el = carouselRef.current;
+    if (!el) return;
+    const center = el.getBoundingClientRect().left + el.clientWidth / 2;
+    let bestIdx = 0;
+    let bestDist = Infinity;
     cardRefs.current.forEach((node, idx) => {
-      const r = node.getBoundingClientRect()
-      const d = Math.abs(r.left + r.width / 2 - center)
-      if (d < bestDist) { bestDist = d; bestIdx = idx }
-    })
-    setActiveIndex(prev => {
-      if (prev !== bestIdx) syncMapToCard(bestIdx)
-      return bestIdx
-    })
-  }, [syncMapToCard])
+      const r = node.getBoundingClientRect();
+      const d = Math.abs(r.left + r.width / 2 - center);
+      if (d < bestDist) {
+        bestDist = d;
+        bestIdx = idx;
+      }
+    });
+    setActiveIndex((prev) => {
+      if (prev !== bestIdx) syncMapToCard(bestIdx);
+      return bestIdx;
+    });
+  }, [syncMapToCard]);
 
   useEffect(() => {
-    const el = carouselRef.current
-    if (!el || entries.length === 0) return
-    let settleTimer: number | null = null
+    const el = carouselRef.current;
+    if (!el || entries.length === 0) return;
+    let settleTimer: number | null = null;
     const onScroll = () => {
-      if (settleTimer != null) window.clearTimeout(settleTimer)
-      settleTimer = window.setTimeout(pickNearestCard, 150)
-    }
-    el.addEventListener('scroll', onScroll, { passive: true })
+      if (settleTimer != null) window.clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(pickNearestCard, 150);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
     return () => {
-      el.removeEventListener('scroll', onScroll)
-      if (settleTimer != null) window.clearTimeout(settleTimer)
-    }
-  }, [entries.length, pickNearestCard])
+      el.removeEventListener('scroll', onScroll);
+      if (settleTimer != null) window.clearTimeout(settleTimer);
+    };
+  }, [entries.length, pickNearestCard]);
 
   // Initial focus — give Leaflet time to initialise and fit bounds first. Opens on
   // today when today is part of the journey (see openAtEntryId), rather than always
   // at the first entry (discussion #2299).
   useEffect(() => {
-    if (entries.length === 0) return
-    const target = openAtEntryId ? entries.findIndex(e => String(e.id) === openAtEntryId) : -1
-    const index = target === -1 ? 0 : target
+    if (entries.length === 0) return;
+    const target = openAtEntryId ? entries.findIndex((e) => String(e.id) === openAtEntryId) : -1;
+    const index = target === -1 ? 0 : target;
     const timer = window.setTimeout(() => {
-      setActiveIndex(index)
-      syncMapToCard(index)
-      if (index > 0) cardRefs.current.get(index)?.scrollIntoView({ inline: 'center', block: 'nearest' })
-    }, 500)
-    return () => window.clearTimeout(timer)
+      setActiveIndex(index);
+      syncMapToCard(index);
+      if (index > 0) cardRefs.current.get(index)?.scrollIntoView({ inline: 'center', block: 'nearest' });
+    }, 500);
+    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries.length, openAtEntryId])
+  }, [entries.length, openAtEntryId]);
 
   const scrollCardIntoCenter = useCallback((idx: number) => {
-    cardRefs.current.get(idx)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
-  }, [])
+    cardRefs.current.get(idx)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, []);
 
-  const scrubberDays = useMemo(() => journeyDays(entries), [entries])
+  const scrubberDays = useMemo(() => journeyDays(entries), [entries]);
 
   /**
    * Move an entry within its day, from the entry sheet's header.
@@ -146,65 +175,80 @@ export default function MJourneyDetail() {
    * has nothing to reorder. The whole day goes back to the server, which is what
    * the reorder endpoint expects.
    */
-  const moveWithinDay = useCallback(async (entry: JourneyEntry, direction: -1 | 1) => {
-    if (!current) return
-    const sameDay = entries.filter(e => e.entry_date === entry.entry_date && e.type !== 'skeleton')
-    const index = sameDay.findIndex(e => e.id === entry.id)
-    const target = index + direction
-    if (index === -1 || target < 0 || target >= sameDay.length) return
-    const reordered = [...sameDay]
-    const [moved] = reordered.splice(index, 1)
-    reordered.splice(target, 0, moved)
-    try {
-      await reorderEntries(current.id, reordered.map(e => e.id))
-      await loadJourney(current.id)
-    } catch {
-      toast.error(t('common.errorTitle'))
-    }
-  }, [current, entries, reorderEntries, loadJourney, toast, t])
+  const moveWithinDay = useCallback(
+    async (entry: JourneyEntry, direction: -1 | 1) => {
+      if (!current) return;
+      const sameDay = entries.filter((e) => e.entry_date === entry.entry_date && e.type !== 'skeleton');
+      const index = sameDay.findIndex((e) => e.id === entry.id);
+      const target = index + direction;
+      if (index === -1 || target < 0 || target >= sameDay.length) return;
+      const reordered = [...sameDay];
+      const [moved] = reordered.splice(index, 1);
+      reordered.splice(target, 0, moved);
+      try {
+        await reorderEntries(
+          current.id,
+          reordered.map((e) => e.id)
+        );
+        await loadJourney(current.id);
+      } catch {
+        toast.error(t('common.errorTitle'));
+      }
+    },
+    [current, entries, reorderEntries, loadJourney, toast, t]
+  );
 
   /** Where in the day's run an entry sits, so the sheet knows which arrows to offer. */
-  const dayNeighbours = useCallback((entry: JourneyEntry) => {
-    const sameDay = entries.filter(e => e.entry_date === entry.entry_date && e.type !== 'skeleton')
-    const index = sameDay.findIndex(e => e.id === entry.id)
-    return { canMoveUp: index > 0, canMoveDown: index >= 0 && index < sameDay.length - 1 }
-  }, [entries])
+  const dayNeighbours = useCallback(
+    (entry: JourneyEntry) => {
+      const sameDay = entries.filter((e) => e.entry_date === entry.entry_date && e.type !== 'skeleton');
+      const index = sameDay.findIndex((e) => e.id === entry.id);
+      return { canMoveUp: index > 0, canMoveDown: index >= 0 && index < sameDay.length - 1 };
+    },
+    [entries]
+  );
 
   /** The day bar lands on the first entry of that day. */
-  const jumpToDay = useCallback((date: string) => {
-    const idx = entries.findIndex(e => e.entry_date === date)
-    if (idx === -1) return
-    setActiveIndex(idx)
-    syncMapToCard(idx)
-    scrollCardIntoCenter(idx)
-  }, [entries, scrollCardIntoCenter, syncMapToCard])
+  const jumpToDay = useCallback(
+    (date: string) => {
+      const idx = entries.findIndex((e) => e.entry_date === date);
+      if (idx === -1) return;
+      setActiveIndex(idx);
+      syncMapToCard(idx);
+      scrollCardIntoCenter(idx);
+    },
+    [entries, scrollCardIntoCenter, syncMapToCard]
+  );
 
-  const handleMarkerClick = useCallback((markerId: string) => {
-    const idx = entries.findIndex(e => String(e.id) === markerId)
-    if (idx === -1) return
-    setActiveIndex(idx)
-    scrollCardIntoCenter(idx)
-  }, [entries, scrollCardIntoCenter])
+  const handleMarkerClick = useCallback(
+    (markerId: string) => {
+      const idx = entries.findIndex((e) => String(e.id) === markerId);
+      if (idx === -1) return;
+      setActiveIndex(idx);
+      scrollCardIntoCenter(idx);
+    },
+    [entries, scrollCardIntoCenter]
+  );
 
   const handleCardTap = (entry: JourneyEntry, idx: number) => {
-    if (idx === activeIndex) setEditingEntry(entry)
+    if (idx === activeIndex) setEditingEntry(entry);
     else {
-      setActiveIndex(idx)
-      scrollCardIntoCenter(idx)
-      syncMapToCard(idx)
+      setActiveIndex(idx);
+      scrollCardIntoCenter(idx);
+      syncMapToCard(idx);
     }
-  }
+  };
 
   // Gallery upload — device files plus the connected photo providers (Immich/Synology).
-  const galleryFileRef = useRef<HTMLInputElement>(null)
-  const [availableProviders, setAvailableProviders] = useState<{ id: string; name: string }[]>([])
+  const galleryFileRef = useRef<HTMLInputElement>(null);
+  const [availableProviders, setAvailableProviders] = useState<{ id: string; name: string }[]>([]);
   // Whether the probe below has finished — not whether it found anything.
-  const [providersReady, setProvidersReady] = useState(false)
-  const [showUploadMenu, setShowUploadMenu] = useState(false)
-  const [showActionMenu, setShowActionMenu] = useState(false)
-  const [pickerProvider, setPickerProvider] = useState<string | null>(null)
-  const dawarichEnabled = useAddonStore(state => state.isEnabled)('dawarich')
-  const [dawarichOpen, setDawarichOpen] = useState(false)
+  const [providersReady, setProvidersReady] = useState(false);
+  const [showUploadMenu, setShowUploadMenu] = useState(false);
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [pickerProvider, setPickerProvider] = useState<string | null>(null);
+  const dawarichEnabled = useAddonStore((state) => state.isEnabled)('dawarich');
+  const [dawarichOpen, setDawarichOpen] = useState(false);
   /**
    * How tall the card rail over the dock currently is.
    *
@@ -214,105 +258,123 @@ export default function MJourneyDetail() {
    * screen and left the button sitting over the cards. Zero while there is no rail, which
    * is also the empty-journal case, and the button then sits straight above the dock.
    */
-  const [railHeight, setRailHeight] = useState(0)
-  const railRef = useRef<HTMLDivElement>(null)
-  const [uploading, setUploading] = useState(false)
+  const [railHeight, setRailHeight] = useState(0);
+  const railRef = useRef<HTMLDivElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    const node = railRef.current
-    if (!node) { setRailHeight(0); return }
+    const node = railRef.current;
+    if (!node) {
+      setRailHeight(0);
+      return;
+    }
     // Observed rather than read once: the rail changes height when the active card grows,
     // and a height read at mount would be the wrong one from the first swipe onwards.
-    if (typeof ResizeObserver === 'undefined') { setRailHeight(node.offsetHeight); return }
-    const observer = new ResizeObserver(() => setRailHeight(node.offsetHeight))
-    observer.observe(node)
-    setRailHeight(node.offsetHeight)
-    return () => observer.disconnect()
-  }, [view, entries.length])
+    if (typeof ResizeObserver === 'undefined') {
+      setRailHeight(node.offsetHeight);
+      return;
+    }
+    const observer = new ResizeObserver(() => setRailHeight(node.offsetHeight));
+    observer.observe(node);
+    setRailHeight(node.offsetHeight);
+    return () => observer.disconnect();
+  }, [view, entries.length]);
 
   const openUpload = useCallback(() => {
-    if (availableProviders.length > 0) setShowUploadMenu(true)
-    else galleryFileRef.current?.click()
-  }, [availableProviders.length])
+    if (availableProviders.length > 0) setShowUploadMenu(true);
+    else galleryFileRef.current?.click();
+  }, [availableProviders.length]);
 
   // The dock's FAB asks through the URL, the way every other "+" in the shell
   // does. The parameter is cleared straight away so going back does not reopen
   // the picker; the intent is held in state until the provider probe has
   // answered, because "device or Immich?" cannot be asked before we know
   // whether there is an Immich.
-  const [params, setParams] = useSearchParams()
-  const [pendingUpload, setPendingUpload] = useState(false)
+  const [params, setParams] = useSearchParams();
+  const [pendingUpload, setPendingUpload] = useState(false);
   useEffect(() => {
-    if (params.get('create') !== 'photo') return
-    setParams(prev => {
-      const next = new URLSearchParams(prev)
-      next.delete('create')
-      return next
-    }, { replace: true })
-    if (!canEditEntries) return
-    setView('gallery')
-    setPendingUpload(true)
-  }, [params, setParams, canEditEntries, setView])
+    if (params.get('create') !== 'photo') return;
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('create');
+        return next;
+      },
+      { replace: true }
+    );
+    if (!canEditEntries) return;
+    setView('gallery');
+    setPendingUpload(true);
+  }, [params, setParams, canEditEntries, setView]);
 
   useEffect(() => {
-    if (!pendingUpload || !providersReady) return
-    setPendingUpload(false)
-    openUpload()
-  }, [pendingUpload, providersReady, openUpload])
+    if (!pendingUpload || !providersReady) return;
+    setPendingUpload(false);
+    openUpload();
+  }, [pendingUpload, providersReady, openUpload]);
 
   useEffect(() => {
-    let active = true
-    ;void (async () => {
+    let active = true;
+    void (async () => {
       try {
-        const addonsData = await addonsApi.enabled()
+        const addonsData = await addonsApi.enabled();
         const enabled = (addonsData.addons || []).filter(
-          (a: { type: string; enabled: boolean }) => a.type === 'photo_provider' && a.enabled,
-        )
-        const connected: { id: string; name: string }[] = []
+          (a: { type: string; enabled: boolean }) => a.type === 'photo_provider' && a.enabled
+        );
+        const connected: { id: string; name: string }[] = [];
         for (const p of enabled) {
           // The probes run one after another, so leaving the screen has to stop
           // the queue rather than let every remaining provider be asked anyway.
-          if (!active) return
+          if (!active) return;
           try {
             // Same probe the desktop gallery uses, so a NAS cannot read as
             // connected on one surface and not the other.
-            if ((await memoriesApi.status(p.id)).connected) connected.push({ id: p.id, name: p.name })
-          } catch { /* provider stays hidden */ }
+            if ((await memoriesApi.status(p.id)).connected) connected.push({ id: p.id, name: p.name });
+          } catch {
+            /* provider stays hidden */
+          }
         }
-        if (active) setAvailableProviders(connected)
-      } catch { /* no providers */ }
-      finally { if (active) setProvidersReady(true) }
-    })()
-    return () => { active = false }
-  }, [])
+        if (active) setAvailableProviders(connected);
+      } catch {
+        /* no providers */
+      } finally {
+        if (active) setProvidersReady(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files?.length || !current) return
-    setUploading(true)
+    const files = e.target.files;
+    if (!files?.length || !current) return;
+    setUploading(true);
     try {
-      const all = Array.from(files)
-      const videos = all.filter(isVideoFile)
-      const images = all.filter(f => !isVideoFile(f))
-      const normalized = [...(images.length ? await normalizeImageFiles(images) : []), ...videos]
-      const { failed } = await useJourneyStore.getState().uploadGalleryPhotos(current.id, normalized)
+      const all = Array.from(files);
+      const videos = all.filter(isVideoFile);
+      const images = all.filter((f) => !isVideoFile(f));
+      const normalized = [...(images.length ? await normalizeImageFiles(images) : []), ...videos];
+      const { failed } = await useJourneyStore.getState().uploadGalleryPhotos(current.id, normalized);
       if (failed.length > 0) {
-        toast.error(t('journey.editor.uploadPartialFailed', { failed: String(failed.length), total: String(normalized.length) }))
+        toast.error(
+          t('journey.editor.uploadPartialFailed', { failed: String(failed.length), total: String(normalized.length) })
+        );
       } else {
-        toast.success(t('journey.photosUploaded', { count: String(files.length) }))
+        toast.success(t('journey.photosUploaded', { count: String(files.length) }));
       }
-      loadJourney(Number(id))
+      loadJourney(Number(id));
     } catch (err) {
-      toast.error(getApiErrorMessage(err, t('journey.photosUploadFailed')))
+      toast.error(getApiErrorMessage(err, t('journey.photosUploadFailed')));
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
-    e.target.value = ''
-  }
+    e.target.value = '';
+  };
 
   const openLightbox = (photos: GalleryPhoto[], index: number) => {
     setLightbox({
-      photos: photos.map(p => ({
+      photos: photos.map((p) => ({
         id: p.id,
         src: photoUrl(p, 'original'),
         caption: p.caption ?? null,
@@ -322,19 +384,19 @@ export default function MJourneyDetail() {
         mediaType: p.media_type,
       })),
       index,
-    })
-  }
+    });
+  };
 
   if (loading || !current) {
     return (
       <div className="flex h-dvh items-center justify-center">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-ink" />
       </div>
-    )
+    );
   }
 
-  const gallery = current.gallery || []
-  const dark = document.documentElement.classList.contains('dark')
+  const gallery = current.gallery || [];
+  const dark = document.documentElement.classList.contains('dark');
 
   // The suggestions switch used to be desktop-only (#1848). It lives in the
   // header overflow sheet here, together with the settings entry, so the header
@@ -344,13 +406,13 @@ export default function MJourneyDetail() {
   // and Studio is a desktop editor. A phone-sized PDF of a book laid out for
   // print was the old export's answer to a question nobody was asking.
   const toggleSkeletons = async (next: boolean) => {
-    setHideSkeletons(next)
+    setHideSkeletons(next);
     try {
-      await journeyApi.updatePreferences(current.id, { hide_skeletons: next })
+      await journeyApi.updatePreferences(current.id, { hide_skeletons: next });
     } catch {
       /* cosmetic preference — the local flip stands until the next load */
     }
-  }
+  };
 
   return (
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809)
@@ -374,7 +436,7 @@ export default function MJourneyDetail() {
 
       {/* Gallery tab overlay */}
       {view === 'gallery' && (
-        <div className="absolute inset-0 z-[5] overflow-y-auto bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] px-4 pt-[calc(var(--m-safe-top,12px)+56px)] pb-[calc(var(--bottom-nav-h,84px)+16px)]">
+        <div className="absolute inset-0 z-[5] overflow-y-auto bg-[color:var(--m-bg)] bg-[image:var(--m-scr)] px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[calc(var(--m-safe-top,12px)+56px)]">
           {gallery.length === 0 ? (
             <div className="flex min-h-full flex-col items-center justify-center px-8 py-10 text-center">
               <MDancingTrek scene="journey" className="mb-2" />
@@ -392,7 +454,12 @@ export default function MJourneyDetail() {
                   {posterlessVideo(photo) ? (
                     <span className="block h-full w-full bg-[color:var(--m-ic)]" />
                   ) : (
-                    <img src={photoUrl(photo, 'thumbnail')} alt={photo.caption || ''} loading="lazy" className="h-full w-full object-cover" />
+                    <img
+                      src={photoUrl(photo, 'thumbnail')}
+                      alt={photo.caption || ''}
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                    />
                   )}
                   {photo.media_type === 'video' && (
                     <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -484,7 +551,13 @@ export default function MJourneyDetail() {
       )}
 
       {dawarichOpen && current && (
-        <MSheet open onClose={() => setDawarichOpen(false)} variant="bottom" material="glass" ariaLabel={t('dawarich.suggestions.title')}>
+        <MSheet
+          open
+          onClose={() => setDawarichOpen(false)}
+          variant="bottom"
+          material="glass"
+          ariaLabel={t('dawarich.suggestions.title')}
+        >
           <div className="flex max-h-[82dvh] min-h-0 flex-col">
             <FormSheetHeader
               leading={
@@ -502,7 +575,9 @@ export default function MJourneyDetail() {
               <DawarichSuggestionsPanel
                 bare
                 journals={[{ id: current.id, label: current.title }]}
-                onAccepted={() => { void loadJourney(current.id) }}
+                onAccepted={() => {
+                  void loadJourney(current.id);
+                }}
               />
             </div>
           </div>
@@ -514,75 +589,108 @@ export default function MJourneyDetail() {
           nothing between the cards and it; two pixels keeps a hair of daylight and
           gives the strip the rest. */}
       {view === 'timeline' && entries.length > 0 && (
-        <div ref={railRef} className="absolute left-0 right-0 z-[8] bottom-[calc(var(--bottom-nav-h,84px)+2px)]">
-        <JourneyDayScrubber
-          days={scrubberDays}
-          activeDate={entries[activeIndex]?.entry_date ?? null}
-          onPick={jumpToDay}
-        />
-        <div
-          ref={carouselRef}
-          className="flex items-end gap-[10px] overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none]"
-          style={{ scrollSnapType: 'x mandatory' }}
-        >
-          {entries.map((entry, i) => (
-            <div
-              key={entry.id}
-              ref={node => { if (node) cardRefs.current.set(i, node); else cardRefs.current.delete(i) }}
-              style={{ scrollSnapAlign: 'center' }}
-            >
-              <JourneyEntryCover
-                entry={entry}
-                dayColor={dayColorOf(scrubberDays, entry.entry_date)}
-                isActive={i === activeIndex}
-                onClick={() => handleCardTap(entry, i)}
-                showMood={current.show_mood !== 0}
-                showWeather={current.show_weather !== 0}
-                tone="mobile"
-              />
-            </div>
-          ))}
-        </div>
+        <div ref={railRef} className="absolute bottom-[calc(var(--bottom-nav-h,84px)+2px)] left-0 right-0 z-[8]">
+          <JourneyDayScrubber
+            days={scrubberDays}
+            activeDate={entries[activeIndex]?.entry_date ?? null}
+            onPick={jumpToDay}
+          />
+          <div
+            ref={carouselRef}
+            className="flex items-end gap-[10px] overflow-x-auto px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none]"
+            style={{ scrollSnapType: 'x mandatory' }}
+          >
+            {entries.map((entry, i) => (
+              <div
+                key={entry.id}
+                ref={(node) => {
+                  if (node) cardRefs.current.set(i, node);
+                  else cardRefs.current.delete(i);
+                }}
+                style={{ scrollSnapAlign: 'center' }}
+              >
+                <JourneyEntryCover
+                  entry={entry}
+                  dayColor={dayColorOf(scrubberDays, entry.entry_date)}
+                  isActive={i === activeIndex}
+                  onClick={() => handleCardTap(entry, i)}
+                  showMood={current.show_mood !== 0}
+                  showWeather={current.show_weather !== 0}
+                  tone="mobile"
+                />
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      <input ref={galleryFileRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleGalleryUpload} />
+      <input
+        ref={galleryFileRef}
+        type="file"
+        accept="image/*,video/*"
+        multiple
+        className="hidden"
+        onChange={handleGalleryUpload}
+      />
 
       {/* Upload source chooser (device / providers) */}
       {/* Opaque, not the glass default: these two sit over a full-screen map whose
           card carousel is bright and busy, and the frosted material let the titles
           behind read straight through the menu. */}
-      <MSheet open={showUploadMenu} onClose={() => setShowUploadMenu(false)} variant="bottom" material="opaque" ariaLabel={t('common.upload')}>
+      <MSheet
+        open={showUploadMenu}
+        onClose={() => setShowUploadMenu(false)}
+        variant="bottom"
+        material="opaque"
+        ariaLabel={t('common.upload')}
+      >
         <div className="flex flex-col gap-2 p-[10px]">
           <MListRow
             icon={Camera}
             label={t('mobileJourney.uploadFromDevice')}
-            onClick={() => { setShowUploadMenu(false); galleryFileRef.current?.click() }}
+            onClick={() => {
+              setShowUploadMenu(false);
+              galleryFileRef.current?.click();
+            }}
           />
-          {availableProviders.map(p => (
+          {availableProviders.map((p) => (
             <MListRow
               key={p.id}
               icon={Image}
               label={t('mobileJourney.browseProvider', { name: p.name })}
-              onClick={() => { setShowUploadMenu(false); setPickerProvider(p.id) }}
+              onClick={() => {
+                setShowUploadMenu(false);
+                setPickerProvider(p.id);
+              }}
             />
           ))}
         </div>
       </MSheet>
 
       {/* Journey actions: book export, suggestions switch, settings */}
-      <MSheet open={showActionMenu} onClose={() => setShowActionMenu(false)} variant="bottom" material="opaque" ariaLabel={t('files.menu')}>
+      <MSheet
+        open={showActionMenu}
+        onClose={() => setShowActionMenu(false)}
+        variant="bottom"
+        material="opaque"
+        ariaLabel={t('files.menu')}
+      >
         <div className="flex flex-col gap-1 p-[10px]">
           <div className="flex items-center gap-[11px] px-[10px] py-[11px]">
             <EyeOff size={16} strokeWidth={2} className="flex-none text-m-muted" />
-            <span className="min-w-0 flex-1 truncate text-[0.84375rem] font-semibold">{t('journey.skeletons.hide')}</span>
+            <span className="min-w-0 flex-1 truncate text-[0.84375rem] font-semibold">
+              {t('journey.skeletons.hide')}
+            </span>
             <MToggle checked={hideSkeletons} onChange={toggleSkeletons} ariaLabel={t('journey.skeletons.hide')} />
           </div>
           {canEditJourney && (
             <MListRow
               icon={Settings2}
               label={t('journey.settings.title')}
-              onClick={() => { setShowActionMenu(false); setShowSettings(true) }}
+              onClick={() => {
+                setShowActionMenu(false);
+                setShowSettings(true);
+              }}
             />
           )}
         </div>
@@ -601,42 +709,61 @@ export default function MJourneyDetail() {
           userId={useAuthStore.getState().user?.id || 0}
           trips={current.trips}
           onMoveEarlier={
-            canEditEntries && editingEntry.id !== 0 && editingEntry.type !== 'skeleton' && dayNeighbours(editingEntry).canMoveUp
-              ? () => { void moveWithinDay(editingEntry, -1) }
+            canEditEntries &&
+            editingEntry.id !== 0 &&
+            editingEntry.type !== 'skeleton' &&
+            dayNeighbours(editingEntry).canMoveUp
+              ? () => {
+                  void moveWithinDay(editingEntry, -1);
+                }
               : undefined
           }
           onMoveLater={
-            canEditEntries && editingEntry.id !== 0 && editingEntry.type !== 'skeleton' && dayNeighbours(editingEntry).canMoveDown
-              ? () => { void moveWithinDay(editingEntry, 1) }
+            canEditEntries &&
+            editingEntry.id !== 0 &&
+            editingEntry.type !== 'skeleton' &&
+            dayNeighbours(editingEntry).canMoveDown
+              ? () => {
+                  void moveWithinDay(editingEntry, 1);
+                }
               : undefined
           }
           onDismiss={
             canEditEntries && editingEntry.type === 'skeleton' && editingEntry.id !== 0
-              ? () => { setEditingEntry(null); void dismissSuggestion(editingEntry) }
+              ? () => {
+                  setEditingEntry(null);
+                  void dismissSuggestion(editingEntry);
+                }
               : undefined
           }
           onClose={() => setEditingEntry(null)}
           onSave={async (data, existingEntryId) => {
             // existingEntryId is what the sheet already persisted in an earlier
             // save attempt — without it a retry would create a second entry.
-            const currentEntryId = existingEntryId ?? editingEntry.id
-            let entryId = currentEntryId
+            const currentEntryId = existingEntryId ?? editingEntry.id;
+            let entryId = currentEntryId;
             if (currentEntryId === 0) {
-              const created = await useJourneyStore.getState().createEntry(current.id, data)
-              entryId = created.id
+              const created = await useJourneyStore.getState().createEntry(current.id, data);
+              entryId = created.id;
             } else {
-              await updateEntry(currentEntryId, data)
+              await updateEntry(currentEntryId, data);
             }
-            return entryId
+            return entryId;
           }}
           onUploadPhotos={uploadPhotos}
           onAddProviderPhotos={addEntryProviderPhotos}
-          onDelete={editingEntry.id > 0 && canEditEntries
-            ? () => { const target = editingEntry; setEditingEntry(null); setDeleteTarget(target) }
-            : undefined}
+          onDelete={
+            editingEntry.id > 0 && canEditEntries
+              ? () => {
+                  const target = editingEntry;
+                  setEditingEntry(null);
+                  setDeleteTarget(target);
+                }
+              : undefined
+          }
           onDone={() => {
-            setEditingEntry(null)
-            loadJourney(Number(id))
+            setEditingEntry(null);
+            loadJourney(Number(id));
           }}
         />
       )}
@@ -646,7 +773,10 @@ export default function MJourneyDetail() {
         <MJourneySettingsSheet
           journey={current}
           onClose={() => setShowSettings(false)}
-          onSaved={() => { setShowSettings(false); loadJourney(Number(id)) }}
+          onSaved={() => {
+            setShowSettings(false);
+            loadJourney(Number(id));
+          }}
           onOpenInvite={() => setShowInvite(true)}
           onRefresh={() => loadJourney(Number(id))}
           onRestoreSuggestions={canEditEntries ? restoreSuggestions : undefined}
@@ -657,9 +787,12 @@ export default function MJourneyDetail() {
       {showInvite && (
         <ContributorInviteDialog
           journeyId={current.id}
-          existingUserIds={current.contributors.map(c => c.user_id)}
+          existingUserIds={current.contributors.map((c) => c.user_id)}
           onClose={() => setShowInvite(false)}
-          onInvited={() => { setShowInvite(false); loadJourney(Number(id)) }}
+          onInvited={() => {
+            setShowInvite(false);
+            loadJourney(Number(id));
+          }}
         />
       )}
 
@@ -668,13 +801,13 @@ export default function MJourneyDetail() {
         <ProviderPicker
           provider={pickerProvider}
           userId={useAuthStore.getState().user?.id || 0}
-          entries={current.entries.filter(e => e.type !== 'skeleton' || e.title)}
+          entries={current.entries.filter((e) => e.type !== 'skeleton' || e.title)}
           trips={current.trips}
-          existingAssetIds={new Set(gallery.filter(p => p.asset_id).map(p => p.asset_id!))}
+          existingAssetIds={new Set(gallery.filter((p) => p.asset_id).map((p) => p.asset_id!))}
           onClose={() => setPickerProvider(null)}
           onAdd={async (groups, entryId) => {
-            await addPickedProviderPhotos(current.id, pickerProvider, groups, entryId)
-            setPickerProvider(null)
+            await addPickedProviderPhotos(current.id, pickerProvider, groups, entryId);
+            setPickerProvider(null);
           }}
         />
       )}
@@ -684,10 +817,10 @@ export default function MJourneyDetail() {
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={async () => {
-          if (!deleteTarget) return
-          await deleteEntry(deleteTarget.id)
-          setDeleteTarget(null)
-          loadJourney(Number(id))
+          if (!deleteTarget) return;
+          await deleteEntry(deleteTarget.id);
+          setDeleteTarget(null);
+          loadJourney(Number(id));
         }}
         title={t('journey.entries.deleteTitle')}
         message={t('journey.deleteConfirmMessage', { title: deleteTarget?.title || '' })}
@@ -698,7 +831,7 @@ export default function MJourneyDetail() {
       {/* Lightbox */}
       {lightbox && (
         <PhotoLightbox
-          photos={lightbox.photos.map(p => ({
+          photos={lightbox.photos.map((p) => ({
             id: p.id.toString(),
             src: p.src,
             caption: p.caption,
@@ -712,5 +845,5 @@ export default function MJourneyDetail() {
         />
       )}
     </div>
-  )
+  );
 }

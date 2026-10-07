@@ -156,7 +156,8 @@ const collection: TranslationStrings = {
   'collections.file.targetExisting': 'Tambahkan ke daftar',
   'collections.file.targetExistingHint': 'Ke daftar yang sudah ada',
   'collections.file.searchLists': 'Cari daftar',
-  'collections.file.intoHint': 'Tempat yang sudah ada di daftar tetap seperti semula, begitu juga nama dan warnanya. Label dari berkas akan ditambahkan.',
+  'collections.file.intoHint':
+    'Tempat yang sudah ada di daftar tetap seperti semula, begitu juga nama dan warnanya. Label dari berkas akan ditambahkan.',
   'collections.file.confirmInto': 'Tambahkan ke daftar',
   'collections.file.doneInto': '{count} tempat ditambahkan ke {name}',
   'collections.file.doneIntoDuplicates': '{count} ditambahkan ke {name}, {duplicates} sudah ada',

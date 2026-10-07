@@ -1,5 +1,3 @@
-import { Controller, Get, HttpException, Param, Query, Req, Res } from '@nestjs/common';
-import type { Request, Response } from 'express';
 import { Public } from '../auth/public.decorator';
 import {
   getWikiIndex,
@@ -12,6 +10,9 @@ import {
   type WikiNavSection,
   type WikiSearchHit,
 } from './wiki';
+import { Controller, Get, HttpException, Param, Query, Req, Res } from '@nestjs/common';
+
+import type { Request, Response } from 'express';
 
 /** Longest query the search accepts; anything past it is noise, not a question. */
 const SEARCH_MAX_QUERY = 120;

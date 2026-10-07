@@ -1,15 +1,15 @@
-import React from 'react';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { http, HttpResponse } from 'msw';
-import { render, act, waitFor } from '../../../tests/helpers/render';
-import { server } from '../../../tests/helpers/msw/server';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildSettings } from '../../../tests/helpers/factories';
-import { useSettingsStore } from '../../store/settingsStore';
+import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
 import L from 'leaflet';
+import { http, HttpResponse } from 'msw';
+import React from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildSettings } from '../../../tests/helpers/factories';
+import { server } from '../../../tests/helpers/msw/server';
+import { act, render, waitFor } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { useSettingsStore } from '../../store/settingsStore';
 import { A2_TO_A3 } from './atlasModel';
 import { useAtlas } from './useAtlas';
-import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
 
 // FE-HOOK-ATLAS-001 to FE-HOOK-ATLAS-035
 
@@ -90,12 +90,15 @@ vi.mock('@maplibre/maplibre-gl-leaflet', () => ({
     // One GL map per layer, kept stable: a fresh object per call would hand the
     // assertions a different spy than the code just used.
     const gl = {
-      setStyle: vi.fn(), on: vi.fn(), isStyleLoaded: () => false,
-      getStyle: () => ({ layers: [] }), setLayoutProperty: vi.fn(),
-    }
-    const layer: Record<string, unknown> = { remove: vi.fn(), getMaplibreMap: vi.fn(() => gl) }
-    layer.addTo = vi.fn(() => layer)
-    return layer
+      setStyle: vi.fn(),
+      on: vi.fn(),
+      isStyleLoaded: () => false,
+      getStyle: () => ({ layers: [] }),
+      setLayoutProperty: vi.fn(),
+    };
+    const layer: Record<string, unknown> = { remove: vi.fn(), getMaplibreMap: vi.fn(() => gl) };
+    layer.addTo = vi.fn(() => layer);
+    return layer;
   }),
 }));
 vi.mock('../../components/Map/engines/maplibre', () => ({ default: {} }));
@@ -112,7 +115,10 @@ vi.mock('leaflet', () => {
     const layer = {
       handlers,
       bindTooltip: vi.fn(() => layer),
-      on: vi.fn((event: string, cb: (e: unknown) => void) => { handlers[event] = cb; return layer; }),
+      on: vi.fn((event: string, cb: (e: unknown) => void) => {
+        handlers[event] = cb;
+        return layer;
+      }),
       setStyle: vi.fn(),
       getBounds: vi.fn(() => {
         if (lf.boundsThrows) throw new Error('no bounds');
@@ -126,9 +132,14 @@ vi.mock('leaflet', () => {
 
   const map = {
     setView: vi.fn(() => map),
-    on: vi.fn((event: string, cb: () => void) => { (lf.mapHandlers[event] ||= []).push(cb); return map; }),
+    on: vi.fn((event: string, cb: () => void) => {
+      (lf.mapHandlers[event] ||= []).push(cb);
+      return map;
+    }),
     off: vi.fn(() => map),
-    remove: vi.fn(() => { lf.mapsRemoved += 1; }),
+    remove: vi.fn(() => {
+      lf.mapsRemoved += 1;
+    }),
     fitBounds: vi.fn(),
     addLayer: vi.fn(),
     removeLayer: vi.fn((layer?: { record?: { attached: boolean } }) => {
@@ -137,12 +148,13 @@ vi.mock('leaflet', () => {
     getZoom: vi.fn(() => lf.zoom),
     getCenter: vi.fn(() => ({ lat: 25, lng: 0 })),
     getBounds: vi.fn(() => ({
-      intersects: (other?: { code?: string | null }) => (
-        lf.intersectsOnly ? !!other?.code && lf.intersectsOnly.includes(other.code) : lf.intersects
-      ),
+      intersects: (other?: { code?: string | null }) =>
+        lf.intersectsOnly ? !!other?.code && lf.intersectsOnly.includes(other.code) : lf.intersects,
     })),
     hasLayer: vi.fn(() => lf.hasLayer),
-    createPane: vi.fn((name: string) => { lf.panes[name] = { style: {} }; }),
+    createPane: vi.fn((name: string) => {
+      lf.panes[name] = { style: {} };
+    }),
     getPane: vi.fn((name: string) => lf.panes[name]),
     getContainer: vi.fn(() => mapContainer),
     latLngToContainerPoint: vi.fn(() => lf.markerPoint),
@@ -152,7 +164,10 @@ vi.mock('leaflet', () => {
   lf.map = map;
 
   const L = {
-    map: vi.fn(() => { lf.mapsCreated += 1; return map; }),
+    map: vi.fn(() => {
+      lf.mapsCreated += 1;
+      return map;
+    }),
     tileLayer: vi.fn(() => ({ addTo: vi.fn(), setUrl: vi.fn() })),
     control: { zoom: vi.fn(() => ({ addTo: vi.fn() })) },
     canvas: vi.fn(() => ({})),
@@ -166,7 +181,10 @@ vi.mock('leaflet', () => {
       const m: MockMarker = {
         handlers,
         tooltipEl,
-        on: vi.fn((event: string, cb: (e?: unknown) => void) => { (handlers[event] ||= []).push(cb); return m; }),
+        on: vi.fn((event: string, cb: (e?: unknown) => void) => {
+          (handlers[event] ||= []).push(cb);
+          return m;
+        }),
         off: vi.fn(() => m),
         getLatLng: vi.fn(() => ({ lat: 0, lng: 0 })),
         bindTooltip: vi.fn((html: string, options: Record<string, unknown>) => {
@@ -182,8 +200,12 @@ vi.mock('leaflet', () => {
     }),
     layerGroup: vi.fn(() => ({ addTo: vi.fn(() => ({})) })),
     DomEvent: {
-      disableScrollPropagation: vi.fn((el: HTMLElement) => { lf.scrollPropagationOff.push(el); }),
-      disableClickPropagation: vi.fn((el: HTMLElement) => { lf.clickPropagationOff.push(el); }),
+      disableScrollPropagation: vi.fn((el: HTMLElement) => {
+        lf.scrollPropagationOff.push(el);
+      }),
+      disableClickPropagation: vi.fn((el: HTMLElement) => {
+        lf.clickPropagationOff.push(el);
+      }),
     },
     geoJSON: vi.fn((data: { features?: Record<string, unknown>[] }, options: Record<string, unknown>) => {
       const record = { data, options, entries: [] as unknown[], styles: [] as unknown[], attached: false };
@@ -200,9 +222,16 @@ vi.mock('leaflet', () => {
       lf.geoJson.push(record);
       const result = {
         record,
-        addTo: vi.fn(() => { record.attached = true; return result; }),
-        removeFrom: vi.fn(() => { record.attached = false; }),
-        remove: vi.fn(() => { record.attached = false; }),
+        addTo: vi.fn(() => {
+          record.attached = true;
+          return result;
+        }),
+        removeFrom: vi.fn(() => {
+          record.attached = false;
+        }),
+        remove: vi.fn(() => {
+          record.attached = false;
+        }),
         clearLayers: vi.fn(),
         resetStyle: vi.fn(),
       };
@@ -233,7 +262,15 @@ const plannedStatsResponse = {
     { code: 'DE', tripCount: 1, placeCount: 0, firstVisit: '2099-05-01', lastVisit: '2099-05-08', status: 'planned' },
     { code: 'JP', tripCount: 1, placeCount: 0, firstVisit: null, lastVisit: null, status: 'idea' },
   ],
-  stats: { totalTrips: 3, totalPlaces: 10, totalCountries: 1, totalDays: 14, totalCities: 3, totalCountriesPlanned: 1, totalCountriesIdea: 1 },
+  stats: {
+    totalTrips: 3,
+    totalPlaces: 10,
+    totalCountries: 1,
+    totalDays: 14,
+    totalCities: 3,
+    totalCountriesPlanned: 1,
+    totalCountriesIdea: 1,
+  },
   continents: { Europe: 1 },
   continentsPlanned: { Europe: 1, Asia: 1 },
 };
@@ -272,9 +309,11 @@ function useAtlasHandlers(over: Partial<Record<string, unknown>> = {}) {
     http.get('/api/addons/atlas/stats', () => HttpResponse.json(over.stats ?? statsResponse)),
     http.get('/api/addons/atlas/bucket-list', () => HttpResponse.json({ items: over.bucket ?? [] })),
     http.get('/api/addons/atlas/regions', () => HttpResponse.json({ regions: over.regions ?? {} })),
-    http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(over.geo ?? { type: 'FeatureCollection', features: [] })),
+    http.get('/api/addons/atlas/countries/geo', () =>
+      HttpResponse.json(over.geo ?? { type: 'FeatureCollection', features: [] })
+    ),
     http.get('/api/addons/atlas/regions/geo', () => HttpResponse.json(over.regionGeo ?? { features: [] })),
-    http.get('/api/atlas-layers', () => HttpResponse.json({ layers: over.layers ?? [] })),
+    http.get('/api/atlas-layers', () => HttpResponse.json({ layers: over.layers ?? [] }))
   );
 }
 
@@ -379,9 +418,12 @@ describe('useAtlas', () => {
 
   it('FE-HOOK-ATLAS-005: the country name resolver falls back to the raw code', async () => {
     // Intl.DisplayNames missing (older WebViews) — the hook must keep the identity resolver.
-    vi.stubGlobal('Intl', new Proxy(Intl, {
-      get: (target, prop, receiver) => (prop === 'DisplayNames' ? undefined : Reflect.get(target, prop, receiver)),
-    }));
+    vi.stubGlobal(
+      'Intl',
+      new Proxy(Intl, {
+        get: (target, prop, receiver) => (prop === 'DisplayNames' ? undefined : Reflect.get(target, prop, receiver)),
+      })
+    );
     await mountAtlas();
 
     expect(atlas.resolveName('FR')).toBe('FR');
@@ -425,7 +467,9 @@ describe('useAtlas', () => {
   describe('confirm actions', () => {
     it('FE-HOOK-ATLAS-008: executing without a pending action does nothing', async () => {
       await mountAtlas();
-      await act(async () => { await atlas.executeConfirmAction(); });
+      await act(async () => {
+        await atlas.executeConfirmAction();
+      });
       expect(atlas.data?.countries).toHaveLength(2);
     });
 
@@ -434,7 +478,9 @@ describe('useAtlas', () => {
       server.use(http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ ok: true })));
 
       act(() => atlas.setConfirmAction({ type: 'mark', code: 'DE', name: 'Germany' }));
-      await act(async () => { await atlas.executeConfirmAction(); });
+      await act(async () => {
+        await atlas.executeConfirmAction();
+      });
 
       expect(atlas.confirmAction).toBeNull();
       expect(atlas.data?.countries.map((c) => c.code)).toEqual(['FR', 'IT', 'DE']);
@@ -447,7 +493,9 @@ describe('useAtlas', () => {
       server.use(http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ ok: true })));
 
       act(() => atlas.setConfirmAction({ type: 'mark', code: 'FR', name: 'France' }));
-      await act(async () => { await atlas.executeConfirmAction(); });
+      await act(async () => {
+        await atlas.executeConfirmAction();
+      });
 
       expect(atlas.data?.countries).toHaveLength(2);
       expect(atlas.data?.stats.totalCountries).toBe(2);
@@ -459,7 +507,9 @@ describe('useAtlas', () => {
       await waitFor(() => expect(atlas.visitedRegions.IT).toBeDefined());
 
       act(() => atlas.setConfirmAction({ type: 'unmark', code: 'IT', name: 'Italy' }));
-      await act(async () => { await atlas.executeConfirmAction(); });
+      await act(async () => {
+        await atlas.executeConfirmAction();
+      });
 
       expect(atlas.data?.countries.map((c) => c.code)).toEqual(['FR']);
       expect(atlas.data?.stats.totalCountries).toBe(1);
@@ -471,13 +521,15 @@ describe('useAtlas', () => {
       useAtlasHandlers();
       server.use(
         http.get('/api/addons/atlas/stats', () => HttpResponse.error()),
-        http.delete('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ ok: true })),
+        http.delete('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ ok: true }))
       );
       render(<Harness />);
       await waitFor(() => expect(atlas.loading).toBe(false));
 
       act(() => atlas.setConfirmAction({ type: 'unmark', code: 'IT', name: 'Italy' }));
-      await act(async () => { await atlas.executeConfirmAction(); });
+      await act(async () => {
+        await atlas.executeConfirmAction();
+      });
 
       expect(atlas.data).toBeNull();
       expect(atlas.confirmAction).toBeNull();
@@ -488,7 +540,9 @@ describe('useAtlas', () => {
       server.use(http.delete('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ ok: true })));
 
       act(() => atlas.setConfirmAction({ type: 'unmark', code: 'FR', name: 'France' }));
-      await act(async () => { await atlas.executeConfirmAction(); });
+      await act(async () => {
+        await atlas.executeConfirmAction();
+      });
 
       expect(atlas.data?.countries.map((c) => c.code)).toEqual(['FR', 'IT']);
       expect(atlas.visitedRegions).toEqual({});
@@ -499,9 +553,16 @@ describe('useAtlas', () => {
     it('FE-HOOK-ATLAS-013: an empty name is not submitted', async () => {
       await mountAtlas();
       const post = vi.fn();
-      server.use(http.post('/api/addons/atlas/bucket-list', () => { post(); return HttpResponse.json({ item: {} }); }));
+      server.use(
+        http.post('/api/addons/atlas/bucket-list', () => {
+          post();
+          return HttpResponse.json({ item: {} });
+        })
+      );
 
-      await act(async () => { await atlas.handleAddBucketItem(); });
+      await act(async () => {
+        await atlas.handleAddBucketItem();
+      });
 
       expect(post).not.toHaveBeenCalled();
       expect(atlas.bucketList).toHaveLength(0);
@@ -513,8 +574,18 @@ describe('useAtlas', () => {
       server.use(
         http.post('/api/addons/atlas/bucket-list', async ({ request }) => {
           body = await request.json();
-          return HttpResponse.json({ item: { id: 7, name: 'Kyoto', lat: 35, lng: 135, country_code: null, notes: 'onsen', target_date: '2027-04' } });
-        }),
+          return HttpResponse.json({
+            item: {
+              id: 7,
+              name: 'Kyoto',
+              lat: 35,
+              lng: 135,
+              country_code: null,
+              notes: 'onsen',
+              target_date: '2027-04',
+            },
+          });
+        })
       );
 
       act(() => {
@@ -523,7 +594,9 @@ describe('useAtlas', () => {
         atlas.setBucketPoiYear(2027);
         atlas.setShowBucketAdd(true);
       });
-      await act(async () => { await atlas.handleAddBucketItem(); });
+      await act(async () => {
+        await atlas.handleAddBucketItem();
+      });
 
       expect(body).toEqual({ name: 'Kyoto', notes: 'onsen', lat: 35, lng: 135, target_date: '2027-04' });
       expect(atlas.bucketList.map((i) => i.id)).toEqual([7]);
@@ -539,7 +612,7 @@ describe('useAtlas', () => {
         http.post('/api/addons/atlas/bucket-list', async ({ request }) => {
           body = await request.json();
           return HttpResponse.json({ item: { id: 8 } });
-        }),
+        })
       );
 
       act(() => {
@@ -547,31 +620,46 @@ describe('useAtlas', () => {
         atlas.setBucketPoiMonth(4);
         atlas.setBucketPoiYear(2027);
       });
-      await act(async () => { await atlas.handleAddBucketItem(); });
+      await act(async () => {
+        await atlas.handleAddBucketItem();
+      });
 
       expect(body).toEqual({ name: 'Lisbon', target_date: '2030-01' });
     });
 
     it('FE-HOOK-ATLAS-016: a rejected add leaves the form untouched', async () => {
       await mountAtlas();
-      server.use(http.post('/api/addons/atlas/bucket-list', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+      server.use(
+        http.post('/api/addons/atlas/bucket-list', () => HttpResponse.json({ error: 'nope' }, { status: 500 }))
+      );
 
       act(() => atlas.setBucketForm({ name: 'Lisbon', notes: '', lat: '', lng: '', target_date: '' }));
-      await act(async () => { await atlas.handleAddBucketItem(); });
+      await act(async () => {
+        await atlas.handleAddBucketItem();
+      });
 
       expect(atlas.bucketList).toHaveLength(0);
       expect(atlas.bucketForm.name).toBe('Lisbon');
     });
 
     it('FE-HOOK-ATLAS-036: an entry already on the list is not posted again (#1898)', async () => {
-      await mountAtlas({ bucket: [{ id: 3, name: 'Kyoto', lat: null, lng: null, country_code: null, notes: null, target_date: null }] });
+      await mountAtlas({
+        bucket: [{ id: 3, name: 'Kyoto', lat: null, lng: null, country_code: null, notes: null, target_date: null }],
+      });
       const post = vi.fn();
-      server.use(http.post('/api/addons/atlas/bucket-list', () => { post(); return HttpResponse.json({ item: { id: 4 } }); }));
+      server.use(
+        http.post('/api/addons/atlas/bucket-list', () => {
+          post();
+          return HttpResponse.json({ item: { id: 4 } });
+        })
+      );
       const addToast = vi.fn();
       window.__addToast = addToast as unknown as typeof window.__addToast;
 
       act(() => atlas.setBucketForm({ name: '  kyoto ', notes: '', lat: '', lng: '', target_date: '' }));
-      await act(async () => { await atlas.handleAddBucketItem(); });
+      await act(async () => {
+        await atlas.handleAddBucketItem();
+      });
 
       expect(post).not.toHaveBeenCalled();
       expect(atlas.bucketList).toHaveLength(1);
@@ -581,18 +669,26 @@ describe('useAtlas', () => {
 
       // The same place for another date is a different wish and does go out.
       act(() => atlas.setBucketForm({ name: 'Kyoto', notes: '', lat: '', lng: '', target_date: '2027-05' }));
-      await act(async () => { await atlas.handleAddBucketItem(); });
+      await act(async () => {
+        await atlas.handleAddBucketItem();
+      });
       expect(post).toHaveBeenCalledTimes(1);
     });
 
     it('FE-HOOK-ATLAS-037: a 409 from the server surfaces as a toast instead of silence (#1898)', async () => {
       await mountAtlas();
-      server.use(http.post('/api/addons/atlas/bucket-list', () => HttpResponse.json({ error: 'Already on your bucket list' }, { status: 409 })));
+      server.use(
+        http.post('/api/addons/atlas/bucket-list', () =>
+          HttpResponse.json({ error: 'Already on your bucket list' }, { status: 409 })
+        )
+      );
       const addToast = vi.fn();
       window.__addToast = addToast as unknown as typeof window.__addToast;
 
       act(() => atlas.setBucketForm({ name: 'Lisbon', notes: '', lat: '', lng: '', target_date: '' }));
-      await act(async () => { await atlas.handleAddBucketItem(); });
+      await act(async () => {
+        await atlas.handleAddBucketItem();
+      });
 
       expect(atlas.bucketList).toHaveLength(0);
       expect(atlas.bucketForm.name).toBe('Lisbon');
@@ -600,33 +696,52 @@ describe('useAtlas', () => {
     });
 
     it('FE-HOOK-ATLAS-017: deleting drops the item, a failure keeps it', async () => {
-      await mountAtlas({ bucket: [{ id: 3, name: 'Kyoto', lat: null, lng: null, country_code: 'JP', notes: null, target_date: null }] });
-      server.use(http.delete('/api/addons/atlas/bucket-list/:id', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+      await mountAtlas({
+        bucket: [{ id: 3, name: 'Kyoto', lat: null, lng: null, country_code: 'JP', notes: null, target_date: null }],
+      });
+      server.use(
+        http.delete('/api/addons/atlas/bucket-list/:id', () => HttpResponse.json({ error: 'nope' }, { status: 500 }))
+      );
 
-      await act(async () => { await atlas.handleDeleteBucketItem(3); });
+      await act(async () => {
+        await atlas.handleDeleteBucketItem(3);
+      });
       expect(atlas.bucketList).toHaveLength(1);
 
       server.use(http.delete('/api/addons/atlas/bucket-list/:id', () => HttpResponse.json({ ok: true })));
-      await act(async () => { await atlas.handleDeleteBucketItem(3); });
+      await act(async () => {
+        await atlas.handleDeleteBucketItem(3);
+      });
       expect(atlas.bucketList).toHaveLength(0);
     });
 
     it('FE-HOOK-ATLAS-018: the POI search skips a blank query, stores results and survives failures', async () => {
       await mountAtlas();
       const search = vi.fn();
-      server.use(http.post('/api/maps/search', () => { search(); return HttpResponse.json({ places: [{ name: 'Kyoto', lat: 35, lng: 135 }] }); }));
+      server.use(
+        http.post('/api/maps/search', () => {
+          search();
+          return HttpResponse.json({ places: [{ name: 'Kyoto', lat: 35, lng: 135 }] });
+        })
+      );
 
-      await act(async () => { await atlas.handleBucketPoiSearch(); });
+      await act(async () => {
+        await atlas.handleBucketPoiSearch();
+      });
       expect(search).not.toHaveBeenCalled();
 
       act(() => atlas.setBucketSearch('kyoto'));
-      await act(async () => { await atlas.handleBucketPoiSearch(); });
+      await act(async () => {
+        await atlas.handleBucketPoiSearch();
+      });
       expect(atlas.bucketSearchResults).toHaveLength(1);
       expect(atlas.bucketSearching).toBe(false);
 
       vi.spyOn(console, 'error').mockImplementation(() => {});
       server.use(http.post('/api/maps/search', () => HttpResponse.error()));
-      await act(async () => { await atlas.handleBucketPoiSearch(); });
+      await act(async () => {
+        await atlas.handleBucketPoiSearch();
+      });
       expect(atlas.bucketSearching).toBe(false);
     });
 
@@ -654,10 +769,16 @@ describe('useAtlas', () => {
   describe('country selection', () => {
     it('FE-HOOK-ATLAS-020: selecting a visited country with data loads its detail', async () => {
       await mountAtlas({ geo: geoCountries });
-      server.use(http.get('/api/addons/atlas/country/:code', () => HttpResponse.json({ places: [], trips: [{ id: 1, title: 'Paris' }], manually_marked: false })));
+      server.use(
+        http.get('/api/addons/atlas/country/:code', () =>
+          HttpResponse.json({ places: [], trips: [{ id: 1, title: 'Paris' }], manually_marked: false })
+        )
+      );
       await waitFor(() => expect(atlas.atlas_country_options.length).toBe(3));
 
-      await act(async () => { atlas.select_country_from_search('FR'); });
+      await act(async () => {
+        atlas.select_country_from_search('FR');
+      });
 
       expect(atlas.atlas_country_search).toBe(atlas.resolveName('FR'));
       expect(atlas.atlas_country_open).toBe(false);
@@ -667,9 +788,13 @@ describe('useAtlas', () => {
 
     it('FE-HOOK-ATLAS-021: a failing detail request leaves the selection without a detail', async () => {
       await mountAtlas({ geo: geoCountries });
-      server.use(http.get('/api/addons/atlas/country/:code', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+      server.use(
+        http.get('/api/addons/atlas/country/:code', () => HttpResponse.json({ error: 'boom' }, { status: 500 }))
+      );
 
-      await act(async () => { await atlas.loadCountryDetail('FR'); });
+      await act(async () => {
+        await atlas.loadCountryDetail('FR');
+      });
 
       expect(atlas.selectedCountry).toBe('FR');
       expect(atlas.countryDetail).toBeNull();
@@ -679,7 +804,9 @@ describe('useAtlas', () => {
       await mountAtlas({ geo: geoCountries });
       await waitFor(() => expect(atlas.atlas_country_options.length).toBe(3));
 
-      await act(async () => { atlas.select_country_from_search('IT'); });
+      await act(async () => {
+        atlas.select_country_from_search('IT');
+      });
 
       expect(atlas.confirmAction).toEqual({ type: 'unmark', code: 'IT', name: atlas.resolveName('IT') });
     });
@@ -688,7 +815,9 @@ describe('useAtlas', () => {
       await mountAtlas({ geo: geoCountries });
       await waitFor(() => expect(atlas.atlas_country_options.length).toBe(3));
 
-      await act(async () => { atlas.select_country_from_search('DE'); });
+      await act(async () => {
+        atlas.select_country_from_search('DE');
+      });
 
       expect(atlas.confirmAction).toEqual({ type: 'choose', code: 'DE', name: atlas.resolveName('DE') });
     });
@@ -699,7 +828,9 @@ describe('useAtlas', () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
       lf.boundsThrows = true;
 
-      await act(async () => { atlas.select_country_from_search('DE'); });
+      await act(async () => {
+        atlas.select_country_from_search('DE');
+      });
 
       expect(atlas.confirmAction?.code).toBe('DE');
     });
@@ -768,7 +899,8 @@ describe('useAtlas', () => {
       expect(html).toContain('First trip');
       expect(html).toContain('Last trip');
       expect(html).not.toContain('atlas.lastVisitLabel');
-      const month = (y: number, m: number) => new Date(y, m, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      const month = (y: number, m: number) =>
+        new Date(y, m, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
       expect(html).toContain(month(2023, 0));
       expect(html).toContain(month(2024, 5));
     });
@@ -776,7 +908,16 @@ describe('useAtlas', () => {
     it('FE-HOOK-ATLAS-026: plugin tint layers are drawn in their own pane and redrawn on theme change', async () => {
       await mountAtlas({
         geo: geoCountries,
-        layers: [{ pluginId: 'p1', id: 'l1', countries: [{ code: 'FR', tone: 'success' }, { code: 'DE', tone: 'default' }] }],
+        layers: [
+          {
+            pluginId: 'p1',
+            id: 'l1',
+            countries: [
+              { code: 'FR', tone: 'success' },
+              { code: 'DE', tone: 'default' },
+            ],
+          },
+        ],
       });
 
       const tint = await waitFor(() => {
@@ -792,7 +933,9 @@ describe('useAtlas', () => {
       expect(style(feature({ ADM0_A3: 'DEU' })).fillColor).toBe('#4F46E5');
 
       const before = lf.geoJson.length;
-      act(() => { seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: true }) }); });
+      act(() => {
+        seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: true }) });
+      });
       await waitFor(() => expect(lf.geoJson.length).toBeGreaterThan(before));
       expect(lf.mapsRemoved).toBeGreaterThan(0);
     });
@@ -808,7 +951,10 @@ describe('useAtlas', () => {
       const layers = await waitFor(() => {
         const made = vi.mocked(maplibreGL).mock.results.slice(madeBefore);
         expect(made.length).toBe(1);
-        return made.map((r) => r.value as { getMaplibreMap: () => { setStyle: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn> } });
+        return made.map(
+          (r) =>
+            r.value as { getMaplibreMap: () => { setStyle: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn> } }
+        );
       });
       // It is a vector style, and it is the label-free variant the country fills
       // need: OpenFreeMap has no nolabels style, so the symbol layers are switched
@@ -850,7 +996,13 @@ describe('useAtlas', () => {
         type: 'FeatureCollection',
         features: [
           feature({ iso_a2: 'fr', iso_3166_2: 'FR-BRE', name: 'Bretagne', name_en: 'Brittany', admin: 'France' }),
-          feature({ iso_a2: 'fr', iso_3166_2: 'FR-IDF', name: 'Île-de-France', name_en: 'Ile-de-France', admin: 'France' }),
+          feature({
+            iso_a2: 'fr',
+            iso_3166_2: 'FR-IDF',
+            name: 'Île-de-France',
+            name_en: 'Ile-de-France',
+            admin: 'France',
+          }),
         ],
       };
       await mountAtlas({
@@ -863,7 +1015,9 @@ describe('useAtlas', () => {
       await waitFor(() => expect(lf.mapHandlers.zoomend?.length).toBeGreaterThan(0));
       lf.zoom = 6;
       lf.hasLayer = false;
-      act(() => { lf.mapHandlers.zoomend?.forEach((cb) => cb()); });
+      act(() => {
+        lf.mapHandlers.zoomend?.forEach((cb) => cb());
+      });
       expect(lf.panes.overlayPane.style.opacity).toBe('0.35');
 
       const regionLayer = await waitFor(() => {
@@ -877,30 +1031,46 @@ describe('useAtlas', () => {
       expect(style(regionGeo.features[1]).fillOpacity).toBe(0.03);
 
       const [visited, unvisited] = regionLayer.entries;
-      act(() => visited.layer.handlers.mouseover({ target: visited.layer, originalEvent: { clientX: 40, clientY: 80 } }));
+      act(() =>
+        visited.layer.handlers.mouseover({ target: visited.layer, originalEvent: { clientX: 40, clientY: 80 } })
+      );
       act(() => visited.layer.handlers.mousemove({ originalEvent: { clientX: 42, clientY: 82 } }));
       act(() => visited.layer.handlers.mouseout({ target: visited.layer }));
 
       act(() => visited.layer.handlers.click({}));
       expect(atlas.confirmAction).toEqual({
-        type: 'unmark-region', code: 'FR', name: 'Bretagne', regionCode: 'FR-BRE', countryName: 'France',
+        type: 'unmark-region',
+        code: 'FR',
+        name: 'Bretagne',
+        regionCode: 'FR-BRE',
+        countryName: 'France',
       });
 
-      act(() => unvisited.layer.handlers.mouseover({ target: unvisited.layer, originalEvent: { clientX: 10, clientY: 20 } }));
+      act(() =>
+        unvisited.layer.handlers.mouseover({ target: unvisited.layer, originalEvent: { clientX: 10, clientY: 20 } })
+      );
       act(() => unvisited.layer.handlers.click({}));
       expect(atlas.confirmAction).toEqual({
-        type: 'choose-region', code: 'FR', name: 'Île-de-France', regionCode: 'FR-IDF', countryName: 'France',
+        type: 'choose-region',
+        code: 'FR',
+        name: 'Île-de-France',
+        regionCode: 'FR-IDF',
+        countryName: 'France',
       });
 
       // Zooming again re-attaches the existing layer and skips the cached countries.
       const drawn = lf.geoJson.length;
-      act(() => { lf.mapHandlers.zoomend?.forEach((cb) => cb()); });
+      act(() => {
+        lf.mapHandlers.zoomend?.forEach((cb) => cb());
+      });
       expect(lf.geoJson.length).toBe(drawn);
 
       // Zooming back out removes the region layer from the map again.
       lf.zoom = 4;
       lf.hasLayer = true;
-      act(() => { lf.mapHandlers.zoomend?.forEach((cb) => cb()); });
+      act(() => {
+        lf.mapHandlers.zoomend?.forEach((cb) => cb());
+      });
       expect(lf.panes.overlayPane.style.opacity).toBe('1');
     });
 
@@ -921,7 +1091,9 @@ describe('useAtlas', () => {
       await waitFor(() => expect(lf.mapHandlers.zoomend?.length).toBeGreaterThan(0));
 
       lf.zoom = 6;
-      act(() => { lf.mapHandlers.zoomend?.forEach((cb) => cb()); });
+      act(() => {
+        lf.mapHandlers.zoomend?.forEach((cb) => cb());
+      });
 
       const regionLayer = await waitFor(() => {
         const hit = (lf.geoJson as MockGeoJson[]).find((g) => g.options.pane === 'regionPane');
@@ -939,7 +1111,9 @@ describe('useAtlas', () => {
       await waitFor(() => expect(lf.mapHandlers.zoomend?.length).toBeGreaterThan(0));
 
       lf.zoom = 6;
-      await act(async () => { lf.mapHandlers.zoomend?.forEach((cb) => cb()); });
+      await act(async () => {
+        lf.mapHandlers.zoomend?.forEach((cb) => cb());
+      });
 
       expect((lf.geoJson as MockGeoJson[]).some((g) => g.options.pane === 'regionPane')).toBe(false);
     });
@@ -949,10 +1123,14 @@ describe('useAtlas', () => {
       await waitFor(() => expect(atlas.atlas_country_options.length).toBe(3));
 
       lf.zoom = 4;
-      act(() => { lf.mapHandlers.moveend?.forEach((cb) => cb()); });
+      act(() => {
+        lf.mapHandlers.moveend?.forEach((cb) => cb());
+      });
       lf.zoom = 6;
       lf.intersects = false;
-      act(() => { lf.mapHandlers.moveend?.forEach((cb) => cb()); });
+      act(() => {
+        lf.mapHandlers.moveend?.forEach((cb) => cb());
+      });
 
       expect((lf.geoJson as MockGeoJson[]).some((g) => g.options.pane === 'regionPane')).toBe(false);
     });
@@ -971,12 +1149,16 @@ describe('useAtlas', () => {
     const zoomTo = async (...codes: string[]) => {
       lf.zoom = 6;
       lf.intersectsOnly = codes;
-      await act(async () => { lf.mapHandlers.zoomend?.forEach((cb) => cb()); });
+      await act(async () => {
+        lf.mapHandlers.zoomend?.forEach((cb) => cb());
+      });
     };
 
     const panTo = async (...codes: string[]) => {
       lf.intersectsOnly = codes;
-      await act(async () => { lf.mapHandlers.moveend?.forEach((cb) => cb()); });
+      await act(async () => {
+        lf.mapHandlers.moveend?.forEach((cb) => cb());
+      });
     };
 
     it('FE-HOOK-ATLAS-038: a map builds one canvas and one svg renderer for its whole life (#1950)', async () => {
@@ -1042,20 +1224,26 @@ describe('useAtlas', () => {
         // Deliberately the other way round from the visiting order: with both the same,
         // dropping the country from the front of the dataset and dropping the one seen
         // longest ago pick the same victim, and nothing below tells them apart.
-        features: [...seen].reverse().map((a2) => feature({ ISO_A2: a2, ADM0_A3: A2_TO_A3[a2], ISO_A3: A2_TO_A3[a2], NAME: a2, ADMIN: a2 })),
+        features: [...seen]
+          .reverse()
+          .map((a2) => feature({ ISO_A2: a2, ADM0_A3: A2_TO_A3[a2], ISO_A3: A2_TO_A3[a2], NAME: a2, ADMIN: a2 })),
       };
       const regionGeo = {
         type: 'FeatureCollection',
-        features: seen.map((a2) => feature({ iso_a2: a2.toLowerCase(), iso_3166_2: `${a2}-01`, name: `${a2} region`, admin: a2 })),
+        features: seen.map((a2) =>
+          feature({ iso_a2: a2.toLowerCase(), iso_3166_2: `${a2}-01`, name: `${a2} region`, admin: a2 })
+        ),
       };
       await mountAtlas({ geo, regionGeo });
       await waitFor(() => expect(atlas.atlas_country_options.length).toBe(seen.length));
 
       const requested: string[] = [];
-      server.use(http.get('/api/addons/atlas/regions/geo', ({ request }) => {
-        requested.push(new URL(request.url).searchParams.get('countries') ?? '');
-        return HttpResponse.json(regionGeo);
-      }));
+      server.use(
+        http.get('/api/addons/atlas/regions/geo', ({ request }) => {
+          requested.push(new URL(request.url).searchParams.get('countries') ?? '');
+          return HttpResponse.json(regionGeo);
+        })
+      );
 
       lf.zoom = 6;
       for (let i = 0; i < seen.length; i++) {
@@ -1097,7 +1285,9 @@ describe('useAtlas', () => {
 
       // Dark mode rebuilds the map itself, so the layer has to come back dark-styled
       // even though the countries in view never changed.
-      act(() => { seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: true }) }); });
+      act(() => {
+        seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: true }) });
+      });
       await waitFor(() => expect(regionLayers().length).toBe(3));
       expect(unvisitedFill(newestRegionLayer()!)).toBe('#ffffff');
     });
@@ -1107,7 +1297,9 @@ describe('useAtlas', () => {
       await waitFor(() => expect(atlas.atlas_country_options.length).toBe(3));
 
       // fitBounds puts the view on Italy alone; the zoomend that follows must not cull it.
-      await act(async () => { atlas.select_country_from_search('IT'); });
+      await act(async () => {
+        atlas.select_country_from_search('IT');
+      });
       await zoomTo('IT');
 
       await waitFor(() => expect(regionCodesOf(newestRegionLayer())).toEqual(['IT-62']));
@@ -1131,8 +1323,12 @@ describe('useAtlas', () => {
       // map only accepts a rebuilt layer from zoom 6, so it must not happen here.
       lf.zoom = 5;
       lf.intersectsOnly = ['FR', 'IT'];
-      await act(async () => { lf.mapHandlers.zoomend?.forEach((cb) => cb()); });
-      await act(async () => { lf.mapHandlers.moveend?.forEach((cb) => cb()); });
+      await act(async () => {
+        lf.mapHandlers.zoomend?.forEach((cb) => cb());
+      });
+      await act(async () => {
+        lf.mapHandlers.moveend?.forEach((cb) => cb());
+      });
 
       expect(lf.panes.overlayPane.style.pointerEvents).toBe('none');
       expect(shown.attached).toBe(true);
@@ -1190,7 +1386,11 @@ describe('useAtlas', () => {
         if (key === 'trek_atlas_show_planned') throw new DOMException('denied', 'SecurityError');
         return realGet.call(this, key);
       });
-      const setSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key: string, value: string) {
+      const setSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (
+        this: Storage,
+        key: string,
+        value: string
+      ) {
         if (key === 'trek_atlas_show_planned') throw new DOMException('denied', 'SecurityError');
         realSet.call(this, key, value);
       });
@@ -1215,9 +1415,7 @@ describe('useAtlas', () => {
       const before = countryLayers().length;
 
       const styleOn = (layer: MockGeoJson, a2: string) => {
-        const i = (layer.data.features ?? []).findIndex(
-          (f) => (f.properties as Record<string, string>).ISO_A2 === a2,
-        );
+        const i = (layer.data.features ?? []).findIndex((f) => (f.properties as Record<string, string>).ISO_A2 === a2);
         return layer.styles[i] as { fillOpacity: number; dashArray?: string; fillColor: string };
       };
       const newestLayer = () => {
@@ -1248,7 +1446,9 @@ describe('useAtlas', () => {
 
     const typeAndSettle = async (query: string) => {
       act(() => atlas.search_places(query));
-      await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
     };
 
     it('FE-HOOK-ATLAS-051: geocodes the term and offers the hits', async () => {
@@ -1272,10 +1472,14 @@ describe('useAtlas', () => {
 
     it('FE-HOOK-ATLAS-053: drops a provider hit without usable coordinates', async () => {
       await mountAtlas();
-      server.use(http.post('/api/maps/search', () => HttpResponse.json({
-        places: [{ name: 'No coords' }, milan],
-        source: 'osm',
-      })));
+      server.use(
+        http.post('/api/maps/search', () =>
+          HttpResponse.json({
+            places: [{ name: 'No coords' }, milan],
+            source: 'osm',
+          })
+        )
+      );
 
       await typeAndSettle('milan');
       await waitFor(() => expect(atlas.atlas_place_results).toHaveLength(1));
@@ -1286,12 +1490,21 @@ describe('useAtlas', () => {
       await mountAtlas();
       server.use(
         http.post('/api/maps/search', () => HttpResponse.json({ places: [milan], source: 'osm' })),
-        http.get('/api/addons/atlas/locate', () => HttpResponse.json({ country_code: 'IT', region_code: 'IT-25', region_name: 'Lombardia' })),
+        http.get('/api/addons/atlas/locate', () =>
+          HttpResponse.json({ country_code: 'IT', region_code: 'IT-25', region_name: 'Lombardia' })
+        )
       );
 
-      await act(async () => { await atlas.select_place_from_search(milan); });
+      await act(async () => {
+        await atlas.select_place_from_search(milan);
+      });
 
-      expect(atlas.confirmAction).toMatchObject({ type: 'choose-region', code: 'IT', regionCode: 'IT-25', name: 'Lombardia' });
+      expect(atlas.confirmAction).toMatchObject({
+        type: 'choose-region',
+        code: 'IT',
+        regionCode: 'IT-25',
+        name: 'Lombardia',
+      });
       // The map went there rather than waiting for the lookup.
       expect(lf.map!.setView).toHaveBeenCalledWith([45.46, 9.19], 7, expect.anything());
     });
@@ -1299,17 +1512,29 @@ describe('useAtlas', () => {
     it('FE-HOOK-ATLAS-055: a region already visited offers removal instead', async () => {
       await mountAtlas({ regions: { IT: [{ code: 'IT-25', name: 'Lombardia', placeCount: 1 }] } });
       await waitFor(() => expect(atlas.visitedRegions.IT).toHaveLength(1));
-      server.use(http.get('/api/addons/atlas/locate', () => HttpResponse.json({ country_code: 'IT', region_code: 'IT-25', region_name: 'Lombardia' })));
+      server.use(
+        http.get('/api/addons/atlas/locate', () =>
+          HttpResponse.json({ country_code: 'IT', region_code: 'IT-25', region_name: 'Lombardia' })
+        )
+      );
 
-      await act(async () => { await atlas.select_place_from_search(milan); });
+      await act(async () => {
+        await atlas.select_place_from_search(milan);
+      });
       expect(atlas.confirmAction).toMatchObject({ type: 'unmark-region', regionCode: 'IT-25' });
     });
 
     it('FE-HOOK-ATLAS-056: a country without region coverage falls back to the country flow', async () => {
       await mountAtlas();
-      server.use(http.get('/api/addons/atlas/locate', () => HttpResponse.json({ country_code: 'FR', region_code: null, region_name: null })));
+      server.use(
+        http.get('/api/addons/atlas/locate', () =>
+          HttpResponse.json({ country_code: 'FR', region_code: null, region_name: null })
+        )
+      );
 
-      await act(async () => { await atlas.select_place_from_search({ ...milan, name: 'Somewhere' }); });
+      await act(async () => {
+        await atlas.select_place_from_search({ ...milan, name: 'Somewhere' });
+      });
       // FR is in the fixture as visited with places, so the country flow opens its detail
       // rather than the mark dialog — either way, not a region dialog.
       expect(atlas.confirmAction?.type).not.toBe('choose-region');
@@ -1318,7 +1543,15 @@ describe('useAtlas', () => {
 
   // ── Bucket-list note tooltip (#2153) ───────────────────────────────────────
   describe('the note tooltip on a bucket-list marker', () => {
-    const kyoto = { id: 1, name: 'Kyoto', lat: 35, lng: 135, country_code: 'JP', notes: 'Kinkaku-ji at opening time', target_date: null };
+    const kyoto = {
+      id: 1,
+      name: 'Kyoto',
+      lat: 35,
+      lng: 135,
+      country_code: 'JP',
+      notes: 'Kinkaku-ji at opening time',
+      target_date: null,
+    };
 
     const fire = (marker: MockMarker, event: string) => (marker.handlers[event] ?? []).forEach((cb) => cb());
 
@@ -1333,7 +1566,7 @@ describe('useAtlas', () => {
 
       expect(marker.bindTooltip).toHaveBeenCalledWith(
         expect.stringContaining('atlas-tooltip-scroll-inner'),
-        expect.objectContaining({ className: 'atlas-tooltip atlas-tooltip-scrollable', interactive: true }),
+        expect.objectContaining({ className: 'atlas-tooltip atlas-tooltip-scrollable', interactive: true })
       );
     });
 
@@ -1367,9 +1600,13 @@ describe('useAtlas', () => {
         const marker = await mountWithMarker();
         act(() => fire(marker, 'tooltipopen'));
 
-        act(() => { marker.tooltipEl.dispatchEvent(new MouseEvent('mouseleave')); });
+        act(() => {
+          marker.tooltipEl.dispatchEvent(new MouseEvent('mouseleave'));
+        });
         act(() => fire(marker, 'mouseover'));
-        await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(400);
+        });
 
         expect(marker.closeTooltip).not.toHaveBeenCalled();
       });
@@ -1378,8 +1615,12 @@ describe('useAtlas', () => {
         const marker = await mountWithMarker();
         act(() => fire(marker, 'tooltipopen'));
 
-        act(() => { marker.tooltipEl.dispatchEvent(new MouseEvent('mouseleave')); });
-        await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+        act(() => {
+          marker.tooltipEl.dispatchEvent(new MouseEvent('mouseleave'));
+        });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(400);
+        });
 
         expect(marker.closeTooltip).toHaveBeenCalled();
       });

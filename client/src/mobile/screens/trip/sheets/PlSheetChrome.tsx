@@ -1,7 +1,7 @@
-import { ReactNode } from 'react'
-import { Trash2, X } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
-import MIconBtn from '../../../components/MIconBtn'
+import type { LucideIcon } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
+import { ReactNode } from 'react';
+import MIconBtn from '../../../components/MIconBtn';
 
 /**
  * Shared chrome of the trip form sheets (place edit, day note, import):
@@ -10,24 +10,24 @@ import MIconBtn from '../../../components/MIconBtn'
  */
 
 export const FIELD_CLS =
-  'w-full min-w-0 box-border rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] font-[inherit] text-[0.84375rem] font-medium text-m-ink outline-none placeholder:text-m-faint'
+  'w-full min-w-0 box-border rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] font-[inherit] text-[0.84375rem] font-medium text-m-ink outline-none placeholder:text-m-faint';
 
 export const FIELD_AREA_CLS =
-  'w-full box-border resize-none rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] font-geist text-[0.78125rem] leading-[1.5] text-m-ink outline-none placeholder:text-m-faint'
+  'w-full box-border resize-none rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] font-geist text-[0.78125rem] leading-[1.5] text-m-ink outline-none placeholder:text-m-faint';
 
 // One Eyebrow for all trip sheets — defined with the inspection-sheet chrome.
-export { Eyebrow } from './MTripSheetUi'
+export { Eyebrow } from './MTripSheetUi';
 
 interface FormSheetHeaderProps {
   /** 40px rounded icon tile left of the title (place edit / import sheets). */
-  icon?: LucideIcon
-  title: ReactNode
+  icon?: LucideIcon;
+  title: ReactNode;
   /** Geist 11.5px subline under the title (note sheet: "Day n · title"). */
-  subtitle?: ReactNode
+  subtitle?: ReactNode;
   /** Replaces the icon tile, e.g. a back button on the import sub-steps. */
-  leading?: ReactNode
-  onClose: () => void
-  closeLabel: string
+  leading?: ReactNode;
+  onClose: () => void;
+  closeLabel: string;
 }
 
 /** Glass-sheet header: optional tile, 17px/700 title, 34px close. No hairline. */
@@ -48,26 +48,32 @@ export function FormSheetHeader({ icon: Icon, title, subtitle, leading, onClose,
         <X size={15} strokeWidth={2.2} />
       </MIconBtn>
     </div>
-  )
+  );
 }
 
 interface FormSheetFooterProps {
   /** Renders the 38px delete circle; two-tap confirm is the caller's business. */
-  onDelete?: () => void
-  deleteLabel?: string
+  onDelete?: () => void;
+  deleteLabel?: string;
   /** Delete circle switches to the danger surface while armed. */
-  deleteArmed?: boolean
-  onCancel: () => void
-  cancelLabel: string
-  onSubmit: () => void
-  submitLabel: string
-  submitDisabled?: boolean
+  deleteArmed?: boolean;
+  onCancel: () => void;
+  cancelLabel: string;
+  onSubmit: () => void;
+  submitLabel: string;
+  submitDisabled?: boolean;
 }
 
 /** Footer row: optional delete circle left, cancel + primary pill right. */
 export function FormSheetFooter({
-  onDelete, deleteLabel, deleteArmed = false,
-  onCancel, cancelLabel, onSubmit, submitLabel, submitDisabled = false,
+  onDelete,
+  deleteLabel,
+  deleteArmed = false,
+  onCancel,
+  cancelLabel,
+  onSubmit,
+  submitLabel,
+  submitDisabled = false,
 }: FormSheetFooterProps) {
   return (
     <div className="flex flex-none items-center gap-2 border-t border-[color:var(--m-rowbr)] px-[18px] pb-4 pt-3">
@@ -101,5 +107,5 @@ export function FormSheetFooter({
         {submitLabel}
       </button>
     </div>
-  )
+  );
 }

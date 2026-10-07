@@ -1,16 +1,23 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { http, HttpResponse } from 'msw';
 import React from 'react';
-import { render, screen, waitFor, act, fireEvent } from '../../tests/helpers/render';
-import { Routes, Route } from 'react-router';
+import { Route, Routes } from 'react-router';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  buildAssignment,
+  buildDay,
+  buildPlace,
+  buildReservation,
+  buildTrip,
+  buildUser,
+} from '../../tests/helpers/factories';
+import { server } from '../../tests/helpers/msw/server';
+import { act, fireEvent, render, screen, waitFor } from '../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
-import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment, buildReservation } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
-import { useTripStore } from '../store/tripStore';
 import { usePluginStore } from '../store/pluginStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { useTripStore } from '../store/tripStore';
 import TripPlannerPage from './TripPlannerPage';
-import { server } from '../../tests/helpers/msw/server';
-import { http, HttpResponse } from 'msw';
 
 // Mock Leaflet-dependent components
 const capturedMapViewProps: { current: Record<string, any> } = { current: {} };
@@ -154,10 +161,10 @@ const capturedConfirmDialogProps: { current: Record<string, any> } = { current: 
 // one rendered is not always the one a case is about. An open one draws its
 // extra content, so a case can read the list it carries.
 interface ConfirmDialogStub {
-  isOpen?: boolean
-  message?: string
-  confirmLabel?: string
-  onConfirm?: () => unknown
+  isOpen?: boolean;
+  message?: string;
+  confirmLabel?: string;
+  onConfirm?: () => unknown;
 }
 const capturedConfirmDialogsByTitle: { current: Record<string, ConfirmDialogStub> } = { current: {} };
 vi.mock('../components/shared/ConfirmDialog', () => ({
@@ -258,7 +265,7 @@ function renderPlannerPage(tripId: number | string) {
     <Routes>
       <Route path="/trips/:id" element={<TripPlannerPage />} />
     </Routes>,
-    { initialEntries: [`/trips/${tripId}`] },
+    { initialEntries: [`/trips/${tripId}`] }
   );
 }
 
@@ -358,7 +365,9 @@ describe('TripPlannerPage', () => {
       renderPlannerPage(7);
 
       // Run all pending timers (including the 1500ms splash timeout) synchronously
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -376,7 +385,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(3);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -394,7 +405,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(5);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -424,7 +437,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -442,7 +457,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -457,11 +474,7 @@ describe('TripPlannerPage', () => {
 
   describe('FE-PAGE-PLANNER-011: Packing tab renders PackingListPanel', () => {
     it('shows PackingListPanel after clicking the Lists tab with packing addon enabled', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'packing', type: 'packing' }] })
-        )
-      );
+      server.use(http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'packing', type: 'packing' }] })));
 
       vi.useFakeTimers();
 
@@ -469,7 +482,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -484,11 +499,7 @@ describe('TripPlannerPage', () => {
 
   describe('FE-PAGE-PLANNER-012: Costs tab renders CostsPanel', () => {
     it('shows CostsPanel after clicking the Costs tab with budget addon enabled', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'budget', type: 'budget' }] })
-        )
-      );
+      server.use(http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'budget', type: 'budget' }] })));
 
       vi.useFakeTimers();
 
@@ -496,7 +507,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -512,9 +525,7 @@ describe('TripPlannerPage', () => {
   describe('FE-PAGE-PLANNER-013: Files tab renders FileManager', () => {
     it('shows FileManager after clicking the Files tab with documents addon enabled', async () => {
       server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'documents', type: 'documents' }] })
-        )
+        http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'documents', type: 'documents' }] }))
       );
 
       vi.useFakeTimers();
@@ -523,7 +534,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -538,11 +551,7 @@ describe('TripPlannerPage', () => {
 
   describe('FE-PAGE-PLANNER-014: Collab tab renders CollabPanel', () => {
     it('shows CollabPanel after clicking the Collab tab with collab addon enabled', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'collab', type: 'collab' }] })
-        )
-      );
+      server.use(http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'collab', type: 'collab' }] })));
 
       vi.useFakeTimers();
 
@@ -550,7 +559,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -571,7 +582,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -592,7 +605,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -629,7 +644,7 @@ describe('TripPlannerPage', () => {
           <Route path="/trips/:id" element={<TripPlannerPage />} />
           <Route path="/dashboard" element={<div data-testid="dashboard-page" />} />
         </Routes>,
-        { initialEntries: ['/trips/999'] },
+        { initialEntries: ['/trips/999'] }
       );
 
       await waitFor(() => {
@@ -642,11 +657,7 @@ describe('TripPlannerPage', () => {
 
   describe('FE-PAGE-PLANNER-019: Todo subtab in ListsContainer', () => {
     it('shows TodoListPanel after switching to the Todo subtab inside Lists', async () => {
-      server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'packing', type: 'packing' }] })
-        )
-      );
+      server.use(http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'packing', type: 'packing' }] })));
 
       vi.useFakeTimers();
 
@@ -654,7 +665,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -669,7 +682,9 @@ describe('TripPlannerPage', () => {
 
       // Click the Todo subtab
       const todoButtons = screen.getAllByRole('button');
-      const todoSubtab = todoButtons.find(btn => btn.textContent?.includes('Todo') || btn.textContent?.includes('todo'));
+      const todoSubtab = todoButtons.find(
+        (btn) => btn.textContent?.includes('Todo') || btn.textContent?.includes('todo')
+      );
       if (todoSubtab) {
         fireEvent.click(todoSubtab);
         await waitFor(() => {
@@ -687,7 +702,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -709,7 +726,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -732,7 +751,9 @@ describe('TripPlannerPage', () => {
       vi.useFakeTimers();
       seedTripStore({ id: 42 });
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
 
       await waitFor(() => {
@@ -752,7 +773,9 @@ describe('TripPlannerPage', () => {
       const { trip } = seedTripStore({ id: 42 });
       seedStore(useTripStore, { trip: { ...trip, ...dates } } as any);
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
       await waitFor(() => {
         expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument();
@@ -780,7 +803,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -809,7 +834,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -833,7 +860,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -862,7 +891,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -889,7 +920,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -913,7 +946,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -935,7 +970,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -957,7 +994,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -982,7 +1021,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1012,7 +1053,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1045,7 +1088,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1055,7 +1100,11 @@ describe('TripPlannerPage', () => {
 
       // Call onSave with editingReservation=null (add path)
       await act(async () => {
-        await capturedReservationModalProps.current.onSave?.({ name: 'Test Booking', type: 'restaurant', status: 'confirmed' });
+        await capturedReservationModalProps.current.onSave?.({
+          name: 'Test Booking',
+          type: 'restaurant',
+          status: 'confirmed',
+        });
       });
     });
   });
@@ -1068,7 +1117,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1093,7 +1144,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1116,7 +1169,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1126,7 +1181,10 @@ describe('TripPlannerPage', () => {
 
       await act(async () => {
         capturedDayPlanSidebarProps.current.onRouteCalculated?.({
-          coordinates: [[1, 2], [3, 4]],
+          coordinates: [
+            [1, 2],
+            [3, 4],
+          ],
           distanceText: '1 km',
           durationText: '10 min',
           walkingText: '15 min',
@@ -1148,7 +1206,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1175,7 +1235,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1197,7 +1259,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1235,7 +1299,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1258,7 +1324,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1284,7 +1352,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1325,7 +1395,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1348,7 +1420,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1371,9 +1445,7 @@ describe('TripPlannerPage', () => {
   describe('FE-PAGE-PLANNER-044: FileManager callbacks cover file operation lambdas', () => {
     it('calls FileManager onUpload/onDelete/onUpdate to cover inline lambda bodies', async () => {
       server.use(
-        http.get('/api/addons', () =>
-          HttpResponse.json({ addons: [{ id: 'documents', type: 'documents' }] })
-        )
+        http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'documents', type: 'documents' }] }))
       );
 
       vi.useFakeTimers();
@@ -1382,7 +1454,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1417,7 +1491,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1455,7 +1531,15 @@ describe('TripPlannerPage', () => {
 
     it('hides the replaced core tab and splices the plugin tab at its position', async () => {
       usePluginStore.setState({
-        plugins: [{ id: 'transit-pro', name: 'Transit Pro', type: 'trip-page', icon: null, tripPage: { replaces: ['transports'], position: 1 } }],
+        plugins: [
+          {
+            id: 'transit-pro',
+            name: 'Transit Pro',
+            type: 'trip-page',
+            icon: null,
+            tripPage: { replaces: ['transports'], position: 1 },
+          },
+        ],
         loaded: true,
       });
       seedTripStore({ id: 42 });
@@ -1474,7 +1558,15 @@ describe('TripPlannerPage', () => {
     it('a saved session tab that a plugin replaced resets to plan once plugins load', async () => {
       sessionStorage.setItem('trip-tab-42', 'transports');
       usePluginStore.setState({
-        plugins: [{ id: 'transit-pro', name: 'Transit Pro', type: 'trip-page', icon: null, tripPage: { replaces: ['transports'] } }],
+        plugins: [
+          {
+            id: 'transit-pro',
+            name: 'Transit Pro',
+            type: 'trip-page',
+            icon: null,
+            tripPage: { replaces: ['transports'] },
+          },
+        ],
         loaded: true,
       });
       seedTripStore({ id: 42 });
@@ -1504,7 +1596,9 @@ describe('TripPlannerPage', () => {
       } as any);
 
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
 
       await waitFor(() => {
@@ -1533,7 +1627,9 @@ describe('TripPlannerPage', () => {
       seedStore(useTripStore, { places: [place] } as any);
 
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
 
       // Mobile portal renders the PlaceInspector (lines 830-879)
@@ -1569,7 +1665,9 @@ describe('TripPlannerPage', () => {
       seedTripStore({ id: 42 });
 
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
 
       await waitFor(() => {
@@ -1589,7 +1687,9 @@ describe('TripPlannerPage', () => {
       seedTripStore({ id: 42 });
 
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
 
       await waitFor(() => {
@@ -1599,11 +1699,13 @@ describe('TripPlannerPage', () => {
       // The mobile portal buttons are rendered to document.body.
       // The "Plan" tab button carries aria-label="Plan"; the portal button does not.
       const mobilePlanBtn = Array.from(document.body.querySelectorAll('button')).find(
-        b => b.textContent === 'Plan' && !b.getAttribute('aria-label'),
+        (b) => b.textContent === 'Plan' && !b.getAttribute('aria-label')
       );
 
       if (mobilePlanBtn) {
-        await act(async () => { fireEvent.click(mobilePlanBtn); });
+        await act(async () => {
+          fireEvent.click(mobilePlanBtn);
+        });
 
         // Mobile sidebar portal renders DayPlanSidebar — now two instances
         await waitFor(() => {
@@ -1612,10 +1714,12 @@ describe('TripPlannerPage', () => {
 
         // Close the mobile sidebar via the X button inside the portal header
         const closeButtons = Array.from(document.body.querySelectorAll('button')).filter(
-          b => !b.textContent || b.textContent.trim() === '',
+          (b) => !b.textContent || b.textContent.trim() === ''
         );
         if (closeButtons.length > 0) {
-          await act(async () => { fireEvent.click(closeButtons[0]); });
+          await act(async () => {
+            fireEvent.click(closeButtons[0]);
+          });
         }
       }
 
@@ -1632,7 +1736,9 @@ describe('TripPlannerPage', () => {
       seedTripStore({ id: 42 });
 
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
 
       await waitFor(() => {
@@ -1641,11 +1747,13 @@ describe('TripPlannerPage', () => {
 
       // "Places" tab doesn't exist; the mobile portal "Places" button has no title
       const mobilePlacesBtn = Array.from(document.body.querySelectorAll('button')).find(
-        b => b.textContent === 'Places' && !b.getAttribute('aria-label'),
+        (b) => b.textContent === 'Places' && !b.getAttribute('aria-label')
       );
 
       if (mobilePlacesBtn) {
-        await act(async () => { fireEvent.click(mobilePlacesBtn); });
+        await act(async () => {
+          fireEvent.click(mobilePlacesBtn);
+        });
 
         // PlacesSidebar renders in mobile sidebar portal
         await waitFor(() => {
@@ -1671,7 +1779,9 @@ describe('TripPlannerPage', () => {
       } as any);
 
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
 
       await waitFor(() => {
@@ -1680,10 +1790,12 @@ describe('TripPlannerPage', () => {
 
       // Open the mobile Plan portal via the bottom-nav Plan button (selector mirrors FE-PAGE-PLANNER-049).
       const mobilePlanBtn = Array.from(document.body.querySelectorAll('button')).find(
-        b => b.textContent === 'Plan' && !b.getAttribute('aria-label'),
+        (b) => b.textContent === 'Plan' && !b.getAttribute('aria-label')
       );
       expect(mobilePlanBtn).toBeTruthy();
-      await act(async () => { fireEvent.click(mobilePlanBtn!); });
+      await act(async () => {
+        fireEvent.click(mobilePlanBtn!);
+      });
 
       await waitFor(() => {
         expect(screen.getAllByTestId('day-plan-sidebar').length).toBe(2);
@@ -1721,7 +1833,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1754,7 +1868,9 @@ describe('TripPlannerPage', () => {
       });
 
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
       await waitFor(() => {
         expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument();
@@ -1764,7 +1880,9 @@ describe('TripPlannerPage', () => {
       expect(typeof capturedDayPlanSidebarProps.current.onDeleteDay).toBe('function');
       expect(capturedDayPlanSidebarProps.current.deleteDayQuestion).toBeNull();
 
-      await act(async () => { capturedDayPlanSidebarProps.current.onDeleteDay(harbour.id); });
+      await act(async () => {
+        capturedDayPlanSidebarProps.current.onDeleteDay(harbour.id);
+      });
 
       // The question goes to the reorder dialog, which asks it in place of its
       // list; the page stacks no second dialog on top of it.
@@ -1776,7 +1894,9 @@ describe('TripPlannerPage', () => {
       expect(question.title).toBe('Delete Harbour day?');
       expect(question.lines.map((l: { text: string }) => l.text)).toContain('Day titles and descriptions: 1');
 
-      await act(async () => { question.onConfirm(); });
+      await act(async () => {
+        question.onConfirm();
+      });
       expect(deleteDay).toHaveBeenCalledWith(42, harbour.id);
       await waitFor(() => {
         expect(capturedDayPlanSidebarProps.current.deleteDayQuestion).toBeNull();
@@ -1796,7 +1916,9 @@ describe('TripPlannerPage', () => {
       });
 
       renderPlannerPage(42);
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
       vi.useRealTimers();
       await waitFor(() => {
         expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument();
@@ -1804,7 +1926,9 @@ describe('TripPlannerPage', () => {
 
       const { dayAdd } = capturedDayPlanSidebarProps.current;
       expect(dayAdd).toMatchObject({ nextDate: '2025-06-06', blocked: null, datedBlocked: null, busy: false });
-      await act(async () => { dayAdd.onAddDated(); });
+      await act(async () => {
+        dayAdd.onAddDated();
+      });
       expect(appendDatedDay).toHaveBeenCalledWith(42);
       await waitFor(() => {
         expect(capturedDayPlanSidebarProps.current.dayAdd.busy).toBe(false);
@@ -1819,7 +1943,7 @@ describe('TripPlannerPage', () => {
       server.use(
         http.get('/api/addons', () => HttpResponse.json({ addons: [{ id: 'roadtrip', type: 'roadtrip' }] })),
         http.get('/api/trips/42/roadtrip/vias', () => HttpResponse.json({ vias: [], tracks: [] })),
-        http.get('/api/trips/42/roadtrip/preferences', () => HttpResponse.json({ tripId: 42, preferences: {} })),
+        http.get('/api/trips/42/roadtrip/preferences', () => HttpResponse.json({ tripId: 42, preferences: {} }))
       );
       sessionStorage.setItem('trip-roadtrip-42', '1');
     };
@@ -1835,7 +1959,9 @@ describe('TripPlannerPage', () => {
 
       renderPlannerPage(42);
 
-      act(() => { vi.runAllTimers(); });
+      act(() => {
+        vi.runAllTimers();
+      });
 
       vi.useRealTimers();
 
@@ -1850,13 +1976,17 @@ describe('TripPlannerPage', () => {
 
       // A terminal row, a ride pill or a booking chip shows the booking first, as the
       // day plan does; the editor is behind its Edit.
-      act(() => { capturedRoadtripSidebarProps.current.onOpenBooking?.(70); });
+      act(() => {
+        capturedRoadtripSidebarProps.current.onOpenBooking?.(70);
+      });
       expect(await screen.findByRole('dialog', { name: 'LH 2020' })).toBeInTheDocument();
       expect(capturedReservationModalProps.current.isOpen).toBe(false);
       fireEvent.click(screen.getByRole('button', { name: 'Close' }));
       await waitFor(() => expect(screen.queryByRole('dialog', { name: 'LH 2020' })).not.toBeInTheDocument());
 
-      act(() => { capturedRoadtripSidebarProps.current.onOpenBooking?.(11); });
+      act(() => {
+        capturedRoadtripSidebarProps.current.onOpenBooking?.(11);
+      });
       expect(await screen.findByRole('dialog', { name: 'Tisch Bullerei' })).toBeInTheDocument();
       expect(capturedReservationModalProps.current.isOpen).toBe(false);
       fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
@@ -1867,7 +1997,9 @@ describe('TripPlannerPage', () => {
       expect(screen.queryByRole('dialog', { name: 'Tisch Bullerei' })).not.toBeInTheDocument();
 
       // A booking the trip does not hold opens nothing.
-      act(() => { capturedRoadtripSidebarProps.current.onOpenBooking?.(999); });
+      act(() => {
+        capturedRoadtripSidebarProps.current.onOpenBooking?.(999);
+      });
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
   });

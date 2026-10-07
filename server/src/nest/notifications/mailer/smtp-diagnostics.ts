@@ -60,28 +60,43 @@ export function describeSmtpFailure(err: unknown, target: SmtpTarget, secret = '
   const where = `${target.host}:${target.port}`;
 
   if (code === 'EAUTH') {
-    return { code, reason: `${where} rejected the credentials. Check the SMTP user and password, and whether the account needs an app-specific password. Server said: ${message}` };
+    return {
+      code,
+      reason: `${where} rejected the credentials. Check the SMTP user and password, and whether the account needs an app-specific password. Server said: ${message}`,
+    };
   }
   if (code === 'EDNS' || /ENOTFOUND|EAI_AGAIN/.test(message)) {
     return { code, reason: `The host ${target.host} could not be resolved: ${message}` };
   }
   if (/ECONNREFUSED/.test(message)) {
-    return { code, reason: `${where} refused the connection: nothing is listening on that port, or a firewall closed it. ${portHint(target)}` };
+    return {
+      code,
+      reason: `${where} refused the connection: nothing is listening on that port, or a firewall closed it. ${portHint(target)}`,
+    };
   }
   if (/EHOSTUNREACH|ENETUNREACH|EACCES/.test(message)) {
     return { code, reason: `${where} is unreachable from the TREK container: ${message}` };
   }
   if (code === 'ETIMEDOUT' || /timed? ?out|Greeting never received/i.test(message)) {
-    return { code, reason: `${where} did not answer in time: ${message}. Outbound mail ports are often blocked by the host or the hosting provider. ${portHint(target)}` };
+    return {
+      code,
+      reason: `${where} did not answer in time: ${message}. Outbound mail ports are often blocked by the host or the hosting provider. ${portHint(target)}`,
+    };
   }
   if (/certificate|self.signed/i.test(message)) {
-    return { code, reason: `The TLS certificate of ${where} was not accepted: ${message}. For an internal relay with its own certificate, turn on "Skip TLS certificate check".` };
+    return {
+      code,
+      reason: `The TLS certificate of ${where} was not accepted: ${message}. For an internal relay with its own certificate, turn on "Skip TLS certificate check".`,
+    };
   }
   if (/wrong version number|packet length too long|ssl|routines|tlsv1/i.test(message)) {
     return { code, reason: `The TLS handshake with ${where} failed: ${message}. ${portHint(target)}` };
   }
   if (code === 'EENVELOPE') {
-    return { code, reason: `${where} rejected the envelope. The from address normally has to belong to the authenticated account. Server said: ${message}` };
+    return {
+      code,
+      reason: `${where} rejected the envelope. The from address normally has to belong to the authenticated account. Server said: ${message}`,
+    };
   }
   if (code === 'EMESSAGE') {
     return { code, reason: `${where} accepted the connection but rejected the message: ${message}` };

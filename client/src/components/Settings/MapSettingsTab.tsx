@@ -1,23 +1,20 @@
-import React, { useState, useEffect, useMemo, useRef, useId, Suspense, type ReactNode } from 'react'
-import { Map, Save, Layers, Box, ChevronDown, Check, Globe2, type LucideIcon } from 'lucide-react'
-import { useTranslation } from '../../i18n'
-import { useSettingsStore } from '../../store/settingsStore'
-import { useToast } from '../shared/Toast'
-import CustomSelect from '../shared/CustomSelect'
-import { fs } from '../shared/DialogShell'
-import { EditorField, INPUT } from '../shared/dialogParts'
-import { POPOVER } from '../Packing/packingPopoverStyles'
-import { MapView } from '../Map/MapView'
+import { Box, Check, ChevronDown, Globe2, Layers, Map, Save, type LucideIcon } from 'lucide-react';
+import React, { Suspense, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useTranslation } from '../../i18n';
+import { useSettingsStore } from '../../store/settingsStore';
+import { MapView } from '../Map/MapView';
+import { POPOVER } from '../Packing/packingPopoverStyles';
+import CustomSelect from '../shared/CustomSelect';
+import { fs } from '../shared/DialogShell';
+import { useToast } from '../shared/Toast';
+import { EditorField, INPUT } from '../shared/dialogParts';
 // The preview loads on demand, and paired with a single engine — a Leaflet-only
 // install pays for neither, and a GL install pays for one instead of both.
-import ErrorBoundary from '../shared/ErrorBoundary'
-import { GlMapPreviewMapbox, GlMapPreviewMaplibre } from '../Map/glLazy'
-import Section from './Section'
-import ToggleSwitch from './ToggleSwitch'
-import { SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsHint, StatusPill } from './settingsKit'
-import { withTileApiKey } from '../../utils/tileUrl'
-import { AMAP_ROAD, AMAP_SATELLITE } from '../../constants/mapDefaults'
-import type { Place } from '../../types'
+import { AMAP_ROAD, AMAP_SATELLITE } from '../../constants/mapDefaults';
+import { useAuthStore } from '../../store/authStore';
+import type { Place } from '../../types';
+import { withTileApiKey } from '../../utils/tileUrl';
+import { GlMapPreviewMapbox, GlMapPreviewMaplibre } from '../Map/glLazy';
 import {
   MAPBOX_DEFAULT_STYLE,
   defaultStyleForProvider,
@@ -25,12 +22,15 @@ import {
   isOpenFreeMapStyle,
   normalizeStyleForProvider,
   type GlMapProvider,
-} from '../Map/glProviders'
-import { useAuthStore } from '../../store/authStore'
+} from '../Map/glProviders';
+import ErrorBoundary from '../shared/ErrorBoundary';
+import Section from './Section';
+import ToggleSwitch from './ToggleSwitch';
+import { SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsHint, StatusPill } from './settingsKit';
 
 interface MapPreset {
-  name: string
-  url: string
+  name: string;
+  url: string;
 }
 
 const MAP_PRESETS: MapPreset[] = [
@@ -50,45 +50,55 @@ const MAP_PRESETS: MapPreset[] = [
   // basemap here that is genuinely good inside mainland China.
   { name: '高德地图 (Amap)', url: AMAP_ROAD },
   { name: '高德卫星 (Amap Satellite)', url: AMAP_SATELLITE },
-]
+];
 
 /** A field holding a URL, token or key: the box look in Geist, so the characters read apart. */
-const CODE_INPUT = `${INPUT} font-geist`
+const CODE_INPUT = `${INPUT} font-geist`;
 
 /** A style's tag (3D, Satellite, Terrain…): a small quiet chip, so a scan of the list finds the kind of map. */
 function TagChip({ tag }: { tag: string }) {
   return (
-    <span className="flex-none rounded-[5px] bg-surface-tertiary px-1.5 py-[3px] font-geist font-bold uppercase leading-none tracking-[.06em] text-content-muted" style={fs(9)}>
+    <span
+      className="flex-none rounded-[5px] bg-surface-tertiary px-1.5 py-[3px] font-geist font-bold uppercase leading-none tracking-[.06em] text-content-muted"
+      style={fs(9)}
+    >
       {tag}
     </span>
-  )
+  );
 }
 
-function StyleDropdown({ value, provider, onChange }: { value: string; provider: GlMapProvider; onChange: (v: string) => void }) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const presets = getStylePresets(provider)
+function StyleDropdown({
+  value,
+  provider,
+  onChange,
+}: {
+  value: string;
+  provider: GlMapProvider;
+  onChange: (v: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const presets = getStylePresets(provider);
 
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDoc)
-    return () => document.removeEventListener('mousedown', onDoc)
-  }, [open])
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
 
-  const selected = presets.find(p => p.url === value)
-  const placeholder = provider === 'maplibre-gl'
-    ? t('settings.mapOpenFreeMapStylePlaceholder')
-    : t('settings.mapStylePlaceholder')
+  const selected = presets.find((p) => p.url === value);
+  const placeholder =
+    provider === 'maplibre-gl' ? t('settings.mapOpenFreeMapStylePlaceholder') : t('settings.mapStylePlaceholder');
 
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         className="flex w-full items-center justify-between gap-2 rounded-[10px] border border-edge bg-surface-input px-3 py-2 text-left hover:border-content-faint focus:outline-none focus:ring-2 focus:ring-[color:var(--text-primary)]"
         style={fs(13, 'body')}
@@ -99,46 +109,63 @@ function StyleDropdown({ value, provider, onChange }: { value: string; provider:
           </span>
           {selected && (
             <span className="flex flex-none items-center gap-1">
-              {(selected.tags || []).map(t => <TagChip key={t} tag={t} />)}
+              {(selected.tags || []).map((t) => (
+                <TagChip key={t} tag={t} />
+              ))}
             </span>
           )}
         </span>
-        <ChevronDown size={14} className={`flex-none text-content-faint transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          size={14}
+          className={`flex-none text-content-faint transition-transform ${open ? 'rotate-180' : ''}`}
+        />
       </button>
       {open && (
         <div className="absolute inset-x-0 top-[calc(100%+4px)] z-20 max-h-64 overflow-y-auto" style={POPOVER}>
-          {presets.map(preset => {
-            const isActive = preset.url === value
+          {presets.map((preset) => {
+            const isActive = preset.url === value;
             return (
               <button
                 key={preset.url}
                 type="button"
-                onClick={() => { onChange(preset.url); setOpen(false) }}
+                onClick={() => {
+                  onChange(preset.url);
+                  setOpen(false);
+                }}
                 className={`flex w-full items-center justify-between gap-2 rounded-[9px] px-2.5 py-2 text-left hover:bg-surface-tertiary ${isActive ? 'bg-surface-tertiary' : ''}`}
                 style={fs(12.5, 'body')}
               >
                 <span className="flex min-w-0 flex-wrap items-center gap-1.5">
                   <span className="font-medium text-content">{preset.name}</span>
-                  {(preset.tags || []).map(t => <TagChip key={t} tag={t} />)}
+                  {(preset.tags || []).map((t) => (
+                    <TagChip key={t} tag={t} />
+                  ))}
                 </span>
                 {isActive && <Check size={13} className="flex-none text-content-muted" />}
               </button>
-            )
+            );
           })}
         </div>
       )}
     </div>
-  )
+  );
 }
 
 /** One engine to pick: an icon tile, its name and what it is, outlined while chosen. */
-function ProviderTile({ active, onClick, icon: Icon, name, subtitle, badge }: {
-  active: boolean
-  onClick: () => void
-  icon: LucideIcon
-  name: ReactNode
-  subtitle: string
-  badge?: ReactNode
+function ProviderTile({
+  active,
+  onClick,
+  icon: Icon,
+  name,
+  subtitle,
+  badge,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: LucideIcon;
+  name: ReactNode;
+  subtitle: string;
+  badge?: ReactNode;
 }) {
   return (
     <button
@@ -147,36 +174,42 @@ function ProviderTile({ active, onClick, icon: Icon, name, subtitle, badge }: {
       aria-pressed={active}
       className={`flex min-w-0 items-start gap-3 rounded-[12px] border bg-surface-card p-3 text-left transition-colors ${active ? 'border-[color:var(--text-primary)] shadow-sm' : 'border-edge hover:border-content-faint'}`}
     >
-      <span className={`grid h-8 w-8 flex-none place-items-center rounded-[10px] ${active ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-secondary'}`}>
+      <span
+        className={`grid h-8 w-8 flex-none place-items-center rounded-[10px] ${active ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-secondary'}`}
+      >
         <Icon size={15} strokeWidth={2} />
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 flex-wrap items-center gap-1.5">
-          <span className="font-semibold text-content" style={fs(13, 'body')}>{name}</span>
+          <span className="font-semibold text-content" style={fs(13, 'body')}>
+            {name}
+          </span>
           {badge}
         </span>
-        <span className="mt-0.5 hidden leading-snug text-content-faint sm:block" style={fs(11.5)}>{subtitle}</span>
+        <span className="mt-0.5 hidden leading-snug text-content-faint sm:block" style={fs(11.5)}>
+          {subtitle}
+        </span>
       </span>
     </button>
-  )
+  );
 }
 
-type Provider = 'leaflet' | GlMapProvider
+type Provider = 'leaflet' | GlMapProvider;
 
 function normalizeProvider(value: unknown): Provider {
-  return value === 'mapbox-gl' || value === 'maplibre-gl' ? value : 'leaflet'
+  return value === 'mapbox-gl' || value === 'maplibre-gl' ? value : 'leaflet';
 }
 
 function styleForProvider(provider: Provider, style?: string | null): string {
-  if (provider === 'leaflet') return style || MAPBOX_DEFAULT_STYLE
-  if (provider === 'mapbox-gl' && isOpenFreeMapStyle(style)) return MAPBOX_DEFAULT_STYLE
-  return normalizeStyleForProvider(provider, style)
+  if (provider === 'leaflet') return style || MAPBOX_DEFAULT_STYLE;
+  if (provider === 'mapbox-gl' && isOpenFreeMapStyle(style)) return MAPBOX_DEFAULT_STYLE;
+  return normalizeStyleForProvider(provider, style);
 }
 
 // Each GL provider has its own style slot, so toggling providers never clobbers the
 // other one's style. Leaflet/Mapbox use mapbox_style; MapLibre uses maplibre_style.
 function slotStyle(provider: Provider, s: { mapbox_style?: string; maplibre_style?: string }): string | undefined {
-  return provider === 'maplibre-gl' ? s.maplibre_style : s.mapbox_style
+  return provider === 'maplibre-gl' ? s.maplibre_style : s.mapbox_style;
 }
 
 /**
@@ -184,64 +217,71 @@ function slotStyle(provider: Provider, s: { mapbox_style?: string; maplibre_styl
  * 3D buildings and satellite texture in a way open ocean cannot — it is not a user setting,
  * and no map opens here: each map frames itself on its own places.
  */
-const PREVIEW_CENTER: [number, number] = [48.8566, 2.3522]
-const PREVIEW_ZOOM = 16
+const PREVIEW_CENTER: [number, number] = [48.8566, 2.3522];
+const PREVIEW_ZOOM = 16;
 
 export default function MapSettingsTab(): React.ReactElement {
-  const { settings, updateSettings } = useSettingsStore()
-  const { t } = useTranslation()
-  const toast = useToast()
-  const initialProvider = normalizeProvider(settings.map_provider)
-  const [saving, setSaving] = useState(false)
-  const [provider, setProvider] = useState<Provider>(initialProvider)
-  const [mapTileUrl, setMapTileUrl] = useState<string>(settings.map_tile_url || '')
-  const managed = useAuthStore((s) => s.managed)
-  const [mapboxToken, setMapboxToken] = useState<string>(settings.mapbox_access_token || '')
-  const [cartoKey, setCartoKey] = useState<string>(settings.carto_api_key || '')
-  const [mapboxStyle, setMapboxStyle] = useState<string>(styleForProvider(initialProvider, slotStyle(initialProvider, settings)))
-  const [mapbox3d, setMapbox3d] = useState<boolean>(settings.mapbox_3d_enabled !== false)
-  const [mapboxQuality, setMapboxQuality] = useState<boolean>(settings.mapbox_quality_mode === true)
+  const { settings, updateSettings } = useSettingsStore();
+  const { t } = useTranslation();
+  const toast = useToast();
+  const initialProvider = normalizeProvider(settings.map_provider);
+  const [saving, setSaving] = useState(false);
+  const [provider, setProvider] = useState<Provider>(initialProvider);
+  const [mapTileUrl, setMapTileUrl] = useState<string>(settings.map_tile_url || '');
+  const managed = useAuthStore((s) => s.managed);
+  const [mapboxToken, setMapboxToken] = useState<string>(settings.mapbox_access_token || '');
+  const [cartoKey, setCartoKey] = useState<string>(settings.carto_api_key || '');
+  const [mapboxStyle, setMapboxStyle] = useState<string>(
+    styleForProvider(initialProvider, slotStyle(initialProvider, settings))
+  );
+  const [mapbox3d, setMapbox3d] = useState<boolean>(settings.mapbox_3d_enabled !== false);
+  const [mapboxQuality, setMapboxQuality] = useState<boolean>(settings.mapbox_quality_mode === true);
   // One chunk per engine — see components/Map/glLazy.tsx.
-  const GlMapPreview = provider === 'maplibre-gl' ? GlMapPreviewMaplibre : GlMapPreviewMapbox
+  const GlMapPreview = provider === 'maplibre-gl' ? GlMapPreviewMaplibre : GlMapPreviewMapbox;
   // Ties each eyebrow label to its field, so a click on the label focuses it.
-  const fieldId = useId()
+  const fieldId = useId();
 
   useEffect(() => {
-    const nextProvider = normalizeProvider(settings.map_provider)
-    setProvider(nextProvider)
-    setMapTileUrl(settings.map_tile_url || '')
-    setMapboxToken(settings.mapbox_access_token || '')
-    setCartoKey(settings.carto_api_key || '')
-    setMapboxStyle(styleForProvider(nextProvider, slotStyle(nextProvider, settings)))
-    setMapbox3d(settings.mapbox_3d_enabled !== false)
-    setMapboxQuality(settings.mapbox_quality_mode === true)
-  }, [settings])
+    const nextProvider = normalizeProvider(settings.map_provider);
+    setProvider(nextProvider);
+    setMapTileUrl(settings.map_tile_url || '');
+    setMapboxToken(settings.mapbox_access_token || '');
+    setCartoKey(settings.carto_api_key || '');
+    setMapboxStyle(styleForProvider(nextProvider, slotStyle(nextProvider, settings)));
+    setMapbox3d(settings.mapbox_3d_enabled !== false);
+    setMapboxQuality(settings.mapbox_quality_mode === true);
+  }, [settings]);
 
-  const previewPlaces = useMemo((): Place[] => [{
-    id: 1,
-    trip_id: 1,
-    name: 'Preview',
-    description: '',
-    lat: PREVIEW_CENTER[0],
-    lng: PREVIEW_CENTER[1],
-    address: '',
-    category_id: 0,
-    price: null,
-    image_url: null,
-    google_place_id: null,
-    osm_id: null,
-    route_geometry: null,
-    place_time: null,
-    end_time: null,
-    created_at: String(new Date()),
-  }], [])
+  const previewPlaces = useMemo(
+    (): Place[] => [
+      {
+        id: 1,
+        trip_id: 1,
+        name: 'Preview',
+        description: '',
+        lat: PREVIEW_CENTER[0],
+        lng: PREVIEW_CENTER[1],
+        address: '',
+        category_id: 0,
+        price: null,
+        image_url: null,
+        google_place_id: null,
+        osm_id: null,
+        route_geometry: null,
+        place_time: null,
+        end_time: null,
+        created_at: String(new Date()),
+      },
+    ],
+    []
+  );
 
   const saveMapSettings = async (): Promise<void> => {
-    setSaving(true)
+    setSaving(true);
     try {
-      const glStyle = provider === 'leaflet' ? mapboxStyle : normalizeStyleForProvider(provider, mapboxStyle)
+      const glStyle = provider === 'leaflet' ? mapboxStyle : normalizeStyleForProvider(provider, mapboxStyle);
       // Save into the active provider's own slot so the other provider's style survives.
-      const stylePatch = provider === 'maplibre-gl' ? { maplibre_style: glStyle } : { mapbox_style: glStyle }
+      const stylePatch = provider === 'maplibre-gl' ? { maplibre_style: glStyle } : { mapbox_style: glStyle };
       await updateSettings({
         map_provider: provider,
         map_tile_url: mapTileUrl,
@@ -250,27 +290,27 @@ export default function MapSettingsTab(): React.ReactElement {
         ...stylePatch,
         mapbox_3d_enabled: mapbox3d,
         mapbox_quality_mode: mapboxQuality,
-      })
+      });
       // Only mirror the normalized style into the form once it is actually persisted.
-      setMapboxStyle(glStyle)
-      toast.success(t('settings.toast.mapSaved'))
+      setMapboxStyle(glStyle);
+      toast.success(t('settings.toast.mapSaved'));
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : t('common.error'))
+      toast.error(err instanceof Error ? err.message : t('common.error'));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   // 3D is available on every style now — pure satellite uses the
   // mapbox-streets-v8 tileset as a fallback building source.
-  const supports3d = true
+  const supports3d = true;
   const changeProvider = (nextProvider: Provider) => {
-    setProvider(nextProvider)
-    if (nextProvider !== 'leaflet') setMapboxStyle(styleForProvider(nextProvider, mapboxStyle))
-  }
+    setProvider(nextProvider);
+    if (nextProvider !== 'leaflet') setMapboxStyle(styleForProvider(nextProvider, mapboxStyle));
+  };
   // Only CARTO burns a watermark into keyless tiles, so the nudge is scoped to its hosts.
-  const cartoNeedsKey = mapTileUrl.includes('basemaps.cartocdn.com') && !cartoKey.trim()
-  const link = 'font-medium text-content-secondary underline decoration-edge underline-offset-2 hover:text-content'
+  const cartoNeedsKey = mapTileUrl.includes('basemaps.cartocdn.com') && !cartoKey.trim();
+  const link = 'font-medium text-content-secondary underline decoration-edge underline-offset-2 hover:text-content';
 
   return (
     <Section title={t('settings.map')} icon={Map}>
@@ -289,16 +329,30 @@ export default function MapSettingsTab(): React.ReactElement {
               active={provider === 'mapbox-gl'}
               onClick={() => changeProvider('mapbox-gl')}
               icon={Box}
-              name={<><span className="sm:hidden">Mapbox</span><span className="hidden sm:inline">Mapbox GL</span></>}
+              name={
+                <>
+                  <span className="sm:hidden">Mapbox</span>
+                  <span className="hidden sm:inline">Mapbox GL</span>
+                </>
+              }
               subtitle={t('settings.mapMapboxSubtitle')}
               // Only on ≥sm; on a narrow window there's no room next to the title.
-              badge={<span className="hidden sm:inline-flex"><StatusPill tone="warning">{t('settings.mapExperimental')}</StatusPill></span>}
+              badge={
+                <span className="hidden sm:inline-flex">
+                  <StatusPill tone="warning">{t('settings.mapExperimental')}</StatusPill>
+                </span>
+              }
             />
             <ProviderTile
               active={provider === 'maplibre-gl'}
               onClick={() => changeProvider('maplibre-gl')}
               icon={Globe2}
-              name={<><span className="sm:hidden">MapLibre</span><span className="hidden sm:inline">MapLibre GL</span></>}
+              name={
+                <>
+                  <span className="sm:hidden">MapLibre</span>
+                  <span className="hidden sm:inline">MapLibre GL</span>
+                </>
+              }
               subtitle={t('settings.mapMapLibreSubtitle')}
             />
           </div>
@@ -311,9 +365,11 @@ export default function MapSettingsTab(): React.ReactElement {
           <div className="flex flex-col gap-2">
             <CustomSelect
               value={mapTileUrl}
-              onChange={(value: string) => { if (value) setMapTileUrl(value) }}
+              onChange={(value: string) => {
+                if (value) setMapTileUrl(value);
+              }}
               placeholder={t('settings.mapTemplatePlaceholder.select')}
-              options={MAP_PRESETS.map(p => ({ value: p.url, label: p.name }))}
+              options={MAP_PRESETS.map((p) => ({ value: p.url, label: p.name }))}
             />
             <input
               id={`${fieldId}-tile`}
@@ -413,7 +469,9 @@ export default function MapSettingsTab(): React.ReactElement {
                   control={
                     <ToggleSwitch
                       on={mapbox3d && supports3d}
-                      onToggle={() => { if (supports3d) setMapbox3d(!mapbox3d) }}
+                      onToggle={() => {
+                        if (supports3d) setMapbox3d(!mapbox3d);
+                      }}
                       label={t('settings.map3dBuildings')}
                     />
                   }
@@ -431,13 +489,20 @@ export default function MapSettingsTab(): React.ReactElement {
                       <span className="text-warning">{t('settings.mapHighQualityWarning')}</span>
                     </>
                   }
-                  control={<ToggleSwitch on={mapboxQuality} onToggle={() => setMapboxQuality(!mapboxQuality)} label={t('settings.mapHighQuality')} />}
+                  control={
+                    <ToggleSwitch
+                      on={mapboxQuality}
+                      onToggle={() => setMapboxQuality(!mapboxQuality)}
+                      label={t('settings.mapHighQuality')}
+                    />
+                  }
                 />
               </SettingRows>
 
               <div className="rounded-[12px] border border-edge-faint bg-surface-card px-3.5 py-3">
                 <SettingsHint>
-                  <strong className="font-semibold text-content-secondary">{t('settings.mapTipLabel')}</strong> {t('settings.mapTip')}
+                  <strong className="font-semibold text-content-secondary">{t('settings.mapTipLabel')}</strong>{' '}
+                  {t('settings.mapTip')}
                 </SettingsHint>
               </div>
             </>
@@ -450,21 +515,25 @@ export default function MapSettingsTab(): React.ReactElement {
           /* A net of its own: the preview is the one place a user flips providers
              live, so it is the likeliest chunk to fail — and a broken preview must
              not take the rest of the settings tab with it. */
-          <ErrorBoundary boundaryId="settings:map-preview" resetKeys={[provider]} fallback={<div className="h-full w-full bg-surface-secondary" />}>
-          <Suspense fallback={<div className="h-full w-full animate-pulse bg-surface-secondary" />}>
-            <GlMapPreview
-              provider={provider}
-              token={mapboxToken}
-              style={mapboxStyle}
-              lat={PREVIEW_CENTER[0]}
-              lng={PREVIEW_CENTER[1]}
-              // Zoom in close so the style's character (3D buildings,
-              // satellite texture, label density) is immediately visible.
-              zoom={PREVIEW_ZOOM}
-              enable3d={provider === 'mapbox-gl' && mapbox3d && supports3d}
-              quality={provider === 'mapbox-gl' && mapboxQuality}
-            />
-          </Suspense>
+          <ErrorBoundary
+            boundaryId="settings:map-preview"
+            resetKeys={[provider]}
+            fallback={<div className="h-full w-full bg-surface-secondary" />}
+          >
+            <Suspense fallback={<div className="h-full w-full animate-pulse bg-surface-secondary" />}>
+              <GlMapPreview
+                provider={provider}
+                token={mapboxToken}
+                style={mapboxStyle}
+                lat={PREVIEW_CENTER[0]}
+                lng={PREVIEW_CENTER[1]}
+                // Zoom in close so the style's character (3D buildings,
+                // satellite texture, label density) is immediately visible.
+                zoom={PREVIEW_ZOOM}
+                enable3d={provider === 'mapbox-gl' && mapbox3d && supports3d}
+                quality={provider === 'mapbox-gl' && mapboxQuality}
+              />
+            </Suspense>
           </ErrorBoundary>
         ) : (
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -493,16 +562,21 @@ export default function MapSettingsTab(): React.ReactElement {
       </div>
 
       <div className="flex justify-end">
-        <button type="button"
+        <button
+          type="button"
           onClick={saveMapSettings}
           disabled={saving}
           className={SETTINGS_BUTTON_PRIMARY}
           style={fs(13, 'body')}
         >
-          {saving ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <Save size={14} strokeWidth={2} />}
+          {saving ? (
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          ) : (
+            <Save size={14} strokeWidth={2} />
+          )}
           {t('settings.saveMap')}
         </button>
       </div>
     </Section>
-  )
+  );
 }

@@ -1,5 +1,5 @@
-import type { DayAccommodations } from '../entities/DayAccommodations.entity';
 import { coalesceOverride, columnRef } from '../dialect/sql-functions';
+import type { DayAccommodations } from '../entities/DayAccommodations.entity';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
@@ -133,7 +133,12 @@ export class DayAccommodationsRepository extends TrekRepository<DayAccommodation
    * raw fragment value (`DayAssignmentsRepository.shiftOrderFrom`'s
    * precedent).
    */
-  async patchTimes(id: number, check_in: string | null, check_in_end: string | null, check_out: string | null): Promise<void> {
+  async patchTimes(
+    id: number,
+    check_in: string | null,
+    check_in_end: string | null,
+    check_out: string | null,
+  ): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
     await this.qb()
       .update({
@@ -186,22 +191,28 @@ export class DayAccommodationsRepository extends TrekRepository<DayAccommodation
    * verbatim (the `PlacesRepository.updatePlace`/PL11 precedent: no SQL-side
    * COALESCE here, the legacy statement itself has none for these columns).
    */
-  async updateFromBooking(id: number, write: {
-    place_id: number | null;
-    start_day_id: number;
-    end_day_id: number;
-    check_in: string | null;
-    check_out: string | null;
-    confirmation: string | null;
-  }): Promise<void> {
-    await this.nativeUpdate({ id }, {
-      place: write.place_id,
-      startDay: write.start_day_id,
-      endDay: write.end_day_id,
-      check_in: write.check_in,
-      check_out: write.check_out,
-      confirmation: write.confirmation,
-    });
+  async updateFromBooking(
+    id: number,
+    write: {
+      place_id: number | null;
+      start_day_id: number;
+      end_day_id: number;
+      check_in: string | null;
+      check_out: string | null;
+      confirmation: string | null;
+    },
+  ): Promise<void> {
+    await this.nativeUpdate(
+      { id },
+      {
+        place: write.place_id,
+        startDay: write.start_day_id,
+        endDay: write.end_day_id,
+        check_in: write.check_in,
+        check_out: write.check_out,
+        confirmation: write.confirmation,
+      },
+    );
   }
 
   /** RS47 — `DELETE FROM day_accommodations WHERE id = ? AND trip_id = ?`, run AFTER `accommodations.dropStayStops` (ordering load-bearing, kept in the service). `id`/`trip_id: number` (typed filter, program rule 23; rule 21 — the SAME `toRowId`-parsed trip id `existsInTrip`'s gate read used). */
@@ -246,7 +257,14 @@ export class DayAccommodationsRepository extends TrekRepository<DayAccommodation
     // means an unqualified `id` key is ambiguous between `a.id` and `p.id`.
     return await this.qb('a')
       .leftJoin('a.place', 'p')
-      .select(['a.*', 'p.name as place_name', 'p.address as place_address', 'p.image_url as place_image', 'p.lat as place_lat', 'p.lng as place_lng'])
+      .select([
+        'a.*',
+        'p.name as place_name',
+        'p.address as place_address',
+        'p.image_url as place_image',
+        'p.lat as place_lat',
+        'p.lng as place_lng',
+      ])
       .where({ 'a.id': id })
       .execute<DayAccommodationWithPlaceRow | undefined>('get', false);
   }
@@ -337,26 +355,32 @@ export class DayAccommodationsRepository extends TrekRepository<DayAccommodation
    * (note: NO `|| null` here, unlike AC30 — the legacy statement itself has
    * none for these columns, so `''` is stored as `''`).
    */
-  async updateStay(id: number, write: {
-    place_id: number | null;
-    start_day_id: number;
-    end_day_id: number;
-    check_in: string | null;
-    check_in_end: string | null;
-    check_out: string | null;
-    confirmation: string | null;
-    notes: string | null;
-  }): Promise<void> {
-    await this.nativeUpdate({ id }, {
-      place: write.place_id,
-      startDay: write.start_day_id,
-      endDay: write.end_day_id,
-      check_in: write.check_in,
-      check_in_end: write.check_in_end,
-      check_out: write.check_out,
-      confirmation: write.confirmation,
-      notes: write.notes,
-    });
+  async updateStay(
+    id: number,
+    write: {
+      place_id: number | null;
+      start_day_id: number;
+      end_day_id: number;
+      check_in: string | null;
+      check_in_end: string | null;
+      check_out: string | null;
+      confirmation: string | null;
+      notes: string | null;
+    },
+  ): Promise<void> {
+    await this.nativeUpdate(
+      { id },
+      {
+        place: write.place_id,
+        startDay: write.start_day_id,
+        endDay: write.end_day_id,
+        check_in: write.check_in,
+        check_in_end: write.check_in_end,
+        check_out: write.check_out,
+        confirmation: write.confirmation,
+        notes: write.notes,
+      },
+    );
   }
 
   /**
@@ -394,10 +418,17 @@ export class DayAccommodationsRepository extends TrekRepository<DayAccommodation
    * `RoadtripDayBoundariesRepository` trap, Task 1's report), so both go
    * through `columnRef`.
    */
-  async listForResync(trip_id: number): Promise<{ id: number; start_day_id: number; end_day_id: number; check_in: string | null }[]> {
+  async listForResync(
+    trip_id: number,
+  ): Promise<{ id: number; start_day_id: number; end_day_id: number; check_in: string | null }[]> {
     const platform = this.getEntityManager().getPlatform();
     return await this.qb('a')
-      .select(['a.id', columnRef(platform, 'a.start_day_id').as('start_day_id'), columnRef(platform, 'a.end_day_id').as('end_day_id'), 'a.check_in'])
+      .select([
+        'a.id',
+        columnRef(platform, 'a.start_day_id').as('start_day_id'),
+        columnRef(platform, 'a.end_day_id').as('end_day_id'),
+        'a.check_in',
+      ])
       .where({ trip: trip_id })
       .execute<{ id: number; start_day_id: number; end_day_id: number; check_in: string | null }[]>('all', false);
   }
@@ -449,10 +480,7 @@ export class DayAccommodationsRepository extends TrekRepository<DayAccommodation
    * own `findInTrip` projection), reused here rather than declared again.
    */
   async listAllForTrip(trip_id: number): Promise<DayAccommodationRow[]> {
-    return await this.qb('a')
-      .select(['a.*'])
-      .where({ trip: trip_id })
-      .execute<DayAccommodationRow[]>('all', false);
+    return await this.qb('a').select(['a.*']).where({ trip: trip_id }).execute<DayAccommodationRow[]>('all', false);
   }
 
   // ---------------------------------------------------------------------------

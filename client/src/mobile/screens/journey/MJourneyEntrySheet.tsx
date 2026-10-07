@@ -1,40 +1,61 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { localIsoDate } from '../../../utils/localDate'
-import { Briefcase, Camera, Plus, Image, Images, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle, ChevronUp, ChevronDown, EyeOff, Play } from 'lucide-react'
-import MSheet from '../../components/MSheet'
-import MIconBtn from '../../components/MIconBtn'
-import MToggle from '../../components/MToggle'
-import { useTranslation } from '../../../i18n'
-import { useToast } from '../../../components/shared/Toast'
-import CustomTimePicker from '../../../components/shared/CustomTimePicker'
-import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicker'
-import { journeyApi, mapsApi, weatherApi } from '../../../api/client'
-import { getApiErrorMessage } from '../../../types'
-import { normalizeImageFiles } from '../../../utils/convertHeic'
-import { isVideoFile } from '../../../utils/videoPoster'
-import { getCurrentPositionOnce } from '../../../hooks/useGeolocation'
-import type { ResilientResult, UploadProgress } from '../../../utils/uploadQueue'
-import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip } from '../../../store/journeyStore'
-import { useAddonStore } from '../../../store/addonStore'
-import { photoUrl, posterlessVideo, geoOnceErrorKey, isValidGeoPoint } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
-import JournalBody from '../../../components/Journey/JournalBody'
-import { ProviderPicker, type ProviderPhotoGroup } from '../../../components/Journey/JourneyDetailPageProviderPicker'
-import { journeyWeatherCategory, MOBILE_MOODS, MOBILE_WEATHERS } from './mobileJourneyMeta'
-import { useJourneyTripSuggestion } from '../../../components/Journey/useJourneyTripSuggestion'
-import { useEntryPhotoOrder } from '../../../components/Journey/useEntryPhotoOrder'
-import { usePlaceLanguage } from '../../../hooks/usePlaceLanguage'
+import {
+  Briefcase,
+  Camera,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  EyeOff,
+  Image,
+  Images,
+  Locate,
+  MapPin,
+  MinusCircle,
+  Play,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { journeyApi, mapsApi, weatherApi } from '../../../api/client';
+import JournalBody from '../../../components/Journey/JournalBody';
+import { ProviderPicker, type ProviderPhotoGroup } from '../../../components/Journey/JourneyDetailPageProviderPicker';
+import { useEntryPhotoOrder } from '../../../components/Journey/useEntryPhotoOrder';
+import { useJourneyTripSuggestion } from '../../../components/Journey/useJourneyTripSuggestion';
+import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicker';
+import CustomTimePicker from '../../../components/shared/CustomTimePicker';
+import { useToast } from '../../../components/shared/Toast';
+import { getCurrentPositionOnce } from '../../../hooks/useGeolocation';
+import { usePlaceLanguage } from '../../../hooks/usePlaceLanguage';
+import { useTranslation } from '../../../i18n';
+import {
+  geoOnceErrorKey,
+  isValidGeoPoint,
+  photoUrl,
+  posterlessVideo,
+} from '../../../pages/journeyDetail/JourneyDetailPage.helpers';
+import { useAddonStore } from '../../../store/addonStore';
+import type { GalleryPhoto, JourneyEntry, JourneyPhoto, JourneyTrip } from '../../../store/journeyStore';
+import { getApiErrorMessage } from '../../../types';
+import { normalizeImageFiles } from '../../../utils/convertHeic';
+import { localIsoDate } from '../../../utils/localDate';
+import type { ResilientResult, UploadProgress } from '../../../utils/uploadQueue';
+import { isVideoFile } from '../../../utils/videoPoster';
+import MIconBtn from '../../components/MIconBtn';
+import MSheet from '../../components/MSheet';
+import MToggle from '../../components/MToggle';
+import { journeyWeatherCategory, MOBILE_MOODS, MOBILE_WEATHERS } from './mobileJourneyMeta';
 
-const PRO_COLOR = '#2FA37A'
-const CON_COLOR = '#D6273B'
+const PRO_COLOR = '#2FA37A';
+const CON_COLOR = '#D6273B';
 
 interface LocationResult {
-  name: string
-  address?: string
-  lat: number
-  lng: number
+  name: string;
+  address?: string;
+  lat: number;
+  lng: number;
 }
 
-type PendingProviderGroup = ProviderPhotoGroup & { provider: string }
+type PendingProviderGroup = ProviderPhotoGroup & { provider: string };
 
 // A clip with no poster to show: the tinted tile and play mark the gallery grid
 // gives it, since an <img> asked for its thumbnail draws the broken glyph (#2341).
@@ -45,20 +66,20 @@ function ClipTile() {
         <Play size={12} className="ml-[1px]" fill="currentColor" />
       </span>
     </span>
-  )
+  );
 }
 
 interface MJourneyEntrySheetProps {
-  entry: JourneyEntry
-  galleryPhotos: GalleryPhoto[]
-  quickCapture?: boolean
-  readOnly?: boolean
-  userId?: number
-  trips?: JourneyTrip[]
+  entry: JourneyEntry;
+  galleryPhotos: GalleryPhoto[];
+  quickCapture?: boolean;
+  readOnly?: boolean;
+  userId?: number;
+  trips?: JourneyTrip[];
   /** The optional fields this journey still keeps (discussion #2299). Values are never cleared. */
-  showVerdict?: boolean
-  showMood?: boolean
-  showWeather?: boolean
+  showVerdict?: boolean;
+  showMood?: boolean;
+  showWeather?: boolean;
   /**
    * Move this entry within its day.
    *
@@ -67,16 +88,20 @@ interface MJourneyEntrySheetProps {
    * (discussion #2299). Absent when the entry is alone on its day, is a
    * suggestion, or the reader cannot edit.
    */
-  onMoveEarlier?: () => void
-  onMoveLater?: () => void
+  onMoveEarlier?: () => void;
+  onMoveLater?: () => void;
   /** Wave a trip-derived suggestion away. Only ever passed for a skeleton. */
-  onDismiss?: () => void
-  onClose: () => void
-  onSave: (data: Record<string, unknown>, existingEntryId?: number) => Promise<number>
-  onUploadPhotos: (entryId: number, files: File[], cbs?: { onProgress?: (p: UploadProgress) => void }) => Promise<ResilientResult<JourneyPhoto>>
-  onAddProviderPhotos?: (entryId: number, group: PendingProviderGroup) => Promise<void>
-  onDelete?: () => void
-  onDone: () => void
+  onDismiss?: () => void;
+  onClose: () => void;
+  onSave: (data: Record<string, unknown>, existingEntryId?: number) => Promise<number>;
+  onUploadPhotos: (
+    entryId: number,
+    files: File[],
+    cbs?: { onProgress?: (p: UploadProgress) => void }
+  ) => Promise<ResilientResult<JourneyPhoto>>;
+  onAddProviderPhotos?: (entryId: number, group: PendingProviderGroup) => Promise<void>;
+  onDelete?: () => void;
+  onDone: () => void;
 }
 
 /**
@@ -85,144 +110,182 @@ interface MJourneyEntrySheetProps {
  * search, mood (4), weather (6) and tags. Read-only for viewer contributors.
  */
 export default function MJourneyEntrySheet({
-  entry, galleryPhotos, quickCapture = false, readOnly = false, userId = 0, trips = [],
-  showVerdict = true, showMood = true, showWeather = true, onMoveEarlier, onMoveLater, onDismiss,
-  onClose, onSave, onUploadPhotos, onAddProviderPhotos, onDelete, onDone,
+  entry,
+  galleryPhotos,
+  quickCapture = false,
+  readOnly = false,
+  userId = 0,
+  trips = [],
+  showVerdict = true,
+  showMood = true,
+  showWeather = true,
+  onMoveEarlier,
+  onMoveLater,
+  onDismiss,
+  onClose,
+  onSave,
+  onUploadPhotos,
+  onAddProviderPhotos,
+  onDelete,
+  onDone,
 }: MJourneyEntrySheetProps) {
-  const { t, language } = useTranslation()
-  const placeLang = usePlaceLanguage()
-  const toast = useToast()
+  const { t, language } = useTranslation();
+  const placeLang = usePlaceLanguage();
+  const toast = useToast();
   // Which verdict row to hand the caret after the next render — see addVerdictRow.
-  const verdictFocusRef = useRef<string | null>(null)
+  const verdictFocusRef = useRef<string | null>(null);
 
-  const [title, setTitle] = useState(entry.title || '')
-  const [story, setStory] = useState(entry.story || '')
-  const [entryDate, setEntryDate] = useState(entry.entry_date || localIsoDate())
-  const [entryTime, setEntryTime] = useState(entry.entry_time?.slice(0, 5) || '')
-  const [locationName, setLocationName] = useState(entry.location_name || '')
-  const [locationLat, setLocationLat] = useState<number | null>(entry.location_lat ?? null)
-  const [locationLng, setLocationLng] = useState<number | null>(entry.location_lng ?? null)
-  const [locationQuery, setLocationQuery] = useState('')
-  const [locationResults, setLocationResults] = useState<LocationResult[]>([])
-  const [showLocationResults, setShowLocationResults] = useState(false)
-  const locationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [mood, setMood] = useState(entry.mood || '')
-  const [weather, setWeather] = useState(entry.weather || '')
-  const [statsExcluded, setStatsExcluded] = useState(entry.stats_excluded ?? false)
+  const [title, setTitle] = useState(entry.title || '');
+  const [story, setStory] = useState(entry.story || '');
+  const [entryDate, setEntryDate] = useState(entry.entry_date || localIsoDate());
+  const [entryTime, setEntryTime] = useState(entry.entry_time?.slice(0, 5) || '');
+  const [locationName, setLocationName] = useState(entry.location_name || '');
+  const [locationLat, setLocationLat] = useState<number | null>(entry.location_lat ?? null);
+  const [locationLng, setLocationLng] = useState<number | null>(entry.location_lng ?? null);
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locationResults, setLocationResults] = useState<LocationResult[]>([]);
+  const [showLocationResults, setShowLocationResults] = useState(false);
+  const locationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [mood, setMood] = useState(entry.mood || '');
+  const [weather, setWeather] = useState(entry.weather || '');
+  const [statsExcluded, setStatsExcluded] = useState(entry.stats_excluded ?? false);
   // The trip this day belongs to, when the journey does not follow it yet (#2265).
-  const tripSuggestion = useJourneyTripSuggestion(entry.journey_id, trips.map(tr => tr.trip_id), entryDate, !readOnly)
-  const [isDraft, setIsDraft] = useState(entry.is_draft ?? false)
-  const [pros, setPros] = useState<string[]>(entry.pros_cons?.pros ?? [])
-  const [cons, setCons] = useState<string[]>(entry.pros_cons?.cons ?? [])
-  const [tags, setTags] = useState<string[]>(entry.tags ?? [])
-  const [tagInput, setTagInput] = useState('')
-  const [photos, setPhotos] = useState<(JourneyPhoto | GalleryPhoto)[]>(entry.photos || [])
+  const tripSuggestion = useJourneyTripSuggestion(
+    entry.journey_id,
+    trips.map((tr) => tr.trip_id),
+    entryDate,
+    !readOnly
+  );
+  const [isDraft, setIsDraft] = useState(entry.is_draft ?? false);
+  const [pros, setPros] = useState<string[]>(entry.pros_cons?.pros ?? []);
+  const [cons, setCons] = useState<string[]>(entry.pros_cons?.cons ?? []);
+  const [tags, setTags] = useState<string[]>(entry.tags ?? []);
+  const [tagInput, setTagInput] = useState('');
+  const [photos, setPhotos] = useState<(JourneyPhoto | GalleryPhoto)[]>(entry.photos || []);
   // Sends a photo to the front in one request, the same way the desktop editor does (#824).
-  const photoOrder = useEntryPhotoOrder(entry.id, photos, setPhotos)
-  const [pendingFiles, setPendingFiles] = useState<File[]>([])
-  const [pendingLinkIds, setPendingLinkIds] = useState<number[]>([])
-  const [pendingProviderGroups, setPendingProviderGroups] = useState<PendingProviderGroup[]>([])
-  const [showGalleryPick, setShowGalleryPick] = useState(false)
-  const [showExternal, setShowExternal] = useState(false)
-  const [externalProvider, setExternalProvider] = useState<string | null>(null)
-  const [providers, setProviders] = useState<{ id: string; name: string }[]>([])
-  const [saving, setSaving] = useState(false)
-  const [captureOnly, setCaptureOnly] = useState(quickCapture)
-  const [locating, setLocating] = useState(false)
-  const [locationError, setLocationError] = useState('')
-  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
-  const cameraRef = useRef<HTMLInputElement>(null)
+  const photoOrder = useEntryPhotoOrder(entry.id, photos, setPhotos);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [pendingLinkIds, setPendingLinkIds] = useState<number[]>([]);
+  const [pendingProviderGroups, setPendingProviderGroups] = useState<PendingProviderGroup[]>([]);
+  const [showGalleryPick, setShowGalleryPick] = useState(false);
+  const [showExternal, setShowExternal] = useState(false);
+  const [externalProvider, setExternalProvider] = useState<string | null>(null);
+  const [providers, setProviders] = useState<{ id: string; name: string }[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [captureOnly, setCaptureOnly] = useState(quickCapture);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState('');
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   // A save that creates the entry and then fails on the provider photos keeps
   // the sheet open; without the id of what was just created, the retry would
   // create a second entry (#1808).
-  const persistedEntryIdRef = useRef<number | null>(entry.id > 0 ? entry.id : null)
+  const persistedEntryIdRef = useRef<number | null>(entry.id > 0 ? entry.id : null);
 
   // The addon list is already in the store — this only probes which of the
   // photo providers is actually connected for this user.
-  const addons = useAddonStore(s => s.addons)
-  const addonsLoaded = useAddonStore(s => s.loaded)
+  const addons = useAddonStore((s) => s.addons);
+  const addonsLoaded = useAddonStore((s) => s.loaded);
   const photoProviders = useMemo(
-    () => addons.filter(a => a.type === 'photo_provider' && a.enabled).map(a => ({ id: a.id, name: a.name })),
-    [addons],
-  )
+    () => addons.filter((a) => a.type === 'photo_provider' && a.enabled).map((a) => ({ id: a.id, name: a.name })),
+    [addons]
+  );
 
   // Minting the preview inside the tile markup would hand out a fresh blob URL on
   // every keystroke in the story field, and nothing would ever release them.
-  const pendingPreviews = useMemo(() => pendingFiles.map(f => URL.createObjectURL(f)), [pendingFiles])
-  useEffect(() => () => { pendingPreviews.forEach(url => URL.revokeObjectURL(url)) }, [pendingPreviews])
+  const pendingPreviews = useMemo(() => pendingFiles.map((f) => URL.createObjectURL(f)), [pendingFiles]);
+  useEffect(
+    () => () => {
+      pendingPreviews.forEach((url) => URL.revokeObjectURL(url));
+    },
+    [pendingPreviews]
+  );
 
   useEffect(() => {
-    if (readOnly) return
+    if (readOnly) return;
     // App.tsx loads the addon list on boot, so this only reacts to it. Kicking off
     // a second load from here would race the other consumers, and loadAddons
     // overwrites the list unconditionally when it lands.
-    if (!addonsLoaded) return
-    if (photoProviders.length === 0) { setProviders([]); return }
-    let active = true
-    ;void (async () => {
-      const connected: { id: string; name: string }[] = []
+    if (!addonsLoaded) return;
+    if (photoProviders.length === 0) {
+      setProviders([]);
+      return;
+    }
+    let active = true;
+    void (async () => {
+      const connected: { id: string; name: string }[] = [];
       for (const provider of photoProviders) {
         try {
-          const res = await fetch(`/api/integrations/memories/${provider.id}/status`, { credentials: 'include' })
-          if (res.ok && (await res.json()).connected) connected.push(provider)
-        } catch { /* provider stays hidden */ }
+          const res = await fetch(`/api/integrations/memories/${provider.id}/status`, { credentials: 'include' });
+          if (res.ok && (await res.json()).connected) connected.push(provider);
+        } catch {
+          /* provider stays hidden */
+        }
       }
-      if (active) setProviders(connected)
-    })()
-    return () => { active = false }
-  }, [readOnly, addonsLoaded, photoProviders])
+      if (active) setProviders(connected);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [readOnly, addonsLoaded, photoProviders]);
 
-  const activeProvider = externalProvider || providers[0]?.id || null
-  const queuedProviderPhotos = pendingProviderGroups.reduce((sum, group) => sum + group.assetIds.length, 0)
-  const providerExistingAssetIds = new Set<string>()
+  const activeProvider = externalProvider || providers[0]?.id || null;
+  const queuedProviderPhotos = pendingProviderGroups.reduce((sum, group) => sum + group.assetIds.length, 0);
+  const providerExistingAssetIds = new Set<string>();
   if (activeProvider) {
-    photos.forEach(photo => {
-      if (photo.provider === activeProvider && photo.asset_id) providerExistingAssetIds.add(photo.asset_id)
-    })
-    pendingProviderGroups.forEach(group => {
-      if (group.provider === activeProvider) group.assetIds.forEach(assetId => providerExistingAssetIds.add(assetId))
-    })
+    photos.forEach((photo) => {
+      if (photo.provider === activeProvider && photo.asset_id) providerExistingAssetIds.add(photo.asset_id);
+    });
+    pendingProviderGroups.forEach((group) => {
+      if (group.provider === activeProvider) group.assetIds.forEach((assetId) => providerExistingAssetIds.add(assetId));
+    });
   }
   const contextLocation = isValidGeoPoint({ lat: locationLat ?? Number.NaN, lng: locationLng ?? Number.NaN })
     ? { lat: locationLat!, lng: locationLng!, name: locationName || undefined }
-    : null
+    : null;
 
   // The route switch belongs to an entry that is a stop, or was one: an entry
   // without a point was never on the route, and a new one is not on it yet.
-  const offersStatsToggle = entry.id > 0 && (contextLocation != null || !!entry.stats_excluded)
+  const offersStatsToggle = entry.id > 0 && (contextLocation != null || !!entry.stats_excluded);
 
   useEffect(() => {
-    if (!quickCapture || readOnly || entry.location_lat != null || entry.location_lng != null) return
+    if (!quickCapture || readOnly || entry.location_lat != null || entry.location_lng != null) return;
 
-    let active = true
-    setLocating(true)
-    getCurrentPositionOnce({ enableHighAccuracy: true, maximumAge: 60_000, timeout: 10_000 })
-      .then(async pos => {
-        if (!active) return
-        setLocationLat(pos.lat)
-        setLocationLng(pos.lng)
+    let active = true;
+    setLocating(true);
+    getCurrentPositionOnce({ enableHighAccuracy: true, maximumAge: 60_000, timeout: 10_000 }).then(
+      async (pos) => {
+        if (!active) return;
+        setLocationLat(pos.lat);
+        setLocationLng(pos.lng);
 
         const [placeResult, weatherResult] = await Promise.allSettled([
           mapsApi.reverse(pos.lat, pos.lng, placeLang),
           weatherApi.getCurrent(pos.lat, pos.lng, language),
-        ])
-        if (!active) return
+        ]);
+        if (!active) return;
         if (placeResult.status === 'fulfilled') {
-          setLocationName(placeResult.value.name || placeResult.value.address || '')
+          setLocationName(placeResult.value.name || placeResult.value.address || '');
         }
         if (weatherResult.status === 'fulfilled' && !weatherResult.value.error) {
-          setWeather(current => current || journeyWeatherCategory(weatherResult.value.main, weatherResult.value.description))
+          setWeather(
+            (current) => current || journeyWeatherCategory(weatherResult.value.main, weatherResult.value.description)
+          );
         }
-        setLocating(false)
-      }, err => {
-        if (!active) return
-        setLocationError(t(geoOnceErrorKey(err)))
-        setLocating(false)
-      })
+        setLocating(false);
+      },
+      (err) => {
+        if (!active) return;
+        setLocationError(t(geoOnceErrorKey(err)));
+        setLocating(false);
+      }
+    );
 
-    return () => { active = false }
-  }, [quickCapture, readOnly, entry.location_lat, entry.location_lng, entry.entry_date, t, language, placeLang])
+    return () => {
+      active = false;
+    };
+  }, [quickCapture, readOnly, entry.location_lat, entry.location_lng, entry.entry_date, t, language, placeLang]);
 
   const isDirty =
     title !== (entry.title || '') ||
@@ -234,12 +297,12 @@ export default function MJourneyEntrySheet({
     weather !== (entry.weather || '') ||
     statsExcluded !== (entry.stats_excluded ?? false) ||
     isDraft !== (entry.is_draft ?? false) ||
-    pros.filter(p => p.trim()).join('\n') !== (entry.pros_cons?.pros ?? []).join('\n') ||
-    cons.filter(c => c.trim()).join('\n') !== (entry.pros_cons?.cons ?? []).join('\n') ||
+    pros.filter((p) => p.trim()).join('\n') !== (entry.pros_cons?.pros ?? []).join('\n') ||
+    cons.filter((c) => c.trim()).join('\n') !== (entry.pros_cons?.cons ?? []).join('\n') ||
     tags.join('\n') !== (entry.tags ?? []).join('\n') ||
     pendingFiles.length > 0 ||
     pendingLinkIds.length > 0 ||
-    pendingProviderGroups.length > 0
+    pendingProviderGroups.length > 0;
 
   /**
    * Enter opens the next pro or con, directly below the one you are in.
@@ -250,162 +313,189 @@ export default function MJourneyEntrySheet({
    * it is with a mouse.
    */
   const addVerdictRow = (list: 'pros' | 'cons', index: number) => {
-    const [values, setValues] = list === 'pros' ? [pros, setPros] as const : [cons, setCons] as const
-    const next = [...values]
-    next.splice(index + 1, 0, '')
-    setValues(next)
-    verdictFocusRef.current = `${list}-${index + 1}`
-  }
+    const [values, setValues] = list === 'pros' ? ([pros, setPros] as const) : ([cons, setCons] as const);
+    const next = [...values];
+    next.splice(index + 1, 0, '');
+    setValues(next);
+    verdictFocusRef.current = `${list}-${index + 1}`;
+  };
 
   const verdictRowRef = (key: string) => (el: HTMLInputElement | null) => {
     if (el && verdictFocusRef.current === key) {
-      verdictFocusRef.current = null
-      el.focus()
+      verdictFocusRef.current = null;
+      el.focus();
     }
-  }
+  };
 
   const handleClose = () => {
-    if (!captureOnly && !readOnly && isDirty && !window.confirm(t('journey.editor.discardChangesConfirm'))) return
-    onClose()
-  }
+    if (!captureOnly && !readOnly && isDirty && !window.confirm(t('journey.editor.discardChangesConfirm'))) return;
+    onClose();
+  };
 
   const handleSave = async () => {
-    setSaving(true)
+    setSaving(true);
     try {
-      const entryId = await onSave({
-        title: title || null,
-        story: story || null,
-        entry_date: entryDate,
-        entry_time: entryTime || null,
-        location_name: locationName || null,
-        location_lat: locationLat,
-        location_lng: locationLng,
-        stats_excluded: offersStatsToggle ? statsExcluded : undefined,
-        is_draft: isDraft,
-        mood: mood || null,
-        weather: weather || null,
-        tags: tags.filter(tag => tag.trim()),
-        pros_cons: { pros: pros.filter(p => p.trim()), cons: cons.filter(c => c.trim()) },
-        // An explicit Save is the user saying this suggestion is now their entry —
-        // it does not need a story to earn that (#2008).
-        type: entry.type === 'skeleton' ? 'entry' : undefined,
-      }, persistedEntryIdRef.current ?? undefined)
-      if (entryId > 0) persistedEntryIdRef.current = entryId
+      const entryId = await onSave(
+        {
+          title: title || null,
+          story: story || null,
+          entry_date: entryDate,
+          entry_time: entryTime || null,
+          location_name: locationName || null,
+          location_lat: locationLat,
+          location_lng: locationLng,
+          stats_excluded: offersStatsToggle ? statsExcluded : undefined,
+          is_draft: isDraft,
+          mood: mood || null,
+          weather: weather || null,
+          tags: tags.filter((tag) => tag.trim()),
+          pros_cons: { pros: pros.filter((p) => p.trim()), cons: cons.filter((c) => c.trim()) },
+          // An explicit Save is the user saying this suggestion is now their entry —
+          // it does not need a story to earn that (#2008).
+          type: entry.type === 'skeleton' ? 'entry' : undefined,
+        },
+        persistedEntryIdRef.current ?? undefined
+      );
+      if (entryId > 0) persistedEntryIdRef.current = entryId;
       if (pendingFiles.length > 0 && entryId) {
-        const toUpload = pendingFiles
-        setUploadProgress({ done: 0, total: toUpload.length })
+        const toUpload = pendingFiles;
+        setUploadProgress({ done: 0, total: toUpload.length });
         try {
           const { failed } = await onUploadPhotos(entryId, toUpload, {
-            onProgress: p => setUploadProgress({ done: p.done, total: p.total }),
-          })
-          setPendingFiles(failed)
+            onProgress: (p) => setUploadProgress({ done: p.done, total: p.total }),
+          });
+          setPendingFiles(failed);
           if (failed.length > 0) {
-            toast.error(t('journey.editor.uploadPartialFailed', { failed: String(failed.length), total: String(toUpload.length) }))
+            toast.error(
+              t('journey.editor.uploadPartialFailed', { failed: String(failed.length), total: String(toUpload.length) })
+            );
           }
         } catch (err) {
-          toast.error(getApiErrorMessage(err, t('journey.editor.uploadFailed')))
+          toast.error(getApiErrorMessage(err, t('journey.editor.uploadFailed')));
         } finally {
-          setUploadProgress(null)
+          setUploadProgress(null);
         }
       }
       if (pendingLinkIds.length > 0 && entryId) {
         for (const photoId of pendingLinkIds) {
-          try { await journeyApi.linkPhoto(entryId, photoId) } catch { /* linked photo stays in gallery */ }
+          try {
+            await journeyApi.linkPhoto(entryId, photoId);
+          } catch {
+            /* linked photo stays in gallery */
+          }
         }
       }
       if (pendingProviderGroups.length > 0 && entryId && onAddProviderPhotos) {
-        const failed: PendingProviderGroup[] = []
+        const failed: PendingProviderGroup[] = [];
         for (const group of pendingProviderGroups) {
-          try { await onAddProviderPhotos(entryId, group) } catch { failed.push(group) }
+          try {
+            await onAddProviderPhotos(entryId, group);
+          } catch {
+            failed.push(group);
+          }
         }
         if (failed.length > 0) {
           // Keep the sheet open with the failed groups queued so the next save
           // retries them instead of losing the selection.
-          setPendingProviderGroups(failed)
-          toast.error(t('journey.editor.externalPhotosPartialFailed', { failed: String(failed.length), total: String(pendingProviderGroups.length) }))
-          return
+          setPendingProviderGroups(failed);
+          toast.error(
+            t('journey.editor.externalPhotosPartialFailed', {
+              failed: String(failed.length),
+              total: String(pendingProviderGroups.length),
+            })
+          );
+          return;
         }
-        setPendingProviderGroups([])
+        setPendingProviderGroups([]);
       }
-      onDone()
+      onDone();
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files?.length) return
-    const normalized = await normalizeImageFiles(files)
-    setPendingFiles(prev => [...prev, ...normalized])
-  }
+    const files = e.target.files;
+    if (!files?.length) return;
+    const normalized = await normalizeImageFiles(files);
+    setPendingFiles((prev) => [...prev, ...normalized]);
+  };
 
   const searchLocation = (query: string) => {
-    setLocationQuery(query)
-    setShowLocationResults(true)
-    if (locationTimerRef.current) clearTimeout(locationTimerRef.current)
+    setLocationQuery(query);
+    setShowLocationResults(true);
+    if (locationTimerRef.current) clearTimeout(locationTimerRef.current);
     if (query.trim().length < 2) {
-      setLocationResults([])
-      return
+      setLocationResults([]);
+      return;
     }
     locationTimerRef.current = setTimeout(async () => {
       try {
-        const res = await mapsApi.search(query, placeLang)
-        setLocationResults((res.places || []).slice(0, 6).map((p: { name: string; address?: string; lat: number | string; lng: number | string }) => ({
-          name: p.name, address: p.address, lat: Number(p.lat), lng: Number(p.lng),
-        })))
+        const res = await mapsApi.search(query, placeLang);
+        setLocationResults(
+          (res.places || [])
+            .slice(0, 6)
+            .map((p: { name: string; address?: string; lat: number | string; lng: number | string }) => ({
+              name: p.name,
+              address: p.address,
+              lat: Number(p.lat),
+              lng: Number(p.lng),
+            }))
+        );
       } catch {
-        setLocationResults([])
+        setLocationResults([]);
       }
-    }, 400)
-  }
+    }, 400);
+  };
 
   const handleUseCurrentLocation = async () => {
-    if (locating) return
-    setLocating(true)
-    setLocationError('')
+    if (locating) return;
+    setLocating(true);
+    setLocationError('');
     try {
-      const pos = await getCurrentPositionOnce()
+      const pos = await getCurrentPositionOnce();
       // Fill coordinates right away; the name is refined below once the
       // reverse geocode comes back.
-      const fallbackName = `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`
-      if (locationTimerRef.current) clearTimeout(locationTimerRef.current)
-      setLocationLat(pos.lat)
-      setLocationLng(pos.lng)
-      setLocationName(fallbackName)
-      setLocationQuery('')
-      setLocationResults([])
-      setShowLocationResults(false)
+      const fallbackName = `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
+      if (locationTimerRef.current) clearTimeout(locationTimerRef.current);
+      setLocationLat(pos.lat);
+      setLocationLng(pos.lng);
+      setLocationName(fallbackName);
+      setLocationQuery('');
+      setLocationResults([]);
+      setShowLocationResults(false);
       try {
-        const data = await mapsApi.reverse(pos.lat, pos.lng, placeLang)
-        const name = data.name || data.address
+        const data = await mapsApi.reverse(pos.lat, pos.lng, placeLang);
+        const name = data.name || data.address;
         // Only replace the coordinate fallback — don't clobber a search
         // result the user may have picked while the reverse call was in flight.
-        if (name) setLocationName(prev => (prev === fallbackName ? name : prev))
-      } catch { /* best effort — keep the coordinate fallback */ }
+        if (name) setLocationName((prev) => (prev === fallbackName ? name : prev));
+      } catch {
+        /* best effort — keep the coordinate fallback */
+      }
     } catch (err) {
-      setLocationError(t(geoOnceErrorKey(err)))
+      setLocationError(t(geoOnceErrorKey(err)));
     } finally {
-      setLocating(false)
+      setLocating(false);
     }
-  }
+  };
 
   const addTag = () => {
     // Trailing commas dropped by a scan, not /,+$/: an unanchored ,+ before $ has to
     // retry from every comma in the run, so a pasted string of them freezes the tab.
-    const trimmed = tagInput.trim()
-    let end = trimmed.length
-    while (end > 0 && trimmed[end - 1] === ',') end--
-    const value = trimmed.slice(0, end)
-    if (!value) return
-    if (!tags.includes(value)) setTags(prev => [...prev, value])
-    setTagInput('')
-  }
+    const trimmed = tagInput.trim();
+    let end = trimmed.length;
+    while (end > 0 && trimmed[end - 1] === ',') end--;
+    const value = trimmed.slice(0, end);
+    if (!value) return;
+    if (!tags.includes(value)) setTags((prev) => [...prev, value]);
+    setTagInput('');
+  };
 
-  const availableGalleryPhotos = galleryPhotos.filter(gp => !photos.some(p => p.id === gp.id))
+  const availableGalleryPhotos = galleryPhotos.filter((gp) => !photos.some((p) => p.id === gp.id));
 
-  const eyebrow = 'font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint'
-  const fieldShell = 'rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]'
+  const eyebrow = 'font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint';
+  const fieldShell = 'rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]';
 
   return (
     <MSheet
@@ -421,10 +511,22 @@ export default function MJourneyEntrySheet({
         </span>
         {(onMoveEarlier || onMoveLater) && (
           <span className="mr-1 flex items-center gap-1">
-            <MIconBtn variant="neutral" size={34} onClick={() => onMoveEarlier?.()} disabled={!onMoveEarlier} ariaLabel={t('dayplan.moveUp')}>
+            <MIconBtn
+              variant="neutral"
+              size={34}
+              onClick={() => onMoveEarlier?.()}
+              disabled={!onMoveEarlier}
+              ariaLabel={t('dayplan.moveUp')}
+            >
               <ChevronUp size={15} strokeWidth={2.4} />
             </MIconBtn>
-            <MIconBtn variant="neutral" size={34} onClick={() => onMoveLater?.()} disabled={!onMoveLater} ariaLabel={t('dayplan.moveDown')}>
+            <MIconBtn
+              variant="neutral"
+              size={34}
+              onClick={() => onMoveLater?.()}
+              disabled={!onMoveLater}
+              ariaLabel={t('dayplan.moveDown')}
+            >
               <ChevronDown size={15} strokeWidth={2.4} />
             </MIconBtn>
           </span>
@@ -441,11 +543,13 @@ export default function MJourneyEntrySheet({
             name is the one thing that makes an entry findable later, and it is one
             line to type, so it comes first here too. */}
         {readOnly ? (
-          <div className="pb-[10px] pt-1 text-[1.25rem] font-extrabold">{title || t('journey.editor.titlePlaceholder')}</div>
+          <div className="pb-[10px] pt-1 text-[1.25rem] font-extrabold">
+            {title || t('journey.editor.titlePlaceholder')}
+          </div>
         ) : (
           <input
             value={title}
-            onChange={e => setTitle(e.target.value)}
+            onChange={(e) => setTitle(e.target.value)}
             placeholder={t('journey.editor.titlePlaceholder')}
             className="w-full bg-transparent pb-[10px] pt-1 text-[1.25rem] font-extrabold text-m-ink outline-none placeholder:text-m-faint"
           />
@@ -453,8 +557,28 @@ export default function MJourneyEntrySheet({
 
         {!readOnly && (
           <>
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} onClick={e => { (e.target as HTMLInputElement).value = '' }} />
-            <input ref={fileRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleFileChange} onClick={e => { (e.target as HTMLInputElement).value = '' }} />
+            <input
+              ref={cameraRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleFileChange}
+              onClick={(e) => {
+                (e.target as HTMLInputElement).value = '';
+              }}
+            />
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+              onClick={(e) => {
+                (e.target as HTMLInputElement).value = '';
+              }}
+            />
             <div className="flex gap-2">
               <button
                 type="button"
@@ -465,7 +589,10 @@ export default function MJourneyEntrySheet({
                 {uploadProgress ? (
                   <>
                     <span className="h-[14px] w-[14px] animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-muted" />
-                    {t('journey.editor.uploadingProgress', { done: String(uploadProgress.done), total: String(uploadProgress.total) })}
+                    {t('journey.editor.uploadingProgress', {
+                      done: String(uploadProgress.done),
+                      total: String(uploadProgress.total),
+                    })}
                   </>
                 ) : (
                   <>
@@ -477,9 +604,12 @@ export default function MJourneyEntrySheet({
               <button
                 type="button"
                 onClick={() => {
-                  if (captureOnly) { fileRef.current?.click(); return }
-                  setShowGalleryPick(v => !v)
-                  setShowExternal(false)
+                  if (captureOnly) {
+                    fileRef.current?.click();
+                    return;
+                  }
+                  setShowGalleryPick((v) => !v);
+                  setShowExternal(false);
                 }}
                 disabled={!captureOnly && galleryPhotos.length === 0}
                 className={`flex min-w-0 flex-1 items-center justify-center gap-[6px] rounded-[14px] border-[1.5px] p-3 text-center text-[0.75rem] font-semibold disabled:opacity-40 ${
@@ -497,7 +627,10 @@ export default function MJourneyEntrySheet({
               {!captureOnly && providers.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => { setShowExternal(v => !v); setShowGalleryPick(false) }}
+                  onClick={() => {
+                    setShowExternal((v) => !v);
+                    setShowGalleryPick(false);
+                  }}
                   disabled={saving}
                   className={`flex min-w-0 flex-1 items-center justify-center gap-[6px] rounded-[14px] border-[1.5px] p-3 text-center text-[0.75rem] font-semibold disabled:opacity-50 ${
                     showExternal
@@ -537,7 +670,7 @@ export default function MJourneyEntrySheet({
                 </div>
                 {providers.length > 1 && (
                   <div className="flex flex-none gap-1 overflow-x-auto border-b border-[color:var(--m-rowbr)] px-3 py-2">
-                    {providers.map(provider => (
+                    {providers.map((provider) => (
                       <button
                         key={provider.id}
                         type="button"
@@ -568,26 +701,28 @@ export default function MJourneyEntrySheet({
                     initialEntryId={entry.id || null}
                     embedded
                     onClose={() => setShowExternal(false)}
-                    onAdd={async groups => {
-                      setPendingProviderGroups(previous => {
-                        const next = [...previous]
+                    onAdd={async (groups) => {
+                      setPendingProviderGroups((previous) => {
+                        const next = [...previous];
                         for (const group of groups) {
-                          const existing = next.find(item => item.provider === activeProvider && item.passphrase === group.passphrase)
+                          const existing = next.find(
+                            (item) => item.provider === activeProvider && item.passphrase === group.passphrase
+                          );
                           if (existing) {
-                            const seen = new Set(existing.assetIds)
+                            const seen = new Set(existing.assetIds);
                             group.assetIds.forEach((assetId, index) => {
-                              if (seen.has(assetId)) return
-                              seen.add(assetId)
-                              existing.assetIds.push(assetId)
-                              existing.mediaTypes?.push(group.mediaTypes?.[index] || 'image')
-                            })
+                              if (seen.has(assetId)) return;
+                              seen.add(assetId);
+                              existing.assetIds.push(assetId);
+                              existing.mediaTypes?.push(group.mediaTypes?.[index] || 'image');
+                            });
                           } else {
-                            next.push({ ...group, provider: activeProvider })
+                            next.push({ ...group, provider: activeProvider });
                           }
                         }
-                        return next
-                      })
-                      setShowExternal(false)
+                        return next;
+                      });
+                      setShowExternal(false);
                     }}
                   />
                 </div>
@@ -597,7 +732,7 @@ export default function MJourneyEntrySheet({
             {!captureOnly && showGalleryPick && (
               <div className="mt-2 max-h-[160px] overflow-y-auto rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-2">
                 <div className="grid grid-cols-5 gap-[6px]">
-                  {availableGalleryPhotos.map(gp => (
+                  {availableGalleryPhotos.map((gp) => (
                     <button
                       key={gp.id}
                       type="button"
@@ -606,19 +741,26 @@ export default function MJourneyEntrySheet({
                       onClick={async () => {
                         if (entry.id > 0) {
                           try {
-                            const linked = await journeyApi.linkPhoto(entry.id, gp.id)
-                            if (linked) setPhotos(prev => [...prev, linked])
-                          } catch { /* keep picker open on failure */ }
+                            const linked = await journeyApi.linkPhoto(entry.id, gp.id);
+                            if (linked) setPhotos((prev) => [...prev, linked]);
+                          } catch {
+                            /* keep picker open on failure */
+                          }
                         } else {
-                          setPendingLinkIds(prev => [...prev, gp.id])
-                          setPhotos(prev => [...prev, gp])
+                          setPendingLinkIds((prev) => [...prev, gp.id]);
+                          setPhotos((prev) => [...prev, gp]);
                         }
                       }}
                     >
                       {posterlessVideo(gp) ? (
                         <ClipTile />
                       ) : (
-                        <img src={photoUrl(gp)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                        <img
+                          src={photoUrl(gp)}
+                          alt=""
+                          loading="lazy"
+                          className="absolute inset-0 h-full w-full object-cover"
+                        />
                       )}
                     </button>
                   ))}
@@ -655,11 +797,15 @@ export default function MJourneyEntrySheet({
                   <button
                     type="button"
                     onClick={async () => {
-                      setPhotos(prev => prev.filter(x => x.id !== p.id))
+                      setPhotos((prev) => prev.filter((x) => x.id !== p.id));
                       if (entry.id > 0) {
-                        try { await journeyApi.unlinkPhoto(entry.id, p.id) } catch { /* refreshed on next load */ }
+                        try {
+                          await journeyApi.unlinkPhoto(entry.id, p.id);
+                        } catch {
+                          /* refreshed on next load */
+                        }
                       } else {
-                        setPendingLinkIds(prev => prev.filter(id => id !== p.id))
+                        setPendingLinkIds((prev) => prev.filter((id) => id !== p.id));
                       }
                     }}
                     aria-label={t('common.delete')}
@@ -674,13 +820,19 @@ export default function MJourneyEntrySheet({
               <div key={`pending-${i}`} className="relative h-16 w-16 overflow-hidden rounded-[13px]">
                 {/* A clip in an <img> is a broken-image glyph (issue #2341). */}
                 {isVideoFile(f) ? (
-                  <video src={pendingPreviews[i]} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                  <video
+                    src={pendingPreviews[i]}
+                    className="h-full w-full object-cover"
+                    muted
+                    playsInline
+                    preload="metadata"
+                  />
                 ) : (
                   <img src={pendingPreviews[i]} alt="" className="h-full w-full object-cover" />
                 )}
                 <button
                   type="button"
-                  onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
+                  onClick={() => setPendingFiles((prev) => prev.filter((_, j) => j !== i))}
                   aria-label={t('common.delete')}
                   className="absolute right-[3px] top-[3px] flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
                 >
@@ -699,108 +851,150 @@ export default function MJourneyEntrySheet({
           <textarea
             rows={2}
             value={story}
-            onChange={e => setStory(e.target.value)}
+            onChange={(e) => setStory(e.target.value)}
             placeholder={t('journey.editor.writeStory')}
             className={`mt-[10px] w-full resize-none px-[14px] py-3 font-geist text-[0.8125rem] leading-[1.5] text-m-ink outline-none placeholder:text-m-faint ${fieldShell} rounded-[14px]`}
           />
         )}
 
-        {!captureOnly && <>
-          {readOnly ? (
-            story && (
-              <div className="mt-[10px] font-geist text-[0.8125rem] leading-[1.5] text-m-ink">
-                <JournalBody text={story} />
-              </div>
-            )
-          ) : (
-            <textarea
-              rows={3}
-              value={story}
-              onChange={e => setStory(e.target.value)}
-              placeholder={t('journey.editor.writeStory')}
-              className={`mt-[10px] w-full resize-none px-[14px] py-3 font-geist text-[0.8125rem] leading-[1.5] text-m-ink outline-none placeholder:text-m-faint ${fieldShell} rounded-[14px]`}
-            />
-          )}
+        {!captureOnly && (
+          <>
+            {readOnly ? (
+              story && (
+                <div className="mt-[10px] font-geist text-[0.8125rem] leading-[1.5] text-m-ink">
+                  <JournalBody text={story} />
+                </div>
+              )
+            ) : (
+              <textarea
+                rows={3}
+                value={story}
+                onChange={(e) => setStory(e.target.value)}
+                placeholder={t('journey.editor.writeStory')}
+                className={`mt-[10px] w-full resize-none px-[14px] py-3 font-geist text-[0.8125rem] leading-[1.5] text-m-ink outline-none placeholder:text-m-faint ${fieldShell} rounded-[14px]`}
+              />
+            )}
 
-          {/* Pros & Cons — gone when the journey has put the verdict away (#2299) */}
-          {showVerdict && (!readOnly || pros.length > 0 || cons.length > 0) && (
-          <div className="mt-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[13px]">
-            <div className={`${eyebrow} mb-2`}>{t('journey.editor.prosCons')}</div>
-            <div className="flex gap-[10px]">
-              <div className="min-w-0 flex-1">
-                <div className="mb-[6px] flex items-center gap-[5px] text-[0.75rem] font-bold" style={{ color: PRO_COLOR }}>
-                  <CheckCircle2 size={13} strokeWidth={2.2} />
-                  {t('journey.editor.pros')}
-                </div>
-                {pros.map((p, i) => (
-                  <div key={i} className="mb-[6px] flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-sheetop px-2 py-[6px]">
-                    <span className="h-[5px] w-[5px] flex-none rounded-full" style={{ background: PRO_COLOR }} />
-                    <input
-                      ref={verdictRowRef(`pros-${i}`)}
-                      value={p}
-                      readOnly={readOnly}
-                      onChange={e => { const next = [...pros]; next[i] = e.target.value; setPros(next) }}
-                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addVerdictRow('pros', i) } }}
-                      placeholder={t('journey.editor.proPlaceholder')}
-                      className="min-w-0 flex-1 bg-transparent font-geist text-[0.6875rem] font-semibold text-m-ink outline-none placeholder:text-m-faint"
-                    />
+            {/* Pros & Cons — gone when the journey has put the verdict away (#2299) */}
+            {showVerdict && (!readOnly || pros.length > 0 || cons.length > 0) && (
+              <div className="mt-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[13px]">
+                <div className={`${eyebrow} mb-2`}>{t('journey.editor.prosCons')}</div>
+                <div className="flex gap-[10px]">
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className="mb-[6px] flex items-center gap-[5px] text-[0.75rem] font-bold"
+                      style={{ color: PRO_COLOR }}
+                    >
+                      <CheckCircle2 size={13} strokeWidth={2.2} />
+                      {t('journey.editor.pros')}
+                    </div>
+                    {pros.map((p, i) => (
+                      <div
+                        key={i}
+                        className="mb-[6px] flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-sheetop px-2 py-[6px]"
+                      >
+                        <span className="h-[5px] w-[5px] flex-none rounded-full" style={{ background: PRO_COLOR }} />
+                        <input
+                          ref={verdictRowRef(`pros-${i}`)}
+                          value={p}
+                          readOnly={readOnly}
+                          onChange={(e) => {
+                            const next = [...pros];
+                            next[i] = e.target.value;
+                            setPros(next);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              addVerdictRow('pros', i);
+                            }
+                          }}
+                          placeholder={t('journey.editor.proPlaceholder')}
+                          className="min-w-0 flex-1 bg-transparent font-geist text-[0.6875rem] font-semibold text-m-ink outline-none placeholder:text-m-faint"
+                        />
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            onClick={() => setPros(pros.filter((_, j) => j !== i))}
+                            aria-label={t('common.delete')}
+                            className="flex-none text-m-faint"
+                          >
+                            <X size={11} strokeWidth={2.5} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
                     {!readOnly && (
-                      <button type="button" onClick={() => setPros(pros.filter((_, j) => j !== i))} aria-label={t('common.delete')} className="flex-none text-m-faint">
-                        <X size={11} strokeWidth={2.5} />
+                      <button
+                        type="button"
+                        onClick={() => addVerdictRow('pros', pros.length - 1)}
+                        className="block w-full rounded-[10px] border border-dashed py-[9px] text-center font-geist text-[0.6875rem] font-semibold"
+                        style={{ borderColor: 'rgba(47,163,122,.35)', color: PRO_COLOR }}
+                      >
+                        + {t('journey.editor.addAnother')}
                       </button>
                     )}
                   </div>
-                ))}
-                {!readOnly && (
-                  <button
-                    type="button"
-                    onClick={() => addVerdictRow('pros', pros.length - 1)}
-                    className="block w-full rounded-[10px] border border-dashed py-[9px] text-center font-geist text-[0.6875rem] font-semibold"
-                    style={{ borderColor: 'rgba(47,163,122,.35)', color: PRO_COLOR }}
-                  >
-                    + {t('journey.editor.addAnother')}
-                  </button>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="mb-[6px] flex items-center gap-[5px] text-[0.75rem] font-bold" style={{ color: CON_COLOR }}>
-                  <MinusCircle size={13} strokeWidth={2.2} />
-                  {t('journey.editor.cons')}
-                </div>
-                {cons.map((c, i) => (
-                  <div key={i} className="mb-[6px] flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-sheetop px-2 py-[6px]">
-                    <span className="h-[5px] w-[5px] flex-none rounded-full" style={{ background: CON_COLOR }} />
-                    <input
-                      ref={verdictRowRef(`cons-${i}`)}
-                      value={c}
-                      readOnly={readOnly}
-                      onChange={e => { const next = [...cons]; next[i] = e.target.value; setCons(next) }}
-                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addVerdictRow('cons', i) } }}
-                      placeholder={t('journey.editor.conPlaceholder')}
-                      className="min-w-0 flex-1 bg-transparent font-geist text-[0.6875rem] font-semibold text-m-ink outline-none placeholder:text-m-faint"
-                    />
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className="mb-[6px] flex items-center gap-[5px] text-[0.75rem] font-bold"
+                      style={{ color: CON_COLOR }}
+                    >
+                      <MinusCircle size={13} strokeWidth={2.2} />
+                      {t('journey.editor.cons')}
+                    </div>
+                    {cons.map((c, i) => (
+                      <div
+                        key={i}
+                        className="mb-[6px] flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-sheetop px-2 py-[6px]"
+                      >
+                        <span className="h-[5px] w-[5px] flex-none rounded-full" style={{ background: CON_COLOR }} />
+                        <input
+                          ref={verdictRowRef(`cons-${i}`)}
+                          value={c}
+                          readOnly={readOnly}
+                          onChange={(e) => {
+                            const next = [...cons];
+                            next[i] = e.target.value;
+                            setCons(next);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              addVerdictRow('cons', i);
+                            }
+                          }}
+                          placeholder={t('journey.editor.conPlaceholder')}
+                          className="min-w-0 flex-1 bg-transparent font-geist text-[0.6875rem] font-semibold text-m-ink outline-none placeholder:text-m-faint"
+                        />
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            onClick={() => setCons(cons.filter((_, j) => j !== i))}
+                            aria-label={t('common.delete')}
+                            className="flex-none text-m-faint"
+                          >
+                            <X size={11} strokeWidth={2.5} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
                     {!readOnly && (
-                      <button type="button" onClick={() => setCons(cons.filter((_, j) => j !== i))} aria-label={t('common.delete')} className="flex-none text-m-faint">
-                        <X size={11} strokeWidth={2.5} />
+                      <button
+                        type="button"
+                        onClick={() => addVerdictRow('cons', cons.length - 1)}
+                        className="block w-full rounded-[10px] border border-dashed py-[9px] text-center font-geist text-[0.6875rem] font-semibold"
+                        style={{ borderColor: 'rgba(214,39,59,.35)', color: CON_COLOR }}
+                      >
+                        + {t('journey.editor.addAnother')}
                       </button>
                     )}
                   </div>
-                ))}
-                {!readOnly && (
-                  <button
-                    type="button"
-                    onClick={() => addVerdictRow('cons', cons.length - 1)}
-                    className="block w-full rounded-[10px] border border-dashed py-[9px] text-center font-geist text-[0.6875rem] font-semibold"
-                    style={{ borderColor: 'rgba(214,39,59,.35)', color: CON_COLOR }}
-                  >
-                    + {t('journey.editor.addAnother')}
-                  </button>
-                )}
+                </div>
               </div>
-            </div>
-          </div>
-          )}
-        </>}
+            )}
+          </>
+        )}
 
         {/* Date + Time. Split in the date's favour: a localized date needs the
             room ("10. Sept. 2026"), a clock never does. */}
@@ -825,11 +1019,19 @@ export default function MJourneyEntrySheet({
           <div className={`mt-3 flex items-center gap-3 px-3 py-[10px] ${fieldShell}`}>
             <Briefcase size={15} strokeWidth={2} className="flex-none text-m-muted" />
             <div className="min-w-0 flex-1">
-              <div className="text-[0.75rem] font-semibold text-m-ink [overflow-wrap:anywhere]">{tripSuggestion.trip.title}</div>
-              <div className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-muted">{t('journey.editor.tripSuggestionHint')}</div>
+              <div className="text-[0.75rem] font-semibold text-m-ink [overflow-wrap:anywhere]">
+                {tripSuggestion.trip.title}
+              </div>
+              <div className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-muted">
+                {t('journey.editor.tripSuggestionHint')}
+              </div>
             </div>
-            <button type="button" onClick={() => void tripSuggestion.link()} disabled={tripSuggestion.linking}
-              className="flex-none rounded-full bg-m-act px-3 py-[6px] text-[0.6875rem] font-bold text-m-actfg disabled:opacity-50">
+            <button
+              type="button"
+              onClick={() => void tripSuggestion.link()}
+              disabled={tripSuggestion.linking}
+              className="flex-none rounded-full bg-m-act px-3 py-[6px] text-[0.6875rem] font-bold text-m-actfg disabled:opacity-50"
+            >
               {t('journey.trips.linkTrip')}
             </button>
           </div>
@@ -842,8 +1044,10 @@ export default function MJourneyEntrySheet({
             <input
               value={locationQuery || locationName}
               readOnly={readOnly}
-              onChange={e => searchLocation(e.target.value)}
-              onFocus={() => { if (locationResults.length > 0) setShowLocationResults(true) }}
+              onChange={(e) => searchLocation(e.target.value)}
+              onFocus={() => {
+                if (locationResults.length > 0) setShowLocationResults(true);
+              }}
               placeholder={t('journey.editor.searchLocation')}
               className="min-w-0 flex-1 bg-transparent font-geist text-[0.75rem] text-m-ink outline-none placeholder:text-m-faint"
             />
@@ -854,11 +1058,13 @@ export default function MJourneyEntrySheet({
                 onClick={handleUseCurrentLocation}
                 disabled={locating}
                 aria-label={t('journey.editor.useCurrentLocation')}
-                className="flex-none p-1 -m-1 text-m-muted disabled:opacity-50"
+                className="-m-1 flex-none p-1 text-m-muted disabled:opacity-50"
               >
-                {locating
-                  ? <span className="block h-[13px] w-[13px] animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-muted" />
-                  : <Locate size={13} strokeWidth={2.2} />}
+                {locating ? (
+                  <span className="block h-[13px] w-[13px] animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-muted" />
+                ) : (
+                  <Locate size={13} strokeWidth={2.2} />
+                )}
               </button>
             )}
           </div>
@@ -869,26 +1075,30 @@ export default function MJourneyEntrySheet({
                   key={i}
                   type="button"
                   onClick={() => {
-                    setLocationName(r.name)
-                    setLocationLat(r.lat)
-                    setLocationLng(r.lng)
-                    setLocationQuery('')
-                    setShowLocationResults(false)
-                    setLocationResults([])
+                    setLocationName(r.name);
+                    setLocationLat(r.lat);
+                    setLocationLng(r.lng);
+                    setLocationQuery('');
+                    setShowLocationResults(false);
+                    setLocationResults([]);
                   }}
                   className="flex w-full items-start gap-2 border-b border-[color:var(--m-rowbr)] px-3 py-[10px] text-left last:border-0"
                 >
                   <MapPin size={13} className="mt-[2px] flex-none text-m-faint" />
                   <span className="min-w-0">
                     <span className="block truncate text-[0.78125rem] font-semibold">{r.name}</span>
-                    {r.address && <span className="block truncate font-geist text-[0.65625rem] text-m-muted">{r.address}</span>}
+                    {r.address && (
+                      <span className="block truncate font-geist text-[0.65625rem] text-m-muted">{r.address}</span>
+                    )}
                   </span>
                 </button>
               ))}
             </div>
           )}
           {locating && <div className="mt-[5px] font-geist text-[0.65625rem] text-m-muted">{t('common.loading')}</div>}
-          {locationError && <div className="mt-[5px] font-geist text-[0.65625rem] text-[color:var(--m-st-danger)]">{locationError}</div>}
+          {locationError && (
+            <div className="mt-[5px] font-geist text-[0.65625rem] text-[color:var(--m-st-danger)]">{locationError}</div>
+          )}
         </div>
 
         {/* Off the route: the same switch the desktop editor and the Studio
@@ -898,9 +1108,16 @@ export default function MJourneyEntrySheet({
           <div className={`mt-3 flex items-center gap-3 px-3 py-[10px] ${fieldShell}`}>
             <div className="min-w-0 flex-1">
               <div className="text-[0.75rem] font-semibold text-m-ink">{t('journey.editor.statsExcluded')}</div>
-              <div className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-muted">{t('journey.editor.statsExcludedHint')}</div>
+              <div className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-muted">
+                {t('journey.editor.statsExcludedHint')}
+              </div>
             </div>
-            <MToggle checked={statsExcluded} onChange={setStatsExcluded} disabled={readOnly} ariaLabel={t('journey.editor.statsExcluded')} />
+            <MToggle
+              checked={statsExcluded}
+              onChange={setStatsExcluded}
+              disabled={readOnly}
+              ariaLabel={t('journey.editor.statsExcluded')}
+            />
           </div>
         )}
 
@@ -908,72 +1125,88 @@ export default function MJourneyEntrySheet({
         <div className={`mt-3 flex items-center gap-3 px-3 py-[10px] ${fieldShell}`}>
           <div className="min-w-0 flex-1">
             <div className="text-[0.75rem] font-semibold text-m-ink">{t('journey.editor.draft')}</div>
-            <div className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-muted">{t('journey.editor.draftHint')}</div>
+            <div className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-muted">
+              {t('journey.editor.draftHint')}
+            </div>
           </div>
           <MToggle checked={isDraft} onChange={setIsDraft} disabled={readOnly} ariaLabel={t('journey.editor.draft')} />
         </div>
 
         {/* Mood */}
-        {showMood && !captureOnly && <>
-          <div className={`${eyebrow} mb-[6px] mt-3`}>{t('journey.editor.mood')}</div>
-          <div className="flex flex-wrap gap-[6px]">
-            {MOBILE_MOODS.map(m => {
-              const active = mood === m.id
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  disabled={readOnly}
-                  onClick={() => setMood(active ? '' : m.id)}
-                  className={`flex items-center gap-[5px] rounded-full border px-3 py-[7px] text-[0.71875rem] font-semibold ${
-                    active ? '' : 'border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted'
-                  }`}
-                  style={active ? { background: `${m.color}24`, color: m.color, borderColor: `${m.color}4D` } : undefined}
-                >
-                  <m.icon size={13} strokeWidth={2.2} />
-                  {t(m.labelKey)}
-                </button>
-              )
-            })}
-          </div>
-        </>}
+        {showMood && !captureOnly && (
+          <>
+            <div className={`${eyebrow} mb-[6px] mt-3`}>{t('journey.editor.mood')}</div>
+            <div className="flex flex-wrap gap-[6px]">
+              {MOBILE_MOODS.map((m) => {
+                const active = mood === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    disabled={readOnly}
+                    onClick={() => setMood(active ? '' : m.id)}
+                    className={`flex items-center gap-[5px] rounded-full border px-3 py-[7px] text-[0.71875rem] font-semibold ${
+                      active ? '' : 'border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted'
+                    }`}
+                    style={
+                      active ? { background: `${m.color}24`, color: m.color, borderColor: `${m.color}4D` } : undefined
+                    }
+                  >
+                    <m.icon size={13} strokeWidth={2.2} />
+                    {t(m.labelKey)}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
 
         {/* Weather */}
-        {showWeather && <>
-        <div className={`${eyebrow} mb-[6px] mt-3`}>{t('journey.editor.weather')}</div>
-        <div className="flex flex-wrap gap-[6px]">
-          {MOBILE_WEATHERS.map(w => {
-            const active = weather === w.id
-            return (
-              <button
-                key={w.id}
-                type="button"
-                disabled={readOnly}
-                onClick={() => setWeather(active ? '' : w.id)}
-                className={`flex items-center gap-[5px] rounded-full border px-3 py-[7px] text-[0.71875rem] font-semibold ${
-                  active
-                    ? 'border-[color:var(--m-act)] bg-m-act text-m-actfg'
-                    : 'border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted'
-                }`}
-              >
-                <w.icon size={13} strokeWidth={2.2} />
-                {t(w.labelKey)}
-              </button>
-            )
-          })}
-        </div>
-        </>}
+        {showWeather && (
+          <>
+            <div className={`${eyebrow} mb-[6px] mt-3`}>{t('journey.editor.weather')}</div>
+            <div className="flex flex-wrap gap-[6px]">
+              {MOBILE_WEATHERS.map((w) => {
+                const active = weather === w.id;
+                return (
+                  <button
+                    key={w.id}
+                    type="button"
+                    disabled={readOnly}
+                    onClick={() => setWeather(active ? '' : w.id)}
+                    className={`flex items-center gap-[5px] rounded-full border px-3 py-[7px] text-[0.71875rem] font-semibold ${
+                      active
+                        ? 'border-[color:var(--m-act)] bg-m-act text-m-actfg'
+                        : 'border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted'
+                    }`}
+                  >
+                    <w.icon size={13} strokeWidth={2.2} />
+                    {t(w.labelKey)}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
 
         {/* Tags */}
         {!captureOnly && (!readOnly || tags.length > 0) && (
           <>
             <div className={`${eyebrow} mb-[6px] mt-3`}>{t('mobileJourney.tags')}</div>
             <div className={`flex flex-wrap items-center gap-[6px] px-3 py-2 ${fieldShell} rounded-[14px]`}>
-              {tags.map(tag => (
-                <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-m-sheetop px-[10px] py-[5px] font-geist text-[0.6875rem] font-semibold">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="inline-flex items-center gap-1 rounded-full bg-m-sheetop px-[10px] py-[5px] font-geist text-[0.6875rem] font-semibold"
+                >
                   {tag}
                   {!readOnly && (
-                    <button type="button" onClick={() => setTags(prev => prev.filter(x => x !== tag))} aria-label={t('common.delete')} className="text-m-faint">
+                    <button
+                      type="button"
+                      onClick={() => setTags((prev) => prev.filter((x) => x !== tag))}
+                      aria-label={t('common.delete')}
+                      className="text-m-faint"
+                    >
                       <X size={10} strokeWidth={2.5} />
                     </button>
                   )}
@@ -982,11 +1215,11 @@ export default function MJourneyEntrySheet({
               {!readOnly && (
                 <input
                   value={tagInput}
-                  onChange={e => setTagInput(e.target.value)}
-                  onKeyDown={e => {
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ',') {
-                      e.preventDefault()
-                      addTag()
+                      e.preventDefault();
+                      addTag();
                     }
                   }}
                   onBlur={addTag}
@@ -1010,7 +1243,7 @@ export default function MJourneyEntrySheet({
         <button
           type="button"
           onClick={onDismiss}
-          className="mx-[18px] mt-1 mb-[10px] flex flex-none items-center gap-[9px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[13px] py-[10px] text-left"
+          className="mx-[18px] mb-[10px] mt-1 flex flex-none items-center gap-[9px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[13px] py-[10px] text-left"
         >
           <EyeOff size={15} strokeWidth={2} className="flex-none text-m-muted" />
           <span className="min-w-0 flex-1 text-[0.8125rem] font-semibold">{t('journey.suggestions.dismiss')}</span>
@@ -1056,5 +1289,5 @@ export default function MJourneyEntrySheet({
         )}
       </div>
     </MSheet>
-  )
+  );
 }

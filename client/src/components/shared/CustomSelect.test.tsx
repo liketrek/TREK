@@ -50,7 +50,7 @@ describe('CustomSelect', () => {
     // Options in dropdown are also buttons
     const optionBtns = screen.getAllByRole('button');
     // Find the Cherry option button (not the trigger which shows placeholder)
-    const cherryBtn = optionBtns.find(b => b.textContent?.includes('Cherry'));
+    const cherryBtn = optionBtns.find((b) => b.textContent?.includes('Cherry'));
     await user.click(cherryBtn!);
     expect(onChange).toHaveBeenCalledWith('cherry');
   });
@@ -60,7 +60,7 @@ describe('CustomSelect', () => {
     render(<CustomSelect value="" onChange={onChange} options={OPTIONS} />);
     await user.click(screen.getByRole('button')); // open
     const optionBtns = screen.getAllByRole('button');
-    const appleBtn = optionBtns.find(b => b.textContent?.includes('Apple'));
+    const appleBtn = optionBtns.find((b) => b.textContent?.includes('Apple'));
     await user.click(appleBtn!);
     // After selection, only the trigger button remains in DOM
     expect(screen.getAllByRole('button')).toHaveLength(1);
@@ -133,11 +133,12 @@ describe('CustomSelect', () => {
     render(
       <div data-testid="panel">
         <CustomSelect value="" onChange={onChange} options={OPTIONS} menuFit="content" />
-      </div>,
+      </div>
     );
     // jsdom measures everything as zero, so the panel says how wide it is.
     const panel = screen.getByTestId('panel');
-    panel.getBoundingClientRect = () => ({ left: 0, right: 180, width: 180, top: 0, bottom: 32, height: 32, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+    panel.getBoundingClientRect = () =>
+      ({ left: 0, right: 180, width: 180, top: 0, bottom: 32, height: 32, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
 
     await user.click(screen.getByRole('button'));
 
@@ -168,12 +169,29 @@ describe('CustomSelect', () => {
   });
 
   it('FE-COMP-SELECT-015: a numeric value finds the option keyed by the same text', () => {
-    render(<CustomSelect value={3} onChange={onChange} options={[{ value: '3', label: 'March' }, { value: '4', label: 'April' }]} placeholder="Month" />);
+    render(
+      <CustomSelect
+        value={3}
+        onChange={onChange}
+        options={[
+          { value: '3', label: 'March' },
+          { value: '4', label: 'April' },
+        ]}
+        placeholder="Month"
+      />
+    );
     expect(screen.getByRole('button')).toHaveTextContent('March');
   });
 
   it('FE-COMP-SELECT-016: a caller holding nothing still sees the placeholder', () => {
-    render(<CustomSelect value={null} onChange={onChange} options={[{ value: '', label: 'Nobody' }, ...USERS]} placeholder="Pick a user" />);
+    render(
+      <CustomSelect
+        value={null}
+        onChange={onChange}
+        options={[{ value: '', label: 'Nobody' }, ...USERS]}
+        placeholder="Pick a user"
+      />
+    );
     expect(screen.getByRole('button')).toHaveTextContent('Pick a user');
   });
 
@@ -195,25 +213,32 @@ describe('CustomSelect', () => {
   });
 
   it('applies the external label id only to the trigger', () => {
-    render(<><label htmlFor="fruit">Fruit</label><CustomSelect id="fruit" value="apple" onChange={onChange} options={OPTIONS} /></>);
+    render(
+      <>
+        <label htmlFor="fruit">Fruit</label>
+        <CustomSelect id="fruit" value="apple" onChange={onChange} options={OPTIONS} />
+      </>
+    );
     expect(screen.getByRole('button', { name: 'Fruit' })).toHaveAttribute('id', 'fruit');
     expect(document.querySelectorAll('[id="fruit"]')).toHaveLength(1);
   });
 
-  it.each([undefined, 'fruit'])('keeps the explicit accessible name with id %s', id => {
+  it.each([undefined, 'fruit'])('keeps the explicit accessible name with id %s', (id) => {
     render(<CustomSelect id={id} ariaLabel="Choose fruit" value="apple" onChange={onChange} options={OPTIONS} />);
     const trigger = screen.getByRole('button', { name: 'Choose fruit' });
     expect(trigger).toHaveAttribute('aria-label', 'Choose fruit');
-    expect(Array.from(trigger.attributes).filter(attribute => attribute.name === 'aria-label')).toHaveLength(1);
+    expect(Array.from(trigger.attributes).filter((attribute) => attribute.name === 'aria-label')).toHaveLength(1);
     if (id) expect(trigger).toHaveAttribute('id', id);
   });
 
   it('associates two independent portals without duplicate ids', async () => {
     const user = userEvent.setup();
-    const { container } = render(<>
-      <CustomSelect id="first-fruit" ariaLabel="First fruit" value="apple" onChange={onChange} options={OPTIONS} />
-      <CustomSelect id="second-fruit" ariaLabel="Second fruit" value="banana" onChange={onChange} options={OPTIONS} />
-    </>);
+    const { container } = render(
+      <>
+        <CustomSelect id="first-fruit" ariaLabel="First fruit" value="apple" onChange={onChange} options={OPTIONS} />
+        <CustomSelect id="second-fruit" ariaLabel="Second fruit" value="banana" onChange={onChange} options={OPTIONS} />
+      </>
+    );
     const first = screen.getByRole('button', { name: 'First fruit' });
     const second = screen.getByRole('button', { name: 'Second fruit' });
     await user.click(first);
@@ -223,7 +248,7 @@ describe('CustomSelect', () => {
     const secondMenuId = second.getAttribute('aria-controls')!;
     expect(firstMenuId).not.toBe(secondMenuId);
     expect(document.getElementById(secondMenuId)).toHaveAttribute('role', 'group');
-    const ids = Array.from(document.querySelectorAll('[id]'), element => element.id);
+    const ids = Array.from(document.querySelectorAll('[id]'), (element) => element.id);
     expect(new Set(ids).size).toBe(ids.length);
     await user.click(within(document.getElementById(secondMenuId)!).getByRole('button', { name: 'Cherry' }));
     expect(onChange).toHaveBeenCalledWith('cherry');
@@ -231,7 +256,7 @@ describe('CustomSelect', () => {
     expect(second).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it.each(['{Enter}', ' '])('supports Tab, %s, arrows, selection and Escape', async openingKey => {
+  it.each(['{Enter}', ' '])('supports Tab, %s, arrows, selection and Escape', async (openingKey) => {
     const user = userEvent.setup();
     render(<CustomSelect ariaLabel="Choose fruit" value="" onChange={onChange} options={OPTIONS} />);
     const trigger = screen.getByRole('button', { name: 'Choose fruit' });
@@ -266,7 +291,16 @@ describe('CustomSelect', () => {
 
   it('keeps compact rendering, icon, badge and disabled keyboard behavior', async () => {
     const user = userEvent.setup();
-    render(<CustomSelect ariaLabel="Disabled fruit" value="apple" onChange={onChange} size="sm" disabled options={[{ value: 'apple', label: 'Apple', badge: '3', icon: <span data-testid="fruit-icon" /> }]} />);
+    render(
+      <CustomSelect
+        ariaLabel="Disabled fruit"
+        value="apple"
+        onChange={onChange}
+        size="sm"
+        disabled
+        options={[{ value: 'apple', label: 'Apple', badge: '3', icon: <span data-testid="fruit-icon" /> }]}
+      />
+    );
     const trigger = screen.getByRole('button', { name: 'Disabled fruit' });
     expect(trigger).toBeDisabled();
     expect(trigger.style.padding).toBe('8px 12px');

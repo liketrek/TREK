@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
-import { AlertTriangle, BedDouble, Hourglass, ParkingSquare } from 'lucide-react'
-import MSheet from '../../../components/MSheet'
-import MChip from '../../../components/MChip'
-import { Eyebrow, FormSheetHeader } from '../sheets/PlSheetChrome'
-import { STOP_KINDS, STOP_KIND_BY_KEY, isOvernightCategory } from '../../../../components/Roadtrip/stopKinds'
-import { formatDurationShort } from '../../../../components/Roadtrip/roadtripModel'
-import type { RoadtripStopDraft } from '../../../../components/Roadtrip/RoadtripStopPopup'
-import type { TripPlanner } from '../MTripShell'
-import type { RoadtripStopType } from '@trek/shared'
+import type { RoadtripStopType } from '@trek/shared';
+import { AlertTriangle, BedDouble, Hourglass, ParkingSquare } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { formatDurationShort } from '../../../../components/Roadtrip/roadtripModel';
+import type { RoadtripStopDraft } from '../../../../components/Roadtrip/RoadtripStopPopup';
+import { STOP_KINDS, STOP_KIND_BY_KEY, isOvernightCategory } from '../../../../components/Roadtrip/stopKinds';
+import MChip from '../../../components/MChip';
+import MSheet from '../../../components/MSheet';
+import type { TripPlanner } from '../MTripShell';
+import { Eyebrow, FormSheetHeader } from '../sheets/PlSheetChrome';
 
 export interface MRtDraftSheetProps {
-  planner: TripPlanner
+  planner: TripPlanner;
 }
 
 /**
@@ -18,7 +18,7 @@ export interface MRtDraftSheetProps {
  * The same six the desktop popup offers, so a stop added on the phone and one
  * added at the desk are the same stop.
  */
-const DWELL_CHOICES = [5, 10, 20, 30, 45, 60]
+const DWELL_CHOICES = [5, 10, 20, 30, 45, 60];
 
 /**
  * Taking a hit found along the drive onto the trip, on the phone.
@@ -37,33 +37,33 @@ const DWELL_CHOICES = [5, 10, 20, 30, 45, 60]
  * any of it to go wrong in.
  */
 export default function MRtDraftSheet({ planner }: MRtDraftSheetProps) {
-  const { t, stopDraft, setStopDraft, saveStopDraft, stopDraftDuplicate } = planner
+  const { t, stopDraft, setStopDraft, saveStopDraft, stopDraftDuplicate } = planner;
 
-  const [stopType, setStopType] = useState<RoadtripStopType | null>(null)
-  const [dwell, setDwell] = useState<number>(30)
-  const [saving, setSaving] = useState(false)
+  const [stopType, setStopType] = useState<RoadtripStopType | null>(null);
+  const [dwell, setDwell] = useState<number>(30);
+  const [saving, setSaving] = useState(false);
 
   // Hold the last draft so the panel keeps its content through the 280ms exit
   // animation: saving clears the draft immediately, and rendering off the live
   // value alone would blank the sheet mid-slide.
-  const heldRef = useRef<RoadtripStopDraft | null>(null)
-  if (stopDraft) heldRef.current = stopDraft
-  const draft = stopDraft ?? heldRef.current
+  const heldRef = useRef<RoadtripStopDraft | null>(null);
+  if (stopDraft) heldRef.current = stopDraft;
+  const draft = stopDraft ?? heldRef.current;
 
   // Seeded from what the hit brings with it: a charge is not a fuel stop, and
   // each kind carries how long it usually takes. An edit answers with what the
   // stop already says instead.
   useEffect(() => {
-    if (!stopDraft) return
-    const suggested = STOP_KINDS.find(k => k.key === stopDraft.poi.category)
-    setStopType(stopDraft.editing ? stopDraft.editing.stopType : suggested?.key ?? null)
-    setDwell(stopDraft.editing?.dwellMinutes ?? suggested?.defaultMinutes ?? 30)
-    setSaving(false)
-  }, [stopDraft])
+    if (!stopDraft) return;
+    const suggested = STOP_KINDS.find((k) => k.key === stopDraft.poi.category);
+    setStopType(stopDraft.editing ? stopDraft.editing.stopType : (suggested?.key ?? null));
+    setDwell(stopDraft.editing?.dwellMinutes ?? suggested?.defaultMinutes ?? 30);
+    setSaving(false);
+  }, [stopDraft]);
 
-  if (!draft) return null
+  if (!draft) return null;
 
-  const kind = STOP_KINDS.find(k => k.key === stopType)
+  const kind = STOP_KINDS.find((k) => k.key === stopType);
 
   /**
    * A place somebody could sleep at is not offered here at all.
@@ -73,28 +73,28 @@ export default function MRtDraftSheet({ planner }: MRtDraftSheetProps) {
    * hit as an ordinary pause would look like it worked while quietly losing the
    * night, which is worse than saying where it can be done.
    */
-  const overnightOnly = draft.overnight != null || isOvernightCategory(draft.poi.category)
+  const overnightOnly = draft.overnight != null || isOvernightCategory(draft.poi.category);
 
-  const discard = () => setStopDraft(null)
+  const discard = () => setStopDraft(null);
 
   const pickKind = (key: RoadtripStopType) => {
-    if (stopType === key) return
-    setStopType(key)
+    if (stopType === key) return;
+    setStopType(key);
     // Picking a kind picks its usual length too, until the user says otherwise.
     // Tapping the kind already chosen changes nothing, so a time set by hand
     // survives it.
-    setDwell(STOP_KIND_BY_KEY[key]?.defaultMinutes ?? dwell)
-  }
+    setDwell(STOP_KIND_BY_KEY[key]?.defaultMinutes ?? dwell);
+  };
 
   const submit = async (): Promise<void> => {
-    if (saving) return
-    setSaving(true)
+    if (saving) return;
+    setSaving(true);
     try {
-      await saveStopDraft({ stopType, dwellMinutes: dwell })
+      await saveStopDraft({ stopType, dwellMinutes: dwell });
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   return (
     <MSheet open={stopDraft != null} onClose={discard} variant="bottom" material="opaque" ariaLabel={draft.poi.name}>
@@ -141,7 +141,7 @@ export default function MRtDraftSheet({ planner }: MRtDraftSheetProps) {
 
             <Eyebrow className="mb-[6px] mt-3">{t('roadtrip.stop.stay')}</Eyebrow>
             <div className="flex flex-wrap gap-[6px]">
-              {DWELL_CHOICES.map(minutes => (
+              {DWELL_CHOICES.map((minutes) => (
                 <MChip
                   key={minutes}
                   active={dwell === minutes}
@@ -168,7 +168,9 @@ export default function MRtDraftSheet({ planner }: MRtDraftSheetProps) {
         {!overnightOnly && (
           <button
             type="button"
-            onClick={() => { void submit() }}
+            onClick={() => {
+              void submit();
+            }}
             disabled={saving}
             className="ml-auto flex h-11 items-center rounded-full bg-m-act px-[22px] text-[0.8125rem] font-semibold text-m-actfg disabled:opacity-40"
           >
@@ -177,5 +179,5 @@ export default function MRtDraftSheet({ planner }: MRtDraftSheetProps) {
         )}
       </div>
     </MSheet>
-  )
+  );
 }

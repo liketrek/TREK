@@ -56,8 +56,21 @@
  * repository, so they are what the log-line assertion below is actually
  * exercising.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { AirportsService } from '../../src/nest/airports/airports.service';
+import { PlaceRegionsRepairJob } from '../../src/nest/atlas/place-regions-repair.job';
+import { DocSyncJob } from '../../src/nest/doc-sync/doc-sync.job';
+import { AirtrailSyncJob } from '../../src/nest/integrations/airtrail-sync.job';
+import { DawarichSyncJob } from '../../src/nest/integrations/dawarich-sync.job';
+import { JourneyThumbsJob } from '../../src/nest/memories/journey-thumbs.job';
+import { TrekPhotoCacheJob } from '../../src/nest/memories/trek-photo-cache.job';
+import { ReminderJobsService } from '../../src/nest/notifications/reminder-jobs.service';
+import { PlacePhotoCacheJob } from '../../src/nest/place-photos/place-photo-cache.job';
+import { CronRegistrarService } from '../../src/nest/scheduling/cron-registrar.service';
 import type { INestApplication } from '@nestjs/common';
+
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -72,20 +85,11 @@ vi.mock('../../src/config', () => ({
   SESSION_DURATION_SECONDS: 86400,
   DEFAULT_LANGUAGE: 'en',
 }));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn(), getOnlineUserIds: vi.fn(() => []) }));
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { CronRegistrarService } from '../../src/nest/scheduling/cron-registrar.service';
-import { JourneyThumbsJob } from '../../src/nest/memories/journey-thumbs.job';
-import { PlacePhotoCacheJob } from '../../src/nest/place-photos/place-photo-cache.job';
-import { TrekPhotoCacheJob } from '../../src/nest/memories/trek-photo-cache.job';
-import { ReminderJobsService } from '../../src/nest/notifications/reminder-jobs.service';
-import { DocSyncJob } from '../../src/nest/doc-sync/doc-sync.job';
-import { AirtrailSyncJob } from '../../src/nest/integrations/airtrail-sync.job';
-import { DawarichSyncJob } from '../../src/nest/integrations/dawarich-sync.job';
-import { AirportsService } from '../../src/nest/airports/airports.service';
-import { PlaceRegionsRepairJob } from '../../src/nest/atlas/place-regions-repair.job';
+vi.mock('../../src/websocket', () => ({
+  broadcast: vi.fn(),
+  broadcastToUser: vi.fn(),
+  getOnlineUserIds: vi.fn(() => []),
+}));
 
 describe('Every onApplicationBootstrap boot sweep runs inside a request context', () => {
   let app: INestApplication;

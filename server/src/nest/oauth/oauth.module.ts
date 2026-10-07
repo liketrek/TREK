@@ -1,21 +1,21 @@
-import { RateLimitModule } from '../common/rate-limit.module';
-import { Module } from '@nestjs/common';
-import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize';
-import { clientRegistrationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/register';
-import { OauthPublicController } from './oauth-public.controller';
-import { OauthApiController } from './oauth-api.controller';
-import { OauthService } from './oauth.service';
-import { TrekClientsStore, TrekOAuthProvider } from './oauth-sdk.provider';
-import { AuditModule } from '../audit/audit.module';
+import { OauthClients } from '../../db/entities/OauthClients.entity';
+import { OauthConsents } from '../../db/entities/OauthConsents.entity';
+import { OauthTokens } from '../../db/entities/OauthTokens.entity';
+import { Users } from '../../db/entities/Users.entity';
 import { AddonsModule } from '../addons/addons.module';
 import { AddonsService } from '../addons/addons.service';
 import { createMcpAddonGate } from '../addons/mcp-addon-gate';
-import { OauthClients } from '../../db/entities/OauthClients.entity';
-import { OauthTokens } from '../../db/entities/OauthTokens.entity';
-import { OauthConsents } from '../../db/entities/OauthConsents.entity';
-import { Users } from '../../db/entities/Users.entity';
+import { AuditModule } from '../audit/audit.module';
+import { RateLimitModule } from '../common/rate-limit.module';
+import { OauthApiController } from './oauth-api.controller';
+import { OauthPublicController } from './oauth-public.controller';
+import { TrekClientsStore, TrekOAuthProvider } from './oauth-sdk.provider';
+import { OauthService } from './oauth.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { authorizationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/authorize';
+import { clientRegistrationHandler } from '@modelcontextprotocol/sdk/server/auth/handlers/register';
+import { Module } from '@nestjs/common';
+import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
 
 /**
  * OAuth 2.1 server (MCP). Public token/userinfo/revoke endpoints + the SPA's
@@ -52,7 +52,12 @@ import { Users } from '../../db/entities/Users.entity';
  * `Users` call (Task 1's ruling: "do not add users methods" for this join).
  */
 @Module({
-  imports: [RateLimitModule, AuditModule, AddonsModule, MikroOrmModule.forFeature([OauthClients, OauthTokens, OauthConsents, Users])],
+  imports: [
+    RateLimitModule,
+    AuditModule,
+    AddonsModule,
+    MikroOrmModule.forFeature([OauthClients, OauthTokens, OauthConsents, Users]),
+  ],
   controllers: [OauthPublicController, OauthApiController],
   providers: [OauthService, TrekClientsStore, TrekOAuthProvider],
   exports: [OauthService],
@@ -69,13 +74,9 @@ export class OauthModule implements NestModule {
 
     // SDK authorize handler: validates OAuth params, calls provider.authorize()
     // which redirects to the SPA consent page at /oauth/consent
-    consumer
-      .apply(mcpAddonGate, authorizationHandler({ provider: this.provider }))
-      .forRoutes('oauth/authorize');
+    consumer.apply(mcpAddonGate, authorizationHandler({ provider: this.provider })).forRoutes('oauth/authorize');
 
     // SDK DCR handler: accepts registrations without scope (fixes issue #959 bug 2)
-    consumer
-      .apply(mcpAddonGate, clientRegistrationHandler({ clientsStore: this.clients }))
-      .forRoutes('oauth/register');
+    consumer.apply(mcpAddonGate, clientRegistrationHandler({ clientsStore: this.clients })).forRoutes('oauth/register');
   }
 }

@@ -1,3 +1,4 @@
+import { sanitiseAssistantText } from './text-sanitize';
 import {
   PLUGIN_POI_CATEGORY_ID_RE,
   PLUGIN_POI_COLOR_RE,
@@ -9,7 +10,6 @@ import {
   pluginPoiCategorySchema,
   type PluginPoiCategory,
 } from '@trek/shared';
-import { sanitiseAssistantText } from './text-sanitize';
 
 /**
  * Reading a plugin's `capabilities.poiCategories` (#1781), in one place for the three
@@ -55,7 +55,8 @@ function readLabels(raw: unknown): { ok: true; value?: Record<string, string> } 
   }
   const out: Record<string, string> = {};
   for (const [code, value] of Object.entries(raw as Record<string, unknown>)) {
-    if (!LANGUAGE_KEY_RE.test(code)) return { ok: false, reason: `labels: "${code.slice(0, 20)}" is not a language code` };
+    if (!LANGUAGE_KEY_RE.test(code))
+      return { ok: false, reason: `labels: "${code.slice(0, 20)}" is not a language code` };
     const label = rawLabel(value);
     if (!label) return { ok: false, reason: `labels.${code} is required (max ${PLUGIN_POI_LABEL_MAX} chars)` };
     const clean = cleanLabel(label);
@@ -69,7 +70,8 @@ export function readPoiCategory(raw: unknown): PoiCategoryRead {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, reason: 'entries must be objects' };
   const p = raw as Record<string, unknown>;
   const id = typeof p.id === 'string' ? p.id : '';
-  if (!PLUGIN_POI_CATEGORY_ID_RE.test(id)) return { ok: false, reason: 'id must be lowercase [a-z][a-z0-9-], max 24 chars' };
+  if (!PLUGIN_POI_CATEGORY_ID_RE.test(id))
+    return { ok: false, reason: 'id must be lowercase [a-z][a-z0-9-], max 24 chars' };
   const label = rawLabel(p.label);
   if (!label) return { ok: false, reason: `"${id}" label is required (max ${PLUGIN_POI_LABEL_MAX} chars)` };
   if (!isPluginPoiIcon(p.icon)) {

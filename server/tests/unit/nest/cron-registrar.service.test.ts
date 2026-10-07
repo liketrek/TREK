@@ -5,6 +5,13 @@
  * the old job, unregister is idempotent, and onApplicationShutdown stops
  * everything the registrar owns.
  */
+import { Users } from '../../../src/db/entities/Users.entity';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { SchedulerRegistry } from '@nestjs/schedule';
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const h = vi.hoisted(() => ({
@@ -40,13 +47,6 @@ vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
   logError: logErrorMock,
   logWarn: vi.fn(),
 }));
-
-import { SchedulerRegistry } from '@nestjs/schedule';
-import { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
-import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { Users } from '../../../src/db/entities/Users.entity';
 
 function makeRegistrar(isTest: boolean) {
   const registry = new SchedulerRegistry();
@@ -133,12 +133,12 @@ describe('CronRegistrarService', () => {
     registrar.register('a', '0 2 * * *', () => {});
     registrar.register('b', '0 4 * * *', () => {});
     registrar.onApplicationShutdown();
-    expect(h.jobs.every(j => j.stopped)).toBe(true);
+    expect(h.jobs.every((j) => j.stopped)).toBe(true);
     expect(registry.getCronJobs().size).toBe(0);
     expect(registrar.jobCount).toBe(0);
   });
 
-  it("CRONREG-009 — shutdown tolerates the orchestrator having already cleared the registry", () => {
+  it('CRONREG-009 — shutdown tolerates the orchestrator having already cleared the registry', () => {
     // @nestjs/schedule v6 deletes every registry cron job in its own
     // beforeApplicationShutdown, which runs before our onApplicationShutdown.
     const { registrar, registry } = makeRegistrar(false);
@@ -264,9 +264,7 @@ describe('CronRegistrarService', () => {
         fnRan = true;
       });
       expect(fnRan).toBe(false);
-      expect(logErrorMock).toHaveBeenCalledWith(
-        expect.stringMatching(/runOnBoot: no MikroORM available.*boot-sweep/),
-      );
+      expect(logErrorMock).toHaveBeenCalledWith(expect.stringMatching(/runOnBoot: no MikroORM available.*boot-sweep/));
     });
   });
 });

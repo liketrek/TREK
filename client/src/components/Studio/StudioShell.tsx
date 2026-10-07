@@ -1,30 +1,40 @@
-import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router'
 import {
-  ArrowLeft, BookOpen, Check, ChevronDown, ClipboardPaste, Download, Maximize2, Minus, Plus,
-  Redo2, Sparkles, Undo2,
-} from 'lucide-react'
-import { useJourneyStudio } from '../../pages/journeyStudio/useJourneyStudio'
-import { PAGE_PRESET_ORDER, PAGE_PRESETS } from './pagePresets'
-import { foliosOf } from './bookSheets'
-import { StudioSidebar } from './StudioSidebar'
-import { ProviderPicker } from '../Journey/JourneyDetailPageProviderPicker'
-import { useAuthStore } from '../../store/authStore'
-import { StudioCanvas } from './StudioCanvas'
-import { StudioInspector } from './StudioInspector'
-import { StudioWordmark } from './StudioWordmark'
-import { SaveIndicator } from './SaveIndicator'
-import { downloadSpread } from './spreadFile'
-import { StudioExport } from './StudioExport'
-import { PeerBadges } from './PeerBadges'
-import { TrimField } from './TrimField'
-import { Tooltip } from '../shared/Tooltip'
-import { useStudioStore } from '../../store/studioStore'
-import '../../styles/dashboard.css'
-import '../../styles/studio.css'
-import './bookFontFaces'
-import HelpButton from '../Help/HelpButton'
+  ArrowLeft,
+  BookOpen,
+  Check,
+  ChevronDown,
+  ClipboardPaste,
+  Download,
+  Maximize2,
+  Minus,
+  Plus,
+  Redo2,
+  Sparkles,
+  Undo2,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router';
+import { useJourneyStudio } from '../../pages/journeyStudio/useJourneyStudio';
+import { useAuthStore } from '../../store/authStore';
+import { useStudioStore } from '../../store/studioStore';
+import '../../styles/dashboard.css';
+import '../../styles/studio.css';
+import HelpButton from '../Help/HelpButton';
+import { ProviderPicker } from '../Journey/JourneyDetailPageProviderPicker';
+import { Tooltip } from '../shared/Tooltip';
+import './bookFontFaces';
+import { foliosOf } from './bookSheets';
+import { PAGE_PRESET_ORDER, PAGE_PRESETS } from './pagePresets';
+import { PeerBadges } from './PeerBadges';
+import { SaveIndicator } from './SaveIndicator';
+import { downloadSpread } from './spreadFile';
+import { StudioCanvas } from './StudioCanvas';
+import { StudioExport } from './StudioExport';
+import { StudioInspector } from './StudioInspector';
+import { StudioSidebar } from './StudioSidebar';
+import { StudioWordmark } from './StudioWordmark';
+import { TrimField } from './TrimField';
 
 /**
  * The Studio shell: top bar, page rail, workbench, inspector.
@@ -38,10 +48,10 @@ import HelpButton from '../Help/HelpButton'
  * and accent without a second palette to keep in sync.
  */
 export default function StudioShell() {
-  const s = useJourneyStudio()
-  const navigate = useNavigate()
-  const [bookView, setBookView] = useState(true)
-  const [exporting, setExporting] = useState(false)
+  const s = useJourneyStudio();
+  const navigate = useNavigate();
+  const [bookView, setBookView] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   if (s.isMobile) {
     return createPortal(
@@ -53,7 +63,8 @@ export default function StudioShell() {
         <div style={{ fontSize: 13.5, color: 'var(--ink-3)', maxWidth: 320, lineHeight: 1.55 }}>
           {s.t('journey.studio.desktopOnlyHint')}
         </div>
-        <button type="button"
+        <button
+          type="button"
           onClick={() => navigate(s.backTo, { replace: true })}
           className="st-tool is-primary"
           style={{ marginTop: 6 }}
@@ -61,21 +72,17 @@ export default function StudioShell() {
           {s.t('journey.studio.backToJourney')}
         </button>
       </div>,
-      document.body,
-    )
+      document.body
+    );
   }
 
   const originStyle = s.origin
     ? ({ '--st-ox': `${s.origin.x}px`, '--st-oy': `${s.origin.y}px` } as React.CSSProperties)
-    : undefined
+    : undefined;
 
   return createPortal(
     <>
-      <div
-        className={`st-scrim ${s.closing ? 'st-scrim-exit' : 'st-scrim-enter'}`}
-        onClick={s.close}
-        aria-hidden
-      />
+      <div className={`st-scrim ${s.closing ? 'st-scrim-exit' : 'st-scrim-enter'}`} onClick={s.close} aria-hidden />
       <div
         className={`st-root trek-dash ${s.closing ? 'st-exit' : 'st-enter'}`}
         style={originStyle}
@@ -89,9 +96,9 @@ export default function StudioShell() {
           <ProviderPicker
             provider={s.providerPick.provider}
             userId={useAuthStore.getState().user?.id || 0}
-            entries={s.journey.entries.filter(e => e.type !== 'skeleton' || e.title)}
+            entries={s.journey.entries.filter((e) => e.type !== 'skeleton' || e.title)}
             trips={s.journey.trips}
-            existingAssetIds={new Set((s.journey.gallery ?? []).filter(p => p.asset_id).map(p => p.asset_id!))}
+            existingAssetIds={new Set((s.journey.gallery ?? []).filter((p) => p.asset_id).map((p) => p.asset_id!))}
             initialEntryId={s.providerPick.entryId}
             onClose={s.closeProviderPick}
             onAdd={s.addFromProvider}
@@ -136,22 +143,28 @@ export default function StudioShell() {
         )}
       </div>
     </>,
-    document.body,
-  )
+    document.body
+  );
 }
 
-type Studio = ReturnType<typeof useJourneyStudio>
+type Studio = ReturnType<typeof useJourneyStudio>;
 
 function StudioBar({
-  s, bookView, setBookView, onExport,
-}: { s: Studio; bookView: boolean; setBookView: (v: boolean) => void; onExport: () => void }) {
+  s,
+  bookView,
+  setBookView,
+  onExport,
+}: {
+  s: Studio;
+  bookView: boolean;
+  setBookView: (v: boolean) => void;
+  onExport: () => void;
+}) {
   return (
     <div className="st-bar">
       <button type="button" onClick={s.close} className="st-back" title={s.t('journey.studio.backToJourney')}>
         <ArrowLeft size={16} />
-        {s.coverUrl
-          ? <img src={s.coverUrl} alt="" className="st-cover" />
-          : <span className="st-cover" />}
+        {s.coverUrl ? <img src={s.coverUrl} alt="" className="st-cover" /> : <span className="st-cover" />}
         <span className="st-back-label">{s.journey?.title || s.t('journey.title')}</span>
       </button>
 
@@ -173,13 +186,16 @@ function StudioBar({
       <SaveIndicator
         state={s.saveState}
         t={s.t}
-        onAcceptTheirs={current => s.loadDoc(s.acceptTheirs(current))}
+        onAcceptTheirs={(current) => s.loadDoc(s.acceptTheirs(current))}
         onKeepMine={s.keepMine}
-        onRetry={() => { void s.saveNow() }}
+        onRetry={() => {
+          void s.saveNow();
+        }}
       />
 
       <div className="st-bar-group">
-        <button type="button"
+        <button
+          type="button"
           className={`st-tool ${bookView ? 'is-on' : ''}`}
           onClick={() => setBookView(!bookView)}
           title={s.t('journey.studio.bookView')}
@@ -194,7 +210,8 @@ function StudioBar({
 
         <div className="st-sep" />
 
-        <button type="button"
+        <button
+          type="button"
           className="st-tool is-icon"
           disabled={!s.canUndo}
           onClick={s.undo}
@@ -203,7 +220,8 @@ function StudioBar({
         >
           <Undo2 size={15} />
         </button>
-        <button type="button"
+        <button
+          type="button"
           className="st-tool is-icon"
           disabled={!s.canRedo}
           onClick={s.redo}
@@ -217,7 +235,8 @@ function StudioBar({
         <div className="st-sep" />
 
         <AutoLayoutButton s={s} />
-        <button type="button"
+        <button
+          type="button"
           className="st-tool is-primary"
           onClick={onExport}
           disabled={!s.doc}
@@ -230,7 +249,7 @@ function StudioBar({
         <HelpButton className="st-tool is-icon" />
       </div>
     </div>
-  )
+  );
 }
 
 /**
@@ -247,12 +266,13 @@ function StudioBar({
  * not the only way to find it.
  */
 function PasteButton({ s }: { s: Studio }) {
-  const clipboard = useStudioStore(st => st.clipboard)
-  const paste = useStudioStore(st => st.paste)
-  const label = s.t('journey.studio.paste')
+  const clipboard = useStudioStore((st) => st.clipboard);
+  const paste = useStudioStore((st) => st.paste);
+  const label = s.t('journey.studio.paste');
   return (
     <Tooltip label={clipboard ? label : s.t('journey.studio.pasteEmpty')}>
-      <button type="button"
+      <button
+        type="button"
         className="st-tool is-icon"
         disabled={!clipboard || !s.canEdit}
         onClick={() => paste(s.activeSpread)}
@@ -261,50 +281,58 @@ function PasteButton({ s }: { s: Studio }) {
         <ClipboardPaste size={15} />
       </button>
     </Tooltip>
-  )
+  );
 }
 
 function AutoLayoutButton({ s }: { s: Studio }) {
-  const [open, setOpen] = useState(false)
-  const box = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
     const onDown = (e: PointerEvent) => {
-      if (!box.current?.contains(e.target as Node)) setOpen(false)
-    }
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) }
-    }
-    document.addEventListener('pointerdown', onDown)
-    document.addEventListener('keydown', onKey, true)
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey, true);
     return () => {
-      document.removeEventListener('pointerdown', onDown)
-      document.removeEventListener('keydown', onKey, true)
-    }
-  }, [open])
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey, true);
+    };
+  }, [open]);
 
   return (
     <div className="st-picker" ref={box}>
-      <button type="button"
+      <button
+        type="button"
         className="st-tool"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
         title={s.t('journey.studio.autoLayout')}
       >
         <Sparkles size={14} />
         <span className="st-tool-label">{s.t('journey.studio.autoLayout')}</span>
-        <ChevronDown size={13} style={{ opacity: .5 }} />
+        <ChevronDown size={13} style={{ opacity: 0.5 }} />
       </button>
 
       {open && (
         <div className="st-menu" role="menu">
-          <button type="button"
+          <button
+            type="button"
             className="st-menu-item"
             role="menuitem"
             disabled={!s.canRelayoutSpread}
-            onClick={() => { s.relayoutCurrentSpread(); setOpen(false) }}
+            onClick={() => {
+              s.relayoutCurrentSpread();
+              setOpen(false);
+            }}
           >
             <span className="st-menu-text">
               <span className="st-menu-name">{s.t('journey.studio.relayoutSpread')}</span>
@@ -313,10 +341,14 @@ function AutoLayoutButton({ s }: { s: Studio }) {
               </span>
             </span>
           </button>
-          <button type="button"
+          <button
+            type="button"
             className="st-menu-item"
             role="menuitem"
-            onClick={() => { s.relayoutBook(); setOpen(false) }}
+            onClick={() => {
+              s.relayoutBook();
+              setOpen(false);
+            }}
           >
             <span className="st-menu-text">
               <span className="st-menu-name">{s.t('journey.studio.relayoutBook')}</span>
@@ -326,7 +358,7 @@ function AutoLayoutButton({ s }: { s: Studio }) {
         </div>
       )}
     </div>
-  )
+  );
 }
 
 /**
@@ -339,33 +371,37 @@ function AutoLayoutButton({ s }: { s: Studio }) {
  * only naming them.
  */
 function FormatPicker({ s }: { s: Studio }) {
-  const [open, setOpen] = useState(false)
-  const box = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
     const onDown = (e: PointerEvent) => {
-      if (!box.current?.contains(e.target as Node)) setOpen(false)
-    }
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
     const onKey = (e: KeyboardEvent) => {
       // Swallow it, or the shell's Escape handler would close Studio itself.
-      if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) }
-    }
-    document.addEventListener('pointerdown', onDown)
-    document.addEventListener('keydown', onKey, true)
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        setOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey, true);
     return () => {
-      document.removeEventListener('pointerdown', onDown)
-      document.removeEventListener('keydown', onKey, true)
-    }
-  }, [open])
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey, true);
+    };
+  }, [open]);
 
-  const active = PAGE_PRESETS[s.preset] ?? PAGE_PRESETS['square-210']
+  const active = PAGE_PRESETS[s.preset] ?? PAGE_PRESETS['square-210'];
 
   return (
     <div className="st-picker" ref={box}>
-      <button type="button"
+      <button
+        type="button"
         className="st-tool"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={s.t('journey.studio.format')}
@@ -375,39 +411,45 @@ function FormatPicker({ s }: { s: Studio }) {
             ? `${Math.round(s.page.pageWidth)} × ${Math.round(s.page.pageHeight)} mm`
             : s.t(active.labelKey)}
         </span>
-        <ChevronDown size={13} style={{ opacity: .5 }} />
+        <ChevronDown size={13} style={{ opacity: 0.5 }} />
       </button>
 
       {open && (
         <div className="st-menu" role="listbox">
-          {PAGE_PRESET_ORDER.map(id => {
-            const p = PAGE_PRESETS[id]
-            const on = id === s.preset
+          {PAGE_PRESET_ORDER.map((id) => {
+            const p = PAGE_PRESETS[id];
+            const on = id === s.preset;
             return (
-              <button type="button"
+              <button
+                type="button"
                 key={id}
                 role="option"
                 aria-selected={on}
                 className={`st-menu-item ${on ? 'is-active' : ''}`}
-                onClick={() => { s.setPreset(id); setOpen(false) }}
+                onClick={() => {
+                  s.setPreset(id);
+                  setOpen(false);
+                }}
               >
                 <span className="st-menu-tile">
                   <span
                     className="st-menu-shape"
                     style={
                       p.pageWidthMm >= p.pageHeightMm
-                        ? { width: 24, height: Math.round(24 * p.pageHeightMm / p.pageWidthMm) }
-                        : { height: 24, width: Math.round(24 * p.pageWidthMm / p.pageHeightMm) }
+                        ? { width: 24, height: Math.round((24 * p.pageHeightMm) / p.pageWidthMm) }
+                        : { height: 24, width: Math.round((24 * p.pageWidthMm) / p.pageHeightMm) }
                     }
                   />
                 </span>
                 <span className="st-menu-text">
                   <span className="st-menu-name">{s.t(p.labelKey)}</span>
-                  <span className="st-menu-dim">{p.pageWidthMm} × {p.pageHeightMm} mm</span>
+                  <span className="st-menu-dim">
+                    {p.pageWidthMm} × {p.pageHeightMm} mm
+                  </span>
                 </span>
                 {on && <Check size={14} />}
               </button>
-            )
+            );
           })}
 
           {/*
@@ -422,13 +464,13 @@ function FormatPicker({ s }: { s: Studio }) {
             <TrimField
               label={s.t('journey.studio.width')}
               value={s.page.pageWidth}
-              onCommit={v => s.setPageSize('w', v)}
+              onCommit={(v) => s.setPageSize('w', v)}
             />
             <span className="st-menu-times">×</span>
             <TrimField
               label={s.t('journey.studio.height')}
               value={s.page.pageHeight}
-              onCommit={v => s.setPageSize('h', v)}
+              onCommit={(v) => s.setPageSize('h', v)}
             />
             <span className="st-menu-unit">mm</span>
           </div>
@@ -448,7 +490,7 @@ function FormatPicker({ s }: { s: Studio }) {
               min={0}
               max={20}
               step={0.5}
-              onCommit={v => s.setPageEdge('bleed', v)}
+              onCommit={(v) => s.setPageEdge('bleed', v)}
             />
             <span className="st-menu-times" />
             <TrimField
@@ -457,14 +499,14 @@ function FormatPicker({ s }: { s: Studio }) {
               min={0}
               max={40}
               step={0.5}
-              onCommit={v => s.setPageEdge('safe', v)}
+              onCommit={(v) => s.setPageEdge('safe', v)}
             />
             <span className="st-menu-unit">mm</span>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
 
 function Workbench({ s, bookView }: { s: Studio; bookView: boolean }) {
@@ -499,14 +541,29 @@ function Workbench({ s, bookView }: { s: Studio; bookView: boolean }) {
       </div>
 
       <div className="st-zoom">
-        <button type="button" onClick={() => s.stepZoom(-1)} disabled={!s.canZoomOut} aria-label={s.t('journey.studio.zoomOut')}>
+        <button
+          type="button"
+          onClick={() => s.stepZoom(-1)}
+          disabled={!s.canZoomOut}
+          aria-label={s.t('journey.studio.zoomOut')}
+        >
           <Minus size={15} />
         </button>
         <span className="st-zoom-value">{s.zoomPercent}%</span>
-        <button type="button" onClick={() => s.stepZoom(1)} disabled={!s.canZoomIn} aria-label={s.t('journey.studio.zoomIn')}>
+        <button
+          type="button"
+          onClick={() => s.stepZoom(1)}
+          disabled={!s.canZoomIn}
+          aria-label={s.t('journey.studio.zoomIn')}
+        >
           <Plus size={15} />
         </button>
-        <button type="button" onClick={s.zoomToFit} aria-label={s.t('journey.studio.zoomFit')} title={s.t('journey.studio.zoomFit')}>
+        <button
+          type="button"
+          onClick={s.zoomToFit}
+          aria-label={s.t('journey.studio.zoomFit')}
+          title={s.t('journey.studio.zoomFit')}
+        >
           <Maximize2 size={14} />
         </button>
         {/*
@@ -518,7 +575,8 @@ function Workbench({ s, bookView }: { s: Studio; bookView: boolean }) {
           photographs, which is the thing worth passing on.
         */}
         <span className="st-zoom-sep" />
-        <button type="button"
+        <button
+          type="button"
           onClick={() => s.spread && downloadSpread(s.spread, s.page, s.journey?.title || 'spread')}
           disabled={!s.spread}
           aria-label={s.t('journey.studio.downloadSpread')}
@@ -528,5 +586,5 @@ function Workbench({ s, bookView }: { s: Studio; bookView: boolean }) {
         </button>
       </div>
     </div>
-  )
+  );
 }

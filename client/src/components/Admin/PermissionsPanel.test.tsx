@@ -1,8 +1,8 @@
 // FE-ADMIN-PERM-001 to FE-ADMIN-PERM-010
-import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
+import { render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { ToastContainer } from '../shared/Toast';
 import PermissionsPanel from './PermissionsPanel';
@@ -41,7 +41,7 @@ function renderPanel() {
     <>
       <ToastContainer />
       <PermissionsPanel />
-    </>,
+    </>
   );
 }
 
@@ -50,11 +50,7 @@ function renderPanel() {
 beforeEach(() => {
   resetAllStores();
   // Override the default handler (returns object) with correct array shape
-  server.use(
-    http.get('/api/admin/permissions', () =>
-      HttpResponse.json({ permissions: SAMPLE_PERMISSIONS }),
-    ),
-  );
+  server.use(http.get('/api/admin/permissions', () => HttpResponse.json({ permissions: SAMPLE_PERMISSIONS })));
 });
 
 afterEach(() => {
@@ -69,7 +65,7 @@ describe('PermissionsPanel', () => {
       http.get('/api/admin/permissions', async () => {
         await new Promise(() => {}); // never resolves
         return HttpResponse.json({ permissions: [] });
-      }),
+      })
     );
     renderPanel();
     const spinner = document.querySelector('.animate-spin');
@@ -95,11 +91,7 @@ describe('PermissionsPanel', () => {
       buildPermission('trip_create', 'admin', 'trip_member'), // level ≠ default → badge
       buildPermission('trip_edit', 'trip_member', 'trip_member'), // level === default → no badge
     ];
-    server.use(
-      http.get('/api/admin/permissions', () =>
-        HttpResponse.json({ permissions: perms }),
-      ),
-    );
+    server.use(http.get('/api/admin/permissions', () => HttpResponse.json({ permissions: perms })));
     renderPanel();
     await screen.findByText('Trip Management');
     // Badge should appear once (for trip_create)
@@ -150,13 +142,9 @@ describe('PermissionsPanel', () => {
   it('FE-ADMIN-PERM-006: Reset button restores values to defaultLevel and enables Save', async () => {
     const perms = [
       buildPermission('trip_create', 'admin', 'trip_member'), // customized
-      ...SAMPLE_PERMISSIONS.filter(p => p.key !== 'trip_create'),
+      ...SAMPLE_PERMISSIONS.filter((p) => p.key !== 'trip_create'),
     ];
-    server.use(
-      http.get('/api/admin/permissions', () =>
-        HttpResponse.json({ permissions: perms }),
-      ),
-    );
+    server.use(http.get('/api/admin/permissions', () => HttpResponse.json({ permissions: perms })));
     const user = userEvent.setup();
     renderPanel();
     await screen.findByText('Trip Management');
@@ -179,11 +167,7 @@ describe('PermissionsPanel', () => {
   });
 
   it('FE-ADMIN-PERM-007: successful save calls PUT and shows success toast', async () => {
-    server.use(
-      http.put('/api/admin/permissions', () =>
-        HttpResponse.json({ permissions: SAMPLE_PERMISSIONS }),
-      ),
-    );
+    server.use(http.put('/api/admin/permissions', () => HttpResponse.json({ permissions: SAMPLE_PERMISSIONS })));
     const user = userEvent.setup();
     renderPanel();
     await screen.findByText('Trip Management');
@@ -204,11 +188,7 @@ describe('PermissionsPanel', () => {
   });
 
   it('FE-ADMIN-PERM-008: failed save shows error toast and keeps Save enabled', async () => {
-    server.use(
-      http.put('/api/admin/permissions', () =>
-        HttpResponse.json({ error: 'server error' }, { status: 500 }),
-      ),
-    );
+    server.use(http.put('/api/admin/permissions', () => HttpResponse.json({ error: 'server error' }, { status: 500 })));
     const user = userEvent.setup();
     renderPanel();
     await screen.findByText('Trip Management');
@@ -231,12 +211,13 @@ describe('PermissionsPanel', () => {
   it('FE-ADMIN-PERM-009: Save button is disabled while save is in-flight', async () => {
     let resolvePut!: () => void;
     server.use(
-      http.put('/api/admin/permissions', () =>
-        new Promise<Response>(resolve => {
-          resolvePut = () =>
-            resolve(HttpResponse.json({ permissions: SAMPLE_PERMISSIONS }) as unknown as Response);
-        }),
-      ),
+      http.put(
+        '/api/admin/permissions',
+        () =>
+          new Promise<Response>((resolve) => {
+            resolvePut = () => resolve(HttpResponse.json({ permissions: SAMPLE_PERMISSIONS }) as unknown as Response);
+          })
+      )
     );
     const user = userEvent.setup();
     renderPanel();
@@ -263,11 +244,7 @@ describe('PermissionsPanel', () => {
   });
 
   it('FE-ADMIN-PERM-010: load failure shows error toast', async () => {
-    server.use(
-      http.get('/api/admin/permissions', () =>
-        HttpResponse.json({ error: 'server error' }, { status: 500 }),
-      ),
-    );
+    server.use(http.get('/api/admin/permissions', () => HttpResponse.json({ error: 'server error' }, { status: 500 })));
     renderPanel();
     expect(await screen.findByText('Error')).toBeInTheDocument();
   });

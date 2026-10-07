@@ -1,7 +1,7 @@
-import type { LlmExtractionClient, LlmExtractionInput } from '../llm-provider.interface';
-import { safeFetchLlm } from '../../../utils/ssrfGuard';
 import { readEnv } from '../../../app-config';
+import { safeFetchLlm } from '../../../utils/ssrfGuard';
 import { toReservationList } from '../lenient-json';
+import type { LlmExtractionClient, LlmExtractionInput } from '../llm-provider.interface';
 import { UnreadableLlmResponse } from './openai-compatible.client';
 
 const MAX_TOKENS = 8192;
@@ -101,7 +101,7 @@ export class AnthropicClient implements LlmExtractionClient {
       );
     }
 
-    const toolUse = data.content?.find(b => b.type === 'tool_use' && b.name === toolName);
+    const toolUse = data.content?.find((b) => b.type === 'tool_use' && b.name === toolName);
     if (!toolUse) throw new UnreadableLlmResponse(`the model answered without calling ${toolName}`);
     return toReservationList(toolUse.input?.[rootKey], rootKey);
   }

@@ -6,13 +6,14 @@
  * (PR52/PR53 — the same method `plugin-runtime.service.ts`'s
  * `capabilityList`/`mcpToolCapabilities` use for the same column).
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import { Plugins } from '../../../src/db/entities/Plugins.entity';
 import type { PluginsRepository } from '../../../src/db/repositories/Plugins.repository';
 import { declaredProfiles } from '../../../src/nest/plugins/contributions/plugin-route-normalize';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -22,11 +23,19 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   plugins = t.repo(Plugins);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function seedPlugin(id: string, capabilities: unknown): void {
-  testDb.prepare('INSERT INTO plugins (id, name, capabilities) VALUES (?, ?, ?)').run(id, id, JSON.stringify(capabilities));
+  testDb
+    .prepare('INSERT INTO plugins (id, name, capabilities) VALUES (?, ?, ?)')
+    .run(id, id, JSON.stringify(capabilities));
 }
 
 describe('declaredProfiles', () => {
@@ -45,7 +54,9 @@ describe('declaredProfiles', () => {
   });
 
   it('RN-004: malformed capabilities JSON → empty list, never throws', async () => {
-    testDb.prepare('INSERT INTO plugins (id, name, capabilities) VALUES (?, ?, ?)').run('bad-json', 'bad-json', 'not json');
+    testDb
+      .prepare('INSERT INTO plugins (id, name, capabilities) VALUES (?, ?, ?)')
+      .run('bad-json', 'bad-json', 'not json');
     expect(await declaredProfiles(plugins, 'bad-json')).toEqual([]);
   });
 });

@@ -1,27 +1,34 @@
-import type Database from 'better-sqlite3';
-import {
-  sharedTestOrm, createTestReservationsRepo, createTestTripsRepo, createTestDaysRepo,
-  createTestDayAssignmentsRepo, createTestDayNotesRepo, createTestPlacesRepo, createTestCategoriesRepo,
-} from './test-uow';
-import { createTestBudgetItemsRepo } from './files-repos';
-import { createTestPackingItemsRepo } from './packing-repos';
-import { createTestCollabMessagesRepo } from './collab-repos';
-import { ShareTokens } from '../../src/db/entities/ShareTokens.entity';
-import type { ShareTokensRepository } from '../../src/db/repositories/ShareTokens.repository';
-import { Plugins } from '../../src/db/entities/Plugins.entity';
-import type { PluginsRepository } from '../../src/db/repositories/Plugins.repository';
 import { PluginUserErasureQueue } from '../../src/db/entities/PluginUserErasureQueue.entity';
-import type { PluginUserErasureQueueRepository } from '../../src/db/repositories/PluginUserErasureQueue.repository';
-import type { ReservationsRepository } from '../../src/db/repositories/Reservations.repository';
-import type { TripsRepository } from '../../src/db/repositories/Trips.repository';
-import type { DaysRepository } from '../../src/db/repositories/Days.repository';
-import type { DayAssignmentsRepository } from '../../src/db/repositories/DayAssignments.repository';
-import type { DayNotesRepository } from '../../src/db/repositories/DayNotes.repository';
-import type { PlacesRepository } from '../../src/db/repositories/Places.repository';
-import type { PackingItemsRepository } from '../../src/db/repositories/PackingItems.repository';
+import { Plugins } from '../../src/db/entities/Plugins.entity';
+import { ShareTokens } from '../../src/db/entities/ShareTokens.entity';
 import type { BudgetItemsRepository } from '../../src/db/repositories/BudgetItems.repository';
 import type { CategoriesRepository } from '../../src/db/repositories/Categories.repository';
 import type { CollabMessagesRepository } from '../../src/db/repositories/CollabMessages.repository';
+import type { DayAssignmentsRepository } from '../../src/db/repositories/DayAssignments.repository';
+import type { DayNotesRepository } from '../../src/db/repositories/DayNotes.repository';
+import type { DaysRepository } from '../../src/db/repositories/Days.repository';
+import type { PackingItemsRepository } from '../../src/db/repositories/PackingItems.repository';
+import type { PlacesRepository } from '../../src/db/repositories/Places.repository';
+import type { PluginUserErasureQueueRepository } from '../../src/db/repositories/PluginUserErasureQueue.repository';
+import type { PluginsRepository } from '../../src/db/repositories/Plugins.repository';
+import type { ReservationsRepository } from '../../src/db/repositories/Reservations.repository';
+import type { ShareTokensRepository } from '../../src/db/repositories/ShareTokens.repository';
+import type { TripsRepository } from '../../src/db/repositories/Trips.repository';
+import { createTestCollabMessagesRepo } from './collab-repos';
+import { createTestBudgetItemsRepo } from './files-repos';
+import { createTestPackingItemsRepo } from './packing-repos';
+import {
+  sharedTestOrm,
+  createTestReservationsRepo,
+  createTestTripsRepo,
+  createTestDaysRepo,
+  createTestDayAssignmentsRepo,
+  createTestDayNotesRepo,
+  createTestPlacesRepo,
+  createTestCategoriesRepo,
+} from './test-uow';
+
+import type Database from 'better-sqlite3';
 
 /**
  * Plan 3h Task 6 (`ShareService`/`UserCleanupService`'s UC6) test-only
@@ -65,11 +72,23 @@ export function createTestPluginUserErasureQueueRepo(db: Database.Database): Pro
  * (`...(await shareServiceRepoArgs(conn))`) instead of repeating all 11
  * factories, the `budgetRepoArgs` precedent.
  */
-export async function shareServiceRepoArgs(db: Database.Database): Promise<[
-  ReservationsRepository, ShareTokensRepository, TripsRepository, DaysRepository, DayAssignmentsRepository,
-  DayNotesRepository, PlacesRepository, PackingItemsRepository, BudgetItemsRepository, CategoriesRepository,
-  CollabMessagesRepository,
-]> {
+export async function shareServiceRepoArgs(
+  db: Database.Database,
+): Promise<
+  [
+    ReservationsRepository,
+    ShareTokensRepository,
+    TripsRepository,
+    DaysRepository,
+    DayAssignmentsRepository,
+    DayNotesRepository,
+    PlacesRepository,
+    PackingItemsRepository,
+    BudgetItemsRepository,
+    CategoriesRepository,
+    CollabMessagesRepository,
+  ]
+> {
   return [
     await createTestReservationsRepo(db),
     await createTestShareTokensRepo(db),

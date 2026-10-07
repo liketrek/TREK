@@ -1,12 +1,12 @@
-import React from 'react'
-import { Check, ChevronRight, Globe2, KeyRound, Library, ShieldOff, WifiOff, X } from 'lucide-react'
-import TrekMark from '../../components/shared/TrekMark'
-import { fs } from '../../components/shared/DialogShell'
-import { StatusPill } from '../../components/Settings/settingsKit'
-import type { TranslationFn } from '../../types'
+import { Check, ChevronRight, Globe2, KeyRound, Library, ShieldOff, WifiOff, X } from 'lucide-react';
+import React from 'react';
+import { StatusPill } from '../../components/Settings/settingsKit';
+import { fs } from '../../components/shared/DialogShell';
+import TrekMark from '../../components/shared/TrekMark';
+import type { TranslationFn } from '../../types';
 
 interface TrekApiCardProps {
-  t: TranslationFn
+  t: TranslationFn;
 }
 
 /**
@@ -26,22 +26,36 @@ interface TrekApiCardProps {
  * obligation, not decoration: ODbL and CC BY-SA both require attribution
  * wherever their content is shown.
  */
-const SOURCES = ['Overture Maps Foundation', 'OpenStreetMap', 'Wikivoyage', 'Wikimedia']
+const SOURCES = ['Overture Maps Foundation', 'OpenStreetMap', 'Wikivoyage', 'Wikimedia'];
 
-const CHIP = 'rounded-full border px-2.5 py-[3px] font-medium'
+const CHIP = 'rounded-full border px-2.5 py-[3px] font-medium';
 
 /** One of the three lists under "more": an icon and a name, chips, a note. */
-function FactGroup({ icon, title, note, children }: { icon: React.ReactNode; title: string; note: string; children: React.ReactNode }) {
+function FactGroup({
+  icon,
+  title,
+  note,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  note: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-2 px-3.5 py-3">
       <p className="m-0 flex items-center gap-1.5 font-semibold text-content" style={fs(12.5, 'body')}>
         {icon}
         {title}
       </p>
-      <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" style={fs(11.5)}>{children}</ul>
-      <p className="m-0 leading-normal text-content-faint" style={fs(11.5)}>{note}</p>
+      <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" style={fs(11.5)}>
+        {children}
+      </ul>
+      <p className="m-0 leading-normal text-content-faint" style={fs(11.5)}>
+        {note}
+      </p>
     </div>
-  )
+  );
 }
 
 export default function TrekApiCard({ t }: TrekApiCardProps): React.ReactElement {
@@ -58,18 +72,20 @@ export default function TrekApiCard({ t }: TrekApiCardProps): React.ReactElement
     t('places.formDescription'),
     t('inspector.openingHours'),
     t('admin.trekApi.fieldStableId'),
-  ]
+  ];
 
   const facts = [
     { Icon: Globe2, text: t('admin.trekApi.factPlaces') },
     { Icon: KeyRound, text: t('admin.trekApi.factNoKey') },
     { Icon: WifiOff, text: t('admin.trekApi.factOffline') },
     { Icon: ShieldOff, text: t('admin.trekApi.factPrivacy') },
-  ]
+  ];
 
   return (
-    <div className="overflow-hidden rounded-[14px] border bg-surface-card shadow-sm"
-      style={{ borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)' }}>
+    <div
+      className="overflow-hidden rounded-[14px] border bg-surface-card shadow-sm"
+      style={{ borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)' }}
+    >
       <div className="flex flex-col gap-3 px-3.5 pb-3.5 pt-3.5">
         {/* The recommendation, moved here from the Google field. It is the whole
             point of the block: a key should be the exception, not the default.
@@ -97,19 +113,16 @@ export default function TrekApiCard({ t }: TrekApiCardProps): React.ReactElement
       </div>
 
       <details className="group border-t border-edge-faint">
-        <summary
-          className="flex cursor-pointer list-none items-center gap-2.5 px-3.5 py-2.5
-                     hover:bg-surface-hover focus-visible:outline-none
-                     focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color:var(--text-primary)]
-                     [&::-webkit-details-marker]:hidden"
-        >
+        <summary className="flex cursor-pointer list-none items-center gap-2.5 px-3.5 py-2.5 hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color:var(--text-primary)] [&::-webkit-details-marker]:hidden">
           <ChevronRight
             size={15}
             strokeWidth={2}
             className="flex-none text-content-faint transition-transform group-open:rotate-90"
             aria-hidden="true"
           />
-          <span className="font-medium text-content" style={fs(13, 'body')}>{t('admin.trekApi.more')}</span>
+          <span className="font-medium text-content" style={fs(13, 'body')}>
+            {t('admin.trekApi.more')}
+          </span>
         </summary>
         <div className="divide-y divide-edge-faint border-t border-edge-faint bg-surface-secondary">
           {/* The fields as chips rather than a paragraph. A list of what you
@@ -121,8 +134,10 @@ export default function TrekApiCard({ t }: TrekApiCardProps): React.ReactElement
             title={t('admin.trekApi.included')}
             note={t('admin.trekApi.includedNote')}
           >
-            {fields.map(field => (
-              <li key={field} className={`${CHIP} border-edge-faint bg-surface-card text-content-secondary`}>{field}</li>
+            {fields.map((field) => (
+              <li key={field} className={`${CHIP} border-edge-faint bg-surface-card text-content-secondary`}>
+                {field}
+              </li>
             ))}
           </FactGroup>
 
@@ -134,8 +149,10 @@ export default function TrekApiCard({ t }: TrekApiCardProps): React.ReactElement
             title={t('admin.trekApi.notIncluded')}
             note={t('admin.trekApi.notIncludedNote')}
           >
-            {[t('admin.trekApi.notRatings'), t('admin.trekApi.notPhotos')].map(item => (
-              <li key={item} className={`${CHIP} border-dashed border-edge text-content-faint`}>{item}</li>
+            {[t('admin.trekApi.notRatings'), t('admin.trekApi.notPhotos')].map((item) => (
+              <li key={item} className={`${CHIP} border-dashed border-edge text-content-faint`}>
+                {item}
+              </li>
             ))}
           </FactGroup>
 
@@ -147,12 +164,14 @@ export default function TrekApiCard({ t }: TrekApiCardProps): React.ReactElement
             title={t('admin.trekApi.sourcesLabel')}
             note={t('admin.trekApi.sourcesNote')}
           >
-            {SOURCES.map(source => (
-              <li key={source} className={`${CHIP} border-edge-faint bg-surface-card text-content-secondary`}>{source}</li>
+            {SOURCES.map((source) => (
+              <li key={source} className={`${CHIP} border-edge-faint bg-surface-card text-content-secondary`}>
+                {source}
+              </li>
             ))}
           </FactGroup>
         </div>
       </details>
     </div>
-  )
+  );
 }

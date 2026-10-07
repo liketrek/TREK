@@ -7,12 +7,19 @@
  * 403, the login redirect, and that /exchange sets the httpOnly trek_session
  * cookie from a valid auth code.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { AuthService } from '../../src/nest/auth/auth.service';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { OidcModule } from '../../src/nest/oidc/oidc.module';
+import { OidcService } from '../../src/nest/oidc/oidc.service';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import type { MockInstance } from 'vitest';
-import { Test } from '@nestjs/testing';
 
 vi.mock('../../src/app-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../src/app-config')>();
@@ -41,16 +48,15 @@ vi.mock('../../src/db/database', () => ({
   isOwner: () => false,
 }));
 vi.mock('../../src/websocket', () => ({ broadcastToUser: vi.fn(), broadcast: vi.fn() }));
-vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
+vi.mock('../../src/nest/audit/audit-log.logger', () => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+}));
 
 const toggles = { oidc_login: true };
-
-import { OidcModule } from '../../src/nest/oidc/oidc.module';
-import { OidcService } from '../../src/nest/oidc/oidc.service';
-import { AuthService } from '../../src/nest/auth/auth.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
 
 describe('OIDC e2e (real cookie service)', () => {
   let server: Server;
@@ -58,7 +64,9 @@ describe('OIDC e2e (real cookie service)', () => {
   let consumeAuthCode: MockInstance;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), OidcModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), OidcModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -72,13 +80,25 @@ describe('OIDC e2e (real cookie service)', () => {
     server = app.getHttpServer();
     vi.spyOn(app.get(AuthService), 'resolveAuthToggles').mockImplementation(() => toggles as never);
     const oidc = app.get(OidcService);
-    vi.spyOn(oidc, 'getOidcConfig').mockResolvedValue({ issuer: 'https://idp', clientId: 'c', clientSecret: 's', displayName: 'SSO', discoveryUrl: null });
-    vi.spyOn(oidc, 'discover').mockResolvedValue({ authorization_endpoint: 'https://idp/auth', userinfo_endpoint: 'https://idp/ui', issuer: 'https://idp' } as never);
+    vi.spyOn(oidc, 'getOidcConfig').mockResolvedValue({
+      issuer: 'https://idp',
+      clientId: 'c',
+      clientSecret: 's',
+      displayName: 'SSO',
+      discoveryUrl: null,
+    });
+    vi.spyOn(oidc, 'discover').mockResolvedValue({
+      authorization_endpoint: 'https://idp/auth',
+      userinfo_endpoint: 'https://idp/ui',
+      issuer: 'https://idp',
+    } as never);
     vi.spyOn(oidc, 'createState').mockReturnValue({ state: 'st', codeChallenge: 'cc' });
     consumeAuthCode = vi.spyOn(oidc, 'consumeAuthCode').mockReturnValue({ token: 'jwt.value' });
   });
 
-  beforeEach(() => { toggles.oidc_login = true; });
+  beforeEach(() => {
+    toggles.oidc_login = true;
+  });
 
   afterAll(async () => {
     await app.close();

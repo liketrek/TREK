@@ -18,10 +18,16 @@
  * implementer owns in-flight, unstaged changes in both files at the time
  * this fix round runs (Task 4, OAuth).
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { authCookie } from '../helpers/auth';
+import { createUser, createAdmin } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -37,12 +43,6 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createAdmin } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -98,10 +98,12 @@ describe('Passkey management — non-numeric id parity (Plan 3b Task 3 review, F
   // 16 instead of 404ing — verified by hand, recorded in the task report.
   it('PASSKEY-INT-003 — PATCH /auth/passkey/credentials/0x10 (hex-literal id) is refused by the toRowId narrowing, even though credential 16 exists', async () => {
     const { user } = createUser(testDb);
-    testDb.prepare(
-      `INSERT INTO webauthn_credentials (id, user_id, credential_id, public_key, name)
+    testDb
+      .prepare(
+        `INSERT INTO webauthn_credentials (id, user_id, credential_id, public_key, name)
        VALUES (16, ?, 'cred-16', X'00', 'Original16')`,
-    ).run(user.id);
+      )
+      .run(user.id);
 
     const res = await request(app)
       .patch('/api/auth/passkey/credentials/0x10')
@@ -129,9 +131,7 @@ describe('Passkey management — non-numeric id parity (Plan 3b Task 3 review, F
   it('PASSKEY-INT-005 — DELETE /admin/users/abc/passkeys (non-numeric id) returns the legacy 404, not a 500', async () => {
     const { user: admin } = createAdmin(testDb);
 
-    const res = await request(app)
-      .delete('/api/admin/users/abc/passkeys')
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).delete('/api/admin/users/abc/passkeys').set('Cookie', authCookie(admin.id));
 
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'User not found' });
@@ -142,12 +142,12 @@ describe('Registration invite deletion — prefixed numeric literal parity (Plan
   it('INVITE-INT-001 — DELETE /admin/invites/0x10 (hex literal) returns the legacy 404 and leaves invite id 16 untouched', async () => {
     const { user: admin } = createAdmin(testDb);
     testDb
-      .prepare('INSERT INTO invite_tokens (id, token, max_uses, used_count, expires_at, created_by) VALUES (16, ?, 1, 0, NULL, ?)')
+      .prepare(
+        'INSERT INTO invite_tokens (id, token, max_uses, used_count, expires_at, created_by) VALUES (16, ?, 1, 0, NULL, ?)',
+      )
       .run('hex-literal-survivor', admin.id);
 
-    const res = await request(app)
-      .delete('/api/admin/invites/0x10')
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).delete('/api/admin/invites/0x10').set('Cookie', authCookie(admin.id));
 
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Invite not found' });

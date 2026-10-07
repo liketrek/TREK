@@ -93,36 +93,23 @@ const admin: TranslationStrings = {
     'TREK je otevřený software a nejsme v tom neutrální. V tomto měřítku existují hodnocení a fotografie běžných podniků jen u Googlu, a to je monopol. Pole tu je z nedostatku alternativy, ne proto, že bychom je doporučovali. Každý dotaz pak jde do Googlu.',
   'admin.trekApi.tagline':
     'Vlastní rejstřík míst TREKu. Hledání bez klíče od Googlu, bez kvóty a bez toho, aby někdo počítal vaše dotazy.',
-  'admin.trekApi.factPlaces':
-    '73,6 milionu míst po celém světě',
-  'admin.trekApi.factNoKey':
-    'Bez klíče, bez kvóty',
-  'admin.trekApi.factOffline':
-    'Balíčky zemí fungují offline',
-  'admin.trekApi.factPrivacy':
-    'Dotazy se nikdy nezaznamenávají',
-  'admin.trekApi.more':
-    'Co v tom je',
-  'admin.trekApi.fieldPhone':
-    'Telefon',
-  'admin.trekApi.fieldStableId':
-    'Stálý identifikátor',
+  'admin.trekApi.factPlaces': '73,6 milionu míst po celém světě',
+  'admin.trekApi.factNoKey': 'Bez klíče, bez kvóty',
+  'admin.trekApi.factOffline': 'Balíčky zemí fungují offline',
+  'admin.trekApi.factPrivacy': 'Dotazy se nikdy nezaznamenávají',
+  'admin.trekApi.more': 'Co v tom je',
+  'admin.trekApi.fieldPhone': 'Telefon',
+  'admin.trekApi.fieldStableId': 'Stálý identifikátor',
   'admin.trekApi.includedNote':
     'Popisy pocházejí z webu samotného místa, otevírací doba z OpenStreetMap tam, kde je vyplněná.',
-  'admin.trekApi.notRatings':
-    'Hodnocení',
-  'admin.trekApi.notPhotos':
-    'Fotografie běžných podniků',
+  'admin.trekApi.notRatings': 'Hodnocení',
+  'admin.trekApi.notPhotos': 'Fotografie běžných podniků',
   'admin.trekApi.notIncludedNote':
     'Ani jedno nemá žádný otevřený zdroj, za žádnou cenu. K těmto dvěma zůstává klíč od Googlu jedinou cestou.',
-  'admin.trekApi.sourcesLabel':
-    'Zdroje',
-  'admin.trekApi.sourcesNote':
-    'Každé pole v odpovědi uvádí, ze kterého z nich pochází.',
-  'admin.trekApi.included':
-    'Obsahuje',
-  'admin.trekApi.notIncluded':
-    'Neobsahuje',
+  'admin.trekApi.sourcesLabel': 'Zdroje',
+  'admin.trekApi.sourcesNote': 'Každé pole v odpovědi uvádí, ze kterého z nich pochází.',
+  'admin.trekApi.included': 'Obsahuje',
+  'admin.trekApi.notIncluded': 'Neobsahuje',
   'admin.mapsKey': 'Google Maps API klíč',
   'admin.mapsKeyHint': 'Povinné pro hledání míst. Získáte na console.cloud.google.com',
   'admin.mapsKeyHintLong':
@@ -143,7 +130,8 @@ const admin: TranslationStrings = {
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap (高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': 'Zvolený poskytovatel nemá nastavený API klíč, na hledání míst tak odpovídá jen index TREKu a OpenStreetMap.',
+  'admin.placesProvider.missingKey':
+    'Zvolený poskytovatel nemá nastavený API klíč, na hledání míst tak odpovídá jen index TREKu a OpenStreetMap.',
   'admin.placesProvider.saved': 'Poskytovatel hledání míst uložen',
   'admin.validateKey': 'Testovat',
   'admin.keyValid': 'Připojeno',
@@ -177,11 +165,15 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Zobrazí obrázky a popis při přidávání místa. Wikipedie a OpenStreetMap se používají vždy; Google se přidá, když jsou zapnuté Fotky míst nebo Detaily míst.',
   'admin.placesGoogleOnly.title': 'Hledat pouze přes Google',
-  'admin.placesGoogleOnly.subtitle': 'Každé hledání a každý návrh jde do Google Places. Vypnuto: nejprve odpovídá index TREK a OpenStreetMap, Google se ptáme jen tehdy, když nic nenajdou.',
-  'admin.placesGoogleOnly.missingKey': 'Vyžaduje klíč Google Maps API. Bez něj hledání běží přes index TREK a OpenStreetMap bez ohledu na tento přepínač.',
-  'admin.placesGoogleOnly.otherProvider': 'Vyžaduje Google jako poskytovatele míst. Při zvoleném Amapu nebo OpenStreetMap nejde na Google žádné hledání, ať je tento přepínač nastaven jakkoli.',
+  'admin.placesGoogleOnly.subtitle':
+    'Každé hledání a každý návrh jde do Google Places. Vypnuto: nejprve odpovídá index TREK a OpenStreetMap, Google se ptáme jen tehdy, když nic nenajdou.',
+  'admin.placesGoogleOnly.missingKey':
+    'Vyžaduje klíč Google Maps API. Bez něj hledání běží přes index TREK a OpenStreetMap bez ohledu na tento přepínač.',
+  'admin.placesGoogleOnly.otherProvider':
+    'Vyžaduje Google jako poskytovatele míst. Při zvoleném Amapu nebo OpenStreetMap nejde na Google žádné hledání, ať je tento přepínač nastaven jakkoli.',
   'admin.googleQuota.title': 'Denní limit volání Google',
-  'admin.googleQuota.subtitle': 'Po dosažení přestane TREK volat Google až do dalšího dne (UTC) a hledá přes OpenStreetMap. Prázdné znamená bez limitu.',
+  'admin.googleQuota.subtitle':
+    'Po dosažení přestane TREK volat Google až do dalšího dne (UTC) a hledá přes OpenStreetMap. Prázdné znamená bez limitu.',
   'admin.googleQuota.placeholder': 'Bez limitu',
   'admin.googleQuota.usedToday': 'Dnes: {used}',
   'admin.googleQuota.usedOfLimit': 'Dnes: {used} z {limit}',
@@ -192,9 +184,12 @@ const admin: TranslationStrings = {
   'admin.transitProvider.transitous': 'Transitous (zdarma)',
   'admin.transitProvider.google': 'Google',
   'admin.transitProvider.transitousHint': 'Komunitní GTFS zdroje. Zdarma a bez klíče, s nejlepším pokrytím v Evropě.',
-  'admin.transitProvider.googleHint': 'Použije výše uvedený klíč Google pro regiony, pro které Transitous nemá data. Účtuje se za každé hledání – dokud není klíč nastaven, používá se Transitous.',
-  'admin.transitProvider.noKeyWarning': 'Je vybrán Google, ale není nastaven žádný klíč Google – vyhledávání dopravy stále používá Transitous. Přidejte klíč v sekci API klíče výše.',
-  'admin.transitProvider.personalKeyWarning': 'Je nastaven jen váš vlastní klíč Google, takže ostatním členům se vyhledávání stále vrací k Transitous. Uložte klíč výše jako správce, aby platil pro celou instanci.',
+  'admin.transitProvider.googleHint':
+    'Použije výše uvedený klíč Google pro regiony, pro které Transitous nemá data. Účtuje se za každé hledání – dokud není klíč nastaven, používá se Transitous.',
+  'admin.transitProvider.noKeyWarning':
+    'Je vybrán Google, ale není nastaven žádný klíč Google – vyhledávání dopravy stále používá Transitous. Přidejte klíč v sekci API klíče výše.',
+  'admin.transitProvider.personalKeyWarning':
+    'Je nastaven jen váš vlastní klíč Google, takže ostatním členům se vyhledávání stále vrací k Transitous. Uložte klíč výše jako správce, aby platil pro celou instanci.',
   'admin.placeShadow.title': 'Záznam vyhledávání míst',
   'admin.placeShadow.subtitle':
     'Zaznamenávat, který výsledek vyhledávání byl vybrán, aby bylo možné později porovnat jiný index míst na skutečných dotazech. Nic neopouští tuto instanci a správce může záznam kdykoli exportovat nebo smazat.',
@@ -505,7 +500,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Změnit verzi…',
   'admin.plugins.noVersions': 'V registru nebyly nalezeny žádné publikované verze.',
   'admin.plugins.downgradeTitle': 'Vrátit tento plugin na starší verzi?',
-  'admin.plugins.downgradeBody': 'Přechod z v{from} na v{to}: data zapsaná novější verzí zůstanou na místě a starší verze jim nemusí rozumět.',
+  'admin.plugins.downgradeBody':
+    'Přechod z v{from} na v{to}: data zapsaná novější verzí zůstanou na místě a starší verze jim nemusí rozumět.',
   'admin.plugins.downgradeConfirm': 'Vrátit zpět',
   'admin.plugins.updatesHeld': 'Aktualizace pozastaveny na v{version}',
   'admin.plugins.resumeUpdates': 'Obnovit aktualizace',
@@ -614,14 +610,17 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.dawarich.description':
     'Načtěte návštěvy a zaznamenané trasy z instance Dawarich, kterou si každý čtenář připojí sám',
   'admin.addons.catalog.llm_parsing.name': 'Analýza pomocí AI',
-  'admin.addons.catalog.llm_parsing.description': 'Přečte rezervace, které vestavěný analyzátor nezvládne, pomocí zvoleného modelu AI',
+  'admin.addons.catalog.llm_parsing.description':
+    'Přečte rezervace, které vestavěný analyzátor nezvládne, pomocí zvoleného modelu AI',
   'admin.addons.llm.vision.auto': 'Automaticky',
   'admin.addons.llm.vision.on': 'Ano',
   'admin.addons.llm.vision.off': 'Ne',
   'admin.addons.llm.vision.hintLocal': 'Automaticky se zeptá serveru Ollama, zda tento model čte obrázky.',
-  'admin.addons.llm.vision.hintCloud': 'Automaticky znamená u cloudového modelu ne. Zvolte Ano, pokud tento model čte obrázky.',
+  'admin.addons.llm.vision.hintCloud':
+    'Automaticky znamená u cloudového modelu ne. Zvolte Ano, pokud tento model čte obrázky.',
   'admin.addons.catalog.roadtrip.name': 'Cesta autem',
-  'admin.addons.catalog.roadtrip.description': 'Plánujte jízdy se zastávkami – doby jízdy a časy příjezdu se přepočítají samy',
+  'admin.addons.catalog.roadtrip.description':
+    'Plánujte jízdy se zastávkami – doby jízdy a časy příjezdu se přepočítají samy',
   'admin.addons.enabled': 'Povoleno',
   'admin.addons.disabled': 'Zakázáno',
   'admin.addons.type.trip': 'Cesta',
@@ -762,7 +761,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNotificationsHint':
     'Nastavte, které kanály doručují admin oznámení (např. upozornění na verze). Webhook odesílá automaticky, pokud je nastavena URL admin webhooku.',
   'admin.notificationDefaults.title': 'Výchozí nastavení pro uživatele',
-  'admin.notificationDefaults.hint': 'Jak začínají oznámení každého uživatele. „Vypnuto“ si uživatel může sám zapnout, „Blokováno“ vypne pro všechny a v jejich nastavení se zobrazí zamčené. Platí pro každého, kdo buňku sám nezměnil.',
+  'admin.notificationDefaults.hint':
+    'Jak začínají oznámení každého uživatele. „Vypnuto“ si uživatel může sám zapnout, „Blokováno“ vypne pro všechny a v jejich nastavení se zobrazí zamčené. Platí pro každého, kdo buňku sám nezměnil.',
   'admin.notificationDefaults.on': 'Zapnuto',
   'admin.notificationDefaults.off': 'Vypnuto',
   'admin.notificationDefaults.blocked': 'Blokováno',
@@ -776,7 +776,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.journey.name': 'Cestovní deník',
   'admin.addons.catalog.journey.description': 'Sledování cest a cestovní deník s odbaveními, fotkami a denními příběhy',
   'admin.addons.catalog.collections.name': 'Sbírky',
-  'admin.addons.catalog.collections.description': 'Sbírejte místa ze všech cest do pojmenovaných seznamů a znovu je používejte',
+  'admin.addons.catalog.collections.description':
+    'Sbírejte místa ze všech cest do pojmenovaných seznamů a znovu je používejte',
   'admin.passkey.title': 'Přihlášení přístupovým klíčem',
   'admin.passkey.cardHint':
     'Umožněte uživatelům přihlašovat se pomocí přístupových klíčů (WebAuthn). Ve výchozím nastavení vypnuto.',

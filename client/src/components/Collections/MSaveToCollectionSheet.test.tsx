@@ -1,11 +1,10 @@
 // FE-COMP-MSAVESHEET-001 to FE-COMP-MSAVESHEET-016
-import React from 'react';
-import { afterEach, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
 import type { Collection, CollectionListResponse, CollectionMembership, CollectionSaveResult } from '@trek/shared';
+import { afterEach, beforeEach } from 'vitest';
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
 import { collectionsApi } from '../../api/collections';
-import { useSaveToCollectionStore } from '../../store/saveToCollectionStore';
 import type { SaveToCollectionTarget } from '../../store/saveToCollectionStore';
+import { useSaveToCollectionStore } from '../../store/saveToCollectionStore';
 import MSaveToCollectionSheet from './MSaveToCollectionSheet';
 
 const mockNavigate = vi.fn();
@@ -89,7 +88,11 @@ describe('MSaveToCollectionSheet', () => {
 
   it('FE-COMP-MSAVESHEET-004: shows the spinner until the lists arrive', async () => {
     let resolve!: (v: CollectionListResponse) => void;
-    vi.spyOn(collectionsApi, 'list').mockReturnValue(new Promise(r => { resolve = r; }));
+    vi.spyOn(collectionsApi, 'list').mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
+      })
+    );
     openFor();
     render(<MSaveToCollectionSheet />);
     expect(document.querySelector('.animate-spin')).not.toBeNull();
@@ -151,16 +154,18 @@ describe('MSaveToCollectionSheet', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Wishlist/ }));
 
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Added to Wishlist', 'success', undefined));
-    expect(save).toHaveBeenCalledWith(expect.objectContaining({
-      collection_id: 2,
-      source_trip_id: 5,
-      source_place_id: 42,
-      name: 'Colosseum',
-      lat: 41.89,
-      lng: 12.49,
-      address: null,
-      force: true,
-    }));
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection_id: 2,
+        source_trip_id: 5,
+        source_place_id: 42,
+        name: 'Colosseum',
+        lat: 41.89,
+        lng: 12.49,
+        address: null,
+        force: true,
+      })
+    );
     expect(useSaveToCollectionStore.getState().version).toBe(1);
   });
 
@@ -192,7 +197,11 @@ describe('MSaveToCollectionSheet', () => {
 
   it('FE-COMP-MSAVESHEET-012: every row locks while one save runs, so a second tap is dropped', async () => {
     let resolve!: (v: CollectionSaveResult) => void;
-    const save = vi.spyOn(collectionsApi, 'savePlace').mockReturnValue(new Promise(r => { resolve = r; }));
+    const save = vi.spyOn(collectionsApi, 'savePlace').mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
+      })
+    );
     openFor();
     render(<MSaveToCollectionSheet />);
 
@@ -224,7 +233,11 @@ describe('MSaveToCollectionSheet', () => {
 
   it('FE-COMP-MSAVESHEET-016: a response landing after the sheet closed is dropped', async () => {
     let resolve!: (v: CollectionListResponse) => void;
-    vi.spyOn(collectionsApi, 'list').mockReturnValue(new Promise(r => { resolve = r; }));
+    vi.spyOn(collectionsApi, 'list').mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
+      })
+    );
     openFor();
     const { unmount } = render(<MSaveToCollectionSheet />);
     unmount();

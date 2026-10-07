@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act } from '@testing-library/react';
-import { render, screen, fireEvent } from '../../../tests/helpers/render';
 import { http, HttpResponse } from 'msw';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { server } from '../../../tests/helpers/msw/server';
+import { fireEvent, render, screen } from '../../../tests/helpers/render';
+import type { SystemNoticeDTO } from '../../store/systemNoticeStore';
 import { useSystemNoticeStore } from '../../store/systemNoticeStore';
 import { BannerRenderer } from './SystemNoticeBanner';
-import type { SystemNoticeDTO } from '../../store/systemNoticeStore';
 
 function makeBanner(overrides: Partial<SystemNoticeDTO> = {}): SystemNoticeDTO {
   return {
@@ -24,7 +24,7 @@ describe('BannerRenderer', () => {
     server.use(
       http.post('/api/system-notices/:id/dismiss', () => {
         return new HttpResponse(null, { status: 204 });
-      }),
+      })
     );
     useSystemNoticeStore.setState({ notices: [], loaded: true });
   });

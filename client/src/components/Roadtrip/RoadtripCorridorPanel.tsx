@@ -1,42 +1,53 @@
-import GoogleRouteImport from './GoogleRouteImport'
-import React, { useMemo, useState } from 'react'
+import type { RoadtripStopType } from '@trek/shared';
+import { AlertTriangle, BedDouble, ChevronDown, MapPin, Plus, RotateCw, Search, X } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { useElementSize } from '../../hooks/useElementSize';
+import { useTranslation } from '../../i18n/TranslationContext';
+import { useSettingsStore } from '../../store/settingsStore';
+import { formatDistance } from '../../utils/units';
+import CustomSelect from '../shared/CustomSelect';
+import EmptyState from '../shared/EmptyState';
+import { Tooltip } from '../shared/Tooltip';
+import { alongLabel, offRouteLabel } from './corridorSearchModel';
+import GoogleRouteImport from './GoogleRouteImport';
+import RoadtripCategoryPicker from './RoadtripCategoryPicker';
+import RoadtripDayPicker from './RoadtripDayPicker';
+import { serviceColor } from './roadtripModel';
+import { CORRIDOR_CATEGORY_BY_KEY, manualStopKindFor } from './stopKinds';
+import { FS } from './typeScale';
+import type { CorridorPoi } from './useCorridorPois';
 import {
-  Search, Plus, RotateCw, AlertTriangle, X, BedDouble, MapPin, ChevronDown,
-} from 'lucide-react'
-import { useTranslation } from '../../i18n/TranslationContext'
-import { Tooltip } from '../shared/Tooltip'
-import EmptyState from '../shared/EmptyState'
-import { useElementSize } from '../../hooks/useElementSize'
-import { useSettingsStore } from '../../store/settingsStore'
-import { formatDistance } from '../../utils/units'
-import CustomSelect from '../shared/CustomSelect'
-import RoadtripCategoryPicker from './RoadtripCategoryPicker'
-import RoadtripDayPicker from './RoadtripDayPicker'
-import { serviceColor } from './roadtripModel'
-import { alongLabel, offRouteLabel } from './corridorSearchModel'
-import { CORRIDOR_CATEGORY_BY_KEY, manualStopKindFor } from './stopKinds'
-import { FS } from './typeScale'
-import { CORRIDOR_CATEGORY_KEYS, CORRIDOR_SECTION_KM, CORRIDOR_WIDTHS_KM, type RoadtripCorridor } from './useRoadtripCorridor'
-import type { RoadtripStopType } from '@trek/shared'
-import type { CorridorPoi } from './useCorridorPois'
-import type { RoadtripRoutes } from './useRoadtripRoutes'
+  CORRIDOR_CATEGORY_KEYS,
+  CORRIDOR_SECTION_KM,
+  CORRIDOR_WIDTHS_KM,
+  type RoadtripCorridor,
+} from './useRoadtripCorridor';
+import type { RoadtripRoutes } from './useRoadtripRoutes';
 
 interface RoadtripCorridorPanelProps {
-  tripId?: number
-  canImport?: boolean
-  corridor: RoadtripCorridor
-  routes: RoadtripRoutes
+  tripId?: number;
+  canImport?: boolean;
+  corridor: RoadtripCorridor;
+  routes: RoadtripRoutes;
   /** Opens the place form prefilled from a POI, on a day and at a position in it. */
   onAddPoi?: (
-    poi: { lat: number; lng: number; name: string; address: string | null; website: string | null; phone: string | null; osm_id: string },
+    poi: {
+      lat: number;
+      lng: number;
+      name: string;
+      address: string | null;
+      website: string | null;
+      phone: string | null;
+      osm_id: string;
+    },
     dayId?: number | null,
-    position?: number | null,
-  ) => void
+    position?: number | null
+  ) => void;
   /**
    * Brings a hit into view on the map. A row is where you decide a place is worth
    * looking at, and looking at it means seeing which side of the road it is on.
    */
-  onFocusPoint?: (lat: number, lng: number) => void
+  onFocusPoint?: (lat: number, lng: number) => void;
   /**
    * Opens the place form for a stop the search never found. Given only to somebody who
    * may add places, which is what keeps the button off a reader's panel.
@@ -45,7 +56,7 @@ interface RoadtripCorridorPanelProps {
    * constant: the categories above the button are the traveller's own answer to "what am
    * I adding", and ignoring them made every manual stop start life as a fuel stop.
    */
-  onAddManual?: (kind: RoadtripStopType | null) => void
+  onAddManual?: (kind: RoadtripStopType | null) => void;
 }
 
 /**
@@ -57,7 +68,7 @@ interface RoadtripCorridorPanelProps {
  * because an unknown socket is still worth seeing.
  */
 /** The steps worth offering: a household socket, a fast AC post, and the two DC tiers. */
-const KW_STEPS = [11, 22, 50, 150]
+const KW_STEPS = [11, 22, 50, 150];
 
 /**
  * Below this the panel is cramped and stops spending width on words, in pixels.
@@ -70,7 +81,7 @@ const KW_STEPS = [11, 22, 50, 150]
  * same reason and to the same end: what it says is already the name of the column, and
  * the room it takes is the room the day picker beside it wants.
  */
-const NARROW_PANEL_PX = 260
+const NARROW_PANEL_PX = 260;
 
 const SOCKET_LABEL: Record<string, string> = {
   type2: 'Type 2',
@@ -83,16 +94,16 @@ const SOCKET_LABEL: Record<string, string> = {
   schuko: 'Schuko',
   tesla_supercharger: 'Supercharger',
   tesla_destination: 'Tesla Destination',
-}
+};
 
 /** Label and icon per category, from the one table every road-trip surface reads. */
-const CATEGORY_META = CORRIDOR_CATEGORY_BY_KEY
+const CATEGORY_META = CORRIDOR_CATEGORY_BY_KEY;
 
 /** The small capitalised word over a group of controls, matching the rail's own captions. */
-const EYEBROW = 'font-geist font-semibold uppercase tracking-[0.15em] text-content-faint'
+const EYEBROW = 'font-geist font-semibold uppercase tracking-[0.15em] text-content-faint';
 
 /** A card in this column: the same corner, hairline and surface the rail's cards use. */
-const CARD = 'rounded-2xl border border-edge-faint bg-surface-card'
+const CARD = 'rounded-2xl border border-edge-faint bg-surface-card';
 
 /**
  * The tile in front of a result, in its category's own colour.
@@ -105,8 +116,8 @@ const CARD = 'rounded-2xl border border-edge-faint bg-surface-card'
  * one place.
  */
 function ResultBadge({ category }: { category: string }): React.ReactElement {
-  const Icon = CATEGORY_META[category]?.Icon ?? MapPin
-  const color = serviceColor(category)
+  const Icon = CATEGORY_META[category]?.Icon ?? MapPin;
+  const color = serviceColor(category);
   return (
     <span
       className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[10px]"
@@ -116,7 +127,7 @@ function ResultBadge({ category }: { category: string }): React.ReactElement {
     >
       <Icon size={14} strokeWidth={1.9} aria-hidden />
     </span>
-  )
+  );
 }
 
 /**
@@ -125,11 +136,20 @@ function ResultBadge({ category }: { category: string }): React.ReactElement {
  * `bg-surface-secondary` rather than a literal: the row lifts to `surface-hover` under the
  * pointer, and a chip painted white would stop lifting with it in the dark scheme.
  */
-const POI_CHIP = 'inline-flex items-center rounded-md bg-surface-secondary px-1.5 py-0.5 leading-none tabular-nums text-content-muted'
+const POI_CHIP =
+  'inline-flex items-center rounded-md bg-surface-secondary px-1.5 py-0.5 leading-none tabular-nums text-content-muted';
 
-function ResultRow({ poi, onAdd, onFocus }: { poi: CorridorPoi; onAdd?: () => void; onFocus?: () => void }): React.ReactElement {
-  const { t } = useTranslation()
-  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
+function ResultRow({
+  poi,
+  onAdd,
+  onFocus,
+}: {
+  poi: CorridorPoi;
+  onAdd?: () => void;
+  onFocus?: () => void;
+}): React.ReactElement {
+  const { t } = useTranslation();
+  const distanceUnit = useSettingsStore((s) => s.settings.distance_unit);
   /**
    * The badge and the text are one target, the Add button beside them another.
    *
@@ -139,7 +159,7 @@ function ResultRow({ poi, onAdd, onFocus }: { poi: CorridorPoi; onAdd?: () => vo
    * `AutomaticDayStop` uses: an element that is a button only when there is somewhere
    * for it to go, so a row without the map behind it is not a dead control.
    */
-  const Block = onFocus ? 'button' : 'div'
+  const Block = onFocus ? 'button' : 'div';
   return (
     <li className="group flex items-center gap-3 rounded-xl py-1.5 pe-1.5 ps-1 transition-colors hover:bg-surface-hover">
       <Block
@@ -172,7 +192,7 @@ function ResultRow({ poi, onAdd, onFocus }: { poi: CorridorPoi; onAdd?: () => vo
                 of dashes, because "not stated" is not "no". */}
             {poi.charging?.sockets.length ? (
               <span className="flex flex-wrap items-baseline gap-x-1.5">
-                {poi.charging.sockets.slice(0, 3).map(s => (
+                {poi.charging.sockets.slice(0, 3).map((s) => (
                   <span key={s.type} className="text-content-muted">
                     {SOCKET_LABEL[s.type] ?? s.type}
                     {s.kw ? ` ${s.kw} kW` : ''}
@@ -181,51 +201,58 @@ function ResultRow({ poi, onAdd, onFocus }: { poi: CorridorPoi; onAdd?: () => vo
                 ))}
               </span>
             ) : null}
-            {poi.charging?.fee === false ? (
-              <span className="text-success">{t('roadtrip.poi.free')}</span>
-            ) : null}
+            {poi.charging?.fee === false ? <span className="text-success">{t('roadtrip.poi.free')}</span> : null}
           </div>
         </div>
       </Block>
       {/* Always there, quiet until the row is under the pointer: a button that only
           exists on hover is one a keyboard user has to find by faith. */}
-      {onAdd ? (() => {
-        // One button, two meanings. Somewhere to sleep ends the day rather than
-        // interrupting the drive, so the icon and the label say that before the dialog
-        // opens instead of after.
-        const night = poi.category === 'hotel'
-        const label = night ? t('roadtrip.stay.nightAction') : t('roadtrip.poi.add')
-        const Icon = night ? BedDouble : Plus
-        return (
-          <Tooltip label={label}>
-            <button
-              type="button"
-              onClick={onAdd}
-              aria-label={label}
-              className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg text-content-faint transition-colors hover:bg-accent hover:text-accent-text focus-visible:bg-accent focus-visible:text-accent-text focus-visible:outline-none"
-            >
-              <Icon size={15} strokeWidth={2.2} aria-hidden />
-            </button>
-          </Tooltip>
-        )
-      })() : null}
+      {onAdd
+        ? (() => {
+            // One button, two meanings. Somewhere to sleep ends the day rather than
+            // interrupting the drive, so the icon and the label say that before the dialog
+            // opens instead of after.
+            const night = poi.category === 'hotel';
+            const label = night ? t('roadtrip.stay.nightAction') : t('roadtrip.poi.add');
+            const Icon = night ? BedDouble : Plus;
+            return (
+              <Tooltip label={label}>
+                <button
+                  type="button"
+                  onClick={onAdd}
+                  aria-label={label}
+                  className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg text-content-faint transition-colors hover:bg-accent hover:text-accent-text focus-visible:bg-accent focus-visible:text-accent-text focus-visible:outline-none"
+                >
+                  <Icon size={15} strokeWidth={2.2} aria-hidden />
+                </button>
+              </Tooltip>
+            );
+          })()
+        : null}
     </li>
-  )
+  );
 }
 
 /** One category's hits, so a mixed search reads as several short lists instead of one long one. */
-function ResultGroup({ category, pois, dayId, insertIndexFor, onAddPoi, onFocusPoint }: {
-  category: string
-  pois: CorridorPoi[]
-  dayId: number | null
-  insertIndexFor: RoadtripCorridor['insertIndexFor']
-  onAddPoi: RoadtripCorridorPanelProps['onAddPoi']
-  onFocusPoint: RoadtripCorridorPanelProps['onFocusPoint']
+function ResultGroup({
+  category,
+  pois,
+  dayId,
+  insertIndexFor,
+  onAddPoi,
+  onFocusPoint,
+}: {
+  category: string;
+  pois: CorridorPoi[];
+  dayId: number | null;
+  insertIndexFor: RoadtripCorridor['insertIndexFor'];
+  onAddPoi: RoadtripCorridorPanelProps['onAddPoi'];
+  onFocusPoint: RoadtripCorridorPanelProps['onFocusPoint'];
 }): React.ReactElement {
-  const { t } = useTranslation()
-  const meta = CATEGORY_META[category]
-  const Icon = meta?.Icon ?? MapPin
-  const color = serviceColor(category)
+  const { t } = useTranslation();
+  const meta = CATEGORY_META[category];
+  const Icon = meta?.Icon ?? MapPin;
+  const color = serviceColor(category);
   /**
    * Folded away, per category.
    *
@@ -234,8 +261,8 @@ function ResultGroup({ category, pois, dayId, insertIndexFor, onAddPoi, onFocusP
    * which group somebody has open right now is a way of looking, not a setting — it
    * should not outlive the search that produced these groups.
    */
-  const [open, setOpen] = useState(true)
-  const label = meta ? t(meta.labelKey) : category
+  const [open, setOpen] = useState(true);
+  const label = meta ? t(meta.labelKey) : category;
   return (
     // The gap between two groups belongs to the section, not to the strip: as padding on
     // the strip it became part of the hover surface, which then hung well above the row
@@ -246,7 +273,7 @@ function ResultGroup({ category, pois, dayId, insertIndexFor, onAddPoi, onFocusP
           target in the corner is a miss waiting to happen. */}
       <button
         type="button"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         className="group/cat flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-start transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
       >
@@ -273,7 +300,7 @@ function ResultGroup({ category, pois, dayId, insertIndexFor, onAddPoi, onFocusP
         />
       </button>
       <ul hidden={!open}>
-        {pois.map(poi => (
+        {pois.map((poi) => (
           <ResultRow
             key={poi.osm_id}
             poi={poi}
@@ -284,7 +311,7 @@ function ResultGroup({ category, pois, dayId, insertIndexFor, onAddPoi, onFocusP
         ))}
       </ul>
     </section>
-  )
+  );
 }
 
 /**
@@ -302,11 +329,17 @@ function ResultGroup({ category, pois, dayId, insertIndexFor, onAddPoi, onFocusP
  * along this day.
  */
 export default function RoadtripCorridorPanel({
-  corridor, routes, onAddPoi, onFocusPoint, onAddManual, tripId, canImport,
+  corridor,
+  routes,
+  onAddPoi,
+  onFocusPoint,
+  onAddManual,
+  tripId,
+  canImport,
 }: RoadtripCorridorPanelProps): React.ReactElement {
-  const { t } = useTranslation()
-  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
-  const { search } = corridor
+  const { t } = useTranslation();
+  const distanceUnit = useSettingsStore((s) => s.settings.distance_unit);
+  const { search } = corridor;
   /**
    * The column itself, measured, because it is resizable.
    *
@@ -317,12 +350,13 @@ export default function RoadtripCorridorPanel({
    * Zero means it has not been measured yet, and that reads as roomy rather than
    * cramped so nothing flashes away on the first paint.
    */
-  const panel = useElementSize<HTMLDivElement>()
-  const narrow = panel.width > 0 && panel.width < NARROW_PANEL_PX
+  const panel = useElementSize<HTMLDivElement>();
+  const narrow = panel.width > 0 && panel.width < NARROW_PANEL_PX;
 
-  const grouped = CORRIDOR_CATEGORY_KEYS
-    .map(key => ({ key, pois: corridor.visible.filter(p => p.category === key) }))
-    .filter(g => g.pois.length > 0)
+  const grouped = CORRIDOR_CATEGORY_KEYS.map((key) => ({
+    key,
+    pois: corridor.visible.filter((p) => p.category === key),
+  })).filter((g) => g.pois.length > 0);
 
   // Something was found, the filter just hides it — a different state from "not searched
   // yet" and from "the drive really has none of these".
@@ -332,15 +366,15 @@ export default function RoadtripCorridorPanel({
    * three Type 2 posts on it, which is a filter that can only produce an empty list.
    */
   const socketsFound = useMemo(() => {
-    const seen = new Set<string>()
-    for (const p of search.results) for (const s of p.charging?.sockets ?? []) seen.add(s.type)
+    const seen = new Set<string>();
+    for (const p of search.results) for (const s of p.charging?.sockets ?? []) seen.add(s.type);
     // Compared explicitly: the default sort is by UTF-16 code unit, which is not the
     // order anybody reads a list of plug names in.
-    return [...seen].sort((a, b) => a.localeCompare(b))
-  }, [search.results])
-  const hasCharging = socketsFound.length > 0
+    return [...seen].sort((a, b) => a.localeCompare(b));
+  }, [search.results]);
+  const hasCharging = socketsFound.length > 0;
 
-  const filteredToNothing = search.results.length > 0 && corridor.visible.length === 0
+  const filteredToNothing = search.results.length > 0 && corridor.visible.length === 0;
 
   // The day has to have routed. Until it does, the corridor is built from the
   // straight line between the stops, so the boxes march across whatever lies
@@ -349,23 +383,23 @@ export default function RoadtripCorridorPanel({
   // search mid-flight and drops every result with no error and no explanation.
   // The routing runs one day at a time, about a second apart, so on a long trip
   // that window is wide open for the day somebody picks.
-  const dayRouted = (corridor.day?.geometry.length ?? 0) > 1
-  const canSearch = !search.loading
-    && !routes.loading
-    && dayRouted
-    && corridor.categories.length > 0
-    && (corridor.day?.stops.length ?? 0) > 1
-  const progressPct = search.progress.total
-    ? Math.round((search.progress.done / search.progress.total) * 100)
-    : 0
+  const dayRouted = (corridor.day?.geometry.length ?? 0) > 1;
+  const canSearch =
+    !search.loading &&
+    !routes.loading &&
+    dayRouted &&
+    corridor.categories.length > 0 &&
+    (corridor.day?.stops.length ?? 0) > 1;
+  const progressPct = search.progress.total ? Math.round((search.progress.done / search.progress.total) * 100) : 0;
 
-  const warnings: [string, string][] = []
-  if (search.failedSources?.length) warnings.push(['sources', `${t('common.error')}: ${search.failedSources.join(', ')}`])
-  if (search.capped) warnings.push(['capped', t('roadtrip.poi.capped')])
-  if (search.error) warnings.push(['failed', t('roadtrip.poi.failed')])
+  const warnings: [string, string][] = [];
+  if (search.failedSources?.length)
+    warnings.push(['sources', `${t('common.error')}: ${search.failedSources.join(', ')}`]);
+  if (search.capped) warnings.push(['capped', t('roadtrip.poi.capped')]);
+  if (search.error) warnings.push(['failed', t('roadtrip.poi.failed')]);
   // Some boxes answered and some did not. Saying so is the difference between "there is
   // no fuel on this stretch" and "nobody looked at this stretch".
-  else if (search.failedAreas > 0) warnings.push(['partial', t('roadtrip.poi.partial', { count: search.failedAreas })])
+  else if (search.failedAreas > 0) warnings.push(['partial', t('roadtrip.poi.partial', { count: search.failedAreas })]);
   // A stretch that answered short is deliberately NOT reported. It fired on almost every
   // search of a long day — the ceiling is per box and a busy corridor reaches it easily —
   // so it read as a permanent complaint about a search that had in fact worked, and the
@@ -379,19 +413,26 @@ export default function RoadtripCorridorPanel({
           than no heading at all. */}
       <div className="flex flex-shrink-0 items-center gap-2.5 px-1">
         {narrow ? null : (
-          <h2 className="min-w-0 truncate font-semibold tracking-[-0.022em] text-content" style={{ fontSize: FS.panelTitle }}>
+          <h2
+            className="min-w-0 truncate font-semibold tracking-[-0.022em] text-content"
+            style={{ fontSize: FS.panelTitle }}
+          >
             {t('roadtrip.poi.title')}
           </h2>
         )}
         {tripId !== undefined && tripId > 0 && canImport && (
-          <span className="ms-auto"><GoogleRouteImport tripId={tripId} dayId={corridor.day?.dayId} /></span>
+          <span className="ms-auto">
+            <GoogleRouteImport tripId={tripId} dayId={corridor.day?.dayId} />
+          </span>
         )}
       </div>
 
       {/* What to look for. */}
       <div className={`flex flex-shrink-0 flex-col gap-3.5 ${CARD} px-4 pb-3.5 pt-3.5`}>
         <div className="flex flex-col gap-2">
-          <span className={EYEBROW} style={{ fontSize: FS.label }}>{t('roadtrip.poi.looking')}</span>
+          <span className={EYEBROW} style={{ fontSize: FS.label }}>
+            {t('roadtrip.poi.looking')}
+          </span>
           <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1">
               <RoadtripCategoryPicker
@@ -410,9 +451,11 @@ export default function RoadtripCorridorPanel({
         <span className="h-px bg-edge-faint" aria-hidden />
 
         <div className="flex flex-col gap-2">
-          <span className={EYEBROW} style={{ fontSize: FS.label }}>{t('roadtrip.poi.within')}</span>
+          <span className={EYEBROW} style={{ fontSize: FS.label }}>
+            {t('roadtrip.poi.within')}
+          </span>
           <div className="flex gap-1 rounded-xl bg-surface-tertiary p-1">
-            {CORRIDOR_WIDTHS_KM.map(km => (
+            {CORRIDOR_WIDTHS_KM.map((km) => (
               <button
                 key={km}
                 type="button"
@@ -459,9 +502,11 @@ export default function RoadtripCorridorPanel({
             title={narrow ? t('roadtrip.poi.search') : undefined}
             className="flex h-[32px] min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-accent text-body font-semibold text-accent-text transition-opacity disabled:opacity-50"
           >
-            {search.loading
-              ? <RotateCw size={15} className="shrink-0 animate-spin" aria-hidden />
-              : <Search size={15} strokeWidth={2} className="shrink-0" aria-hidden />}
+            {search.loading ? (
+              <RotateCw size={15} className="shrink-0 animate-spin" aria-hidden />
+            ) : (
+              <Search size={15} strokeWidth={2} className="shrink-0" aria-hidden />
+            )}
             {/* The word stays put while a run is on, and the spinner in front of it says
                 the run is on. It used to become "Searching 3 of 12", which is both the
                 longest label in the panel and the very sentence the progress row right
@@ -556,11 +601,16 @@ export default function RoadtripCorridorPanel({
               </button>
             </div>
             <div className="relative">
-              <Search size={14} strokeWidth={1.9} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-content-faint" aria-hidden />
+              <Search
+                size={14}
+                strokeWidth={1.9}
+                className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-content-faint"
+                aria-hidden
+              />
               <input
                 type="text"
                 value={corridor.nameFilter}
-                onChange={e => corridor.setNameFilter(e.target.value)}
+                onChange={(e) => corridor.setNameFilter(e.target.value)}
                 placeholder={t('roadtrip.poi.filter')}
                 aria-label={t('roadtrip.poi.filter')}
                 style={{ fontSize: FS.time }}
@@ -592,26 +642,30 @@ export default function RoadtripCorridorPanel({
               <div className="mt-2 flex gap-2">
                 <CustomSelect
                   value={corridor.section ? `${corridor.section.kind}:${corridor.section.index}` : ''}
-                  onChange={value => {
-                    const raw = String(value)
-                    if (!raw) { corridor.setSection(null); return }
-                    const [kind, index] = raw.split(':')
+                  onChange={(value) => {
+                    const raw = String(value);
+                    if (!raw) {
+                      corridor.setSection(null);
+                      return;
+                    }
+                    const [kind, index] = raw.split(':');
                     corridor.setSection({
                       dayId: corridor.day!.dayId,
                       kind: kind as 'stop' | 'leg',
                       index: Number(index),
-                    })
+                    });
                   }}
                   options={[
                     { value: '', label: t('roadtrip.poi.wholeDay') },
-                    ...corridor.anchors.map(a => ({
+                    ...corridor.anchors.map((a) => ({
                       value: `${a.kind}:${a.index}`,
-                      label: a.kind === 'stop'
-                        ? (corridor.day!.stops[a.index]?.name ?? t('roadtrip.poi.wholeDay'))
-                        : t('roadtrip.poi.midLeg', {
-                            from: corridor.day!.stops[a.index]?.name ?? '',
-                            to: corridor.day!.stops[a.index + 1]?.name ?? '',
-                          }),
+                      label:
+                        a.kind === 'stop'
+                          ? (corridor.day!.stops[a.index]?.name ?? t('roadtrip.poi.wholeDay'))
+                          : t('roadtrip.poi.midLeg', {
+                              from: corridor.day!.stops[a.index]?.name ?? '',
+                              to: corridor.day!.stops[a.index + 1]?.name ?? '',
+                            }),
                     })),
                   ]}
                   style={{ flex: 1, minWidth: 0 }}
@@ -621,8 +675,8 @@ export default function RoadtripCorridorPanel({
                 {corridor.section ? (
                   <CustomSelect
                     value={String(corridor.sectionKm)}
-                    onChange={value => corridor.setSectionKm(Number(value))}
-                    options={CORRIDOR_SECTION_KM.map(km => ({
+                    onChange={(value) => corridor.setSectionKm(Number(value))}
+                    options={CORRIDOR_SECTION_KM.map((km) => ({
                       value: String(km),
                       label: `± ${formatDistance(km, distanceUnit)}`,
                     }))}
@@ -641,20 +695,20 @@ export default function RoadtripCorridorPanel({
               <div className="mt-2 flex gap-2">
                 <CustomSelect
                   value={corridor.socketFilter}
-                  onChange={value => corridor.setSocketFilter(String(value))}
+                  onChange={(value) => corridor.setSocketFilter(String(value))}
                   options={[
                     { value: '', label: t('roadtrip.poi.anySocket') },
-                    ...socketsFound.map(s => ({ value: s, label: SOCKET_LABEL[s] ?? s })),
+                    ...socketsFound.map((s) => ({ value: s, label: SOCKET_LABEL[s] ?? s })),
                   ]}
                   style={{ flex: 1, minWidth: 0 }}
                   size="sm"
                 />
                 <CustomSelect
                   value={String(corridor.minKw)}
-                  onChange={value => corridor.setMinKw(Number(value))}
+                  onChange={(value) => corridor.setMinKw(Number(value))}
                   options={[
                     { value: '0', label: t('roadtrip.poi.anyPower') },
-                    ...KW_STEPS.map(kw => ({ value: String(kw), label: `${kw}+ kW` })),
+                    ...KW_STEPS.map((kw) => ({ value: String(kw), label: `${kw}+ kW` })),
                   ]}
                   style={{ flex: 1, minWidth: 0 }}
                   size="sm"
@@ -680,20 +734,22 @@ export default function RoadtripCorridorPanel({
                 search.loading
                   ? t('roadtrip.poi.searchingHint')
                   : filteredToNothing
-                    // Four controls narrow this list and only one of them is the
-                    // name box. Blaming it regardless produced `Nothing on the
-                    // way matches ""` — empty quotes naming a filter the reader
-                    // never set — when a section, a plug type or a minimum power
-                    // was what emptied it.
-                    ? corridor.nameFilter.trim()
+                    ? // Four controls narrow this list and only one of them is the
+                      // name box. Blaming it regardless produced `Nothing on the
+                      // way matches ""` — empty quotes naming a filter the reader
+                      // never set — when a section, a plug type or a minimum power
+                      // was what emptied it.
+                      corridor.nameFilter.trim()
                       ? t('roadtrip.poi.noMatch', { name: corridor.nameFilter.trim() })
                       : t('roadtrip.poi.noneMatchFilters')
-                    // The one sentence here that nothing has happened yet to explain.
-                    // In a narrow column it wraps over three lines to tell somebody to
-                    // press the button they are already looking at, so the mascot makes
-                    // the point on its own. The other three are answers to something
-                    // the reader did, and those are worth the room at any width.
-                    : narrow ? '' : t('roadtrip.poi.empty')
+                    : // The one sentence here that nothing has happened yet to explain.
+                      // In a narrow column it wraps over three lines to tell somebody to
+                      // press the button they are already looking at, so the mascot makes
+                      // the point on its own. The other three are answers to something
+                      // the reader did, and those are worth the room at any width.
+                      narrow
+                      ? ''
+                      : t('roadtrip.poi.empty')
               }
             />
           ) : (
@@ -706,7 +762,7 @@ export default function RoadtripCorridorPanel({
                   {t('roadtrip.poi.foundFiltered', { count: corridor.visible.length, total: search.results.length })}
                 </p>
               ) : null}
-              {grouped.map(g => (
+              {grouped.map((g) => (
                 <ResultGroup
                   key={g.key}
                   category={g.key}
@@ -722,5 +778,5 @@ export default function RoadtripCorridorPanel({
         </div>
       </div>
     </div>
-  )
+  );
 }

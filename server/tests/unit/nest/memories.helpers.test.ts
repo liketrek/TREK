@@ -7,7 +7,6 @@
  * headings in the picker mean something, so it is pinned here rather than
  * inside either provider suite.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   dayStartEpochSeconds,
   describeFetchFailure,
@@ -17,9 +16,11 @@ import {
   sortAssetsByTakenAtDesc,
 } from '../../../src/nest/memories/memories.helpers';
 
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+
 const asset = (id: string, takenAt?: string | null) => ({ id, takenAt });
 
-const ids = (assets: { id: string }[]) => assets.map(a => a.id);
+const ids = (assets: { id: string }[]) => assets.map((a) => a.id);
 
 describe('sortAssetsByTakenAtDesc', () => {
   it('MEM-SORT-001: puts the newest capture first regardless of the order upstream sent', () => {
@@ -58,10 +59,7 @@ describe('sortAssetsByTakenAtDesc', () => {
   it('MEM-SORT-004: treats an unparsable timestamp as missing rather than sorting on the string', () => {
     // Synology hands back an epoch it converts itself; a malformed value must not
     // outrank a real date just because it compares high as text.
-    const out = sortAssetsByTakenAtDesc([
-      asset('garbage', 'not-a-date'),
-      asset('real', '2026-03-15T09:00:00Z'),
-    ]);
+    const out = sortAssetsByTakenAtDesc([asset('garbage', 'not-a-date'), asset('real', '2026-03-15T09:00:00Z')]);
 
     expect(ids(out)).toEqual(['real', 'garbage']);
   });
@@ -86,7 +84,6 @@ describe('sortAssetsByTakenAtDesc', () => {
   });
 });
 
-
 describe('shiftCalendarDay', () => {
   it('MEM-DAY-001: pads a day outwards, crossing month and year ends', () => {
     expect(shiftCalendarDay('2026-03-15', -1)).toBe('2026-03-14');
@@ -101,16 +98,19 @@ describe('shiftCalendarDay', () => {
   });
 });
 
-
 describe('isWithinLocalDayRange', () => {
   const at = (takenAt: string | null, localTakenAt?: string | null) => ({ takenAt, localTakenAt });
 
   it('MEM-DAY-010: reads the day off the local capture stamp when the provider sends one', () => {
     // 21:00 UTC on the 14th is already the 15th in Sydney, and Immich says so.
-    expect(isWithinLocalDayRange(at('2026-03-14T21:00:00Z', '2026-03-15T08:00:00.000Z'), '2026-03-15', '2026-03-15')).toBe(true);
+    expect(
+      isWithinLocalDayRange(at('2026-03-14T21:00:00Z', '2026-03-15T08:00:00.000Z'), '2026-03-15', '2026-03-15'),
+    ).toBe(true);
     // And the mirror: 22:00 UTC on the 15th is already the 16th there, so it
     // does not belong to the 15th however the UTC day reads.
-    expect(isWithinLocalDayRange(at('2026-03-15T22:00:00Z', '2026-03-16T09:00:00.000Z'), '2026-03-15', '2026-03-15')).toBe(false);
+    expect(
+      isWithinLocalDayRange(at('2026-03-15T22:00:00Z', '2026-03-16T09:00:00.000Z'), '2026-03-15', '2026-03-15'),
+    ).toBe(false);
   });
 
   it('MEM-DAY-011: falls back to the capture instant, which is the UTC day it always used', () => {
@@ -131,7 +131,6 @@ describe('isWithinLocalDayRange', () => {
     expect(isWithinLocalDayRange(at('nope'), '2026-03-15', '2026-03-15')).toBe(true);
   });
 });
-
 
 describe('dayStartEpochSeconds', () => {
   it('MEM-DAY-020: with no offset it is the UTC midnight the window always used', () => {
@@ -164,13 +163,17 @@ describe('describeFetchFailure', () => {
 
   it('MEM-FETCH-003: looks past a silent or repeated cause to the first one that says something', () => {
     const deep = new Error('fetch failed', {
-      cause: new Error('', { cause: new Error('fetch failed', { cause: new Error('getaddrinfo ENOTFOUND immich.lan') }) }),
+      cause: new Error('', {
+        cause: new Error('fetch failed', { cause: new Error('getaddrinfo ENOTFOUND immich.lan') }),
+      }),
     });
     expect(describeFetchFailure(deep)).toBe('fetch failed (getaddrinfo ENOTFOUND immich.lan)');
   });
 
   it('MEM-FETCH-004: a cause that is not an Error is ignored', () => {
-    expect(describeFetchFailure(new Error('fetch failed', { cause: 'DEPTH_ZERO_SELF_SIGNED_CERT' }))).toBe('fetch failed');
+    expect(describeFetchFailure(new Error('fetch failed', { cause: 'DEPTH_ZERO_SELF_SIGNED_CERT' }))).toBe(
+      'fetch failed',
+    );
   });
 
   it('MEM-FETCH-005: a rejection that is not an Error falls back to the old wording', () => {
@@ -178,8 +181,12 @@ describe('describeFetchFailure', () => {
   });
 
   it('MEM-FETCH-006: leaves out the advice Node adds for whoever runs the server', () => {
-    const cause = new Error('self-signed certificate; if the root CA is installed locally, try running Node.js with --use-system-ca');
-    expect(describeFetchFailure(new TypeError('fetch failed', { cause }))).toBe('fetch failed (self-signed certificate)');
+    const cause = new Error(
+      'self-signed certificate; if the root CA is installed locally, try running Node.js with --use-system-ca',
+    );
+    expect(describeFetchFailure(new TypeError('fetch failed', { cause }))).toBe(
+      'fetch failed (self-signed certificate)',
+    );
   });
 });
 
@@ -208,8 +215,9 @@ describe('exifCaptureInstant (#2512)', () => {
   });
 
   it('MEM-EXIF-003: takes the first offset that is well formed', () => {
-    expect(exifCaptureInstant('2026:05:30 15:52:19', [undefined, '   :  ', '+2:00', '+09:00', '+02:00']))
-      .toBe('2026-05-30T06:52:19.000Z');
+    expect(exifCaptureInstant('2026:05:30 15:52:19', [undefined, '   :  ', '+2:00', '+09:00', '+02:00'])).toBe(
+      '2026-05-30T06:52:19.000Z',
+    );
   });
 
   it('MEM-EXIF-004: accepts the widest real zones and refuses what is past them', () => {
@@ -224,7 +232,9 @@ describe('exifCaptureInstant (#2512)', () => {
   it('MEM-EXIF-005: without an offset the stamp is read in the server zone, as before', () => {
     // 15:52 CDT is 20:52 UTC.
     expect(exifCaptureInstant('2026:05:30 15:52:19', [])).toBe('2026-05-30T20:52:19.000Z');
-    expect(exifCaptureInstant('2026:05:30 15:52:19', [null, 42, '0200', '+02:00:00', '+2', 'CEST'])).toBe('2026-05-30T20:52:19.000Z');
+    expect(exifCaptureInstant('2026:05:30 15:52:19', [null, 42, '0200', '+02:00:00', '+2', 'CEST'])).toBe(
+      '2026-05-30T20:52:19.000Z',
+    );
   });
 
   it('MEM-EXIF-006: a wall clock inside a DST gap is still a date, not garbage', () => {
@@ -307,7 +317,12 @@ describe('exifCaptureInstant (#2512)', () => {
   });
 
   it('MEM-EXIF-013: anything else after the time is still not a stamp', () => {
-    for (const stamp of ['2026:05:30 15:52:19 CEST', '2026:05:30 15:52:19 +2', '2026:05:30 15:52:19 UTC+2', '2026:05:30 15:52:19 later']) {
+    for (const stamp of [
+      '2026:05:30 15:52:19 CEST',
+      '2026:05:30 15:52:19 +2',
+      '2026:05:30 15:52:19 UTC+2',
+      '2026:05:30 15:52:19 later',
+    ]) {
       expect(exifCaptureInstant(stamp, ['+02:00']), stamp).toBeNull();
     }
   });

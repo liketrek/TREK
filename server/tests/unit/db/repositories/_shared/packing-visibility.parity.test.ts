@@ -1,14 +1,15 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../../helpers/db-mock';
-import { resetTestDb } from '../../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../../helpers/test-orm';
-import { createTrip, createUser } from '../../../../helpers/factories';
 import { PackingItems } from '../../../../../src/db/entities/PackingItems.entity';
 import {
   packingVisibleToActorCondition,
   packingVisibleToActorExpr,
   type PackingVisibilityKyselyDB,
 } from '../../../../../src/db/repositories/_shared/packing-visibility';
+import { createSnapshotTestDb } from '../../../../helpers/db-mock';
+import { createTrip, createUser } from '../../../../helpers/factories';
+import { resetTestDb } from '../../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * The legacy fragment this harness proves parity against
@@ -28,9 +29,17 @@ const VISIBLE_TO_ACTOR = `(
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
 
-beforeAll(async () => { t = await createTestOrm(testDb); });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeAll(async () => {
+  t = await createTestOrm(testDb);
+});
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 type Tier = 'common' | 'personal' | 'shared';
 type Actor = 'owner' | 'recipient' | 'stranger' | 'no-actor';
@@ -61,7 +70,10 @@ function seedFixture() {
   return {
     tripId: trip.id as number,
     itemIds: { common, personal, shared } as Record<Tier, number>,
-    actorIds: { owner: owner.id, recipient: recipient.id, stranger: stranger.id } as Record<Exclude<Actor, 'no-actor'>, number>,
+    actorIds: { owner: owner.id, recipient: recipient.id, stranger: stranger.id } as Record<
+      Exclude<Actor, 'no-actor'>,
+      number
+    >,
   };
 }
 
@@ -138,7 +150,9 @@ describe('packing-visibility parity — 12-cell matrix (4 actor types × 3 item 
     // result — the WHERE clause is trip-scoped independently of visibility.
     const { user: otherOwner } = createUser(testDb);
     const otherTrip = createTrip(testDb, otherOwner.id);
-    testDb.prepare('INSERT INTO packing_items (trip_id, name, is_private, owner_id) VALUES (?, ?, 0, NULL)').run(otherTrip.id, 'Other trip common');
+    testDb
+      .prepare('INSERT INTO packing_items (trip_id, name, is_private, owner_id) VALUES (?, ?, 0, NULL)')
+      .run(otherTrip.id, 'Other trip common');
 
     for (const actor of ['owner', 'recipient', 'stranger', 'no-actor'] as const) {
       const actorId = resolveActorId(actor, fixture.actorIds);
@@ -169,7 +183,9 @@ describe('packing-visibility parity — 12-cell matrix (4 actor types × 3 item 
     // stay exactly {common, shared} (itemIds.shared), never picking up
     // `otherShared` just because SOME row in packing_item_recipients names them
     // as a recipient of a DIFFERENT item.
-    testDb.prepare('INSERT INTO packing_item_recipients (item_id, user_id) VALUES (?, ?)').run(otherShared, actorIds.stranger);
+    testDb
+      .prepare('INSERT INTO packing_item_recipients (item_id, user_id) VALUES (?, ?)')
+      .run(otherShared, actorIds.stranger);
 
     const actorId = actorIds.recipient;
     const legacy = await legacyVisibleIds(tripId, actorId);

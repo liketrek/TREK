@@ -1,8 +1,8 @@
 // FE-COMP-LABELMGR-001 to FE-COMP-LABELMGR-013
-import React from 'react';
-import { render, screen, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import type { CollectionLabel } from '@trek/shared';
+import React from 'react';
+import { render, screen, waitFor, within } from '../../../tests/helpers/render';
 import { useTranslation } from '../../i18n/TranslationContext';
 import LabelManager from './LabelManager';
 

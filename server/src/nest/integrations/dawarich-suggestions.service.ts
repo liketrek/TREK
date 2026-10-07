@@ -1,5 +1,29 @@
-import { Injectable } from '@nestjs/common';
+import { BucketList } from '../../db/entities/BucketList.entity';
+import { DawarichVisitSuggestions } from '../../db/entities/DawarichVisitSuggestions.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
+import { BucketListRepository } from '../../db/repositories/BucketList.repository';
+import {
+  DawarichVisitSuggestionsRepository,
+  type SuggestionJoinRow,
+  type SuggestionRow,
+} from '../../db/repositories/DawarichVisitSuggestions.repository';
+import { PlacesRepository } from '../../db/repositories/Places.repository';
+import { TripsRepository } from '../../db/repositories/Trips.repository';
+import { UsersRepository } from '../../db/repositories/Users.repository';
+import { AssignmentsService } from '../assignments/assignments.service';
+import { NAME_TO_CODE } from '../atlas/atlas-geo';
+import { AtlasService } from '../atlas/atlas.service';
+import { UnitOfWork } from '../database/unit-of-work';
+import { JourneyDomainService } from '../journey/journey-domain.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { PlacesService } from '../places/places.service';
+import { DawarichClient, type DawarichCreds } from './dawarich.client';
+import { minutesBetween, toNumber } from './dawarich.helpers';
+import { DawarichService } from './dawarich.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 import {
   DAWARICH_BUCKET_MATCH_MIN_MINUTES,
   DAWARICH_BUCKET_MATCH_RADIUS_M,
@@ -13,26 +37,6 @@ import {
   type DawarichSuggestion,
   type DawarichSuggestionList,
 } from '@trek/shared';
-import { UnitOfWork } from '../database/unit-of-work';
-import { AtlasService } from '../atlas/atlas.service';
-import { PlacesService } from '../places/places.service';
-import { AssignmentsService } from '../assignments/assignments.service';
-import { PermissionsService } from '../permissions/permissions.service';
-import { JourneyDomainService } from '../journey/journey-domain.service';
-import { NAME_TO_CODE } from '../atlas/atlas-geo';
-import { DawarichVisitSuggestions } from '../../db/entities/DawarichVisitSuggestions.entity';
-import { DawarichVisitSuggestionsRepository, type SuggestionJoinRow, type SuggestionRow } from '../../db/repositories/DawarichVisitSuggestions.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import { TripsRepository } from '../../db/repositories/Trips.repository';
-import { Places } from '../../db/entities/Places.entity';
-import { PlacesRepository } from '../../db/repositories/Places.repository';
-import { BucketList } from '../../db/entities/BucketList.entity';
-import { BucketListRepository } from '../../db/repositories/BucketList.repository';
-import { Users } from '../../db/entities/Users.entity';
-import { UsersRepository } from '../../db/repositories/Users.repository';
-import { DawarichClient, type DawarichCreds } from './dawarich.client';
-import { DawarichService } from './dawarich.service';
-import { minutesBetween, toNumber } from './dawarich.helpers';
 
 /**
  * What a user does with the stays a sync brought in.
@@ -146,7 +150,8 @@ export class DawarichSuggestionsService {
   async accept(userId: number, id: number, body: DawarichAccept, sid?: string): Promise<DawarichAcceptResult> {
     const row = await this.suggestions.findForUser(id, userId);
     if (!row) throw new AcceptError('not_found', 'Suggestion not found', 404);
-    if (row.state === 'accepted') throw new AcceptError('already_accepted', 'Suggestion has already been accepted', 409);
+    if (row.state === 'accepted')
+      throw new AcceptError('already_accepted', 'Suggestion has already been accepted', 409);
 
     switch (body.target) {
       case 'place':
@@ -305,7 +310,11 @@ export class DawarichSuggestionsService {
   }
 
   /** A stay ticks off a wish. The wish must be the caller's own. */
-  private async acceptAsBucketTick(userId: number, row: SuggestionRow, body: DawarichAccept): Promise<DawarichAcceptResult> {
+  private async acceptAsBucketTick(
+    userId: number,
+    row: SuggestionRow,
+    body: DawarichAccept,
+  ): Promise<DawarichAcceptResult> {
     const itemId = body.bucketListItemId ?? row.matched_bucket_list_item_id;
     if (!itemId) {
       throw new AcceptError('bucket_required', 'A bucket-list entry is required', 400);
@@ -334,7 +343,11 @@ export class DawarichSuggestionsService {
    * tool holds `ctx.userId`, and a permission that depended on which door
    * somebody came through would not be a permission.
    */
-  private async requirePermission(action: 'place_edit' | 'day_edit', tripOwnerId: number, userId: number): Promise<void> {
+  private async requirePermission(
+    action: 'place_edit' | 'day_edit',
+    tripOwnerId: number,
+    userId: number,
+  ): Promise<void> {
     const role = await this.users.getRole(userId);
     const allowed = await this.permissions.checkPermission(
       action,
@@ -415,11 +428,7 @@ export class DawarichSuggestionsService {
    * that lasted two hours is the visit and the one that lasted four minutes is
    * the bus stopping outside.
    */
-  private async bestStayNear(
-    creds: DawarichCreds,
-    lat: number,
-    lng: number,
-  ): Promise<DawarichBucketMatch['match']> {
+  private async bestStayNear(creds: DawarichCreds, lat: number, lng: number): Promise<DawarichBucketMatch['match']> {
     let stays;
     try {
       stays = await this.client.findVisitsNear(creds, lat, lng, DAWARICH_BUCKET_MATCH_RADIUS_M, 20);
@@ -531,11 +540,13 @@ export class DawarichSuggestionsService {
       resolved.push({
         countryCode: code,
         sourceName: name,
-        cities: (entry.cities ?? []).map((city) => ({
-          name: city?.city ?? '',
-          minutes: toNumber(city?.stayed_for) ?? 0,
-          lastSeenAt: isoFromUnix(toNumber(city?.timestamp)),
-        })).filter((city) => city.name !== ''),
+        cities: (entry.cities ?? [])
+          .map((city) => ({
+            name: city?.city ?? '',
+            minutes: toNumber(city?.stayed_for) ?? 0,
+            lastSeenAt: isoFromUnix(toNumber(city?.timestamp)),
+          }))
+          .filter((city) => city.name !== ''),
         alreadyVisited: visited.has(code),
       });
     }
@@ -600,8 +611,7 @@ function toWire(row: SuggestionJoinRow): DawarichSuggestion {
     confidence: row.confidence,
     confidenceBand: row.confidence_band,
     state: row.state === 'accepted' || row.state === 'dismissed' ? row.state : 'new',
-    target:
-      row.target === 'place' || row.target === 'journal' || row.target === 'bucket_list' ? row.target : null,
+    target: row.target === 'place' || row.target === 'journal' || row.target === 'bucket_list' ? row.target : null,
     acceptedPlaceId: row.accepted_place_id,
     acceptedJournalEntryId: row.accepted_journal_entry_id,
     acceptedBucketListItemId: row.accepted_bucket_list_item_id,

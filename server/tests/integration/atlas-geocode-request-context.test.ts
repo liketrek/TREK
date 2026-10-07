@@ -19,10 +19,17 @@
  * proof for the real routes: the writes still land after the response, with
  * the same timing, and nothing reaches the error log.
  */
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { PlaceRegionsRepository } from '../../src/db/repositories/PlaceRegions.repository';
+import { authCookie } from '../helpers/auth';
+import { createUser, createTrip, createPlace } from '../helpers/factories';
+import { resetTestDb } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -32,7 +39,10 @@ vi.mock('../../src/config', () => ({
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
-  SESSION_DURATION: '24h', SESSION_DURATION_MS: 86400000, SESSION_DURATION_SECONDS: 86400, DEFAULT_LANGUAGE: 'en',
+  SESSION_DURATION: '24h',
+  SESSION_DURATION_MS: 86400000,
+  SESSION_DURATION_SECONDS: 86400,
+  DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 vi.mock('../../src/nest/atlas/atlas-geo', async (orig) => {
@@ -46,13 +56,6 @@ vi.mock('../../src/nest/atlas/atlas-geo', async (orig) => {
     },
   };
 });
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb } from '../helpers/test-db';
-import { createUser, createTrip, createPlace } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { PlaceRegionsRepository } from '../../src/db/repositories/PlaceRegions.repository';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -86,7 +89,10 @@ describe('AT4/AT29 background geocode request context', () => {
     expect(testDb.prepare('SELECT * FROM place_regions WHERE place_id=?').get(p.id)).toBeUndefined();
     await new Promise((r) => setTimeout(r, 2500));
     expect(errors).toEqual([]);
-    expect(testDb.prepare('SELECT * FROM place_regions WHERE place_id=?').get(p.id)).toMatchObject({ country_code: 'FR', region_code: 'FR-IDF' });
+    expect(testDb.prepare('SELECT * FROM place_regions WHERE place_id=?').get(p.id)).toMatchObject({
+      country_code: 'FR',
+      region_code: 'FR-IDF',
+    });
   }, 15_000);
 
   it('IIFE-CTX-AT29 — /regions IIFE writes two places sequentially (2nd after ~2.4s)', async () => {

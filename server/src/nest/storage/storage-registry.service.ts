@@ -1,14 +1,9 @@
-import fs from 'node:fs';
-import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { MikroORM } from '@mikro-orm/core';
-import { STORAGE_BACKEND_TYPES, storageConfigSchema } from '@trek/shared';
-import { UnitOfWork } from '../database/unit-of-work';
-import { withRequestContext } from '../database/request-context';
-import { RuntimeEnvService } from '../app-config/runtime-env.service';
-import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { withRequestContext } from '../database/request-context';
+import { UnitOfWork } from '../database/unit-of-work';
 import { LocalDriver } from './drivers/local.driver';
 import { MirrorDriver, type ReplicaFailure } from './drivers/mirror.driver';
 import { S3Driver } from './drivers/s3.driver';
@@ -23,6 +18,12 @@ import {
   type StorageCategory,
   type StorageDriver,
 } from './storage.types';
+import { MikroORM } from '@mikro-orm/core';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { STORAGE_BACKEND_TYPES, storageConfigSchema } from '@trek/shared';
+
+import fs from 'node:fs';
 
 export interface ResolvedCategory {
   driver: StorageDriver;
@@ -337,9 +338,7 @@ export class StorageRegistryService implements OnModuleInit {
       await this.appSettings.setValue(BACKENDS_KEY, JSON.stringify(encrypted.backends));
       await this.appSettings.setValue(CATEGORIES_KEY, JSON.stringify(encrypted.categories));
     });
-    this.logger.log(
-      `storage config seeded from ${seedPath} — the file is now ignored; manage storage in the admin UI`,
-    );
+    this.logger.log(`storage config seeded from ${seedPath} — the file is now ignored; manage storage in the admin UI`);
   }
 
   /**
@@ -414,7 +413,11 @@ export class StorageRegistryService implements OnModuleInit {
       ['backups-local', 'built-in'],
     ]);
     if (placePhotoDir) {
-      backends.set('place-photos-local', { name: 'place-photos-local', type: 'local', options: { root: placePhotoDir } });
+      backends.set('place-photos-local', {
+        name: 'place-photos-local',
+        type: 'local',
+        options: { root: placePhotoDir },
+      });
       backendSources.set('place-photos-local', 'env');
     }
     for (const config of parseBackendList(settings.backends)) {
@@ -540,7 +543,11 @@ function parseBackendList(raw: unknown): BackendConfig[] {
       if (typeof options.primary !== 'string' || !replicas || replicas.some((r) => typeof r !== 'string')) {
         throw new StorageBackendError(`mirror backend '${entry.name}' needs 'options.primary' and 'options.replicas'`);
       }
-      return { name: entry.name, type: 'mirror', options: { primary: options.primary, replicas: replicas as string[] } };
+      return {
+        name: entry.name,
+        type: 'mirror',
+        options: { primary: options.primary, replicas: replicas as string[] },
+      };
     }
     if (entry.type === 's3') {
       const parsed = STORAGE_BACKEND_TYPES.s3.optionsSchema.safeParse(options);
@@ -630,10 +637,7 @@ function overlappingPrefixes(a: ReadonlySet<string>, b: ReadonlySet<string>): [s
  * mirror and `covers` for another. The admin UI keeps the replica picker in
  * step by never offering a backend that already serves a category.
  */
-function assertNoSharedReplicas(
-  backends: Map<string, BackendConfig>,
-  categories: Map<ServedCategory, string>,
-): void {
+function assertNoSharedReplicas(backends: Map<string, BackendConfig>, categories: Map<ServedCategory, string>): void {
   const replicaOf = new Map<string, string[]>(); // backend → mirrors listing it as a replica
   for (const config of backends.values()) {
     if (config.type !== 'mirror') continue;

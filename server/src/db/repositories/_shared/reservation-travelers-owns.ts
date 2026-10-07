@@ -131,8 +131,5 @@ export function travelerOwnsExpr(
     .select('rt.reservation_id')
     .whereRef('rt.reservation_id', '=', 'r.id');
 
-  return eb.or([
-    eb.not(eb.exists(forThisReservation)),
-    eb.exists(forThisReservation.where('rt.user_id', '=', userId)),
-  ]);
+  return eb.or([eb.not(eb.exists(forThisReservation)), eb.exists(forThisReservation.where('rt.user_id', '=', userId))]);
 }

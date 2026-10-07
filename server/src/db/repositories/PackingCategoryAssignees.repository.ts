@@ -50,7 +50,12 @@ export class PackingCategoryAssigneesRepository extends TrekRepository<PackingCa
     return await this.kysely<PackingCategoryAssigneesKyselyDB>()
       .selectFrom('packing_category_assignees as pca')
       .innerJoin('users as u', 'u.id', 'pca.user_id')
-      .select(['pca.category_name', 'pca.user_id', (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'), 'u.avatar'])
+      .select([
+        'pca.category_name',
+        'pca.user_id',
+        (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'),
+        'u.avatar',
+      ])
       .where('pca.trip_id', '=', trip_id as number)
       .execute();
   }
@@ -82,7 +87,10 @@ export class PackingCategoryAssigneesRepository extends TrekRepository<PackingCa
   }
 
   /** PK61 (`updateCategoryAssignees`'s post-write re-select) — `SELECT pca.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar FROM packing_category_assignees pca JOIN users u ON pca.user_id = u.id WHERE pca.trip_id = ? AND pca.category_name = ?`. */
-  async listForCategory(trip_id: number | string, category_name: string): Promise<Omit<PackingCategoryAssigneeRow, 'category_name'>[]> {
+  async listForCategory(
+    trip_id: number | string,
+    category_name: string,
+  ): Promise<Omit<PackingCategoryAssigneeRow, 'category_name'>[]> {
     return await this.kysely<PackingCategoryAssigneesKyselyDB>()
       .selectFrom('packing_category_assignees as pca')
       .innerJoin('users as u', 'u.id', 'pca.user_id')

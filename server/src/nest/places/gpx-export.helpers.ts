@@ -110,7 +110,7 @@ export function buildGpx(input: GpxExportInput, opts: GpxExportOptions = {}): st
         name: place.name,
         desc: describe(place),
         trkseg: {
-          trkpt: geometry.map(p => ({
+          trkpt: geometry.map((p) => ({
             '@_lat': coord(p.lat),
             '@_lon': coord(p.lng),
             ...(p.ele != null ? { ele: coord(p.ele) } : {}),
@@ -143,7 +143,7 @@ export function buildGpx(input: GpxExportInput, opts: GpxExportOptions = {}): st
           : String(day.dayNumber);
       rte.push({
         name: label,
-        rtept: day.points.map(p => ({
+        rtept: day.points.map((p) => ({
           '@_lat': coord(p.lat),
           '@_lon': coord(p.lng),
           name: p.name,

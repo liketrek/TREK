@@ -1,8 +1,9 @@
-import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
-import { EntityManager } from '@mikro-orm/core';
-import type { Request } from 'express';
 import { Users } from '../../db/entities/Users.entity';
 import { verifyJwtAndLoadUser } from './jwt-verify';
+import { EntityManager } from '@mikro-orm/core';
+import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * Mirrors the legacy `requireCookieAuth` middleware: accepts ONLY the httpOnly
@@ -23,7 +24,10 @@ export class CookieAuthGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<Request & { cookies?: Record<string, string> }>();
     const cookieToken = req.cookies?.trek_session;
     if (!cookieToken) {
-      throw new HttpException({ error: 'Cookie session required for this endpoint', code: 'COOKIE_AUTH_REQUIRED' }, 401);
+      throw new HttpException(
+        { error: 'Cookie session required for this endpoint', code: 'COOKIE_AUTH_REQUIRED' },
+        401,
+      );
     }
     const user = await verifyJwtAndLoadUser(cookieToken, this.em.getRepository(Users));
     if (!user) {

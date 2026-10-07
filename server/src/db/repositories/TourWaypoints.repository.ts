@@ -15,7 +15,14 @@ export interface TourWaypointWithPlaceRow extends TourWaypointRow {
 }
 
 interface TourWaypointsKyselyDB {
-  tour_waypoints: { id: number; place_id: number; lat: number; lng: number; role: TourWaypointRow['role']; sequence: number };
+  tour_waypoints: {
+    id: number;
+    place_id: number;
+    lat: number;
+    lng: number;
+    role: TourWaypointRow['role'];
+    sequence: number;
+  };
   places: { id: number; trip_id: number };
 }
 

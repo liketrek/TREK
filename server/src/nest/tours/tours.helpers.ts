@@ -19,9 +19,7 @@ function haversineKm(a: GeometryPoint, b: GeometryPoint): number {
   const [lat2, lng2] = b;
   const dLat = toRad(lat2 - lat1);
   const dLng = toRad(lng2 - lng1);
-  const s =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.min(1, Math.sqrt(s)));
 }
 
@@ -45,7 +43,7 @@ export function computeTourMetrics(points: GeometryPoint[]): TourMetrics {
   if (points.length < 2) {
     return { distanceKm: 0, elevationGainM: null, elevationLossM: null, hasElevation: false };
   }
-  const hasElevation = points.every(p => p.length === 3 && Number.isFinite(p[2]));
+  const hasElevation = points.every((p) => p.length === 3 && Number.isFinite(p[2]));
 
   let distanceKm = 0;
   let gain = 0;

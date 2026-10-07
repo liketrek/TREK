@@ -36,6 +36,8 @@ export class Migration20200101040200_trek_photo_cache_meta_cache_key_not_null ex
 
     this.addSql(`ALTER TABLE trek_photo_cache_meta_new RENAME TO trek_photo_cache_meta`);
 
-    this.addSql(`CREATE INDEX IF NOT EXISTS idx_trek_photo_cache_meta_fetched_at ON trek_photo_cache_meta (fetched_at)`);
+    this.addSql(
+      `CREATE INDEX IF NOT EXISTS idx_trek_photo_cache_meta_fetched_at ON trek_photo_cache_meta (fetched_at)`,
+    );
   }
 }

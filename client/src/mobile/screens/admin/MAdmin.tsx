@@ -1,5 +1,4 @@
-import SchoolHolidayCatalog from '../../../components/Admin/SchoolHolidayCatalog'
-import { useState } from 'react'
+import type { LucideIcon } from 'lucide-react';
 import {
   ArrowUp,
   Bell,
@@ -22,33 +21,34 @@ import {
   UserCog,
   UserPlus,
   Users,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
-import { adminApi } from '../../../api/client'
-import { useTranslation } from '../../../i18n'
-import { useCountUp } from '../../../hooks/useCountUp'
-import { useAdmin } from '../../../pages/admin/useAdmin'
-import MAdminAddonManager from './MAdminAddonManager'
-import MAdminMcpTokensPanel from './MAdminMcpTokensPanel'
-import MAdminPluginsPanel from './MAdminPluginsPanel'
-import MAdminAuditLogPanel from './MAdminAuditLogPanel'
-import MAdminBackupPanel from './MAdminBackupPanel'
-import MAdminCategoryManager from './MAdminCategoryManager'
-import MAdminDefaultUserSettings from './MAdminDefaultUserSettings'
-import MAdminDevNotificationsPanel from './MAdminDevNotificationsPanel'
-import MAdminGitHubPanel from './MAdminGitHubPanel'
-import MAdminPackingTemplateManager from './MAdminPackingTemplateManager'
-import MAdminNotificationsSection from './MAdminNotificationsSection'
-import MAdminSettingsSection from './MAdminSettingsSection'
-import MAdminSheets from './MAdminSheets'
-import MAdminStoragePanel from './MAdminStoragePanel'
-import MAdminUsersSection from './MAdminUsersSection'
-import { MAdminButton } from './MAdminUi'
+} from 'lucide-react';
+import { useState } from 'react';
+import { adminApi } from '../../../api/client';
+import SchoolHolidayCatalog from '../../../components/Admin/SchoolHolidayCatalog';
+import { useCountUp } from '../../../hooks/useCountUp';
+import { useTranslation } from '../../../i18n';
+import { useAdmin } from '../../../pages/admin/useAdmin';
+import MAdminAddonManager from './MAdminAddonManager';
+import MAdminAuditLogPanel from './MAdminAuditLogPanel';
+import MAdminBackupPanel from './MAdminBackupPanel';
+import MAdminCategoryManager from './MAdminCategoryManager';
+import MAdminDefaultUserSettings from './MAdminDefaultUserSettings';
+import MAdminDevNotificationsPanel from './MAdminDevNotificationsPanel';
+import MAdminGitHubPanel from './MAdminGitHubPanel';
+import MAdminMcpTokensPanel from './MAdminMcpTokensPanel';
+import MAdminNotificationsSection from './MAdminNotificationsSection';
+import MAdminPackingTemplateManager from './MAdminPackingTemplateManager';
+import MAdminPluginsPanel from './MAdminPluginsPanel';
+import MAdminSettingsSection from './MAdminSettingsSection';
+import MAdminSheets from './MAdminSheets';
+import MAdminStoragePanel from './MAdminStoragePanel';
+import { MAdminButton } from './MAdminUi';
+import MAdminUsersSection from './MAdminUsersSection';
 
 // Stat card of the 2×2 grid (design §6.3): 34px icon tile, 19px/800 number,
 // small tracking label. Count-up animation matches the desktop stat cards.
 function MAdminStat({ label, value, icon: Icon }: { label: string; value: number; icon: LucideIcon }) {
-  const animated = useCountUp(value, 900)
+  const animated = useCountUp(value, 900);
   return (
     <div className="flex items-center gap-[11px] rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] px-[14px] py-[13px]">
       <span className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[11px] bg-[color:var(--m-ic)] text-m-ink">
@@ -59,7 +59,7 @@ function MAdminStat({ label, value, icon: Icon }: { label: string; value: number
         <div className="mt-[2px] font-geist text-[0.59375rem] font-bold tracking-[0.06em] text-m-faint">{label}</div>
       </div>
     </div>
-  )
+  );
 }
 
 /**
@@ -68,17 +68,28 @@ function MAdminStat({ label, value, icon: Icon }: { label: string; value: number
  * desktop admin section stays reachable through the dropdown.
  */
 export default function MAdmin() {
-  const { t, locale } = useTranslation()
-  const admin = useAdmin()
+  const { t, locale } = useTranslation();
+  const admin = useAdmin();
   const {
-    demoMode, mcpEnabled, devMode, managed, toast, navigate,
-    activeTab, setActiveTab, stats, serverTimezone,
-    bagTrackingEnabled, setBagTrackingEnabled,
-    collabFeatures, setCollabFeatures,
+    demoMode,
+    mcpEnabled,
+    devMode,
+    managed,
+    toast,
+    navigate,
+    activeTab,
+    setActiveTab,
+    stats,
+    serverTimezone,
+    bagTrackingEnabled,
+    setBagTrackingEnabled,
+    collabFeatures,
+    setCollabFeatures,
     setShowCreateUser,
-    updateInfo, setShowUpdateModal,
-  } = admin
-  const [sectionsOpen, setSectionsOpen] = useState(false)
+    updateInfo,
+    setShowUpdateModal,
+  } = admin;
+  const [sectionsOpen, setSectionsOpen] = useState(false);
 
   // Same sections and gating as the desktop sidebar, ordered and iconed like
   // the design's dropdown (§6.1).
@@ -98,17 +109,17 @@ export default function MAdmin() {
     ...(managed ? [] : [{ id: 'backup', label: t('admin.tabs.backup'), icon: Database }]),
     { id: 'audit', label: t('admin.tabs.audit'), icon: ScrollText },
     ...(devMode ? [{ id: 'dev-notifications', label: 'Dev: Notifications', icon: Bug }] : []),
-  ]
-  const activeSection = sections.find((s) => s.id === activeTab) ?? sections[0]
+  ];
+  const activeSection = sections.find((s) => s.id === activeTab) ?? sections[0];
 
   const saveDemoBaseline = async () => {
     try {
-      await adminApi.saveDemoBaseline()
-      toast.success('Baseline saved! Resets will restore to this state.')
+      await adminApi.saveDemoBaseline();
+      toast.success('Baseline saved! Resets will restore to this state.');
     } catch (e) {
-      toast.error(e.response?.data?.error || 'Failed to save baseline')
+      toast.error(e.response?.data?.error || 'Failed to save baseline');
     }
-  }
+  };
 
   return (
     // Flow screen: scrolls with the document (#1809), so no height and no
@@ -153,8 +164,8 @@ export default function MAdmin() {
               key={section.id}
               type="button"
               onClick={() => {
-                setActiveTab(section.id)
-                setSectionsOpen(false)
+                setActiveTab(section.id);
+                setSectionsOpen(false);
               }}
               className={`flex w-full items-center gap-[10px] rounded-[11px] p-[10px] text-left text-[0.8125rem] font-semibold text-m-ink ${
                 section.id === activeSection.id ? 'bg-[color:var(--m-ic)]' : ''
@@ -222,24 +233,24 @@ export default function MAdmin() {
         <MAdminAddonManager
           bagTrackingEnabled={bagTrackingEnabled}
           onToggleBagTracking={async () => {
-            const next = !bagTrackingEnabled
-            setBagTrackingEnabled(next)
+            const next = !bagTrackingEnabled;
+            setBagTrackingEnabled(next);
             try {
-              await adminApi.updateBagTracking(next)
+              await adminApi.updateBagTracking(next);
             } catch {
-              setBagTrackingEnabled(!next)
+              setBagTrackingEnabled(!next);
             }
           }}
           collabFeatures={collabFeatures}
           onToggleCollabFeature={async (key: string) => {
-            const previous = collabFeatures[key]
-            setCollabFeatures({ ...collabFeatures, [key]: !previous })
+            const previous = collabFeatures[key];
+            setCollabFeatures({ ...collabFeatures, [key]: !previous });
             try {
-              await adminApi.updateCollabFeatures({ [key]: !previous })
+              await adminApi.updateCollabFeatures({ [key]: !previous });
             } catch {
               // Only this key rolls back — a slower request must not undo a toggle
               // the admin made in the meantime.
-              setCollabFeatures(prev => ({ ...prev, [key]: previous }))
+              setCollabFeatures((prev) => ({ ...prev, [key]: previous }));
             }
           }}
         />
@@ -254,5 +265,5 @@ export default function MAdmin() {
 
       <MAdminSheets admin={admin} t={t} />
     </div>
-  )
+  );
 }

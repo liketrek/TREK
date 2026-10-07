@@ -1,8 +1,8 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
 import type { User } from '../../types';
-import { ReservationsService } from './reservations.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ReservationsService } from './reservations.service';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 
 /**
  * GET /api/reservations/upcoming — the cross-trip "upcoming reservations" feed

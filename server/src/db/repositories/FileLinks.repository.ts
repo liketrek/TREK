@@ -92,7 +92,13 @@ export class FileLinksRepository extends TrekRepository<FileLinks> {
    * legacy sites (FL10/FL13 pass only `budget_item_id`; FL24 passes any
    * combination the caller supplies) — one method, not three.
    */
-  async insertIgnore(row: { file_id: number; reservation_id?: number | null; assignment_id?: number | null; place_id?: number | null; budget_item_id?: number | null }): Promise<void> {
+  async insertIgnore(row: {
+    file_id: number;
+    reservation_id?: number | null;
+    assignment_id?: number | null;
+    place_id?: number | null;
+    budget_item_id?: number | null;
+  }): Promise<void> {
     await this.kysely<FileLinksWriteKyselyDB>()
       .insertInto('file_links')
       .values({
@@ -126,7 +132,11 @@ export class FileLinksRepository extends TrekRepository<FileLinks> {
 
   /** FL25 (`createFileLink`'s bare re-select) — `SELECT * FROM file_links WHERE file_id = ?`. */
   async listForFile(file_id: number): Promise<FileLinkRow[]> {
-    return await this.kysely<FileLinksKyselyDB>().selectFrom('file_links').selectAll().where('file_id', '=', file_id).execute();
+    return await this.kysely<FileLinksKyselyDB>()
+      .selectFrom('file_links')
+      .selectAll()
+      .where('file_id', '=', file_id)
+      .execute();
   }
 
   /** FL27 (`FilesService.getFileLinks`) — `SELECT fl.*, r.title as reservation_title FROM file_links fl LEFT JOIN reservations r ON fl.reservation_id = r.id WHERE fl.file_id = ?`. */

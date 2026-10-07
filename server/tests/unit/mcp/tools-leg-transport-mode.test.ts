@@ -2,9 +2,12 @@
  * Unit tests for MCP leg-mode tools: set_leg_transport_mode,
  * set_day_default_transport_mode.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
+import { createUser, createTrip, createDay, createPlace, createDayAssignment } from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
 
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
@@ -19,10 +22,6 @@ vi.mock('../../../src/config', () => ({
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createDayAssignment } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-
 beforeEach(() => {
   resetTestDb(testDb);
   broadcastMock.mockClear();
@@ -35,7 +34,11 @@ afterAll(() => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -50,10 +53,22 @@ describe('Tool: set_assignment_route_excluded (#2532)', () => {
     const place = createPlace(testDb, trip.id);
     const assignment = createDayAssignment(testDb, day.id, place.id);
     await withHarness(user.id, async (h) => {
-      const out = parseToolResult(await h.client.callTool({ name: 'set_assignment_route_excluded', arguments: { tripId: trip.id, assignmentId: assignment.id, excluded: true } })) as any;
+      const out = parseToolResult(
+        await h.client.callTool({
+          name: 'set_assignment_route_excluded',
+          arguments: { tripId: trip.id, assignmentId: assignment.id, excluded: true },
+        }),
+      ) as any;
       expect(out.assignment.route_excluded).toBe(true);
-      expect(testDb.prepare('SELECT route_excluded FROM day_assignments WHERE id = ?').get(assignment.id)).toEqual({ route_excluded: 1 });
-      const back = parseToolResult(await h.client.callTool({ name: 'set_assignment_route_excluded', arguments: { tripId: trip.id, assignmentId: assignment.id, excluded: false } })) as any;
+      expect(testDb.prepare('SELECT route_excluded FROM day_assignments WHERE id = ?').get(assignment.id)).toEqual({
+        route_excluded: 1,
+      });
+      const back = parseToolResult(
+        await h.client.callTool({
+          name: 'set_assignment_route_excluded',
+          arguments: { tripId: trip.id, assignmentId: assignment.id, excluded: false },
+        }),
+      ) as any;
       expect(back.assignment.route_excluded).toBe(false);
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'assignment:updated', expect.any(Object));
     });
@@ -67,7 +82,10 @@ describe('Tool: set_assignment_route_excluded (#2532)', () => {
     const place = createPlace(testDb, other.id);
     const assignment = createDayAssignment(testDb, day.id, place.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'set_assignment_route_excluded', arguments: { tripId: trip.id, assignmentId: assignment.id, excluded: true } });
+      const result = await h.client.callTool({
+        name: 'set_assignment_route_excluded',
+        arguments: { tripId: trip.id, assignmentId: assignment.id, excluded: true },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -82,7 +100,9 @@ describe('Tool: set_leg_transport_mode', () => {
     const assignment = createDayAssignment(testDb, day.id, place.id);
     // Seed the incoming column so the assertion below proves it survives; the factory
     // leaves it NULL, so without this it would pass whether or not the tool touched it.
-    testDb.prepare('UPDATE day_assignments SET incoming_leg_transport_mode = ? WHERE id = ?').run('walking', assignment.id);
+    testDb
+      .prepare('UPDATE day_assignments SET incoming_leg_transport_mode = ? WHERE id = ?')
+      .run('walking', assignment.id);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({

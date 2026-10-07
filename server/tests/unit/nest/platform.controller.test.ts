@@ -1,5 +1,20 @@
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import {
+  applyPlatformUploads,
+  applyPlatformSpa,
+  applyPlatformStatic,
+  storageStaticHandler,
+  isBuildFilePath,
+  PUBLIC_DIR,
+} from '../../../src/nest/platform/platform.routes';
+import { SpaFallbackFilter } from '../../../src/nest/platform/spa-fallback.filter';
+import type { StorageService } from '../../../src/nest/storage/storage.service';
+import { StorageNotFoundError, StorageInvalidKeyError } from '../../../src/nest/storage/storage.types';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser, createTrip } from '../../helpers/factories';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
 import { NotFoundException } from '@nestjs/common';
+
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 
 // --- hoisted mock fns so the vi.mock factories can reference them -----------------
 const h = vi.hoisted(() => ({
@@ -11,21 +26,6 @@ const h = vi.hoisted(() => ({
 
 vi.mock('../../../src/nest/auth/jwt-verify', () => ({ verifyJwtAndLoadUser: h.verifyJwtAndLoadUser }));
 vi.mock('../../../src/db/database', () => ({ db: { prepare: h.dbPrepare } }));
-
-import {
-  applyPlatformUploads,
-  applyPlatformSpa,
-  applyPlatformStatic,
-  storageStaticHandler,
-  isBuildFilePath,
-  PUBLIC_DIR,
-} from '../../../src/nest/platform/platform.routes';
-import { SpaFallbackFilter } from '../../../src/nest/platform/spa-fallback.filter';
-import { StorageNotFoundError, StorageInvalidKeyError } from '../../../src/nest/storage/storage.types';
-import type { StorageService } from '../../../src/nest/storage/storage.service';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { createUser, createTrip } from '../../helpers/factories';
 
 // The serving swap addresses files as (category, name) on the injected facade;
 // these unit tests only assert routing/auth/error mapping, so a two-method stub
@@ -49,13 +49,15 @@ type Handler = (...args: unknown[]) => unknown;
  */
 function fakeApp() {
   const calls: Array<{ method: string; path?: string; handlers: Handler[] }> = [];
-  const record = (method: string) => (...args: unknown[]) => {
-    if (typeof args[0] === 'string' || args[0] instanceof RegExp) {
-      calls.push({ method, path: String(args[0]), handlers: args.slice(1) as Handler[] });
-    } else {
-      calls.push({ method, handlers: args as Handler[] });
-    }
-  };
+  const record =
+    (method: string) =>
+    (...args: unknown[]) => {
+      if (typeof args[0] === 'string' || args[0] instanceof RegExp) {
+        calls.push({ method, path: String(args[0]), handlers: args.slice(1) as Handler[] });
+      } else {
+        calls.push({ method, handlers: args as Handler[] });
+      }
+    };
   const app = {
     use: record('use'),
     get: record('get'),
@@ -70,12 +72,29 @@ function makeRes() {
     statusCode: 200,
     body: undefined as unknown,
     headers: {} as Record<string, string>,
-    status: vi.fn(function (this: typeof res, c: number) { this.statusCode = c; return this; }),
-    json: vi.fn(function (this: typeof res, b: unknown) { this.body = b; return this; }),
-    send: vi.fn(function (this: typeof res, b: unknown) { this.body = b; return this; }),
-    end: vi.fn(function (this: typeof res) { return this; }),
-    sendFile: vi.fn(function (this: typeof res, p: string) { this.body = `FILE:${p}`; return this; }),
-    setHeader: vi.fn(function (this: typeof res, k: string, v: string) { this.headers[k] = v; return this; }),
+    status: vi.fn(function (this: typeof res, c: number) {
+      this.statusCode = c;
+      return this;
+    }),
+    json: vi.fn(function (this: typeof res, b: unknown) {
+      this.body = b;
+      return this;
+    }),
+    send: vi.fn(function (this: typeof res, b: unknown) {
+      this.body = b;
+      return this;
+    }),
+    end: vi.fn(function (this: typeof res) {
+      return this;
+    }),
+    sendFile: vi.fn(function (this: typeof res, p: string) {
+      this.body = `FILE:${p}`;
+      return this;
+    }),
+    setHeader: vi.fn(function (this: typeof res, k: string, v: string) {
+      this.headers[k] = v;
+      return this;
+    }),
   };
   return res;
 }
@@ -181,7 +200,10 @@ describe('applyPlatformUploads', () => {
         res,
         next,
       );
-      expect(h.verifyJwtAndLoadUser).toHaveBeenCalledWith('jwt123', expect.objectContaining({ findByIdWithPasswordVersion: expect.any(Function) }));
+      expect(h.verifyJwtAndLoadUser).toHaveBeenCalledWith(
+        'jwt123',
+        expect.objectContaining({ findByIdWithPasswordVersion: expect.any(Function) }),
+      );
       expect(h.sendToResponse).toHaveBeenCalledWith('photos', 'a.jpg', res);
     });
 
@@ -191,7 +213,10 @@ describe('applyPlatformUploads', () => {
       h.verifyJwtAndLoadUser.mockReturnValue({ id: 1 });
       const res = makeRes();
       await photoHandler()({ params: { filename: 'a.jpg' }, headers: {}, query: { token: 'qtok' } }, res, next);
-      expect(h.verifyJwtAndLoadUser).toHaveBeenCalledWith('qtok', expect.objectContaining({ findByIdWithPasswordVersion: expect.any(Function) }));
+      expect(h.verifyJwtAndLoadUser).toHaveBeenCalledWith(
+        'qtok',
+        expect.objectContaining({ findByIdWithPasswordVersion: expect.any(Function) }),
+      );
       expect(h.sendToResponse).toHaveBeenCalledWith('photos', 'a.jpg', res);
     });
 
@@ -213,12 +238,14 @@ describe('applyPlatformUploads', () => {
     // `uploadsOrm.orm`) rather than mocking `db.prepare`'s return value; the
     // `h.dbPrepare` stub is dead for this whole describe block now.
     function insertShareToken(tripId: number, userId: number, token: string, expiresAt: string | null = null) {
-      uploadsTestDb.prepare('INSERT INTO share_tokens (trip_id, token, created_by, expires_at) VALUES (?, ?, ?, ?)')
+      uploadsTestDb
+        .prepare('INSERT INTO share_tokens (trip_id, token, created_by, expires_at) VALUES (?, ?, ?, ?)')
         .run(tripId, token, userId, expiresAt);
     }
 
     function insertPhoto(tripId: number, filename: string) {
-      uploadsTestDb.prepare('INSERT INTO photos (trip_id, filename, original_name) VALUES (?, ?, ?)')
+      uploadsTestDb
+        .prepare('INSERT INTO photos (trip_id, filename, original_name) VALUES (?, ?, ?)')
         .run(tripId, filename, filename);
     }
 
@@ -231,7 +258,11 @@ describe('applyPlatformUploads', () => {
       h.verifyJwtAndLoadUser.mockReturnValue(null);
       insertPhoto(photoTrip.id, 'photo-mismatch.jpg');
       const res = makeRes();
-      await photoHandler()({ params: { filename: 'photo-mismatch.jpg' }, headers: {}, query: { token: 'share-mismatch' } }, res, next);
+      await photoHandler()(
+        { params: { filename: 'photo-mismatch.jpg' }, headers: {}, query: { token: 'share-mismatch' } },
+        res,
+        next,
+      );
       expect(res.statusCode).toBe(401);
     });
 
@@ -242,7 +273,11 @@ describe('applyPlatformUploads', () => {
       h.verifyJwtAndLoadUser.mockReturnValue(null);
       insertPhoto(photoTrip.id, 'photo-unknown-token.jpg');
       const res = makeRes();
-      await photoHandler()({ params: { filename: 'photo-unknown-token.jpg' }, headers: {}, query: { token: 'never-issued' } }, res, next);
+      await photoHandler()(
+        { params: { filename: 'photo-unknown-token.jpg' }, headers: {}, query: { token: 'never-issued' } },
+        res,
+        next,
+      );
       expect(res.statusCode).toBe(401);
     });
 
@@ -255,7 +290,11 @@ describe('applyPlatformUploads', () => {
       h.verifyJwtAndLoadUser.mockReturnValue(null);
       insertPhoto(photoTrip.id, 'photo-revoked.jpg');
       const res = makeRes();
-      await photoHandler()({ params: { filename: 'photo-revoked.jpg' }, headers: {}, query: { token: 'share-revoked' } }, res, next);
+      await photoHandler()(
+        { params: { filename: 'photo-revoked.jpg' }, headers: {}, query: { token: 'share-revoked' } },
+        res,
+        next,
+      );
       expect(res.statusCode).toBe(401);
     });
 
@@ -267,7 +306,11 @@ describe('applyPlatformUploads', () => {
       h.verifyJwtAndLoadUser.mockReturnValue(null);
       insertPhoto(photoTrip.id, 'photo-expired.jpg');
       const res = makeRes();
-      await photoHandler()({ params: { filename: 'photo-expired.jpg' }, headers: {}, query: { token: 'share-expired' } }, res, next);
+      await photoHandler()(
+        { params: { filename: 'photo-expired.jpg' }, headers: {}, query: { token: 'share-expired' } },
+        res,
+        next,
+      );
       expect(res.statusCode).toBe(401);
     });
 
@@ -279,7 +322,11 @@ describe('applyPlatformUploads', () => {
       h.verifyJwtAndLoadUser.mockReturnValue(null);
       insertPhoto(photoTrip.id, 'photo-case.jpg');
       const res = makeRes();
-      await photoHandler()({ params: { filename: 'photo-case.jpg' }, headers: {}, query: { token: 'share-casesensitive' } }, res, next);
+      await photoHandler()(
+        { params: { filename: 'photo-case.jpg' }, headers: {}, query: { token: 'share-casesensitive' } },
+        res,
+        next,
+      );
       expect(res.statusCode).toBe(401);
     });
 
@@ -291,7 +338,11 @@ describe('applyPlatformUploads', () => {
       h.verifyJwtAndLoadUser.mockReturnValue(null);
       insertPhoto(photoTrip.id, 'photo-nul.jpg');
       const res = makeRes();
-      await photoHandler()({ params: { filename: 'photo-nul.jpg' }, headers: {}, query: { token: 'share-nul\0extra' } }, res, next);
+      await photoHandler()(
+        { params: { filename: 'photo-nul.jpg' }, headers: {}, query: { token: 'share-nul\0extra' } },
+        res,
+        next,
+      );
       expect(res.statusCode).toBe(401);
     });
 
@@ -447,7 +498,9 @@ describe('storageStaticHandler', () => {
 
 describe('applyPlatformStatic', () => {
   const original = process.env.NODE_ENV;
-  afterEach(() => { process.env.NODE_ENV = original; });
+  afterEach(() => {
+    process.env.NODE_ENV = original;
+  });
 
   it('is a no-op outside production', () => {
     process.env.NODE_ENV = 'development';
@@ -481,13 +534,15 @@ describe('applyPlatformStatic', () => {
 
 describe('applyPlatformSpa', () => {
   const original = process.env.NODE_ENV;
-  afterEach(() => { process.env.NODE_ENV = original; });
+  afterEach(() => {
+    process.env.NODE_ENV = original;
+  });
 
   it('only serves statics (no catch-all) outside production', () => {
     process.env.NODE_ENV = 'development';
     const { app, calls } = fakeApp();
     applyPlatformSpa(app);
-    expect(calls.some((c) => c.method === 'get' && c.path === '/.*/' )).toBe(false);
+    expect(calls.some((c) => c.method === 'get' && c.path === '/.*/')).toBe(false);
   });
 
   it('registers the index.html catch-all in production', () => {
@@ -552,7 +607,9 @@ describe('isBuildFilePath', () => {
 
 describe('SpaFallbackFilter', () => {
   const original = process.env.NODE_ENV;
-  afterEach(() => { process.env.NODE_ENV = original; });
+  afterEach(() => {
+    process.env.NODE_ENV = original;
+  });
 
   function host(req: { method: string; path?: string }, res: ReturnType<typeof makeRes>) {
     return { switchToHttp: () => ({ getRequest: () => req, getResponse: () => res }) } as never;

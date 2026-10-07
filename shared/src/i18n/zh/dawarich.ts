@@ -57,7 +57,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': '此实例已关闭 Dawarich 插件。',
   'dawarich.error.offline': '这需要联网 — TREK 当前处于离线状态。',
   'dawarich.error.invalid_url': 'TREK 无法使用该地址。',
-  'dawarich.warning.private_ip': '该地址解析到内网 IP（{ip}）。请确认这是你想要的——服务器可能需要 ALLOW_INTERNAL_NETWORK=true 才能访问。',
+  'dawarich.warning.private_ip':
+    '该地址解析到内网 IP（{ip}）。请确认这是你想要的——服务器可能需要 ALLOW_INTERNAL_NETWORK=true 才能访问。',
   'dawarich.error.unknown': '与 Dawarich 通信时出了问题。',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -97,8 +98,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.bucket_list': '心愿已勾掉',
   'dawarich.suggestions.sourceChanged':
     '自你使用之后，这条停留记录在 Dawarich 中已发生变化。你在 TREK 中写下的内容不受影响。',
-  'dawarich.suggestions.sourceMissing':
-    '这条停留记录在 Dawarich 中已不存在。你在 TREK 中写下的内容不受影响。',
+  'dawarich.suggestions.sourceMissing': '这条停留记录在 Dawarich 中已不存在。你在 TREK 中写下的内容不受影响。',
   'dawarich.sourceStatus.suggested': '已识别，未确认',
   'dawarich.confidence.high': '识别结果可信',
   'dawarich.confidence.medium': '识别结果较为可信',
@@ -134,8 +134,7 @@ const dawarich: TranslationStrings = {
 
   // ── Wishlist ───────────────────────────────────────────────────────────────
   'dawarich.bucket.title': '用 Dawarich 核对你的愿望清单',
-  'dawarich.bucket.description':
-    '在你的记录中查找那些你一直想去的地方。算作到访既要够近，也要待够时间——路过不算。',
+  'dawarich.bucket.description': '在你的记录中查找那些你一直想去的地方。算作到访既要够近，也要待够时间——路过不算。',
   'dawarich.bucket.scan': '核对愿望清单',
   'dawarich.bucket.scanning': '核对中…',
   'dawarich.bucket.noMatches': '你的记录中没有出现愿望清单上的任何地方。',

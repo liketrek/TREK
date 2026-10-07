@@ -1,5 +1,5 @@
-import StudioShell from '../components/Studio/StudioShell'
-import HelpAnchor from '../components/Help/HelpAnchor'
+import HelpAnchor from '../components/Help/HelpAnchor';
+import StudioShell from '../components/Studio/StudioShell';
 
 /**
  * TREK Studio, the Journey book designer.
@@ -16,5 +16,5 @@ export default function JourneyStudioPage() {
       <HelpAnchor id="journey-studio" />
       <StudioShell />
     </>
-  )
+  );
 }

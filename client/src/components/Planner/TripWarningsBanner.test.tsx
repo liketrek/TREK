@@ -1,9 +1,9 @@
 // FE-PLANNER-TRIPWARN-001 to FE-PLANNER-TRIPWARN-011
-import { render, screen, fireEvent, waitFor, act } from '../../../tests/helpers/render';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
-import { usePluginStore, type ActivePlugin } from '../../store/pluginStore';
+import { act, fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { usePluginStore, type ActivePlugin } from '../../store/pluginStore';
 import TripWarningsBanner from './TripWarningsBanner';
 
 type Warning = { pluginId: string; level: 'info' | 'warning' | 'error'; message: string };
@@ -37,12 +37,14 @@ function stubDesktop(matches: boolean) {
     onchange: null,
     addListener: vi.fn(),
     removeListener: vi.fn(),
-    addEventListener: vi.fn((_: string, cb: (e: MediaQueryListEvent) => void) => { listeners.push(cb); }),
+    addEventListener: vi.fn((_: string, cb: (e: MediaQueryListEvent) => void) => {
+      listeners.push(cb);
+    }),
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(() => true),
   };
   window.matchMedia = vi.fn(() => mql) as unknown as typeof window.matchMedia;
-  return { mql, fire: (m: boolean) => listeners.forEach(cb => cb({ matches: m } as MediaQueryListEvent)) };
+  return { mql, fire: (m: boolean) => listeners.forEach((cb) => cb({ matches: m } as MediaQueryListEvent)) };
 }
 
 const originalMatchMedia = window.matchMedia;
@@ -69,7 +71,7 @@ describe('TripWarningsBanner', () => {
   it('FE-PLANNER-TRIPWARN-003: floating rows render one entry per warning', async () => {
     warnings(
       { pluginId: 'a', level: 'info', message: 'First note' },
-      { pluginId: 'b', level: 'error', message: 'Second note' },
+      { pluginId: 'b', level: 'error', message: 'Second note' }
     );
     render(<TripWarningsBanner tripId={1} />);
     expect(await screen.findByText('First note')).toBeInTheDocument();
@@ -136,7 +138,9 @@ describe('TripWarningsBanner', () => {
     render(<TripWarningsBanner tripId={1} />);
     await screen.findByText('Visa missing');
     expect(slot.textContent).toBe('');
-    act(() => { media.fire(true); });
+    act(() => {
+      media.fire(true);
+    });
     await waitFor(() => expect(slot.textContent).toContain('Visa missing'));
   });
 
@@ -148,7 +152,12 @@ describe('TripWarningsBanner', () => {
 
   it('FE-PLANNER-TRIPWARN-011: a non-finite tripId short-circuits without a request', async () => {
     let called = false;
-    server.use(http.get('/api/trip-warnings/*', () => { called = true; return HttpResponse.json({ warnings: [] }); }));
+    server.use(
+      http.get('/api/trip-warnings/*', () => {
+        called = true;
+        return HttpResponse.json({ warnings: [] });
+      })
+    );
     const { container } = render(<TripWarningsBanner tripId={Number.NaN} />);
     await waitFor(() => expect(container).toBeEmptyDOMElement());
     expect(called).toBe(false);

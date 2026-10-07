@@ -7,8 +7,17 @@
  * PlacesService is a broadcast stub here; the GPX import path, which needs the
  * real PlacesService, is covered by tours.gpx.atomic.test.ts.
  */
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { db as testDb } from '../../../src/db/database';
+import type { PlacesService } from '../../../src/nest/places/places.service';
+import { ToursService } from '../../../src/nest/tours/tours.service';
+import { createPlace, createTrip, createUser } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestPlacesRepo, createTestUnitOfWork, sharedTestOrm } from '../../helpers/test-uow';
+import { createTestToursRepo, createTestTourWaypointsRepo, createTour } from '../../helpers/tours-repos';
 import { Logger, NotFoundException } from '@nestjs/common';
+import { tourCreateRequestSchema, type TourCreateRequest } from '@trek/shared';
+
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
@@ -20,19 +29,14 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 
-import { db as testDb } from '../../../src/db/database';
-import { tourCreateRequestSchema, type TourCreateRequest } from '@trek/shared';
-import { ToursService } from '../../../src/nest/tours/tours.service';
-import type { PlacesService } from '../../../src/nest/places/places.service';
-import { resetTestDb } from '../../helpers/test-db';
-import { createPlace, createTrip, createUser } from '../../helpers/factories';
-import { createTestPlacesRepo, createTestUnitOfWork, sharedTestOrm } from '../../helpers/test-uow';
-import { createTestToursRepo, createTestTourWaypointsRepo, createTour } from '../../helpers/tours-repos';
-
 const request: TourCreateRequest = {
   name: 'Ridge walk',
   tour_type: 'hike',
-  route_geometry: [[48, 11, 600], [48.01, 11.02, 650], [48.02, 11.04, 630]],
+  route_geometry: [
+    [48, 11, 600],
+    [48.01, 11.02, 650],
+    [48.02, 11.04, 630],
+  ],
   waypoints: [
     { lat: 48, lng: 11, role: 'start', sequence: 0 },
     { lat: 48.02, lng: 11.04, role: 'end', sequence: 1 },
@@ -73,34 +77,57 @@ beforeEach(async () => {
   otherTripId = String(createTrip(testDb, user.id).id);
 });
 
-afterEach(() => { vi.restoreAllMocks(); });
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
-afterAll(() => { testDb.close(); });
+afterAll(() => {
+  testDb.close();
+});
 
 describe('ToursService planner creation', () => {
   it('TOURS-SVC-001: atomically stores full geometry, derived metrics, and ordered control points', async () => {
     const writeStates: boolean[] = [];
-    broadcast.mockImplementation(() => { writeStates.push(testDb.inTransaction); });
+    broadcast.mockImplementation(() => {
+      writeStates.push(testDb.inTransaction);
+    });
 
     const result = await service.createTour(tripId, request, 'socket-1');
 
     const placeId = result.tour.place_id;
     const place = testDb.prepare('SELECT * FROM places WHERE id = ?').get(placeId) as Record<string, unknown>;
     const tour = testDb.prepare('SELECT * FROM tours WHERE place_id = ?').get(placeId) as Record<string, unknown>;
-    const points = testDb.prepare('SELECT role, sequence FROM tour_waypoints WHERE place_id = ? ORDER BY sequence').all(placeId);
+    const points = testDb
+      .prepare('SELECT role, sequence FROM tour_waypoints WHERE place_id = ? ORDER BY sequence')
+      .all(placeId);
 
-    expect(place).toMatchObject({ trip_id: Number(tripId), name: 'Ridge walk', lat: 48, lng: 11, transport_mode: 'walking' });
+    expect(place).toMatchObject({
+      trip_id: Number(tripId),
+      name: 'Ridge walk',
+      lat: 48,
+      lng: 11,
+      transport_mode: 'walking',
+    });
     expect(JSON.parse(String(place.route_geometry))).toEqual(request.route_geometry);
     expect(tour).toMatchObject({ tour_type: 'hike', match_confidence: 1, max_hiking_difficulty: 2 });
     expect(tour.distance).toBeGreaterThan(0);
     expect(tour.elevation_gain).toBe(50);
     expect(tour.elevation_loss).toBe(20);
     expect(tour.duration).toBe(60);
-    expect(points).toEqual([{ role: 'start', sequence: 0 }, { role: 'end', sequence: 1 }]);
+    expect(points).toEqual([
+      { role: 'start', sequence: 0 },
+      { role: 'end', sequence: 1 },
+    ]);
     expect(result.tour).toMatchObject({ name: 'Ridge walk', planned: false, has_waypoints: true, caution: false });
     expect(result.waypoints).toEqual(request.waypoints);
     expect(broadcast).toHaveBeenNthCalledWith(1, tripId, 'tours:changed', { placeIds: [placeId] }, 'socket-1');
-    expect(broadcast).toHaveBeenNthCalledWith(2, tripId, 'place:created', { place: expect.objectContaining({ id: placeId }) }, 'socket-1');
+    expect(broadcast).toHaveBeenNthCalledWith(
+      2,
+      tripId,
+      'place:created',
+      { place: expect.objectContaining({ id: placeId }) },
+      'socket-1',
+    );
     expect(broadcast).toHaveBeenCalledTimes(2);
     // Both events go out after the commit, never from inside the write.
     expect(writeStates).toEqual([false, false]);
@@ -191,7 +218,7 @@ describe('ToursService reads', () => {
     expect(detail.waypoints).toEqual([]);
   });
 
-  it('TOURS-SVC-007: lists only this trip\'s tours, newest first, with the caution flag', async () => {
+  it("TOURS-SVC-007: lists only this trip's tours, newest first, with the caution flag", async () => {
     const older = createPlace(testDb, Number(tripId), { name: 'Older' });
     const newer = createPlace(testDb, Number(tripId), { name: 'Newer' });
     const foreign = createPlace(testDb, Number(otherTripId), { name: 'Foreign' });
@@ -202,7 +229,7 @@ describe('ToursService reads', () => {
 
     const list = await service.listTours(tripId);
 
-    expect(list.map(t => t.name)).toEqual(['Newer', 'Older']);
+    expect(list.map((t) => t.name)).toEqual(['Newer', 'Older']);
     expect(list[0]).toMatchObject({ caution: false, planned: false, has_waypoints: false, tour_type: 'hike' });
     expect(list[1]).toMatchObject({ caution: true, match_confidence: 0.3 });
     expect(await service.listTours('not-a-number')).toEqual([]);
@@ -213,7 +240,10 @@ describe('ToursService updates', () => {
   const update: TourCreateRequest = {
     ...request,
     name: 'Updated ridge walk',
-    route_geometry: [[49, 12, 700], [49.02, 12.04, 760]],
+    route_geometry: [
+      [49, 12, 700],
+      [49.02, 12.04, 760],
+    ],
     waypoints: [
       { lat: 49, lng: 12, role: 'start', sequence: 0 },
       { lat: 49.01, lng: 12.02, role: 'via', sequence: 1 },
@@ -226,21 +256,38 @@ describe('ToursService updates', () => {
     const created = await service.createTour(tripId, request);
     broadcast.mockReset();
     const writeStates: boolean[] = [];
-    broadcast.mockImplementation(() => { writeStates.push(testDb.inTransaction); });
+    broadcast.mockImplementation(() => {
+      writeStates.push(testDb.inTransaction);
+    });
 
     const result = await service.updateTour(tripId, String(created.tour.place_id), update, 'socket-2');
 
     expect(result.tour).toMatchObject({ place_id: created.tour.place_id, name: 'Updated ridge walk' });
     expect(result.waypoints).toEqual(update.waypoints);
     expect(testDb.prepare('SELECT name, lat, lng, transport_mode FROM places').get()).toEqual({
-      name: 'Updated ridge walk', lat: 49, lng: 12, transport_mode: 'walking',
+      name: 'Updated ridge walk',
+      lat: 49,
+      lng: 12,
+      transport_mode: 'walking',
     });
     expect(testDb.prepare('SELECT duration, elevation_gain, elevation_loss FROM tours').get()).toEqual({
-      duration: 45, elevation_gain: 60, elevation_loss: 0,
+      duration: 45,
+      elevation_gain: 60,
+      elevation_loss: 0,
     });
-    expect(broadcast).toHaveBeenNthCalledWith(1, tripId, 'tours:changed', { placeIds: [created.tour.place_id] }, 'socket-2');
-    expect(broadcast).toHaveBeenNthCalledWith(2,
-      tripId, 'place:updated', expect.objectContaining({ place: expect.objectContaining({ id: created.tour.place_id }) }), 'socket-2',
+    expect(broadcast).toHaveBeenNthCalledWith(
+      1,
+      tripId,
+      'tours:changed',
+      { placeIds: [created.tour.place_id] },
+      'socket-2',
+    );
+    expect(broadcast).toHaveBeenNthCalledWith(
+      2,
+      tripId,
+      'place:updated',
+      expect.objectContaining({ place: expect.objectContaining({ id: created.tour.place_id }) }),
+      'socket-2',
     );
     expect(writeStates).toEqual([false, false]);
   });
@@ -249,7 +296,9 @@ describe('ToursService updates', () => {
     const created = await service.createTour(tripId, request);
     broadcast.mockReset();
 
-    await expect(service.updateTour(tripId, String(created.tour.place_id), { ...duplicateSequence, name: 'Must roll back' })).rejects.toThrow();
+    await expect(
+      service.updateTour(tripId, String(created.tour.place_id), { ...duplicateSequence, name: 'Must roll back' }),
+    ).rejects.toThrow();
 
     expect(testDb.prepare('SELECT name FROM places').get()).toEqual({ name: 'Ridge walk' });
     expect((await service.getTour(tripId, String(created.tour.place_id))).waypoints).toEqual(request.waypoints);
@@ -260,10 +309,14 @@ describe('ToursService updates', () => {
     const created = await service.createTour(otherTripId, request);
     broadcast.mockReset();
 
-    await expect(service.updateTour(tripId, String(created.tour.place_id), update, 'socket')).rejects.toThrow('Tour not found');
+    await expect(service.updateTour(tripId, String(created.tour.place_id), update, 'socket')).rejects.toThrow(
+      'Tour not found',
+    );
 
-    expect(testDb.prepare('SELECT trip_id, name FROM places WHERE id = ?').get(created.tour.place_id))
-      .toEqual({ trip_id: Number(otherTripId), name: 'Ridge walk' });
+    expect(testDb.prepare('SELECT trip_id, name FROM places WHERE id = ?').get(created.tour.place_id)).toEqual({
+      trip_id: Number(otherTripId),
+      name: 'Ridge walk',
+    });
     expect((await service.getTour(otherTripId, String(created.tour.place_id))).waypoints).toEqual(request.waypoints);
     expect(broadcast).not.toHaveBeenCalled();
   });

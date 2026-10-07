@@ -1,6 +1,8 @@
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { RealtimeService } from '../realtime/realtime.service';
+import { RoadtripPreferences as RoadtripPreferencesEntity } from '../../db/entities/RoadtripPreferences.entity';
+import type { RoadtripPreferencesRepository } from '../../db/repositories/RoadtripPreferences.repository';
 import { UnitOfWork } from '../database/unit-of-work';
+import { RealtimeService } from '../realtime/realtime.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { HttpException, Injectable } from '@nestjs/common';
 import {
   ROADTRIP_PREFERENCE_KEYS,
@@ -8,8 +10,6 @@ import {
   roadtripPreferencesUpdateSchema,
   type RoadtripPreferences,
 } from '@trek/shared';
-import { RoadtripPreferences as RoadtripPreferencesEntity } from '../../db/entities/RoadtripPreferences.entity';
-import type { RoadtripPreferencesRepository } from '../../db/repositories/RoadtripPreferences.repository';
 
 @Injectable()
 export class RoadtripPreferencesService {

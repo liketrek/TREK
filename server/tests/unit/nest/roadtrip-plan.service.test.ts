@@ -9,7 +9,14 @@ import { db } from '../../../src/db/database';
 import type { McpContext } from '../../../src/nest-mcp';
 import { RoadtripPlanService } from '../../../src/nest/roadtrip/roadtrip-plan.service';
 import { RoadtripPlanningMcp } from '../../../src/nest/roadtrip/roadtrip-planning.mcp';
-import { createDay, createDayAccommodation, createDayAssignment, createPlace, createTrip, createUser } from '../../helpers/factories';
+import {
+  createDay,
+  createDayAccommodation,
+  createDayAssignment,
+  createPlace,
+  createTrip,
+  createUser,
+} from '../../helpers/factories';
 import { resetTestDb } from '../../helpers/test-db';
 import {
   createTestTripsRepo,
@@ -29,25 +36,33 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 function hourlyRouter() {
   return {
     profiles: () => ['driving'],
-    route: vi.fn(async (_user: number, _trip: number, _day: number, points: { lat: number; lng: number }[], _profile?: string) => ({
-      parts: points.slice(1).map(() => ({ distance: 60000, duration: 3600 })),
-      avoidMissed: [],
-      leg: {
-        line: points.map((p) => [p.lat, p.lng]),
-        vias: [],
-        seg: {
-          from: [points[0].lat, points[0].lng],
-          to: [points[points.length - 1].lat, points[points.length - 1].lng],
-          mid: [points[0].lat, points[0].lng],
-          distance: 60000 * (points.length - 1),
-          duration: 3600 * (points.length - 1),
-          mode: 'driving',
-          distanceText: '',
-          drivingText: '',
-          walkingText: '',
+    route: vi.fn(
+      async (
+        _user: number,
+        _trip: number,
+        _day: number,
+        points: { lat: number; lng: number }[],
+        _profile?: string,
+      ) => ({
+        parts: points.slice(1).map(() => ({ distance: 60000, duration: 3600 })),
+        avoidMissed: [],
+        leg: {
+          line: points.map((p) => [p.lat, p.lng]),
+          vias: [],
+          seg: {
+            from: [points[0].lat, points[0].lng],
+            to: [points[points.length - 1].lat, points[points.length - 1].lng],
+            mid: [points[0].lat, points[0].lng],
+            distance: 60000 * (points.length - 1),
+            duration: 3600 * (points.length - 1),
+            mode: 'driving',
+            distanceText: '',
+            drivingText: '',
+            walkingText: '',
+          },
         },
-      },
-    })),
+      }),
+    ),
   };
 }
 
@@ -215,7 +230,13 @@ describe('a booking the traveller rides (#2428)', () => {
     expect(context.carriers[0].endpoints).toHaveLength(2);
     const card = calculated.days[0];
     // Behind Lueneburg (10:00), before Celle (15:30): the day plan's own seat.
-    expect(card.stops.map((s) => s.carrier?.role ?? s.name)).toEqual(['Hamburg', 'Lueneburg', 'departure', 'arrival', 'Celle']);
+    expect(card.stops.map((s) => s.carrier?.role ?? s.name)).toEqual([
+      'Hamburg',
+      'Lueneburg',
+      'departure',
+      'arrival',
+      'Celle',
+    ]);
     const departure = card.stops[2];
     expect(departure.carrier).toMatchObject({ reservationId: flightId, type: 'flight', code: 'HAM', at: '13:20' });
     expect(departure.assignmentId).toBeLessThan(-2_000_000_000);
@@ -244,9 +265,16 @@ describe('a booking the traveller rides (#2428)', () => {
   it('lets a booking without located terminals fall through, a hire car without a desk among them', async () => {
     const { user, trip, visits, plans } = await setup();
     const day = db.prepare('SELECT day_id FROM day_assignments WHERE id = ?').get(visits[0].id) as { day_id: number };
-    db.prepare("INSERT INTO reservations (trip_id, title, type, day_id) VALUES (?, 'Hire car', 'car', ?)").run(trip.id, day.day_id);
-    db.prepare("INSERT INTO reservations (trip_id, title, type, day_id, reservation_time) VALUES (?, 'Somewhere', 'train', ?, '11:00')").run(trip.id, day.day_id);
-    db.prepare("INSERT INTO reservations (trip_id, title, type, day_id, reservation_time) VALUES (?, 'Cab', 'taxi', ?, '11:00')").run(trip.id, day.day_id);
+    db.prepare("INSERT INTO reservations (trip_id, title, type, day_id) VALUES (?, 'Hire car', 'car', ?)").run(
+      trip.id,
+      day.day_id,
+    );
+    db.prepare(
+      "INSERT INTO reservations (trip_id, title, type, day_id, reservation_time) VALUES (?, 'Somewhere', 'train', ?, '11:00')",
+    ).run(trip.id, day.day_id);
+    db.prepare(
+      "INSERT INTO reservations (trip_id, title, type, day_id, reservation_time) VALUES (?, 'Cab', 'taxi', ?, '11:00')",
+    ).run(trip.id, day.day_id);
 
     const { context, calculated } = await plans.calculate(trip.id, user.id);
 
@@ -284,7 +312,13 @@ describe('a booking the traveller rides (#2428)', () => {
     const { calculated } = await service.calculate(trip.id, user.id);
 
     const card = calculated.days[0];
-    expect(card.stops.map((s) => s.carrier?.role ?? s.name)).toEqual(['pickup', 'Hamburg', 'Lueneburg', 'Celle', 'return']);
+    expect(card.stops.map((s) => s.carrier?.role ?? s.name)).toEqual([
+      'pickup',
+      'Hamburg',
+      'Lueneburg',
+      'Celle',
+      'return',
+    ]);
     expect(card.stops[0].carrier).toMatchObject({ reservationId: carId, type: 'car', at: '08:00' });
     expect(card.stops[4].carrier).toMatchObject({ role: 'return', code: 'HAM', at: '18:00' });
     // One road, desk to desk: no ride, no seam, one routing run.
@@ -352,7 +386,12 @@ describe('a ferry across the day, and one on no day (#2461)', () => {
     const card = calculated.days[0];
     // By the clock alone the ferry closed the day: Amsterdam to Newcastle overland, back
     // to IJmuiden, and only then the crossing.
-    expect(card.stops.map((s) => s.carrier?.role ?? s.name)).toEqual(['Amsterdam', 'departure', 'arrival', 'Newcastle']);
+    expect(card.stops.map((s) => s.carrier?.role ?? s.name)).toEqual([
+      'Amsterdam',
+      'departure',
+      'arrival',
+      'Newcastle',
+    ]);
     expect(card.legs.map((l) => l?.mode)).toEqual(['driving', 'ferry', 'driving']);
     // Two roads, one to each side of the crossing, and nothing between the two cities.
     expect(router.route).toHaveBeenCalledTimes(2);
@@ -500,13 +539,20 @@ describe('a booked night at both ends of its days', () => {
 
     // calculate_roadtrip hands the assistant the same stops.
     const tool = new RoadtripPlanningMcp(plans, {} as never, {} as never);
-    const answer = await tool.calculate({ tripId: created.id, includeGeometry: false }, { userId: user.id } as McpContext);
+    const answer = await tool.calculate({ tripId: created.id, includeGeometry: false }, {
+      userId: user.id,
+    } as McpContext);
     const body = JSON.parse(answer.content[0].text as string);
     expect(body.days[1].stops[0].bookend).toMatchObject({ phase: 'morning', accommodationId: stayA.id });
   });
 
   it('asks the router nothing for a night spent at one hotel when the days are connected', async () => {
-    const { user, trip: created, router, plans } = await cam({ roadtrip_hotel_bookends: true, roadtrip_connect_days: true });
+    const {
+      user,
+      trip: created,
+      router,
+      plans,
+    } = await cam({ roadtrip_hotel_bookends: true, roadtrip_connect_days: true });
 
     const { calculated } = await plans.calculate(created.id, user.id);
 
@@ -526,7 +572,11 @@ describe('a booked night at both ends of its days', () => {
       [`morning:${stay.id}`, 'P3', 'P4', `evening:${stay.id}`],
       [`morning:${stay.id}`, 'P5', 'P6', `evening:${stay.id}`],
     ]);
-    expect(calculated.days[1].stops[0].bookend).toMatchObject({ checkingOut: false, checkingIn: false, checkOut: null });
+    expect(calculated.days[1].stops[0].bookend).toMatchObject({
+      checkingOut: false,
+      checkingIn: false,
+      checkOut: null,
+    });
     // The evening keeps the index the next stored stop would have.
     expect(calculated.days[1].stops[3].ownerIndex).toBe(2);
     expect(calculated.days.map((d) => d.dayId)).not.toContain(days[3].id);
@@ -583,7 +633,12 @@ describe('a booked night at both ends of its days', () => {
     ]);
 
     const preview = await off.plans.calculate(off.trip.id, off.user.id, { roadtrip_hotel_bookends: true });
-    expect(preview.calculated.days[1].stops.map((s) => s.bookend?.phase ?? null)).toEqual(['morning', null, null, 'evening']);
+    expect(preview.calculated.days[1].stops.map((s) => s.bookend?.phase ?? null)).toEqual([
+      'morning',
+      null,
+      null,
+      'evening',
+    ]);
     expect(preview.preferences.roadtrip_hotel_bookends).toBe(true);
 
     const on = await simeon();

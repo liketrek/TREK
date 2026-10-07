@@ -2,7 +2,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
-import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
+import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useAuthStore } from '../../store/authStore';
 import { ToastContainer } from '../shared/Toast';
@@ -758,10 +758,13 @@ describe('NotificationsTab', () => {
 
   it('FE-COMP-NOTIFICATIONS-030: a failing toggle surfaces the generic error', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.put('/api/notifications/preferences', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    server.use(http.put('/api/notifications/preferences', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    render(
+      <>
+        <NotificationsTab />
+        <ToastContainer />
+      </>
     );
-    render(<><NotificationsTab /><ToastContainer /></>);
     await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
 
     const toggles = await screen.findAllByRole('button');
@@ -779,14 +782,19 @@ describe('NotificationsTab', () => {
         const body = (await request.json()) as Record<string, Record<string, boolean>>;
         bodies.push(body);
         if (body.trip_invite?.email !== undefined) {
-          return new Promise<Response>(resolve => {
+          return new Promise<Response>((resolve) => {
             rejectEmail = () => resolve(HttpResponse.json({ error: 'nope' }, { status: 500 }) as unknown as Response);
           });
         }
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><NotificationsTab /><ToastContainer /></>);
+    render(
+      <>
+        <NotificationsTab />
+        <ToastContainer />
+      </>
+    );
     await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
 
     // Email is off in this matrix, in-app is on.
@@ -822,7 +830,13 @@ describe('NotificationsTab', () => {
 const pluginMatrix = (over: Record<string, unknown> = {}) => ({
   preferences: { trip_invite: { inapp: true, 'plugin:trek-gotify': true } },
   channels: [
-    { id: 'inapp', source: 'builtin', labelKey: 'settings.notificationPreferences.inapp', active: true, configured: true },
+    {
+      id: 'inapp',
+      source: 'builtin',
+      labelKey: 'settings.notificationPreferences.inapp',
+      active: true,
+      configured: true,
+    },
     {
       id: 'plugin:trek-gotify',
       source: 'plugin',
@@ -840,7 +854,7 @@ const pluginMatrix = (over: Record<string, unknown> = {}) => ({
 function mockMatrix(matrix: unknown) {
   server.use(
     http.get('*/api/notifications/preferences', () => HttpResponse.json(matrix)),
-    http.get('*/api/settings', () => HttpResponse.json({ settings: {} })),
+    http.get('*/api/settings', () => HttpResponse.json({ settings: {} }))
   );
 }
 
@@ -888,9 +902,14 @@ describe('NotificationsTab — plugin channels', () => {
       http.post('*/api/notifications/test/:channelId', ({ params }) => {
         called = String(params.channelId);
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><NotificationsTab /><ToastContainer /></>);
+    render(
+      <>
+        <NotificationsTab />
+        <ToastContainer />
+      </>
+    );
 
     await userEvent.click(await screen.findByRole('button', { name: /send test/i }));
     await waitFor(() => expect(called).toBe('plugin:trek-gotify'));
@@ -912,8 +931,20 @@ describe('NotificationsTab — plugin channels', () => {
 const ntfyMatrix = {
   preferences: { trip_invite: { inapp: true, ntfy: true } },
   channels: [
-    { id: 'inapp', source: 'builtin', labelKey: 'settings.notificationPreferences.inapp', active: true, configured: true },
-    { id: 'ntfy', source: 'builtin', labelKey: 'settings.notificationPreferences.ntfy', active: true, configured: true },
+    {
+      id: 'inapp',
+      source: 'builtin',
+      labelKey: 'settings.notificationPreferences.inapp',
+      active: true,
+      configured: true,
+    },
+    {
+      id: 'ntfy',
+      source: 'builtin',
+      labelKey: 'settings.notificationPreferences.ntfy',
+      active: true,
+      configured: true,
+    },
   ],
   event_types: ['trip_invite'],
   implemented_combos: { trip_invite: ['inapp', 'ntfy'] },
@@ -923,8 +954,20 @@ const ntfyMatrix = {
 const webhookMatrix = {
   preferences: { trip_invite: { inapp: true, webhook: true } },
   channels: [
-    { id: 'inapp', source: 'builtin', labelKey: 'settings.notificationPreferences.inapp', active: true, configured: true },
-    { id: 'webhook', source: 'builtin', labelKey: 'settings.notificationPreferences.webhook', active: true, configured: true },
+    {
+      id: 'inapp',
+      source: 'builtin',
+      labelKey: 'settings.notificationPreferences.inapp',
+      active: true,
+      configured: true,
+    },
+    {
+      id: 'webhook',
+      source: 'builtin',
+      labelKey: 'settings.notificationPreferences.webhook',
+      active: true,
+      configured: true,
+    },
   ],
   event_types: ['trip_invite'],
   implemented_combos: { trip_invite: ['inapp', 'webhook'] },
@@ -933,7 +976,7 @@ const webhookMatrix = {
 function mockNtfy(settings: Record<string, unknown> = {}) {
   server.use(
     http.get('*/api/notifications/preferences', () => HttpResponse.json(ntfyMatrix)),
-    http.get('*/api/settings', () => HttpResponse.json({ settings })),
+    http.get('*/api/settings', () => HttpResponse.json({ settings }))
   );
 }
 
@@ -965,9 +1008,14 @@ describe('NotificationsTab — ntfy credentials', () => {
       http.post('*/api/settings/bulk', async ({ request }) => {
         body = (await request.json()) as { settings: Record<string, unknown> };
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><NotificationsTab /><ToastContainer /></>);
+    render(
+      <>
+        <NotificationsTab />
+        <ToastContainer />
+      </>
+    );
 
     await user.type(await screen.findByPlaceholderText('https://ntfy.example.org'), 'https://ntfy.self.host');
     await user.click(screen.getByRole('button', { name: 'Save' }));
@@ -984,7 +1032,7 @@ describe('NotificationsTab — ntfy credentials', () => {
       http.post('*/api/settings/bulk', async ({ request }) => {
         body = (await request.json()) as { settings: Record<string, unknown> };
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     render(<NotificationsTab />);
 
@@ -999,10 +1047,13 @@ describe('NotificationsTab — ntfy credentials', () => {
   it('FE-COMP-NOTIFICATIONS-018: a failing ntfy save toasts the generic error', async () => {
     const user = userEvent.setup();
     mockNtfy({ ntfy_topic: 'alerts' });
-    server.use(
-      http.post('*/api/settings/bulk', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+    server.use(http.post('*/api/settings/bulk', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+    render(
+      <>
+        <NotificationsTab />
+        <ToastContainer />
+      </>
     );
-    render(<><NotificationsTab /><ToastContainer /></>);
 
     await screen.findByDisplayValue('alerts');
     await user.click(screen.getByRole('button', { name: 'Save' }));
@@ -1018,9 +1069,14 @@ describe('NotificationsTab — ntfy credentials', () => {
       http.put('*/api/settings', async ({ request }) => {
         body = (await request.json()) as { key: string; value: unknown };
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><NotificationsTab /><ToastContainer /></>);
+    render(
+      <>
+        <NotificationsTab />
+        <ToastContainer />
+      </>
+    );
 
     await user.click(await screen.findByRole('button', { name: 'Clear' }));
 
@@ -1032,10 +1088,13 @@ describe('NotificationsTab — ntfy credentials', () => {
   it('FE-COMP-NOTIFICATIONS-020: a failing clear keeps the token and toasts', async () => {
     const user = userEvent.setup();
     mockNtfy({ ntfy_topic: 'alerts', ntfy_token: '••••••••' });
-    server.use(
-      http.put('*/api/settings', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    server.use(http.put('*/api/settings', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    render(
+      <>
+        <NotificationsTab />
+        <ToastContainer />
+      </>
     );
-    render(<><NotificationsTab /><ToastContainer /></>);
 
     await user.click(await screen.findByRole('button', { name: 'Clear' }));
 
@@ -1051,9 +1110,14 @@ describe('NotificationsTab — ntfy credentials', () => {
       http.post('*/api/notifications/test-ntfy', async ({ request }) => {
         body = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><NotificationsTab /><ToastContainer /></>);
+    render(
+      <>
+        <NotificationsTab />
+        <ToastContainer />
+      </>
+    );
 
     await screen.findByDisplayValue('alerts');
     await user.click(screen.getByRole('button', { name: 'Test' }));
@@ -1066,9 +1130,14 @@ describe('NotificationsTab — ntfy credentials', () => {
     const user = userEvent.setup();
     mockNtfy({ ntfy_topic: 'alerts' });
     server.use(
-      http.post('*/api/notifications/test-ntfy', () => HttpResponse.json({ success: false, error: 'Topic not found' })),
+      http.post('*/api/notifications/test-ntfy', () => HttpResponse.json({ success: false, error: 'Topic not found' }))
     );
-    render(<><NotificationsTab /><ToastContainer /></>);
+    render(
+      <>
+        <NotificationsTab />
+        <ToastContainer />
+      </>
+    );
 
     await screen.findByDisplayValue('alerts');
     await user.click(screen.getByRole('button', { name: 'Test' }));
@@ -1079,10 +1148,13 @@ describe('NotificationsTab — ntfy credentials', () => {
   it('FE-COMP-NOTIFICATIONS-023: a network error during the test falls back to the generic message', async () => {
     const user = userEvent.setup();
     mockNtfy({ ntfy_topic: 'alerts' });
-    server.use(
-      http.post('*/api/notifications/test-ntfy', () => HttpResponse.json({ error: 'down' }, { status: 500 })),
+    server.use(http.post('*/api/notifications/test-ntfy', () => HttpResponse.json({ error: 'down' }, { status: 500 })));
+    render(
+      <>
+        <NotificationsTab />
+        <ToastContainer />
+      </>
     );
-    render(<><NotificationsTab /><ToastContainer /></>);
 
     await screen.findByDisplayValue('alerts');
     await user.click(screen.getByRole('button', { name: 'Test' }));
@@ -1105,7 +1177,7 @@ describe('NotificationsTab — webhook and channel-test failures', () => {
     seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
     server.use(
       http.get('*/api/notifications/preferences', () => HttpResponse.json(webhookMatrix)),
-      http.get('*/api/settings', () => HttpResponse.json({ settings: { webhook_url: '••••••••' } })),
+      http.get('*/api/settings', () => HttpResponse.json({ settings: { webhook_url: '••••••••' } }))
     );
   });
 
@@ -1116,9 +1188,14 @@ describe('NotificationsTab — webhook and channel-test failures', () => {
       http.put('*/api/settings', async ({ request }) => {
         body = (await request.json()) as { key: string; value: unknown };
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
-    render(<><NotificationsTab /><ToastContainer /></>);
+    render(
+      <>
+        <NotificationsTab />
+        <ToastContainer />
+      </>
+    );
 
     const input = await screen.findByRole('textbox');
     expect(input).toHaveAttribute('placeholder', '••••••••');
@@ -1127,16 +1204,19 @@ describe('NotificationsTab — webhook and channel-test failures', () => {
     await screen.findByText('Webhook URL saved');
     expect(body).toEqual({ key: 'webhook_url', value: '' });
     await waitFor(() =>
-      expect(screen.getByRole('textbox')).toHaveAttribute('placeholder', 'https://discord.com/api/webhooks/...'),
+      expect(screen.getByRole('textbox')).toHaveAttribute('placeholder', 'https://discord.com/api/webhooks/...')
     );
   });
 
   it('FE-COMP-NOTIFICATIONS-026: a failing webhook save toasts the generic error', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.put('*/api/settings', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+    server.use(http.put('*/api/settings', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+    render(
+      <>
+        <NotificationsTab />
+        <ToastContainer />
+      </>
     );
-    render(<><NotificationsTab /><ToastContainer /></>);
 
     await screen.findByRole('textbox');
     await user.click(screen.getByRole('button', { name: 'Save' }));
@@ -1147,9 +1227,14 @@ describe('NotificationsTab — webhook and channel-test failures', () => {
   it('FE-COMP-NOTIFICATIONS-027: a network error during the webhook test falls back to the generic message', async () => {
     const user = userEvent.setup();
     server.use(
-      http.post('*/api/notifications/test-webhook', () => HttpResponse.json({ error: 'down' }, { status: 500 })),
+      http.post('*/api/notifications/test-webhook', () => HttpResponse.json({ error: 'down' }, { status: 500 }))
     );
-    render(<><NotificationsTab /><ToastContainer /></>);
+    render(
+      <>
+        <NotificationsTab />
+        <ToastContainer />
+      </>
+    );
 
     await screen.findByRole('textbox');
     await user.click(screen.getByRole('button', { name: 'Test' }));
@@ -1162,10 +1247,15 @@ describe('NotificationsTab — webhook and channel-test failures', () => {
     mockMatrix(pluginMatrix());
     server.use(
       http.post('*/api/notifications/test/:channelId', () =>
-        HttpResponse.json({ success: false, error: 'Gotify rejected the token' }),
-      ),
+        HttpResponse.json({ success: false, error: 'Gotify rejected the token' })
+      )
     );
-    render(<><NotificationsTab /><ToastContainer /></>);
+    render(
+      <>
+        <NotificationsTab />
+        <ToastContainer />
+      </>
+    );
 
     await user.click(await screen.findByRole('button', { name: /send test/i }));
 
@@ -1176,9 +1266,14 @@ describe('NotificationsTab — webhook and channel-test failures', () => {
     const user = userEvent.setup();
     mockMatrix(pluginMatrix());
     server.use(
-      http.post('*/api/notifications/test/:channelId', () => HttpResponse.json({ error: 'down' }, { status: 500 })),
+      http.post('*/api/notifications/test/:channelId', () => HttpResponse.json({ error: 'down' }, { status: 500 }))
     );
-    render(<><NotificationsTab /><ToastContainer /></>);
+    render(
+      <>
+        <NotificationsTab />
+        <ToastContainer />
+      </>
+    );
 
     await user.click(await screen.findByRole('button', { name: /send test/i }));
 
@@ -1198,7 +1293,13 @@ describe('NotificationsTab — webhook and channel-test failures', () => {
 const pushMatrix = (active: boolean) => ({
   preferences: { trip_invite: { inapp: true, push: true } },
   channels: [
-    { id: 'inapp', source: 'builtin', labelKey: 'settings.notificationPreferences.inapp', active: true, configured: true },
+    {
+      id: 'inapp',
+      source: 'builtin',
+      labelKey: 'settings.notificationPreferences.inapp',
+      active: true,
+      configured: true,
+    },
     { id: 'push', source: 'builtin', labelKey: 'settings.notificationPreferences.push', active, configured: false },
   ],
   event_types: ['trip_invite'],
@@ -1232,20 +1333,25 @@ describe('NotificationsTab: Web Push', () => {
 
 describe('NotificationsTab — cells the admin blocked (#1536)', () => {
   it('FE-COMP-NOTIFICATIONS-LOCK-001: shows a lock instead of a switch, and sends nothing for it', async () => {
-    let puts = 0
+    let puts = 0;
     server.use(
-      http.get('/api/notifications/preferences', () => HttpResponse.json({
-        ...minimalMatrix,
-        preferences: { trip_invite: { inapp: true, email: false } },
-        locked: { trip_invite: ['email'] },
-      })),
-      http.put('/api/notifications/preferences', () => { puts += 1; return HttpResponse.json({ success: true }) }),
-    )
-    render(<NotificationsTab />)
-    const lock = await screen.findByRole('img', { name: 'Turned off for everyone by the admin' })
-    fireEvent.click(lock)
+      http.get('/api/notifications/preferences', () =>
+        HttpResponse.json({
+          ...minimalMatrix,
+          preferences: { trip_invite: { inapp: true, email: false } },
+          locked: { trip_invite: ['email'] },
+        })
+      ),
+      http.put('/api/notifications/preferences', () => {
+        puts += 1;
+        return HttpResponse.json({ success: true });
+      })
+    );
+    render(<NotificationsTab />);
+    const lock = await screen.findByRole('img', { name: 'Turned off for everyone by the admin' });
+    fireEvent.click(lock);
     // The in-app switch for the same event is still there and still a switch.
-    expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(1)
-    expect(puts).toBe(0)
-  })
-})
+    expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(1);
+    expect(puts).toBe(0);
+  });
+});

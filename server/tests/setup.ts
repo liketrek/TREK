@@ -2,7 +2,6 @@
 // Environment variables must be set before any module import so that
 // config.ts, database.ts, etc. pick them up at import time. (Importing from
 // 'vitest' itself is safe: it is externalized and pulls in no app modules.)
-import { afterEach } from 'vitest';
 // The one app module imported here, and it is deliberately a static import even
 // though import declarations are hoisted above the process.env writes below.
 // The chain is nominatim.client -> maps.helpers -> app-config, and its only
@@ -17,6 +16,8 @@ import { afterEach } from 'vitest';
 // app-config with a factory that has no getAppUrl, and the late import then
 // resolves maps.helpers against that mock and throws.
 import { setGeoThrottleInterval } from '../src/nest/geo/nominatim.client';
+
+import { afterEach } from 'vitest';
 
 // Fixed encryption key (64 hex chars = 32 bytes) for at-rest crypto in tests
 process.env.ENCRYPTION_KEY = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2';

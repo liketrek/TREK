@@ -8,20 +8,26 @@
  * it stays safe if this dependency graph goes repository-backed later, and so
  * every one-off boot sweep in the tree goes through the one choke point).
  */
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
-import { SchedulerRegistry } from '@nestjs/schedule';
-
-const logMock = vi.hoisted(() => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
-vi.mock('../../../../src/nest/audit/audit-log.logger', () => logMock);
-
+import type { ReservationEndpointsRepository } from '../../../../src/db/repositories/ReservationEndpoints.repository';
+import type { ReservationsRepository } from '../../../../src/db/repositories/Reservations.repository';
 import { AirportsService } from '../../../../src/nest/airports/airports.service';
-import { CronRegistrarService } from '../../../../src/nest/scheduling/cron-registrar.service';
 import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import { CronRegistrarService } from '../../../../src/nest/scheduling/cron-registrar.service';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 import { createTestReservationsRepo, createTestReservationEndpointsRepo } from '../../../helpers/test-uow';
-import type { ReservationsRepository } from '../../../../src/db/repositories/Reservations.repository';
-import type { ReservationEndpointsRepository } from '../../../../src/db/repositories/ReservationEndpoints.repository';
+import { SchedulerRegistry } from '@nestjs/schedule';
+
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
+
+const logMock = vi.hoisted(() => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+  logDebug: vi.fn(),
+}));
+vi.mock('../../../../src/nest/audit/audit-log.logger', () => logMock);
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -36,7 +42,10 @@ beforeAll(async () => {
   reservationsRepo = await createTestReservationsRepo(testDb);
   endpointsRepo = await createTestReservationEndpointsRepo(testDb);
 });
-afterAll(async () => { await t.close(); testDb.close(); });
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 beforeEach(() => vi.clearAllMocks());
 
 describe('AirportsService boot backfill', () => {
@@ -46,7 +55,10 @@ describe('AirportsService boot backfill', () => {
       isEnabled: vi.fn(() => true),
       register: vi.fn(() => true),
       unregister: vi.fn(),
-      runOnBoot: vi.fn(async (name: string, fn: () => void | Promise<void>) => { registered.push([name, fn]); await fn(); }),
+      runOnBoot: vi.fn(async (name: string, fn: () => void | Promise<void>) => {
+        registered.push([name, fn]);
+        await fn();
+      }),
     };
     const svc = new AirportsService(reservationsRepo, endpointsRepo, registrar as unknown as CronRegistrarService);
     const backfillSpy = vi.spyOn(svc, 'backfillFlightEndpoints').mockResolvedValue(undefined);
@@ -56,7 +68,11 @@ describe('AirportsService boot backfill', () => {
   });
 
   it('AIRPORTS-SVC-002: with MikroORM wired into the registrar, the boot-time backfill actually runs — no cannotUseGlobalContext, nothing swallowed', async () => {
-    const registrar = new CronRegistrarService(new SchedulerRegistry(), { isTest: () => false } as RuntimeEnvService, t.orm);
+    const registrar = new CronRegistrarService(
+      new SchedulerRegistry(),
+      { isTest: () => false } as RuntimeEnvService,
+      t.orm,
+    );
     const svc = new AirportsService(reservationsRepo, endpointsRepo, registrar);
     const backfillSpy = vi.spyOn(svc, 'backfillFlightEndpoints');
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -78,7 +94,9 @@ describe('AirportsService boot backfill', () => {
     try {
       await svc.onApplicationBootstrap();
       expect(backfillSpy).not.toHaveBeenCalled();
-      expect(logMock.logError).toHaveBeenCalledWith(expect.stringMatching(/runOnBoot: no MikroORM available.*airports-flight-endpoints-boot/));
+      expect(logMock.logError).toHaveBeenCalledWith(
+        expect.stringMatching(/runOnBoot: no MikroORM available.*airports-flight-endpoints-boot/),
+      );
       expect(errSpy).not.toHaveBeenCalled();
     } finally {
       errSpy.mockRestore();
@@ -90,7 +108,9 @@ describe('AirportsService boot backfill', () => {
       isEnabled: vi.fn(() => true),
       register: vi.fn(() => true),
       unregister: vi.fn(),
-      runOnBoot: vi.fn(async () => { throw new Error('RequestContext.create blew up'); }),
+      runOnBoot: vi.fn(async () => {
+        throw new Error('RequestContext.create blew up');
+      }),
     };
     const svc = new AirportsService(reservationsRepo, endpointsRepo, registrar as unknown as CronRegistrarService);
     const backfillSpy = vi.spyOn(svc, 'backfillFlightEndpoints');

@@ -9,16 +9,13 @@
  * "how far along is the move" to "nothing fell out of it": a method deleted without a
  * replacement, or a new *.rpc.ts class that no one listed in allRpcControllers().
  */
-import { describe, it, expect } from 'vitest';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
 import { PluginRpcRegistryService } from '../../../src/nest/plugins/host/rpc-kit/registry.service';
-import {
-  KNOWN_METHODS,
-  KNOWN_PERMISSIONS,
-  UNCONDITIONAL_METHODS,
-} from '../../../src/nest/plugins/protocol/envelope';
+import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
+import { KNOWN_METHODS, KNOWN_PERMISSIONS, UNCONDITIONAL_METHODS } from '../../../src/nest/plugins/protocol/envelope';
 import { allRpcControllers, makeDeps } from '../../helpers/rpc-host-deps';
+
+import { describe, it, expect } from 'vitest';
 
 /** Reads the router's private dispatch map. That map IS the thing under test. */
 const boundMethods = (host: PluginRpcHost): Set<string> =>
@@ -62,9 +59,11 @@ describe('plugin RPC coverage ledger', () => {
     // The rollout's closing move: the registry service now FAILS APP BOOT when a
     // KNOWN_METHOD has no decorated owner, instead of letting it surface as a runtime
     // PERMISSION_DENIED nobody can explain.
-    const options = (new PluginRpcRegistryService({} as never, {} as never) as unknown as {
-      options: { requireTotalCoverage?: boolean };
-    }).options;
+    const options = (
+      new PluginRpcRegistryService({} as never, {} as never) as unknown as {
+        options: { requireTotalCoverage?: boolean };
+      }
+    ).options;
     expect(options.requireTotalCoverage).toBe(true);
   });
 

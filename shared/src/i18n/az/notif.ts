@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} artıq mövcuddur',
   'notif.replica_failure.title': 'Yaddaş replikasında xəta',
   'notif.replica_failure.text': "'{backend}' replikasına yazmaq mümkün olmadı: {key} üçün {op} — {error}",
-  'notif.replica_failure.textSuppressed': "'{backend}' replikasına yazmaq mümkün olmadı: {key} üçün {op} — {error}. Son bildirişdən bəri daha {suppressed} xəta üçün bildiriş göstərilmədi.",
+  'notif.replica_failure.textSuppressed':
+    "'{backend}' replikasına yazmaq mümkün olmadı: {key} üçün {op} — {error}. Son bildirişdən bəri daha {suppressed} xəta üçün bildiriş göstərilmədi.",
   'notif.action.view_trip': 'Səyahətə bax',
   'notif.action.view_collab': 'Mesajlara bax',
   'notif.action.view_packing': 'Çamadan siyahısına bax',

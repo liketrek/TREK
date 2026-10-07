@@ -2,10 +2,16 @@
  * Categories integration tests — CAT-001 through CAT-009.
  * Covers GET/POST/PUT/DELETE /api/categories.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { authCookie } from '../helpers/auth';
+import { createUser, createAdmin } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -21,12 +27,6 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createAdmin } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -49,14 +49,16 @@ afterAll(async () => {
 describe('Categories', () => {
   it('CAT-001: GET /api/categories returns seeded default categories', async () => {
     const { user } = createUser(testDb);
-    const res = await request(app)
-      .get('/api/categories')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/categories').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.categories)).toBe(true);
     // 10 default categories are seeded on reset
     expect(res.body.categories.length).toBeGreaterThanOrEqual(10);
-    expect(res.body.categories[0]).toMatchObject({ name: expect.any(String), color: expect.any(String), icon: expect.any(String) });
+    expect(res.body.categories[0]).toMatchObject({
+      name: expect.any(String),
+      color: expect.any(String),
+      icon: expect.any(String),
+    });
   });
 
   it('CAT-002: POST /api/categories - admin creates a new category', async () => {
@@ -72,10 +74,7 @@ describe('Categories', () => {
 
   it('CAT-003: POST /api/categories - non-admin returns 403', async () => {
     const { user } = createUser(testDb);
-    const res = await request(app)
-      .post('/api/categories')
-      .set('Cookie', authCookie(user.id))
-      .send({ name: 'Museum' });
+    const res = await request(app).post('/api/categories').set('Cookie', authCookie(user.id)).send({ name: 'Museum' });
     expect(res.status).toBe(403);
   });
 
@@ -137,9 +136,7 @@ describe('Categories', () => {
       .send({ name: 'To Delete' });
     const catId = createRes.body.category.id;
 
-    const res = await request(app)
-      .delete(`/api/categories/${catId}`)
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).delete(`/api/categories/${catId}`).set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
 
@@ -151,9 +148,7 @@ describe('Categories', () => {
   it('CAT-009: DELETE /api/categories/:id - non-admin returns 403', async () => {
     const { user } = createUser(testDb);
     const cat = testDb.prepare('SELECT id FROM categories LIMIT 1').get() as { id: number };
-    const res = await request(app)
-      .delete(`/api/categories/${cat.id}`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).delete(`/api/categories/${cat.id}`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(403);
   });
 
@@ -174,9 +169,7 @@ describe('Categories', () => {
 
   it('CAT-012: DELETE /api/categories/abc - non-numeric id returns the legacy 404, not a 500 (Plan 3b Task 2 fix round, item 1b)', async () => {
     const { user: admin } = createAdmin(testDb);
-    const res = await request(app)
-      .delete('/api/categories/abc')
-      .set('Cookie', authCookie(admin.id));
+    const res = await request(app).delete('/api/categories/abc').set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Category not found' });
   });

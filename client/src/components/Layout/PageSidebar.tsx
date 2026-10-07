@@ -1,24 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { Menu, X, type LucideIcon } from 'lucide-react'
+import { Menu, X, type LucideIcon } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export interface PageSidebarTab {
-  id: string
-  label: string
-  icon: LucideIcon
+  id: string;
+  label: string;
+  icon: LucideIcon;
   /** Optional group heading shown above the first tab of each group. Tabs that
    *  share a group must be contiguous in the array. */
-  group?: string
+  group?: string;
 }
 
 interface PageSidebarProps {
   /** Uppercase label shown above the tab list, e.g. "SETTINGS". */
-  sidebarLabel: string
-  tabs: PageSidebarTab[]
-  activeTab: string
-  onTabChange: (id: string) => void
-  children: React.ReactNode
+  sidebarLabel: string;
+  tabs: PageSidebarTab[];
+  activeTab: string;
+  onTabChange: (id: string) => void;
+  children: React.ReactNode;
   /** Small text at the very bottom of the sidebar (e.g. "v3.0 · self-hosted"). */
-  footer?: React.ReactNode
+  footer?: React.ReactNode;
 }
 
 /**
@@ -36,43 +36,47 @@ export default function PageSidebar({
   children,
   footer,
 }: PageSidebarProps): React.ReactElement {
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const activeLabel = tabs.find(t => t.id === activeTab)?.label ?? ''
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const activeLabel = tabs.find((t) => t.id === activeTab)?.label ?? '';
 
   // Close the mobile drawer on Escape or on outside click.
-  const drawerRef = useRef<HTMLDivElement>(null)
+  const drawerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!mobileOpen) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileOpen(false) }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [mobileOpen])
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileOpen]);
 
   return (
     // The planner's layout (#2541): a navigation card on the left, the panel's
     // own cards on the page beside it, no frame around the two.
     <div className="relative flex flex-col items-start gap-5 lg:flex-row">
       {/* Mobile top bar with hamburger */}
-      <div
-        className="lg:hidden flex w-full items-center justify-between rounded-[14px] border border-edge-faint bg-surface-secondary px-3 py-2"
-      >
-        <button type="button"
+      <div className="flex w-full items-center justify-between rounded-[14px] border border-edge-faint bg-surface-secondary px-3 py-2 lg:hidden">
+        <button
+          type="button"
           onClick={() => setMobileOpen(true)}
-          className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-hover)] text-content"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-content transition-colors hover:bg-[var(--bg-hover)]"
           aria-label="Open navigation"
         >
           <Menu size={18} />
         </button>
-        <div className="flex items-center gap-2 text-sm font-semibold text-content">
-          {activeLabel}
-        </div>
+        <div className="flex items-center gap-2 text-sm font-semibold text-content">{activeLabel}</div>
         <div className="w-9" />
       </div>
 
       {/* Desktop sidebar (always visible on lg) */}
       <aside
-        className="hidden lg:flex sticky flex-col shrink-0 self-start rounded-[18px] border border-edge-faint bg-surface-secondary p-2.5"
-        style={{ width: 248, top: 'calc(var(--nav-h, 56px) + 16px)', maxHeight: 'calc(100vh - var(--nav-h, 56px) - 32px)', overflowY: 'auto' }}
+        className="sticky hidden shrink-0 flex-col self-start rounded-[18px] border border-edge-faint bg-surface-secondary p-2.5 lg:flex"
+        style={{
+          width: 248,
+          top: 'calc(var(--nav-h, 56px) + 16px)',
+          maxHeight: 'calc(100vh - var(--nav-h, 56px) - 32px)',
+          overflowY: 'auto',
+        }}
       >
         <SidebarInner
           sidebarLabel={sidebarLabel}
@@ -87,27 +91,24 @@ export default function PageSidebar({
       {mobileOpen && (
         <>
           <div
-            className="lg:hidden fixed inset-0 z-40 bg-[rgba(0,0,0,0.35)]"
+            className="fixed inset-0 z-40 bg-[rgba(0,0,0,0.35)] lg:hidden"
             role="presentation"
             onClick={() => setMobileOpen(false)}
           />
           <aside
             ref={drawerRef}
-            className="lg:hidden fixed top-0 left-0 bottom-0 z-50 flex flex-col shadow-2xl bg-surface-secondary"
+            className="fixed bottom-0 left-0 top-0 z-50 flex flex-col bg-surface-secondary shadow-2xl lg:hidden"
             style={{
               width: 280,
               padding: '18px 14px',
             }}
           >
-            <div className="flex items-center justify-between mb-3 px-2">
-              <span
-                className="text-[11px] font-bold tracking-widest uppercase text-content-muted"
-              >
-                {sidebarLabel}
-              </span>
-              <button type="button"
+            <div className="mb-3 flex items-center justify-between px-2">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-content-muted">{sidebarLabel}</span>
+              <button
+                type="button"
                 onClick={() => setMobileOpen(false)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-hover)] text-content"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-content transition-colors hover:bg-[var(--bg-hover)]"
                 aria-label="Close navigation"
               >
                 <X size={16} />
@@ -118,8 +119,8 @@ export default function PageSidebar({
               tabs={tabs}
               activeTab={activeTab}
               onTabChange={(id) => {
-                onTabChange(id)
-                setMobileOpen(false)
+                onTabChange(id);
+                setMobileOpen(false);
               }}
               footer={footer}
             />
@@ -128,11 +129,9 @@ export default function PageSidebar({
       )}
 
       {/* Panel */}
-      <div className="w-full min-w-0 flex-1">
-        {children}
-      </div>
+      <div className="w-full min-w-0 flex-1">{children}</div>
     </div>
-  )
+  );
 }
 
 function SidebarInner({
@@ -142,49 +141,58 @@ function SidebarInner({
   onTabChange,
   footer,
 }: {
-  sidebarLabel: string | null
-  tabs: PageSidebarTab[]
-  activeTab: string
-  onTabChange: (id: string) => void
-  footer?: React.ReactNode
+  sidebarLabel: string | null;
+  tabs: PageSidebarTab[];
+  activeTab: string;
+  onTabChange: (id: string) => void;
+  footer?: React.ReactNode;
 }): React.ReactElement {
   return (
     <>
       {/* Grouped tabs carry their own headings; a page label above the first would stack two. */}
       {sidebarLabel && !tabs[0]?.group && (
-        <div className="mb-1.5 mt-1 px-2.5 font-geist font-bold uppercase tracking-[.08em] text-content-faint" style={{ fontSize: 'calc(9.5px * var(--fs-scale-caption, 1))' }}>
+        <div
+          className="mb-1.5 mt-1 px-2.5 font-geist font-bold uppercase tracking-[.08em] text-content-faint"
+          style={{ fontSize: 'calc(9.5px * var(--fs-scale-caption, 1))' }}
+        >
           {sidebarLabel}
         </div>
       )}
-      <nav className="flex flex-col gap-0.5 flex-1">
+      <nav className="flex flex-1 flex-col gap-0.5">
         {(() => {
-          let lastGroup: string | undefined
+          let lastGroup: string | undefined;
           return tabs.map((tab) => {
-            const Icon = tab.icon
-            const active = tab.id === activeTab
-            const showHeader = !!tab.group && tab.group !== lastGroup
-            lastGroup = tab.group
+            const Icon = tab.icon;
+            const active = tab.id === activeTab;
+            const showHeader = !!tab.group && tab.group !== lastGroup;
+            lastGroup = tab.group;
             return (
               <React.Fragment key={tab.id}>
                 {showHeader && (
-                  <div className="mt-3 mb-1 px-2.5 font-geist font-bold uppercase tracking-[.08em] text-content-faint first:mt-0" style={{ fontSize: 'calc(9.5px * var(--fs-scale-caption, 1))' }}>
+                  <div
+                    className="mb-1 mt-3 px-2.5 font-geist font-bold uppercase tracking-[.08em] text-content-faint first:mt-0"
+                    style={{ fontSize: 'calc(9.5px * var(--fs-scale-caption, 1))' }}
+                  >
                     {tab.group}
                   </div>
                 )}
-                <button type="button"
+                <button
+                  type="button"
                   onClick={() => onTabChange(tab.id)}
                   aria-current={active ? 'page' : undefined}
                   className={`flex items-center gap-2.5 rounded-[11px] px-2 py-1.5 text-left transition-colors ${active ? 'bg-surface-card font-semibold text-content shadow-sm ring-1 ring-edge-faint' : 'font-medium text-content-secondary hover:bg-surface-hover hover:text-content'}`}
                   style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}
                 >
-                  <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-[8px] ${active ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-muted'}`}>
+                  <span
+                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-[8px] ${active ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-muted'}`}
+                  >
                     <Icon size={14} strokeWidth={2} />
                   </span>
                   <span className="truncate">{tab.label}</span>
                 </button>
               </React.Fragment>
-            )
-          })
+            );
+          });
         })()}
       </nav>
       {footer && (
@@ -196,5 +204,5 @@ function SidebarInner({
         </div>
       )}
     </>
-  )
+  );
 }

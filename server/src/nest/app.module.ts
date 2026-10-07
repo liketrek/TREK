@@ -1,9 +1,9 @@
-import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../mcp/nest-mcp-policy';
-import mikroOrmConfig from '../mikro-orm.config';
 import { AppSettings } from '../db/entities/AppSettings.entity';
+import { IdempotencyKeys } from '../db/entities/IdempotencyKeys.entity';
 import { Users } from '../db/entities/Users.entity';
 import { WebauthnCredentials } from '../db/entities/WebauthnCredentials.entity';
-import { IdempotencyKeys } from '../db/entities/IdempotencyKeys.entity';
+import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../mcp/nest-mcp-policy';
+import mikroOrmConfig from '../mikro-orm.config';
 import { McpModule } from '../nest-mcp';
 import { AccommodationsModule } from './accommodations/accommodations.module';
 import { AddonsModule } from './addons/addons.module';

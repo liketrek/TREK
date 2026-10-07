@@ -91,9 +91,16 @@ export const FORCED_EXIT_MS = 5_000;
  */
 export async function runShutdown(signal: string, deps: ShutdownDeps): Promise<void> {
   const {
-    server, closeNestApp, getWsClients, closeMcpSessions, closeDb,
-    logInfo, logError, exit,
-    drainMs = SOCKET_DRAIN_MS, forcedMs = FORCED_EXIT_MS,
+    server,
+    closeNestApp,
+    getWsClients,
+    closeMcpSessions,
+    closeDb,
+    logInfo,
+    logError,
+    exit,
+    drainMs = SOCKET_DRAIN_MS,
+    forcedMs = FORCED_EXIT_MS,
   } = deps;
 
   logInfo(`${signal} received — shutting down gracefully...`);

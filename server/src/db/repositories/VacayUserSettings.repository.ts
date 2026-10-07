@@ -39,9 +39,21 @@ export class VacayUserSettingsRepository extends TrekRepository<VacayUserSetting
    * to ONE column). Named `upsertSettings`, not `upsert` —
    * `EntityRepository#upsert` already exists with an incompatible signature.
    */
-  async upsertSettings(userId: number, yearType: string, yearStartMonth: number, yearStartDay: number, hireDate: string | null): Promise<void> {
+  async upsertSettings(
+    userId: number,
+    yearType: string,
+    yearStartMonth: number,
+    yearStartDay: number,
+    hireDate: string | null,
+  ): Promise<void> {
     await this.upsert(
-      { user: userId, year_type: yearType, year_start_month: yearStartMonth, year_start_day: yearStartDay, hire_date: hireDate },
+      {
+        user: userId,
+        year_type: yearType,
+        year_start_month: yearStartMonth,
+        year_start_day: yearStartDay,
+        hire_date: hireDate,
+      },
       { onConflictFields: ['user'], onConflictAction: 'merge' },
     );
   }

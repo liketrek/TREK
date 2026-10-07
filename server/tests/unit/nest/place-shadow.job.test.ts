@@ -2,14 +2,20 @@
  * The shadow log's nightly retention provider: registration, the test gate, and
  * that a failing purge cannot take the scheduler down with it.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-const logMock = vi.hoisted(() => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
-vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
-
 import { PlaceShadowRetentionJob } from '../../../src/nest/place-shadow/place-shadow.job';
 import type { PlaceShadowService } from '../../../src/nest/place-shadow/place-shadow.service';
 import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const logMock = vi.hoisted(() => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+  logDebug: vi.fn(),
+}));
+vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
 
 function registrarStub(enabled = true) {
   return { isEnabled: vi.fn(() => enabled), register: vi.fn(() => enabled), unregister: vi.fn() };
@@ -48,7 +54,11 @@ describe('PlaceShadowRetentionJob', () => {
   });
 
   it('contains a failing purge instead of letting it escape into the scheduler', async () => {
-    const { job } = makeJob({ purgeExpired: vi.fn(() => { throw new Error('database is locked'); }) });
+    const { job } = makeJob({
+      purgeExpired: vi.fn(() => {
+        throw new Error('database is locked');
+      }),
+    });
     await expect(job.tick()).resolves.toBeUndefined();
     expect(logMock.logError).toHaveBeenCalledWith(expect.stringContaining('database is locked'));
   });

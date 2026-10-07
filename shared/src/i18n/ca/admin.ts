@@ -93,43 +93,31 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint':
     "Els usuaris sense 2FA han de completar la configuració a Ajustos abans d'utilitzar l'aplicació.",
   'admin.apiKeys': 'Claus API',
-  'admin.apiKeysHint': "D'on vénen les dades de llocs. L'índex de TREK no necessita clau; els dos proveïdors de sota són opcionals.",
+  'admin.apiKeysHint':
+    "D'on vénen les dades de llocs. L'índex de TREK no necessita clau; els dos proveïdors de sota són opcionals.",
   'admin.trekApi.badgeDefault': 'Font recomanada per defecte',
   'admin.googleCaveat.badge': 'No recomanat',
   'admin.googleCaveat.body':
     "TREK és programari lliure i aquí no som neutrals. En aquesta escala, les valoracions i les fotos de negocis corrents només existeixen a Google, i això és un monopoli. El camp hi és per manca d'alternativa, no perquè el recomanem. Llavors cada consulta va a Google.",
   'admin.trekApi.tagline':
-    'L\'índex de llocs propi de TREK. Cercar sense clau de Google, sense quota i sense que ningú compti les teves cerques.',
-  'admin.trekApi.factPlaces':
-    '73,6 milions de llocs al món',
-  'admin.trekApi.factNoKey':
-    'Sense clau, sense quota',
-  'admin.trekApi.factOffline':
-    'Els paquets per país funcionen sense connexió',
-  'admin.trekApi.factPrivacy':
-    'Les cerques no es registren mai',
-  'admin.trekApi.more':
-    'Què hi ha a dins',
-  'admin.trekApi.fieldPhone':
-    'Telèfon',
-  'admin.trekApi.fieldStableId':
-    'Identificador estable',
+    "L'índex de llocs propi de TREK. Cercar sense clau de Google, sense quota i sense que ningú compti les teves cerques.",
+  'admin.trekApi.factPlaces': '73,6 milions de llocs al món',
+  'admin.trekApi.factNoKey': 'Sense clau, sense quota',
+  'admin.trekApi.factOffline': 'Els paquets per país funcionen sense connexió',
+  'admin.trekApi.factPrivacy': 'Les cerques no es registren mai',
+  'admin.trekApi.more': 'Què hi ha a dins',
+  'admin.trekApi.fieldPhone': 'Telèfon',
+  'admin.trekApi.fieldStableId': 'Identificador estable',
   'admin.trekApi.includedNote':
-    'Les descripcions vénen del web del lloc mateix; els horaris, d\'OpenStreetMap allà on hi són.',
-  'admin.trekApi.notRatings':
-    'Valoracions',
-  'admin.trekApi.notPhotos':
-    'Fotos de negocis corrents',
+    "Les descripcions vénen del web del lloc mateix; els horaris, d'OpenStreetMap allà on hi són.",
+  'admin.trekApi.notRatings': 'Valoracions',
+  'admin.trekApi.notPhotos': 'Fotos de negocis corrents',
   'admin.trekApi.notIncludedNote':
-    'Cap font oberta no té ni les unes ni les altres, a cap preu. Per a aquestes dues una clau de Google continua sent l\'únic camí.',
-  'admin.trekApi.sourcesLabel':
-    'Fonts',
-  'admin.trekApi.sourcesNote':
-    'Cada camp d\'una resposta diu de quina d\'elles ve.',
-  'admin.trekApi.included':
-    'Inclòs',
-  'admin.trekApi.notIncluded':
-    'No inclòs',
+    "Cap font oberta no té ni les unes ni les altres, a cap preu. Per a aquestes dues una clau de Google continua sent l'únic camí.",
+  'admin.trekApi.sourcesLabel': 'Fonts',
+  'admin.trekApi.sourcesNote': "Cada camp d'una resposta diu de quina d'elles ve.",
+  'admin.trekApi.included': 'Inclòs',
+  'admin.trekApi.notIncluded': 'No inclòs',
   'admin.mapsKey': 'Clau API de Google Maps',
   'admin.mapsKeyHint': 'Obligatòria per cercar llocs. Aconsegueix-la a console.cloud.google.com',
   'admin.mapsKeyHintLong':
@@ -152,7 +140,7 @@ const admin: TranslationStrings = {
   'admin.fileTypesFormat':
     'Extensions separades per comes (p. ex. jpg,png,pdf,doc). Utilitza * per permetre tots els tipus.',
   'admin.fileTypesSaved': 'Ajustos de tipus de fitxer desats',
-  'admin.googleOptions': 'Per a què s\'utilitza la clau',
+  'admin.googleOptions': "Per a què s'utilitza la clau",
   'admin.googleOptionsSummary': '{on} de {total} actius',
   'admin.placesPhotos.title': 'Fotos de Llocs',
   'admin.placesPhotos.subtitle':
@@ -167,11 +155,15 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     "Mostra imatges i una descripció en afegir un lloc. Wikipedia i OpenStreetMap s'usen sempre; Google s'hi afegeix si Fotos de llocs o Detalls de llocs estan actius.",
   'admin.placesGoogleOnly.title': 'Cercar només amb Google',
-  'admin.placesGoogleOnly.subtitle': 'Cada cerca i cada suggeriment van a Google Places. Desactivat, responen primer l\'índex de TREK i OpenStreetMap, i Google només es consulta si no troben res.',
-  'admin.placesGoogleOnly.missingKey': 'Cal una clau d\'API de Google Maps. Sense clau, la cerca fa servir l\'índex de TREK i OpenStreetMap, sigui com sigui aquest interruptor.',
-  'admin.placesGoogleOnly.otherProvider': 'Necessita Google com a proveïdor de llocs. Amb Amap o OpenStreetMap seleccionats, cap cerca va a Google, digui el que digui aquest interruptor.',
+  'admin.placesGoogleOnly.subtitle':
+    "Cada cerca i cada suggeriment van a Google Places. Desactivat, responen primer l'índex de TREK i OpenStreetMap, i Google només es consulta si no troben res.",
+  'admin.placesGoogleOnly.missingKey':
+    "Cal una clau d'API de Google Maps. Sense clau, la cerca fa servir l'índex de TREK i OpenStreetMap, sigui com sigui aquest interruptor.",
+  'admin.placesGoogleOnly.otherProvider':
+    'Necessita Google com a proveïdor de llocs. Amb Amap o OpenStreetMap seleccionats, cap cerca va a Google, digui el que digui aquest interruptor.',
   'admin.googleQuota.title': 'Límit diari de crides a Google',
-  'admin.googleQuota.subtitle': "Quan s'arriba al límit, TREK deixa de cridar Google fins l'endemà (UTC) i cerca amb OpenStreetMap. Buit vol dir sense límit.",
+  'admin.googleQuota.subtitle':
+    "Quan s'arriba al límit, TREK deixa de cridar Google fins l'endemà (UTC) i cerca amb OpenStreetMap. Buit vol dir sense límit.",
   'admin.googleQuota.placeholder': 'Sense límit',
   'admin.googleQuota.usedToday': 'Avui: {used}',
   'admin.googleQuota.usedOfLimit': 'Avui: {used} de {limit}',
@@ -181,13 +173,17 @@ const admin: TranslationStrings = {
   'admin.transitProvider.subtitle': 'Quin servei respon la cerca de transport públic.',
   'admin.transitProvider.transitous': 'Transitous (gratuït)',
   'admin.transitProvider.google': 'Google',
-  'admin.transitProvider.transitousHint': 'Fluxos GTFS de la comunitat. Gratuït i sense clau, amb la millor cobertura a Europa.',
-  'admin.transitProvider.googleHint': 'Utilitza la clau de Google anterior, per a regions sense dades a Transitous. Es factura per cerca: mentre no hi hagi clau s\'utilitza Transitous.',
-  'admin.transitProvider.noKeyWarning': 'Google està seleccionat, però no hi ha cap clau de Google configurada: la cerca de transport encara utilitza Transitous. Afegeix una clau a Claus d\'API a dalt.',
-  'admin.transitProvider.personalKeyWarning': 'Només hi ha la teva pròpia clau de Google, de manera que la cerca dels altres membres continua recorrent a Transitous. Desa la clau a dalt com a administrador per aplicar-la a tota la instància.',
+  'admin.transitProvider.transitousHint':
+    'Fluxos GTFS de la comunitat. Gratuït i sense clau, amb la millor cobertura a Europa.',
+  'admin.transitProvider.googleHint':
+    "Utilitza la clau de Google anterior, per a regions sense dades a Transitous. Es factura per cerca: mentre no hi hagi clau s'utilitza Transitous.",
+  'admin.transitProvider.noKeyWarning':
+    "Google està seleccionat, però no hi ha cap clau de Google configurada: la cerca de transport encara utilitza Transitous. Afegeix una clau a Claus d'API a dalt.",
+  'admin.transitProvider.personalKeyWarning':
+    'Només hi ha la teva pròpia clau de Google, de manera que la cerca dels altres membres continua recorrent a Transitous. Desa la clau a dalt com a administrador per aplicar-la a tota la instància.',
   'admin.placeShadow.title': 'Registre de cerques de llocs',
   'admin.placeShadow.subtitle':
-    'Desar quin resultat de cerca s\'ha triat, per poder avaluar més endavant un altre índex de llocs amb cerques reals. No surt res d\'aquesta instància i un administrador pot exportar o esborrar el registre quan vulgui.',
+    "Desar quin resultat de cerca s'ha triat, per poder avaluar més endavant un altre índex de llocs amb cerques reals. No surt res d'aquesta instància i un administrador pot exportar o esborrar el registre quan vulgui.",
   'admin.bagTracking.title': "Seguiment d'equipatge",
   'admin.bagTracking.subtitle': "Activar pes i assignació d'equipatge per a articles de la llista",
   'admin.collab.chat.title': 'Xat',
@@ -239,12 +235,14 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.dawarich.description':
     'Llegeix estades i recorreguts enregistrats d’una instància de Dawarich que cada lector connecta pel seu compte',
   'admin.addons.catalog.llm_parsing.name': 'Anàlisi amb IA',
-  'admin.addons.catalog.llm_parsing.description': 'Llegeix reserves que l’analitzador integrat no entén, amb un model d’IA que triïs',
+  'admin.addons.catalog.llm_parsing.description':
+    'Llegeix reserves que l’analitzador integrat no entén, amb un model d’IA que triïs',
   'admin.addons.llm.vision.auto': 'Automàtic',
   'admin.addons.llm.vision.on': 'Sí',
   'admin.addons.llm.vision.off': 'No',
   'admin.addons.llm.vision.hintLocal': 'Automàtic pregunta al servidor Ollama si aquest model llegeix imatges.',
-  'admin.addons.llm.vision.hintCloud': 'Automàtic vol dir no per a un model al núvol. Tria Sí si aquest model llegeix imatges.',
+  'admin.addons.llm.vision.hintCloud':
+    'Automàtic vol dir no per a un model al núvol. Tria Sí si aquest model llegeix imatges.',
   'admin.addons.enabled': 'Actiu',
   'admin.addons.disabled': 'Desactivat',
   'admin.addons.type.trip': 'Viatge',
@@ -360,7 +358,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.collab.name': 'Col·laboració',
   'admin.addons.catalog.collab.description': 'Notes, enquestes, xat i suggeriments per planificar en grup',
   'admin.addons.catalog.roadtrip.name': 'Viatge per carretera',
-  'admin.addons.catalog.roadtrip.description': 'Planifica trajectes amb parades: els temps de conducció i les hores d’arribada es recalculen sols',
+  'admin.addons.catalog.roadtrip.description':
+    'Planifica trajectes amb parades: els temps de conducció i les hores d’arribada es recalculen sols',
   'admin.addons.catalog.collections.name': 'Col·leccions',
   'admin.addons.catalog.collections.description': 'Recull llocs de qualsevol viatge en llistes amb nom i reutilitza’ls',
   'admin.oidcOnlyMode': 'Desactivar autenticació per contrasenya',
@@ -413,7 +412,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNotificationsHint':
     "Configura quins canals entreguen notificacions d'administrador (ex. alertes de versió). El webhook s'activa automàticament si hi ha una URL de webhook d'administrador configurada.",
   'admin.notificationDefaults.title': 'Valors per defecte dels usuaris',
-  'admin.notificationDefaults.hint': "Com comencen les notificacions de cada usuari. \"Desactivat\" l'usuari encara el pot activar; \"Bloquejat\" el desactiva per a tothom i apareix bloquejat a la seva configuració. S'aplica a qui no ha canviat la cel·la.",
+  'admin.notificationDefaults.hint':
+    'Com comencen les notificacions de cada usuari. "Desactivat" l\'usuari encara el pot activar; "Bloquejat" el desactiva per a tothom i apareix bloquejat a la seva configuració. S\'aplica a qui no ha canviat la cel·la.',
   'admin.notificationDefaults.on': 'Activat',
   'admin.notificationDefaults.off': 'Desactivat',
   'admin.notificationDefaults.blocked': 'Bloquejat',
@@ -576,7 +576,8 @@ const admin: TranslationStrings = {
     'Acolorir els dies del pla del dia (per exemple, a quin tram del viatge pertany un dia)',
   'admin.plugins.cap.mcpTools': 'Publica eines d’IA',
   'admin.plugins.mcpToolsTitle': 'Eines d’IA que publica',
-  'admin.plugins.mcpToolsHint': 'Un assistent pot executar-les en nom d’un usuari. Cadascuna actua amb els permisos concedits a dalt.',
+  'admin.plugins.mcpToolsHint':
+    'Un assistent pot executar-les en nom d’un usuari. Cadascuna actua amb els permisos concedits a dalt.',
   'admin.plugins.poiCategoriesTitle': 'Categories del mapa que afegeix',
   'admin.plugins.perm.mcp:tools':
     "Publicar eines que un assistent d'IA pot executar en nom teu (actua amb els permisos que concedeixes aquí al connector, no amb els seus)",
@@ -660,9 +661,10 @@ const admin: TranslationStrings = {
   'admin.plugins.versionSwitch': 'Canvia a {version}',
   'admin.plugins.versionNeedsTrek': 'necessita TREK {range}',
   'admin.plugins.changeVersion': 'Canvia la versió…',
-  'admin.plugins.noVersions': 'No s\'han trobat versions publicades al registre.',
+  'admin.plugins.noVersions': "No s'han trobat versions publicades al registre.",
   'admin.plugins.downgradeTitle': 'Vols revertir aquest connector?',
-  'admin.plugins.downgradeBody': 'Canvi de v{from} a v{to}: les dades escrites per la versió més nova es mantenen, i la versió antiga pot no entendre-les.',
+  'admin.plugins.downgradeBody':
+    'Canvi de v{from} a v{to}: les dades escrites per la versió més nova es mantenen, i la versió antiga pot no entendre-les.',
   'admin.plugins.downgradeConfirm': 'Reverteix',
   'admin.plugins.updatesHeld': 'Actualitzacions en pausa a la v{version}',
   'admin.plugins.resumeUpdates': 'Reprèn les actualitzacions',
@@ -736,10 +738,8 @@ const admin: TranslationStrings = {
     '«{name}» declara compatibilitat amb TREK {range}, i aquest servidor executa {host}. TREK el deixa passar només perquè TREK_PLUGINS_IGNORE_TREK_RANGE està definit. L’autor no ha actualitzat el rang de versions del connector per a aquest TREK, així que no hi ha cap garantia que funcioni — i en casos rars un connector incompatible pot corrompre les dades de TREK. Continua només si acceptes aquest risc.',
   'admin.plugins.rangeBypass.bodyUnknown':
     '«{name}» no declara quines versions de TREK admet; aquest servidor executa {host}. TREK el deixa passar només perquè TREK_PLUGINS_IGNORE_TREK_RANGE està definit. Res no indica que l’autor l’hagi provat en aquest TREK, així que no hi ha cap garantia que funcioni — i en casos rars un connector incompatible pot corrompre les dades de TREK. Continua només si acceptes aquest risc.',
-  'admin.plugins.dep.trekBypassed':
-    'Fora del seu rang de TREK ({range}) — comprovacions de versió desactivades',
-  'admin.plugins.dep.trekBypassedUnknown':
-    'No declara cap rang de TREK — comprovacions de versió desactivades',
+  'admin.plugins.dep.trekBypassed': 'Fora del seu rang de TREK ({range}) — comprovacions de versió desactivades',
+  'admin.plugins.dep.trekBypassedUnknown': 'No declara cap rang de TREK — comprovacions de versió desactivades',
   'admin.plugins.incompatible': 'Incompatible',
   'admin.plugins.accessTitle': 'A què pot accedir',
   'admin.plugins.connectsTitle': 'Es connecta a',
@@ -752,7 +752,8 @@ const admin: TranslationStrings = {
   'admin.plugins.downloads': 'Baixades',
   'admin.placesUsageTitle': "Per a què s'usa la clau",
   'admin.mapsKeyHintShort': 'Afegeix fotos, valoracions i horaris. Cada consulta passa llavors per Google.',
-  'admin.amapKeyHintShort': 'Per a la cerca de llocs a la Xina continental. Cal una clau de servei web, no una clau API JS.',
+  'admin.amapKeyHintShort':
+    'Per a la cerca de llocs a la Xina continental. Cal una clau de servei web, no una clau API JS.',
   'admin.collab.links.subtitle': 'Enllaços compartits i adreces d’interès',
 };
 export default admin;

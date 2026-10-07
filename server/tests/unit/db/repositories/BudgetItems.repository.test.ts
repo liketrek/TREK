@@ -8,12 +8,13 @@
  * model on budget items the way packing has) but WITH an `ORDER BY` that
  * `listAllForTrip` lacks.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import type { BudgetItemsRepository } from '../../../../src/db/repositories/BudgetItems.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
 import { createBudgetItem, createPlace, createReservation, createTrip, createUser } from '../../../helpers/factories';
 import { createTestBudgetItemsRepo } from '../../../helpers/files-repos';
-import type { BudgetItemsRepository } from '../../../../src/db/repositories/BudgetItems.repository';
+import { resetTestDb } from '../../../helpers/test-db';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let budgetItemsRepo: BudgetItemsRepository;
@@ -38,18 +39,26 @@ describe('BudgetItemsRepository — share.service.ts SH14 read', () => {
 
     // Every nullable column set — sorts second by category.
     const withDetails = createBudgetItem(testDb, trip.id, { name: 'Hotel', category: 'Lodging', total_price: 250 });
-    testDb.prepare(`
+    testDb
+      .prepare(
+        `
       UPDATE budget_items SET persons = 2, days = 3, note = 'non-refundable', sort_order = 4,
         paid_by_user_id = ?, expense_date = '2026-09-02', reservation_id = ?, currency = 'EUR',
         exchange_rate = 0.92, ticket_json = '{"seat":"12A"}', place_id = ?
-      WHERE id = ?`).run(user.id, reservation.id, place.id, withDetails.id);
+      WHERE id = ?`,
+      )
+      .run(user.id, reservation.id, place.id, withDetails.id);
 
     // Every nullable column left null — sorts first by category.
     const bare = createBudgetItem(testDb, trip.id, { name: 'Snacks', category: 'Food', total_price: 12.5 });
-    testDb.prepare(`
+    testDb
+      .prepare(
+        `
       UPDATE budget_items SET persons = NULL, days = NULL, note = NULL, paid_by_user_id = NULL,
         expense_date = NULL, reservation_id = NULL, currency = NULL, place_id = NULL
-      WHERE id = ?`).run(bare.id);
+      WHERE id = ?`,
+      )
+      .run(bare.id);
 
     // A budget item on a different trip must never leak in.
     createBudgetItem(testDb, other.id, { category: 'Other' });
@@ -76,8 +85,11 @@ describe('BudgetItemsRepository — reservations.service.ts RS49 delete', () => 
     const kept = createBudgetItem(testDb, trip.id, { name: 'Hotel' });
 
     await budgetItemsRepo.deleteByIds([first.id, second.id]);
-    expect((testDb.prepare('SELECT id FROM budget_items WHERE trip_id = ?').all(trip.id) as { id: number }[]).map((r) => r.id))
-      .toEqual([kept.id]);
+    expect(
+      (testDb.prepare('SELECT id FROM budget_items WHERE trip_id = ?').all(trip.id) as { id: number }[]).map(
+        (r) => r.id,
+      ),
+    ).toEqual([kept.id]);
   });
 
   it('deleteByIds — an empty list deletes nothing', async () => {

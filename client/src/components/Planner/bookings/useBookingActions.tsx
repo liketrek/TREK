@@ -1,9 +1,9 @@
-import { useState } from 'react'
-import type { Reservation } from '../../../types'
-import { useTranslation } from '../../../i18n'
-import { useTripStore } from '../../../store/tripStore'
-import { useToast } from '../../shared/Toast'
-import ConfirmDialog from '../../shared/ConfirmDialog'
+import { useState } from 'react';
+import { useTranslation } from '../../../i18n';
+import { useTripStore } from '../../../store/tripStore';
+import type { Reservation } from '../../../types';
+import ConfirmDialog from '../../shared/ConfirmDialog';
+import { useToast } from '../../shared/Toast';
 
 /**
  * The two things a booking can have done to it without its editor: switching
@@ -13,22 +13,30 @@ import ConfirmDialog from '../../shared/ConfirmDialog'
  * `beforeDelete` runs once the question is answered and before the delete goes
  * out, so a detail showing that booking closes first.
  */
-export function useBookingActions(tripId: number, onDelete: (id: number) => unknown, beforeDelete?: (r: Reservation) => void) {
-  const { t } = useTranslation()
-  const toast = useToast()
-  const toggleReservationStatus = useTripStore(s => s.toggleReservationStatus)
-  const [pendingDelete, setPendingDelete] = useState<Reservation | null>(null)
+export function useBookingActions(
+  tripId: number,
+  onDelete: (id: number) => unknown,
+  beforeDelete?: (r: Reservation) => void
+) {
+  const { t } = useTranslation();
+  const toast = useToast();
+  const toggleReservationStatus = useTripStore((s) => s.toggleReservationStatus);
+  const [pendingDelete, setPendingDelete] = useState<Reservation | null>(null);
 
   const toggleStatus = (r: Reservation) => {
-    toggleReservationStatus(tripId, r.id).catch(() => toast.error(t('reservations.toast.updateError')))
-  }
+    toggleReservationStatus(tripId, r.id).catch(() => toast.error(t('reservations.toast.updateError')));
+  };
   const confirmDelete = async () => {
-    const r = pendingDelete
-    setPendingDelete(null)
-    if (!r) return
-    beforeDelete?.(r)
-    try { await onDelete(r.id) } catch { toast.error(t('reservations.toast.deleteError')) }
-  }
+    const r = pendingDelete;
+    setPendingDelete(null);
+    if (!r) return;
+    beforeDelete?.(r);
+    try {
+      await onDelete(r.id);
+    } catch {
+      toast.error(t('reservations.toast.deleteError'));
+    }
+  };
 
   const confirmDialog = (
     <ConfirmDialog
@@ -40,7 +48,7 @@ export function useBookingActions(tripId: number, onDelete: (id: number) => unkn
       confirmLabel={t('common.delete')}
       cancelLabel={t('common.cancel')}
     />
-  )
+  );
 
-  return { toggleStatus, requestDelete: setPendingDelete, pendingDelete, confirmDialog }
+  return { toggleStatus, requestDelete: setPendingDelete, pendingDelete, confirmDialog };
 }

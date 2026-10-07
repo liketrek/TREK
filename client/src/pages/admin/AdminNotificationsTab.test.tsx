@@ -2,9 +2,9 @@
 import { http, HttpResponse } from 'msw';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildAdminHook, type AdminHook } from '../../../tests/helpers/mobileAdmin';
 import { server } from '../../../tests/helpers/msw/server';
 import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
-import { buildAdminHook, type AdminHook } from '../../../tests/helpers/mobileAdmin';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { useTranslation } from '../../i18n';
 import AdminNotificationsTab from './AdminNotificationsTab';
@@ -436,7 +436,11 @@ describe('AdminNotificationsTab', () => {
       })
     );
     const admin = renderTab({
-      smtpValues: { admin_ntfy_server: 'https://ntfy.example', admin_ntfy_topic: 'alerts', admin_ntfy_token: '••••••••' },
+      smtpValues: {
+        admin_ntfy_server: 'https://ntfy.example',
+        admin_ntfy_topic: 'alerts',
+        admin_ntfy_token: '••••••••',
+      },
     });
 
     fireEvent.click(within(card('Admin Ntfy')).getByRole('button', { name: /^save$/i }));
@@ -491,9 +495,7 @@ describe('AdminNotificationsTab', () => {
 
     fireEvent.click(within(card('Admin Ntfy')).getByRole('button', { name: /send test ntfy/i }));
 
-    await waitFor(() =>
-      expect(body).toEqual({ topic: 'alerts', server: 'https://ntfy.example', token: 'tk' })
-    );
+    await waitFor(() => expect(body).toEqual({ topic: 'alerts', server: 'https://ntfy.example', token: 'tk' }));
     expect(admin.toast.success).toHaveBeenCalledWith('Test ntfy sent successfully');
   });
 
@@ -575,7 +577,7 @@ describe('AdminNotificationsTab', () => {
   it('FE-ADMNOT-044: Web Push has its own card after Ntfy, before In-App', () => {
     renderTab({ smtpValues: { notification_channels: 'email' } });
 
-    const headings = screen.getAllByRole('heading').map(h => h.textContent);
+    const headings = screen.getAllByRole('heading').map((h) => h.textContent);
     expect(headings.indexOf('Web Push')).toBe(headings.indexOf('Ntfy') + 1);
     expect(headings.indexOf('In-App')).toBe(headings.indexOf('Web Push') + 1);
     expect(within(card('Web Push')).getByText(/receive notifications on their phones/)).toBeInTheDocument();

@@ -1,10 +1,11 @@
-import { Controller, Get, HttpException, Query, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
+import type { User } from '../../types';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RateLimitService } from '../common/rate-limit.service';
 import { TransitService } from './transit.service';
-import type { User } from '../../types';
+import { Controller, Get, HttpException, Query, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 const RL_WINDOW = 15 * 60 * 1000;
 
@@ -51,7 +52,9 @@ export class TransitController {
     this.limit('transit_geocode', req, 300);
     try {
       return await this.transit.geocode(q || '', lang, near, user.id);
-    } catch (err) { this.rethrow(err); }
+    } catch (err) {
+      this.rethrow(err);
+    }
   }
 
   @Get('plan')
@@ -68,14 +71,20 @@ export class TransitController {
   ) {
     this.limit('transit_plan', req, 60);
     try {
-      return await this.transit.plan({
-        from: from || '',
-        to: to || '',
-        time,
-        arriveBy: arriveBy === 'true' || arriveBy === '1',
-        modes,
-        maxTransfers: maxTransfers !== undefined && maxTransfers !== '' ? Number(maxTransfers) : undefined,
-      }, lang, user.id);
-    } catch (err) { this.rethrow(err); }
+      return await this.transit.plan(
+        {
+          from: from || '',
+          to: to || '',
+          time,
+          arriveBy: arriveBy === 'true' || arriveBy === '1',
+          modes,
+          maxTransfers: maxTransfers !== undefined && maxTransfers !== '' ? Number(maxTransfers) : undefined,
+        },
+        lang,
+        user.id,
+      );
+    } catch (err) {
+      this.rethrow(err);
+    }
   }
 }

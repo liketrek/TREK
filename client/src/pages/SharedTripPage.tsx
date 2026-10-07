@@ -1,7 +1,6 @@
 import { Map, MessageCircle, PackageCheck, Ticket, Wallet } from 'lucide-react';
 import { useTranslation } from '../i18n';
-import { useSharedTrip } from './sharedTrip/useSharedTrip';
-import { SharedTripErrorScreen } from './sharedTrip/SharedTripErrorScreen';
+import { SharedBookingsView } from './sharedTrip/SharedBookingsView';
 import {
   PAGE_WIDTH,
   SharedFooter,
@@ -12,9 +11,10 @@ import {
   type HeroStat,
   type SharedTab,
 } from './sharedTrip/SharedChrome';
-import { SharedPlanView } from './sharedTrip/SharedPlanView';
-import { SharedBookingsView } from './sharedTrip/SharedBookingsView';
 import { SharedChatView, SharedCostsView, SharedPackingView } from './sharedTrip/SharedListsViews';
+import { SharedPlanView } from './sharedTrip/SharedPlanView';
+import { SharedTripErrorScreen } from './sharedTrip/SharedTripErrorScreen';
+import { useSharedTrip } from './sharedTrip/useSharedTrip';
 
 export default function SharedTripPage() {
   const { t, locale } = useTranslation();
@@ -54,8 +54,12 @@ export default function SharedTripPage() {
   const stats: HeroStat[] = [
     { key: 'days', value: data.days?.length || 0, label: t('dashboard.days') },
     { key: 'places', value: data.places?.length || 0, label: t('dashboard.places') },
-    { key: 'bookings', value: permissions?.share_bookings ? reservations.length : 0, label: t('trip.tabs.reservations') },
-  ].filter(s => s.value > 0);
+    {
+      key: 'bookings',
+      value: permissions?.share_bookings ? reservations.length : 0,
+      label: t('trip.tabs.reservations'),
+    },
+  ].filter((s) => s.value > 0);
 
   return (
     <div className="flex min-h-screen flex-col bg-surface-secondary" style={{ fontFamily: 'var(--font-system)' }}>

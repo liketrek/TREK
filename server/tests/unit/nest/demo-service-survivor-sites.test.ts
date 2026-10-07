@@ -14,14 +14,18 @@
  * `isDemoUserId` resolves `true` reaches the exact canned `demoDenied()`
  * body byte-for-byte, not a domain-specific string.
  */
-import { describe, expect, it } from 'vitest';
 import type { McpContext } from '../../../src/nest-mcp';
-import { TripInviteMcp } from '../../../src/nest/trip-invite/trip-invite.mcp';
-import { FeedsMcp } from '../../../src/nest/feeds/feeds.mcp';
-import { CategoriesMcp } from '../../../src/nest/categories/categories.mcp';
 import { BudgetMcp } from '../../../src/nest/budget/budget.mcp';
+import { CategoriesMcp } from '../../../src/nest/categories/categories.mcp';
+import { FeedsMcp } from '../../../src/nest/feeds/feeds.mcp';
+import { TripInviteMcp } from '../../../src/nest/trip-invite/trip-invite.mcp';
 
-const DEMO_REFUSAL = { content: [{ type: 'text', text: 'Write operations are disabled in demo mode.' }], isError: true };
+import { describe, expect, it } from 'vitest';
+
+const DEMO_REFUSAL = {
+  content: [{ type: 'text', text: 'Write operations are disabled in demo mode.' }],
+  isError: true,
+};
 
 const ctx = { userId: 5, scopes: null, isStaticToken: false } as McpContext;
 

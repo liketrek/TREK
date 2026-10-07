@@ -1,9 +1,9 @@
 // FE-COMP-MDTOOLBAR-001 to FE-COMP-MDTOOLBAR-006
 
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { render, screen, fireEvent } from '../../../tests/helpers/render';
-import MarkdownToolbar from './MarkdownToolbar';
 import React from 'react';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { fireEvent, render, screen } from '../../../tests/helpers/render';
+import MarkdownToolbar from './MarkdownToolbar';
 
 function createTextareaRef(value = '', selectionStart = 0, selectionEnd = 0) {
   const textarea = document.createElement('textarea');

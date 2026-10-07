@@ -15,17 +15,17 @@ vi.mock('../../api/websocket', () => ({
   removeListener: vi.fn(),
 }));
 
-import { render, screen, waitFor, act, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
-import { useAuthStore } from '../../store/authStore';
-import { useTripStore } from '../../store/tripStore';
-import { useSettingsStore } from '../../store/settingsStore';
+import { act, fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip } from '../../../tests/helpers/factories';
-import CollabChat from './CollabChat';
 import { addListener } from '../../api/websocket';
+import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
+import { useTripStore } from '../../store/tripStore';
+import CollabChat from './CollabChat';
 
 const currentUser = buildUser({ id: 1, username: 'testuser' });
 
@@ -36,11 +36,7 @@ const defaultProps = {
 
 beforeEach(() => {
   resetAllStores();
-  server.use(
-    http.get('/api/trips/1/collab/messages', () =>
-      HttpResponse.json({ messages: [], total: 0 })
-    ),
-  );
+  server.use(http.get('/api/trips/1/collab/messages', () => HttpResponse.json({ messages: [], total: 0 })));
   seedStore(useAuthStore, { user: currentUser, isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
 });
@@ -75,11 +71,21 @@ describe('CollabChat', () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: currentUser.id, username: 'testuser',
-            avatar_url: null, text: 'Hello world!', created_at: '2025-06-01T10:00:00.000Z',
-            reactions: {}, reply_to: null, deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: currentUser.id,
+              username: 'testuser',
+              avatar_url: null,
+              text: 'Hello world!',
+              created_at: '2025-06-01T10:00:00.000Z',
+              reactions: {},
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       )
@@ -104,9 +110,17 @@ describe('CollabChat', () => {
       http.post('/api/trips/1/collab/messages', async () => {
         postCalled = true;
         return HttpResponse.json({
-          id: 2, trip_id: 1, user_id: 1, username: 'testuser',
-          avatar_url: null, text: 'New message', created_at: new Date().toISOString(),
-          reactions: {}, reply_to: null, deleted: false, edited: false,
+          id: 2,
+          trip_id: 1,
+          user_id: 1,
+          username: 'testuser',
+          avatar_url: null,
+          text: 'New message',
+          created_at: new Date().toISOString(),
+          reactions: {},
+          reply_to: null,
+          deleted: false,
+          edited: false,
         });
       })
     );
@@ -143,8 +157,32 @@ describe('CollabChat', () => {
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
           messages: [
-            { id: 1, trip_id: 1, user_id: 1, username: 'testuser', avatar_url: null, text: 'First message', created_at: '2025-06-01T10:00:00.000Z', reactions: {}, reply_to: null, deleted: false, edited: false },
-            { id: 2, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null, text: 'Second message', created_at: '2025-06-01T10:01:00.000Z', reactions: {}, reply_to: null, deleted: false, edited: false },
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 1,
+              username: 'testuser',
+              avatar_url: null,
+              text: 'First message',
+              created_at: '2025-06-01T10:00:00.000Z',
+              reactions: {},
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+            {
+              id: 2,
+              trip_id: 1,
+              user_id: 2,
+              username: 'alice',
+              avatar_url: null,
+              text: 'Second message',
+              created_at: '2025-06-01T10:01:00.000Z',
+              reactions: {},
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
           ],
           total: 2,
         })
@@ -167,11 +205,21 @@ describe('CollabChat', () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-            text: 'Hello world!', created_at: new Date().toISOString(),
-            reactions: [], reply_to: null, deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 2,
+              username: 'alice',
+              avatar_url: null,
+              text: 'Hello world!',
+              created_at: new Date().toISOString(),
+              reactions: [],
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       )
@@ -205,11 +253,21 @@ describe('CollabChat', () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-            text: 'some text', created_at: new Date().toISOString(),
-            reactions: [], reply_to: null, deleted: true, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 2,
+              username: 'alice',
+              avatar_url: null,
+              text: 'some text',
+              created_at: new Date().toISOString(),
+              reactions: [],
+              reply_to: null,
+              deleted: true,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       )
@@ -224,12 +282,21 @@ describe('CollabChat', () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-            text: 'React to me', created_at: new Date().toISOString(),
-            reactions: [{ emoji: '❤️', count: 1, users: [{ user_id: 2, username: 'alice' }] }],
-            reply_to: null, deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 2,
+              username: 'alice',
+              avatar_url: null,
+              text: 'React to me',
+              created_at: new Date().toISOString(),
+              reactions: [{ emoji: '❤️', count: 1, users: [{ user_id: 2, username: 'alice' }] }],
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       )
@@ -252,9 +319,16 @@ describe('CollabChat', () => {
         type: 'collab:message:created',
         tripId: 1,
         message: {
-          id: 99, trip_id: 1, user_id: 2, username: 'alice',
-          text: 'WS message', created_at: new Date().toISOString(),
-          reactions: [], reply_to: null, deleted: false, edited: false,
+          id: 99,
+          trip_id: 1,
+          user_id: 2,
+          username: 'alice',
+          text: 'WS message',
+          created_at: new Date().toISOString(),
+          reactions: [],
+          reply_to: null,
+          deleted: false,
+          edited: false,
         },
       });
     });
@@ -266,11 +340,21 @@ describe('CollabChat', () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-            text: 'To remove', created_at: new Date().toISOString(),
-            reactions: [], reply_to: null, deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 2,
+              username: 'alice',
+              avatar_url: null,
+              text: 'To remove',
+              created_at: new Date().toISOString(),
+              reactions: [],
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       )
@@ -293,7 +377,7 @@ describe('CollabChat', () => {
     await screen.findByText('Start the conversation');
     const buttons = screen.getAllByRole('button');
     // The send button is the ArrowUp button — it has disabled attr when text is empty
-    const sendButton = buttons.find(b => b.hasAttribute('disabled'));
+    const sendButton = buttons.find((b) => b.hasAttribute('disabled'));
     expect(sendButton).toBeTruthy();
     expect(sendButton).toBeDisabled();
   });
@@ -302,13 +386,23 @@ describe('CollabChat', () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-            text: 'Reply here', created_at: new Date().toISOString(),
-            reactions: [], reply_to: null,
-            reply_text: 'Original message', reply_username: 'alice',
-            deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 2,
+              username: 'alice',
+              avatar_url: null,
+              text: 'Reply here',
+              created_at: new Date().toISOString(),
+              reactions: [],
+              reply_to: null,
+              reply_text: 'Original message',
+              reply_username: 'alice',
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       )
@@ -322,11 +416,21 @@ describe('CollabChat', () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: currentUser.id, username: 'testuser', avatar_url: null,
-            text: 'My own message', created_at: new Date().toISOString(),
-            reactions: [], reply_to: null, deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: currentUser.id,
+              username: 'testuser',
+              avatar_url: null,
+              text: 'My own message',
+              created_at: new Date().toISOString(),
+              reactions: [],
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       )
@@ -359,9 +463,17 @@ describe('CollabChat', () => {
       http.post('/api/trips/1/collab/messages', async () =>
         HttpResponse.json({
           message: {
-            id: 2, trip_id: 1, user_id: 1, username: 'testuser',
-            avatar_url: null, text: 'Sent message', created_at: new Date().toISOString(),
-            reactions: [], reply_to: null, deleted: false, edited: false,
+            id: 2,
+            trip_id: 1,
+            user_id: 1,
+            username: 'testuser',
+            avatar_url: null,
+            text: 'Sent message',
+            created_at: new Date().toISOString(),
+            reactions: [],
+            reply_to: null,
+            deleted: false,
+            edited: false,
           },
         })
       )
@@ -379,15 +491,19 @@ describe('CollabChat', () => {
 
   it('FE-COMP-CHAT-024: load earlier messages button appears when 100+ messages exist', async () => {
     const messages = Array.from({ length: 100 }, (_, i) => ({
-      id: i + 1, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-      text: `Message ${i + 1}`, created_at: new Date().toISOString(),
-      reactions: [], reply_to: null, deleted: false, edited: false,
+      id: i + 1,
+      trip_id: 1,
+      user_id: 2,
+      username: 'alice',
+      avatar_url: null,
+      text: `Message ${i + 1}`,
+      created_at: new Date().toISOString(),
+      reactions: [],
+      reply_to: null,
+      deleted: false,
+      edited: false,
     }));
-    server.use(
-      http.get('/api/trips/1/collab/messages', () =>
-        HttpResponse.json({ messages, total: 100 })
-      )
-    );
+    server.use(http.get('/api/trips/1/collab/messages', () => HttpResponse.json({ messages, total: 100 })));
     render(<CollabChat {...defaultProps} />);
     await screen.findByText('Message 1');
     const loadMoreBtn = await screen.findByRole('button', { name: /load/i });
@@ -398,11 +514,21 @@ describe('CollabChat', () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-            text: 'Reply to me', created_at: new Date().toISOString(),
-            reactions: [], reply_to: null, deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 2,
+              username: 'alice',
+              avatar_url: null,
+              text: 'Reply to me',
+              created_at: new Date().toISOString(),
+              reactions: [],
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       )
@@ -416,7 +542,7 @@ describe('CollabChat', () => {
     // Reply preview banner renders <strong>{username}</strong> — unique to the banner
     await waitFor(() => {
       const aliceEls = screen.queryAllByText('alice');
-      expect(aliceEls.some(el => el.tagName === 'STRONG')).toBe(true);
+      expect(aliceEls.some((el) => el.tagName === 'STRONG')).toBe(true);
     });
   });
 
@@ -424,11 +550,21 @@ describe('CollabChat', () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-            text: 'Cancel reply test', created_at: new Date().toISOString(),
-            reactions: [], reply_to: null, deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 2,
+              username: 'alice',
+              avatar_url: null,
+              text: 'Cancel reply test',
+              created_at: new Date().toISOString(),
+              reactions: [],
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       )
@@ -440,10 +576,10 @@ describe('CollabChat', () => {
     // Wait for reply preview <strong> to appear
     await waitFor(() => {
       const aliceEls = screen.queryAllByText('alice');
-      expect(aliceEls.some(el => el.tagName === 'STRONG')).toBe(true);
+      expect(aliceEls.some((el) => el.tagName === 'STRONG')).toBe(true);
     });
     // Find the X button inside the reply preview — the <strong> is inside a <span> inside the preview div
-    const strongEl = screen.getAllByText('alice').find(el => el.tagName === 'STRONG')!;
+    const strongEl = screen.getAllByText('alice').find((el) => el.tagName === 'STRONG')!;
     const previewDiv = strongEl.closest('div[style]');
     const xBtn = previewDiv?.querySelector('button');
     expect(xBtn).toBeTruthy();
@@ -451,7 +587,7 @@ describe('CollabChat', () => {
     await waitFor(() => {
       // After cancel, no <strong>alice</strong> in reply preview
       const remaining = screen.queryAllByText('alice');
-      expect(remaining.every(el => el.tagName !== 'STRONG')).toBe(true);
+      expect(remaining.every((el) => el.tagName !== 'STRONG')).toBe(true);
     });
   });
 
@@ -461,7 +597,7 @@ describe('CollabChat', () => {
     await screen.findByText('Start the conversation');
     // Smile button is the only non-disabled button when input is empty
     const allButtons = screen.getAllByRole('button');
-    const smileBtn = allButtons.find(b => !b.hasAttribute('disabled'));
+    const smileBtn = allButtons.find((b) => !b.hasAttribute('disabled'));
     expect(smileBtn).toBeTruthy();
     await user.click(smileBtn!);
     // EmojiPicker renders category tabs
@@ -474,12 +610,12 @@ describe('CollabChat', () => {
     render(<CollabChat {...defaultProps} />);
     await screen.findByText('Start the conversation');
     const allButtons = screen.getAllByRole('button');
-    const smileBtn = allButtons.find(b => !b.hasAttribute('disabled'));
+    const smileBtn = allButtons.find((b) => !b.hasAttribute('disabled'));
     await user.click(smileBtn!);
     // Wait for picker to open
     await screen.findByText('Smileys');
     // Click the first emoji in the grid (😀 is the first in Smileys)
-    const emojiImg = screen.getAllByRole('img').find(img => img.getAttribute('alt') === '😀');
+    const emojiImg = screen.getAllByRole('img').find((img) => img.getAttribute('alt') === '😀');
     expect(emojiImg).toBeTruthy();
     await user.click(emojiImg!.closest('button')!);
     // Emoji should be appended to textarea
@@ -491,11 +627,21 @@ describe('CollabChat', () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-            text: 'Right click me', created_at: new Date().toISOString(),
-            reactions: [], reply_to: null, deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 2,
+              username: 'alice',
+              avatar_url: null,
+              text: 'Right click me',
+              created_at: new Date().toISOString(),
+              reactions: [],
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       )
@@ -506,9 +652,9 @@ describe('CollabChat', () => {
     fireEvent.contextMenu(messageBubble!);
     // ReactionMenu renders quick reactions (❤️ is the first)
     await waitFor(() => {
-      const reactionImgs = screen.getAllByRole('img').filter(img =>
-        ['❤️', '😂', '👍'].includes(img.getAttribute('alt') || '')
-      );
+      const reactionImgs = screen
+        .getAllByRole('img')
+        .filter((img) => ['❤️', '😂', '👍'].includes(img.getAttribute('alt') || ''));
       expect(reactionImgs.length).toBeGreaterThan(0);
     });
   });
@@ -518,17 +664,29 @@ describe('CollabChat', () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-            text: 'React to this', created_at: new Date().toISOString(),
-            reactions: [], reply_to: null, deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 2,
+              username: 'alice',
+              avatar_url: null,
+              text: 'React to this',
+              created_at: new Date().toISOString(),
+              reactions: [],
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       ),
       http.post('/api/trips/1/collab/messages/1/react', async () => {
         reactCalled = true;
-        return HttpResponse.json({ reactions: [{ emoji: '❤️', count: 1, users: [{ user_id: 1, username: 'testuser' }] }] });
+        return HttpResponse.json({
+          reactions: [{ emoji: '❤️', count: 1, users: [{ user_id: 1, username: 'testuser' }] }],
+        });
       })
     );
     render(<CollabChat {...defaultProps} />);
@@ -547,11 +705,21 @@ describe('CollabChat', () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-            text: 'Reacted message', created_at: new Date().toISOString(),
-            reactions: [], reply_to: null, deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 2,
+              username: 'alice',
+              avatar_url: null,
+              text: 'Reacted message',
+              created_at: new Date().toISOString(),
+              reactions: [],
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       )
@@ -573,9 +741,17 @@ describe('CollabChat', () => {
 
   it('FE-COMP-CHAT-032: clicking "Load older messages" loads paginated results', async () => {
     const initialMessages = Array.from({ length: 100 }, (_, i) => ({
-      id: i + 100, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-      text: `New ${i + 100}`, created_at: new Date().toISOString(),
-      reactions: [], reply_to: null, deleted: false, edited: false,
+      id: i + 100,
+      trip_id: 1,
+      user_id: 2,
+      username: 'alice',
+      avatar_url: null,
+      text: `New ${i + 100}`,
+      created_at: new Date().toISOString(),
+      reactions: [],
+      reply_to: null,
+      deleted: false,
+      edited: false,
     }));
     let callCount = 0;
     server.use(
@@ -585,11 +761,21 @@ describe('CollabChat', () => {
           return HttpResponse.json({ messages: initialMessages, total: 120 });
         }
         return HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-            text: 'Older message', created_at: '2020-01-01T10:00:00.000Z',
-            reactions: [], reply_to: null, deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 2,
+              username: 'alice',
+              avatar_url: null,
+              text: 'Older message',
+              created_at: '2020-01-01T10:00:00.000Z',
+              reactions: [],
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 120,
         });
       })
@@ -606,17 +792,25 @@ describe('CollabChat', () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: currentUser.id, username: 'testuser', avatar_url: null,
-            text: 'Delete me', created_at: new Date().toISOString(),
-            reactions: [], reply_to: null, deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: currentUser.id,
+              username: 'testuser',
+              avatar_url: null,
+              text: 'Delete me',
+              created_at: new Date().toISOString(),
+              reactions: [],
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       ),
-      http.delete('/api/trips/1/collab/messages/1', () =>
-        HttpResponse.json({ success: true })
-      )
+      http.delete('/api/trips/1/collab/messages/1', () => HttpResponse.json({ success: true }))
     );
     render(<CollabChat {...defaultProps} />);
     await screen.findByText('Delete me');
@@ -624,21 +818,28 @@ describe('CollabChat', () => {
     const deleteBtn = screen.getByRole('button', { name: 'Delete' });
     fireEvent.click(deleteBtn);
     // handleDelete uses a 400ms setTimeout before calling the API
-    await waitFor(
-      () => expect(screen.getByText(/deleted/i)).toBeInTheDocument(),
-      { timeout: 1500 }
-    );
+    await waitFor(() => expect(screen.getByText(/deleted/i)).toBeInTheDocument(), { timeout: 1500 });
   });
 
   it('FE-COMP-CHAT-034: single-emoji message renders as big emoji', async () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-            text: '👍', created_at: new Date().toISOString(),
-            reactions: [], reply_to: null, deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 2,
+              username: 'alice',
+              avatar_url: null,
+              text: '👍',
+              created_at: new Date().toISOString(),
+              reactions: [],
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       )
@@ -665,11 +866,21 @@ describe('CollabChat', () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-            text: 'Time format test', created_at: new Date().toISOString(),
-            reactions: [], reply_to: null, deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 2,
+              username: 'alice',
+              avatar_url: null,
+              text: 'Time format test',
+              created_at: new Date().toISOString(),
+              reactions: [],
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       )
@@ -688,12 +899,21 @@ describe('CollabChat', () => {
     server.use(
       http.get('/api/trips/1/collab/messages', () =>
         HttpResponse.json({
-          messages: [{
-            id: 1, trip_id: 1, user_id: 2, username: 'alice', avatar_url: null,
-            text: `Check this out ${uniqueUrl}`,
-            created_at: new Date().toISOString(),
-            reactions: [], reply_to: null, deleted: false, edited: false,
-          }],
+          messages: [
+            {
+              id: 1,
+              trip_id: 1,
+              user_id: 2,
+              username: 'alice',
+              avatar_url: null,
+              text: `Check this out ${uniqueUrl}`,
+              created_at: new Date().toISOString(),
+              reactions: [],
+              reply_to: null,
+              deleted: false,
+              edited: false,
+            },
+          ],
           total: 1,
         })
       ),
@@ -703,10 +923,7 @@ describe('CollabChat', () => {
     );
     render(<CollabChat {...defaultProps} />);
     await screen.findByText(/Check this out/);
-    await waitFor(
-      () => expect(screen.getByText('Preview Title')).toBeInTheDocument(),
-      { timeout: 3000 }
-    );
+    await waitFor(() => expect(screen.getByText('Preview Title')).toBeInTheDocument(), { timeout: 3000 });
   });
 
   // The strip shows the four pictures that will go out; the two the cap turned away
@@ -721,7 +938,10 @@ describe('CollabChat', () => {
       render(<CollabChat {...defaultProps} />);
       await screen.findByText('Start the conversation');
       const input = document.querySelector('input[type="file"]') as HTMLInputElement;
-      const files = Array.from({ length: 6 }, (_, i) => new File([new Uint8Array(8)], `${i}.png`, { type: 'image/png' }));
+      const files = Array.from(
+        { length: 6 },
+        (_, i) => new File([new Uint8Array(8)], `${i}.png`, { type: 'image/png' })
+      );
 
       fireEvent.change(input, { target: { files } });
 
@@ -732,7 +952,8 @@ describe('CollabChat', () => {
       expect(message).not.toBe('Only JPEG, PNG, GIF and WebP images up to 10 MB are allowed');
     } finally {
       delete window.__addToast;
-      createObjURL.mockRestore(); revokeObjURL.mockRestore();
+      createObjURL.mockRestore();
+      revokeObjURL.mockRestore();
     }
   });
 });

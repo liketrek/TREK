@@ -1,18 +1,18 @@
-import express, { Request, Response, NextFunction } from 'express';
-import path from 'node:path';
-import type { EntityManager } from '@mikro-orm/core';
-
 import { readEnv } from '../../app-config';
+import { Photos } from '../../db/entities/Photos.entity';
+import { ShareTokens } from '../../db/entities/ShareTokens.entity';
+import { Users } from '../../db/entities/Users.entity';
+import type { PhotosRepository } from '../../db/repositories/Photos.repository';
+import type { ShareTokensRepository } from '../../db/repositories/ShareTokens.repository';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { verifyJwtAndLoadUser } from '../auth/jwt-verify';
 import { withRequestContext } from '../database/request-context';
 import { StorageService } from '../storage/storage.service';
 import { StorageInvalidKeyError, StorageNotFoundError, type StorageCategory } from '../storage/storage.types';
-import { Users } from '../../db/entities/Users.entity';
-import type { UsersRepository } from '../../db/repositories/Users.repository';
-import { ShareTokens } from '../../db/entities/ShareTokens.entity';
-import type { ShareTokensRepository } from '../../db/repositories/ShareTokens.repository';
-import { Photos } from '../../db/entities/Photos.entity';
-import type { PhotosRepository } from '../../db/repositories/Photos.repository';
+import type { EntityManager } from '@mikro-orm/core';
+
+import express, { Request, Response, NextFunction } from 'express';
+import path from 'node:path';
 
 // Platform / transport routes extracted verbatim from createApp() (app.ts) so they can be
 // mounted on either the legacy Express app or the NestJS Express instance (strangler A6/A8).
@@ -114,7 +114,14 @@ export function storageStaticHandler(storage: StorageService, category: StorageC
   };
 }
 
-async function servePhoto(storage: StorageService, req: Request, res: Response, users: UsersRepository, shareTokens: ShareTokensRepository, photos: PhotosRepository): Promise<void> {
+async function servePhoto(
+  storage: StorageService,
+  req: Request,
+  res: Response,
+  users: UsersRepository,
+  shareTokens: ShareTokensRepository,
+  photos: PhotosRepository,
+): Promise<void> {
   const safeName = path.basename(req.params.filename);
   // Parity: after basename(), the old resolve()+startsWith guard could only
   // fire when the remaining segment was '..' — keep that exact 403.
@@ -206,7 +213,11 @@ async function servePhoto(storage: StorageService, req: Request, res: Response, 
  * WS adapter's message dispatch already uses (throw before calling the
  * handler at all, never a silent degrade).
  */
-export function applyPlatformUploads(app: express.Application, storage: StorageService, orm?: { em: EntityManager }): void {
+export function applyPlatformUploads(
+  app: express.Application,
+  storage: StorageService,
+  orm?: { em: EntityManager },
+): void {
   // Static: avatars, covers, and journey photos.
   //
   // Security model (audit SEC-M9): these paths are unauthenticated by
@@ -240,7 +251,16 @@ export function applyPlatformUploads(app: express.Application, storage: StorageS
       next(new Error('applyPlatformUploads: no MikroORM available to build a request context for /uploads/photos/*'));
       return;
     }
-    return withRequestContext(orm, () => servePhoto(storage, req, res, orm.em.getRepository(Users), orm.em.getRepository(ShareTokens), orm.em.getRepository(Photos))).catch(next);
+    return withRequestContext(orm, () =>
+      servePhoto(
+        storage,
+        req,
+        res,
+        orm.em.getRepository(Users),
+        orm.em.getRepository(ShareTokens),
+        orm.em.getRepository(Photos),
+      ),
+    ).catch(next);
   });
 
   // Block direct access to /uploads/files

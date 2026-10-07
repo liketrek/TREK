@@ -1,3 +1,28 @@
+import { db } from '../../../src/db/database';
+import { PlaceRegionsRepository } from '../../../src/db/repositories/PlaceRegions.repository';
+import { reverseGeocodeRegion } from '../../../src/nest/atlas/atlas-geo';
+import { AtlasService } from '../../../src/nest/atlas/atlas.service';
+import { PLACE_REGIONS_REPAIR_DONE_KEY, PlaceRegionsRepairJob } from '../../../src/nest/atlas/place-regions-repair.job';
+import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
+import {
+  createTestBucketListRepo,
+  createTestHiddenCountriesRepo,
+  createTestHiddenRegionsRepo,
+  createTestPlaceRegionsRepo,
+  createTestVisitedCountriesRepo,
+  createTestVisitedRegionsRepo,
+} from '../../helpers/atlas-repos';
+import { createTrip, createUser } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+import {
+  createTestAppSettingsRepo,
+  createTestPlacesRepo,
+  createTestReservationEndpointsRepo,
+  createTestTripsRepo,
+  createTestUnitOfWork,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
+
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The migrated snapshot, so the #2527 trigger on places is there like on a real install.
@@ -6,28 +31,19 @@ vi.mock('../../../src/db/database', async () => {
   return { db: createSnapshotTestDb(), closeDb: () => {}, reinitialize: () => {} };
 });
 
-import { db } from '../../../src/db/database';
-import { PlaceRegionsRepository } from '../../../src/db/repositories/PlaceRegions.repository';
-import { reverseGeocodeRegion } from '../../../src/nest/atlas/atlas-geo';
-import { AtlasService } from '../../../src/nest/atlas/atlas.service';
-import { PLACE_REGIONS_REPAIR_DONE_KEY, PlaceRegionsRepairJob } from '../../../src/nest/atlas/place-regions-repair.job';
-import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
-import { createTrip, createUser } from '../../helpers/factories';
-import { resetTestDb } from '../../helpers/test-db';
-import {
-  createTestAppSettingsRepo, createTestPlacesRepo, createTestReservationEndpointsRepo, createTestTripsRepo, createTestUnitOfWork, sharedTestOrm,
-} from '../../helpers/test-uow';
-import {
-  createTestBucketListRepo, createTestHiddenCountriesRepo, createTestHiddenRegionsRepo, createTestPlaceRegionsRepo,
-  createTestVisitedCountriesRepo, createTestVisitedRegionsRepo,
-} from '../../helpers/atlas-repos';
-
 async function buildAtlas(): Promise<AtlasService> {
   return new AtlasService(
-    await createTestBucketListRepo(db), await createTestHiddenCountriesRepo(db), await createTestHiddenRegionsRepo(db),
-    await createTestVisitedCountriesRepo(db), await createTestVisitedRegionsRepo(db), await createTestPlaceRegionsRepo(db),
-    await createTestTripsRepo(db), await createTestPlacesRepo(db), await createTestReservationEndpointsRepo(db),
-    await createTestUnitOfWork(db), (await sharedTestOrm(db)).orm,
+    await createTestBucketListRepo(db),
+    await createTestHiddenCountriesRepo(db),
+    await createTestHiddenRegionsRepo(db),
+    await createTestVisitedCountriesRepo(db),
+    await createTestVisitedRegionsRepo(db),
+    await createTestPlaceRegionsRepo(db),
+    await createTestTripsRepo(db),
+    await createTestPlacesRepo(db),
+    await createTestReservationEndpointsRepo(db),
+    await createTestUnitOfWork(db),
+    (await sharedTestOrm(db)).orm,
   );
 }
 
@@ -73,12 +89,14 @@ describe('the one time repair of place_regions rows cached before #2527', () => 
   };
   const cachedRow = (id: number) =>
     db.prepare('SELECT country_code, region_code FROM place_regions WHERE place_id = ?').get(id) as
-      | { country_code: string; region_code: string }
-      | undefined;
+      { country_code: string; region_code: string } | undefined;
   const markedDone = () => db.prepare('SELECT 1 FROM app_settings WHERE key = ?').get(PLACE_REGIONS_REPAIR_DONE_KEY);
   // runOnBoot is where the real registrar opens the request context; here it just runs the pass.
   const registrar = (enabled: boolean) =>
-    ({ isEnabled: () => enabled, runOnBoot: async (_name: string, fn: () => Promise<void>) => fn() }) as unknown as CronRegistrarService;
+    ({
+      isEnabled: () => enabled,
+      runOnBoot: async (_name: string, fn: () => Promise<void>) => fn(),
+    }) as unknown as CronRegistrarService;
 
   beforeEach(async () => {
     resetTestDb(db);

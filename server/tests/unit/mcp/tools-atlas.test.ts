@@ -2,9 +2,12 @@
  * Unit tests for MCP atlas and bucket list tools:
  * mark_country_visited, unmark_country_visited, create_bucket_list_item, delete_bucket_list_item.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
+import { createUser, createBucketListItem, createVisitedCountry } from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
 
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
@@ -18,10 +21,6 @@ vi.mock('../../../src/config', () => ({
 
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createBucketListItem, createVisitedCountry } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-
 beforeEach(() => {
   resetTestDb(testDb);
   delete process.env.DEMO_MODE;
@@ -33,7 +32,11 @@ afterAll(() => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -48,7 +51,9 @@ describe('Tool: mark_country_visited', () => {
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
       expect(data.country_code).toBe('FR');
-      const row = testDb.prepare('SELECT country_code FROM visited_countries WHERE user_id = ? AND country_code = ?').get(user.id, 'FR');
+      const row = testDb
+        .prepare('SELECT country_code FROM visited_countries WHERE user_id = ? AND country_code = ?')
+        .get(user.id, 'FR');
       expect(row).toBeTruthy();
     });
   });
@@ -60,7 +65,11 @@ describe('Tool: mark_country_visited', () => {
       const result = await h.client.callTool({ name: 'mark_country_visited', arguments: { country_code: 'JP' } });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      const count = (testDb.prepare('SELECT COUNT(*) as c FROM visited_countries WHERE user_id = ? AND country_code = ?').get(user.id, 'JP') as { c: number }).c;
+      const count = (
+        testDb
+          .prepare('SELECT COUNT(*) as c FROM visited_countries WHERE user_id = ? AND country_code = ?')
+          .get(user.id, 'JP') as { c: number }
+      ).c;
       expect(count).toBe(1);
     });
   });
@@ -87,7 +96,9 @@ describe('Tool: unmark_country_visited', () => {
       const result = await h.client.callTool({ name: 'unmark_country_visited', arguments: { country_code: 'ES' } });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      const row = testDb.prepare('SELECT country_code FROM visited_countries WHERE user_id = ? AND country_code = ?').get(user.id, 'ES');
+      const row = testDb
+        .prepare('SELECT country_code FROM visited_countries WHERE user_id = ? AND country_code = ?')
+        .get(user.id, 'ES');
       expect(row).toBeUndefined();
     });
   });
@@ -120,12 +131,16 @@ describe('Tool: create_bucket_list_item', () => {
   it('stores a wished-for region and refuses one outside its country (#1901)', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
-      const ok = parseToolResult(await h.client.callTool({
-        name: 'create_bucket_list_item', arguments: { name: 'Bayern', country_code: 'DE', region_code: 'DE-BY' },
-      })) as any;
+      const ok = parseToolResult(
+        await h.client.callTool({
+          name: 'create_bucket_list_item',
+          arguments: { name: 'Bayern', country_code: 'DE', region_code: 'DE-BY' },
+        }),
+      ) as any;
       expect(ok.item.region_code).toBe('DE-BY');
       const bad = await h.client.callTool({
-        name: 'create_bucket_list_item', arguments: { name: 'Berlin', country_code: 'FR', region_code: 'DE-BE' },
+        name: 'create_bucket_list_item',
+        arguments: { name: 'Berlin', country_code: 'FR', region_code: 'DE-BE' },
       });
       expect(bad.isError).toBe(true);
     });
@@ -181,7 +196,9 @@ describe('Tool: create_bucket_list_item', () => {
         arguments: { name: 'Japan', country_code: 'JP' },
       });
       expect(result.isError).toBe(true);
-      expect((testDb.prepare('SELECT COUNT(*) AS n FROM bucket_list WHERE user_id = ?').get(user.id) as { n: number }).n).toBe(1);
+      expect(
+        (testDb.prepare('SELECT COUNT(*) AS n FROM bucket_list WHERE user_id = ?').get(user.id) as { n: number }).n,
+      ).toBe(1);
     });
   });
 

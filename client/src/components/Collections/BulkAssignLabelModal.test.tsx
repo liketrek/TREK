@@ -1,8 +1,8 @@
 // FE-COMP-BULKLABEL-001 to FE-COMP-BULKLABEL-009
-import React from 'react';
-import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import type { CollectionLabel } from '@trek/shared';
+import React from 'react';
+import { render, screen, waitFor } from '../../../tests/helpers/render';
 import { useTranslation } from '../../i18n/TranslationContext';
 import BulkAssignLabelModal from './BulkAssignLabelModal';
 

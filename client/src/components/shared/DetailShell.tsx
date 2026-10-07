@@ -1,20 +1,20 @@
-import type { ReactNode } from 'react'
-import { X } from 'lucide-react'
-import { NEUTRAL_TINT } from './DialogShell'
-import { Tooltip } from './Tooltip'
+import { X } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { NEUTRAL_TINT } from './DialogShell';
+import { Tooltip } from './Tooltip';
 
 interface DetailShellProps {
-  header: ReactNode
-  children: ReactNode
-  footer?: ReactNode
-  onClose: () => void
-  closeLabel: string
-  leftWidth?: number
-  rightWidth?: number
+  header: ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
+  onClose: () => void;
+  closeLabel: string;
+  leftWidth?: number;
+  rightWidth?: number;
   /** The head band's background; the neutral accent wash when left out. */
-  tint?: string
-  closeButtonClassName?: string
-  testId?: string
+  tint?: string;
+  closeButtonClassName?: string;
+  testId?: string;
 }
 
 /**
@@ -47,16 +47,26 @@ export default function DetailShell({
       }}
     >
       <div className="flex max-h-[60vh] flex-col overflow-hidden rounded-[20px] border border-edge-faint bg-surface-elevated text-content shadow-popover backdrop-blur-[40px] backdrop-saturate-[1.8]">
-        <header className="flex flex-none items-start gap-3.5 border-b border-edge-faint px-4 pb-3 pt-3.5" style={{ background: tint }}>
+        <header
+          className="flex flex-none items-start gap-3.5 border-b border-edge-faint px-4 pb-3 pt-3.5"
+          style={{ background: tint }}
+        >
           {header}
           <Tooltip label={closeLabel}>
-            <button type="button" onClick={onClose} aria-label={closeLabel}
-              className={`grid h-8 w-8 flex-none place-items-center rounded-full bg-surface-card text-content-muted shadow-sm transition-colors hover:text-content ${closeButtonClassName}`}>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={closeLabel}
+              className={`grid h-8 w-8 flex-none place-items-center rounded-full bg-surface-card text-content-muted shadow-sm transition-colors hover:text-content ${closeButtonClassName}`}
+            >
               <X size={15} strokeWidth={2.2} />
             </button>
           </Tooltip>
         </header>
-        <div data-testid={testId} className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto overscroll-contain px-4 py-3.5">
+        <div
+          data-testid={testId}
+          className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto overscroll-contain px-4 py-3.5"
+        >
           {children}
         </div>
         {footer && (
@@ -66,5 +76,5 @@ export default function DetailShell({
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -1,68 +1,90 @@
-import { useState } from 'react'
-import { ChevronsDownUp, ChevronsUpDown, Download, Undo2, ArrowUpDown, Route as RouteIcon } from 'lucide-react'
-import { DayReorderPopup } from './DayReorderPopup'
-import Tooltip from '../shared/Tooltip'
-import { NEUTRAL_TINT, fs } from '../shared/DialogShell'
-import { BarButton, PANEL_BAR } from './planParts'
-import { useToast } from '../shared/Toast'
-import { TripExportModal } from './TripExportModal'
-import { isRoutableReservation } from '../../utils/reservationRoutes'
-import type { DayAddControls } from '../../utils/dayAdd'
-import type { DayDeleteQuestion } from '../../utils/dayImpactLines'
-import type { Trip, Day, Place, Category, AssignmentsMap, Reservation, DayNote } from '../../types'
+import { ArrowUpDown, ChevronsDownUp, ChevronsUpDown, Download, Route as RouteIcon, Undo2 } from 'lucide-react';
+import { useState } from 'react';
+import type { AssignmentsMap, Category, Day, DayNote, Place, Reservation, Trip } from '../../types';
+import type { DayAddControls } from '../../utils/dayAdd';
+import type { DayDeleteQuestion } from '../../utils/dayImpactLines';
+import { isRoutableReservation } from '../../utils/reservationRoutes';
+import { NEUTRAL_TINT, fs } from '../shared/DialogShell';
+import { useToast } from '../shared/Toast';
+import Tooltip from '../shared/Tooltip';
+import { DayReorderPopup } from './DayReorderPopup';
+import { BarButton, PANEL_BAR } from './planParts';
+import { TripExportModal } from './TripExportModal';
 
 interface DayPlanSidebarToolbarProps {
-  tripId: number
-  trip: Trip
-  days: Day[]
-  places: Place[]
-  categories: Category[]
-  assignments: AssignmentsMap
-  reservations: Reservation[]
-  allConnectionsShown?: boolean
-  onToggleAllConnections?: () => void
-  dayNotes: Record<string, DayNote[]>
-  t: (key: string, params?: Record<string, any>) => string
-  locale: string
-  toast: ReturnType<typeof useToast>
-  expandedDays: Set<number>
-  setExpandedDays: (next: Set<number>) => void
-  onUndo?: () => void
-  canUndo: boolean
-  undoHover: boolean
-  setUndoHover: (v: boolean) => void
-  lastActionLabel: string | null
-  canEditDays?: boolean
+  tripId: number;
+  trip: Trip;
+  days: Day[];
+  places: Place[];
+  categories: Category[];
+  assignments: AssignmentsMap;
+  reservations: Reservation[];
+  allConnectionsShown?: boolean;
+  onToggleAllConnections?: () => void;
+  dayNotes: Record<string, DayNote[]>;
+  t: (key: string, params?: Record<string, any>) => string;
+  locale: string;
+  toast: ReturnType<typeof useToast>;
+  expandedDays: Set<number>;
+  setExpandedDays: (next: Set<number>) => void;
+  onUndo?: () => void;
+  canUndo: boolean;
+  undoHover: boolean;
+  setUndoHover: (v: boolean) => void;
+  lastActionLabel: string | null;
+  canEditDays?: boolean;
   /**
    * Gates "Subscribe to calendar" in the export dialog only. Defaults to true so
    * a caller that has not wired the permission through keeps today's entries
    * rather than silently losing one.
    */
-  canManageShare?: boolean
-  onReorderDays?: (orderedIds: number[]) => void
-  onAddDay?: (position?: number) => void
+  canManageShare?: boolean;
+  onReorderDays?: (orderedIds: number[]) => void;
+  onAddDay?: (position?: number) => void;
   /** The planner's add controls: on a trip with dates the dialog offers the next date as well. */
-  dayAdd?: DayAddControls
+  dayAdd?: DayAddControls;
   /** Asks to delete a day from the reorder dialog; without it the dialog has no delete buttons. */
-  onDeleteDay?: (dayId: number) => void
+  onDeleteDay?: (dayId: number) => void;
   /** The open delete question; the dialog asks it in place of its day list. */
-  deleteDayQuestion?: DayDeleteQuestion | null
+  deleteDayQuestion?: DayDeleteQuestion | null;
 }
 
 export function DayPlanSidebarToolbar({
-  tripId, trip, days, places, categories, assignments, reservations, dayNotes,
-  allConnectionsShown = false, onToggleAllConnections,
-  t, locale, toast,
-  expandedDays, setExpandedDays, onUndo, canUndo, undoHover, setUndoHover, lastActionLabel,
-  canEditDays, canManageShare = true, onReorderDays, onAddDay, dayAdd, onDeleteDay, deleteDayQuestion,
+  tripId,
+  trip,
+  days,
+  places,
+  categories,
+  assignments,
+  reservations,
+  dayNotes,
+  allConnectionsShown = false,
+  onToggleAllConnections,
+  t,
+  locale,
+  toast,
+  expandedDays,
+  setExpandedDays,
+  onUndo,
+  canUndo,
+  undoHover,
+  setUndoHover,
+  lastActionLabel,
+  canEditDays,
+  canManageShare = true,
+  onReorderDays,
+  onAddDay,
+  dayAdd,
+  onDeleteDay,
+  deleteDayQuestion,
 }: DayPlanSidebarToolbarProps) {
-  const [reorderOpen, setReorderOpen] = useState(false)
-  const [exportOpen, setExportOpen] = useState(false)
+  const [reorderOpen, setReorderOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
-  const allExpanded = days.length > 0 && days.every(d => expandedDays.has(d.id))
-  const expandLabel = allExpanded ? t('dayplan.collapseAll') : t('dayplan.expandAll')
-  const undoTip = canUndo && lastActionLabel ? t('undo.tooltip', { action: lastActionLabel }) : t('undo.button')
-  const connectionsLabel = t(allConnectionsShown ? 'map.hideAllConnections' : 'map.showAllConnections')
+  const allExpanded = days.length > 0 && days.every((d) => expandedDays.has(d.id));
+  const expandLabel = allExpanded ? t('dayplan.collapseAll') : t('dayplan.expandAll');
+  const undoTip = canUndo && lastActionLabel ? t('undo.tooltip', { action: lastActionLabel }) : t('undo.button');
+  const connectionsLabel = t(allConnectionsShown ? 'map.hideAllConnections' : 'map.showAllConnections');
 
   // The panel's head band: the export as its one labelled action, the tools as
   // quiet icons that rise like a filter tab when they are on.
@@ -103,7 +125,8 @@ export function DayPlanSidebarToolbar({
       <span className="flex-1" />
       {onUndo && (
         <Tooltip label={undoTip} placement="bottom">
-          <button type="button"
+          <button
+            type="button"
             onClick={onUndo}
             disabled={!canUndo}
             aria-label={t('undo.button')}
@@ -119,18 +142,25 @@ export function DayPlanSidebarToolbar({
         label={expandLabel}
         ariaPressed={allExpanded}
         onClick={() => {
-          const next = allExpanded ? new Set<number>() : new Set(days.map(d => d.id))
-          setExpandedDays(next)
+          const next = allExpanded ? new Set<number>() : new Set(days.map((d) => d.id));
+          setExpandedDays(next);
           // Same store the sidebar reads on mount — a sessionStorage write
           // here left the persisted set behind after a reload.
-          try { localStorage.setItem(`day-expanded-${tripId}`, JSON.stringify([...next])) } catch {}
+          try {
+            localStorage.setItem(`day-expanded-${tripId}`, JSON.stringify([...next]));
+          } catch {}
         }}
       >
         {allExpanded ? <ChevronsDownUp size={15} strokeWidth={2} /> : <ChevronsUpDown size={15} strokeWidth={2} />}
       </BarButton>
       {canEditDays && onReorderDays && onAddDay && days.length > 0 && (
         <>
-          <BarButton label={t('dayplan.reorderDays')} ariaPressed={reorderOpen} active={reorderOpen} onClick={() => setReorderOpen(v => !v)}>
+          <BarButton
+            label={t('dayplan.reorderDays')}
+            ariaPressed={reorderOpen}
+            active={reorderOpen}
+            onClick={() => setReorderOpen((v) => !v)}
+          >
             <ArrowUpDown size={15} strokeWidth={2} />
           </BarButton>
           <DayReorderPopup
@@ -148,11 +178,16 @@ export function DayPlanSidebarToolbar({
         </>
       )}
       {onToggleAllConnections && reservations.some(isRoutableReservation) && (
-        <BarButton label={connectionsLabel} ariaPressed={allConnectionsShown} active={allConnectionsShown}
-          className={allConnectionsShown ? 'text-info' : ''} onClick={onToggleAllConnections}>
+        <BarButton
+          label={connectionsLabel}
+          ariaPressed={allConnectionsShown}
+          active={allConnectionsShown}
+          className={allConnectionsShown ? 'text-info' : ''}
+          onClick={onToggleAllConnections}
+        >
           <RouteIcon size={15} strokeWidth={2} />
         </BarButton>
       )}
     </div>
-  )
+  );
 }

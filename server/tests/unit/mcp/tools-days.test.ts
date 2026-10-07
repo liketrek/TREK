@@ -4,9 +4,20 @@
  * resource (moved from resources.test.ts when the legacy registrar was ported).
  * create_day's plain append is covered in tools-days-accommodations.test.ts.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
+import { DaysService } from '../../../src/nest/days/days.service';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  createDayAssignment,
+  createDayAccommodation,
+} from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
 
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
@@ -21,13 +32,6 @@ vi.mock('../../../src/config', () => ({
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 
-import { resetTestDb } from '../../helpers/test-db';
-import {
-  createUser, createTrip, createDay, createPlace, createDayAssignment, createDayAccommodation,
-} from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { DaysService } from '../../../src/nest/days/days.service';
-
 beforeEach(() => {
   resetTestDb(testDb);
   broadcastMock.mockClear();
@@ -40,24 +44,36 @@ afterAll(() => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 /** The stored day row, which is what a tool's echo can disagree with. */
 function dayRow(dayId: number) {
-  return testDb.prepare('SELECT title, notes, day_number, date FROM days WHERE id = ?').get(dayId) as
-    { title: string | null; notes: string | null; day_number: number; date: string | null };
+  return testDb.prepare('SELECT title, notes, day_number, date FROM days WHERE id = ?').get(dayId) as {
+    title: string | null;
+    notes: string | null;
+    day_number: number;
+    date: string | null;
+  };
 }
 
 /** Day ids of a trip in stored order, so a reorder can be read back positionally. */
 function dayIdsInOrder(tripId: number): number[] {
-  return (testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as { id: number }[])
-    .map(r => r.id);
+  return (
+    testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as { id: number }[]
+  ).map((r) => r.id);
 }
 
 function dayDatesInOrder(tripId: number): (string | null)[] {
-  return (testDb.prepare('SELECT date FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as { date: string | null }[])
-    .map(r => r.date);
+  return (
+    testDb.prepare('SELECT date FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as {
+      date: string | null;
+    }[]
+  ).map((r) => r.date);
 }
 
 // ---------------------------------------------------------------------------
@@ -207,7 +223,10 @@ describe('Tool: update_day', () => {
     const trip = createTrip(testDb, other.id);
     const day = createDay(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_day', arguments: { tripId: trip.id, dayId: day.id, title: 'X' } });
+      const result = await h.client.callTool({
+        name: 'update_day',
+        arguments: { tripId: trip.id, dayId: day.id, title: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -218,7 +237,10 @@ describe('Tool: update_day', () => {
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
     await withHarness(user.id, async (h) => {
-      const result = await h.client.callTool({ name: 'update_day', arguments: { tripId: trip.id, dayId: day.id, title: 'X' } });
+      const result = await h.client.callTool({
+        name: 'update_day',
+        arguments: { tripId: trip.id, dayId: day.id, title: 'X' },
+      });
       expect(result.isError).toBe(true);
     });
   });
@@ -370,7 +392,10 @@ describe('Tool: create_day (dated)', () => {
     const [d1, d2] = dayIdsInOrder(trip.id);
     const spare = createDay(testDb, trip.id);
 
-    let data = {} as { day: { id: number; date: string; notes: string | null }; trip: { end_date: string; day_count: number } };
+    let data = {} as {
+      day: { id: number; date: string; notes: string | null };
+      trip: { end_date: string; day_count: number };
+    };
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_day',
@@ -385,8 +410,16 @@ describe('Tool: create_day (dated)', () => {
     expect(dayDatesInOrder(trip.id)).toEqual(['2025-06-01', '2025-06-02', '2025-06-03', null]);
     expect(endDate(trip.id)).toBe('2025-06-03');
     // The insert shape of day:reordered, so collaborators refetch, then the trip.
-    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'day:reordered', expect.objectContaining({ day: expect.objectContaining({ id: data.day.id }) }));
-    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'trip:updated', expect.objectContaining({ trip: expect.objectContaining({ end_date: '2025-06-03' }) }));
+    expect(broadcastMock).toHaveBeenCalledWith(
+      trip.id,
+      'day:reordered',
+      expect.objectContaining({ day: expect.objectContaining({ id: data.day.id }) }),
+    );
+    expect(broadcastMock).toHaveBeenCalledWith(
+      trip.id,
+      'trip:updated',
+      expect.objectContaining({ trip: expect.objectContaining({ end_date: '2025-06-03' }) }),
+    );
     expect(broadcastMock).not.toHaveBeenCalledWith(trip.id, 'day:created', expect.any(Object));
   });
 
@@ -396,9 +429,14 @@ describe('Tool: create_day (dated)', () => {
 
     await withHarness(user.id, async (h) => {
       for (const extra of [{ position: 1 }, { date: '2025-07-01' }]) {
-        const result = await h.client.callTool({ name: 'create_day', arguments: { tripId: trip.id, dated: true, ...extra } });
+        const result = await h.client.callTool({
+          name: 'create_day',
+          arguments: { tripId: trip.id, dated: true, ...extra },
+        });
         expect(result.isError).toBe(true);
-        expect((result.content as { text: string }[])[0].text).toContain('dated cannot be combined with date or position');
+        expect((result.content as { text: string }[])[0].text).toContain(
+          'dated cannot be combined with date or position',
+        );
       }
     });
 
@@ -425,7 +463,9 @@ describe('Tool: create_day (dated)', () => {
   it('lets an unexpected failure surface as one, not as a refusal of the trip', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { start_date: '2025-06-01', end_date: '2025-06-02' });
-    const boom = vi.spyOn(DaysService.prototype, 'appendDated').mockImplementation(() => { throw new Error('disk full'); });
+    const boom = vi.spyOn(DaysService.prototype, 'appendDated').mockImplementation(() => {
+      throw new Error('disk full');
+    });
     try {
       await withHarness(user.id, async (h) => {
         const result = await h.client.callTool({ name: 'create_day', arguments: { tripId: trip.id, dated: true } });
@@ -460,7 +500,11 @@ describe('Tool: create_day (dated)', () => {
       await h.client.callTool({ name: 'create_day', arguments: { tripId: trip.id, position: 1 } });
     });
 
-    expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'trip:updated', expect.objectContaining({ trip: expect.objectContaining({ end_date: '2025-06-03', day_count: 3 }) }));
+    expect(broadcastMock).toHaveBeenCalledWith(
+      trip.id,
+      'trip:updated',
+      expect.objectContaining({ trip: expect.objectContaining({ end_date: '2025-06-03', day_count: 3 }) }),
+    );
   });
 });
 
@@ -488,8 +532,9 @@ describe('Tool: reorder_days', () => {
 
     expect(dayIdsInOrder(trip.id)).toEqual([d3.id, d1.id, d2.id]);
     expect(dayRow(d3.id)).toMatchObject({ day_number: 1, title: 'Third' });
-    expect(testDb.prepare('SELECT day_id FROM day_assignments WHERE id = ?').get(assignment.id))
-      .toEqual({ day_id: d3.id });
+    expect(testDb.prepare('SELECT day_id FROM day_assignments WHERE id = ?').get(assignment.id)).toEqual({
+      day_id: d3.id,
+    });
   });
 
   it('keeps the dates pinned to their slots so the content moves across them', async () => {

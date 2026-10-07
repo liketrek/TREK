@@ -1,7 +1,8 @@
-import fs from 'fs';
-import path from 'path';
 import { stageExtractedPluginTrees } from '../plugins/plugin-backup';
 import { checkBackupDatabase, extractBackupArchive } from './backup-archive';
+
+import fs from 'fs';
+import path from 'path';
 
 /**
  * Restoring a backup on the very first start (#1089).
@@ -56,7 +57,9 @@ export class BootRestoreError extends Error {}
 export async function restoreOnFirstBoot(plan: BootRestorePlan): Promise<BootRestoreOutcome> {
   if (!plan.archive) return { restored: false, reason: 'unset' };
   if (fs.existsSync(plan.dbFile)) {
-    console.warn(`[restore] RESTORE_FROM_BACKUP is set, but ${plan.dbFile} already exists. The backup is only restored on a first start; remove the variable to silence this.`);
+    console.warn(
+      `[restore] RESTORE_FROM_BACKUP is set, but ${plan.dbFile} already exists. The backup is only restored on a first start; remove the variable to silence this.`,
+    );
     return { restored: false, reason: 'database-exists' };
   }
   if (!fs.existsSync(plan.archive) || !fs.statSync(plan.archive).isFile()) {

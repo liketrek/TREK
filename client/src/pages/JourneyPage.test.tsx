@@ -1,14 +1,13 @@
 // FE-PAGE-JOURNEY-001 to FE-PAGE-JOURNEY-010
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import React from 'react';
-import { render, screen, waitFor, within } from '../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { server } from '../../tests/helpers/msw/server';
-import { resetAllStores, seedStore } from '../../tests/helpers/store';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildUser } from '../../tests/helpers/factories';
-import { useAuthStore } from '../store/authStore';
+import { server } from '../../tests/helpers/msw/server';
+import { render, screen, waitFor, within } from '../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../tests/helpers/store';
 import { useAddonStore } from '../store/addonStore';
+import { useAuthStore } from '../store/authStore';
 import { usePermissionsStore } from '../store/permissionsStore';
 import JourneyPage from './JourneyPage';
 
@@ -62,15 +61,9 @@ function seedDefaults() {
 
 function setupDefaultHandlers(journeys: ReturnType<typeof buildJourneyListItem>[] = []) {
   server.use(
-    http.get('/api/journeys', () =>
-      HttpResponse.json({ journeys })
-    ),
-    http.get('/api/journeys/suggestions', () =>
-      HttpResponse.json({ trips: [] })
-    ),
-    http.get('/api/journeys/available-trips', () =>
-      HttpResponse.json({ trips: [] })
-    ),
+    http.get('/api/journeys', () => HttpResponse.json({ journeys })),
+    http.get('/api/journeys/suggestions', () => HttpResponse.json({ trips: [] })),
+    http.get('/api/journeys/available-trips', () => HttpResponse.json({ trips: [] }))
   );
 }
 
@@ -99,9 +92,9 @@ describe('JourneyPage', () => {
   it('FE-PAGE-JOURNEY-002: shows loading state', async () => {
     server.use(
       http.get('/api/journeys', async () => {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         return HttpResponse.json({ journeys: [] });
-      }),
+      })
     );
     render(<JourneyPage />);
     // The spinner has animate-spin class while loading with no journeys
@@ -143,11 +136,7 @@ describe('JourneyPage', () => {
   it('FE-PAGE-JOURNEY-006: create journey dialog opens on click', async () => {
     const user = userEvent.setup();
 
-    server.use(
-      http.get('/api/journeys/available-trips', () =>
-        HttpResponse.json({ trips: [] })
-      ),
-    );
+    server.use(http.get('/api/journeys/available-trips', () => HttpResponse.json({ trips: [] })));
 
     render(<JourneyPage />);
 
@@ -176,12 +165,8 @@ describe('JourneyPage', () => {
       place_count: 5,
     };
     server.use(
-      http.get('/api/journeys', () =>
-        HttpResponse.json({ journeys: [] })
-      ),
-      http.get('/api/journeys/suggestions', () =>
-        HttpResponse.json({ trips: [suggestion] })
-      ),
+      http.get('/api/journeys', () => HttpResponse.json({ journeys: [] })),
+      http.get('/api/journeys/suggestions', () => HttpResponse.json({ trips: [suggestion] }))
     );
 
     render(<JourneyPage />);
@@ -207,12 +192,8 @@ describe('JourneyPage', () => {
       place_count: 3,
     };
     server.use(
-      http.get('/api/journeys', () =>
-        HttpResponse.json({ journeys: [] })
-      ),
-      http.get('/api/journeys/suggestions', () =>
-        HttpResponse.json({ trips: [malicious] })
-      ),
+      http.get('/api/journeys', () => HttpResponse.json({ journeys: [] })),
+      http.get('/api/journeys/suggestions', () => HttpResponse.json({ trips: [malicious] }))
     );
 
     render(<JourneyPage />);
@@ -229,7 +210,13 @@ describe('JourneyPage', () => {
 
   // FE-PAGE-JOURNEY-008
   it('FE-PAGE-JOURNEY-008: shows active journey hero when active journey exists', async () => {
-    const active = buildJourneyListItem({ id: 10, title: 'Active Trip', status: 'active', trip_date_min: '2020-01-01', trip_date_max: '2099-12-31' });
+    const active = buildJourneyListItem({
+      id: 10,
+      title: 'Active Trip',
+      status: 'active',
+      trip_date_min: '2020-01-01',
+      trip_date_max: '2099-12-31',
+    });
     const other = buildJourneyListItem({ id: 11, title: 'Completed Trip', status: 'completed' });
     setupDefaultHandlers([active, other]);
 
@@ -252,12 +239,8 @@ describe('JourneyPage', () => {
       place_count: 3,
     };
     server.use(
-      http.get('/api/journeys', () =>
-        HttpResponse.json({ journeys: [] })
-      ),
-      http.get('/api/journeys/suggestions', () =>
-        HttpResponse.json({ trips: [suggestion] })
-      ),
+      http.get('/api/journeys', () => HttpResponse.json({ journeys: [] })),
+      http.get('/api/journeys/suggestions', () => HttpResponse.json({ trips: [suggestion] }))
     );
 
     render(<JourneyPage />);
@@ -306,17 +289,27 @@ describe('JourneyPage', () => {
   // FE-PAGE-JOURNEY-012
   it('FE-PAGE-JOURNEY-012: create journey form submission navigates to new journey', async () => {
     const user = userEvent.setup();
-    const createdJourney = { id: 99, user_id: 1, title: 'My New Journey', subtitle: null, cover_gradient: null, cover_image: null, status: 'draft', created_at: Date.now(), updated_at: Date.now() };
+    const createdJourney = {
+      id: 99,
+      user_id: 1,
+      title: 'My New Journey',
+      subtitle: null,
+      cover_gradient: null,
+      cover_image: null,
+      status: 'draft',
+      created_at: Date.now(),
+      updated_at: Date.now(),
+    };
 
     server.use(
       http.get('/api/journeys', () => HttpResponse.json({ journeys: [] })),
       http.get('/api/journeys/suggestions', () => HttpResponse.json({ trips: [] })),
       http.get('/api/journeys/available-trips', () =>
-        HttpResponse.json({ trips: [
-          { id: 5, title: 'Thailand 2026', start_date: '2026-05-01', end_date: '2026-05-14', place_count: 8 },
-        ] })
+        HttpResponse.json({
+          trips: [{ id: 5, title: 'Thailand 2026', start_date: '2026-05-01', end_date: '2026-05-14', place_count: 8 }],
+        })
       ),
-      http.post('/api/journeys', () => HttpResponse.json(createdJourney)),
+      http.post('/api/journeys', () => HttpResponse.json(createdJourney))
     );
 
     render(<JourneyPage />);
@@ -375,7 +368,13 @@ describe('JourneyPage', () => {
   it('FE-PAGE-JOURNEY-014: journey card shows draft status badge', async () => {
     // A live journey claims the hero slot, so the draft journey renders as a
     // grid card — which is where the lifecycle badge lives.
-    const live = buildJourneyListItem({ id: 31, title: 'Live Journey', status: 'active', trip_date_min: '2020-01-01', trip_date_max: '2099-12-31' });
+    const live = buildJourneyListItem({
+      id: 31,
+      title: 'Live Journey',
+      status: 'active',
+      trip_date_min: '2020-01-01',
+      trip_date_max: '2099-12-31',
+    });
     const j1 = buildJourneyListItem({ id: 30, title: 'Draft Journey', status: 'draft' });
     setupDefaultHandlers([live, j1]);
 
@@ -390,7 +389,13 @@ describe('JourneyPage', () => {
 
   // FE-PAGE-JOURNEY-018
   it('FE-PAGE-JOURNEY-018: active journey hero shows "Continue writing" button', async () => {
-    const active = buildJourneyListItem({ id: 50, title: 'Writing Journey', status: 'active', trip_date_min: '2020-01-01', trip_date_max: '2099-12-31' });
+    const active = buildJourneyListItem({
+      id: 50,
+      title: 'Writing Journey',
+      status: 'active',
+      trip_date_min: '2020-01-01',
+      trip_date_max: '2099-12-31',
+    });
     setupDefaultHandlers([active]);
 
     render(<JourneyPage />);
@@ -403,7 +408,13 @@ describe('JourneyPage', () => {
 
   // FE-PAGE-JOURNEY-019
   it('FE-PAGE-JOURNEY-019: active journey hero shows the continue-writing action', async () => {
-    const active = buildJourneyListItem({ id: 51, title: 'Live Journey', status: 'active', trip_date_min: '2020-01-01', trip_date_max: '2099-12-31' });
+    const active = buildJourneyListItem({
+      id: 51,
+      title: 'Live Journey',
+      status: 'active',
+      trip_date_min: '2020-01-01',
+      trip_date_max: '2099-12-31',
+    });
     setupDefaultHandlers([active]);
 
     render(<JourneyPage />);
@@ -417,7 +428,13 @@ describe('JourneyPage', () => {
   // FE-PAGE-JOURNEY-020
   it('FE-PAGE-JOURNEY-020: clicking active journey hero navigates to its detail page', async () => {
     const user = userEvent.setup();
-    const active = buildJourneyListItem({ id: 60, title: 'Clickable Hero', status: 'active', trip_date_min: '2020-01-01', trip_date_max: '2099-12-31' });
+    const active = buildJourneyListItem({
+      id: 60,
+      title: 'Clickable Hero',
+      status: 'active',
+      trip_date_min: '2020-01-01',
+      trip_date_max: '2099-12-31',
+    });
     setupDefaultHandlers([active]);
 
     render(<JourneyPage />);
@@ -455,7 +472,13 @@ describe('JourneyPage', () => {
     // The list is sorted newest-first; even though the completed journey is newer,
     // the live one is featured as the hero (labelled "Active Journey").
     const newerCompleted = buildJourneyListItem({ id: 80, title: 'Newer Completed', status: 'completed' });
-    const live = buildJourneyListItem({ id: 81, title: 'Ongoing Trip', status: 'active', trip_date_min: '2020-01-01', trip_date_max: '2099-12-31' });
+    const live = buildJourneyListItem({
+      id: 81,
+      title: 'Ongoing Trip',
+      status: 'active',
+      trip_date_min: '2020-01-01',
+      trip_date_max: '2099-12-31',
+    });
     setupDefaultHandlers([newerCompleted, live]);
 
     render(<JourneyPage />);

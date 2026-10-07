@@ -17,14 +17,27 @@ export class VacayCompanyHolidaysRepository extends TrekRepository<VacayCompanyH
 
   /** VC93/VC112 — `SELECT date, fraction FROM vacay_company_holidays WHERE plan_id = ? AND date >= ? AND date < ? ORDER BY date` (`getSharedCalendars`) and `SELECT * FROM vacay_company_holidays WHERE plan_id = ? AND date >= ? AND date < ?` (`getEntries`, unordered, full row). Two distinct statements — two methods. */
   async listDatesForRange(planId: number, start: string, end: string): Promise<{ date: string; fraction: number }[]> {
-    const rows = await this.find({ plan: planId, date: { $gte: start, $lt: end } }, { fields: ['date', 'fraction'], orderBy: { date: 'asc' } });
+    const rows = await this.find(
+      { plan: planId, date: { $gte: start, $lt: end } },
+      { fields: ['date', 'fraction'], orderBy: { date: 'asc' } },
+    );
     return rows.map((row) => ({ date: row.date, fraction: row.fraction }));
   }
 
   /** VC112 — `SELECT * FROM vacay_company_holidays WHERE plan_id = ? AND date >= ? AND date < ?` (`getEntries`, full row, unordered). */
-  async listForRange(planId: number, start: string, end: string): Promise<{ id: number; plan_id: number; date: string; note: string | null; fraction: number }[]> {
+  async listForRange(
+    planId: number,
+    start: string,
+    end: string,
+  ): Promise<{ id: number; plan_id: number; date: string; note: string | null; fraction: number }[]> {
     const rows = await this.find({ plan: planId, date: { $gte: start, $lt: end } });
-    return rows.map((row) => ({ id: row.id, plan_id: row.plan_id, date: row.date, note: row.note ?? null, fraction: row.fraction }));
+    return rows.map((row) => ({
+      id: row.id,
+      plan_id: row.plan_id,
+      date: row.date,
+      note: row.note ?? null,
+      fraction: row.fraction,
+    }));
   }
 
   /** VC24-sibling: VC25 — `DELETE FROM vacay_company_holidays WHERE plan_id = ? AND date = ?` (`applyHolidayCalendars`'s auto-clear). */
@@ -39,7 +52,10 @@ export class VacayCompanyHolidaysRepository extends TrekRepository<VacayCompanyH
 
   /** VC70/VC73 — `INSERT OR IGNORE INTO vacay_company_holidays (plan_id, date, note, fraction) VALUES (?, ?, ?, ?)` (`dissolvePlan`'s two migration branches — identical statement). */
   async insertIgnore(planId: number, date: string, note: string, fraction: number): Promise<void> {
-    await this.upsert({ plan: planId, date, note, fraction }, { onConflictFields: ['plan', 'date'], onConflictAction: 'ignore' });
+    await this.upsert(
+      { plan: planId, date, note, fraction },
+      { onConflictFields: ['plan', 'date'], onConflictAction: 'ignore' },
+    );
   }
 
   /**

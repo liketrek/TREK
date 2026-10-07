@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import type { z } from 'zod';
-
 import { validateEnvAtBoot, readEnv, SECRET_ENV_KEYS } from '../../../src/app-config/env';
 import { envSchema } from '../../../src/app-config/env.schema';
+
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import type { z } from 'zod';
 
 const schemaShape: Record<string, z.ZodType> = envSchema.shape;
 
@@ -111,9 +111,7 @@ describe('validateEnvAtBoot', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     // 43 characters like a real key, with one character base64url does not have.
     const leakedPrivateKey = 'yfWPiYE+n46HLnH0KqZOF1fJJU3MYrct3AELtAQ/oRw';
-    expect(() => validateEnvAtBoot({ VAPID_PRIVATE_KEY: leakedPrivateKey, PORT: 'not-a-port' })).toThrow(
-      /2 problems/,
-    );
+    expect(() => validateEnvAtBoot({ VAPID_PRIVATE_KEY: leakedPrivateKey, PORT: 'not-a-port' })).toThrow(/2 problems/);
     const report = error.mock.calls.map((c) => c.join(' ')).join('\n');
     expect(report).toContain('VAPID_PRIVATE_KEY=***: must be a base64url-encoded P-256 private key');
     expect(report).not.toContain(leakedPrivateKey);
@@ -158,7 +156,9 @@ describe('validateEnvAtBoot', () => {
     // here and has to be decided on. Whole words, so OVERPASS_URL and
     // WEBAUTHN_RP_ID do not count.
     const looksSecret = (key: string): boolean =>
-      /(^|_)(SECRET|PASS(WORD|PHRASE)?|TOKEN|KEY|APIKEY|CREDENTIALS?|PRIVATE|LICEN[CS]E|WEBHOOK|AUTH|DSN|SALT)(_|$)/.test(key);
+      /(^|_)(SECRET|PASS(WORD|PHRASE)?|TOKEN|KEY|APIKEY|CREDENTIALS?|PRIVATE|LICEN[CS]E|WEBHOOK|AUTH|DSN|SALT)(_|$)/.test(
+        key,
+      );
     const notSecret = new Set([
       'VAPID_PUBLIC_KEY', // the public half, which every subscribing browser receives
       'TREK_PLUGIN_ALLOW_PRIVATE_EGRESS', // a switch about private networks, not a private value
@@ -272,9 +272,7 @@ describe('validateEnvAtBoot — centrally administered preconditions', () => {
   });
 
   it('MANAGED-BOOT-003: passes once the key is supplied', () => {
-    expect(() =>
-      validateEnvAtBoot({ TREK_MANAGED: '1', ENCRYPTION_KEY: 'a'.repeat(64) }),
-    ).not.toThrow();
+    expect(() => validateEnvAtBoot({ TREK_MANAGED: '1', ENCRYPTION_KEY: 'a'.repeat(64) })).not.toThrow();
   });
 
   it('MANAGED-BOOT-004: inert without the switch — a self-hoster keeps the file-based key', () => {
@@ -289,9 +287,7 @@ describe('validateEnvAtBoot — centrally administered preconditions', () => {
     // Both kinds land in one report: fixing the env should take one pass, not a
     // restart per problem.
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => validateEnvAtBoot({ TREK_MANAGED: '1', PORT: 'not-a-port' })).toThrow(
-      /2 problems/,
-    );
+    expect(() => validateEnvAtBoot({ TREK_MANAGED: '1', PORT: 'not-a-port' })).toThrow(/2 problems/);
     expect(err.mock.calls[0][0]).toMatch(/PORT/);
     expect(err.mock.calls[0][0]).toMatch(/ENCRYPTION_KEY/);
   });

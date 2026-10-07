@@ -15,6 +15,7 @@ import type {
 } from './types';
 import { ResourceTemplate as SdkResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+
 import { z } from 'zod';
 
 interface BoundEntry {

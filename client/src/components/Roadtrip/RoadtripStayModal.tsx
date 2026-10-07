@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Hourglass, Minus, Plus, ArrowRight } from 'lucide-react'
-import Modal from '../shared/Modal'
-import { useTranslation } from '../../i18n/TranslationContext'
-import { useSettingsStore } from '../../store/settingsStore'
-import { formatDurationShort, formatClock, parseClock } from './roadtripModel'
-import { formatClockTime } from '../../utils/formatters'
-import { useLeaveMode, type LeaveMode } from './useLeaveMode'
+import { AlertTriangle, ArrowRight, Hourglass, Minus, Plus } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from '../../i18n/TranslationContext';
+import { useSettingsStore } from '../../store/settingsStore';
+import { formatClockTime } from '../../utils/formatters';
+import Modal from '../shared/Modal';
+import { formatClock, formatDurationShort, parseClock } from './roadtripModel';
+import { useLeaveMode, type LeaveMode } from './useLeaveMode';
 
 /**
  * The lengths a stop usually takes, so the common answer is one tap.
@@ -13,7 +13,7 @@ import { useLeaveMode, type LeaveMode } from './useLeaveMode'
  * Kept short on purpose: a longer list reads as a form, and anything not on it is what
  * the slider is for.
  */
-const PRESETS = [15, 30, 45, 60, 90, 120, 480, 720]
+const PRESETS = [15, 30, 45, 60, 90, 120, 480, 720];
 
 /**
  * As far as the slider goes, in minutes.
@@ -23,33 +23,33 @@ const PRESETS = [15, 30, 45, 60, 90, 120, 480, 720]
  * check-out instead. The drive no longer reads a check-out, so this is the only place a
  * night is given its hours, and four of them is not a night.
  */
-const MAX = 1440
+const MAX = 1440;
 /** The step the slider and the two buttons move in. */
-const STEP = 5
+const STEP = 5;
 
 /** The stop being given a length. */
 export interface StayDraft {
-  placeId: number
-  name: string
-  minutes: number | null
+  placeId: number;
+  name: string;
+  minutes: number | null;
   /** When the drive gets here, so the dialog can show what the stay pushes back. */
-  arrival?: string | null
+  arrival?: string | null;
   /** When the schedule has it leave again. */
-  departure?: string | null
+  departure?: string | null;
   /** The time the visit is set to be left at, which makes the stay rather than taking one. */
-  leaveAt?: string | null
+  leaveAt?: string | null;
   /** How many minutes after that time the drive gets here, when the schedule found it cannot make it. */
-  missedBy?: number | null
-  assignmentId?: number
+  missedBy?: number | null;
+  assignmentId?: number;
   /** The day the visit is stored on. */
-  dayId?: number
+  dayId?: number;
 }
 
 interface RoadtripStayModalProps {
-  stop: StayDraft | null
-  onClose: () => void
+  stop: StayDraft | null;
+  onClose: () => void;
   /** Zero clears it: the rail reads "no stay" and "nothing planned" as the same thing. */
-  onSave: (placeId: number, minutes: number) => Promise<void> | void
+  onSave: (placeId: number, minutes: number) => Promise<void> | void;
 }
 
 /** The slider's own track and thumb, drawn from tokens so both themes get it right. */
@@ -61,7 +61,7 @@ const SLIDER = [
   '[&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[var(--bg-card)]',
   '[&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:border-0',
   '[&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-accent',
-].join(' ')
+].join(' ');
 
 /**
  * How long the traveller stays at one stop.
@@ -80,22 +80,28 @@ const SLIDER = [
  * update statement folds a null into "leave it alone" — a null could give a stop a stay
  * but never take one away.
  */
-export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripStayModalProps): React.ReactElement | null {
-  const { t } = useTranslation()
-  const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
-  const [minutes, setMinutes] = useState(0)
-  const [saving, setSaving] = useState(false)
-  const leave = useLeaveMode(stop)
+export default function RoadtripStayModal({
+  stop,
+  onClose,
+  onSave,
+}: RoadtripStayModalProps): React.ReactElement | null {
+  const { t } = useTranslation();
+  const is12h = useSettingsStore((s) => s.settings.time_format) === '12h';
+  const [minutes, setMinutes] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const leave = useLeaveMode(stop);
 
   // Reopened on a different stop, so it starts from that stop's own value rather than
   // from whatever the last one was left on.
-  useEffect(() => { setMinutes(stop?.minutes ?? 0) }, [stop])
+  useEffect(() => {
+    setMinutes(stop?.minutes ?? 0);
+  }, [stop]);
 
   // What the stay does to the day, worked out live: the arrival is fixed by the drive,
   // the departure is the only thing this dialog moves.
   const times = useMemo(() => {
-    const arrival = parseClock(stop?.arrival)
-    if (arrival === null) return null
+    const arrival = parseClock(stop?.arrival);
+    if (arrival === null) return null;
     return {
       arrive: formatClockTime(formatClock(arrival), is12h),
       leave: formatClockTime(formatClock(arrival + minutes), is12h),
@@ -104,32 +110,37 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
       // without the same carry here the dialog would quietly say "leave 01:00" for a
       // stop the chain places on the next day.
       leaveCarry: Math.floor((arrival + minutes) / (24 * 60)) - Math.floor(arrival / (24 * 60)),
-    }
-  }, [stop?.arrival, minutes, is12h])
+    };
+  }, [stop?.arrival, minutes, is12h]);
 
-  if (!stop) return null
-  if (leave.until) return <LeaveTime stop={stop} leave={leave} until={leave.until} is12h={is12h} onClose={onClose} />
+  if (!stop) return null;
+  if (leave.until) return <LeaveTime stop={stop} leave={leave} until={leave.until} is12h={is12h} onClose={onClose} />;
 
   const commit = async (value: number) => {
-    if (saving) return
-    setSaving(true)
+    if (saving) return;
+    setSaving(true);
     try {
-      await onSave(stop.placeId, value)
-      onClose()
+      await onSave(stop.placeId, value);
+      onClose();
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
-  const nudge = (delta: number) => setMinutes(m => Math.min(MAX, Math.max(0, m + delta)))
+  const nudge = (delta: number) => setMinutes((m) => Math.min(MAX, Math.max(0, m + delta)));
 
   return (
-    <Modal isOpen onClose={onClose} size="sm" title={
-      <span className="flex items-center gap-2">
-        <Hourglass size={15} className="text-content-faint" aria-hidden />
-        {t('roadtrip.stop.stay')}
-      </span>
-    }>
+    <Modal
+      isOpen
+      onClose={onClose}
+      size="sm"
+      title={
+        <span className="flex items-center gap-2">
+          <Hourglass size={15} className="text-content-faint" aria-hidden />
+          {t('roadtrip.stop.stay')}
+        </span>
+      }
+    >
       <div className="flex flex-col gap-5">
         <p className="break-words text-center text-caption text-content-muted">{stop.name}</p>
 
@@ -168,7 +179,7 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
           max={MAX}
           step={STEP}
           value={minutes}
-          onChange={e => setMinutes(Number(e.target.value))}
+          onChange={(e) => setMinutes(Number(e.target.value))}
           aria-label={t('roadtrip.stay.custom')}
           className={SLIDER}
         />
@@ -178,7 +189,7 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
         {times ? <ArriveLeave arrive={times.arrive} leave={times.leave} carry={times.leaveCarry} /> : null}
 
         <div className="flex flex-wrap justify-center gap-1.5">
-          {PRESETS.map(value => (
+          {PRESETS.map((value) => (
             <button
               key={value}
               type="button"
@@ -223,7 +234,7 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
         </button>
       </div>
     </Modal>
-  )
+  );
 }
 
 /**
@@ -238,24 +249,35 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
  * hours over first it goes on the next morning. Saying "leaves at 14:00" over a box that
  * reads 14:30 gave two departures for one stop.
  */
-function LeaveTime({ stop, leave, until: leaveAt, is12h, onClose }: {
-  stop: StayDraft
-  leave: LeaveMode
-  until: string
-  is12h: boolean
-  onClose: () => void
+function LeaveTime({
+  stop,
+  leave,
+  until: leaveAt,
+  is12h,
+  onClose,
+}: {
+  stop: StayDraft;
+  leave: LeaveMode;
+  until: string;
+  is12h: boolean;
+  onClose: () => void;
 }): React.ReactElement {
-  const { t } = useTranslation()
-  const until = formatClockTime(leaveAt, is12h)
-  const arrive = stop.arrival ? formatClockTime(stop.arrival, is12h) : null
-  const departure = stop.departure ? formatClockTime(stop.departure, is12h) : until
+  const { t } = useTranslation();
+  const until = formatClockTime(leaveAt, is12h);
+  const arrive = stop.arrival ? formatClockTime(stop.arrival, is12h) : null;
+  const departure = stop.departure ? formatClockTime(stop.departure, is12h) : until;
   return (
-    <Modal isOpen onClose={onClose} size="sm" title={
-      <span className="flex items-center gap-2">
-        <Hourglass size={15} className="text-content-faint" aria-hidden />
-        {t('roadtrip.stop.stay')}
-      </span>
-    }>
+    <Modal
+      isOpen
+      onClose={onClose}
+      size="sm"
+      title={
+        <span className="flex items-center gap-2">
+          <Hourglass size={15} className="text-content-faint" aria-hidden />
+          {t('roadtrip.stop.stay')}
+        </span>
+      }
+    >
       <div className="flex flex-col gap-5">
         <p className="break-words text-center text-caption text-content-muted">{stop.name}</p>
         <span className="text-center text-title font-semibold tabular-nums tracking-tight text-content">
@@ -296,19 +318,29 @@ function LeaveTime({ stop, leave, until: leaveAt, is12h, onClose }: {
         </button>
       </div>
     </Modal>
-  )
+  );
 }
 
 /** Arrival, arrow, departure: the two ends of the stay, with the day the second lands on. */
-function ArriveLeave({ arrive, leave, carry = 0 }: { arrive: string; leave: string; carry?: number }): React.ReactElement {
-  const { t } = useTranslation()
+function ArriveLeave({
+  arrive,
+  leave,
+  carry = 0,
+}: {
+  arrive: string;
+  leave: string;
+  carry?: number;
+}): React.ReactElement {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-center gap-3 rounded-xl border border-edge-faint bg-surface-secondary px-3 py-2.5">
       <span className="flex flex-col items-center gap-0.5">
         <span className="font-geist text-caption font-semibold uppercase tracking-[0.12em] text-content-faint">
           {t('roadtrip.stay.arrive')}
         </span>
-        <span dir="ltr" className="text-body font-semibold tabular-nums text-content-secondary">{arrive}</span>
+        <span dir="ltr" className="text-body font-semibold tabular-nums text-content-secondary">
+          {arrive}
+        </span>
       </span>
       <ArrowRight size={14} className="mt-3 shrink-0 text-content-faint" aria-hidden />
       <span className="flex flex-col items-center gap-0.5">
@@ -326,5 +358,5 @@ function ArriveLeave({ arrive, leave, carry = 0 }: { arrive: string; leave: stri
         </span>
       </span>
     </div>
-  )
+  );
 }

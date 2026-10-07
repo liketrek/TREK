@@ -3,9 +3,9 @@ import { AdminSeeder } from './AdminSeeder';
 import { CategorySeeder } from './CategorySeeder';
 import { DocumentProviderSeeder } from './DocumentProviderSeeder';
 import { PhotoProviderSeeder } from './PhotoProviderSeeder';
+import { SchemaVersionSeeder } from './SchemaVersionSeeder';
 import type { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
-import { SchemaVersionSeeder } from './SchemaVersionSeeder';
 
 /**
  * The default seeder, replacing `db/seeds.ts::runSeeds()`.
@@ -16,6 +16,13 @@ import { SchemaVersionSeeder } from './SchemaVersionSeeder';
  */
 export class DatabaseSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
-    await this.call(em, [AdminSeeder, CategorySeeder, AddonSeeder, PhotoProviderSeeder, DocumentProviderSeeder, SchemaVersionSeeder]);
+    await this.call(em, [
+      AdminSeeder,
+      CategorySeeder,
+      AddonSeeder,
+      PhotoProviderSeeder,
+      DocumentProviderSeeder,
+      SchemaVersionSeeder,
+    ]);
   }
 }

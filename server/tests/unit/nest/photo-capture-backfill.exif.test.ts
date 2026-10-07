@@ -7,15 +7,16 @@
  * tags a phone writes, through a real StorageService, with the process in a zone
  * that is neither UTC nor the photographer's.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
-import { Readable } from 'node:stream';
 import { PhotoCaptureBackfillService } from '../../../src/nest/memories/photo-capture-backfill.service';
 import type { PhotoResolverService } from '../../../src/nest/memories/photo-resolver.service';
 import type { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
 import { jpegWithExif, type ExifJpegTags } from '../../helpers/exif-jpeg';
 import { makeStorageFixture, type StorageFixture } from '../../helpers/storage-fixture';
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { Readable } from 'node:stream';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 
 // Normandy, west of Greenwich, so a dropped sign would show.
 const NORMANDY = { lat: 49.274523, lng: -0.703421 };
@@ -24,7 +25,9 @@ let fx: StorageFixture;
 let prevTz: string | undefined;
 let seq = 0;
 
-beforeAll(() => { fx = makeStorageFixture('journey/'); });
+beforeAll(() => {
+  fx = makeStorageFixture('journey/');
+});
 afterAll(() => fx.cleanup());
 beforeEach(() => {
   prevTz = process.env.TZ;
@@ -41,7 +44,14 @@ async function backfill(bytes: Buffer): Promise<unknown[][]> {
   await fx.storage.put('journey', name, Readable.from(bytes), { contentType: 'image/jpeg' });
   const recordCaptureMetadata = vi.fn();
   const photos = {
-    resolve: (id: number) => ({ id, provider: 'local', file_path: `journey/${name}`, taken_at: null, lat: null, lng: null }),
+    resolve: (id: number) => ({
+      id,
+      provider: 'local',
+      file_path: `journey/${name}`,
+      taken_at: null,
+      lat: null,
+      lng: null,
+    }),
     recordCaptureMetadata,
   } as unknown as TrekPhotoRegistrationService;
   const svc = new PhotoCaptureBackfillService({} as PhotoResolverService, photos, fx.storage);
@@ -154,14 +164,18 @@ describe('PhotoCaptureBackfillService reading real EXIF', () => {
 
   it('EXIF-013: a GPS block of zeros, as a receiver without a fix writes it, is no location', async () => {
     const zeros = { lat: 0, lng: 0 };
-    expect(await photo({ DateTimeOriginal: '2026:05:30 15:52:19', OffsetTimeOriginal: '+02:00', gps: zeros }))
-      .toEqual([[7, { takenAt: '2026-05-30T13:52:19.000Z', lat: null, lng: null }]]);
+    expect(await photo({ DateTimeOriginal: '2026:05:30 15:52:19', OffsetTimeOriginal: '+02:00', gps: zeros })).toEqual([
+      [7, { takenAt: '2026-05-30T13:52:19.000Z', lat: null, lng: null }],
+    ]);
     // Nothing else to go on: nothing is recorded, rather than a pin in the Gulf of Guinea.
     expect(await photo({ gps: zeros })).toEqual([]);
   });
 
   it('EXIF-014: a real place on the equator or the prime meridian keeps its location', async () => {
-    for (const gps of [{ lat: 0, lng: 32.58 }, { lat: 51.4779, lng: 0 }]) {
+    for (const gps of [
+      { lat: 0, lng: 32.58 },
+      { lat: 51.4779, lng: 0 },
+    ]) {
       const calls = await photo({ gps });
       expect(calls, JSON.stringify(gps)).toHaveLength(1);
       const [, meta] = calls[0] as [number, { lat: number; lng: number }];

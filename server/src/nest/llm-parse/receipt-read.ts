@@ -1,3 +1,5 @@
+import { parseAmount } from './clients/nuextract';
+import { toIsoCurrency } from './currency-code';
 import {
   RECEIPT_AMOUNT_MAX,
   RECEIPT_LINES_MAX,
@@ -6,8 +8,6 @@ import {
   type ReceiptLine,
   type ReceiptRead,
 } from '@trek/shared';
-import { toIsoCurrency } from './currency-code';
-import { parseAmount } from './clients/nuextract';
 
 /**
  * Reading a photographed receipt for the Costs tab: the prompt, the schema the
@@ -56,7 +56,8 @@ export const RECEIPT_LIST_JSON_SCHEMA = {
 } as const;
 
 /** One receipt as the prompt spells it out, empty the way an unread field is answered. */
-const RECEIPT_SHAPE = '{ "merchant": "", "date": "", "total": 0, "currency": "", "items": [ { "name": "", "price": 0 } ] }';
+const RECEIPT_SHAPE =
+  '{ "merchant": "", "date": "", "total": 0, "currency": "", "items": [ { "name": "", "price": 0 } ] }';
 
 /**
  * The instructions for one receipt. `listed` is the cloud form, whose answer is
@@ -68,7 +69,9 @@ const RECEIPT_SHAPE = '{ "merchant": "", "date": "", "total": 0, "currency": "",
  */
 export function buildReceiptPrompt(today: Date = new Date(), listed = false): string {
   const todayIso = today.toISOString().slice(0, 10);
-  const shape = listed ? `{ "${RECEIPT_ROOT_KEY}": [ ${RECEIPT_SHAPE} ] }, with the one receipt in the list` : RECEIPT_SHAPE;
+  const shape = listed
+    ? `{ "${RECEIPT_ROOT_KEY}": [ ${RECEIPT_SHAPE} ] }, with the one receipt in the list`
+    : RECEIPT_SHAPE;
   return [
     'You read a photographed receipt, bill or invoice: often a paper till roll, possibly crumpled, skewed or in a foreign language.',
     `Return ONLY a JSON object of the form ${shape}. No prose, no markdown.`,

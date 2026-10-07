@@ -117,7 +117,11 @@ export class VacayPlansRepository extends TrekRepository<VacayPlans> {
     interface UsersKyselyDB {
       users: { id: number; username: string; email: string };
     }
-    const row = await this.kysely<UsersKyselyDB>().selectFrom('users').select(['id', 'username', 'email']).where('id', '=', id).executeTakeFirst();
+    const row = await this.kysely<UsersKyselyDB>()
+      .selectFrom('users')
+      .select(['id', 'username', 'email'])
+      .where('id', '=', id)
+      .executeTakeFirst();
     return row ?? null;
   }
 }

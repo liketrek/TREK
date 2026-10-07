@@ -1,16 +1,16 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { TripMembersController } from './trip-members.controller';
-import { TripMembersService } from './trip-members.service';
-import { PermissionsModule } from '../permissions/permissions.module';
-import { RealtimeModule } from '../realtime/realtime.module';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
 import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { BudgetModule } from '../budget/budget.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { Trips } from '../../db/entities/Trips.entity';
-import { TripMembers } from '../../db/entities/TripMembers.entity';
-import { Users } from '../../db/entities/Users.entity';
+import { PermissionsModule } from '../permissions/permissions.module';
+import { RealtimeModule } from '../realtime/realtime.module';
+import { TripMembersController } from './trip-members.controller';
+import { TripMembersService } from './trip-members.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * The member/guest roster of a trip.
@@ -28,7 +28,12 @@ import { Users } from '../../db/entities/Users.entity';
  */
 @Module({
   imports: [
-    NotificationsModule, PermissionsModule, RealtimeModule, AuditModule, AuthModule, BudgetModule,
+    NotificationsModule,
+    PermissionsModule,
+    RealtimeModule,
+    AuditModule,
+    AuthModule,
+    BudgetModule,
     MikroOrmModule.forFeature([Trips, TripMembers, Users]),
   ],
   controllers: [TripMembersController],

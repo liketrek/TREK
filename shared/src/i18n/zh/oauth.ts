@@ -106,6 +106,7 @@ const oauth: TranslationStrings = {
   'oauth.scope.settings:write.description': '更改单位、时间格式、语言、默认货币和起始页。绝不涉及已保存的 API 密钥',
   'oauth.scope.group.plugins': '插件',
   'oauth.scope.plugins:use.label': '运行插件工具',
-  'oauth.scope.plugins:use.description': '允许此客户端调用由管理员安装并批准的插件所发布的工具。每个插件都以其已获授予的权限运行，而不是以此令牌的权限范围运行',
+  'oauth.scope.plugins:use.description':
+    '允许此客户端调用由管理员安装并批准的插件所发布的工具。每个插件都以其已获授予的权限运行，而不是以此令牌的权限范围运行',
 };
 export default oauth;

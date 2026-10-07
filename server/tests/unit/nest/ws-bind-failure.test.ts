@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
 import http from 'node:http';
+import { describe, it, expect, vi } from 'vitest';
 import { WebSocketServer } from 'ws';
 
 /**
@@ -36,7 +36,9 @@ describe('ws attached before listen()', () => {
       wss.on('error', swallowed); // the shape this used to have
 
       let listenCallbackRan = false;
-      server.listen(port, '127.0.0.1', () => { listenCallbackRan = true; });
+      server.listen(port, '127.0.0.1', () => {
+        listenCallbackRan = true;
+      });
       await new Promise((r) => setTimeout(r, 300));
 
       // The bind failed, and the only thing that heard about it was the ws

@@ -1,11 +1,11 @@
 // FE-COMP-NAVEDITOR-001 to FE-COMP-NAVEDITOR-014
+import { act } from '@testing-library/react';
 import React from 'react';
 import { renderHook } from '../../../tests/helpers/render';
-import { act } from '@testing-library/react';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { TranslationProvider } from '../../i18n/TranslationContext';
 import { useAddonStore } from '../../store/addonStore';
 import { usePluginStore } from '../../store/pluginStore';
-import { TranslationProvider } from '../../i18n/TranslationContext';
 import { useMobileNavEditor, type MobileNavValue } from './useMobileNavEditor';
 
 const GLOBAL_ADDONS = [
@@ -25,7 +25,7 @@ function setup(value: MobileNavValue) {
   return { result, onChange };
 }
 
-const ids = (items: { id: string }[]) => items.map(i => i.id);
+const ids = (items: { id: string }[]) => items.map((i) => i.id);
 
 beforeEach(() => {
   resetAllStores();

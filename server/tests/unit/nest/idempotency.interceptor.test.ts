@@ -1,14 +1,15 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import type { CallHandler, ExecutionContext } from '@nestjs/common';
-import { from, of, lastValueFrom } from 'rxjs';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { createUser } from '../../helpers/factories';
 import { IdempotencyKeys } from '../../../src/db/entities/IdempotencyKeys.entity';
 import type { IdempotencyKeysRepository } from '../../../src/db/repositories/IdempotencyKeys.repository';
 import { IdempotencyInterceptor } from '../../../src/nest/common/idempotency.interceptor';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { HttpException } from '@nestjs/common';
+import type { CallHandler, ExecutionContext } from '@nestjs/common';
+
+import { from, of, lastValueFrom } from 'rxjs';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 type ReqShape = {
   method: string;
@@ -54,10 +55,17 @@ beforeEach(() => {
   const { user } = createUser(testDb);
   userId = user.id;
 });
-afterAll(async () => { await t.close(); testDb.close(); });
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 const findRow = (key: string, user: number, method: string, path: string) =>
-  testDb.prepare('SELECT status_code, response_body FROM idempotency_keys WHERE key = ? AND user_id = ? AND method = ? AND path = ?').get(key, user, method, path);
+  testDb
+    .prepare(
+      'SELECT status_code, response_body FROM idempotency_keys WHERE key = ? AND user_id = ? AND method = ? AND path = ?',
+    )
+    .get(key, user, method, path);
 
 // A few `await Promise.resolve()` hops give the repository's async write
 // chain (and its `.finally(release)`) the same room it gets under a real
@@ -81,7 +89,10 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
   it('passes a mutating request without a key through', async () => {
     const h = handler('done');
     await lastValueFrom(
-      await new IdempotencyInterceptor(idempotencyKeys).intercept(ctx({ method: 'POST', headers: {}, user: { id: userId } }, makeRes()), h),
+      await new IdempotencyInterceptor(idempotencyKeys).intercept(
+        ctx({ method: 'POST', headers: {}, user: { id: userId } }, makeRes()),
+        h,
+      ),
     );
     expect(h.handle).toHaveBeenCalled();
   });
@@ -89,7 +100,10 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
   it('passes through when there is no authenticated user', async () => {
     const h = handler('done');
     await lastValueFrom(
-      await new IdempotencyInterceptor(idempotencyKeys).intercept(ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' } }, makeRes()), h),
+      await new IdempotencyInterceptor(idempotencyKeys).intercept(
+        ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' } }, makeRes()),
+        h,
+      ),
     );
     expect(h.handle).toHaveBeenCalled();
   });
@@ -116,13 +130,19 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
   });
 
   it('replays a cached response and skips the handler', async () => {
-    testDb.prepare('INSERT INTO idempotency_keys (key, user_id, method, path, status_code, response_body) VALUES (?, ?, ?, ?, ?, ?)')
+    testDb
+      .prepare(
+        'INSERT INTO idempotency_keys (key, user_id, method, path, status_code, response_body) VALUES (?, ?, ?, ?, ?, ?)',
+      )
       .run('k', userId, 'POST', '/api/categories', 201, '{"id":5}');
     const res = makeRes();
     const h = handler('should-not-run');
     const out = await lastValueFrom(
       await new IdempotencyInterceptor(idempotencyKeys).intercept(
-        ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories', user: { id: userId } }, res),
+        ctx(
+          { method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories', user: { id: userId } },
+          res,
+        ),
         h,
       ),
     );
@@ -136,7 +156,10 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     const h = handler({ created: true });
     await lastValueFrom(
       await new IdempotencyInterceptor(idempotencyKeys).intercept(
-        ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories', user: { id: userId } }, res),
+        ctx(
+          { method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories', user: { id: userId } },
+          res,
+        ),
         h,
       ),
     );
@@ -145,7 +168,10 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     res.json({ created: true });
     await settle();
 
-    expect(findRow('k', userId, 'POST', '/api/categories')).toEqual({ status_code: 201, response_body: '{"created":true}' });
+    expect(findRow('k', userId, 'POST', '/api/categories')).toEqual({
+      status_code: 201,
+      response_body: '{"created":true}',
+    });
   });
 
   it('does not cache a non-2xx response', async () => {
@@ -153,7 +179,10 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     const h = handler({ error: 'bad' });
     await lastValueFrom(
       await new IdempotencyInterceptor(idempotencyKeys).intercept(
-        ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories', user: { id: userId } }, res),
+        ctx(
+          { method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories', user: { id: userId } },
+          res,
+        ),
         h,
       ),
     );
@@ -170,7 +199,10 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     const h = handler(big);
     await lastValueFrom(
       await new IdempotencyInterceptor(idempotencyKeys).intercept(
-        ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories', user: { id: userId } }, res),
+        ctx(
+          { method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories', user: { id: userId } },
+          res,
+        ),
         h,
       ),
     );
@@ -182,12 +214,18 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
   });
 
   it('swallows a storage failure so the response still succeeds', async () => {
-    const failing = { findResponse: vi.fn().mockResolvedValue(null), insertIfAbsent: vi.fn().mockRejectedValue(new Error('db is locked')) } as unknown as IdempotencyKeysRepository;
+    const failing = {
+      findResponse: vi.fn().mockResolvedValue(null),
+      insertIfAbsent: vi.fn().mockRejectedValue(new Error('db is locked')),
+    } as unknown as IdempotencyKeysRepository;
     const res = makeRes();
     const h = handler({ ok: true });
     await lastValueFrom(
       await new IdempotencyInterceptor(failing).intercept(
-        ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories', user: { id: userId } }, res),
+        ctx(
+          { method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories', user: { id: userId } },
+          res,
+        ),
         h,
       ),
     );
@@ -206,13 +244,37 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
 
     // The first handler is still running when the second request arrives.
     let finish!: (value: unknown) => void;
-    const slow = { handle: vi.fn(() => from(new Promise((resolve) => { finish = resolve; }))) };
+    const slow = {
+      handle: vi.fn(() =>
+        from(
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+        ),
+      ),
+    };
     const firstRes = makeRes();
-    const first = lastValueFrom(await interceptor.intercept(ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: userId } }, firstRes), slow));
+    const first = lastValueFrom(
+      await interceptor.intercept(
+        ctx(
+          { method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: userId } },
+          firstRes,
+        ),
+        slow,
+      ),
+    );
 
     const secondHandler = handler({ id: 'second' });
     const secondRes = makeRes();
-    const second = lastValueFrom(await interceptor.intercept(ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: userId } }, secondRes), secondHandler));
+    const second = lastValueFrom(
+      await interceptor.intercept(
+        ctx(
+          { method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: userId } },
+          secondRes,
+        ),
+        secondHandler,
+      ),
+    );
 
     // The order Nest uses, and the one that makes this test worth having: the
     // handler's observable completes FIRST, and the response - which is what
@@ -237,17 +299,35 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     const interceptor = new IdempotencyInterceptor(idempotencyKeys);
 
     let finish!: (value: unknown) => void;
-    const slow = { handle: vi.fn(() => from(new Promise((resolve) => { finish = resolve; }))) };
-    const first = lastValueFrom(await interceptor.intercept(
-      ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: userId } }, makeRes()),
-      slow,
-    ));
+    const slow = {
+      handle: vi.fn(() =>
+        from(
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+        ),
+      ),
+    };
+    const first = lastValueFrom(
+      await interceptor.intercept(
+        ctx(
+          { method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: userId } },
+          makeRes(),
+        ),
+        slow,
+      ),
+    );
 
     const secondHandler = handler({ id: 'second' });
-    const second = lastValueFrom(await interceptor.intercept(
-      ctx({ method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: userId } }, makeRes()),
-      secondHandler,
-    ));
+    const second = lastValueFrom(
+      await interceptor.intercept(
+        ctx(
+          { method: 'POST', headers: { 'x-idempotency-key': 'k' }, path: '/api/places', user: { id: userId } },
+          makeRes(),
+        ),
+        secondHandler,
+      ),
+    );
 
     // Nothing writes a response here, so the waiter is freed by the backstop in
     // finalize, which defers a full tick past the response write.
@@ -262,7 +342,10 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     const h = handler('done');
     await lastValueFrom(
       await new IdempotencyInterceptor(idempotencyKeys).intercept(
-        ctx({ method: 'PATCH', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories/1', user: { id: userId } }, res),
+        ctx(
+          { method: 'PATCH', headers: { 'x-idempotency-key': 'k' }, path: '/api/categories/1', user: { id: userId } },
+          res,
+        ),
         h,
       ),
     );
@@ -279,14 +362,27 @@ describe('IdempotencyInterceptor (parity with the legacy applyIdempotency middle
     // the repository's lookup open with a controlled promise makes the race
     // window deterministic instead of timing-dependent.
     let resolveLookup!: () => void;
-    const gate = new Promise<void>((resolve) => { resolveLookup = resolve; });
-    const findResponse = vi.fn(async () => { await gate; return null; });
-    const gatedRepo = { findResponse, insertIfAbsent: vi.fn().mockResolvedValue(undefined) } as unknown as IdempotencyKeysRepository;
+    const gate = new Promise<void>((resolve) => {
+      resolveLookup = resolve;
+    });
+    const findResponse = vi.fn(async () => {
+      await gate;
+      return null;
+    });
+    const gatedRepo = {
+      findResponse,
+      insertIfAbsent: vi.fn().mockResolvedValue(undefined),
+    } as unknown as IdempotencyKeysRepository;
     const interceptor = new IdempotencyInterceptor(gatedRepo);
 
     const firstHandler = handler({ id: 'a' });
     const secondHandler = handler({ id: 'b' });
-    const reqOpts = { method: 'POST', headers: { 'x-idempotency-key': 'race' }, path: '/api/places', user: { id: userId } };
+    const reqOpts = {
+      method: 'POST',
+      headers: { 'x-idempotency-key': 'race' },
+      path: '/api/places',
+      user: { id: userId },
+    };
 
     // Fired back to back, synchronously — exactly how two nearly-simultaneous
     // HTTP requests reach the interceptor.

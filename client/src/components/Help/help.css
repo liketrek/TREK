@@ -3,28 +3,60 @@
    Tailwind cannot express tidily. */
 
 @keyframes trek-help-in {
-  from { opacity: 0; transform: translateY(14px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 @keyframes trek-help-out {
-  from { opacity: 1; transform: translateY(0) scale(1); }
-  to   { opacity: 0; transform: translateY(10px) scale(0.985); }
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
 }
 @keyframes trek-help-fade-out {
-  from { opacity: 1; }
-  to   { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 @keyframes trek-help-fade {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes trek-help-rise {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes trek-help-pop {
-  from { opacity: 0; transform: scale(0.96); }
-  to   { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .trek-help-backdrop[data-state='open'] {
@@ -60,7 +92,9 @@
 /* Step pictures: a hairline frame so light screenshots keep an edge on light
    surfaces, and a gentle lift on hover to say "click to enlarge". */
 .trek-help-shot {
-  transition: transform 200ms var(--ease-out-quint), box-shadow 200ms var(--ease-out-quint);
+  transition:
+    transform 200ms var(--ease-out-quint),
+    box-shadow 200ms var(--ease-out-quint);
 }
 .trek-help-shot:hover {
   transform: translateY(-1px);
@@ -90,5 +124,7 @@
   .trek-help-lightbox > .trek-help-lightbox-card {
     animation: none;
   }
-  .trek-help-shot { transition: none; }
+  .trek-help-shot {
+    transition: none;
+  }
 }

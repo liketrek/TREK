@@ -1,11 +1,12 @@
-import { CanActivate, ExecutionContext, HttpException, Injectable, SetMetadata } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { EntityManager } from '@mikro-orm/core';
-import type { Request } from 'express';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
-import { PermissionsService } from './permissions.service';
 import type { User } from '../../types';
+import { PermissionsService } from './permissions.service';
+import { EntityManager } from '@mikro-orm/core';
+import { CanActivate, ExecutionContext, HttpException, Injectable, SetMetadata } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+
+import type { Request } from 'express';
 
 /** Where the guard parks the resolved trip row for `@Trip()` to pick up. */
 export const TRIP_REQUEST_KEY = 'trekTrip';
@@ -70,7 +71,9 @@ export class TripAccessGuard implements CanActivate {
     if (!user) throw new HttpException({ error: 'Unauthorized' }, 401);
 
     const tripId = Number((request.params as Record<string, string>)?.tripId);
-    const trip = Number.isFinite(tripId) ? await this.em.getRepository(Trips).findAccessible(tripId, user.id) : undefined;
+    const trip = Number.isFinite(tripId)
+      ? await this.em.getRepository(Trips).findAccessible(tripId, user.id)
+      : undefined;
     // A trip the user may not see is reported as absent, never as forbidden: a 403
     // would confirm the id exists to someone who has no business knowing.
     if (!trip) throw new HttpException({ error: 'Trip not found' }, 404);

@@ -1,9 +1,9 @@
 // FE-PLANNER-FILEBTNS-001 to FE-PLANNER-FILEBTNS-009
-import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { buildTripFile } from '../../../tests/helpers/factories';
-import { BookingFileButtons } from './BookingFileButtons';
+import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import type { TripFile } from '../../types';
+import { BookingFileButtons } from './BookingFileButtons';
 
 const voucher = buildTripFile({ id: 1, original_name: 'voucher.pdf' });
 const ticket = buildTripFile({ id: 2, original_name: 'ticket.pdf' });
@@ -12,7 +12,14 @@ function renderButtons(props: Partial<React.ComponentProps<typeof BookingFileBut
   const onAttach = vi.fn();
   const onLink = vi.fn(async (_file: TripFile) => true);
   const view = render(
-    <BookingFileButtons canAttach uploading={false} onAttach={onAttach} linkable={[voucher, ticket]} onLink={onLink} {...props} />,
+    <BookingFileButtons
+      canAttach
+      uploading={false}
+      onAttach={onAttach}
+      linkable={[voucher, ticket]}
+      onLink={onLink}
+      {...props}
+    />
   );
   return { ...view, onAttach, onLink };
 }
@@ -92,9 +99,15 @@ describe('BookingFileButtons', () => {
     const user = userEvent.setup();
     render(
       <div>
-        <BookingFileButtons canAttach={false} uploading={false} onAttach={vi.fn()} linkable={[voucher]} onLink={vi.fn(async () => false)} />
+        <BookingFileButtons
+          canAttach={false}
+          uploading={false}
+          onAttach={vi.fn()}
+          linkable={[voucher]}
+          onLink={vi.fn(async () => false)}
+        />
         <p>elsewhere</p>
-      </div>,
+      </div>
     );
     await user.click(linkButton());
     fireEvent.pointerDown(screen.getByText('voucher.pdf'));

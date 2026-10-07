@@ -1,5 +1,5 @@
-import { TRANSIT_PROVIDERS, type TransitProvider } from '@trek/shared';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { TRANSIT_PROVIDERS, type TransitProvider } from '@trek/shared';
 
 /**
  * Which backend answers /api/transit (#1699), stored as one `app_settings` row.
@@ -34,7 +34,10 @@ export async function readTransitProvider(appSettings: AppSettingsRepository): P
   return isTransitProvider(value) ? value : DEFAULT_TRANSIT_PROVIDER;
 }
 
-export async function writeTransitProvider(appSettings: AppSettingsRepository, provider: TransitProvider): Promise<TransitProvider> {
+export async function writeTransitProvider(
+  appSettings: AppSettingsRepository,
+  provider: TransitProvider,
+): Promise<TransitProvider> {
   await appSettings.setValue(TRANSIT_PROVIDER_SETTING, provider);
   return provider;
 }

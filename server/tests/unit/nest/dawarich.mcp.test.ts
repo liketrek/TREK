@@ -35,19 +35,19 @@
  * the assertion is a deep equality, because there the point is exactly which
  * fields survive and which do not.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { z, type ZodRawShape } from 'zod';
-import type { DawarichSuggestionList, DawarichTrack } from '@trek/shared';
-
-import { DawarichMcp } from '../../../src/nest/integrations/dawarich.mcp';
+import { ADDON_IDS } from '../../../src/addons';
+import type { McpContext, McpTextResult, ToolOptions } from '../../../src/nest-mcp';
+import { getEntry, type ClassRef } from '../../../src/nest-mcp/metadata';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { AuthService } from '../../../src/nest/auth/auth.service';
 import { AcceptError } from '../../../src/nest/integrations/dawarich-suggestions.service';
 import type { DawarichSuggestionsService } from '../../../src/nest/integrations/dawarich-suggestions.service';
 import type { DawarichTracksService } from '../../../src/nest/integrations/dawarich-tracks.service';
-import type { AuthService } from '../../../src/nest/auth/auth.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import { getEntry, type ClassRef } from '../../../src/nest-mcp/metadata';
-import type { McpContext, McpTextResult, ToolOptions } from '../../../src/nest-mcp';
-import { ADDON_IDS } from '../../../src/addons';
+import { DawarichMcp } from '../../../src/nest/integrations/dawarich.mcp';
+import type { DawarichSuggestionList, DawarichTrack } from '@trek/shared';
+
+import { describe, it, expect, vi } from 'vitest';
+import { z, type ZodRawShape } from 'zod';
 
 const ctx = { userId: 7, scopes: null, isStaticToken: false } as McpContext;
 
@@ -138,7 +138,9 @@ describe('DawarichMcp surface', () => {
     // here rather than being quietly absent from the table this file keeps.
     expect(registeredMethods()).toEqual(Object.keys(TOOLS).sort());
 
-    const names = registeredMethods().map((method) => toolOptions(method).name).sort();
+    const names = registeredMethods()
+      .map((method) => toolOptions(method).name)
+      .sort();
     expect(names).toEqual([
       'accept_dawarich_suggestion_as_journal_entry',
       'accept_dawarich_suggestion_as_place',
@@ -152,9 +154,7 @@ describe('DawarichMcp surface', () => {
   it('DAWARICH-MCP-002: no tool takes a URL, an API key or a TLS switch', () => {
     // The other half of the same decision: a connection surface could also
     // arrive as a field bolted onto an existing schema rather than as a tool.
-    const fields = registeredMethods().flatMap((method) =>
-      Object.keys(toolOptions(method).inputSchema as ZodRawShape),
-    );
+    const fields = registeredMethods().flatMap((method) => Object.keys(toolOptions(method).inputSchema as ZodRawShape));
     for (const forbidden of ['url', 'apiKey', 'api_key', 'allowInsecureTls', 'token']) {
       expect(fields).not.toContain(forbidden);
     }
@@ -224,7 +224,11 @@ describe('DawarichMcp surface', () => {
     const isDemoUser = vi.fn().mockResolvedValue(true);
     const listFn = vi.fn().mockReturnValue(list(1));
     const forTrip = vi.fn().mockResolvedValue({
-      days: [], source: 'tracks', fetchedAt: '2026-05-02T09:00:00.000Z', pointCount: 0, truncated: false,
+      days: [],
+      source: 'tracks',
+      fetchedAt: '2026-05-02T09:00:00.000Z',
+      pointCount: 0,
+      truncated: false,
     });
     const mcp = makeMcp({ suggestions: { list: listFn }, tracks: { forTrip }, auth: { isDemoUser } });
 
@@ -316,7 +320,9 @@ describe('DawarichMcp input schemas', () => {
     [{ time: '9:30' }, false],
     [{ time: '09:30:00' }, false],
   ])('DAWARICH-MCP-019: the journal stamp %j is accepted: %s', (over, okay) => {
-    expect(inputSchema('acceptAsJournalEntry').safeParse({ suggestionId: 1, journalId: 1, ...over }).success).toBe(okay);
+    expect(inputSchema('acceptAsJournalEntry').safeParse({ suggestionId: 1, journalId: 1, ...over }).success).toBe(
+      okay,
+    );
   });
 
   it('DAWARICH-MCP-020: ticking off a wish needs the stay; the wish itself defaults to the one it was matched to', () => {
@@ -359,7 +365,9 @@ describe('DawarichMcp list_dawarich_suggestions', () => {
     // stays are still there, and without the provenance an assistant would
     // present a stale backlog as if it were current.
     const listFn = vi.fn().mockReturnValue(list(2, { connected: false, lastSyncState: 'failed', lastSyncAt: null }));
-    const out = payload(await makeMcp({ suggestions: { list: listFn } }).listSuggestions({ tripId: 3, state: 'new' }, ctx));
+    const out = payload(
+      await makeMcp({ suggestions: { list: listFn } }).listSuggestions({ tripId: 3, state: 'new' }, ctx),
+    );
 
     expect(listFn).toHaveBeenCalledWith(7, { tripId: 3, state: 'new' });
     expect(out).toMatchObject({
@@ -378,7 +386,9 @@ describe('DawarichMcp list_dawarich_suggestions', () => {
   });
 
   it('DAWARICH-MCP-032: a backlog longer than the default page is cut to 50 and says so, because an assistant must not pay for a year of stays', async () => {
-    const out = payload(await makeMcp({ suggestions: { list: vi.fn().mockReturnValue(list(60)) } }).listSuggestions({}, ctx));
+    const out = payload(
+      await makeMcp({ suggestions: { list: vi.fn().mockReturnValue(list(60)) } }).listSuggestions({}, ctx),
+    );
 
     expect((out.suggestions as unknown[]).length).toBe(50);
     expect(out.total).toBe(60);
@@ -386,7 +396,9 @@ describe('DawarichMcp list_dawarich_suggestions', () => {
   });
 
   it('DAWARICH-MCP-033: a list that fits is not flagged truncated, so a caller can tell "all of it" from "the first page"', async () => {
-    const out = payload(await makeMcp({ suggestions: { list: vi.fn().mockReturnValue(list(50)) } }).listSuggestions({}, ctx));
+    const out = payload(
+      await makeMcp({ suggestions: { list: vi.fn().mockReturnValue(list(50)) } }).listSuggestions({}, ctx),
+    );
 
     expect((out.suggestions as unknown[]).length).toBe(50);
     expect(out.total).toBe(50);
@@ -406,7 +418,9 @@ describe('DawarichMcp list_dawarich_suggestions', () => {
   });
 
   it('DAWARICH-MCP-035: the stays go out as the service shaped them, because the tool pages and does not reshape', async () => {
-    const out = payload(await makeMcp({ suggestions: { list: vi.fn().mockReturnValue(list(2)) } }).listSuggestions({ limit: 1 }, ctx));
+    const out = payload(
+      await makeMcp({ suggestions: { list: vi.fn().mockReturnValue(list(2)) } }).listSuggestions({ limit: 1 }, ctx),
+    );
     expect(out.suggestions).toEqual([{ id: 1, name: 'Stay 1' }]);
   });
 
@@ -454,10 +468,12 @@ describe('DawarichMcp accept tools', () => {
     // body would put a key into DawarichAccept that nothing reads, and the next
     // reader would reasonably assume it was the one being accepted.
     const accept = vi.fn().mockReturnValue({ createdPlaceId: 5, createdJournalEntryId: null, bucketListItemId: null });
-    const out = payload(await makeMcp({ suggestions: { accept } }).acceptAsPlace(
-      { suggestionId: 9, tripId: 2, dayId: 4, name: 'Hafen', notes: 'windy', lat: 53.5, lng: 9.9 },
-      ctx,
-    ));
+    const out = payload(
+      await makeMcp({ suggestions: { accept } }).acceptAsPlace(
+        { suggestionId: 9, tripId: 2, dayId: 4, name: 'Hafen', notes: 'windy', lat: 53.5, lng: 9.9 },
+        ctx,
+      ),
+    );
 
     expect(accept).toHaveBeenCalledWith(7, 9, {
       target: 'place',
@@ -480,10 +496,12 @@ describe('DawarichMcp accept tools', () => {
 
   it('DAWARICH-MCP-043: accepting as a journal entry forwards target "journal" with the journey, the story and the corrected stamp', async () => {
     const accept = vi.fn().mockReturnValue({ createdJournalEntryId: 11 });
-    const out = payload(await makeMcp({ suggestions: { accept } }).acceptAsJournalEntry(
-      { suggestionId: 9, journalId: 3, name: 'The harbour', notes: 'It rained.', date: '2026-05-01', time: '09:30' },
-      ctx,
-    ));
+    const out = payload(
+      await makeMcp({ suggestions: { accept } }).acceptAsJournalEntry(
+        { suggestionId: 9, journalId: 3, name: 'The harbour', notes: 'It rained.', date: '2026-05-01', time: '09:30' },
+        ctx,
+      ),
+    );
 
     expect(accept).toHaveBeenCalledWith(7, 9, {
       target: 'journal',
@@ -516,7 +534,9 @@ describe('DawarichMcp accept tools', () => {
   ])(
     'DAWARICH-MCP-046: the AcceptError %s comes back as a refusal an assistant can read (%s), not as an exception and not as the HTTP %i the REST half answers',
     async (code, message, status) => {
-      const accept = vi.fn(() => { throw new AcceptError(code, message, status); });
+      const accept = vi.fn(() => {
+        throw new AcceptError(code, message, status);
+      });
       const result = await makeMcp({ suggestions: { accept } }).acceptAsPlace({ suggestionId: 9 }, ctx);
 
       expect(refusal(result)).toBe(message);
@@ -528,10 +548,14 @@ describe('DawarichMcp accept tools', () => {
   );
 
   it('DAWARICH-MCP-047: the same shaping covers the journal and bucket-list tools, because run() is shared and a second copy would drift', async () => {
-    const accept = vi.fn(() => { throw new AcceptError('not_found', 'Bucket-list entry not found', 404); });
+    const accept = vi.fn(() => {
+      throw new AcceptError('not_found', 'Bucket-list entry not found', 404);
+    });
     const mcp = makeMcp({ suggestions: { accept } });
 
-    expect(refusal(await mcp.acceptAsJournalEntry({ suggestionId: 9, journalId: 1 }, ctx))).toBe('Bucket-list entry not found');
+    expect(refusal(await mcp.acceptAsJournalEntry({ suggestionId: 9, journalId: 1 }, ctx))).toBe(
+      'Bucket-list entry not found',
+    );
     expect(refusal(await mcp.markBucketVisited({ suggestionId: 9 }, ctx))).toBe('Bucket-list entry not found');
   });
 
@@ -539,9 +563,12 @@ describe('DawarichMcp accept tools', () => {
     // A locked database, or a permission lookup that blew up, is not a refusal
     // the caller can act on. Flattening it into a text result would hand the
     // assistant a message with no isError flag on it to notice.
-    const accept = vi.fn(() => { throw new Error('SQLITE_BUSY: database is locked'); });
-    await expect(makeMcp({ suggestions: { accept } }).acceptAsPlace({ suggestionId: 9 }, ctx))
-      .rejects.toThrow('SQLITE_BUSY: database is locked');
+    const accept = vi.fn(() => {
+      throw new Error('SQLITE_BUSY: database is locked');
+    });
+    await expect(makeMcp({ suggestions: { accept } }).acceptAsPlace({ suggestionId: 9 }, ctx)).rejects.toThrow(
+      'SQLITE_BUSY: database is locked',
+    );
   });
 });
 
@@ -566,8 +593,9 @@ describe('DawarichMcp dismiss_dawarich_suggestion', () => {
     // the tool must not separate them. A different message for "exists but is
     // not yours" would let a caller enumerate other people's suggestion ids.
     const setState = vi.fn().mockReturnValue(null);
-    expect(refusal(await makeMcp({ suggestions: { setState } }).dismiss({ suggestionId: 999 }, ctx)))
-      .toBe('Suggestion not found');
+    expect(refusal(await makeMcp({ suggestions: { setState } }).dismiss({ suggestionId: 999 }, ctx))).toBe(
+      'Suggestion not found',
+    );
   });
 });
 
@@ -590,7 +618,10 @@ describe('DawarichMcp get_dawarich_trip_track', () => {
             startedAt: '2026-05-01T08:00:00.000Z',
             endedAt: '2026-05-01T08:20:00.000Z',
             distanceMeters: 1234,
-            points: [[53.5, 9.9], [53.6, 10.0]],
+            points: [
+              [53.5, 9.9],
+              [53.6, 10.0],
+            ],
           },
           {
             // An instance too old to classify reports neither a mode nor a
@@ -669,14 +700,16 @@ describe('DawarichMcp get_dawarich_trip_track', () => {
 
   it('DAWARICH-MCP-064: an unreachable instance is a refusal carrying the reason, not a rejected promise', async () => {
     const forTrip = vi.fn().mockRejectedValue(new Error('Dawarich is unreachable'));
-    expect(refusal(await makeMcp({ tracks: { forTrip } }).tripTrack({ tripId: 5 }, ctx)))
-      .toBe('Dawarich is unreachable');
+    expect(refusal(await makeMcp({ tracks: { forTrip } }).tripTrack({ tripId: 5 }, ctx))).toBe(
+      'Dawarich is unreachable',
+    );
   });
 
   it('DAWARICH-MCP-065: a throw that is not an Error still gets a sentence, rather than reaching the assistant as "undefined"', async () => {
     const forTrip = vi.fn().mockRejectedValue('boom');
-    expect(refusal(await makeMcp({ tracks: { forTrip } }).tripTrack({ tripId: 5 }, ctx)))
-      .toBe('Could not read the Dawarich recording');
+    expect(refusal(await makeMcp({ tracks: { forTrip } }).tripTrack({ tripId: 5 }, ctx))).toBe(
+      'Could not read the Dawarich recording',
+    );
   });
 
   it('DAWARICH-MCP-066: an empty recording is a success with no days, not an error, because "we looked and there was nothing" is an answer', async () => {

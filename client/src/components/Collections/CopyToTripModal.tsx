@@ -1,30 +1,39 @@
-import React, { useEffect, useId, useMemo, useState } from 'react'
-import { Search, MapPin, Loader2, Copy, CalendarDays } from 'lucide-react'
-import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
-import { INPUT } from '../shared/dialogParts'
-import { useToast } from '../shared/Toast'
-import { tripsApi } from '../../api/client'
-import { getApiErrorMessage } from '../../utils/apiError'
-import { formatDate } from '../../utils/formatters'
-import { useTranslation } from '../../i18n'
-import type { TranslationFn } from '../../types'
+import { CalendarDays, Copy, Loader2, MapPin, Search } from 'lucide-react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
+import { tripsApi } from '../../api/client';
+import { useTranslation } from '../../i18n';
+import type { TranslationFn } from '../../types';
+import { getApiErrorMessage } from '../../utils/apiError';
+import { formatDate } from '../../utils/formatters';
+import { INPUT } from '../shared/dialogParts';
+import {
+  DialogButton,
+  DialogFooter,
+  DialogHeader,
+  DialogShell,
+  DialogTile,
+  FooterSpacer,
+  NEUTRAL_TINT,
+  fs,
+} from '../shared/DialogShell';
+import { useToast } from '../shared/Toast';
 
 interface TripOption {
-  id: number
-  title: string
-  start_date?: string | null
-  end_date?: string | null
-  cover_image?: string | null
+  id: number;
+  title: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  cover_image?: string | null;
 }
 
 interface CopyToTripModalProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
   /** The collection place ids to copy. */
-  placeIds: number[]
+  placeIds: number[];
   /** Delegates to collectionStore.copyToTrip; returns the server reconcile result. */
-  onCopy: (tripId: number) => Promise<{ copied: number; skipped: { id: number; name: string }[] }>
-  t: TranslationFn
+  onCopy: (tripId: number) => Promise<{ copied: number; skipped: { id: number; name: string }[] }>;
+  t: TranslationFn;
 }
 
 /**
@@ -33,63 +42,78 @@ interface CopyToTripModalProps {
  * dedup result into a copied / skipped-duplicates toast. Works for a single
  * place (detail panel) and bulk select-mode ("Copy N to trip").
  */
-export default function CopyToTripModal({ isOpen, onClose, placeIds, onCopy, t }: CopyToTripModalProps): React.ReactElement | null {
-  const toast = useToast()
-  const { language } = useTranslation()
-  const labelId = useId()
-  const [trips, setTrips] = useState<TripOption[]>([])
-  const [loading, setLoading] = useState(false)
-  const [search, setSearch] = useState('')
-  const [busyTripId, setBusyTripId] = useState<number | null>(null)
+export default function CopyToTripModal({
+  isOpen,
+  onClose,
+  placeIds,
+  onCopy,
+  t,
+}: CopyToTripModalProps): React.ReactElement | null {
+  const toast = useToast();
+  const { language } = useTranslation();
+  const labelId = useId();
+  const [trips, setTrips] = useState<TripOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const [busyTripId, setBusyTripId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!isOpen) return
-    let cancelled = false
-    setLoading(true)
-    setSearch('')
-    tripsApi.list()
-      .then((res: { trips?: TripOption[] }) => { if (!cancelled) setTrips(res.trips ?? []) })
-      .catch(() => { if (!cancelled) setTrips([]) })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [isOpen])
+    if (!isOpen) return;
+    let cancelled = false;
+    setLoading(true);
+    setSearch('');
+    tripsApi
+      .list()
+      .then((res: { trips?: TripOption[] }) => {
+        if (!cancelled) setTrips(res.trips ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setTrips([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return trips
-    return trips.filter(tr => (tr.title ?? '').toLowerCase().includes(q))
-  }, [trips, search])
+    const q = search.trim().toLowerCase();
+    if (!q) return trips;
+    return trips.filter((tr) => (tr.title ?? '').toLowerCase().includes(q));
+  }, [trips, search]);
 
   const dateRange = (tr: TripOption): string => {
-    const s = formatDate(tr.start_date, language)
-    const e = formatDate(tr.end_date, language)
-    if (s && e) return `${s} – ${e}`
-    return s || e || ''
-  }
+    const s = formatDate(tr.start_date, language);
+    const e = formatDate(tr.end_date, language);
+    if (s && e) return `${s} – ${e}`;
+    return s || e || '';
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   const handleCopy = async (tripId: number) => {
-    if (busyTripId != null || placeIds.length === 0) return
-    setBusyTripId(tripId)
+    if (busyTripId != null || placeIds.length === 0) return;
+    setBusyTripId(tripId);
     try {
-      const res = await onCopy(tripId)
+      const res = await onCopy(tripId);
       if (res.copied > 0) {
-        toast.success(t('collections.copiedCount', { count: res.copied }))
+        toast.success(t('collections.copiedCount', { count: res.copied }));
       }
       if (res.skipped.length > 0) {
-        toast.info(t('collections.skippedDuplicates', { count: res.skipped.length }))
+        toast.info(t('collections.skippedDuplicates', { count: res.skipped.length }));
       }
       if (res.copied === 0 && res.skipped.length === 0) {
-        toast.info(t('collections.copyNothing'))
+        toast.info(t('collections.copyNothing'));
       }
-      onClose()
+      onClose();
     } catch (err) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
+      toast.error(getApiErrorMessage(err, t('common.error')));
     } finally {
-      setBusyTripId(null)
+      setBusyTripId(null);
     }
-  }
+  };
 
   return (
     <DialogShell
@@ -98,28 +122,38 @@ export default function CopyToTripModal({ isOpen, onClose, placeIds, onCopy, t }
       width="narrow"
       // The list shrinks while the search narrows it; a pinned top edge keeps the field still.
       align="top"
-      header={(
+      header={
         <DialogHeader
-          tile={<DialogTile><Copy size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+          tile={
+            <DialogTile>
+              <Copy size={20} strokeWidth={1.9} className="text-content-muted" />
+            </DialogTile>
+          }
           tint={NEUTRAL_TINT}
           labelId={labelId}
           onClose={onClose}
-          title={placeIds.length > 1 ? t('collections.copyN', { count: placeIds.length }) : t('collections.copyToTripTitle')}
+          title={
+            placeIds.length > 1 ? t('collections.copyN', { count: placeIds.length }) : t('collections.copyToTripTitle')
+          }
         />
-      )}
-      footer={(
+      }
+      footer={
         <DialogFooter>
           <FooterSpacer />
           <DialogButton onClick={onClose}>{t('common.cancel')}</DialogButton>
         </DialogFooter>
-      )}
+      }
     >
       <div className="relative">
-        <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-content-faint" aria-hidden="true" />
+        <Search
+          size={14}
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-content-faint"
+          aria-hidden="true"
+        />
         <input
           autoFocus
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
           placeholder={t('collections.copyToTripSearch')}
           aria-label={t('collections.copyToTripSearch')}
           className={`${INPUT} pl-8`}
@@ -130,12 +164,17 @@ export default function CopyToTripModal({ isOpen, onClose, placeIds, onCopy, t }
           <Loader2 size={20} className="animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <p className="m-0 rounded-[12px] bg-surface-secondary px-4 py-6 text-center text-content-faint" style={fs(12.5, 'body')}>{t('collections.noTrips')}</p>
+        <p
+          className="m-0 rounded-[12px] bg-surface-secondary px-4 py-6 text-center text-content-faint"
+          style={fs(12.5, 'body')}
+        >
+          {t('collections.noTrips')}
+        </p>
       ) : (
         <div className="flex flex-col gap-0.5 rounded-[14px] border border-edge-faint bg-surface-secondary p-1.5">
-          {filtered.map(trip => {
-            const busy = busyTripId === trip.id
-            const range = dateRange(trip)
+          {filtered.map((trip) => {
+            const busy = busyTripId === trip.id;
+            const range = dateRange(trip);
             return (
               <button
                 key={trip.id}
@@ -145,22 +184,32 @@ export default function CopyToTripModal({ isOpen, onClose, placeIds, onCopy, t }
                 className="flex min-h-[52px] items-center gap-3 rounded-[10px] px-2.5 py-2 text-left hover:bg-surface-card disabled:opacity-60"
               >
                 <span className="grid h-9 w-9 flex-none place-items-center overflow-hidden rounded-[9px] bg-surface-tertiary text-content-faint">
-                  {trip.cover_image ? <img src={trip.cover_image} alt="" className="h-full w-full object-cover" /> : <MapPin size={15} />}
+                  {trip.cover_image ? (
+                    <img src={trip.cover_image} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <MapPin size={15} />
+                  )}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold text-content" style={fs(13, 'body')}>{trip.title}</span>
+                  <span className="block truncate font-semibold text-content" style={fs(13, 'body')}>
+                    {trip.title}
+                  </span>
                   {range && (
                     <span className="mt-0.5 flex items-center gap-1 truncate text-content-faint" style={fs(11.5)}>
                       <CalendarDays size={11} className="flex-none" /> {range}
                     </span>
                   )}
                 </span>
-                {busy ? <Loader2 size={15} className="flex-none animate-spin text-content-faint" /> : <Copy size={15} className="flex-none text-content-faint" />}
+                {busy ? (
+                  <Loader2 size={15} className="flex-none animate-spin text-content-faint" />
+                ) : (
+                  <Copy size={15} className="flex-none text-content-faint" />
+                )}
               </button>
-            )
+            );
           })}
         </div>
       )}
     </DialogShell>
-  )
+  );
 }

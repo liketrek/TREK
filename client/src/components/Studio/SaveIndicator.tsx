@@ -1,6 +1,6 @@
-import { AlertTriangle, Check, CloudOff, Eye, RefreshCw } from 'lucide-react'
-import type { BookRecord } from '@trek/shared'
-import type { SaveState } from './useBookStore'
+import type { BookRecord } from '@trek/shared';
+import { AlertTriangle, Check, CloudOff, Eye, RefreshCw } from 'lucide-react';
+import type { SaveState } from './useBookStore';
 
 /**
  * Whether the book is safe.
@@ -15,13 +15,17 @@ import type { SaveState } from './useBookStore'
  * which is exactly the wrong habit for the one time it says something else.
  */
 export function SaveIndicator({
-  state, t, onAcceptTheirs, onKeepMine, onRetry,
+  state,
+  t,
+  onAcceptTheirs,
+  onKeepMine,
+  onRetry,
 }: {
-  state: SaveState
-  t: (k: string) => string
-  onAcceptTheirs: (current: BookRecord) => void
-  onKeepMine: (current: BookRecord) => void
-  onRetry: () => void
+  state: SaveState;
+  t: (k: string) => string;
+  onAcceptTheirs: (current: BookRecord) => void;
+  onKeepMine: (current: BookRecord) => void;
+  onRetry: () => void;
 }) {
   if (state.status === 'conflict') {
     return (
@@ -40,7 +44,7 @@ export function SaveIndicator({
           {t('journey.studio.saveKeepMine')}
         </button>
       </div>
-    )
+    );
   }
 
   if (state.status === 'readonly') {
@@ -54,7 +58,7 @@ export function SaveIndicator({
         <Eye size={13} />
         <span>{t('journey.studio.saveReadOnly')}</span>
       </div>
-    )
+    );
   }
 
   if (state.status === 'error') {
@@ -63,7 +67,7 @@ export function SaveIndicator({
         <CloudOff size={13} />
         <span>{t('journey.studio.saveFailed')}</span>
       </button>
-    )
+    );
   }
 
   if (state.status === 'saving') {
@@ -72,7 +76,7 @@ export function SaveIndicator({
         <RefreshCw size={13} className="st-spin" />
         <span>{t('journey.studio.saving')}</span>
       </div>
-    )
+    );
   }
 
   if (state.status === 'saved') {
@@ -81,8 +85,8 @@ export function SaveIndicator({
         <Check size={13} />
         <span>{t('journey.studio.saved')}</span>
       </div>
-    )
+    );
   }
 
-  return null
+  return null;
 }

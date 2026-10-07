@@ -1,28 +1,24 @@
-import { useEffect, useRef, useState } from 'react'
-import { TileLayer, useMap } from 'react-leaflet'
-import L from 'leaflet'
-import type { MaplibreGL } from '@maplibre/maplibre-gl-leaflet'
-import {
-  RASTER_FALLBACK_MAX_ZOOM,
-  RASTER_FALLBACK_TILE_URL,
-  attributionForTile,
-} from '../../constants/mapDefaults'
-import { hasWebGL } from '../../utils/webgl'
-import { isChunkLoadError, reloadOnceForChunk } from '../../utils/chunkReload'
+import type { MaplibreGL } from '@maplibre/maplibre-gl-leaflet';
+import L from 'leaflet';
+import { useEffect, useRef, useState } from 'react';
+import { TileLayer, useMap } from 'react-leaflet';
+import { RASTER_FALLBACK_MAX_ZOOM, RASTER_FALLBACK_TILE_URL, attributionForTile } from '../../constants/mapDefaults';
+import { isChunkLoadError, reloadOnceForChunk } from '../../utils/chunkReload';
+import { hasWebGL } from '../../utils/webgl';
 
 /** The Leaflet layer maplibre-gl-leaflet hands back. */
-export type GlLeafletLayer = InstanceType<typeof MaplibreGL>
+export type GlLeafletLayer = InstanceType<typeof MaplibreGL>;
 
 /**
  * What a map ended up drawing with. Every caller keeps one ref for both kinds, so
  * there is no code path that knows only about the GL layer and falls over the
  * raster stand-in the moment a browser has no WebGL (#2288).
  */
-export type BasemapLayer = GlLeafletLayer | L.TileLayer
+export type BasemapLayer = GlLeafletLayer | L.TileLayer;
 
 /** A GL layer rather than the raster stand-in. Prototype method, so `in` finds it. */
 function isGlLayer(layer: BasemapLayer): layer is GlLeafletLayer {
-  return 'getMaplibreMap' in layer
+  return 'getMaplibreMap' in layer;
 }
 
 /**
@@ -39,29 +35,26 @@ function isGlLayer(layer: BasemapLayer): layer is GlLeafletLayer {
  * sealed namespace object.
  */
 async function loadLayerFactory() {
-  const [, bridge] = await Promise.all([
-    import('./engines/maplibre'),
-    import('@maplibre/maplibre-gl-leaflet'),
-  ])
-  return bridge.maplibreGL
+  const [, bridge] = await Promise.all([import('./engines/maplibre'), import('@maplibre/maplibre-gl-leaflet')]);
+  return bridge.maplibreGL;
 }
 
 /** The factory, or null when its chunk never arrived. A dead chunk is not the basemap's problem. */
 async function loadLayerFactoryOrNull() {
   try {
-    return await loadLayerFactory()
+    return await loadLayerFactory();
   } catch (err) {
     // A chunk gone after a deploy is the global handler's case and heals itself
     // with one reload; here it only means there is no GL layer to attach.
-    if (isChunkLoadError(err)) reloadOnceForChunk()
-    else console.warn('[basemap] the maplibre chunk did not load', err)
-    return null
+    if (isChunkLoadError(err)) reloadOnceForChunk();
+    else console.warn('[basemap] the maplibre chunk did not load', err);
+    return null;
   }
 }
 
 /** Credit the basemap on a map that has an attribution control; a no-op on one that does not. */
 function creditBasemap(map: L.Map, style: string): void {
-  map.attributionControl?.addAttribution(attributionForTile(style))
+  map.attributionControl?.addAttribution(attributionForTile(style));
 }
 
 /**
@@ -76,8 +69,8 @@ function creditBasemap(map: L.Map, style: string): void {
  * layer already has a GL map and is left alone.
  */
 function disarmGlLayer(layer: GlLeafletLayer): void {
-  const internals = layer as unknown as { _glMap?: { remove: () => void } | null }
-  if (!internals._glMap) internals._glMap = { remove: () => {} }
+  const internals = layer as unknown as { _glMap?: { remove: () => void } | null };
+  if (!internals._glMap) internals._glMap = { remove: () => {} };
 }
 
 /**
@@ -93,14 +86,14 @@ function disarmGlLayer(layer: GlLeafletLayer): void {
  */
 function attachGlLayer(map: L.Map, layer: GlLeafletLayer, style: string): boolean {
   try {
-    layer.addTo(map)
+    layer.addTo(map);
   } catch (err) {
-    console.warn('[basemap] no WebGL context for the vector basemap, drawing raster tiles', err)
-    detachBasemapLayer(layer)
-    return false
+    console.warn('[basemap] no WebGL context for the vector basemap, drawing raster tiles', err);
+    detachBasemapLayer(layer);
+    return false;
   }
-  creditBasemap(map, style)
-  return true
+  creditBasemap(map, style);
+  return true;
 }
 
 /**
@@ -112,10 +105,10 @@ function attachRasterFallback(map: L.Map): L.TileLayer {
   const layer = L.tileLayer(RASTER_FALLBACK_TILE_URL, {
     maxZoom: RASTER_FALLBACK_MAX_ZOOM,
     referrerPolicy: 'strict-origin-when-cross-origin',
-  } as L.TileLayerOptions)
-  layer.addTo(map)
-  creditBasemap(map, RASTER_FALLBACK_TILE_URL)
-  return layer
+  } as L.TileLayerOptions);
+  layer.addTo(map);
+  creditBasemap(map, RASTER_FALLBACK_TILE_URL);
+  return layer;
 }
 
 /**
@@ -123,12 +116,12 @@ function attachRasterFallback(map: L.Map): L.TileLayer {
  * fail because its basemap did (#2288).
  */
 export function detachBasemapLayer(layer: BasemapLayer | null | undefined): void {
-  if (!layer) return
-  if (isGlLayer(layer)) disarmGlLayer(layer)
+  if (!layer) return;
+  if (isGlLayer(layer)) disarmGlLayer(layer);
   try {
-    layer.remove()
+    layer.remove();
   } catch (err) {
-    console.warn('[basemap] teardown failed, leaving the layer where it is', err)
+    console.warn('[basemap] teardown failed, leaving the layer where it is', err);
   }
 }
 
@@ -141,8 +134,8 @@ export function detachBasemapLayer(layer: BasemapLayer | null | undefined): void
  * than refetching the same tiles.
  */
 export function restyleBasemap(layer: BasemapLayer | null | undefined, style: string): void {
-  if (!layer || !isGlLayer(layer)) return
-  layer.getMaplibreMap()?.setStyle(style)
+  if (!layer || !isGlLayer(layer)) return;
+  layer.getMaplibreMap()?.setStyle(style);
 }
 
 /**
@@ -163,25 +156,25 @@ export function restyleBasemap(layer: BasemapLayer | null | undefined, style: st
  * browser that could never have used it.
  */
 export function VectorBasemap({ style }: { style: string }) {
-  const map = useMap()
-  const layerRef = useRef<GlLeafletLayer | null>(null)
-  const styleRef = useRef(style)
-  styleRef.current = style
+  const map = useMap();
+  const layerRef = useRef<GlLeafletLayer | null>(null);
+  const styleRef = useRef(style);
+  styleRef.current = style;
   // State rather than a plain constant: the probe can say yes and the attach can
   // still fail once the page has spent its context budget, and that has to reach
   // the render or the raster tiles never appear.
-  const [glUsable, setGlUsable] = useState(hasWebGL)
+  const [glUsable, setGlUsable] = useState(hasWebGL);
 
   useEffect(() => {
-    if (!glUsable) return
-    let cancelled = false
+    if (!glUsable) return;
+    let cancelled = false;
 
     void (async () => {
-      const maplibreGL = await loadLayerFactoryOrNull()
-      if (cancelled) return
+      const maplibreGL = await loadLayerFactoryOrNull();
+      if (cancelled) return;
       if (!maplibreGL) {
-        setGlUsable(false)
-        return
+        setGlUsable(false);
+        return;
       }
 
       // The style is read through a ref, never from the dependency list: a style
@@ -191,24 +184,24 @@ export function VectorBasemap({ style }: { style: string }) {
         style: styleRef.current,
         interactive: false,
         attributionControl: false,
-      })
+      });
       if (!attachGlLayer(map, layer, styleRef.current)) {
-        setGlUsable(false)
-        return
+        setGlUsable(false);
+        return;
       }
-      layerRef.current = layer
-    })()
+      layerRef.current = layer;
+    })();
 
     return () => {
-      cancelled = true
-      detachBasemapLayer(layerRef.current)
-      layerRef.current = null
-    }
-  }, [map, glUsable])
+      cancelled = true;
+      detachBasemapLayer(layerRef.current);
+      layerRef.current = null;
+    };
+  }, [map, glUsable]);
 
   useEffect(() => {
-    restyleBasemap(layerRef.current, style)
-  }, [style])
+    restyleBasemap(layerRef.current, style);
+  }, [style]);
 
   // No WebGL, no vector tiles. Raster keeps the map readable instead of leaving
   // markers, routes and clusters floating over grey; see mapDefaults for why this
@@ -226,12 +219,12 @@ export function VectorBasemap({ style }: { style: string }) {
         updateWhenIdle={true}
         referrerPolicy="strict-origin-when-cross-origin"
       />
-    )
+    );
   }
-  return null
+  return null;
 }
 
-export default VectorBasemap
+export default VectorBasemap;
 
 /**
  * The same basemap for the maps that build Leaflet imperatively rather than
@@ -248,31 +241,31 @@ export async function attachVectorBasemap(
   style: string,
   ref: { current: BasemapLayer | null },
   cancelled: () => boolean,
-  opts: { hideLabels?: boolean } = {},
+  opts: { hideLabels?: boolean } = {}
 ): Promise<void> {
   // Same gate as the component: a browser without WebGL never pays for the
   // maplibre chunk and gets raster tiles rather than an empty map (#2288).
   if (!hasWebGL()) {
-    if (!cancelled()) ref.current = attachRasterFallback(map)
-    return
+    if (!cancelled()) ref.current = attachRasterFallback(map);
+    return;
   }
 
-  const maplibreGL = await loadLayerFactoryOrNull()
-  if (cancelled()) return
+  const maplibreGL = await loadLayerFactoryOrNull();
+  if (cancelled()) return;
   if (!maplibreGL) {
-    ref.current = attachRasterFallback(map)
-    return
+    ref.current = attachRasterFallback(map);
+    return;
   }
 
-  const layer = maplibreGL({ style, interactive: false, attributionControl: false })
+  const layer = maplibreGL({ style, interactive: false, attributionControl: false });
   // The raster layer this replaces carried the credit, and OpenFreeMap asks for
   // one of its own; attachGlLayer adds it once the layer is actually on the map.
   if (!attachGlLayer(map, layer, style)) {
-    ref.current = attachRasterFallback(map)
-    return
+    ref.current = attachRasterFallback(map);
+    return;
   }
-  ref.current = layer
-  if (opts.hideLabels) hideLabelLayers(layer)
+  ref.current = layer;
+  if (opts.hideLabels) hideLabelLayers(layer);
 }
 
 /**
@@ -291,15 +284,15 @@ export function hideLabelLayers(layer: BasemapLayer): void {
   // A WebGL-less atlas therefore shows country names twice, which is cosmetic and
   // the price of having a basemap at all, because the only keyless alternative is
   // none.
-  if (!isGlLayer(layer)) return
-  const gl = layer.getMaplibreMap()
-  if (!gl) return
+  if (!isGlLayer(layer)) return;
+  const gl = layer.getMaplibreMap();
+  if (!gl) return;
   const apply = () => {
     for (const l of gl.getStyle()?.layers ?? []) {
-      if (l.type === 'symbol') gl.setLayoutProperty(l.id, 'visibility', 'none')
+      if (l.type === 'symbol') gl.setLayoutProperty(l.id, 'visibility', 'none');
     }
-  }
-  gl.on('style.load', apply)
+  };
+  gl.on('style.load', apply);
   // The first style may already be in when we get here.
-  if (gl.isStyleLoaded()) apply()
+  if (gl.isStyleLoaded()) apply();
 }

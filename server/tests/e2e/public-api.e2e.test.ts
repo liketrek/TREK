@@ -7,11 +7,21 @@
  * detail route, and a trip shared by membership (which must be visible, because
  * that is TREK's access model, not an exception to it).
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
-import type { Server } from 'http';
+import { AtlasService } from '../../src/nest/atlas/atlas.service';
+import { PublicStatsController } from '../../src/nest/atlas/public-stats.controller';
+import { RateLimitModule } from '../../src/nest/common/rate-limit.module';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ApiTokenGuard } from '../../src/nest/public-api/api-token.guard';
+import { PublicApiModule } from '../../src/nest/public-api/public-api.module';
+import { TokensModule } from '../../src/nest/tokens/tokens.module';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
 import { Test } from '@nestjs/testing';
+
 import { createHash } from 'crypto';
+import type { Server } from 'http';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -78,16 +88,6 @@ vi.mock('../../src/db/database', async (importActual) => {
   };
 });
 
-import { RateLimitModule } from '../../src/nest/common/rate-limit.module';
-import { PublicApiModule } from '../../src/nest/public-api/public-api.module';
-import { ApiTokenGuard } from '../../src/nest/public-api/api-token.guard';
-import { TokensModule } from '../../src/nest/tokens/tokens.module';
-import { PublicStatsController } from '../../src/nest/atlas/public-stats.controller';
-import { AtlasService } from '../../src/nest/atlas/atlas.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
-
 /** Mints a token the way TokenService does, so the guard's hash lookup is real. */
 function seedToken(userId: number, raw: string, kind: 'api' | 'mcp' = 'api'): string {
   db.prepare('INSERT INTO mcp_tokens (user_id, name, token_hash, token_prefix, kind) VALUES (?, ?, ?, ?, ?)').run(
@@ -153,7 +153,13 @@ describe('Public API v1 e2e (real guard + real SQL)', () => {
 
   async function build() {
     const moduleRef = await Test.createTestingModule({
-      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RateLimitModule, TokensModule, PublicApiModule],
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RateLimitModule,
+        TokensModule,
+        PublicApiModule,
+      ],
       // `/api/v1/stats` lives in atlas/ because its figures do, but it is guarded
       // and scoped by this directory's code — so it is mounted here with the real
       // guard and a stubbed AtlasService. Importing AtlasModule instead would pull
@@ -193,7 +199,9 @@ describe('Public API v1 e2e (real guard + real SQL)', () => {
     db.prepare("INSERT INTO trips (id, user_id, title, start_date) VALUES (3, 2, 'Shared', '2026-08-01')").run();
     db.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (3, 1)').run();
 
-    db.prepare("INSERT INTO days (id, trip_id, day_number, date, title, notes) VALUES (1, 1, 1, '2026-06-14', 'Ankunft', 'Schlüssel beim Nachbarn abholen')").run();
+    db.prepare(
+      "INSERT INTO days (id, trip_id, day_number, date, title, notes) VALUES (1, 1, 1, '2026-06-14', 'Ankunft', 'Schlüssel beim Nachbarn abholen')",
+    ).run();
     db.prepare("INSERT INTO days (id, trip_id, day_number, date) VALUES (2, 1, 2, '2026-06-15')").run();
     db.prepare("INSERT INTO categories (id, name) VALUES (1, 'Museum')").run();
     db.prepare(
@@ -204,13 +212,21 @@ describe('Public API v1 e2e (real guard + real SQL)', () => {
     // Deliberately inserted out of order to prove order_index decides the sequence.
     db.prepare('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (1, 2, 1)').run();
     // Ein Ort auf der Shortlist: Koordinaten, aber noch kein Tag.
-    db.prepare("INSERT INTO places (id, trip_id, name, lat, lng, notes) VALUES (4, 1, 'Boboli-Garten', 43.762, 11.248, 'vielleicht')").run();
+    db.prepare(
+      "INSERT INTO places (id, trip_id, name, lat, lng, notes) VALUES (4, 1, 'Boboli-Garten', 43.762, 11.248, 'vielleicht')",
+    ).run();
     // Eine Buchung, die keinen Tag (mehr) hat.
-    db.prepare("INSERT INTO reservations (trip_id, day_id, type, title, location, reservation_time, status) VALUES (1, NULL, 'flight', 'LH 1234', 'FRA', '2026-06-14T08:00', 'confirmed')").run();
-    db.prepare("INSERT INTO bucket_list (user_id, name, lat, lng, country_code, notes, target_date) VALUES (1, 'Hokkaido', 43.06, 141.35, 'JP', 'im Winter', '2027-02-01')").run();
+    db.prepare(
+      "INSERT INTO reservations (trip_id, day_id, type, title, location, reservation_time, status) VALUES (1, NULL, 'flight', 'LH 1234', 'FRA', '2026-06-14T08:00', 'confirmed')",
+    ).run();
+    db.prepare(
+      "INSERT INTO bucket_list (user_id, name, lat, lng, country_code, notes, target_date) VALUES (1, 'Hokkaido', 43.06, 141.35, 'JP', 'im Winter', '2027-02-01')",
+    ).run();
     db.prepare("INSERT INTO bucket_list (user_id, name, lat, lng) VALUES (2, 'Bobs Traumziel', 1.0, 2.0)").run();
     db.prepare('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (1, 1, 0)').run();
-    db.prepare("INSERT INTO day_notes (day_id, trip_id, text, time, sort_order) VALUES (1, 1, 'Tickets mitnehmen', '09:00', 0)").run();
+    db.prepare(
+      "INSERT INTO day_notes (day_id, trip_id, text, time, sort_order) VALUES (1, 1, 'Tickets mitnehmen', '09:00', 0)",
+    ).run();
     db.prepare(
       "INSERT INTO reservations (trip_id, day_id, type, title, location, reservation_time, status) VALUES (1, 1, 'flight', 'LH 1234', 'FRA', '2026-06-14T08:00', 'confirmed')",
     ).run();
@@ -219,7 +235,9 @@ describe('Public API v1 e2e (real guard + real SQL)', () => {
     ).run();
     // The stop a booked night puts on its check-in day, so the route can reach the
     // hotel. It belongs to the stay, not to the day's plan.
-    db.prepare('INSERT INTO day_assignments (day_id, place_id, order_index, accommodation_id) VALUES (1, 3, 2, 1)').run();
+    db.prepare(
+      'INSERT INTO day_assignments (day_id, place_id, order_index, accommodation_id) VALUES (1, 3, 2, 1)',
+    ).run();
 
     app = await build();
     server = app.getHttpServer() as Server;
@@ -441,7 +459,14 @@ describe('Public API v1 e2e (real guard + real SQL)', () => {
       const res = await get('/api/v1/bucket-list', ADA_TOKEN);
       expect(res.status).toBe(200);
       expect(res.body.items).toEqual([
-        { name: 'Hokkaido', lat: 43.06, lng: 141.35, country_code: 'JP', notes: 'im Winter', target_date: '2027-02-01' },
+        {
+          name: 'Hokkaido',
+          lat: 43.06,
+          lng: 141.35,
+          country_code: 'JP',
+          notes: 'im Winter',
+          target_date: '2027-02-01',
+        },
       ]);
     });
 

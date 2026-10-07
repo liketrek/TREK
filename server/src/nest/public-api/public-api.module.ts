@@ -1,17 +1,17 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { PublicApiController } from './public-api.controller';
-import { PublicApiService } from './public-api.service';
-import { ApiTokenGuard } from './api-token.guard';
-import { TokensModule } from '../tokens/tokens.module';
-import { TripMembershipModule } from '../trip-membership/trip-membership.module';
-import { RateLimitModule } from '../common/rate-limit.module';
-import { Trips } from '../../db/entities/Trips.entity';
-import { Reservations } from '../../db/entities/Reservations.entity';
+import { BucketList } from '../../db/entities/BucketList.entity';
+import { DayNotes } from '../../db/entities/DayNotes.entity';
 import { Days } from '../../db/entities/Days.entity';
 import { Places } from '../../db/entities/Places.entity';
-import { DayNotes } from '../../db/entities/DayNotes.entity';
-import { BucketList } from '../../db/entities/BucketList.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { RateLimitModule } from '../common/rate-limit.module';
+import { TokensModule } from '../tokens/tokens.module';
+import { TripMembershipModule } from '../trip-membership/trip-membership.module';
+import { ApiTokenGuard } from './api-token.guard';
+import { PublicApiController } from './public-api.controller';
+import { PublicApiService } from './public-api.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Public API v1 — the versioned read-only surface for third-party integrations.
@@ -43,7 +43,12 @@ import { BucketList } from '../../db/entities/BucketList.entity';
   // constructor params, without pulling `TripsModule`/`ReservationsModule`/
   // `DaysModule`/`PlacesModule`/`DayNotesModule`/`AtlasModule` themselves in,
   // per this module's leaf-module constraint above.
-  imports: [TokensModule, TripMembershipModule, RateLimitModule, MikroOrmModule.forFeature([Trips, Reservations, Days, Places, DayNotes, BucketList])],
+  imports: [
+    TokensModule,
+    TripMembershipModule,
+    RateLimitModule,
+    MikroOrmModule.forFeature([Trips, Reservations, Days, Places, DayNotes, BucketList]),
+  ],
   controllers: [PublicApiController],
   providers: [PublicApiService, ApiTokenGuard],
 })

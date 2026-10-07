@@ -5,63 +5,85 @@
  * the user's plugin activity log), rebuilt on the MSet* card system: MToggle for
  * booleans, a picker sheet for selects and an MConfirmSheet for danger actions.
  */
-import { Fragment, useEffect, useState } from 'react'
-import { Save, Loader2, Link2, Unlink, CheckCircle, ChevronDown, History, RefreshCw } from 'lucide-react'
-import { resolvePluginIcon } from '../../../components/shared/PluginIcon'
-import PluginFrame from '../../../components/Plugins/PluginFrame'
-import { pluginsApi, type PluginUserSettingField, type PluginAction } from '../../../api/client'
-import { usePluginStore } from '../../../store/pluginStore'
-import { useToast } from '../../../components/shared/Toast'
-import { useTranslation } from '../../../i18n'
-import { MSetCard, MSetEyebrow, MSetSelectRow, MSetInput, MSetButton, MSetHint } from './MSettingsUi'
-import MToggle from '../../components/MToggle'
-import MConfirmSheet from './MConfirmSheet'
-import MSetPickerSheet from './MSetPickerSheet'
-import { seedSettingsValues, findMissingRequired, settingsPatch } from '../../../components/Plugins/settingsForm'
+import { CheckCircle, ChevronDown, History, Link2, Loader2, RefreshCw, Save, Unlink } from 'lucide-react';
+import { Fragment, useEffect, useState } from 'react';
+import { pluginsApi, type PluginAction, type PluginUserSettingField } from '../../../api/client';
+import PluginFrame from '../../../components/Plugins/PluginFrame';
+import { findMissingRequired, seedSettingsValues, settingsPatch } from '../../../components/Plugins/settingsForm';
+import { resolvePluginIcon } from '../../../components/shared/PluginIcon';
+import { useToast } from '../../../components/shared/Toast';
+import { useTranslation } from '../../../i18n';
+import { usePluginStore } from '../../../store/pluginStore';
+import MToggle from '../../components/MToggle';
+import MConfirmSheet from './MConfirmSheet';
+import MSetPickerSheet from './MSetPickerSheet';
+import { MSetButton, MSetCard, MSetEyebrow, MSetHint, MSetInput, MSetSelectRow } from './MSettingsUi';
 
 /** Host-brokered OAuth: a Connect/Disconnect control. The host runs the whole flow +
  * holds the tokens; this only triggers connect (redirect to the provider) / disconnect. */
-function PluginOAuthSection({ id, state, setState }: {
-  id: string
-  state: { configured: boolean; connected: boolean } | null
-  setState: (s: { configured: boolean; connected: boolean }) => void
+function PluginOAuthSection({
+  id,
+  state,
+  setState,
+}: {
+  id: string;
+  state: { configured: boolean; connected: boolean } | null;
+  setState: (s: { configured: boolean; connected: boolean }) => void;
 }) {
-  const { t } = useTranslation()
-  const toast = useToast()
-  const [busy, setBusy] = useState(false)
+  const { t } = useTranslation();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
 
-  if (!state?.configured) return null
+  if (!state?.configured) return null;
 
   const connect = async () => {
-    setBusy(true)
+    setBusy(true);
     try {
-      const { authorizeUrl } = await pluginsApi.oauthConnect(id)
-      window.location.href = authorizeUrl // hand off to the provider; returns to /settings
+      const { authorizeUrl } = await pluginsApi.oauthConnect(id);
+      window.location.href = authorizeUrl; // hand off to the provider; returns to /settings
     } catch {
-      toast.error(t('common.error')); setBusy(false)
+      toast.error(t('common.error'));
+      setBusy(false);
     }
-  }
+  };
   const disconnect = async () => {
-    setBusy(true)
-    try { await pluginsApi.oauthDisconnect(id); setState({ ...state, connected: false }) }
-    catch { toast.error(t('common.error')) }
-    finally { setBusy(false) }
-  }
+    setBusy(true);
+    try {
+      await pluginsApi.oauthDisconnect(id);
+      setState({ ...state, connected: false });
+    } catch {
+      toast.error(t('common.error'));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[color:var(--m-rowbr)] pt-3">
       <span className="flex items-center gap-[6px] text-[0.78125rem] font-semibold text-m-muted">
-        {state.connected
-          ? <><CheckCircle size={15} className="text-[color:var(--m-st-confirmed)]" /> {t('settings.plugins.oauth.connected')}</>
-          : <>{t('settings.plugins.oauth.notConnected')}</>}
+        {state.connected ? (
+          <>
+            <CheckCircle size={15} className="text-[color:var(--m-st-confirmed)]" />{' '}
+            {t('settings.plugins.oauth.connected')}
+          </>
+        ) : (
+          <>{t('settings.plugins.oauth.notConnected')}</>
+        )}
       </span>
-      {state.connected
-        ? <MSetButton variant="ghost" disabled={busy} onClick={disconnect}><Unlink size={14} />{t('settings.plugins.oauth.disconnect')}</MSetButton>
-        : <MSetButton variant="primary" disabled={busy} onClick={connect}>{busy ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}{t('settings.plugins.oauth.connect')}</MSetButton>}
+      {state.connected ? (
+        <MSetButton variant="ghost" disabled={busy} onClick={disconnect}>
+          <Unlink size={14} />
+          {t('settings.plugins.oauth.disconnect')}
+        </MSetButton>
+      ) : (
+        <MSetButton variant="primary" disabled={busy} onClick={connect}>
+          {busy ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
+          {t('settings.plugins.oauth.connect')}
+        </MSetButton>
+      )}
     </div>
-  )
+  );
 }
-
 
 /**
  * A user's own per-plugin settings (#plugins). The host renders the plugin's
@@ -70,110 +92,129 @@ function PluginOAuthSection({ id, state, setState }: {
  * (masked, never echoed back). One form per active plugin that declares user fields.
  */
 function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon: string | null }) {
-  const { t } = useTranslation()
-  const toast = useToast()
-  const [fields, setFields] = useState<PluginUserSettingField[] | null>(null)
-  const [values, setValues] = useState<Record<string, string | boolean>>({})
-  const [saving, setSaving] = useState(false)
-  const [oauth, setOauth] = useState<{ configured: boolean; connected: boolean } | null>(null)
-  const [actions, setActions] = useState<PluginAction[]>([])
-  const [running, setRunning] = useState<string | null>(null)
-  const [actionResult, setActionResult] = useState<Record<string, { ok: boolean; message?: string }>>({})
+  const { t } = useTranslation();
+  const toast = useToast();
+  const [fields, setFields] = useState<PluginUserSettingField[] | null>(null);
+  const [values, setValues] = useState<Record<string, string | boolean>>({});
+  const [saving, setSaving] = useState(false);
+  const [oauth, setOauth] = useState<{ configured: boolean; connected: boolean } | null>(null);
+  const [actions, setActions] = useState<PluginAction[]>([]);
+  const [running, setRunning] = useState<string | null>(null);
+  const [actionResult, setActionResult] = useState<Record<string, { ok: boolean; message?: string }>>({});
   // Native sheets stand in for the desktop <select> and window.confirm.
-  const [pickerKey, setPickerKey] = useState<string | null>(null)
-  const [confirmAction, setConfirmAction] = useState<PluginAction | null>(null)
+  const [pickerKey, setPickerKey] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<PluginAction | null>(null);
 
   useEffect(() => {
-    let alive = true
-    pluginsApi.userSettings(id)
-      .then(r => {
-        if (!alive) return
-        setFields(r.fields)
-        setActions(r.actions ?? [])
-        setValues(seedSettingsValues(r.fields, r.config))
+    let alive = true;
+    pluginsApi
+      .userSettings(id)
+      .then((r) => {
+        if (!alive) return;
+        setFields(r.fields);
+        setActions(r.actions ?? []);
+        setValues(seedSettingsValues(r.fields, r.config));
       })
-      .catch(() => { if (alive) setFields([]) })
-    pluginsApi.oauthStatus(id).then(s => { if (alive) setOauth(s) }).catch(() => { if (alive) setOauth(null) })
-    return () => { alive = false }
-  }, [id])
+      .catch(() => {
+        if (alive) setFields([]);
+      });
+    pluginsApi
+      .oauthStatus(id)
+      .then((s) => {
+        if (alive) setOauth(s);
+      })
+      .catch(() => {
+        if (alive) setOauth(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [id]);
 
-  const hasFields = (fields?.length ?? 0) > 0
+  const hasFields = (fields?.length ?? 0) > 0;
   // Show the card if the plugin has user fields, actions, OR an OAuth connection to offer.
-  if (fields === null || (!hasFields && actions.length === 0 && !oauth?.configured)) return null
+  if (fields === null || (!hasFields && actions.length === 0 && !oauth?.configured)) return null;
 
   // An action runs AS the caller, so it sees the values they just saved — run the save
   // first if the form is dirty would be nicer, but keeping it explicit is less surprising.
   const performAction = async (a: PluginAction) => {
-    setRunning(a.key)
+    setRunning(a.key);
     try {
-      const res = await pluginsApi.runAction(id, a.key)
-      setActionResult(prev => ({ ...prev, [a.key]: res }))
+      const res = await pluginsApi.runAction(id, a.key);
+      setActionResult((prev) => ({ ...prev, [a.key]: res }));
     } catch {
-      setActionResult(prev => ({ ...prev, [a.key]: { ok: false, message: t('common.error') } }))
+      setActionResult((prev) => ({ ...prev, [a.key]: { ok: false, message: t('common.error') } }));
     } finally {
-      setRunning(null)
+      setRunning(null);
     }
-  }
+  };
   const runAction = (a: PluginAction) => {
     // Danger actions confirm first (native sheet in place of window.confirm).
-    if (a.danger) { setConfirmAction(a); return }
-    void performAction(a)
-  }
+    if (a.danger) {
+      setConfirmAction(a);
+      return;
+    }
+    void performAction(a);
+  };
 
   const save = async () => {
-    const missing = findMissingRequired(fields, values)
+    const missing = findMissingRequired(fields, values);
     if (missing) {
-      toast.error(t('settings.plugins.requiredMissing', { field: missing.label || missing.key }))
-      return
+      toast.error(t('settings.plugins.requiredMissing', { field: missing.label || missing.key }));
+      return;
     }
-    setSaving(true)
+    setSaving(true);
     try {
-      const r = await pluginsApi.saveUserSettings(id, settingsPatch(fields, values))
-      setValues(seedSettingsValues(fields, r.config))
-      toast.success(t('settings.plugins.saved'))
+      const r = await pluginsApi.saveUserSettings(id, settingsPatch(fields, values));
+      setValues(seedSettingsValues(fields, r.config));
+      toast.success(t('settings.plugins.saved'));
     } catch (e) {
       // A 4xx names what the server refused (a required field it knows about and this
       // stale field list doesn't); a 5xx body is not for the user.
-      const err = e as { response?: { status?: number; data?: { error?: string } } }
-      const refused = err.response?.status && err.response.status < 500 ? err.response.data?.error : undefined
-      toast.error(refused || t('common.error'))
+      const err = e as { response?: { status?: number; data?: { error?: string } } };
+      const refused = err.response?.status && err.response.status < 500 ? err.response.data?.error : undefined;
+      toast.error(refused || t('common.error'));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
-  const pickerField = fields.find(f => f.key === pickerKey && f.input_type === 'select' && !!f.options)
+  const pickerField = fields.find((f) => f.key === pickerKey && f.input_type === 'select' && !!f.options);
 
   return (
     <>
       <MSetCard title={name} icon={resolvePluginIcon(icon)}>
         {hasFields && (
           <div className="flex flex-col gap-[14px]">
-            {fields.map(f => {
-              const requiredMark = f.required ? <span className="text-[color:var(--m-st-danger)]"> *</span> : null
+            {fields.map((f) => {
+              const requiredMark = f.required ? <span className="text-[color:var(--m-st-danger)]"> *</span> : null;
               if (f.input_type === 'checkbox') {
                 return (
                   <div key={f.key}>
                     <div className="flex items-center gap-[10px]">
                       <div className="min-w-0 flex-1 text-[0.78125rem] font-bold text-m-ink">
-                        {f.label || f.key}{requiredMark}
+                        {f.label || f.key}
+                        {requiredMark}
                       </div>
                       <MToggle
                         checked={values[f.key] === true}
-                        onChange={checked => setValues(v => ({ ...v, [f.key]: checked }))}
+                        onChange={(checked) => setValues((v) => ({ ...v, [f.key]: checked }))}
                         ariaLabel={f.label || f.key}
                       />
                     </div>
                     {f.hint && <MSetHint>{f.hint}</MSetHint>}
                   </div>
-                )
+                );
               }
               if (f.input_type === 'select' && f.options) {
-                const current = String(values[f.key] ?? '')
-                const opt = f.options.find(o => o.value === current)
+                const current = String(values[f.key] ?? '');
+                const opt = f.options.find((o) => o.value === current);
                 return (
                   <div key={f.key}>
-                    <div className="mb-[6px] text-[0.78125rem] font-bold text-m-ink">{f.label || f.key}{requiredMark}</div>
+                    <div className="mb-[6px] text-[0.78125rem] font-bold text-m-ink">
+                      {f.label || f.key}
+                      {requiredMark}
+                    </div>
                     <MSetSelectRow
                       label={opt ? opt.label : '—'}
                       trailing={<ChevronDown size={13} strokeWidth={2} className="flex-none text-m-faint" />}
@@ -181,21 +222,24 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
                     />
                     {f.hint && <MSetHint>{f.hint}</MSetHint>}
                   </div>
-                )
+                );
               }
               return (
                 <div key={f.key}>
-                  <div className="mb-[6px] text-[0.78125rem] font-bold text-m-ink">{f.label || f.key}{requiredMark}</div>
+                  <div className="mb-[6px] text-[0.78125rem] font-bold text-m-ink">
+                    {f.label || f.key}
+                    {requiredMark}
+                  </div>
                   <MSetInput
-                    type={f.secret ? 'password' : (f.input_type === 'number' ? 'number' : 'text')}
+                    type={f.secret ? 'password' : f.input_type === 'number' ? 'number' : 'text'}
                     value={String(values[f.key] ?? '')}
                     placeholder={f.placeholder || ''}
                     autoComplete={f.secret ? 'new-password' : 'off'}
-                    onChange={e => setValues(v => ({ ...v, [f.key]: e.target.value }))}
+                    onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
                   />
                   {f.hint && <MSetHint>{f.hint}</MSetHint>}
                 </div>
-              )
+              );
             })}
           </div>
         )}
@@ -213,8 +257,8 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
           <div className="mt-4 border-t border-[color:var(--m-rowbr)] pt-4">
             <MSetEyebrow className="mb-2">{t('settings.plugins.actions')}</MSetEyebrow>
             <div className="flex flex-col gap-2">
-              {actions.map(a => {
-                const res = actionResult[a.key]
+              {actions.map((a) => {
+                const res = actionResult[a.key];
                 return (
                   <div key={a.key} className="flex flex-wrap items-center gap-2">
                     <MSetButton
@@ -227,12 +271,14 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
                     </MSetButton>
                     {a.hint && <span className="font-geist text-[0.625rem] text-m-muted">{a.hint}</span>}
                     {res && (
-                      <span className={`text-[0.625rem] font-bold ${res.ok ? 'text-[color:var(--m-st-confirmed)]' : 'text-[color:var(--m-st-danger)]'}`}>
+                      <span
+                        className={`text-[0.625rem] font-bold ${res.ok ? 'text-[color:var(--m-st-confirmed)]' : 'text-[color:var(--m-st-danger)]'}`}
+                      >
                         {res.message || (res.ok ? t('common.success') : t('common.error'))}
                       </span>
                     )}
                   </div>
-                )
+                );
               })}
             </div>
           </div>
@@ -244,10 +290,16 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
       <MSetPickerSheet
         open={pickerField != null}
         onClose={() => setPickerKey(null)}
-        title={pickerField ? (pickerField.label || pickerField.key) : ''}
+        title={pickerField ? pickerField.label || pickerField.key : ''}
         value={String(values[pickerField?.key ?? ''] ?? '')}
-        onSelect={(val) => { if (pickerField) setValues(v => ({ ...v, [pickerField.key]: val })) }}
-        options={pickerField ? [{ value: '', label: '—' }, ...pickerField.options!.map(o => ({ value: o.value, label: o.label }))] : []}
+        onSelect={(val) => {
+          if (pickerField) setValues((v) => ({ ...v, [pickerField.key]: val }));
+        }}
+        options={
+          pickerField
+            ? [{ value: '', label: '—' }, ...pickerField.options!.map((o) => ({ value: o.value, label: o.label }))]
+            : []
+        }
       />
 
       <MConfirmSheet
@@ -258,10 +310,14 @@ function PluginSettingsForm({ id, name, icon }: { id: string; name: string; icon
         confirmLabel={confirmAction?.label}
         cancelLabel={t('common.cancel')}
         danger
-        onConfirm={() => { const a = confirmAction; setConfirmAction(null); if (a) void performAction(a) }}
+        onConfirm={() => {
+          const a = confirmAction;
+          setConfirmAction(null);
+          if (a) void performAction(a);
+        }}
       />
     </>
-  )
+  );
 }
 
 /**
@@ -280,19 +336,25 @@ function PluginSettingsUiCard({ id, name, icon }: { id: string; name: string; ic
           white canvas behind the transparent frame (same trap .hero-overlay-frame
           guards against), which glares in dark mode. */}
       <div className="min-h-[120px]">
-        <PluginFrame pluginId={id} path="settings.html" title={name} surface="user-settings" className="[color-scheme:light]" />
+        <PluginFrame
+          pluginId={id}
+          path="settings.html"
+          title={name}
+          surface="user-settings"
+          className="[color-scheme:light]"
+        />
       </div>
     </MSetCard>
-  )
+  );
 }
 
 interface ActivityRow {
-  ts: string
-  plugin_id: string
-  plugin_name: string | null
-  method: string
-  resource: string | null
-  code: string
+  ts: string;
+  plugin_id: string;
+  plugin_name: string | null;
+  method: string;
+  resource: string | null;
+  code: string;
 }
 
 /**
@@ -300,9 +362,9 @@ interface ActivityRow {
  * as danger, anything else non-ok as a softer pending/warning tone.
  */
 function codeTone(code: string): string {
-  if (code === 'ok') return 'text-m-muted'
-  if (/FORBIDDEN|DENIED|UNAUTHORIZED/i.test(code)) return 'text-[color:var(--m-st-danger)]'
-  return 'text-[color:var(--m-st-pending)]'
+  if (code === 'ok') return 'text-m-muted';
+  if (/FORBIDDEN|DENIED|UNAUTHORIZED/i.test(code)) return 'text-[color:var(--m-st-danger)]';
+  return 'text-[color:var(--m-st-pending)]';
 }
 
 /**
@@ -311,24 +373,27 @@ function codeTone(code: string): string {
  * capability audit. Fail-safe: a failed load just shows the empty state.
  */
 function PluginActivityPanel() {
-  const { t, locale } = useTranslation()
-  const [rows, setRows] = useState<ActivityRow[]>([])
-  const [loading, setLoading] = useState(true)
+  const { t, locale } = useTranslation();
+  const [rows, setRows] = useState<ActivityRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const load = () => {
-    setLoading(true)
-    pluginsApi.myActivity()
-      .then(r => setRows(r.activity))
+    setLoading(true);
+    pluginsApi
+      .myActivity()
+      .then((r) => setRows(r.activity))
       .catch(() => setRows([]))
-      .finally(() => setLoading(false))
-  }
+      .finally(() => setLoading(false));
+  };
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load();
+  }, []);
 
   const fmtWhen = (ts: string): string => {
-    const d = new Date(ts)
-    return Number.isNaN(d.getTime()) ? ts : d.toLocaleString(locale)
-  }
+    const d = new Date(ts);
+    return Number.isNaN(d.getTime()) ? ts : d.toLocaleString(locale);
+  };
 
   const refresh = (
     <button
@@ -340,7 +405,7 @@ function PluginActivityPanel() {
       <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
       {t('settings.pluginActivity.refresh')}
     </button>
-  )
+  );
 
   return (
     <MSetCard title={t('settings.pluginActivity.title')} icon={History} badge={refresh}>
@@ -362,7 +427,9 @@ function PluginActivityPanel() {
                 <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-bold text-m-ink">
                   {r.plugin_name || r.plugin_id}
                 </span>
-                <span className={`flex-none rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] text-[0.625rem] font-bold ${codeTone(r.code)}`}>
+                <span
+                  className={`flex-none rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] text-[0.625rem] font-bold ${codeTone(r.code)}`}
+                >
                   {r.code}
                 </span>
               </div>
@@ -376,19 +443,19 @@ function PluginActivityPanel() {
         </div>
       )}
     </MSetCard>
-  )
+  );
 }
 
 export default function MSettingsPlugins() {
-  const { t } = useTranslation()
-  const plugins = usePluginStore(s => s.plugins)
+  const { t } = useTranslation();
+  const plugins = usePluginStore((s) => s.plugins);
 
   return (
     <div className="flex flex-col gap-3">
       {plugins.length === 0 && (
         <p className="font-geist text-[0.71875rem] text-m-muted">{t('settings.plugins.empty')}</p>
       )}
-      {plugins.map(p => (
+      {plugins.map((p) => (
         <Fragment key={p.id}>
           <PluginSettingsForm id={p.id} name={p.name} icon={p.icon} />
           {p.settingsUi && <PluginSettingsUiCard id={p.id} name={p.name} icon={p.icon} />}
@@ -396,5 +463,5 @@ export default function MSettingsPlugins() {
       ))}
       <PluginActivityPanel />
     </div>
-  )
+  );
 }

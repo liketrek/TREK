@@ -1,7 +1,8 @@
-import { Controller, Delete, Get, Post, Req, Res } from '@nestjs/common';
-import type { Request, Response } from 'express';
 import { Public } from '../auth/public.decorator';
 import { McpTransportService } from './mcp-transport.service';
+import { Controller, Delete, Get, Post, Req, Res } from '@nestjs/common';
+
+import type { Request, Response } from 'express';
 
 /**
  * Pure passthrough: every response (SDK JSON-RPC frames, auth challenges,

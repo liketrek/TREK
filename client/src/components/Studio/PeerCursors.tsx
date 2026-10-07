@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
-import type { PeerCursor } from './useBookPresence'
-import { peerColour } from './peerColour'
+import { useEffect, useRef, useState } from 'react';
+import { peerColour } from './peerColour';
+import type { PeerCursor } from './useBookPresence';
 
 /**
  * The other people's pointers.
@@ -18,60 +18,62 @@ import { peerColour } from './peerColour'
  */
 
 /** How much of the remaining distance is covered per frame. */
-const EASE = 0.28
+const EASE = 0.28;
 
 /** Below this, in millimetres, the pointer is simply put where it belongs. */
-const SNAP_MM = 0.15
+const SNAP_MM = 0.15;
 
 export function PeerCursors({
-  cursors, spreadIndex, zoom,
+  cursors,
+  spreadIndex,
+  zoom,
 }: {
-  cursors: PeerCursor[]
+  cursors: PeerCursor[];
   /** Only the pointers on the spread being looked at are drawn. */
-  spreadIndex: number
+  spreadIndex: number;
   /** The sheet's scale, so the arrow can undo it and stay one size. */
-  zoom: number
+  zoom: number;
 }) {
-  const here = cursors.filter(c => c.spreadIndex === spreadIndex)
-  if (here.length === 0) return null
+  const here = cursors.filter((c) => c.spreadIndex === spreadIndex);
+  if (here.length === 0) return null;
 
   return (
     <>
-      {here.map(cursor => (
+      {here.map((cursor) => (
         <Pointer key={cursor.socketId} cursor={cursor} zoom={zoom} />
       ))}
     </>
-  )
+  );
 }
 
 function Pointer({ cursor, zoom }: { cursor: PeerCursor; zoom: number }) {
-  const [at, setAt] = useState({ x: cursor.x, y: cursor.y })
-  const target = useRef({ x: cursor.x, y: cursor.y })
-  const frame = useRef<number | null>(null)
+  const [at, setAt] = useState({ x: cursor.x, y: cursor.y });
+  const target = useRef({ x: cursor.x, y: cursor.y });
+  const frame = useRef<number | null>(null);
 
-  target.current = { x: cursor.x, y: cursor.y }
+  target.current = { x: cursor.x, y: cursor.y };
 
   useEffect(() => {
     const step = () => {
-      setAt(current => {
-        const dx = target.current.x - current.x
-        const dy = target.current.y - current.y
+      setAt((current) => {
+        const dx = target.current.x - current.x;
+        const dy = target.current.y - current.y;
         if (Math.abs(dx) < SNAP_MM && Math.abs(dy) < SNAP_MM) {
-          frame.current = null
-          return target.current
+          frame.current = null;
+          return target.current;
         }
-        frame.current = requestAnimationFrame(step)
-        return { x: current.x + dx * EASE, y: current.y + dy * EASE }
-      })
-    }
-    if (frame.current == null) frame.current = requestAnimationFrame(step)
+        frame.current = requestAnimationFrame(step);
+        return { x: current.x + dx * EASE, y: current.y + dy * EASE };
+      });
+    };
+    if (frame.current == null) frame.current = requestAnimationFrame(step);
     return () => {
-      if (frame.current != null) cancelAnimationFrame(frame.current)
-      frame.current = null
-    }
-  }, [cursor.x, cursor.y])
+      if (frame.current != null) cancelAnimationFrame(frame.current);
+      frame.current = null;
+    };
+  }, [cursor.x, cursor.y]);
 
-  const colour = peerColour(cursor.userId)
+  const colour = peerColour(cursor.userId);
 
   return (
     <div
@@ -112,5 +114,5 @@ function Pointer({ cursor, zoom }: { cursor: PeerCursor; zoom: number }) {
         </span>
       )}
     </div>
-  )
+  );
 }

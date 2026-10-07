@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from 'react';
 
 /**
  * The TREK mascot — an empty-state character that IS the TREK mark: the logo is
@@ -37,17 +37,17 @@ export type TrekScene =
   | 'costs'
   | 'search'
   | 'tasks'
-  | 'tours'
+  | 'tours';
 
-export type TrekMood = 'default' | 'happy' | 'sad' | 'sleepy' | 'confused' | 'error'
+export type TrekMood = 'default' | 'happy' | 'sad' | 'sleepy' | 'confused' | 'error';
 
 const MARK =
-  'M 855.636719 699.203125 L 222.246094 699.203125 C 197.679688 699.203125 179.90625 675.75 186.539062 652.101562 L 360.429688 32.390625 C 364.921875 16.386719 379.511719 5.328125 396.132812 5.328125 L 1029.527344 5.328125 C 1054.089844 5.328125 1071.867188 28.777344 1065.230469 52.429688 L 891.339844 672.136719 C 886.851562 688.140625 872.257812 699.203125 855.636719 699.203125 Z M 444.238281 1166.980469 L 533.773438 847.898438 C 540.410156 824.246094 522.632812 800.796875 498.070312 800.796875 L 172.472656 800.796875 C 155.851562 800.796875 141.261719 811.855469 136.769531 827.859375 L 47.234375 1146.941406 C 40.597656 1170.59375 58.375 1194.042969 82.9375 1194.042969 L 408.535156 1194.042969 C 425.15625 1194.042969 439.75 1182.984375 444.238281 1166.980469 Z M 609.003906 827.859375 L 435.113281 1447.570312 C 428.476562 1471.21875 446.253906 1494.671875 470.816406 1494.671875 L 1104.210938 1494.671875 C 1120.832031 1494.671875 1135.421875 1483.609375 1139.914062 1467.605469 L 1313.804688 847.898438 C 1320.441406 824.246094 1302.664062 800.796875 1278.101562 800.796875 L 644.707031 800.796875 C 628.085938 800.796875 613.492188 811.855469 609.003906 827.859375 Z M 1056.105469 333.019531 L 966.570312 652.101562 C 959.933594 675.75 977.710938 699.203125 1002.273438 699.203125 L 1327.871094 699.203125 C 1344.492188 699.203125 1359.085938 688.140625 1363.574219 672.136719 L 1453.109375 353.054688 C 1459.746094 329.40625 1441.96875 305.953125 1417.40625 305.953125 L 1091.808594 305.953125 C 1075.1875 305.953125 1060.597656 317.015625 1056.105469 333.019531 Z'
+  'M 855.636719 699.203125 L 222.246094 699.203125 C 197.679688 699.203125 179.90625 675.75 186.539062 652.101562 L 360.429688 32.390625 C 364.921875 16.386719 379.511719 5.328125 396.132812 5.328125 L 1029.527344 5.328125 C 1054.089844 5.328125 1071.867188 28.777344 1065.230469 52.429688 L 891.339844 672.136719 C 886.851562 688.140625 872.257812 699.203125 855.636719 699.203125 Z M 444.238281 1166.980469 L 533.773438 847.898438 C 540.410156 824.246094 522.632812 800.796875 498.070312 800.796875 L 172.472656 800.796875 C 155.851562 800.796875 141.261719 811.855469 136.769531 827.859375 L 47.234375 1146.941406 C 40.597656 1170.59375 58.375 1194.042969 82.9375 1194.042969 L 408.535156 1194.042969 C 425.15625 1194.042969 439.75 1182.984375 444.238281 1166.980469 Z M 609.003906 827.859375 L 435.113281 1447.570312 C 428.476562 1471.21875 446.253906 1494.671875 470.816406 1494.671875 L 1104.210938 1494.671875 C 1120.832031 1494.671875 1135.421875 1483.609375 1139.914062 1467.605469 L 1313.804688 847.898438 C 1320.441406 824.246094 1302.664062 800.796875 1278.101562 800.796875 L 644.707031 800.796875 C 628.085938 800.796875 613.492188 811.855469 609.003906 827.859375 Z M 1056.105469 333.019531 L 966.570312 652.101562 C 959.933594 675.75 977.710938 699.203125 1002.273438 699.203125 L 1327.871094 699.203125 C 1344.492188 699.203125 1359.085938 688.140625 1363.574219 672.136719 L 1453.109375 353.054688 C 1459.746094 329.40625 1441.96875 305.953125 1417.40625 305.953125 L 1091.808594 305.953125 C 1075.1875 305.953125 1060.597656 317.015625 1056.105469 333.019531 Z';
 
 const SCENE_MOOD: Partial<Record<TrekScene, TrekMood>> = {
   notifications: 'sleepy',
   search: 'confused',
-}
+};
 
 export default function MDancingTrek({
   size = 96,
@@ -55,20 +55,20 @@ export default function MDancingTrek({
   mood,
   className = '',
 }: {
-  size?: number
-  scene?: TrekScene
-  mood?: TrekMood
-  className?: string
+  size?: number;
+  scene?: TrekScene;
+  mood?: TrekMood;
+  className?: string;
 }) {
-  const face = mood ?? SCENE_MOOD[scene] ?? 'default'
+  const face = mood ?? SCENE_MOOD[scene] ?? 'default';
   // Ground shadow sits under whatever the mascot stands on this scene.
-  const shadowCy = scene === 'transport' ? 86 : 73
+  const shadowCy = scene === 'transport' ? 86 : 73;
   // Poke to react: remounting the svg replays the entrance pop-in as a tap bounce.
-  const [poke, setPoke] = useState(0)
+  const [poke, setPoke] = useState(0);
   return (
     <svg
       key={poke}
-      onClick={() => setPoke(p => p + 1)}
+      onClick={() => setPoke((p) => p + 1)}
       width={size}
       height={(size * 96) / 88}
       viewBox="0 0 88 96"
@@ -96,7 +96,7 @@ export default function MDancingTrek({
         <SceneFront scene={scene} />
       </g>
     </svg>
-  )
+  );
 }
 
 /* ── Eyes ────────────────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ function Eyes({ mood }: { mood: TrekMood }) {
         <path d="M33.7 34 Q36 31.2 38.3 34" />
         <path d="M42.7 34 Q45 31.2 47.3 34" />
       </g>
-    )
+    );
   }
   if (mood === 'sad') {
     // The mirror of `happy`: the same arcs bent the other way. `sleepy` is a
@@ -122,7 +122,7 @@ function Eyes({ mood }: { mood: TrekMood }) {
         <path d="M33.7 32 Q36 34.8 38.3 32" />
         <path d="M42.7 32 Q45 34.8 47.3 32" />
       </g>
-    )
+    );
   }
   if (mood === 'sleepy') {
     return (
@@ -130,7 +130,7 @@ function Eyes({ mood }: { mood: TrekMood }) {
         <path d="M33.7 33 Q36 34.4 38.3 33" />
         <path d="M42.7 33 Q45 34.4 47.3 33" />
       </g>
-    )
+    );
   }
   if (mood === 'error') {
     return (
@@ -138,7 +138,7 @@ function Eyes({ mood }: { mood: TrekMood }) {
         <path d="M34.4 31.4 L37.6 34.6 M37.6 31.4 L34.4 34.6" />
         <path d="M43.4 31.4 L46.6 34.6 M46.6 31.4 L43.4 34.6" />
       </g>
-    )
+    );
   }
   if (mood === 'confused') {
     // one eye open, one a raised squint — reads puzzled
@@ -146,9 +146,15 @@ function Eyes({ mood }: { mood: TrekMood }) {
       <g className="trek-eyes">
         <circle className="trek-eye" cx="36" cy="33" r="2.3" />
         <circle cx="36.4" cy="33.3" r="1" fill="currentColor" />
-        <path d="M42.7 32.6 Q45 31.4 47.3 32.6" fill="none" stroke="var(--m-bg)" strokeWidth="1.8" strokeLinecap="round" />
+        <path
+          d="M42.7 32.6 Q45 31.4 47.3 32.6"
+          fill="none"
+          stroke="var(--m-bg)"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
       </g>
-    )
+    );
   }
   // default — open eyes that blink and glance around
   return (
@@ -160,7 +166,7 @@ function Eyes({ mood }: { mood: TrekMood }) {
         <circle cx="45.4" cy="33.3" r="1" fill="currentColor" />
       </g>
     </g>
-  )
+  );
 }
 
 /* ── Scene props ─────────────────────────────────────────────────────────────
@@ -174,12 +180,23 @@ function Eyes({ mood }: { mood: TrekMood }) {
  * mark that gap is the only thing telling the pack from the body behind it.
  */
 function SceneOnBody({ scene }: { scene: TrekScene }) {
-  if (scene !== 'tours') return null
-  const cut = { stroke: 'var(--m-bg)', strokeWidth: 1.6, paintOrder: 'stroke' as const, strokeLinejoin: 'round' as const }
+  if (scene !== 'tours') return null;
+  const cut = {
+    stroke: 'var(--m-bg)',
+    strokeWidth: 1.6,
+    paintOrder: 'stroke' as const,
+    strokeLinejoin: 'round' as const,
+  };
   return (
     <g>
       {/* a small smile under the eyes, glad to be out walking */}
-      <path d="M38.2 38.9 Q40.4 41.2 42.6 38.9" fill="none" stroke="var(--m-bg)" strokeWidth="1.4" strokeLinecap="round" />
+      <path
+        d="M38.2 38.9 Q40.4 41.2 42.6 38.9"
+        fill="none"
+        stroke="var(--m-bg)"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
       {/* the pack, slung over the left side */}
       <g className="trek-pack">
         <g transform="translate(2.6 4.2) rotate(-7 17 44)">
@@ -188,9 +205,19 @@ function SceneOnBody({ scene }: { scene: TrekScene }) {
           <rect x="11.6" y="25.4" width="1.2" height="5.6" fill="var(--m-bg)" />
           <rect x="20.8" y="25.4" width="1.2" height="5.6" fill="var(--m-bg)" />
           {/* body of the pack */}
-          <path d="M10 34 Q10 31.2 13 31.2 L21.6 31.2 Q24.6 31.2 24.6 34 L25 55.4 Q25 59 21.4 59 L12.6 59 Q9 59 9.2 55.4 Z" fill="currentColor" {...cut} />
+          <path
+            d="M10 34 Q10 31.2 13 31.2 L21.6 31.2 Q24.6 31.2 24.6 34 L25 55.4 Q25 59 21.4 59 L12.6 59 Q9 59 9.2 55.4 Z"
+            fill="currentColor"
+            {...cut}
+          />
           {/* lid seam and buckle */}
-          <path d="M10.2 38.4 Q17.4 40.6 24.7 38.4" fill="none" stroke="var(--m-bg)" strokeWidth="1.1" strokeLinecap="round" />
+          <path
+            d="M10.2 38.4 Q17.4 40.6 24.7 38.4"
+            fill="none"
+            stroke="var(--m-bg)"
+            strokeWidth="1.1"
+            strokeLinecap="round"
+          />
           <rect x="16" y="38.8" width="2.8" height="3.4" rx="0.7" fill="var(--m-bg)" />
           {/* front pocket */}
           <rect x="12" y="46" width="10.6" height="9.4" rx="2.6" fill="none" stroke="var(--m-bg)" strokeWidth="1.1" />
@@ -198,7 +225,7 @@ function SceneOnBody({ scene }: { scene: TrekScene }) {
         </g>
       </g>
     </g>
-  )
+  );
 }
 
 function SceneBack({ scene }: { scene: TrekScene }) {
@@ -209,11 +236,22 @@ function SceneBack({ scene }: { scene: TrekScene }) {
         <g>
           <g className="trek-hills" fill="currentColor">
             <path d="M44 73 L62 41 L69.5 52 L74.5 46 L88 73 Z" opacity="0.14" />
-            <path d="M58.6 47.2 L62 41 L65.6 46.4 L63.4 45.2 L61.6 47.6 Z M72.6 49 L74.5 46 L77 50.2 L75.4 49.4 Z" opacity="0.3" />
+            <path
+              d="M58.6 47.2 L62 41 L65.6 46.4 L63.4 45.2 L61.6 47.6 Z M72.6 49 L74.5 46 L77 50.2 L75.4 49.4 Z"
+              opacity="0.3"
+            />
           </g>
-          <path className="trek-trail" d="M10 77.5 H78" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeDasharray="3.4 4.6" opacity="0.35" />
+          <path
+            className="trek-trail"
+            d="M10 77.5 H78"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            strokeDasharray="3.4 4.6"
+            opacity="0.35"
+          />
         </g>
-      )
+      );
     case 'transport':
       // skateboard under the body — deck + two wheels spinning in place
       return (
@@ -228,7 +266,7 @@ function SceneBack({ scene }: { scene: TrekScene }) {
             <circle cx="56" cy="79" r="1.1" fill="var(--m-bg)" />
           </g>
         </g>
-      )
+      );
     case 'guide':
       // tall staff with a big pennant fluttering near the top
       return (
@@ -239,7 +277,7 @@ function SceneBack({ scene }: { scene: TrekScene }) {
             <path d="M73 25 L90 30.5 L73 40 Z" fill="currentColor" />
           </g>
         </g>
-      )
+      );
     case 'packing':
       // rolling suitcase parked beside the body — rocks on its wheels,
       // handle telescoping up and down
@@ -258,7 +296,7 @@ function SceneBack({ scene }: { scene: TrekScene }) {
             <circle cx="79" cy="73.4" r="2" fill="currentColor" />
           </g>
         </g>
-      )
+      );
     case 'links':
       // two chain links clicking into each other beside the body. The lower one
       // carries a surface-coloured under-stroke so it reads as passing through
@@ -273,7 +311,7 @@ function SceneBack({ scene }: { scene: TrekScene }) {
             </g>
           </g>
         </g>
-      )
+      );
     case 'polls':
       // vote bars gently rising and settling like live tallies
       return (
@@ -282,24 +320,36 @@ function SceneBack({ scene }: { scene: TrekScene }) {
           <rect className="trek-bar trek-d2" x="73" y="52" width="5" height="20" rx="1.5" fill="currentColor" />
           <rect className="trek-bar trek-d3" x="80" y="56" width="5" height="16" rx="1.5" fill="currentColor" />
         </g>
-      )
+      );
     case 'collections':
       // a map pin dropping in and bouncing beside the body
       return (
         <g className="trek-pin">
-          <path d="M73 48 C 78 48 81.5 51.6 81.5 56.4 C 81.5 61.6 76 66 73 70 C 70 66 64.5 61.6 64.5 56.4 C 64.5 51.6 68 48 73 48 Z" fill="currentColor" />
+          <path
+            d="M73 48 C 78 48 81.5 51.6 81.5 56.4 C 81.5 61.6 76 66 73 70 C 70 66 64.5 61.6 64.5 56.4 C 64.5 51.6 68 48 73 48 Z"
+            fill="currentColor"
+          />
           <circle cx="73" cy="56.2" r="2.9" fill="var(--m-bg)" />
         </g>
-      )
+      );
     case 'atlas':
       // a globe beside the body, meridians drifting
       return (
         <g className="trek-globe-wrap">
           <circle cx="73" cy="60" r="11" fill="currentColor" />
           <path d="M63 57 H83 M64.5 64.5 H81.5" stroke="var(--m-bg)" strokeWidth="1.2" strokeLinecap="round" />
-          <ellipse className="trek-globe" cx="73" cy="60" rx="4.6" ry="11" fill="none" stroke="var(--m-bg)" strokeWidth="1.2" />
+          <ellipse
+            className="trek-globe"
+            cx="73"
+            cy="60"
+            rx="4.6"
+            ry="11"
+            fill="none"
+            stroke="var(--m-bg)"
+            strokeWidth="1.2"
+          />
         </g>
-      )
+      );
     case 'costs':
       // a stack of coins beside the body, top one bouncing on
       return (
@@ -312,7 +362,7 @@ function SceneBack({ scene }: { scene: TrekScene }) {
             <rect x="72.7" y="58.6" width="2.6" height="5.8" rx="1.3" fill="var(--m-bg)" />
           </g>
         </g>
-      )
+      );
     case 'chat':
       // a speech bubble beside the body with three typing dots pulsing in turn
       return (
@@ -323,9 +373,9 @@ function SceneBack({ scene }: { scene: TrekScene }) {
           <circle className="trek-dot trek-d2" cx="73" cy="51.5" r="1.9" fill="var(--m-bg)" />
           <circle className="trek-dot trek-d3" cx="79" cy="51.5" r="1.9" fill="var(--m-bg)" />
         </g>
-      )
+      );
     default:
-      return null
+      return null;
   }
 }
 
@@ -340,12 +390,18 @@ function SceneFront({ scene }: { scene: TrekScene }) {
               <rect x="69.1" y="40.5" width="2.2" height="33.5" rx="1.1" fill="currentColor" />
               <rect x="67.9" y="34" width="4.6" height="9" rx="2" fill="currentColor" />
             </g>
-            <path d="M68.2 35.6 Q63.8 37.6 66.6 42" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+            <path
+              d="M68.2 35.6 Q63.8 37.6 66.6 42"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.1"
+              strokeLinecap="round"
+            />
             <rect x="68.6" y="38.2" width="3.2" height="0.9" rx="0.45" fill="var(--m-bg)" />
             <ellipse cx="70.2" cy="69" rx="3.4" ry="1.1" fill="none" stroke="currentColor" strokeWidth="1.2" />
           </g>
         </g>
-      )
+      );
     // Files reuse the booking ticket per design — a card getting written on.
     case 'bookings':
     case 'files':
@@ -360,16 +416,33 @@ function SceneFront({ scene }: { scene: TrekScene }) {
             <rect className="trek-write trek-d3" x="64" y="63.5" width="7" height="1.7" rx="0.85" fill="var(--m-bg)" />
           </g>
         </g>
-      )
+      );
     case 'notes':
       // a paper note (surface colour) with ink lines being written and a
       // scribbling pencil — pencil is ink (light in dark theme, dark in light)
       return (
         <g className="trek-note">
           <g transform="rotate(5 70 55)">
-            <rect x="60" y="44" width="20" height="24" rx="2.5" fill="var(--m-bg)" stroke="currentColor" strokeWidth="1.4" />
+            <rect
+              x="60"
+              y="44"
+              width="20"
+              height="24"
+              rx="2.5"
+              fill="var(--m-bg)"
+              stroke="currentColor"
+              strokeWidth="1.4"
+            />
             <rect className="trek-write" x="63.5" y="50" width="13" height="1.7" rx="0.85" fill="currentColor" />
-            <rect className="trek-write trek-d2" x="63.5" y="54.5" width="13" height="1.7" rx="0.85" fill="currentColor" />
+            <rect
+              className="trek-write trek-d2"
+              x="63.5"
+              y="54.5"
+              width="13"
+              height="1.7"
+              rx="0.85"
+              fill="currentColor"
+            />
             <rect className="trek-write trek-d3" x="63.5" y="59" width="8" height="1.7" rx="0.85" fill="currentColor" />
           </g>
           <g className="trek-pencil">
@@ -381,22 +454,40 @@ function SceneFront({ scene }: { scene: TrekScene }) {
             </g>
           </g>
         </g>
-      )
+      );
     case 'journey':
       // an open book with a fluttering page and a ribbon bookmark
       return (
         <g className="trek-journal">
           <path d="M58 53 Q71 49.5 71 52 L71 69 Q71 66.5 58 70 Z" fill="currentColor" />
           <path d="M84 53 Q71 49.5 71 52 L71 69 Q71 66.5 84 70 Z" fill="currentColor" />
-          <path d="M60.5 56 Q66 54 70 55.5 M60.5 60 Q66 58 70 59.5 M60.5 64 Q66 62 70 63.5" stroke="var(--m-bg)" strokeWidth="1" fill="none" strokeLinecap="round" />
-          <path d="M76 55.4 Q80 54 83 55.6 M76 59.4 Q80 58 83 59.6" stroke="var(--m-bg)" strokeWidth="1" fill="none" strokeLinecap="round" />
+          <path
+            d="M60.5 56 Q66 54 70 55.5 M60.5 60 Q66 58 70 59.5 M60.5 64 Q66 62 70 63.5"
+            stroke="var(--m-bg)"
+            strokeWidth="1"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M76 55.4 Q80 54 83 55.6 M76 59.4 Q80 58 83 59.6"
+            stroke="var(--m-bg)"
+            strokeWidth="1"
+            fill="none"
+            strokeLinecap="round"
+          />
           <g className="trek-page">
             <path d="M71 52 Q78 50.5 82 52 L82 68.5 Q78 67 71 68.5 Z" fill="currentColor" />
-            <path d="M74 55.4 Q78 54.2 81 55.6 M74 59.4 Q78 58.2 81 59.6" stroke="var(--m-bg)" strokeWidth="1" fill="none" strokeLinecap="round" />
+            <path
+              d="M74 55.4 Q78 54.2 81 55.6 M74 59.4 Q78 58.2 81 59.6"
+              stroke="var(--m-bg)"
+              strokeWidth="1"
+              fill="none"
+              strokeLinecap="round"
+            />
           </g>
           <rect x="70" y="49.5" width="2.2" height="9" fill="var(--m-bg)" />
         </g>
-      )
+      );
     case 'dashboard':
       // a little paper plane looping around, ready for a first trip
       return (
@@ -404,16 +495,40 @@ function SceneFront({ scene }: { scene: TrekScene }) {
           <path d="M64 53 L87 58 L70 68 L71 60 Z" fill="currentColor" />
           <path d="M87 58 L71 60 L70 68" stroke="var(--m-bg)" strokeWidth="0.9" fill="none" strokeLinejoin="round" />
         </g>
-      )
+      );
     case 'notifications':
       // all caught up — a stack of Zzz drifting up while the mascot dozes
       return (
         <g className="trek-zzz" fill="currentColor">
-          <path className="trek-z trek-z1" d="M63 50 h5 l-5 6 h5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" />
-          <path className="trek-z trek-z2" d="M69 42 h6 l-6 7 h6" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
-          <path className="trek-z trek-z3" d="M76 32 h7 l-7 8 h7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+          <path
+            className="trek-z trek-z1"
+            d="M63 50 h5 l-5 6 h5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          <path
+            className="trek-z trek-z2"
+            d="M69 42 h6 l-6 7 h6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          <path
+            className="trek-z trek-z3"
+            d="M76 32 h7 l-7 8 h7"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
         </g>
-      )
+      );
     case 'search':
       // a magnifying glass scanning back and forth
       return (
@@ -422,7 +537,7 @@ function SceneFront({ scene }: { scene: TrekScene }) {
           <circle cx="72" cy="56" r="5.4" fill="var(--m-bg)" />
           <rect x="77" y="62.5" width="3" height="10" rx="1.5" fill="currentColor" transform="rotate(-45 78.5 67.5)" />
         </g>
-      )
+      );
     case 'tasks':
       // a clipboard checklist with a checkmark ticking on
       return (
@@ -436,11 +551,19 @@ function SceneFront({ scene }: { scene: TrekScene }) {
             <rect x="69.5" y="56.2" width="9" height="1.7" rx="0.85" fill="var(--m-bg)" />
             <rect x="63.5" y="61.6" width="4" height="4" rx="1" fill="var(--m-bg)" />
             <rect x="69.5" y="62.8" width="6" height="1.7" rx="0.85" fill="var(--m-bg)" />
-            <path className="trek-check" d="M64 50.5 l1.3 1.4 l2.2 -2.7" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              className="trek-check"
+              d="M64 50.5 l1.3 1.4 l2.2 -2.7"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </g>
         </g>
-      )
+      );
     default:
-      return null
+      return null;
   }
 }

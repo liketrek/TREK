@@ -1,15 +1,16 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import crypto from 'crypto';
-import { UnitOfWork } from '../database/unit-of-work';
-import type { TripAccess } from '../../db/repositories/Trips.repository';
+import { TripInviteTokens } from '../../db/entities/TripInviteTokens.entity';
 import { Trips } from '../../db/entities/Trips.entity';
+import type { TripInviteTokensRepository } from '../../db/repositories/TripInviteTokens.repository';
+import type { TripAccess } from '../../db/repositories/Trips.repository';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import type { User } from '../../types';
+import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
-import { TripInviteTokens } from '../../db/entities/TripInviteTokens.entity';
-import type { TripInviteTokensRepository } from '../../db/repositories/TripInviteTokens.repository';
-import type { User } from '../../types';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+
+import crypto from 'crypto';
 
 type Trip = TripAccess;
 
@@ -68,14 +69,16 @@ export class TripInviteService {
    * Create the trip's invite link, or rotate it to a fresh token (there is only
    * ever one row per trip). An optional expiry (days) can bound the link's life.
    */
-  async createOrRotate(tripId: string | number, createdBy: number, expiresInDays?: number | null): Promise<TripInviteInfo> {
+  async createOrRotate(
+    tripId: string | number,
+    createdBy: number,
+    expiresInDays?: number | null,
+  ): Promise<TripInviteInfo> {
     const token = crypto.randomBytes(24).toString('base64url');
     // Any non-positive/absent value (0, negatives, NaN, null, undefined) means
     // "no expiry" — deliberate: the UI sends null when no bound was chosen.
     const expiresAt =
-      expiresInDays && expiresInDays > 0
-        ? new Date(Date.now() + expiresInDays * 86400000).toISOString()
-        : null;
+      expiresInDays && expiresInDays > 0 ? new Date(Date.now() + expiresInDays * 86400000).toISOString() : null;
 
     // Probe + write + re-select are one atomic unit so a concurrent rotation
     // can't interleave between them (the trip_id UNIQUE constraint would turn
@@ -85,7 +88,12 @@ export class TripInviteService {
       if (existing) {
         await this.tripInviteTokens.updateForTrip(tripId, { token, expires_at: expiresAt, created_by: createdBy });
       } else {
-        await this.tripInviteTokens.insertForTrip({ trip_id: tripId, token, created_by: createdBy, expires_at: expiresAt });
+        await this.tripInviteTokens.insertForTrip({
+          trip_id: tripId,
+          token,
+          created_by: createdBy,
+          expires_at: expiresAt,
+        });
       }
       return (await this.get(tripId))!;
     });
@@ -115,5 +123,7 @@ export class TripInviteService {
 
   /** Join the resolved trip as the current (authenticated, non-guest) user.
    *  invited_by is null — they joined via a link, not a personal invite. */
-  async join(tripId: number, userId: number) { return await this.membership.joinTripAsMember(tripId, userId, null); }
+  async join(tripId: number, userId: number) {
+    return await this.membership.joinTripAsMember(tripId, userId, null);
+  }
 }

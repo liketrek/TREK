@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { ReplicaFailureDebouncer } from '../../../../src/nest/notifications/replica-failure-debouncer';
+
+import { describe, it, expect } from 'vitest';
 
 const HOUR = 60 * 60 * 1000;
 

@@ -1,29 +1,29 @@
-import { useEffect, useRef, useState } from 'react'
-import MSheet from '../../../components/MSheet'
-import { ChevronDown } from 'lucide-react'
-import { NOTE_COLORS } from '@trek/shared'
-import { NOTE_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants'
-import { noteSurface } from '../../../../components/Planner/noteSurface'
-import NoteFormatToolbar from '../../../../components/shared/NoteFormatToolbar'
-import { useTripStore } from '../../../../store/tripStore'
-import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome'
-import type { DayNote } from '../../../../types'
-import type { TripPlanner } from '../MTripShell'
+import { NOTE_COLORS } from '@trek/shared';
+import { ChevronDown } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { NOTE_ICONS, getNoteIcon } from '../../../../components/Planner/DayPlanSidebar.constants';
+import { noteSurface } from '../../../../components/Planner/noteSurface';
+import NoteFormatToolbar from '../../../../components/shared/NoteFormatToolbar';
+import { useTripStore } from '../../../../store/tripStore';
+import type { DayNote } from '../../../../types';
+import MSheet from '../../../components/MSheet';
+import type { TripPlanner } from '../MTripShell';
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from './PlSheetChrome';
 
 /** shell.openSheet('note', payload) — omit `note` to create on the day. */
 export interface MNoteSheetPayload {
-  dayId?: number
-  note?: DayNote
+  dayId?: number;
+  note?: DayNote;
 }
 
 export interface MNoteSheetProps {
-  planner: TripPlanner
-  open: boolean
-  payload?: MNoteSheetPayload
-  onClose: () => void
+  planner: TripPlanner;
+  open: boolean;
+  payload?: MNoteSheetPayload;
+  onClose: () => void;
 }
 
-const DETAIL_MAX = 2000
+const DETAIL_MAX = 2000;
 
 /**
  * Day-note sheet: the demo's icon grid over title + detail. Persists through
@@ -32,81 +32,86 @@ const DETAIL_MAX = 2000
  * chronologically in the timeline), `icon` is one of the shared NOTE_ICONS.
  */
 export default function MNoteSheet({ planner, open, payload, onClose }: MNoteSheetProps) {
-  const { t, toast, tripId, selectedDayId, tripActions } = planner
+  const { t, toast, tripId, selectedDayId, tripActions } = planner;
 
-  const [icon, setIcon] = useState('FileText')
-  const [color, setColor] = useState<string | null>(null)
+  const [icon, setIcon] = useState('FileText');
+  const [color, setColor] = useState<string | null>(null);
   // Thirty-two icons in a six-wide grid is most of a phone screen, so the grid
   // is folded behind the chosen one, which doubles as the colour preview.
-  const [iconOpen, setIconOpen] = useState(false)
-  const [title, setTitle] = useState('')
-  const [detail, setDetail] = useState('')
-  const detailRef = useRef<HTMLTextAreaElement | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
+  const [iconOpen, setIconOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [detail, setDetail] = useState('');
+  const detailRef = useRef<HTMLTextAreaElement | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   // Open-time snapshot — the payload disappears with shell.sheet on close, but
   // the sheet still shows through its exit animation.
-  const [sheetPayload, setSheetPayload] = useState<MNoteSheetPayload | undefined>(undefined)
+  const [sheetPayload, setSheetPayload] = useState<MNoteSheetPayload | undefined>(undefined);
 
   // Keyed on what the payload points AT, not on its object identity — a caller
   // that rebuilds the payload inline (or a store refresh of the note) must not
   // reseed the fields under the user's fingers.
-  const payloadNoteId = payload?.note?.id
-  const payloadDayId = payload?.dayId
+  const payloadNoteId = payload?.note?.id;
+  const payloadDayId = payload?.dayId;
   useEffect(() => {
-    if (!open) return
-    setSheetPayload(payload)
-    setIcon(payload?.note?.icon || 'FileText')
-    setColor(payload?.note?.color ?? null)
-    setIconOpen(false)
-    setTitle(payload?.note?.text || '')
-    setDetail(payload?.note?.time || '')
+    if (!open) return;
+    setSheetPayload(payload);
+    setIcon(payload?.note?.icon || 'FileText');
+    setColor(payload?.note?.color ?? null);
+    setIconOpen(false);
+    setTitle(payload?.note?.text || '');
+    setDetail(payload?.note?.time || '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, payloadNoteId, payloadDayId])
+  }, [open, payloadNoteId, payloadDayId]);
 
-  const note = sheetPayload?.note ?? null
-  const dayId = sheetPayload?.dayId ?? selectedDayId
-  const skin = noteSurface(color)
-  const ChosenIcon = getNoteIcon(icon)
+  const note = sheetPayload?.note ?? null;
+  const dayId = sheetPayload?.dayId ?? selectedDayId;
+  const skin = noteSurface(color);
+  const ChosenIcon = getNoteIcon(icon);
 
   const handleSubmit = async () => {
-    if (!title.trim() || !dayId || isSaving) return
-    setIsSaving(true)
+    if (!title.trim() || !dayId || isSaving) return;
+    setIsSaving(true);
     try {
       if (note) {
-        await tripActions.updateDayNote(tripId, dayId, note.id, { text: title.trim(), time: detail || null, icon, color })
+        await tripActions.updateDayNote(tripId, dayId, note.id, {
+          text: title.trim(),
+          time: detail || null,
+          icon,
+          color,
+        });
       } else {
         // Append at the end of the day timeline: after the last assignment or note.
-        const state = useTripStore.getState()
+        const state = useTripStore.getState();
         const maxKey = Math.max(
           -1,
-          ...(state.assignments[String(dayId)] ?? []).map(a => a.order_index ?? 0),
-          ...(state.dayNotes[String(dayId)] ?? []).map(n => n.sort_order ?? 0),
-        )
+          ...(state.assignments[String(dayId)] ?? []).map((a) => a.order_index ?? 0),
+          ...(state.dayNotes[String(dayId)] ?? []).map((n) => n.sort_order ?? 0)
+        );
         await tripActions.addDayNote(tripId, dayId, {
           text: title.trim(),
           time: detail || null,
           icon,
           color,
           sort_order: maxKey + 1,
-        })
+        });
       }
-      onClose()
+      onClose();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+      toast.error(err instanceof Error ? err.message : t('common.unknownError'));
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   const handleDelete = async () => {
-    if (!note || !dayId) return
+    if (!note || !dayId) return;
     try {
-      await tripActions.deleteDayNote(tripId, dayId, note.id)
-      onClose()
+      await tripActions.deleteDayNote(tripId, dayId, note.id);
+      onClose();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+      toast.error(err instanceof Error ? err.message : t('common.unknownError'));
     }
-  }
+  };
 
   return (
     <MSheet open={open} onClose={onClose} ariaLabel={note ? t('dayplan.noteEdit') : t('dayplan.noteAdd')}>
@@ -124,7 +129,7 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
               fold on a phone. */}
           <button
             type="button"
-            onClick={() => setIconOpen(v => !v)}
+            onClick={() => setIconOpen((v) => !v)}
             aria-expanded={iconOpen}
             aria-label={t('dayplan.noteIcon')}
             className="relative flex h-[46px] w-[46px] flex-none items-center justify-center rounded-[14px] border"
@@ -148,7 +153,7 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
                 color === null ? 'ring-2 ring-[color:var(--m-act)] ring-offset-2 ring-offset-[color:var(--m-card)]' : ''
               }`}
             />
-            {NOTE_COLORS.map(c => (
+            {NOTE_COLORS.map((c) => (
               <button
                 key={c}
                 type="button"
@@ -170,7 +175,10 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
               <button
                 key={id}
                 type="button"
-                onClick={() => { setIcon(id); setIconOpen(false) }}
+                onClick={() => {
+                  setIcon(id);
+                  setIconOpen(false);
+                }}
                 aria-label={id}
                 aria-pressed={icon === id}
                 className={`flex h-[42px] items-center justify-center rounded-[12px] border border-[color:var(--m-rowbr)] ${
@@ -187,7 +195,7 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
         <input
           type="text"
           value={title}
-          onChange={e => setTitle(e.target.value)}
+          onChange={(e) => setTitle(e.target.value)}
           maxLength={500}
           placeholder={`${t('dayplan.noteTitle')} *`}
           className={FIELD_CLS}
@@ -200,7 +208,7 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
         <textarea
           ref={detailRef}
           value={detail}
-          onChange={e => setDetail(e.target.value)}
+          onChange={(e) => setDetail(e.target.value)}
           rows={4}
           maxLength={DETAIL_MAX}
           placeholder={t('notes.bodyPlaceholder')}
@@ -224,5 +232,5 @@ export default function MNoteSheet({ planner, open, payload, onClose }: MNoteShe
         submitDisabled={!title.trim() || isSaving}
       />
     </MSheet>
-  )
+  );
 }

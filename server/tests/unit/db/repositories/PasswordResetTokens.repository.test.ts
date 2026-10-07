@@ -1,12 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createHash } from 'crypto';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
 import { PasswordResetTokens } from '../../../../src/db/entities/PasswordResetTokens.entity';
 import type { PasswordResetTokensRepository } from '../../../../src/db/repositories/PasswordResetTokens.repository';
 import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { createHash } from 'crypto';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -29,14 +30,31 @@ function hash(raw: string): string {
   return createHash('sha256').update(raw).digest('hex');
 }
 
-function rawRow(id: number): { id: number; user_id: number; token_hash: string; expires_at: string; consumed_at: string | null; created_ip: string | null } {
-  return testDb.prepare('SELECT id, user_id, token_hash, expires_at, consumed_at, created_ip FROM password_reset_tokens WHERE id = ?').get(id) as never;
+function rawRow(id: number): {
+  id: number;
+  user_id: number;
+  token_hash: string;
+  expires_at: string;
+  consumed_at: string | null;
+  created_ip: string | null;
+} {
+  return testDb
+    .prepare(
+      'SELECT id, user_id, token_hash, expires_at, consumed_at, created_ip FROM password_reset_tokens WHERE id = ?',
+    )
+    .get(id) as never;
 }
 
-function seedToken(userId: number, tokenHash: string, opts: { expires_at?: string; consumed_at?: string | null; created_ip?: string | null } = {}): number {
+function seedToken(
+  userId: number,
+  tokenHash: string,
+  opts: { expires_at?: string; consumed_at?: string | null; created_ip?: string | null } = {},
+): number {
   const expiresAt = opts.expires_at ?? new Date(Date.now() + 60 * 60 * 1000).toISOString();
   const result = testDb
-    .prepare('INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, consumed_at, created_ip) VALUES (?, ?, ?, ?, ?)')
+    .prepare(
+      'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, consumed_at, created_ip) VALUES (?, ?, ?, ?, ?)',
+    )
     .run(userId, tokenHash, expiresAt, opts.consumed_at ?? null, opts.created_ip ?? null);
   return Number(result.lastInsertRowid);
 }
@@ -48,18 +66,40 @@ describe('PasswordResetTokensRepository', () => {
       const tokenHash = hash('raw-token-value');
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
-      await tokens.insertToken({ user_id: user.id, token_hash: tokenHash, expires_at: expiresAt, created_ip: '1.2.3.4' });
+      await tokens.insertToken({
+        user_id: user.id,
+        token_hash: tokenHash,
+        expires_at: expiresAt,
+        created_ip: '1.2.3.4',
+      });
 
-      const row = testDb.prepare('SELECT user_id, token_hash, expires_at, consumed_at, created_ip FROM password_reset_tokens WHERE token_hash = ?').get(tokenHash);
-      expect(row).toEqual({ user_id: user.id, token_hash: tokenHash, expires_at: expiresAt, consumed_at: null, created_ip: '1.2.3.4' });
+      const row = testDb
+        .prepare(
+          'SELECT user_id, token_hash, expires_at, consumed_at, created_ip FROM password_reset_tokens WHERE token_hash = ?',
+        )
+        .get(tokenHash);
+      expect(row).toEqual({
+        user_id: user.id,
+        token_hash: tokenHash,
+        expires_at: expiresAt,
+        consumed_at: null,
+        created_ip: '1.2.3.4',
+      });
     });
 
     it('PWDRESETREPO-002: writes a NULL created_ip', async () => {
       const { user } = createUser(testDb);
       const tokenHash = hash('no-ip-token');
-      await tokens.insertToken({ user_id: user.id, token_hash: tokenHash, expires_at: new Date().toISOString(), created_ip: null });
+      await tokens.insertToken({
+        user_id: user.id,
+        token_hash: tokenHash,
+        expires_at: new Date().toISOString(),
+        created_ip: null,
+      });
 
-      const row = testDb.prepare('SELECT created_ip FROM password_reset_tokens WHERE token_hash = ?').get(tokenHash) as { created_ip: string | null };
+      const row = testDb
+        .prepare('SELECT created_ip FROM password_reset_tokens WHERE token_hash = ?')
+        .get(tokenHash) as { created_ip: string | null };
       expect(row.created_ip).toBeNull();
     });
   });
@@ -128,7 +168,7 @@ describe('PasswordResetTokensRepository', () => {
       expect(rawRow(burn2).consumed_at).not.toBeNull();
     });
 
-    it('PWDRESETREPO-009: never touches another user\'s tokens or an already-consumed row', async () => {
+    it("PWDRESETREPO-009: never touches another user's tokens or an already-consumed row", async () => {
       const { user: victim } = createUser(testDb);
       const { user: bystander } = createUser(testDb);
       const already = seedToken(victim.id, hash('already-consumed'), { consumed_at: '2026-01-01T00:00:00.000Z' });
@@ -204,7 +244,11 @@ describe('PasswordResetTokensRepository', () => {
 
       await uow.transactional(async () => {
         await tokens.findByTokenHash(hash('dshape')); // projection A — WIDE (carries consumed_at)
-        await t.em.findOne(PasswordResetTokens, { id }, { fields: ['id', 'token_hash'], refresh: true, disableIdentityMap: false }); // projection B — NARROW, managed
+        await t.em.findOne(
+          PasswordResetTokens,
+          { id },
+          { fields: ['id', 'token_hash'], refresh: true, disableIdentityMap: false },
+        ); // projection B — NARROW, managed
         await tokens.markConsumed(id);
       });
 
@@ -218,7 +262,11 @@ describe('PasswordResetTokensRepository', () => {
 
       await uow.transactional(async () => {
         await tokens.findByTokenHash(hash('dshape-consume-all')); // projection A — WIDE (carries consumed_at)
-        await t.em.findOne(PasswordResetTokens, { id }, { fields: ['id', 'token_hash'], refresh: true, disableIdentityMap: false }); // projection B — NARROW, managed
+        await t.em.findOne(
+          PasswordResetTokens,
+          { id },
+          { fields: ['id', 'token_hash'], refresh: true, disableIdentityMap: false },
+        ); // projection B — NARROW, managed
         await tokens.consumeAllLiveForUser(user.id);
       });
 

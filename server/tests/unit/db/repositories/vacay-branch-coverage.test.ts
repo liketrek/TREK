@@ -6,11 +6,10 @@
  * NULL needs to land on a column the ORM itself would never write (the
  * entity's own default keeps every normal write non-null).
  */
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
 import { createUser } from '../../../helpers/factories';
 import { createTestVacayHolidayCalendarsRepo } from '../../../helpers/school-holidays-repos';
+import { resetTestDb } from '../../../helpers/test-db';
 import {
   createTestVacayPlansRepo,
   createTestVacayPlanMembersRepo,
@@ -18,6 +17,8 @@ import {
   createTestVacayCompanyHolidaysRepo,
   createTestVacaySharesRepo,
 } from '../../../helpers/vacay-repos';
+
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 
@@ -33,10 +34,14 @@ describe('VacayCompanyHolidaysRepository — note ?? null (VC29/VC67/VC112)', ()
     const repo = await createTestVacayCompanyHolidaysRepo(testDb);
     const { user } = createUser(testDb);
     const planId = makePlan(user.id);
-    testDb.prepare('INSERT INTO vacay_company_holidays (plan_id, date, note) VALUES (?, ?, NULL)').run(planId, '2026-12-25');
+    testDb
+      .prepare('INSERT INTO vacay_company_holidays (plan_id, date, note) VALUES (?, ?, NULL)')
+      .run(planId, '2026-12-25');
 
     expect(await repo.listForPlan(planId)).toEqual([{ date: '2026-12-25', note: null, fraction: 1 }]);
-    expect(await repo.listForRange(planId, '2026-12-01', '2027-01-01')).toMatchObject([{ date: '2026-12-25', note: null }]);
+    expect(await repo.listForRange(planId, '2026-12-01', '2027-01-01')).toMatchObject([
+      { date: '2026-12-25', note: null },
+    ]);
   });
 });
 
@@ -47,7 +52,9 @@ describe('VacayUserColorsRepository — color ?? null (VC79/VC57.../VC59)', () =
     const { user: u2 } = createUser(testDb);
     const planId = makePlan(u1.id);
     testDb.prepare('INSERT INTO vacay_user_colors (user_id, plan_id, color) VALUES (?, ?, NULL)').run(u1.id, planId);
-    testDb.prepare('INSERT INTO vacay_user_colors (user_id, plan_id, color) VALUES (?, ?, ?)').run(u2.id, planId, '#111111');
+    testDb
+      .prepare('INSERT INTO vacay_user_colors (user_id, plan_id, color) VALUES (?, ?, ?)')
+      .run(u2.id, planId, '#111111');
 
     expect(await repo.listForPlan(planId)).toEqual(expect.arrayContaining([{ color: null }, { color: '#111111' }]));
     expect(await repo.findColor(u1.id, planId)).toEqual({ color: null });
@@ -69,7 +76,9 @@ describe('VacayHolidayCalendarsRepository — findById/findScopedForPlan not-fou
     const otherPlanId = makePlan(createUser(testDb).user.id);
     const id = Number(
       testDb
-        .prepare("INSERT INTO vacay_holiday_calendars (plan_id, type, region, color, sort_order) VALUES (?, 'public_holiday', 'US', '#fecaca', 0)")
+        .prepare(
+          "INSERT INTO vacay_holiday_calendars (plan_id, type, region, color, sort_order) VALUES (?, 'public_holiday', 'US', '#fecaca', 0)",
+        )
         .run(planId).lastInsertRowid,
     );
     expect((await repo.findScopedForPlan(id, planId))?.id).toBe(id);
@@ -87,11 +96,15 @@ describe('VacayPlanMembersRepository — findMembership/findAcceptedForUser (VC4
 
     expect(await repo.findMembership(planId, target.id)).toBeNull();
 
-    testDb.prepare("INSERT INTO vacay_plan_members (plan_id, user_id, status) VALUES (?, ?, 'pending')").run(planId, target.id);
+    testDb
+      .prepare("INSERT INTO vacay_plan_members (plan_id, user_id, status) VALUES (?, ?, 'pending')")
+      .run(planId, target.id);
     const pending = await repo.findMembership(planId, target.id);
     expect(pending).toMatchObject({ status: 'pending' });
 
-    testDb.prepare('UPDATE vacay_plan_members SET status = NULL WHERE plan_id = ? AND user_id = ?').run(planId, target.id);
+    testDb
+      .prepare('UPDATE vacay_plan_members SET status = NULL WHERE plan_id = ? AND user_id = ?')
+      .run(planId, target.id);
     expect(await repo.findMembership(planId, target.id)).toEqual({ id: pending!.id, status: null });
   });
 
@@ -104,7 +117,9 @@ describe('VacayPlanMembersRepository — findMembership/findAcceptedForUser (VC4
     expect(await repo.findAcceptedForUser(target.id)).toBeNull();
 
     const id = Number(
-      testDb.prepare("INSERT INTO vacay_plan_members (plan_id, user_id, status) VALUES (?, ?, 'accepted')").run(planId, target.id).lastInsertRowid,
+      testDb
+        .prepare("INSERT INTO vacay_plan_members (plan_id, user_id, status) VALUES (?, ?, 'accepted')")
+        .run(planId, target.id).lastInsertRowid,
     );
     expect(await repo.findAcceptedForUser(target.id)).toEqual({ id });
   });

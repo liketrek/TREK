@@ -1,12 +1,12 @@
 // FE-COMP-PLUGINSETTINGS-001 to FE-COMP-PLUGINSETTINGS-025
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { server } from '../../../tests/helpers/msw/server';
-import { ToastContainer } from '../shared/Toast';
-import { usePluginStore, type ActivePlugin } from '../../store/pluginStore';
+import { render, screen, waitFor, within } from '../../../tests/helpers/render';
 import type { PluginAction, PluginUserSettingField } from '../../api/client';
+import { usePluginStore, type ActivePlugin } from '../../store/pluginStore';
+import { ToastContainer } from '../shared/Toast';
 import PluginSettingsTab from './PluginSettingsTab';
 
 const plugin = (over: Partial<ActivePlugin> = {}): ActivePlugin => ({
@@ -18,21 +18,24 @@ const plugin = (over: Partial<ActivePlugin> = {}): ActivePlugin => ({
 });
 
 interface SettingsPayload {
-  fields?: PluginUserSettingField[]
-  config?: Record<string, unknown>
-  actions?: PluginAction[]
+  fields?: PluginUserSettingField[];
+  config?: Record<string, unknown>;
+  actions?: PluginAction[];
 }
 
 /** Wire the three per-plugin endpoints the form reads on mount. */
 function serve(id: string, settings: SettingsPayload, oauth?: { configured: boolean; connected: boolean }): void {
   server.use(
-    http.get(`/api/plugin-settings/${id}`, () => HttpResponse.json({
-      fields: settings.fields ?? [],
-      config: settings.config ?? {},
-      actions: settings.actions ?? [],
-    })),
+    http.get(`/api/plugin-settings/${id}`, () =>
+      HttpResponse.json({
+        fields: settings.fields ?? [],
+        config: settings.config ?? {},
+        actions: settings.actions ?? [],
+      })
+    ),
     http.get(`/api/plugin-oauth/${id}/status`, () =>
-      oauth ? HttpResponse.json(oauth) : HttpResponse.json({ error: 'not found' }, { status: 404 })),
+      oauth ? HttpResponse.json(oauth) : HttpResponse.json({ error: 'not found' }, { status: 404 })
+    )
   );
 }
 
@@ -58,7 +61,9 @@ describe('PluginSettingsTab', () => {
     render(<PluginSettingsTab />);
 
     expect(screen.getByRole('heading', { name: 'Plugin settings' })).toBeInTheDocument();
-    expect(screen.getByText('Your personal settings for the plugins you use (API keys, preferences).')).toBeInTheDocument();
+    expect(
+      screen.getByText('Your personal settings for the plugins you use (API keys, preferences).')
+    ).toBeInTheDocument();
     expect(screen.getByText('No plugins are active.')).toBeInTheDocument();
     // The activity log is always mounted, plugins or not.
     expect(await screen.findByText('Plugin activity')).toBeInTheDocument();
@@ -77,7 +82,7 @@ describe('PluginSettingsTab', () => {
   it('FE-COMP-PLUGINSETTINGS-003: a failing settings request leaves the card out', async () => {
     server.use(
       http.get('/api/plugin-settings/weather', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
-      http.get('/api/plugin-oauth/weather/status', () => HttpResponse.json({ configured: false, connected: false })),
+      http.get('/api/plugin-oauth/weather/status', () => HttpResponse.json({ configured: false, connected: false }))
     );
     setPlugins([plugin()]);
     render(<PluginSettingsTab />);
@@ -114,7 +119,7 @@ describe('PluginSettingsTab', () => {
     setPlugins([plugin()]);
     render(<PluginSettingsTab />);
 
-    const input = await screen.findByPlaceholderText('paste here') as HTMLInputElement;
+    const input = (await screen.findByPlaceholderText('paste here')) as HTMLInputElement;
     expect(input.type).toBe('password');
     expect(input.autocomplete).toBe('new-password');
     expect(input.value).toBe('••••••••');
@@ -128,7 +133,7 @@ describe('PluginSettingsTab', () => {
     setPlugins([plugin()]);
     render(<PluginSettingsTab />);
 
-    const input = await screen.findByRole('spinbutton') as HTMLInputElement;
+    const input = (await screen.findByRole('spinbutton')) as HTMLInputElement;
     expect(input.type).toBe('number');
     expect(input.value).toBe('');
   });
@@ -151,10 +156,17 @@ describe('PluginSettingsTab', () => {
   it('FE-COMP-PLUGINSETTINGS-008: a select field lists its options and keeps the chosen one', async () => {
     const user = userEvent.setup();
     serve('weather', {
-      fields: [{
-        key: 'unit', label: 'Unit', input_type: 'select',
-        options: [{ value: 'c', label: 'Celsius' }, { value: 'f', label: 'Fahrenheit' }],
-      }],
+      fields: [
+        {
+          key: 'unit',
+          label: 'Unit',
+          input_type: 'select',
+          options: [
+            { value: 'c', label: 'Celsius' },
+            { value: 'f', label: 'Fahrenheit' },
+          ],
+        },
+      ],
       config: { unit: 'c' },
     });
     setPlugins([plugin()]);
@@ -191,12 +203,19 @@ describe('PluginSettingsTab', () => {
       ],
       config: { api_key: 'old', alerts: false },
     });
-    server.use(http.post('/api/plugin-settings/weather', async ({ request }) => {
-      sent.body = await request.json() as { config?: Record<string, unknown> };
-      return HttpResponse.json({ config: { api_key: 'new-key', alerts: true } });
-    }));
+    server.use(
+      http.post('/api/plugin-settings/weather', async ({ request }) => {
+        sent.body = (await request.json()) as { config?: Record<string, unknown> };
+        return HttpResponse.json({ config: { api_key: 'new-key', alerts: true } });
+      })
+    );
     setPlugins([plugin()]);
-    render(<><ToastContainer /><PluginSettingsTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PluginSettingsTab />
+      </>
+    );
 
     const input = await screen.findByDisplayValue('old');
     await user.clear(input);
@@ -220,12 +239,19 @@ describe('PluginSettingsTab', () => {
       ],
       config: { token: '••••••••', city: 'Berlin' },
     });
-    server.use(http.post('/api/plugin-settings/weather', async ({ request }) => {
-      sent.body = await request.json() as { config?: Record<string, unknown> };
-      return HttpResponse.json({ config: { token: '••••••••', city: 'Paris' } });
-    }));
+    server.use(
+      http.post('/api/plugin-settings/weather', async ({ request }) => {
+        sent.body = (await request.json()) as { config?: Record<string, unknown> };
+        return HttpResponse.json({ config: { token: '••••••••', city: 'Paris' } });
+      })
+    );
     setPlugins([plugin()]);
-    render(<><ToastContainer /><PluginSettingsTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PluginSettingsTab />
+      </>
+    );
 
     const city = await screen.findByDisplayValue('Berlin');
     await user.clear(city);
@@ -243,12 +269,19 @@ describe('PluginSettingsTab', () => {
       fields: [{ key: 'token', label: 'Token', input_type: 'text', secret: true }],
       config: { token: '••••••••' },
     });
-    server.use(http.post('/api/plugin-settings/weather', async ({ request }) => {
-      sent.body = await request.json() as { config?: Record<string, unknown> };
-      return HttpResponse.json({ config: { token: '••••••••' } });
-    }));
+    server.use(
+      http.post('/api/plugin-settings/weather', async ({ request }) => {
+        sent.body = (await request.json()) as { config?: Record<string, unknown> };
+        return HttpResponse.json({ config: { token: '••••••••' } });
+      })
+    );
     setPlugins([plugin()]);
-    render(<><ToastContainer /><PluginSettingsTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PluginSettingsTab />
+      </>
+    );
 
     const token = await screen.findByDisplayValue('••••••••');
     await user.clear(token);
@@ -265,10 +298,14 @@ describe('PluginSettingsTab', () => {
       fields: [{ key: 'city', label: 'City', input_type: 'text' }],
       config: { city: 'Berlin' },
     });
-    server.use(http.post('/api/plugin-settings/weather', () =>
-      HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    server.use(http.post('/api/plugin-settings/weather', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
     setPlugins([plugin()]);
-    render(<><ToastContainer /><PluginSettingsTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PluginSettingsTab />
+      </>
+    );
 
     await screen.findByDisplayValue('Berlin');
     await user.click(screen.getByRole('button', { name: 'Save' }));
@@ -278,7 +315,9 @@ describe('PluginSettingsTab', () => {
   });
 
   it('FE-COMP-PLUGINSETTINGS-014: a plugin with only actions gets a card without a Save button', async () => {
-    serve('weather', { actions: [{ key: 'test', label: 'Test connection', hint: 'Pings the API', danger: false, scope: 'user' }] });
+    serve('weather', {
+      actions: [{ key: 'test', label: 'Test connection', hint: 'Pings the API', danger: false, scope: 'user' }],
+    });
     setPlugins([plugin()]);
     render(<PluginSettingsTab />);
 
@@ -292,8 +331,11 @@ describe('PluginSettingsTab', () => {
   it('FE-COMP-PLUGINSETTINGS-015: running an action shows the message it returns', async () => {
     const user = userEvent.setup();
     serve('weather', { actions: [{ key: 'test', label: 'Test connection', danger: false, scope: 'user' }] });
-    server.use(http.post('/api/plugin-settings/weather/actions/test', () =>
-      HttpResponse.json({ ok: true, message: 'Reached the API' })));
+    server.use(
+      http.post('/api/plugin-settings/weather/actions/test', () =>
+        HttpResponse.json({ ok: true, message: 'Reached the API' })
+      )
+    );
     setPlugins([plugin()]);
     render(<PluginSettingsTab />);
 
@@ -315,8 +357,11 @@ describe('PluginSettingsTab', () => {
   it('FE-COMP-PLUGINSETTINGS-017: a failing action reports an error result', async () => {
     const user = userEvent.setup();
     serve('weather', { actions: [{ key: 'test', label: 'Test connection', danger: false, scope: 'user' }] });
-    server.use(http.post('/api/plugin-settings/weather/actions/test', () =>
-      HttpResponse.json({ error: 'down' }, { status: 500 })));
+    server.use(
+      http.post('/api/plugin-settings/weather/actions/test', () =>
+        HttpResponse.json({ error: 'down' }, { status: 500 })
+      )
+    );
     setPlugins([plugin()]);
     render(<PluginSettingsTab />);
 
@@ -330,10 +375,12 @@ describe('PluginSettingsTab', () => {
     const user = userEvent.setup();
     let ran = 0;
     serve('weather', { actions: [{ key: 'wipe', label: 'Wipe cache', danger: true, scope: 'user' }] });
-    server.use(http.post('/api/plugin-settings/weather/actions/wipe', () => {
-      ran += 1;
-      return HttpResponse.json({ ok: true, message: 'Wiped' });
-    }));
+    server.use(
+      http.post('/api/plugin-settings/weather/actions/wipe', () => {
+        ran += 1;
+        return HttpResponse.json({ ok: true, message: 'Wiped' });
+      })
+    );
     setPlugins([plugin()]);
     render(<PluginSettingsTab />);
 
@@ -353,10 +400,14 @@ describe('PluginSettingsTab', () => {
   });
 
   it('FE-COMP-PLUGINSETTINGS-019: an unconfigured OAuth integration renders no connect row', async () => {
-    serve('weather', {
-      fields: [{ key: 'city', label: 'City', input_type: 'text' }],
-      config: { city: 'Berlin' },
-    }, { configured: false, connected: false });
+    serve(
+      'weather',
+      {
+        fields: [{ key: 'city', label: 'City', input_type: 'text' }],
+        config: { city: 'Berlin' },
+      },
+      { configured: false, connected: false }
+    );
     setPlugins([plugin()]);
     render(<PluginSettingsTab />);
 
@@ -370,8 +421,11 @@ describe('PluginSettingsTab', () => {
     const loc = { href: 'http://localhost/settings', origin: 'http://localhost', pathname: '/settings' };
     vi.stubGlobal('location', loc);
     serve('weather', {}, { configured: true, connected: false });
-    server.use(http.post('/api/plugin-oauth/weather/connect', () =>
-      HttpResponse.json({ authorizeUrl: 'https://provider.example/authorize?x=1' })));
+    server.use(
+      http.post('/api/plugin-oauth/weather/connect', () =>
+        HttpResponse.json({ authorizeUrl: 'https://provider.example/authorize?x=1' })
+      )
+    );
     setPlugins([plugin()]);
     render(<PluginSettingsTab />);
 
@@ -384,10 +438,16 @@ describe('PluginSettingsTab', () => {
   it('FE-COMP-PLUGINSETTINGS-021: a failing connect reports an error and frees the button', async () => {
     const user = userEvent.setup();
     serve('weather', {}, { configured: true, connected: false });
-    server.use(http.post('/api/plugin-oauth/weather/connect', () =>
-      HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    server.use(
+      http.post('/api/plugin-oauth/weather/connect', () => HttpResponse.json({ error: 'nope' }, { status: 500 }))
+    );
     setPlugins([plugin()]);
-    render(<><ToastContainer /><PluginSettingsTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PluginSettingsTab />
+      </>
+    );
 
     await user.click(await screen.findByRole('button', { name: 'Connect' }));
 
@@ -412,10 +472,16 @@ describe('PluginSettingsTab', () => {
   it('FE-COMP-PLUGINSETTINGS-023: a failing disconnect keeps the connection and reports an error', async () => {
     const user = userEvent.setup();
     serve('weather', {}, { configured: true, connected: true });
-    server.use(http.post('/api/plugin-oauth/weather/disconnect', () =>
-      HttpResponse.json({ error: 'nope' }, { status: 500 })));
+    server.use(
+      http.post('/api/plugin-oauth/weather/disconnect', () => HttpResponse.json({ error: 'nope' }, { status: 500 }))
+    );
     setPlugins([plugin()]);
-    render(<><ToastContainer /><PluginSettingsTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PluginSettingsTab />
+      </>
+    );
 
     await user.click(await screen.findByRole('button', { name: 'Disconnect' }));
 
@@ -442,10 +508,14 @@ describe('PluginSettingsTab', () => {
   it('FE-COMP-PLUGINSETTINGS-025: every active plugin gets its own form', async () => {
     serve('weather', { fields: [{ key: 'city', label: 'City', input_type: 'text' }], config: { city: 'Berlin' } });
     server.use(
-      http.get('/api/plugin-settings/notes', () => HttpResponse.json({
-        fields: [{ key: 'folder', label: 'Folder', input_type: 'text' }], config: { folder: 'Trips' }, actions: [],
-      })),
-      http.get('/api/plugin-oauth/notes/status', () => HttpResponse.json({ configured: false, connected: false })),
+      http.get('/api/plugin-settings/notes', () =>
+        HttpResponse.json({
+          fields: [{ key: 'folder', label: 'Folder', input_type: 'text' }],
+          config: { folder: 'Trips' },
+          actions: [],
+        })
+      ),
+      http.get('/api/plugin-oauth/notes/status', () => HttpResponse.json({ configured: false, connected: false }))
     );
     setPlugins([plugin(), plugin({ id: 'notes', name: 'Notes', icon: null })]);
     render(<PluginSettingsTab />);
@@ -457,7 +527,15 @@ describe('PluginSettingsTab', () => {
 
   it('FE-COMP-PLUGINSETTINGS-026: pre-fills a declared default when no value is stored', async () => {
     serve('weather', {
-      fields: [{ key: 'oauth_authorize_url', label: 'Authorize URL', input_type: 'text', required: true, default: 'https://auth.openbnb.org/authorize' }],
+      fields: [
+        {
+          key: 'oauth_authorize_url',
+          label: 'Authorize URL',
+          input_type: 'text',
+          required: true,
+          default: 'https://auth.openbnb.org/authorize',
+        },
+      ],
       config: {},
     });
     setPlugins([plugin()]);
@@ -468,7 +546,14 @@ describe('PluginSettingsTab', () => {
 
   it('FE-COMP-PLUGINSETTINGS-027: a stored value wins over the default', async () => {
     serve('weather', {
-      fields: [{ key: 'oauth_authorize_url', label: 'Authorize URL', input_type: 'text', default: 'https://auth.openbnb.org/authorize' }],
+      fields: [
+        {
+          key: 'oauth_authorize_url',
+          label: 'Authorize URL',
+          input_type: 'text',
+          default: 'https://auth.openbnb.org/authorize',
+        },
+      ],
       config: { oauth_authorize_url: 'https://mine.example' },
     });
     setPlugins([plugin()]);
@@ -485,12 +570,19 @@ describe('PluginSettingsTab', () => {
       fields: [{ key: 'client_id', label: 'Client ID', input_type: 'text', required: true }],
       config: {},
     });
-    server.use(http.post('/api/plugin-settings/weather', () => {
-      called = true;
-      return HttpResponse.json({ config: {} });
-    }));
+    server.use(
+      http.post('/api/plugin-settings/weather', () => {
+        called = true;
+        return HttpResponse.json({ config: {} });
+      })
+    );
     setPlugins([plugin()]);
-    render(<><ToastContainer /><PluginSettingsTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PluginSettingsTab />
+      </>
+    );
 
     await screen.findByText('Client ID');
     await user.click(screen.getByRole('button', { name: 'Save' }));
@@ -507,10 +599,18 @@ describe('PluginSettingsTab', () => {
       fields: [{ key: 'city', label: 'City', input_type: 'text' }],
       config: {},
     });
-    server.use(http.post('/api/plugin-settings/weather', () =>
-      HttpResponse.json({ error: 'Missing required setting "city"' }, { status: 400 })));
+    server.use(
+      http.post('/api/plugin-settings/weather', () =>
+        HttpResponse.json({ error: 'Missing required setting "city"' }, { status: 400 })
+      )
+    );
     setPlugins([plugin()]);
-    render(<><ToastContainer /><PluginSettingsTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <PluginSettingsTab />
+      </>
+    );
 
     await screen.findByText('City');
     await user.click(screen.getByRole('button', { name: 'Save' }));

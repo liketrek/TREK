@@ -1,17 +1,17 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { AuditModule } from '../audit/audit.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { StorageAdminController } from './storage-admin.controller';
+import { StorageAdminService } from './storage-admin.service';
 import { StorageEventsService } from './storage-events.service';
 import { StorageJobsService } from './storage-jobs.service';
 import { StorageRegistryService } from './storage-registry.service';
-import { StorageService } from './storage.service';
-import { StorageAdminService } from './storage-admin.service';
-import { StorageAdminController } from './storage-admin.controller';
 import { StorageStatsService } from './storage-stats.service';
 import { StorageUsageScanJob } from './storage-usage-scan.job';
+import { StorageService } from './storage.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Storage container: registry (config), facade (byte-paths), admin surface.

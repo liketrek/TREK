@@ -67,7 +67,12 @@ export class DocumentProvidersRepository extends TrekRepository<DocumentProvider
       { enabled: 1 },
       { fields: ['id', 'name', 'description', 'icon'], orderBy: { sort_order: 'asc' } },
     );
-    return rows.map((r) => ({ id: r.id as string, name: r.name, description: r.description ?? null, icon: r.icon ?? null }));
+    return rows.map((r) => ({
+      id: r.id as string,
+      name: r.name,
+      description: r.description ?? null,
+      icon: r.icon ?? null,
+    }));
   }
 
   // ---------------------------------------------------------------------

@@ -1,14 +1,14 @@
-import { useEffect, useId, useMemo, useState } from 'react'
-import { AlertCircle, ArrowRight, Check, FolderSync, Loader2, Plus } from 'lucide-react'
-import { DialogHeader, DialogShell, DialogTile, NEUTRAL_TINT } from '../../shared/DialogShell'
-import { useTranslation } from '../../../i18n/TranslationContext'
-import { DOCUMENT_PROVIDER_ICONS } from '../../shared/DocumentProviderIcons'
-import { StateBadge } from './DocSyncBits'
-import { useConflicts } from './useConflicts'
-import { storeName, useDocSync, type DocSyncLink, type DocSyncProvider } from './useDocSync'
-import DocSyncBinding from './DocSyncBinding'
-import DocSyncConnectModal from './DocSyncConnectModal'
-import DocSyncScopeModal from './DocSyncScopeModal'
+import { AlertCircle, ArrowRight, Check, FolderSync, Loader2, Plus } from 'lucide-react';
+import { useEffect, useId, useMemo, useState } from 'react';
+import { useTranslation } from '../../../i18n/TranslationContext';
+import { DialogHeader, DialogShell, DialogTile, NEUTRAL_TINT } from '../../shared/DialogShell';
+import { DOCUMENT_PROVIDER_ICONS } from '../../shared/DocumentProviderIcons';
+import DocSyncBinding from './DocSyncBinding';
+import { StateBadge } from './DocSyncBits';
+import DocSyncConnectModal from './DocSyncConnectModal';
+import DocSyncScopeModal from './DocSyncScopeModal';
+import { useConflicts } from './useConflicts';
+import { storeName, useDocSync, type DocSyncLink, type DocSyncProvider } from './useDocSync';
 
 /**
  * Document sync for one trip, as a dialog with the stores down one side and the
@@ -31,38 +31,38 @@ export default function DocSyncPanel({
   canManage,
   onClose,
 }: {
-  tripId: number | string
-  tripTitle?: string
-  canManage: boolean
-  onClose: () => void
+  tripId: number | string;
+  tripTitle?: string;
+  canManage: boolean;
+  onClose: () => void;
 }) {
-  const { t } = useTranslation()
-  const sync = useDocSync(tripId, true)
-  const [selected, setSelected] = useState<number | null>(null)
-  const [connecting, setConnecting] = useState<DocSyncProvider | null>(null)
-  const [scopeFor, setScopeFor] = useState<string | null>(null)
+  const { t } = useTranslation();
+  const sync = useDocSync(tripId, true);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [connecting, setConnecting] = useState<DocSyncProvider | null>(null);
+  const [scopeFor, setScopeFor] = useState<string | null>(null);
   // The credential form again, for a store this trip is already bound to. Kept
   // apart from `connecting`, whose next step is the folder picker: here the
   // folder is known and the next step is the run that the refusal stopped.
-  const [reconnecting, setReconnecting] = useState<DocSyncProvider | null>(null)
+  const [reconnecting, setReconnecting] = useState<DocSyncProvider | null>(null);
 
-  const bound = useMemo(() => new Set(sync.links.map(l => l.providerId)), [sync.links])
-  const available = sync.providers.filter(p => !bound.has(p.id))
-  const active = sync.links.find(l => l.id === selected) ?? sync.links[0] ?? null
+  const bound = useMemo(() => new Set(sync.links.map((l) => l.providerId)), [sync.links]);
+  const available = sync.providers.filter((p) => !bound.has(p.id));
+  const active = sync.links.find((l) => l.id === selected) ?? sync.links[0] ?? null;
   // Undefined once an admin has switched the store off: the form needs the
   // provider's field list, and the providers route no longer carries it.
-  const activeProvider = active ? sync.providers.find(p => p.id === active.providerId) : undefined
+  const activeProvider = active ? sync.providers.find((p) => p.id === active.providerId) : undefined;
 
   // Follow the list: a freshly bound store should be the one on screen, and a
   // removed one must not leave the detail column pointing at nothing. The pick
   // is read when the update runs, not from this render: a store clicked before
   // the effect got its turn was otherwise switched straight back.
   useEffect(() => {
-    setSelected(prev => (sync.links.some(l => l.id === prev) ? prev : (sync.links[0]?.id ?? null)))
-  }, [sync.links])
+    setSelected((prev) => (sync.links.some((l) => l.id === prev) ? prev : (sync.links[0]?.id ?? null)));
+  }, [sync.links]);
 
-  const attention = ATTENTION_STATES.reduce((n, k) => n + (sync.itemCounts[k] ?? 0), 0)
-  const labelId = useId()
+  const attention = ATTENTION_STATES.reduce((n, k) => n + (sync.itemCounts[k] ?? 0), 0);
+  const labelId = useId();
 
   return (
     <>
@@ -72,16 +72,20 @@ export default function DocSyncPanel({
         width="wide"
         // A connect or scope question opened from here takes Escape for itself.
         blocked={!!connecting || !!scopeFor || !!reconnecting}
-        header={(
+        header={
           <DialogHeader
-            tile={<DialogTile><FolderSync size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+            tile={
+              <DialogTile>
+                <FolderSync size={20} strokeWidth={1.9} className="text-content-muted" />
+              </DialogTile>
+            }
             tint={NEUTRAL_TINT}
             labelId={labelId}
             onClose={onClose}
             title={t('docsync.title')}
             sub={tripTitle || undefined}
           />
-        )}
+        }
       >
         {sync.loading ? (
           <div className="grid place-items-center py-20">
@@ -100,7 +104,7 @@ export default function DocSyncPanel({
               activeId={active?.id ?? null}
               canManage={canManage}
               onSelect={setSelected}
-              onAdd={p => (sync.connectionFor(p.id) ? setScopeFor(p.id) : setConnecting(p))}
+              onAdd={(p) => (sync.connectionFor(p.id) ? setScopeFor(p.id) : setConnecting(p))}
             />
 
             <div className="min-w-0 md:border-l md:border-edge-faint md:pl-6">
@@ -118,7 +122,10 @@ export default function DocSyncPanel({
                       settle. The two dialogs say their own, but nothing said
                       what happened to a click on the card itself. */}
                   {sync.error && (
-                    <p role="alert" className="rounded-xl border border-edge bg-danger-soft px-3 py-2.5 text-caption text-danger">
+                    <p
+                      role="alert"
+                      className="rounded-xl border border-edge bg-danger-soft px-3 py-2.5 text-caption text-danger"
+                    >
                       {t(`docsync.error.${sync.error}`)}
                     </p>
                   )}
@@ -139,7 +146,10 @@ export default function DocSyncPanel({
           provider={connecting}
           sync={sync}
           onClose={() => setConnecting(null)}
-          onConnected={id => { setConnecting(null); setScopeFor(id) }}
+          onConnected={(id) => {
+            setConnecting(null);
+            setScopeFor(id);
+          }}
         />
       )}
 
@@ -148,13 +158,13 @@ export default function DocSyncPanel({
           provider={reconnecting}
           sync={sync}
           onClose={() => setReconnecting(null)}
-          onConnected={id => {
-            setReconnecting(null)
+          onConnected={(id) => {
+            setReconnecting(null);
             // Run straight away, as binding does: the card still reports the
             // refusal until a run says otherwise, and the person has just
             // done the one thing that could change the answer.
-            const rebound = sync.links.find(l => l.providerId === id)
-            if (rebound) void sync.syncNow(rebound.id)
+            const rebound = sync.links.find((l) => l.providerId === id);
+            if (rebound) void sync.syncNow(rebound.id);
           }}
         />
       )}
@@ -162,7 +172,7 @@ export default function DocSyncPanel({
       {scopeFor && sync.connectionFor(scopeFor) && (
         <DocSyncScopeModal
           connection={sync.connectionFor(scopeFor)!}
-          providerName={sync.providers.find(p => p.id === scopeFor)?.name ?? scopeFor}
+          providerName={sync.providers.find((p) => p.id === scopeFor)?.name ?? scopeFor}
           suggestedName={slugFor(tripTitle, tripId)}
           sync={sync}
           onClose={() => setScopeFor(null)}
@@ -170,10 +180,10 @@ export default function DocSyncPanel({
         />
       )}
     </>
-  )
+  );
 }
 
-const ATTENTION_STATES = ['conflict', 'remote_missing', 'rejected_type', 'too_large', 'error'] as const
+const ATTENTION_STATES = ['conflict', 'remote_missing', 'rejected_type', 'too_large', 'error'] as const;
 
 /** The stores: the ones this trip uses, then the ones it could. */
 function Sidebar({
@@ -185,24 +195,22 @@ function Sidebar({
   onSelect,
   onAdd,
 }: {
-  links: DocSyncLink[]
-  providers: DocSyncProvider[]
-  available: DocSyncProvider[]
-  activeId: number | null
-  canManage: boolean
-  onSelect: (id: number) => void
-  onAdd: (p: DocSyncProvider) => void
+  links: DocSyncLink[];
+  providers: DocSyncProvider[];
+  available: DocSyncProvider[];
+  activeId: number | null;
+  canManage: boolean;
+  onSelect: (id: number) => void;
+  onAdd: (p: DocSyncProvider) => void;
 }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   return (
     <nav className="space-y-5">
       {links.length > 0 && (
         <div>
-          <h4 className="mb-2 px-1 text-caption font-medium text-content-muted">
-            {t('docsync.sidebar.connected')}
-          </h4>
+          <h4 className="mb-2 px-1 text-caption font-medium text-content-muted">{t('docsync.sidebar.connected')}</h4>
           <ul className="space-y-1.5">
-            {links.map(link => (
+            {links.map((link) => (
               <li key={link.id}>
                 <StoreButton
                   providerId={link.providerId}
@@ -224,7 +232,7 @@ function Sidebar({
             {links.length === 0 ? t('docsync.addProvider') : t('docsync.addAnother')}
           </h4>
           <ul className="space-y-1.5">
-            {available.map(p => (
+            {available.map((p) => (
               <li key={p.id}>
                 <StoreButton
                   providerId={p.id}
@@ -239,7 +247,7 @@ function Sidebar({
         </div>
       )}
     </nav>
-  )
+  );
 }
 
 /**
@@ -257,15 +265,15 @@ function StoreButton({
   addable,
   onClick,
 }: {
-  providerId: string
-  title: string
-  subtitle: string
-  state?: string
-  active?: boolean
-  addable?: boolean
-  onClick: () => void
+  providerId: string;
+  title: string;
+  subtitle: string;
+  state?: string;
+  active?: boolean;
+  addable?: boolean;
+  onClick: () => void;
 }) {
-  const Icon = DOCUMENT_PROVIDER_ICONS[providerId]
+  const Icon = DOCUMENT_PROVIDER_ICONS[providerId];
   return (
     <button
       type="button"
@@ -273,9 +281,7 @@ function StoreButton({
       aria-current={active ? 'true' : undefined}
       className={[
         'group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors',
-        active
-          ? 'border-transparent bg-accent-subtle'
-          : 'border-edge bg-surface hover:bg-surface-hover',
+        active ? 'border-transparent bg-accent-subtle' : 'border-edge bg-surface hover:bg-surface-hover',
       ].join(' ')}
     >
       <span
@@ -300,7 +306,7 @@ function StoreButton({
         <StateBadge state={state} compact />
       ) : null}
     </button>
-  )
+  );
 }
 
 /** What a person still has to decide about, named rather than counted in a chip. */
@@ -310,15 +316,15 @@ function Attention({
   sync,
   canManage,
 }: {
-  counts: Record<string, number>
-  tripId: number | string
-  sync: ReturnType<typeof useDocSync>
-  canManage: boolean
+  counts: Record<string, number>;
+  tripId: number | string;
+  sync: ReturnType<typeof useDocSync>;
+  canManage: boolean;
 }) {
-  const { t } = useTranslation()
-  const rows = ATTENTION_STATES.filter(k => (counts[k] ?? 0) > 0)
-  const [showConflicts, setShowConflicts] = useState(false)
-  const conflicts = useConflicts(tripId, sync, showConflicts)
+  const { t } = useTranslation();
+  const rows = ATTENTION_STATES.filter((k) => (counts[k] ?? 0) > 0);
+  const [showConflicts, setShowConflicts] = useState(false);
+  const conflicts = useConflicts(tripId, sync, showConflicts);
 
   return (
     <section className="rounded-xl border border-edge bg-surface">
@@ -327,7 +333,7 @@ function Attention({
         {t('docsync.issues.title')}
       </h4>
       <ul className="divide-y divide-edge-faint">
-        {rows.map(k => (
+        {rows.map((k) => (
           <li key={k} className="px-4 py-2.5">
             <div className="flex items-baseline justify-between gap-3">
               <span className="min-w-0">
@@ -341,7 +347,7 @@ function Attention({
               {k === 'conflict' && canManage ? (
                 <button
                   type="button"
-                  onClick={() => setShowConflicts(v => !v)}
+                  onClick={() => setShowConflicts((v) => !v)}
                   className="shrink-0 rounded-lg border border-edge px-2.5 py-1 text-caption font-medium text-content transition-colors hover:bg-surface-hover"
                 >
                   {showConflicts ? t('common.close') : t('docsync.conflict.resolve', { count: counts[k] })}
@@ -358,12 +364,14 @@ function Attention({
                     <Loader2 size={14} className="animate-spin text-content-muted" />
                   </li>
                 )}
-                {conflicts.items?.map(item => (
+                {conflicts.items?.map((item) => (
                   <li key={item.id} className="rounded-lg bg-surface-secondary px-3 py-2.5">
-                    <p className="truncate text-body text-content" title={item.name}>{item.name}</p>
+                    <p className="truncate text-body text-content" title={item.name}>
+                      {item.name}
+                    </p>
                     <p className="mt-0.5 text-caption text-content-muted">{t('docsync.conflict.title')}</p>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {(['trek', 'provider', 'both'] as const).map(keep => (
+                      {(['trek', 'provider', 'both'] as const).map((keep) => (
                         <button
                           key={keep}
                           type="button"
@@ -371,7 +379,9 @@ function Attention({
                           onClick={() => void conflicts.resolve(item.id, keep)}
                           className="rounded-lg border border-edge px-2.5 py-1 text-caption text-content-secondary transition-colors hover:bg-surface-hover disabled:opacity-50"
                         >
-                          {t(`docsync.conflict.${keep === 'trek' ? 'keepTrek' : keep === 'provider' ? 'keepProvider' : 'keepBoth'}`)}
+                          {t(
+                            `docsync.conflict.${keep === 'trek' ? 'keepTrek' : keep === 'provider' ? 'keepProvider' : 'keepBoth'}`
+                          )}
                         </button>
                       ))}
                     </div>
@@ -383,12 +393,12 @@ function Attention({
         ))}
       </ul>
     </section>
-  )
+  );
 }
 
 /** The detail column before anything is bound: an invitation, not a blank. */
 function NothingBound({ canManage }: { canManage: boolean }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   return (
     <div className="grid h-full min-h-[16rem] place-items-center rounded-xl border border-dashed border-edge px-6 py-12 text-center">
       <div>
@@ -401,11 +411,11 @@ function NothingBound({ canManage }: { canManage: boolean }) {
         </p>
       </div>
     </div>
-  )
+  );
 }
 
 function Empty() {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   return (
     <div className="rounded-xl border border-dashed border-edge px-6 py-12 text-center">
       <span className="mx-auto grid h-11 w-11 place-items-center rounded-xl border border-edge bg-surface-secondary">
@@ -414,7 +424,7 @@ function Empty() {
       <p className="mt-3 text-body text-content">{t('docsync.noProviders')}</p>
       <p className="mx-auto mt-1 max-w-sm text-caption text-content-muted">{t('docsync.noProvidersHint')}</p>
     </div>
-  )
+  );
 }
 
 /**
@@ -429,6 +439,6 @@ function slugFor(title: string | undefined, tripId: number | string): string {
     .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, 40)
-  return `${base || 'trek'}-${tripId}`
+    .slice(0, 40);
+  return `${base || 'trek'}-${tripId}`;
 }

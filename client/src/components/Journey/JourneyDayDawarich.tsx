@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
-import type { DawarichSuggestion, DawarichSuggestionTarget } from '@trek/shared'
-import { useTranslation } from '../../i18n'
-import DawarichIcon from '../shared/DawarichIcon'
-import { SuggestionRow } from '../Dawarich/DawarichSuggestionsPanel'
-import { timeRange } from '../Dawarich/dawarichSuggestionModel'
-import { useSettingsStore } from '../../store/settingsStore'
+import type { DawarichSuggestion, DawarichSuggestionTarget } from '@trek/shared';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { useTranslation } from '../../i18n';
+import { useSettingsStore } from '../../store/settingsStore';
+import { SuggestionRow } from '../Dawarich/DawarichSuggestionsPanel';
+import { timeRange } from '../Dawarich/dawarichSuggestionModel';
+import DawarichIcon from '../shared/DawarichIcon';
 
 /**
  * The stays Dawarich recorded on ONE day of the journal, folded into that day.
@@ -30,28 +30,28 @@ export default function JourneyDayDawarich({
   onDismiss,
 }: {
   /** The open stays of this day, in the order they were lived. */
-  suggestions: DawarichSuggestion[]
+  suggestions: DawarichSuggestion[];
   /** The stay a write is in flight for, or null. */
-  busyId: number | null
-  onAccept: (suggestion: DawarichSuggestion, target: DawarichSuggestionTarget) => void
-  onDismiss: (suggestion: DawarichSuggestion) => void
+  busyId: number | null;
+  onAccept: (suggestion: DawarichSuggestion, target: DawarichSuggestionTarget) => void;
+  onDismiss: (suggestion: DawarichSuggestion) => void;
 }): React.ReactElement | null {
-  const { t } = useTranslation()
-  const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
-  const [open, setOpen] = useState(false)
+  const { t } = useTranslation();
+  const is12h = useSettingsStore((s) => s.settings.time_format) === '12h';
+  const [open, setOpen] = useState(false);
 
-  if (suggestions.length === 0) return null
+  if (suggestions.length === 0) return null;
 
   // From the first arrival to the last departure: what part of the day this covers, in
   // one line, so the row says something even while it is shut. Through the same formatter
   // the rows use, so the summary and the stays under it cannot disagree about the clock.
-  const span = timeRange(suggestions[0]!.startedAt, suggestions[suggestions.length - 1]!.endedAt, is12h)
+  const span = timeRange(suggestions[0]!.startedAt, suggestions[suggestions.length - 1]!.endedAt, is12h);
 
   return (
-    <div className="rounded-2xl border border-edge bg-surface-secondary overflow-hidden">
+    <div className="overflow-hidden rounded-2xl border border-edge bg-surface-secondary">
       <button
         type="button"
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-surface-hover"
       >
@@ -63,21 +63,22 @@ export default function JourneyDayDawarich({
             {/* Two keys picked by the count, the shape this codebase uses for a number
                 that changes its noun: there is no plural engine in the i18n layer, and one
                 key with {count} in it reads as "1 stays". */}
-            {t(
-              suggestions.length === 1 ? 'dawarich.journey.dayStays.one' : 'dawarich.journey.dayStays.other',
-              { count: suggestions.length },
-            )}
+            {t(suggestions.length === 1 ? 'dawarich.journey.dayStays.one' : 'dawarich.journey.dayStays.other', {
+              count: suggestions.length,
+            })}
           </span>
-          {span && <span className="block text-[11px] text-content-faint tabular-nums">{span}</span>}
+          {span && <span className="block text-[11px] tabular-nums text-content-faint">{span}</span>}
         </span>
-        {open
-          ? <ChevronDown size={16} className="shrink-0 text-content-faint" aria-hidden />
-          : <ChevronRight size={16} className="shrink-0 text-content-faint" aria-hidden />}
+        {open ? (
+          <ChevronDown size={16} className="shrink-0 text-content-faint" aria-hidden />
+        ) : (
+          <ChevronRight size={16} className="shrink-0 text-content-faint" aria-hidden />
+        )}
       </button>
 
       {open && (
         <div className="flex flex-col gap-1 pb-2">
-          {suggestions.map(suggestion => (
+          {suggestions.map((suggestion) => (
             <SuggestionRow
               key={suggestion.id}
               suggestion={suggestion}
@@ -86,12 +87,12 @@ export default function JourneyDayDawarich({
               // list is already on the day it belongs to, so neither the date nor a trip
               // name adds anything.
               allowJournal
-              onAccept={target => onAccept(suggestion, target)}
+              onAccept={(target) => onAccept(suggestion, target)}
               onDismiss={() => onDismiss(suggestion)}
             />
           ))}
         </div>
       )}
     </div>
-  )
+  );
 }

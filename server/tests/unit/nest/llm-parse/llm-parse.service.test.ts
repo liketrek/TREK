@@ -1,3 +1,8 @@
+import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import type { LlmConfigResolver } from '../../../../src/nest/llm-parse/llm-config.resolver';
+import type { LlmLocalService } from '../../../../src/nest/llm-parse/llm-local.service';
+import { LlmParseService } from '../../../../src/nest/llm-parse/llm-parse.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // LlmConfigResolver is constructor-injected — a stub instance instead of the
@@ -14,17 +19,17 @@ const { extractEnforced } = vi.hoisted(() => ({ extractEnforced: vi.fn() }));
 
 const { renderPdfPages } = vi.hoisted(() => ({ renderPdfPages: vi.fn() }));
 vi.mock('../../../../src/nest/llm-parse/image-input', async (orig) => {
-  const actual = await orig() as Record<string, unknown>;
+  const actual = (await orig()) as Record<string, unknown>;
   return { ...actual, renderPdfPages };
 });
 vi.mock('../../../../src/nest/llm-parse/router/ollama-format.client', async (orig) => {
-  const actual = await orig() as Record<string, unknown>;
+  const actual = (await orig()) as Record<string, unknown>;
   return { ...actual, extractEnforced };
 });
 
 const { extractText } = vi.hoisted(() => ({ extractText: vi.fn(async () => 'Flight AB123') }));
 vi.mock('../../../../src/nest/llm-parse/text-extract', async (orig) => {
-  const actual = await orig() as Record<string, unknown>;
+  const actual = (await orig()) as Record<string, unknown>;
   return { ...actual, extractText };
 });
 
@@ -36,23 +41,19 @@ const { routeExtraction, routeImageExtraction, detectFlightNumbers } = vi.hoiste
 // The router's pure helpers stay real: the currency fallback reads the document's
 // total through extractTotalPrice.
 vi.mock('../../../../src/nest/llm-parse/router/extraction-router', async (orig) => {
-  const actual = await orig() as Record<string, unknown>;
+  const actual = (await orig()) as Record<string, unknown>;
   return { ...actual, routeExtraction, routeImageExtraction, detectFlightNumbers };
 });
-
-import { LlmParseService } from '../../../../src/nest/llm-parse/llm-parse.service';
-import type { LlmConfigResolver } from '../../../../src/nest/llm-parse/llm-config.resolver';
-import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
-import type { LlmLocalService } from '../../../../src/nest/llm-parse/llm-local.service';
 
 const cfg = (over: Record<string, unknown> = {}) => ({ provider: 'openai', model: 'm', vision: 'off', ...over });
 const llmConfigStub = { resolve: resolveLlmConfig } as unknown as LlmConfigResolver;
 const modelCapabilities = vi.fn();
-const svc = () => new LlmParseService(
-  llmConfigStub,
-  { isManaged: () => false } as unknown as RuntimeEnvService,
-  { modelCapabilities } as unknown as LlmLocalService,
-);
+const svc = () =>
+  new LlmParseService(
+    llmConfigStub,
+    { isManaged: () => false } as unknown as RuntimeEnvService,
+    { modelCapabilities } as unknown as LlmLocalService,
+  );
 const file = (name: string, body = 'Flight AB123') => ({ buffer: Buffer.from(body), originalName: name });
 
 /** The first bytes of a PNG that claims the given size: enough for the pixel cap to refuse it. */
@@ -127,15 +128,17 @@ describe('LlmParseService', () => {
   });
 
   it('folds flattened type fields into reservationFor (small-model output)', async () => {
-    extract.mockResolvedValue([{
-      '@type': 'FlightReservation',
-      reservationNumber: 'ABC',
-      flightNumber: 'EZY1357',
-      airline: { iataCode: 'EG' },
-      departureAirport: { iataCode: 'GEG' },
-      arrivalAirport: { iataCode: 'AMS' },
-      departureTime: '2026-06-11T10:00:00',
-    }]);
+    extract.mockResolvedValue([
+      {
+        '@type': 'FlightReservation',
+        reservationNumber: 'ABC',
+        flightNumber: 'EZY1357',
+        airline: { iataCode: 'EG' },
+        departureAirport: { iataCode: 'GEG' },
+        arrivalAirport: { iataCode: 'AMS' },
+        departureTime: '2026-06-11T10:00:00',
+      },
+    ]);
     const res = await svc().parse(file('a.txt'), 1);
     const item = res.kiItems[0] as any;
     expect(item.reservationNumber).toBe('ABC');
@@ -154,7 +157,7 @@ describe('LlmParseService', () => {
     extract.mockResolvedValue([{ '@type': 'FlightReservation' }, { foo: 'bar' }]);
     const res = await svc().parse(file('a.txt'), 1);
     expect(res.kiItems).toEqual([{ '@type': 'FlightReservation' }]);
-    expect(res.warnings.some(w => /unrecognized/i.test(w))).toBe(true);
+    expect(res.warnings.some((w) => /unrecognized/i.test(w))).toBe(true);
   });
 
   it('degrades to a warning when the client throws', async () => {
@@ -180,7 +183,11 @@ describe('LlmParseService', () => {
     expect(res.kiItems).toEqual([{ '@type': 'LodgingReservation' }]);
     expect(res.warnings).toEqual(['note']);
     expect(extract).not.toHaveBeenCalled();
-    expect(routeExtraction).toHaveBeenCalledWith('Hotel booking', { baseUrl: 'http://ollama:11434/v1', model: 'm', apiKey: 'k' });
+    expect(routeExtraction).toHaveBeenCalledWith('Hotel booking', {
+      baseUrl: 'http://ollama:11434/v1',
+      model: 'm',
+      apiKey: 'k',
+    });
   });
 
   it('keeps the wide text cap (16k) for a local flight itinerary but tightens it (6k) otherwise', async () => {
@@ -254,7 +261,13 @@ describe('LlmParseService: cleaning up an AI answer (#2477)', () => {
 
   it("collapses the reporter's two nodes without a venue into one as well", async () => {
     extractText.mockResolvedValue(PRINT);
-    const bare = { '@type': 'LodgingReservation', checkinTime: '2026-09-06T13:00:00', checkoutTime: '2026-09-07T11:00:00', price: 89.35, priceCurrency: 'EURials' };
+    const bare = {
+      '@type': 'LodgingReservation',
+      checkinTime: '2026-09-06T13:00:00',
+      checkoutTime: '2026-09-07T11:00:00',
+      price: 89.35,
+      priceCurrency: 'EURials',
+    };
     extract.mockResolvedValue([bare, { ...bare }]);
     const res = await svc().parse(file('Bestätigung_1.pdf', '%PDF'), 1);
     expect(res.kiItems).toEqual([{ ...bare, priceCurrency: 'EUR' }]);
@@ -262,14 +275,24 @@ describe('LlmParseService: cleaning up an AI answer (#2477)', () => {
 
   it('treats the same fields in another key order as the same node', async () => {
     const a = stay();
-    const b = { reservationFor: { address: 'Example Road 1', name: 'Harbour View Inn' }, priceCurrency: 'EURials', price: 89.35, checkoutTime: a.checkoutTime, checkinTime: a.checkinTime, '@type': a['@type'] };
+    const b = {
+      reservationFor: { address: 'Example Road 1', name: 'Harbour View Inn' },
+      priceCurrency: 'EURials',
+      price: 89.35,
+      checkoutTime: a.checkoutTime,
+      checkinTime: a.checkinTime,
+      '@type': a['@type'],
+    };
     extract.mockResolvedValue([a, b]);
     const res = await svc().parse(file('a.txt'), 1);
     expect(res.kiItems).toHaveLength(1);
   });
 
   it('keeps distinct nodes that only look alike', async () => {
-    extract.mockResolvedValue([stay(), stay({ checkinTime: '2026-09-07T13:00:00', checkoutTime: '2026-09-08T11:00:00' })]);
+    extract.mockResolvedValue([
+      stay(),
+      stay({ checkinTime: '2026-09-07T13:00:00', checkoutTime: '2026-09-08T11:00:00' }),
+    ]);
     const res = await svc().parse(file('a.txt'), 1);
     expect(res.kiItems).toHaveLength(2);
   });
@@ -282,7 +305,10 @@ describe('LlmParseService: cleaning up an AI answer (#2477)', () => {
 
   it("falls back to the document's currency symbol when the model named no currency", async () => {
     extractText.mockResolvedValue(PRINT);
-    extract.mockResolvedValue([stay({ priceCurrency: 'ZZZ' }), stay({ priceCurrency: undefined, checkinTime: '2026-10-01T15:00:00' })]);
+    extract.mockResolvedValue([
+      stay({ priceCurrency: 'ZZZ' }),
+      stay({ priceCurrency: undefined, checkinTime: '2026-10-01T15:00:00' }),
+    ]);
     const res = await svc().parse(file('b.pdf', '%PDF'), 1);
     expect(res.kiItems.map((n) => n.priceCurrency)).toEqual(['EUR', 'EUR']);
   });
@@ -330,7 +356,15 @@ describe('LlmParseService: a photo', () => {
   });
 
   it('readsImages on auto asks a local server, and answers no for a cloud provider', async () => {
-    resolveLlmConfig.mockReturnValue(cfg({ provider: 'local', vision: 'auto', baseUrl: 'http://ollama:11434/v1', model: 'qwen3.5:4b', apiKey: 'proxy-key' }));
+    resolveLlmConfig.mockReturnValue(
+      cfg({
+        provider: 'local',
+        vision: 'auto',
+        baseUrl: 'http://ollama:11434/v1',
+        model: 'qwen3.5:4b',
+        apiKey: 'proxy-key',
+      }),
+    );
     modelCapabilities.mockResolvedValue(['completion', 'vision']);
     await expect(svc().readsImages(1)).resolves.toBe(true);
     // With the key the extraction sends, so an Ollama behind an auth proxy answers.
@@ -378,7 +412,10 @@ describe('LlmParseService: a photo', () => {
     resolveLlmConfig.mockReturnValue(cfg({ provider: 'local', vision: 'on', baseUrl: 'http://ollama:11434/v1' }));
     const res = await svc().parse(file('ticket.jpeg', 'jpeg bytes'), 1);
     expect(res.kiItems).toEqual([{ '@type': 'TrainReservation' }]);
-    expect(routeImageExtraction).toHaveBeenCalledWith([Buffer.from('jpeg bytes')], expect.objectContaining({ baseUrl: 'http://ollama:11434/v1' }));
+    expect(routeImageExtraction).toHaveBeenCalledWith(
+      [Buffer.from('jpeg bytes')],
+      expect.objectContaining({ baseUrl: 'http://ollama:11434/v1' }),
+    );
     expect(routeExtraction).not.toHaveBeenCalled();
     expect(extract).not.toHaveBeenCalled();
   });
@@ -400,7 +437,13 @@ describe('LlmParseService: a photo', () => {
 });
 
 describe('LlmParseService.readReceipt', () => {
-  const RECEIPT = { merchant: 'Bäckerei', date: '2026-09-20', total: 7.5, currency: 'EUR', items: [{ name: 'Brezel', price: 2.5 }] };
+  const RECEIPT = {
+    merchant: 'Bäckerei',
+    date: '2026-09-20',
+    total: 7.5,
+    currency: 'EUR',
+    items: [{ name: 'Brezel', price: 2.5 }],
+  };
 
   it('says why when AI parsing is not set up, the file is not a photo, or the model reads no images', async () => {
     resolveLlmConfig.mockReturnValue(null);
@@ -413,12 +456,18 @@ describe('LlmParseService.readReceipt', () => {
     expect(extractEnforced).not.toHaveBeenCalled();
   });
 
-  it('reads through Ollama\'s native chat on a local provider, with the photo and the receipt schema', async () => {
-    resolveLlmConfig.mockReturnValue(cfg({ provider: 'local', vision: 'on', baseUrl: 'http://ollama:11434/v1', model: 'qwen3.5:4b' }));
+  it("reads through Ollama's native chat on a local provider, with the photo and the receipt schema", async () => {
+    resolveLlmConfig.mockReturnValue(
+      cfg({ provider: 'local', vision: 'on', baseUrl: 'http://ollama:11434/v1', model: 'qwen3.5:4b' }),
+    );
     extractEnforced.mockResolvedValue(RECEIPT);
     await expect(svc().readReceipt(file('r.jpg', 'jpeg'), 1)).resolves.toEqual({ receipt: RECEIPT, warnings: [] });
     const call = extractEnforced.mock.calls[0][0];
-    expect(call).toMatchObject({ baseUrl: 'http://ollama:11434/v1', model: 'qwen3.5:4b', images: [Buffer.from('jpeg').toString('base64')] });
+    expect(call).toMatchObject({
+      baseUrl: 'http://ollama:11434/v1',
+      model: 'qwen3.5:4b',
+      images: [Buffer.from('jpeg').toString('base64')],
+    });
     expect(call.schema.required).toContain('total');
     // The grammar holds Ollama to one flat receipt, and the prompt says the same.
     expect(call.system).toContain('Return ONLY a JSON object of the form { "merchant"');
@@ -439,7 +488,10 @@ describe('LlmParseService.readReceipt', () => {
   it('refuses a photo too large to decode with a warning, before asking the model', async () => {
     resolveLlmConfig.mockReturnValue(cfg({ vision: 'on' }));
     const res = await svc().readReceipt({ buffer: pngClaiming(20000, 20000), originalName: 'r.png' }, 1);
-    expect(res).toEqual({ receipt: null, warnings: ['r.png: the photo is 20000 x 20000 pixels, more than the 40 megapixels TREK reads'] });
+    expect(res).toEqual({
+      receipt: null,
+      warnings: ['r.png: the photo is 20000 x 20000 pixels, more than the 40 megapixels TREK reads'],
+    });
     expect(extract).not.toHaveBeenCalled();
   });
 
@@ -450,7 +502,10 @@ describe('LlmParseService.readReceipt', () => {
     expect(failed.receipt).toBeNull();
     expect(failed.warnings[0]).toMatch(/AI parsing failed — 429/);
     extract.mockResolvedValue([]);
-    expect(await svc().readReceipt(file('r.jpg'), 1)).toEqual({ receipt: null, warnings: ['r.jpg: no receipt could be read'] });
+    expect(await svc().readReceipt(file('r.jpg'), 1)).toEqual({
+      receipt: null,
+      warnings: ['r.jpg: no receipt could be read'],
+    });
   });
 });
 

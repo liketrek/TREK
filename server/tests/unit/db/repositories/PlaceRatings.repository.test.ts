@@ -4,13 +4,14 @@
  * moved off `query-helpers.service.ts`. `place_ratings` is a Plan 3c-owned
  * table (inventory §14.6) with no repository test file before this one.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createPlace, createTrip, createUser } from '../../../helpers/factories';
 import { PlaceRatings } from '../../../../src/db/entities/PlaceRatings.entity';
 import type { PlaceRatingsRepository } from '../../../../src/db/repositories/PlaceRatings.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createPlace, createTrip, createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -20,11 +21,19 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   placeRatings = t.repo(PlaceRatings);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function rate(placeId: number, userId: number, rating: number, createdAt: string): void {
-  testDb.prepare('INSERT INTO place_ratings (place_id, user_id, rating, created_at) VALUES (?, ?, ?, ?)').run(placeId, userId, rating, createdAt);
+  testDb
+    .prepare('INSERT INTO place_ratings (place_id, user_id, rating, created_at) VALUES (?, ?, ?, ?)')
+    .run(placeId, userId, rating, createdAt);
 }
 
 async function withQueryCount<T>(fn: () => Promise<T>): Promise<{ value: T; queries: number }> {
@@ -45,7 +54,7 @@ describe('PlaceRatingsRepository.listForPlaces', () => {
     expect(queries).toBe(0);
   });
 
-  it('PLACERATINGSREPO-002: joins the voter\'s username/avatar, ordered by created_at', async () => {
+  it("PLACERATINGSREPO-002: joins the voter's username/avatar, ordered by created_at", async () => {
     const { user: owner } = createUser(testDb);
     const { user: voterA } = createUser(testDb, { username: 'alpha' });
     const { user: voterB } = createUser(testDb, { username: 'beta' });
@@ -119,29 +128,38 @@ describe('PlaceRatingsRepository.upsertRating (PL51)', () => {
     const place = createPlace(testDb, trip.id);
 
     await placeRatings.upsertRating(place.id, voter.id, 5);
-    let rows = testDb.prepare('SELECT rating FROM place_ratings WHERE place_id = ? AND user_id = ?').all(place.id, voter.id) as { rating: number }[];
+    let rows = testDb
+      .prepare('SELECT rating FROM place_ratings WHERE place_id = ? AND user_id = ?')
+      .all(place.id, voter.id) as { rating: number }[];
     expect(rows).toEqual([{ rating: 5 }]);
 
     await placeRatings.upsertRating(place.id, voter.id, 2);
-    rows = testDb.prepare('SELECT rating FROM place_ratings WHERE place_id = ? AND user_id = ?').all(place.id, voter.id) as { rating: number }[];
+    rows = testDb
+      .prepare('SELECT rating FROM place_ratings WHERE place_id = ? AND user_id = ?')
+      .all(place.id, voter.id) as { rating: number }[];
     expect(rows).toEqual([{ rating: 2 }]);
     // Exactly one row for the (place, user) pair — the composite unique key held, not a duplicate insert.
-    const count = testDb.prepare('SELECT COUNT(*) AS n FROM place_ratings WHERE place_id = ? AND user_id = ?').get(place.id, voter.id) as { n: number };
+    const count = testDb
+      .prepare('SELECT COUNT(*) AS n FROM place_ratings WHERE place_id = ? AND user_id = ?')
+      .get(place.id, voter.id) as { n: number };
     expect(count.n).toBe(1);
   });
 
-  it('UPSERTRATINGREPO-002 (PL51 ruling): a re-vote never touches places.updated_at — a vote must not 409 another member\'s If-Match', async () => {
+  it("UPSERTRATINGREPO-002 (PL51 ruling): a re-vote never touches places.updated_at — a vote must not 409 another member's If-Match", async () => {
     const { user: owner } = createUser(testDb);
     const { user: voter } = createUser(testDb, { username: 'voter2' });
     const trip = createTrip(testDb, owner.id);
     const place = createPlace(testDb, trip.id);
     testDb.prepare("UPDATE places SET updated_at = datetime('now', '-1 hour') WHERE id = ?").run(place.id);
-    const before = (testDb.prepare('SELECT updated_at FROM places WHERE id = ?').get(place.id) as { updated_at: string }).updated_at;
+    const before = (
+      testDb.prepare('SELECT updated_at FROM places WHERE id = ?').get(place.id) as { updated_at: string }
+    ).updated_at;
 
     await placeRatings.upsertRating(place.id, voter.id, 4);
     await placeRatings.upsertRating(place.id, voter.id, 1); // the conflict path
 
-    const after = (testDb.prepare('SELECT updated_at FROM places WHERE id = ?').get(place.id) as { updated_at: string }).updated_at;
+    const after = (testDb.prepare('SELECT updated_at FROM places WHERE id = ?').get(place.id) as { updated_at: string })
+      .updated_at;
     expect(after).toBe(before);
   });
 
@@ -153,7 +171,9 @@ describe('PlaceRatingsRepository.upsertRating (PL51)', () => {
     const place = createPlace(testDb, trip.id);
     await placeRatings.upsertRating(place.id, voterA.id, 5);
     await placeRatings.upsertRating(place.id, voterB.id, 1);
-    const rows = testDb.prepare('SELECT user_id, rating FROM place_ratings WHERE place_id = ? ORDER BY user_id').all(place.id);
+    const rows = testDb
+      .prepare('SELECT user_id, rating FROM place_ratings WHERE place_id = ? ORDER BY user_id')
+      .all(place.id);
     expect(rows).toEqual([
       { user_id: Math.min(voterA.id, voterB.id), rating: voterA.id < voterB.id ? 5 : 1 },
       { user_id: Math.max(voterA.id, voterB.id), rating: voterA.id < voterB.id ? 1 : 5 },
@@ -162,7 +182,7 @@ describe('PlaceRatingsRepository.upsertRating (PL51)', () => {
 });
 
 describe('PlaceRatingsRepository.deleteRating (PL50)', () => {
-  it('DELETERATINGREPO-001: removes exactly the (place, user) row, leaving another voter\'s row alone', async () => {
+  it("DELETERATINGREPO-001: removes exactly the (place, user) row, leaving another voter's row alone", async () => {
     const { user: owner } = createUser(testDb);
     const { user: voterA } = createUser(testDb, { username: 'da' });
     const { user: voterB } = createUser(testDb, { username: 'db' });
@@ -171,7 +191,9 @@ describe('PlaceRatingsRepository.deleteRating (PL50)', () => {
     await placeRatings.upsertRating(place.id, voterA.id, 5);
     await placeRatings.upsertRating(place.id, voterB.id, 3);
     await placeRatings.deleteRating(place.id, voterA.id);
-    expect(testDb.prepare('SELECT user_id FROM place_ratings WHERE place_id = ?').all(place.id)).toEqual([{ user_id: voterB.id }]);
+    expect(testDb.prepare('SELECT user_id FROM place_ratings WHERE place_id = ?').all(place.id)).toEqual([
+      { user_id: voterB.id },
+    ]);
   });
 
   it('DELETERATINGREPO-002: deleting a vote that does not exist is a no-op, not a throw', async () => {

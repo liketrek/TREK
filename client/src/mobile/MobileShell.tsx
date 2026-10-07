@@ -1,14 +1,14 @@
-import { ReactNode } from 'react'
-import { useMatch } from 'react-router'
-import BottomNav from '../components/Layout/BottomNav'
-import ErrorBoundary from '../components/shared/ErrorBoundary'
-import MBottomNav from './components/MBottomNav'
-import MToastHost from './components/MToastHost'
-import './mobile.css'
+import { ReactNode } from 'react';
+import { useMatch } from 'react-router';
+import BottomNav from '../components/Layout/BottomNav';
+import ErrorBoundary from '../components/shared/ErrorBoundary';
+import MBottomNav from './components/MBottomNav';
+import MToastHost from './components/MToastHost';
+import './mobile.css';
 
 interface MobileShellProps {
-  isPhone: boolean
-  children: ReactNode
+  isPhone: boolean;
+  children: ReactNode;
 }
 
 /**
@@ -31,15 +31,17 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
   // in-trip dock (MTripShell). The global dock must not render underneath it:
   // on iOS Safari a position:fixed nav paints THROUGH the trip overlay's higher
   // stacking context, so the wrong (global) bar shows on top of the trip screen.
-  const inTripPlanner = useMatch('/trips/:id')
+  const inTripPlanner = useMatch('/trips/:id');
 
   if (!isPhone) {
     return (
-      <div className="flex flex-col h-dvh md:block md:h-auto">
+      <div className="flex h-dvh flex-col md:block md:h-auto">
         <div className="flex-1 overflow-y-auto md:overflow-visible">{children}</div>
-        <ErrorBoundary boundaryId="chrome:bottom-nav" fallback={null}><BottomNav /></ErrorBoundary>
+        <ErrorBoundary boundaryId="chrome:bottom-nav" fallback={null}>
+          <BottomNav />
+        </ErrorBoundary>
       </div>
-    )
+    );
   }
 
   return (
@@ -58,11 +60,20 @@ export default function MobileShell({ isPhone, children }: MobileShellProps) {
           (z-50) ended up underneath the dock (z-40) that way. For the negative
           layer to be visible, body must not paint over it, which index.css handles
           for this breakpoint. */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)]" />
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 -z-10 bg-[color:var(--m-bg)] bg-[image:var(--m-scr)]"
+      />
       <div className="flex-1">{children}</div>
-      {!inTripPlanner && <ErrorBoundary boundaryId="chrome:m-bottom-nav" fallback={null}><MBottomNav /></ErrorBoundary>}
-      <ErrorBoundary boundaryId="chrome:m-toast" fallback={null}><MToastHost /></ErrorBoundary>
+      {!inTripPlanner && (
+        <ErrorBoundary boundaryId="chrome:m-bottom-nav" fallback={null}>
+          <MBottomNav />
+        </ErrorBoundary>
+      )}
+      <ErrorBoundary boundaryId="chrome:m-toast" fallback={null}>
+        <MToastHost />
+      </ErrorBoundary>
       <div id="m-sheet-root" />
     </div>
-  )
+  );
 }

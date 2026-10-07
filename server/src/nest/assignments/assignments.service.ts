@@ -1,32 +1,32 @@
-import { ConflictException, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { chronoOrder, type RoadtripVia, type TrekWsPayload, type TrekWsTripEventName } from '@trek/shared';
-import { isEmptyReanchoring, reanchorByStopOrder } from '@trek/shared/roadtrip';
-import { RealtimeService } from '../realtime/realtime.service';
+import { AssignmentParticipants } from '../../db/entities/AssignmentParticipants.entity';
+import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { Days } from '../../db/entities/Days.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
+import { Tours } from '../../db/entities/Tours.entity';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { AssignmentParticipantsRepository } from '../../db/repositories/AssignmentParticipants.repository';
+import type { DayAssignmentsRepository, DayStopRow } from '../../db/repositories/DayAssignments.repository';
+import type { DaysRepository } from '../../db/repositories/Days.repository';
+import type { PlacesRepository } from '../../db/repositories/Places.repository';
+import type { RoadtripViasRepository } from '../../db/repositories/RoadtripVias.repository';
+import type { ToursRepository } from '../../db/repositories/Tours.repository';
+import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import type { User } from '../../types';
+import { toRowId } from '../common/row-id';
+import { formatAssignmentWithPlace } from '../common/rowShape';
+import { UnitOfWork } from '../database/unit-of-work';
+import { JourneyDomainService } from '../journey/journey-domain.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
-import { formatAssignmentWithPlace } from '../common/rowShape';
-import type { User } from '../../types';
-import { JourneyDomainService } from '../journey/journey-domain.service';
-import { UnitOfWork } from '../database/unit-of-work';
-import { toRowId } from '../common/row-id';
-import { DayAssignments } from '../../db/entities/DayAssignments.entity';
-import type { DayAssignmentsRepository, DayStopRow } from '../../db/repositories/DayAssignments.repository';
-import { AssignmentParticipants } from '../../db/entities/AssignmentParticipants.entity';
-import type { AssignmentParticipantsRepository } from '../../db/repositories/AssignmentParticipants.repository';
-import { Days } from '../../db/entities/Days.entity';
-import type { DaysRepository } from '../../db/repositories/Days.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { Places } from '../../db/entities/Places.entity';
-import type { PlacesRepository } from '../../db/repositories/Places.repository';
-import { TripMembers } from '../../db/entities/TripMembers.entity';
-import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
-import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
-import type { RoadtripViasRepository } from '../../db/repositories/RoadtripVias.repository';
-import { Tours } from '../../db/entities/Tours.entity';
-import type { ToursRepository } from '../../db/repositories/Tours.repository';
+import { RealtimeService } from '../realtime/realtime.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { ConflictException, Injectable } from '@nestjs/common';
+import { chronoOrder, type RoadtripVia, type TrekWsPayload, type TrekWsTripEventName } from '@trek/shared';
+import { isEmptyReanchoring, reanchorByStopOrder } from '@trek/shared/roadtrip';
 
 type Trip = TripAccess;
 
@@ -108,7 +108,8 @@ export class AssignmentsService {
     private readonly journey: JourneyDomainService,
     private readonly uow: UnitOfWork,
     @InjectRepository(DayAssignments) private readonly dayAssignmentsRepo: DayAssignmentsRepository,
-    @InjectRepository(AssignmentParticipants) private readonly assignmentParticipantsRepo: AssignmentParticipantsRepository,
+    @InjectRepository(AssignmentParticipants)
+    private readonly assignmentParticipantsRepo: AssignmentParticipantsRepository,
     @InjectRepository(Days) private readonly daysRepo: DaysRepository,
     @InjectRepository(Places) private readonly placesRepo: PlacesRepository,
     @InjectRepository(TripMembers) private readonly tripMembersRepo: TripMembersRepository,
@@ -124,7 +125,12 @@ export class AssignmentsService {
     return this.permissions.checkPermission('day_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -136,7 +142,9 @@ export class AssignmentsService {
   async reconcile(tripId: string | number, socketId?: string): Promise<void> {
     try {
       await this.journey.reconcileTripSkeletons(Number(tripId), socketId);
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
   }
 
   /**
@@ -178,16 +186,16 @@ export class AssignmentsService {
     // gates on `dayExists` in the same request.
     const assignments = await this.dayAssignmentsRepo.listForDay(toRowId(dayId)!);
 
-    const placeIds = [...new Set(assignments.map(a => a.place_id))];
+    const placeIds = [...new Set(assignments.map((a) => a.place_id))];
     const tagsByPlaceId = await this.queryHelpers.loadTagsByPlaceIds(placeIds, { compact: true });
 
-    const assignmentIds = assignments.map(a => a.id);
+    const assignmentIds = assignments.map((a) => a.id);
     // QH3 (`QueryHelpersService.loadParticipantsByAssignmentIds`) — deliberately
     // WITHOUT the COALESCE `getAssignmentWithPlace`/`getParticipants` apply
     // (inventory §18.10); unchanged from before this conversion.
     const participantsByAssignment = await this.queryHelpers.loadParticipantsByAssignmentIds(assignmentIds);
 
-    return assignments.map(a => {
+    return assignments.map((a) => {
       return formatAssignmentWithPlace(a, tagsByPlaceId[a.place_id] || [], participantsByAssignment[a.id] || []);
     });
   }
@@ -252,7 +260,12 @@ export class AssignmentsService {
    * stop that reaches it without its booking id is one the day list cannot tell
    * from a place the traveller added, so it draws the hotel a second time.
    */
-  async createAssignment(dayId: string | number, placeId: unknown, notes?: string | null, opts: { accommodationId?: number; orderIndex?: number } = {}) {
+  async createAssignment(
+    dayId: string | number,
+    placeId: unknown,
+    notes?: string | null,
+    opts: { accommodationId?: number; orderIndex?: number } = {},
+  ) {
     // Downstream of the caller's own dayExists/placeExists gate in the same
     // request (every real call site), so the non-null assertion is
     // dead-code-safe — the class docstring's affinity-seam note.
@@ -273,7 +286,8 @@ export class AssignmentsService {
         await this.dayAssignmentsRepo.shiftOrderFrom(dayIdNum, orderIndex); // AS7
       }
 
-      return await this.dayAssignmentsRepo.insertAssignment({ // AS8
+      return await this.dayAssignmentsRepo.insertAssignment({
+        // AS8
         day_id: dayIdNum,
         place_id: placeIdNum,
         order_index: orderIndex,
@@ -407,7 +421,11 @@ export class AssignmentsService {
 
       // Falsy times (null, undefined, '') all clear the override — an empty
       // string is a clear, not a stored value. AS17.
-      await this.dayAssignmentsRepo.setTimes(idNum, (placeTime as string | null | undefined) || null, (endTime as string | null | undefined) || null);
+      await this.dayAssignmentsRepo.setTimes(
+        idNum,
+        (placeTime as string | null | undefined) || null,
+        (endTime as string | null | undefined) || null,
+      );
 
       // Only a start that moved sorts. An end is a label. A start sent again as it
       // stood (the place form saving an End, the stay dialog taking one off, an MCP
@@ -423,7 +441,9 @@ export class AssignmentsService {
     // AS23 — `RoadtripViasRepository.listForDay`, the one copy of this projection
     // (RT2/AC16); the "deliberate duplicate" the legacy docstring warned against
     // dedupe-ing is gone now that a repository is the one place to inject it from.
-    const vias = sorted?.viasMoved ? { dayId: sorted.dayId, vias: await this.roadtripViasRepo.listForDay(sorted.dayId) } : null;
+    const vias = sorted?.viasMoved
+      ? { dayId: sorted.dayId, vias: await this.roadtripViasRepo.listForDay(sorted.dayId) }
+      : null;
 
     return {
       assignment: await this.getAssignmentWithPlace(idNum),
@@ -436,7 +456,9 @@ export class AssignmentsService {
    * Puts one day in time order. Writes nothing when it already is, which is the usual
    * case: most starts are typed in the order the day is planned.
    */
-  private async sortDayByTime(dayId: number): Promise<{ dayId: number; orderedIds: number[]; viasMoved: boolean } | null> {
+  private async sortDayByTime(
+    dayId: number,
+  ): Promise<{ dayId: number; orderedIds: number[]; viasMoved: boolean } | null> {
     // A booked night's hour lives on the booking, not on the stop: nobody types a
     // time into a hotel row, they type a check-in. Left out of this, the night
     // counted as untimed and stayed wherever it had been dropped, so pinning an
@@ -446,7 +468,7 @@ export class AssignmentsService {
     // AS18 — `DayAssignmentsRepository.listForTimeSort`, via Kysely.
     const rows = await this.dayAssignmentsRepo.listForTimeSort(dayId);
 
-    const sorted = chronoOrder(rows, row => sortMinutes(row.effective_time));
+    const sorted = chronoOrder(rows, (row) => sortMinutes(row.effective_time));
     if (sorted.every((row, i) => row === rows[i])) return null;
 
     // Numbered from 0, the way a drag stores a day (`reorderAssignments`). The order
@@ -460,7 +482,7 @@ export class AssignmentsService {
       if (row.order_index !== i) await this.dayAssignmentsRepo.setOrderIndex(row.id, undefined, i);
     }
 
-    return { dayId, orderedIds: sorted.map(row => row.id), viasMoved: await this.reanchorVias(dayId, rows, sorted) };
+    return { dayId, orderedIds: sorted.map((row) => row.id), viasMoved: await this.reanchorVias(dayId, rows, sorted) };
   }
 
   /**
@@ -474,7 +496,7 @@ export class AssignmentsService {
    * onto a different one, so two legs' vias never end up on the same leg.
    */
   private async reanchorVias(dayId: number, before: DayStopRow[], after: DayStopRow[]): Promise<boolean> {
-    const located = (rows: DayStopRow[]) => rows.filter(row => row.located).map(row => row.id);
+    const located = (rows: DayStopRow[]) => rows.filter((row) => row.located).map((row) => row.id);
     const previousIds = located(before);
     const nextIds = located(after);
     // Only stops without coordinates moved. The router never sees those, so every leg
@@ -567,7 +589,7 @@ export class AssignmentsService {
     const idNum = toRowId(assignmentId)!;
     // AS28 — `TripMembersRepository.rosterUserIds`; off-roster ids drop silently.
     const roster = await this.tripMembersRepo.rosterUserIds(tripId);
-    const scoped = userIds.filter(id => roster.has(id));
+    const scoped = userIds.filter((id) => roster.has(id));
     await this.uow.transactional(async () => {
       await this.assignmentParticipantsRepo.deleteForAssignment(idNum); // AS29
       if (scoped.length > 0) {

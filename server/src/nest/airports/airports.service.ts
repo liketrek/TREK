@@ -1,12 +1,12 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { Airport } from '@trek/shared';
-import { searchAirports, findByIata, load } from './airports.data';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import { ReservationsRepository } from '../../db/repositories/Reservations.repository';
 import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
 import { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
+import { ReservationsRepository } from '../../db/repositories/Reservations.repository';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
+import { searchAirports, findByIata, load } from './airports.data';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import type { Airport } from '@trek/shared';
 
 /**
  * The in-container face of the airport dataset, plus the flight-endpoint
@@ -76,14 +76,28 @@ export class AirportsService implements OnApplicationBootstrap {
     let filled = 0;
     let flagged = 0;
     for (const r of pending) {
-      if (!r.metadata) { await this.reservationsRepo.markNeedsReview(r.id); flagged++; continue; }
+      if (!r.metadata) {
+        await this.reservationsRepo.markNeedsReview(r.id);
+        flagged++;
+        continue;
+      }
       let meta: any;
-      try { meta = JSON.parse(r.metadata); } catch { await this.reservationsRepo.markNeedsReview(r.id); flagged++; continue; }
+      try {
+        meta = JSON.parse(r.metadata);
+      } catch {
+        await this.reservationsRepo.markNeedsReview(r.id);
+        flagged++;
+        continue;
+      }
 
       const dep = meta.departure_airport ? findByIata(String(meta.departure_airport).slice(0, 3)) : null;
       const arr = meta.arrival_airport ? findByIata(String(meta.arrival_airport).slice(0, 3)) : null;
 
-      if (!dep || !arr) { await this.reservationsRepo.markNeedsReview(r.id); flagged++; continue; }
+      if (!dep || !arr) {
+        await this.reservationsRepo.markNeedsReview(r.id);
+        flagged++;
+        continue;
+      }
 
       const split = (iso: string | null) => {
         if (!iso) return { date: null as string | null, time: null as string | null };
@@ -94,14 +108,28 @@ export class AirportsService implements OnApplicationBootstrap {
       const arrParts = split(r.reservation_end_time);
 
       await this.endpointsRepo.insertEndpoint({
-        reservation_id: r.id, role: 'from', sequence: 0,
-        name: dep.city ? `${dep.city} (${dep.iata})` : dep.name, code: dep.iata,
-        lat: dep.lat, lng: dep.lng, timezone: dep.tz, local_time: depParts.time, local_date: depParts.date,
+        reservation_id: r.id,
+        role: 'from',
+        sequence: 0,
+        name: dep.city ? `${dep.city} (${dep.iata})` : dep.name,
+        code: dep.iata,
+        lat: dep.lat,
+        lng: dep.lng,
+        timezone: dep.tz,
+        local_time: depParts.time,
+        local_date: depParts.date,
       });
       await this.endpointsRepo.insertEndpoint({
-        reservation_id: r.id, role: 'to', sequence: 1,
-        name: arr.city ? `${arr.city} (${arr.iata})` : arr.name, code: arr.iata,
-        lat: arr.lat, lng: arr.lng, timezone: arr.tz, local_time: arrParts.time, local_date: arrParts.date,
+        reservation_id: r.id,
+        role: 'to',
+        sequence: 1,
+        name: arr.city ? `${arr.city} (${arr.iata})` : arr.name,
+        code: arr.iata,
+        lat: arr.lat,
+        lng: arr.lng,
+        timezone: arr.tz,
+        local_time: arrParts.time,
+        local_date: arrParts.date,
       });
       filled++;
     }

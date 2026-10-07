@@ -1,7 +1,7 @@
 // FE-PLANNER-SELBAR-001 to FE-PLANNER-SELBAR-015
 import userEvent from '@testing-library/user-event';
-import { render, screen, fireEvent } from '../../../tests/helpers/render';
 import { buildPlace } from '../../../tests/helpers/factories';
+import { fireEvent, render, screen } from '../../../tests/helpers/render';
 import { useTranslation } from '../../i18n';
 import type { Place } from '../../types';
 import { PlacesSelectionBar } from './PlacesSidebarSelectionBar';
@@ -143,7 +143,7 @@ describe('PlacesSelectionBar', () => {
         selectedIds={new Set([2, 3])}
         onBulkDeletePlaces={onBulkDeletePlaces}
         setPendingDeleteIds={setPendingDeleteIds}
-      />,
+      />
     );
 
     await user.click(screen.getByRole('button', { name: 'Delete selected' }));
@@ -162,7 +162,7 @@ describe('PlacesSelectionBar', () => {
         selectedIds={new Set([2, 3])}
         onBulkDeletePlaces={onBulkDeletePlaces}
         setPendingDeleteIds={setPendingDeleteIds}
-      />,
+      />
     );
 
     await user.click(screen.getByRole('button', { name: 'Delete selected' }));
@@ -175,7 +175,13 @@ describe('PlacesSelectionBar', () => {
     const user = userEvent.setup();
     render(<Bar selectedIds={new Set([1])} collectionsEnabled />);
 
-    for (const name of ['Select all', 'Change category', 'Save to Collection', 'Mark visited in your lists', 'Delete selected']) {
+    for (const name of [
+      'Select all',
+      'Change category',
+      'Save to Collection',
+      'Mark visited in your lists',
+      'Delete selected',
+    ]) {
       const btn = screen.getByRole('button', { name });
       expect(btn).toBeEnabled();
       await user.hover(btn);
@@ -188,7 +194,14 @@ describe('PlacesSelectionBar', () => {
   it('FE-PLANNER-SELBAR-014: without a selection every action but "Select all" is inert', () => {
     const onBulkDeletePlaces = vi.fn((_ids: number[]) => {});
     const markSelectionVisited = vi.fn(async () => {});
-    render(<Bar selectedIds={new Set()} collectionsEnabled onBulkDeletePlaces={onBulkDeletePlaces} markSelectionVisited={markSelectionVisited} />);
+    render(
+      <Bar
+        selectedIds={new Set()}
+        collectionsEnabled
+        onBulkDeletePlaces={onBulkDeletePlaces}
+        markSelectionVisited={markSelectionVisited}
+      />
+    );
 
     expect(screen.getByRole('button', { name: 'Select all' })).toBeEnabled();
     for (const name of ['Change category', 'Save to Collection', 'Mark visited in your lists', 'Delete selected']) {
@@ -203,12 +216,21 @@ describe('PlacesSelectionBar', () => {
   it('FE-PLANNER-SELBAR-015: "mark visited" runs for the selection and is locked while it runs', async () => {
     const user = userEvent.setup();
     const markSelectionVisited = vi.fn(async () => {});
-    const { rerender } = render(<Bar selectedIds={new Set([1, 2])} collectionsEnabled markSelectionVisited={markSelectionVisited} />);
+    const { rerender } = render(
+      <Bar selectedIds={new Set([1, 2])} collectionsEnabled markSelectionVisited={markSelectionVisited} />
+    );
 
     await user.click(screen.getByRole('button', { name: 'Mark visited in your lists' }));
     expect(markSelectionVisited).toHaveBeenCalledTimes(1);
 
-    rerender(<Bar selectedIds={new Set([1, 2])} collectionsEnabled markSelectionVisited={markSelectionVisited} markVisitedBusy />);
+    rerender(
+      <Bar
+        selectedIds={new Set([1, 2])}
+        collectionsEnabled
+        markSelectionVisited={markSelectionVisited}
+        markVisitedBusy
+      />
+    );
     expect(screen.getByRole('button', { name: 'Mark visited in your lists' })).toBeDisabled();
   });
 });

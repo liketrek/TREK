@@ -1,25 +1,25 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
-import { MapViewAuto } from '../../../../components/Map/MapViewAuto'
-import { MapCompassPill, type CompassMap } from '../../../../components/Map/MapCompassPill'
-import { MAP_LAYER_SWITCHER_INSET, MAP_ROUND_CONTROL_SIZE } from '../../../../components/Map/MapLayerSwitcher'
-import { TripRouteOverviewPill, TripRouteOverviewPanel } from '../../../../components/Map/TripRouteOverview'
-import { DawarichTrailPill } from '../../../../components/Map/DawarichTrailPill'
-import { MPlacesFilterPill } from './MPlacesFilterPill'
-import PoiCategoryPill from '../../../../components/Map/PoiCategoryPill'
-import { usePoiExplore } from '../../../../components/Map/usePoiExplore'
-import { useMergedMapPois } from '../../../../components/Map/useMergedMapPois'
-import { firstStopOfPlace, stageOf } from '../../../../components/Roadtrip/roadtripRowModel'
-import { stageMapData } from '../../../../components/Roadtrip/stageMap'
-import { useRoadtripSettings } from '../../../../hooks/useRoadtripSettings'
-import { useSettingsStore } from '../../../../store/settingsStore'
-import { useTripStore } from '../../../../store/tripStore'
-import { RT_ALT_BAR_LIFT } from '../roadtrip/useMRtAlternatives'
-import type { MMapAreaProps } from '../MTripShell'
-import type { Poi } from '../../../../components/Map/poiCategories'
-import type { ViewportPadding } from '../../../../utils/mapViewport'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { DawarichTrailPill } from '../../../../components/Map/DawarichTrailPill';
+import { MapCompassPill, type CompassMap } from '../../../../components/Map/MapCompassPill';
+import { MAP_LAYER_SWITCHER_INSET, MAP_ROUND_CONTROL_SIZE } from '../../../../components/Map/MapLayerSwitcher';
+import { MapViewAuto } from '../../../../components/Map/MapViewAuto';
+import type { Poi } from '../../../../components/Map/poiCategories';
+import PoiCategoryPill from '../../../../components/Map/PoiCategoryPill';
+import { TripRouteOverviewPanel, TripRouteOverviewPill } from '../../../../components/Map/TripRouteOverview';
+import { useMergedMapPois } from '../../../../components/Map/useMergedMapPois';
+import { usePoiExplore } from '../../../../components/Map/usePoiExplore';
+import { firstStopOfPlace, stageOf } from '../../../../components/Roadtrip/roadtripRowModel';
+import { stageMapData } from '../../../../components/Roadtrip/stageMap';
+import { useRoadtripSettings } from '../../../../hooks/useRoadtripSettings';
+import { useSettingsStore } from '../../../../store/settingsStore';
+import { useTripStore } from '../../../../store/tripStore';
+import type { ViewportPadding } from '../../../../utils/mapViewport';
+import type { MMapAreaProps } from '../MTripShell';
+import { RT_ALT_BAR_LIFT } from '../roadtrip/useMRtAlternatives';
+import { MPlacesFilterPill } from './MPlacesFilterPill';
 
 /** One array, so an explore set switched off does not move every pin on the stage. */
-const NO_POIS: Poi[] = []
+const NO_POIS: Poi[] = [];
 
 /**
  * The compass stands one gap above the base-layer switcher both engines draw in the
@@ -27,16 +27,16 @@ const NO_POIS: Poi[] = []
  * instead of a row. Worked out from the switcher's own numbers, so moving or resizing
  * the switcher carries the compass along.
  */
-const COMPASS_LEFT = MAP_LAYER_SWITCHER_INSET
-const COMPASS_RAISE = MAP_ROUND_CONTROL_SIZE + 8
+const COMPASS_LEFT = MAP_LAYER_SWITCHER_INSET;
+const COMPASS_RAISE = MAP_ROUND_CONTROL_SIZE + 8;
 
 /** The safe-area insets at the top and the bottom of the screen, in pixels. */
 interface SafeInsets {
-  top: number
-  bottom: number
+  top: number;
+  bottom: number;
 }
 
-const NO_INSETS: SafeInsets = { top: 0, bottom: 0 }
+const NO_INSETS: SafeInsets = { top: 0, bottom: 0 };
 
 /**
  * The safe-area insets as numbers, read off a probe that is padded by them.
@@ -48,21 +48,21 @@ const NO_INSETS: SafeInsets = { top: 0, bottom: 0 }
  * inset back. Read on mount and again on a resize, which is what turning the phone does.
  */
 function useSafeInsets(probe: RefObject<HTMLElement | null>): SafeInsets {
-  const [insets, setInsets] = useState<SafeInsets>(NO_INSETS)
+  const [insets, setInsets] = useState<SafeInsets>(NO_INSETS);
   useLayoutEffect(() => {
     const read = () => {
-      const el = probe.current
-      if (!el) return
-      const style = window.getComputedStyle(el)
-      const top = Number.parseFloat(style.paddingTop) || 0
-      const bottom = Number.parseFloat(style.paddingBottom) || 0
-      setInsets(prev => (prev.top === top && prev.bottom === bottom ? prev : { top, bottom }))
-    }
-    read()
-    window.addEventListener('resize', read)
-    return () => window.removeEventListener('resize', read)
-  }, [probe])
-  return insets
+      const el = probe.current;
+      if (!el) return;
+      const style = window.getComputedStyle(el);
+      const top = Number.parseFloat(style.paddingTop) || 0;
+      const bottom = Number.parseFloat(style.paddingBottom) || 0;
+      setInsets((prev) => (prev.top === top && prev.bottom === bottom ? prev : { top, bottom }));
+    };
+    read();
+    window.addEventListener('resize', read);
+    return () => window.removeEventListener('resize', read);
+  }, [probe]);
+  return insets;
 }
 
 /**
@@ -92,22 +92,22 @@ function alternativesFitPadding(insets: SafeInsets): ViewportPadding {
     right: 20,
     bottom: insets.bottom + 74 + RT_ALT_BAR_LIFT,
     left: 20,
-  }
+  };
 }
 
-type FocusPoints = readonly [number, number][]
+type FocusPoints = readonly [number, number][];
 
 /** A camera focus the planner is holding, and the day that was on screen when it arrived. */
 interface HeldFocus {
-  points: FocusPoints
-  dayId: number | null
-  live: boolean
+  points: FocusPoints;
+  dayId: number | null;
+  live: boolean;
   /**
    * Every array held before this one. Weak, so the offers of a long session are not kept
    * alive by it. Only ever added to, and adding twice changes nothing, so a render React
    * runs twice or throws away leaves it saying the same thing.
    */
-  shown: WeakSet<FocusPoints>
+  shown: WeakSet<FocusPoints>;
 }
 
 /**
@@ -127,18 +127,13 @@ interface HeldFocus {
  * picker's roads (`openRoads`): fuel offers asked for over an open picker take the camera
  * from it, and once they close the picker is still asking about its leg.
  */
-function holdFocus(
-  prev: HeldFocus,
-  points: FocusPoints,
-  dayId: number | null,
-  openRoads: FocusPoints,
-): HeldFocus {
+function holdFocus(prev: HeldFocus, points: FocusPoints, dayId: number | null, openRoads: FocusPoints): HeldFocus {
   if (prev.points !== points) {
-    prev.shown.add(prev.points)
-    return { points, dayId, live: points === openRoads || !prev.shown.has(points), shown: prev.shown }
+    prev.shown.add(prev.points);
+    return { points, dayId, live: points === openRoads || !prev.shown.has(points), shown: prev.shown };
   }
-  if (prev.live && prev.dayId !== dayId) return { ...prev, dayId, live: false }
-  return prev
+  if (prev.live && prev.dayId !== dayId) return { ...prev, dayId, live: false };
+  return prev;
 }
 
 /**
@@ -164,19 +159,19 @@ function holdFocus(
  * stage draws the stops of its chain instead, see `stagePlaces`.
  */
 export default function MMapArea({ planner, shell }: MMapAreaProps) {
-  const poi = usePoiExplore()
-  const [glMap, setGlMap] = useState<CompassMap | null>(null)
-  const poiPillEnabled = useSettingsStore(s => s.settings.map_poi_pill_enabled) !== false
-  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
+  const poi = usePoiExplore();
+  const [glMap, setGlMap] = useState<CompassMap | null>(null);
+  const poiPillEnabled = useSettingsStore((s) => s.settings.map_poi_pill_enabled) !== false;
+  const distanceUnit = useSettingsStore((s) => s.settings.distance_unit);
 
-  const dayColorsOn = useRoadtripSettings(s => s.roadtrip_day_colors, planner.tripId)
-  const tripPlaces = useTripStore(s => s.places)
+  const dayColorsOn = useRoadtripSettings((s) => s.roadtrip_day_colors, planner.tripId);
+  const tripPlaces = useTripStore((s) => s.places);
 
   // One instance, two tabs. `mapFront` is true whenever the map is the front layer
   // in either of them, so the floating chrome below keys off that rather than off
   // `view`, which only ever meant the plan tab.
-  const mapActive = shell.mapFront
-  const onStage = shell.trTab === 'roadtrip'
+  const mapActive = shell.mapFront;
+  const onStage = shell.trTab === 'roadtrip';
 
   // The stage the road trip tab is looking at, and what the map draws for it. Passed
   // through unconditionally while that tab is open, list half included: `focusPoints`
@@ -189,13 +184,13 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
   // GeoJSON sources again. On the stage that also kept the GL style busy, which is how
   // the satellite switch came to miss every tap there.
   const stage = useMemo(
-    () => onStage ? stageOf(planner.roadtripRoutes.days, planner.selectedDayId) : null,
-    [onStage, planner.roadtripRoutes.days, planner.selectedDayId],
-  )
+    () => (onStage ? stageOf(planner.roadtripRoutes.days, planner.selectedDayId) : null),
+    [onStage, planner.roadtripRoutes.days, planner.selectedDayId]
+  );
   const stageMap = useMemo(
-    () => onStage ? stageMapData(planner.roadtripRoutes, stage, !!dayColorsOn) : null,
-    [onStage, planner.roadtripRoutes, stage, dayColorsOn],
-  )
+    () => (onStage ? stageMapData(planner.roadtripRoutes, stage, !!dayColorsOn) : null),
+    [onStage, planner.roadtripRoutes, stage, dayColorsOn]
+  );
 
   // Only what the stage carries, so a trip's other 200 pins stay off a screen that
   // is answering one question. Without a stage (the all-days view) every place a stored
@@ -217,22 +212,30 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
   // round draws still ends at that hotel and stops at that pump. Its pin is what opens the
   // stop, so a missing one left the stop out of reach from this view.
   const drivePlaceIds = useMemo(
-    () => new Set(Object.values(planner.storedAssignments).flat().map(visit => visit.place_id)),
-    [planner.storedAssignments],
-  )
+    () =>
+      new Set(
+        Object.values(planner.storedAssignments)
+          .flat()
+          .map((visit) => visit.place_id)
+      ),
+    [planner.storedAssignments]
+  );
   const stagePlaces = useMemo(() => {
-    const pinned = stageMap && stage ? stageMap.placeIds : drivePlaceIds
-    return tripPlaces.filter(p => p.lat != null && p.lng != null && pinned.has(p.id))
-  }, [stageMap, stage, tripPlaces, drivePlaceIds])
+    const pinned = stageMap && stage ? stageMap.placeIds : drivePlaceIds;
+    return tripPlaces.filter((p) => p.lat != null && p.lng != null && pinned.has(p.id));
+  }, [stageMap, stage, tripPlaces, drivePlaceIds]);
 
   // Computed during render rather than in an effect, so the frame handed over below is
   // already the right one in the render a day change happens in. See holdFocus.
-  const [heldFocus, setHeldFocus] = useState<HeldFocus>(
-    () => ({ points: planner.mapFocusPoints, dayId: planner.selectedDayId, live: true, shown: new WeakSet() }),
-  )
-  const focus = holdFocus(heldFocus, planner.mapFocusPoints, planner.selectedDayId, planner.alternativeFocusPoints)
-  if (focus !== heldFocus) setHeldFocus(focus)
-  const focusPending = focus.live && planner.mapFocusPoints.length > 0
+  const [heldFocus, setHeldFocus] = useState<HeldFocus>(() => ({
+    points: planner.mapFocusPoints,
+    dayId: planner.selectedDayId,
+    live: true,
+    shown: new WeakSet(),
+  }));
+  const focus = holdFocus(heldFocus, planner.mapFocusPoints, planner.selectedDayId, planner.alternativeFocusPoints);
+  if (focus !== heldFocus) setHeldFocus(focus);
+  const focusPending = focus.live && planner.mapFocusPoints.length > 0;
 
   // Handed over only once there are roads to frame, not as soon as the picker opens: the
   // engines refit whatever they hold when this padding changes, and while the router is
@@ -240,13 +243,13 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
   // before the answer flies it to the leg. So the padding and the roads arrive in one
   // render and the camera moves once, and on close both go in one render as well.
   // Memoised for the reason the stage data is, the shell re-rendering on every store write.
-  const insetProbe = useRef<HTMLSpanElement>(null)
-  const insets = useSafeInsets(insetProbe)
-  const framingOffers = onStage && planner.alternativeOverlays.length > 0
+  const insetProbe = useRef<HTMLSpanElement>(null);
+  const insets = useSafeInsets(insetProbe);
+  const framingOffers = onStage && planner.alternativeOverlays.length > 0;
   const fitPadding = useMemo(
     () => (framingOffers ? alternativesFitPadding(insets) : undefined),
-    [framingOffers, insets],
-  )
+    [framingOffers, insets]
+  );
 
   /**
    * A pin on the road trip tab opens its stop: the sheet the chain row opens, not the
@@ -263,14 +266,14 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
    * rebuilds every marker whenever this identity moves, and the shell re-renders on every
    * store write and on every sheet it opens, this handler's own included.
    */
-  const latest = useRef({ planner, shell, stage })
-  latest.current = { planner, shell, stage }
+  const latest = useRef({ planner, shell, stage });
+  latest.current = { planner, shell, stage };
   const openStagePin = useCallback((placeId?: number) => {
-    const { planner: now, shell: chrome, stage: card } = latest.current
-    const stop = placeId == null ? null : firstStopOfPlace(card ? [card] : now.roadtripRoutes.days, placeId)
-    if (stop) chrome.openSheet('rtstop', { dayId: stop.ownerDayId, assignmentId: stop.assignmentId })
-    else now.handleMarkerClick(placeId)
-  }, [])
+    const { planner: now, shell: chrome, stage: card } = latest.current;
+    const stop = placeId == null ? null : firstStopOfPlace(card ? [card] : now.roadtripRoutes.days, placeId);
+    if (stop) chrome.openSheet('rtstop', { dayId: stop.ownerDayId, assignmentId: stop.assignmentId });
+    else now.handleMarkerClick(placeId);
+  }, []);
 
   /**
    * The pins, and they are not the same question on the two tabs.
@@ -300,16 +303,16 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
    * (see `useAutomaticDayPoints`), which is the same number the stage carries.
    */
   const mapVias = useMemo(() => {
-    const vias = onStage ? planner.roadtripMapVias : planner.routeVias
-    if (!vias || !stage) return vias
-    return vias.filter(v => !v.nightPause || v.nightPause.day === stage.dayNumber)
-  }, [onStage, planner.roadtripMapVias, planner.routeVias, stage])
+    const vias = onStage ? planner.roadtripMapVias : planner.routeVias;
+    if (!vias || !stage) return vias;
+    return vias.filter((v) => !v.nightPause || v.nightPause.day === stage.dayNumber);
+  }, [onStage, planner.roadtripMapVias, planner.routeVias, stage]);
 
   const pois = useMergedMapPois(
     onStage ? planner.roadtripCorridor.visible : null,
     onStage ? NO_POIS : poi.pois,
-    planner.refuel.offered,
-  )
+    planner.refuel.offered
+  );
 
   return (
     // `isolate` keeps the map's internal z-indexes (Leaflet panes, the z-1000
@@ -329,7 +332,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
     // OWN variable folded into them: the compass band below is identified by being the
     // one element that sets that name inline, and a second one would make that ambiguous.
     <div
-      className="absolute inset-0 isolate overflow-hidden bg-[color:var(--m-mapb)] [--m-map-floor:calc(env(safe-area-inset-bottom,0px)+74px+var(--m-stage-lift,0px))] [--bottom-nav-h:var(--m-map-floor)]"
+      className="absolute inset-0 isolate overflow-hidden bg-[color:var(--m-mapb)] [--bottom-nav-h:var(--m-map-floor)] [--m-map-floor:calc(env(safe-area-inset-bottom,0px)+74px+var(--m-stage-lift,0px))]"
       // A stage bar used to stand over the dock for the whole of the road trip tab, and the
       // floor cleared its 61px plus a gap the year round. It is gone, so the only thing
       // left in that slot is the bar the picker raises while other ways of driving a leg
@@ -337,9 +340,8 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
       // it keeps from the dock, so the round controls land above it rather than on its
       // top edge.
       style={{
-        ['--m-stage-lift' as string]: onStage && mapActive && planner.routeAlternatives.open
-          ? `${RT_ALT_BAR_LIFT}px`
-          : '0px',
+        ['--m-stage-lift' as string]:
+          onStage && mapActive && planner.routeAlternatives.open ? `${RT_ALT_BAR_LIFT}px` : '0px',
       }}
     >
       {/* Measures the safe area for the alternatives frame, see useSafeInsets. Out of the
@@ -355,22 +357,32 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         places={stageMap ? stagePlaces : planner.mapPlaces}
         dayPlaces={onStage ? undefined : planner.dayPlaces}
         route={stageMap ? stageMap.lines : planner.overviewActive ? planner.tripOverview.lines : planner.route}
-        routeColors={stageMap ? stageMap.lineColors : planner.overviewActive ? planner.tripOverview.lineColors : undefined}
+        routeColors={
+          stageMap ? stageMap.lineColors : planner.overviewActive ? planner.tripOverview.lineColors : undefined
+        }
         routeWalking={stageMap || planner.overviewActive ? undefined : planner.routeWalking}
         accessLines={stageMap ? stageMap.accessLines : undefined}
         // A hit somebody tapped in the search sheet, a stop shown from its sheet, or the
         // stations the fuel search is offering take the camera while their day is on
         // screen; with nothing pending the stage frames itself.
-        focusPoints={stageMap
-          ? (focusPending ? planner.mapFocusPoints : stageMap.focusPoints)
-          : planner.overviewActive ? planner.tripOverview.focusPoints : undefined}
+        focusPoints={
+          stageMap
+            ? focusPending
+              ? planner.mapFocusPoints
+              : stageMap.focusPoints
+            : planner.overviewActive
+              ? planner.tripOverview.focusPoints
+              : undefined
+        }
         routeVias={mapVias}
         showTransitRoutes={onStage ? false : planner.transitRoutesShown}
         // The route toggle belongs to one day, so the map needs that day to know
         // which automated transports may ride it (#2019).
         days={planner.days}
         selectedDayId={planner.selectedDayId}
-        routeSegments={onStage ? undefined : planner.overviewActive ? planner.tripOverview.segments : planner.routeSegments}
+        routeSegments={
+          onStage ? undefined : planner.overviewActive ? planner.tripOverview.segments : planner.routeSegments
+        }
         selectedPlaceId={planner.selectedPlaceId}
         onMarkerClick={onStage ? openStagePin : planner.handleMarkerClick}
         // Tap on empty map = deselect, same contract as desktop.
@@ -378,7 +390,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         // The chip rail names a day at all times on mobile, so a place dropped on
         // the map belongs to it — the desktop map has no such context and passes
         // nothing, which keeps its pool behaviour (#1998).
-        onMapContextMenu={e => planner.handleMapContextMenu(e, planner.selectedDayId)}
+        onMapContextMenu={(e) => planner.handleMapContextMenu(e, planner.selectedDayId)}
         // No center/zoom: the map frames itself on the trip's places at mount.
         tileUrl={planner.mapTileUrl}
         fitKey={planner.fitKey}
@@ -402,9 +414,9 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         // the distance it carries and sends it to the draft sheet with the stop kind, the
         // stay and the position in the chain already worked out. The plan tab has no
         // chain to place anything in, so there it stays the plain place form.
-        onPoiClick={onStage
-          ? planner.handlePoiClick
-          : marker => planner.openAddPlaceFromPoi(marker, planner.selectedDayId)}
+        onPoiClick={
+          onStage ? planner.handlePoiClick : (marker) => planner.openAddPlaceFromPoi(marker, planner.selectedDayId)
+        }
         onViewportChange={poi.onViewportChange}
         onMapReady={setGlMap}
         // Other ways of driving the leg the stage asked about, and the one lit up.
@@ -424,7 +436,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
           takes the full width between the screen margins, so its segments are
           the same size as everything else the thumb aims at on this screen. */}
       {mapActive && !onStage && poiPillEnabled && (
-        <div className="pointer-events-none absolute left-4 right-4 z-[25] flex flex-col items-center gap-2 top-[calc(var(--m-safe-top,12px)+96px)]">
+        <div className="pointer-events-none absolute left-4 right-4 top-[calc(var(--m-safe-top,12px)+96px)] z-[25] flex flex-col items-center gap-2">
           <PoiCategoryPill
             fullWidth
             categories={poi.categories}
@@ -444,7 +456,10 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
           The offsets are inline because they are computed from the switcher's own
           numbers. */}
       {mapActive && glMap && (
-        <div className="pointer-events-none absolute z-[25]" style={{ left: COMPASS_LEFT, bottom: `calc(var(--bottom-nav-h, 84px) + ${12 + COMPASS_RAISE}px)` }}>
+        <div
+          className="pointer-events-none absolute z-[25]"
+          style={{ left: COMPASS_LEFT, bottom: `calc(var(--bottom-nav-h, 84px) + ${12 + COMPASS_RAISE}px)` }}
+        >
           <MapCompassPill map={glMap} />
         </div>
       )}
@@ -458,7 +473,7 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
           right above its own toggle: it decides which pins the plan map shows, so it is
           there whatever else is; the stage draws its own pins and has no use for it. */}
       {mapActive && !onStage && (
-        <div className="pointer-events-none absolute left-3 right-3 z-[25] flex flex-col items-end gap-2 bottom-[calc(var(--bottom-nav-h,84px)+58px)]">
+        <div className="pointer-events-none absolute bottom-[calc(var(--bottom-nav-h,84px)+58px)] left-3 right-3 z-[25] flex flex-col items-end gap-2">
           {!planner.roadtripActive && planner.overviewActive && (
             <TripRouteOverviewPanel
               overview={planner.tripOverview}
@@ -486,5 +501,5 @@ export default function MMapArea({ planner, shell }: MMapAreaProps) {
         </div>
       )}
     </div>
-  )
+  );
 }

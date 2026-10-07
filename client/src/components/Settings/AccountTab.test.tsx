@@ -1,23 +1,26 @@
 // FE-COMP-ACCOUNT-001 to FE-COMP-ACCOUNT-069
-import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { buildSettings, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
+import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildSettings } from '../../../tests/helpers/factories';
-import AccountTab from './AccountTab';
 import { ToastContainer } from '../shared/Toast';
+import AccountTab from './AccountTab';
 
 beforeEach(() => {
   resetAllStores();
   server.use(
     http.get('/api/auth/app-config', () =>
       HttpResponse.json({ version: '2.9.10', mfa_enabled: false, allow_registration: true })
-    ),
+    )
   );
-  seedStore(useAuthStore, { user: buildUser({ username: 'testuser', email: 'test@example.com', role: 'user' }), isAuthenticated: true });
+  seedStore(useAuthStore, {
+    user: buildUser({ username: 'testuser', email: 'test@example.com', role: 'user' }),
+    isAuthenticated: true,
+  });
   seedStore(useSettingsStore, { settings: buildSettings() });
 });
 
@@ -71,7 +74,12 @@ describe('AccountTab', () => {
   it('FE-COMP-ACCOUNT-010: clicking Update password without filling in shows error', async () => {
     const user = userEvent.setup();
     // Render with ToastContainer so toast.error() messages appear in the DOM
-    render(<><ToastContainer /><AccountTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
+    );
     await user.click(screen.getByText('Update password'));
     // Validation fires: first checks currentPassword — "Current password is required"
     expect(await screen.findByText(/Current password is required/i)).toBeInTheDocument();
@@ -79,7 +87,12 @@ describe('AccountTab', () => {
 
   it('FE-COMP-ACCOUNT-011: password mismatch shows error', async () => {
     const user = userEvent.setup();
-    render(<><ToastContainer /><AccountTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
+    );
     const passwordInputs = document.querySelectorAll('input[type="password"]');
     // Fill current, new, and mismatched confirm
     await user.type(passwordInputs[0], 'currentpass');
@@ -99,7 +112,7 @@ describe('AccountTab', () => {
         return HttpResponse.json({ success: true });
       }),
       // loadUser also needs GET /api/auth/me
-      http.get('/api/auth/me', () => HttpResponse.json({ user: buildUser() })),
+      http.get('/api/auth/me', () => HttpResponse.json({ user: buildUser() }))
     );
     render(<AccountTab />);
     const passwordInputs = document.querySelectorAll('input[type="password"]');
@@ -138,7 +151,12 @@ describe('AccountTab – Profile', () => {
   it('FE-COMP-ACCOUNT-015: successful save shows success toast', async () => {
     const user = userEvent.setup();
     seedStore(useAuthStore, { updateProfile: vi.fn().mockResolvedValue(undefined) });
-    render(<><ToastContainer /><AccountTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
+    );
     await user.click(screen.getByRole('button', { name: /save profile/i }));
     expect(await screen.findByText('Profile saved')).toBeInTheDocument();
   });
@@ -146,7 +164,12 @@ describe('AccountTab – Profile', () => {
   it('FE-COMP-ACCOUNT-016: failed save shows error toast with error message', async () => {
     const user = userEvent.setup();
     seedStore(useAuthStore, { updateProfile: vi.fn().mockRejectedValue(new Error('Server error')) });
-    render(<><ToastContainer /><AccountTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
+    );
     await user.click(screen.getByRole('button', { name: /save profile/i }));
     expect(await screen.findByText('Server error')).toBeInTheDocument();
   });
@@ -165,7 +188,12 @@ describe('AccountTab – Profile', () => {
 describe('AccountTab – Password change', () => {
   it('FE-COMP-ACCOUNT-018: password too short shows error toast', async () => {
     const user = userEvent.setup();
-    render(<><ToastContainer /><AccountTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
+    );
     const passwordInputs = document.querySelectorAll('input[type="password"]');
     await user.type(passwordInputs[0], 'currentpass');
     await user.type(passwordInputs[1], 'short');
@@ -178,7 +206,7 @@ describe('AccountTab – Password change', () => {
     const user = userEvent.setup();
     server.use(
       http.put('/api/auth/me/password', () => HttpResponse.json({ success: true })),
-      http.get('/api/auth/me', () => HttpResponse.json({ user: buildUser() })),
+      http.get('/api/auth/me', () => HttpResponse.json({ user: buildUser() }))
     );
     render(<AccountTab />);
     const passwordInputs = document.querySelectorAll('input[type="password"]');
@@ -188,18 +216,21 @@ describe('AccountTab – Password change', () => {
     await user.click(screen.getByText('Update password'));
     await waitFor(() => {
       const inputs = document.querySelectorAll('input[type="password"]');
-      inputs.forEach(input => expect((input as HTMLInputElement).value).toBe(''));
+      inputs.forEach((input) => expect((input as HTMLInputElement).value).toBe(''));
     });
   });
 
   it('FE-COMP-ACCOUNT-020: password change API error shows toast', async () => {
     const user = userEvent.setup();
     server.use(
-      http.put('/api/auth/me/password', () =>
-        HttpResponse.json({ error: 'Wrong password' }, { status: 400 })
-      ),
+      http.put('/api/auth/me/password', () => HttpResponse.json({ error: 'Wrong password' }, { status: 400 }))
     );
-    render(<><ToastContainer /><AccountTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
+    );
     const passwordInputs = document.querySelectorAll('input[type="password"]');
     await user.type(passwordInputs[0], 'wrongpass');
     await user.type(passwordInputs[1], 'NewPassword1!');
@@ -212,7 +243,7 @@ describe('AccountTab – Password change', () => {
     server.use(
       http.get('/api/auth/app-config', () =>
         HttpResponse.json({ oidc_only_mode: true, mfa_enabled: false, allow_registration: true })
-      ),
+      )
     );
     render(<AccountTab />);
     await waitFor(() => {
@@ -228,7 +259,7 @@ describe('AccountTab – MFA', () => {
     server.use(
       http.post('/api/auth/mfa/setup', () =>
         HttpResponse.json({ qr_svg: '<svg id="mock-qr">mock-qr</svg>', secret: 'ABCDEF123' })
-      ),
+      )
     );
     render(<AccountTab />);
     await ue.click(screen.getByText('Set up authenticator'));
@@ -273,13 +304,9 @@ describe('AccountTab – MFA', () => {
   it('FE-COMP-ACCOUNT-027: enabling MFA shows backup codes', async () => {
     const user = userEvent.setup();
     server.use(
-      http.post('/api/auth/mfa/setup', () =>
-        HttpResponse.json({ qr_svg: '<svg>mock</svg>', secret: 'ABCDEF123' })
-      ),
-      http.post('/api/auth/mfa/enable', () =>
-        HttpResponse.json({ backup_codes: ['AAAA-1111', 'BBBB-2222'] })
-      ),
-      http.get('/api/auth/me', () => HttpResponse.json({ user: buildUser({ mfa_enabled: true }) })),
+      http.post('/api/auth/mfa/setup', () => HttpResponse.json({ qr_svg: '<svg>mock</svg>', secret: 'ABCDEF123' })),
+      http.post('/api/auth/mfa/enable', () => HttpResponse.json({ backup_codes: ['AAAA-1111', 'BBBB-2222'] })),
+      http.get('/api/auth/me', () => HttpResponse.json({ user: buildUser({ mfa_enabled: true }) }))
     );
     render(<AccountTab />);
     await user.click(screen.getByText('Set up authenticator'));
@@ -294,13 +321,9 @@ describe('AccountTab – MFA', () => {
   it('FE-COMP-ACCOUNT-028: backup codes are stored in sessionStorage on enable', async () => {
     const user = userEvent.setup();
     server.use(
-      http.post('/api/auth/mfa/setup', () =>
-        HttpResponse.json({ qr_svg: '<svg>mock</svg>', secret: 'ABCDEF123' })
-      ),
-      http.post('/api/auth/mfa/enable', () =>
-        HttpResponse.json({ backup_codes: ['AAAA-1111', 'BBBB-2222'] })
-      ),
-      http.get('/api/auth/me', () => HttpResponse.json({ user: buildUser({ mfa_enabled: true }) })),
+      http.post('/api/auth/mfa/setup', () => HttpResponse.json({ qr_svg: '<svg>mock</svg>', secret: 'ABCDEF123' })),
+      http.post('/api/auth/mfa/enable', () => HttpResponse.json({ backup_codes: ['AAAA-1111', 'BBBB-2222'] })),
+      http.get('/api/auth/me', () => HttpResponse.json({ user: buildUser({ mfa_enabled: true }) }))
     );
     render(<AccountTab />);
     await user.click(screen.getByText('Set up authenticator'));
@@ -316,7 +339,9 @@ describe('AccountTab – MFA', () => {
   it('FE-COMP-ACCOUNT-029: dismissing backup codes via OK removes them', async () => {
     const user = userEvent.setup();
     sessionStorage.setItem('trek_mfa_backup_codes_pending', JSON.stringify(['CODE1', 'CODE2']));
-    seedStore(useAuthStore, { user: buildUser({ username: 'testuser', email: 'test@example.com', mfa_enabled: true }) });
+    seedStore(useAuthStore, {
+      user: buildUser({ username: 'testuser', email: 'test@example.com', mfa_enabled: true }),
+    });
     render(<AccountTab />);
     // codes are joined by \n in a <pre>; use regex
     await waitFor(() => screen.getByText(/CODE1/));
@@ -327,27 +352,38 @@ describe('AccountTab – MFA', () => {
   it('FE-COMP-ACCOUNT-030: copy backup codes calls clipboard.writeText', async () => {
     const user = userEvent.setup();
     sessionStorage.setItem('trek_mfa_backup_codes_pending', JSON.stringify(['AAAA-1111', 'BBBB-2222']));
-    seedStore(useAuthStore, { user: buildUser({ username: 'testuser', email: 'test@example.com', mfa_enabled: true }) });
+    seedStore(useAuthStore, {
+      user: buildUser({ username: 'testuser', email: 'test@example.com', mfa_enabled: true }),
+    });
     const writeTextMock = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
       value: { writeText: writeTextMock },
       writable: true,
       configurable: true,
     });
-    render(<><ToastContainer /><AccountTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
+    );
     await waitFor(() => screen.getByText('Copy codes'));
     await user.click(screen.getByText('Copy codes'));
     expect(writeTextMock).toHaveBeenCalledWith('AAAA-1111\nBBBB-2222');
   });
 
   it('FE-COMP-ACCOUNT-031: MFA shows enabled status when user.mfa_enabled is true', () => {
-    seedStore(useAuthStore, { user: buildUser({ username: 'testuser', email: 'test@example.com', mfa_enabled: true }) });
+    seedStore(useAuthStore, {
+      user: buildUser({ username: 'testuser', email: 'test@example.com', mfa_enabled: true }),
+    });
     render(<AccountTab />);
     expect(screen.getByText('2FA is enabled on your account.')).toBeInTheDocument();
   });
 
   it('FE-COMP-ACCOUNT-032: MFA disable form shows password and code inputs when enabled', () => {
-    seedStore(useAuthStore, { user: buildUser({ username: 'testuser', email: 'test@example.com', mfa_enabled: true }) });
+    seedStore(useAuthStore, {
+      user: buildUser({ username: 'testuser', email: 'test@example.com', mfa_enabled: true }),
+    });
     render(<AccountTab />);
     const passwordInputs = document.querySelectorAll('input[type="password"]');
     expect(passwordInputs.length).toBeGreaterThan(0);
@@ -355,19 +391,28 @@ describe('AccountTab – MFA', () => {
   });
 
   it('FE-COMP-ACCOUNT-033: Disable MFA button is disabled when fields are empty', () => {
-    seedStore(useAuthStore, { user: buildUser({ username: 'testuser', email: 'test@example.com', mfa_enabled: true }) });
+    seedStore(useAuthStore, {
+      user: buildUser({ username: 'testuser', email: 'test@example.com', mfa_enabled: true }),
+    });
     render(<AccountTab />);
     expect(screen.getByRole('button', { name: 'Disable 2FA' })).toBeDisabled();
   });
 
   it('FE-COMP-ACCOUNT-034: disabling MFA calls the API and shows success toast', async () => {
     const user = userEvent.setup();
-    seedStore(useAuthStore, { user: buildUser({ username: 'testuser', email: 'test@example.com', mfa_enabled: true }) });
+    seedStore(useAuthStore, {
+      user: buildUser({ username: 'testuser', email: 'test@example.com', mfa_enabled: true }),
+    });
     server.use(
       http.post('/api/auth/mfa/disable', () => HttpResponse.json({ success: true })),
-      http.get('/api/auth/me', () => HttpResponse.json({ user: buildUser() })),
+      http.get('/api/auth/me', () => HttpResponse.json({ user: buildUser() }))
     );
-    render(<><ToastContainer /><AccountTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
+    );
     // When mfa_enabled + !oidcOnlyMode, there are 4 password inputs total:
     // 3 in Change Password section + 1 in MFA disable section (last one)
     const passwordInputs = document.querySelectorAll('input[type="password"]');
@@ -407,7 +452,11 @@ describe('AccountTab – Avatar', () => {
 
   it('FE-COMP-ACCOUNT-038: shows avatar image when avatar_url is set', () => {
     seedStore(useAuthStore, {
-      user: buildUser({ username: 'testuser', email: 'test@example.com', avatar_url: 'https://example.com/avatar.jpg' }),
+      user: buildUser({
+        username: 'testuser',
+        email: 'test@example.com',
+        avatar_url: 'https://example.com/avatar.jpg',
+      }),
     });
     render(<AccountTab />);
     // alt="" makes the image decorative (role="presentation"), use querySelector
@@ -428,7 +477,11 @@ describe('AccountTab – Avatar', () => {
     unmount();
 
     seedStore(useAuthStore, {
-      user: buildUser({ username: 'testuser', email: 'test@example.com', avatar_url: 'https://example.com/avatar.jpg' }),
+      user: buildUser({
+        username: 'testuser',
+        email: 'test@example.com',
+        avatar_url: 'https://example.com/avatar.jpg',
+      }),
     });
     render(<AccountTab />);
     const fileInput2 = document.querySelector('input[type="file"]')!;
@@ -481,9 +534,7 @@ describe('AccountTab – Account deletion', () => {
       user: buildUser({ username: 'testuser', email: 'test@example.com', role: 'user' }),
       logout: logoutMock,
     });
-    server.use(
-      http.delete('/api/auth/me', () => HttpResponse.json({ success: true })),
-    );
+    server.use(http.delete('/api/auth/me', () => HttpResponse.json({ success: true })));
     render(<AccountTab />);
     await user.click(screen.getByText('Delete account'));
     await waitFor(() => screen.getByText('Delete your account?'));
@@ -528,7 +579,11 @@ describe('AccountTab – Role / OIDC display', () => {
 
   it('FE-COMP-ACCOUNT-048: shows SSO badge when oidc_issuer is set', () => {
     seedStore(useAuthStore, {
-      user: buildUser({ username: 'testuser', email: 'test@example.com', oidc_issuer: 'https://auth.example.com' } as any),
+      user: buildUser({
+        username: 'testuser',
+        email: 'test@example.com',
+        oidc_issuer: 'https://auth.example.com',
+      } as any),
     });
     render(<AccountTab />);
     expect(screen.getByText('SSO')).toBeInTheDocument();
@@ -573,7 +628,12 @@ describe('AccountTab – Backup codes', () => {
     });
     sessionStorage.setItem(BACKUP_KEY, JSON.stringify(['AAAA-1111']));
     seedMfaUser();
-    render(<><ToastContainer /><AccountTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
+    );
 
     await user.click(await screen.findByRole('button', { name: 'Copy codes' }));
 
@@ -585,11 +645,11 @@ describe('AccountTab – Backup codes', () => {
     const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:codes');
     const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     let downloadName = '';
-    const anchorClick = vi
-      .spyOn(HTMLAnchorElement.prototype, 'click')
-      .mockImplementation(function (this: HTMLAnchorElement) {
-        downloadName = this.download;
-      });
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement
+    ) {
+      downloadName = this.download;
+    });
     sessionStorage.setItem(BACKUP_KEY, JSON.stringify(['AAAA-1111']));
     seedMfaUser();
     render(<AccountTab />);
@@ -663,7 +723,12 @@ describe('AccountTab – Avatar upload', () => {
     const user = userEvent.setup();
     const uploadAvatar = vi.fn().mockResolvedValue(undefined);
     seedStore(useAuthStore, { uploadAvatar });
-    render(<><ToastContainer /><AccountTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
+    );
 
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(['avatar'], 'me.png', { type: 'image/png' });
@@ -677,7 +742,12 @@ describe('AccountTab – Avatar upload', () => {
   it('FE-COMP-ACCOUNT-057: a failing upload toasts the avatar error', async () => {
     const user = userEvent.setup();
     seedStore(useAuthStore, { uploadAvatar: vi.fn().mockRejectedValue(new Error('too big')) });
-    render(<><ToastContainer /><AccountTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
+    );
 
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(input, new File(['avatar'], 'me.png', { type: 'image/png' }));
@@ -702,7 +772,12 @@ describe('AccountTab – Avatar upload', () => {
       user: buildUser({ username: 'testuser', email: 'test@example.com', avatar_url: 'https://example.com/a.jpg' }),
       deleteAvatar,
     });
-    render(<><ToastContainer /><AccountTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
+    );
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const removeBtn = fileInput.parentElement!.querySelectorAll('button')[1];
@@ -718,7 +793,12 @@ describe('AccountTab – Avatar upload', () => {
       user: buildUser({ username: 'testuser', email: 'test@example.com', avatar_url: 'https://example.com/a.jpg' }),
       deleteAvatar: vi.fn().mockRejectedValue(new Error('nope')),
     });
-    render(<><ToastContainer /><AccountTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
+    );
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.click(fileInput.parentElement!.querySelectorAll('button')[1]);
@@ -733,9 +813,14 @@ describe('AccountTab – MFA error paths', () => {
   it('FE-COMP-ACCOUNT-061: a failing MFA setup surfaces the server error', async () => {
     const user = userEvent.setup();
     server.use(
-      http.post('/api/auth/mfa/setup', () => HttpResponse.json({ error: 'Setup unavailable' }, { status: 500 })),
+      http.post('/api/auth/mfa/setup', () => HttpResponse.json({ error: 'Setup unavailable' }, { status: 500 }))
     );
-    render(<><ToastContainer /><AccountTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
+    );
 
     await user.click(screen.getByText('Set up authenticator'));
 
@@ -746,7 +831,7 @@ describe('AccountTab – MFA error paths', () => {
   it('FE-COMP-ACCOUNT-062: cancelling the setup drops the QR code and the secret', async () => {
     const user = userEvent.setup();
     server.use(
-      http.post('/api/auth/mfa/setup', () => HttpResponse.json({ qr_svg: '<svg>qr</svg>', secret: 'ABCDEF123' })),
+      http.post('/api/auth/mfa/setup', () => HttpResponse.json({ qr_svg: '<svg>qr</svg>', secret: 'ABCDEF123' }))
     );
     render(<AccountTab />);
 
@@ -762,9 +847,14 @@ describe('AccountTab – MFA error paths', () => {
     const user = userEvent.setup();
     server.use(
       http.post('/api/auth/mfa/setup', () => HttpResponse.json({ qr_svg: '<svg>qr</svg>', secret: 'ABCDEF123' })),
-      http.post('/api/auth/mfa/enable', () => HttpResponse.json({ error: 'Invalid code' }, { status: 400 })),
+      http.post('/api/auth/mfa/enable', () => HttpResponse.json({ error: 'Invalid code' }, { status: 400 }))
     );
-    render(<><ToastContainer /><AccountTab /></>);
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
+    );
 
     await user.click(screen.getByText('Set up authenticator'));
     await screen.findByText('ABCDEF123');
@@ -778,10 +868,13 @@ describe('AccountTab – MFA error paths', () => {
   it('FE-COMP-ACCOUNT-064: a rejected disable toasts the error and keeps 2FA on', async () => {
     const user = userEvent.setup();
     seedMfaUser();
-    server.use(
-      http.post('/api/auth/mfa/disable', () => HttpResponse.json({ error: 'Wrong code' }, { status: 400 })),
+    server.use(http.post('/api/auth/mfa/disable', () => HttpResponse.json({ error: 'Wrong code' }, { status: 400 })));
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
     );
-    render(<><ToastContainer /><AccountTab /></>);
 
     const passwordInputs = document.querySelectorAll('input[type="password"]');
     await user.type(passwordInputs[passwordInputs.length - 1], 'mypassword');
@@ -837,10 +930,13 @@ describe('AccountTab – Modals and field edits', () => {
       user: buildUser({ username: 'testuser', email: 'test@example.com', role: 'user' }),
       logout,
     });
-    server.use(
-      http.delete('/api/auth/me', () => HttpResponse.json({ error: 'Account is locked' }, { status: 400 })),
+    server.use(http.delete('/api/auth/me', () => HttpResponse.json({ error: 'Account is locked' }, { status: 400 })));
+    render(
+      <>
+        <ToastContainer />
+        <AccountTab />
+      </>
     );
-    render(<><ToastContainer /><AccountTab /></>);
 
     await user.click(screen.getByText('Delete account'));
     await screen.findByText('Delete your account?');

@@ -59,12 +59,39 @@
  * plugin-runtime.service.ts's own comment at the wrap site) already ran inside a
  * request context by the time this file's shared `runtime` finished booting.
  */
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
+import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
+import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
+import { PluginCapabilityAudit } from '../../../src/db/entities/PluginCapabilityAudit.entity';
+import { PluginEgressHosts } from '../../../src/db/entities/PluginEgressHosts.entity';
+import { PluginEntityMetadata } from '../../../src/db/entities/PluginEntityMetadata.entity';
+import { PluginErrorLog } from '../../../src/db/entities/PluginErrorLog.entity';
+import { PluginMetaMigrations } from '../../../src/db/entities/PluginMetaMigrations.entity';
+import { PluginOauthState } from '../../../src/db/entities/PluginOauthState.entity';
+import { PluginOauthTokens } from '../../../src/db/entities/PluginOauthTokens.entity';
+import { PluginScheduledTasks } from '../../../src/db/entities/PluginScheduledTasks.entity';
+import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
+import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
+import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
+import { Plugins } from '../../../src/db/entities/Plugins.entity';
+import { Settings } from '../../../src/db/entities/Settings.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { AuditService } from '../../../src/nest/audit/audit.service';
+import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
+import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
+import { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createTestAddonsService } from '../../helpers/test-addons';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { RequestContext } from '@mikro-orm/core';
+import { SchedulerRegistry } from '@nestjs/schedule';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { RequestContext } from '@mikro-orm/core';
-import { SchedulerRegistry } from '@nestjs/schedule';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 const h = vi.hoisted(() => ({
   jobs: [] as Array<{
@@ -82,39 +109,18 @@ const h = vi.hoisted(() => ({
 vi.mock('cron', () => ({
   CronJob: {
     from: (opts: { cronTime: string; timeZone?: string; start?: boolean; onTick: () => unknown }) => {
-      const job = { ...opts, stopped: false, stop() { this.stopped = true; } };
+      const job = {
+        ...opts,
+        stopped: false,
+        stop() {
+          this.stopped = true;
+        },
+      };
       h.jobs.push(job);
       return job;
     },
   },
 }));
-
-import { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
-import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
-import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
-import { AuditService } from '../../../src/nest/audit/audit.service';
-import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
-import { createTestAddonsService } from '../../helpers/test-addons';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { Plugins } from '../../../src/db/entities/Plugins.entity';
-import { PluginErrorLog } from '../../../src/db/entities/PluginErrorLog.entity';
-import { PluginScheduledTasks } from '../../../src/db/entities/PluginScheduledTasks.entity';
-import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
-import { PluginEgressHosts } from '../../../src/db/entities/PluginEgressHosts.entity';
-import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
-import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
-import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.entity';
-import { PluginEntityMetadata } from '../../../src/db/entities/PluginEntityMetadata.entity';
-import { PluginOauthTokens } from '../../../src/db/entities/PluginOauthTokens.entity';
-import { PluginOauthState } from '../../../src/db/entities/PluginOauthState.entity';
-import { PluginMetaMigrations } from '../../../src/db/entities/PluginMetaMigrations.entity';
-import { PluginCapabilityAudit } from '../../../src/db/entities/PluginCapabilityAudit.entity';
-import { Settings } from '../../../src/db/entities/Settings.entity';
-import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
-import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -187,7 +193,9 @@ beforeAll(async () => {
   // ran, proving the wrap decision without needing either read to touch the ORM
   // yet (raw SQL until Task 2/3 convert them).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const preLoopSpy = vi.spyOn(runtime as any, 'installedDepRows').mockImplementation(async function (this: PluginRuntimeService) {
+  const preLoopSpy = vi.spyOn(runtime as any, 'installedDepRows').mockImplementation(async function (
+    this: PluginRuntimeService,
+  ) {
     preLoopContextSeen = RequestContext.currentRequestContext() !== undefined;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (Object.getPrototypeOf(runtime) as any).installedDepRows.apply(this);
@@ -197,9 +205,12 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (prevEnabled === undefined) delete process.env.TREK_PLUGINS_ENABLED; else process.env.TREK_PLUGINS_ENABLED = prevEnabled;
-  if (prevDir === undefined) delete process.env.TREK_PLUGINS_DIR; else process.env.TREK_PLUGINS_DIR = prevDir;
-  if (prevDataDir === undefined) delete process.env.TREK_PLUGINS_DATA_DIR; else process.env.TREK_PLUGINS_DATA_DIR = prevDataDir;
+  if (prevEnabled === undefined) delete process.env.TREK_PLUGINS_ENABLED;
+  else process.env.TREK_PLUGINS_ENABLED = prevEnabled;
+  if (prevDir === undefined) delete process.env.TREK_PLUGINS_DIR;
+  else process.env.TREK_PLUGINS_DIR = prevDir;
+  if (prevDataDir === undefined) delete process.env.TREK_PLUGINS_DATA_DIR;
+  else process.env.TREK_PLUGINS_DATA_DIR = prevDataDir;
   await runtime.onModuleDestroy();
   await t.close();
   testDb.close();
@@ -233,13 +244,19 @@ describe('PluginRuntimeService scheduler sweep — registered through CronRegist
     // reads at query time), and it is what a genuine `withRequestContext` wrap
     // controls, independent of what the wrapped body happens to read.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fireSpy = vi.spyOn(runtime as any, 'fireDueScheduled').mockImplementation(async function (this: PluginRuntimeService, ...args: unknown[]) {
+    const fireSpy = vi.spyOn(runtime as any, 'fireDueScheduled').mockImplementation(async function (
+      this: PluginRuntimeService,
+      ...args: unknown[]
+    ) {
       contextSeen.fireDueScheduled = RequestContext.currentRequestContext() !== undefined;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (Object.getPrototypeOf(runtime) as any).fireDueScheduled.apply(this, args);
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const drainSpy = vi.spyOn(runtime as any, 'drainUserErasures').mockImplementation(async function (this: PluginRuntimeService, ...args: unknown[]) {
+    const drainSpy = vi.spyOn(runtime as any, 'drainUserErasures').mockImplementation(async function (
+      this: PluginRuntimeService,
+      ...args: unknown[]
+    ) {
       contextSeen.drainUserErasures = RequestContext.currentRequestContext() !== undefined;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (Object.getPrototypeOf(runtime) as any).drainUserErasures.apply(this, args);
@@ -279,7 +296,9 @@ describe('PluginRuntimeService scheduler sweep — registered through CronRegist
       // Prove the fail-closed error comes from the registrar's own wrapper, not a
       // side effect of the tick body itself ever having run.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.spyOn(runtime2 as any, 'fireDueScheduled').mockImplementation(async () => { bodyRan = true; });
+      vi.spyOn(runtime2 as any, 'fireDueScheduled').mockImplementation(async () => {
+        bodyRan = true;
+      });
       await expect(job2.onTick()).rejects.toThrow(/no MikroORM available/i);
       expect(bodyRan).toBe(false);
     } finally {
@@ -297,10 +316,12 @@ describe('PluginRuntimeService scheduler sweep — registered through CronRegist
     // disk — a real installed plugin always has (at least) a `plugins` row, so this
     // fixture needs one too, or the erasure row would be reaped before ever
     // reaching the ACK-gated delivery path this test is actually proving.
-    testDb.prepare("INSERT INTO plugins (id, name) VALUES (?, ?)").run(pluginId, pluginId);
-    testDb.prepare('INSERT INTO plugin_scheduled_tasks (plugin_id, name, due_at, payload, every_ms) VALUES (?,?,?,?,?)')
+    testDb.prepare('INSERT INTO plugins (id, name) VALUES (?, ?)').run(pluginId, pluginId);
+    testDb
+      .prepare('INSERT INTO plugin_scheduled_tasks (plugin_id, name, due_at, payload, every_ms) VALUES (?,?,?,?,?)')
       .run(pluginId, 'oneshot', oneShotSeedDueAt, 'null', null);
-    testDb.prepare('INSERT INTO plugin_scheduled_tasks (plugin_id, name, due_at, payload, every_ms) VALUES (?,?,?,?,?)')
+    testDb
+      .prepare('INSERT INTO plugin_scheduled_tasks (plugin_id, name, due_at, payload, every_ms) VALUES (?,?,?,?,?)')
       .run(pluginId, 'recurring', recurringSeedDueAt, 'null', 60_000);
     testDb.prepare('INSERT INTO plugin_user_erasure_queue (plugin_id, user_id) VALUES (?,?)').run(pluginId, 4242);
 
@@ -321,10 +342,14 @@ describe('PluginRuntimeService scheduler sweep — registered through CronRegist
         // the row's disposition write must already have landed by the moment
         // delivery is attempted, since a crash here must never double-fire.
         if (name === 'oneshot') {
-          const row = testDb.prepare('SELECT id FROM plugin_scheduled_tasks WHERE plugin_id=? AND name=?').get(id, 'oneshot');
+          const row = testDb
+            .prepare('SELECT id FROM plugin_scheduled_tasks WHERE plugin_id=? AND name=?')
+            .get(id, 'oneshot');
           expect(row).toBeUndefined(); // already deleted before delivery
         } else if (name === 'recurring') {
-          const row = testDb.prepare('SELECT due_at FROM plugin_scheduled_tasks WHERE plugin_id=? AND name=?').get(id, 'recurring') as { due_at: number } | undefined;
+          const row = testDb
+            .prepare('SELECT due_at FROM plugin_scheduled_tasks WHERE plugin_id=? AND name=?')
+            .get(id, 'recurring') as { due_at: number } | undefined;
           expect(row).toBeDefined();
           expect(row!.due_at).toBeGreaterThan(recurringSeedDueAt); // already re-armed before delivery
         }
@@ -337,20 +362,30 @@ describe('PluginRuntimeService scheduler sweep — registered through CronRegist
       await settle();
 
       // Same-shape delivery calls the legacy setInterval-driven sweep made.
-      expect(invokeCalls.filter((c) => c.method === 'invoke.scheduled').map((c) => (c.payload as { name: string }).name).sort())
-        .toEqual(['oneshot', 'recurring']);
+      expect(
+        invokeCalls
+          .filter((c) => c.method === 'invoke.scheduled')
+          .map((c) => (c.payload as { name: string }).name)
+          .sort(),
+      ).toEqual(['oneshot', 'recurring']);
       expect(invokeCalls).toContainEqual({ method: 'invoke.deleteUserData', payload: { userId: 4242 } });
 
-      const oneShotRow = testDb.prepare('SELECT id FROM plugin_scheduled_tasks WHERE plugin_id=? AND name=?').get(pluginId, 'oneshot');
+      const oneShotRow = testDb
+        .prepare('SELECT id FROM plugin_scheduled_tasks WHERE plugin_id=? AND name=?')
+        .get(pluginId, 'oneshot');
       expect(oneShotRow).toBeUndefined();
-      const recurringRow = testDb.prepare('SELECT due_at FROM plugin_scheduled_tasks WHERE plugin_id=? AND name=?').get(pluginId, 'recurring') as { due_at: number } | undefined;
+      const recurringRow = testDb
+        .prepare('SELECT due_at FROM plugin_scheduled_tasks WHERE plugin_id=? AND name=?')
+        .get(pluginId, 'recurring') as { due_at: number } | undefined;
       expect(recurringRow).toBeDefined();
       // Re-armed to Date.now() (read fresh, at fire time — not the seed timestamp)
       // + every_ms: bounded rather than exact, since real wall-clock time elapses
       // between seeding the row and the tick firing it.
       expect(recurringRow!.due_at).toBeGreaterThanOrEqual(now + 60_000);
       expect(recurringRow!.due_at).toBeLessThan(now + 60_000 + 30_000);
-      const erasureRow = testDb.prepare('SELECT id FROM plugin_user_erasure_queue WHERE plugin_id=? AND user_id=?').get(pluginId, 4242);
+      const erasureRow = testDb
+        .prepare('SELECT id FROM plugin_user_erasure_queue WHERE plugin_id=? AND user_id=?')
+        .get(pluginId, 4242);
       expect(erasureRow).toBeUndefined(); // drained on ACK
     } finally {
       invokeSpy.mockRestore();

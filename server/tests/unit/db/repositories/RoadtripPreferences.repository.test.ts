@@ -3,13 +3,14 @@
  * RPF3 (`upsertValue`, `ON CONFLICT(trip_id, key) DO UPDATE SET value =
  * excluded.value`).
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createTrip, createUser } from '../../../helpers/factories';
 import { RoadtripPreferences } from '../../../../src/db/entities/RoadtripPreferences.entity';
 import type { RoadtripPreferencesRepository } from '../../../../src/db/repositories/RoadtripPreferences.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createTrip, createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -19,8 +20,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(RoadtripPreferences);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('RoadtripPreferencesRepository', () => {
   it('RPF1REPO-001: listForTrip is empty for a trip with no saved preferences', async () => {

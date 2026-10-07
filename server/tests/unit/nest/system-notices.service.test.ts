@@ -17,31 +17,70 @@
  * underneath) rather than a real SQLite DB, since none of what changed here
  * is SQL shape (that is `UserNoticeDismissals.repository.test.ts`'s job).
  */
-import { describe, it, expect, vi } from 'vitest';
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import type {
+  UserNoticeDismissalsRepository,
+  UserNoticeDismissalRow,
+} from '../../../src/db/repositories/UserNoticeDismissals.repository';
+import type { UsersRepository, UserRow } from '../../../src/db/repositories/Users.repository';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import { SystemNoticesService } from '../../../src/nest/system-notices/system-notices.service';
+import { getCurrentAppVersion } from '../../../src/systemNotices/service';
 import type { SystemNotice } from '../../../src/systemNotices/types';
+
+import { describe, it, expect, vi } from 'vitest';
 
 // `vi.mock` factories are hoisted above every other statement in the file
 // (including top-level `const`s declared earlier in source order), so the
 // fixtures the factory below closes over have to go through `vi.hoisted`.
 const { GENERIC_NOTICE, RELEASE_NOTICE, ADDON_NOTICE, CUSTOM_NOTICE } = vi.hoisted(() => {
   const generic: SystemNotice = {
-    id: 'sn-test-generic', display: 'banner', severity: 'warn',
-    titleKey: 'system_notice.outage.title', bodyKey: 'system_notice.outage.body', dismissible: true,
-    conditions: [], publishedAt: '2020-01-01T00:00:00Z', priority: 0,
+    id: 'sn-test-generic',
+    display: 'banner',
+    severity: 'warn',
+    titleKey: 'system_notice.outage.title',
+    bodyKey: 'system_notice.outage.body',
+    dismissible: true,
+    conditions: [],
+    publishedAt: '2020-01-01T00:00:00Z',
+    priority: 0,
   };
   const release: SystemNotice = {
-    id: 'sn-test-release', display: 'modal', severity: 'info',
-    titleKey: 'system_notice.release_notes.headline', bodyKey: 'system_notice.release_notes.intro',
-    dismissible: true, conditions: [], recurring: 'per-version', publishedAt: '2020-01-01T00:00:00Z', priority: 0,
+    id: 'sn-test-release',
+    display: 'modal',
+    severity: 'info',
+    titleKey: 'system_notice.release_notes.headline',
+    bodyKey: 'system_notice.release_notes.intro',
+    dismissible: true,
+    conditions: [],
+    recurring: 'per-version',
+    publishedAt: '2020-01-01T00:00:00Z',
+    priority: 0,
     release: { version: '4.3.0', headlineKey: 'system_notice.release_notes.headline' } as SystemNotice['release'],
   };
   const addon: SystemNotice = {
-    id: 'sn-test-addon', display: 'toast', severity: 'info', titleKey: 't', bodyKey: 'b', dismissible: true,
-    conditions: [{ kind: 'addonEnabled', addonId: 'journey' }], publishedAt: '2020-01-01T00:00:00Z', priority: 0,
+    id: 'sn-test-addon',
+    display: 'toast',
+    severity: 'info',
+    titleKey: 't',
+    bodyKey: 'b',
+    dismissible: true,
+    conditions: [{ kind: 'addonEnabled', addonId: 'journey' }],
+    publishedAt: '2020-01-01T00:00:00Z',
+    priority: 0,
   };
   const custom: SystemNotice = {
-    id: 'sn-test-custom', display: 'toast', severity: 'info', titleKey: 't', bodyKey: 'b', dismissible: true,
-    conditions: [{ kind: 'custom', id: 'whitespace-collision-detected' }], publishedAt: '2020-01-01T00:00:00Z', priority: 0,
+    id: 'sn-test-custom',
+    display: 'toast',
+    severity: 'info',
+    titleKey: 't',
+    bodyKey: 'b',
+    dismissible: true,
+    conditions: [{ kind: 'custom', id: 'whitespace-collision-detected' }],
+    publishedAt: '2020-01-01T00:00:00Z',
+    priority: 0,
   };
   return { GENERIC_NOTICE: generic, RELEASE_NOTICE: release, ADDON_NOTICE: addon, CUSTOM_NOTICE: custom };
 });
@@ -53,15 +92,6 @@ vi.mock('../../../src/systemNotices/registry', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../src/systemNotices/registry')>();
   return { ...actual, SYSTEM_NOTICES: [RELEASE_NOTICE, GENERIC_NOTICE, ADDON_NOTICE, CUSTOM_NOTICE] };
 });
-
-import { SystemNoticesService } from '../../../src/nest/system-notices/system-notices.service';
-import { getCurrentAppVersion } from '../../../src/systemNotices/service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-import type { UsersRepository, UserRow } from '../../../src/db/repositories/Users.repository';
-import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
-import type { UserNoticeDismissalsRepository, UserNoticeDismissalRow } from '../../../src/db/repositories/UserNoticeDismissals.repository';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 
 const BASE_USER = { id: 7, login_count: 5, first_seen_version: '3.0.0', role: 'user' } as UserRow;
 
@@ -78,7 +108,9 @@ function makeService(overrides: StubOverrides = {}) {
   const findById = vi.fn(async () => (overrides.findById === undefined ? BASE_USER : overrides.findById));
   const countForUser = vi.fn(async () => overrides.countForUser ?? 0);
   const listForUser = vi.fn(async () => overrides.listForUser ?? []);
-  const upsertDismissal = vi.fn(async (_userId: number, _noticeId: string, _dismissedAt: number, _dismissedAppVersion: string) => undefined);
+  const upsertDismissal = vi.fn(
+    async (_userId: number, _noticeId: string, _dismissedAt: number, _dismissedAppVersion: string) => undefined,
+  );
   const isAddonEnabled = vi.fn(async (id: string) => (overrides.isAddonEnabled ? overrides.isAddonEnabled(id) : false));
   const getValue = vi.fn(async () => (overrides.getValue === undefined ? null : overrides.getValue));
   const isManaged = vi.fn(() => overrides.isManaged ?? false);
@@ -111,11 +143,23 @@ describe('SystemNoticesService (Plan 3f Task 6)', () => {
     });
 
     it('SN4 — a per-version-recurring notice re-shows once the running app version passes the dismissed one, and stays hidden while it has not', async () => {
-      const olderDismissal = makeService({ listForUser: [{ notice_id: 'sn-test-release', dismissed_app_version: '0.0.1' }] });
-      expect((await olderDismissal.svc.getActiveFor(BASE_USER.id, new Set(['release']), getCurrentAppVersion())).map((n) => n.id)).toContain('sn-test-release');
+      const olderDismissal = makeService({
+        listForUser: [{ notice_id: 'sn-test-release', dismissed_app_version: '0.0.1' }],
+      });
+      expect(
+        (await olderDismissal.svc.getActiveFor(BASE_USER.id, new Set(['release']), getCurrentAppVersion())).map(
+          (n) => n.id,
+        ),
+      ).toContain('sn-test-release');
 
-      const currentDismissal = makeService({ listForUser: [{ notice_id: 'sn-test-release', dismissed_app_version: getCurrentAppVersion() }] });
-      expect((await currentDismissal.svc.getActiveFor(BASE_USER.id, new Set(['release']), getCurrentAppVersion())).map((n) => n.id)).not.toContain('sn-test-release');
+      const currentDismissal = makeService({
+        listForUser: [{ notice_id: 'sn-test-release', dismissed_app_version: getCurrentAppVersion() }],
+      });
+      expect(
+        (await currentDismissal.svc.getActiveFor(BASE_USER.id, new Set(['release']), getCurrentAppVersion())).map(
+          (n) => n.id,
+        ),
+      ).not.toContain('sn-test-release');
     });
 
     it('a permanently-dismissed (non-recurring) notice never returns', async () => {
@@ -173,14 +217,22 @@ describe('SystemNoticesService (Plan 3f Task 6)', () => {
 
     it('drops it for a bundle that announces the layout but was built for another version', async () => {
       const { svc } = makeService();
-      expect((await svc.getActiveFor(BASE_USER.id, new Set(['release']), '0.0.1')).map((n) => n.id)).toEqual(['sn-test-generic']);
+      expect((await svc.getActiveFor(BASE_USER.id, new Set(['release']), '0.0.1')).map((n) => n.id)).toEqual([
+        'sn-test-generic',
+      ]);
     });
 
     it('drops it for a bundle that names no version at all', async () => {
       const { svc } = makeService();
-      expect((await svc.getActiveFor(BASE_USER.id, new Set(['release']))).map((n) => n.id)).toEqual(['sn-test-generic']);
-      expect((await svc.getActiveFor(BASE_USER.id, new Set(['release']), '')).map((n) => n.id)).toEqual(['sn-test-generic']);
-      expect((await svc.getActiveFor(BASE_USER.id, new Set(['release']), 'dev')).map((n) => n.id)).toEqual(['sn-test-generic']);
+      expect((await svc.getActiveFor(BASE_USER.id, new Set(['release']))).map((n) => n.id)).toEqual([
+        'sn-test-generic',
+      ]);
+      expect((await svc.getActiveFor(BASE_USER.id, new Set(['release']), '')).map((n) => n.id)).toEqual([
+        'sn-test-generic',
+      ]);
+      expect((await svc.getActiveFor(BASE_USER.id, new Set(['release']), 'dev')).map((n) => n.id)).toEqual([
+        'sn-test-generic',
+      ]);
     });
 
     // L3 (task-7-review.md): dropped by Task 6, restored — the running app
@@ -188,7 +240,9 @@ describe('SystemNoticesService (Plan 3f Task 6)', () => {
     // `v`), same as the server reads its own.
     it('reads the version loosely, as the server reads its own', async () => {
       const { svc } = makeService();
-      const ids = (await svc.getActiveFor(BASE_USER.id, new Set(['release']), 'v' + getCurrentAppVersion())).map((n) => n.id);
+      const ids = (await svc.getActiveFor(BASE_USER.id, new Set(['release']), 'v' + getCurrentAppVersion())).map(
+        (n) => n.id,
+      );
       expect(ids).toContain('sn-test-release');
       expect(ids).toContain('sn-test-generic');
     });
@@ -196,7 +250,9 @@ describe('SystemNoticesService (Plan 3f Task 6)', () => {
     it('always delivers a notice without a release block', async () => {
       const { svc } = makeService();
       expect((await svc.getActiveFor(BASE_USER.id)).map((n) => n.id)).toEqual(['sn-test-generic']);
-      expect((await svc.getActiveFor(BASE_USER.id, new Set(['release']), getCurrentAppVersion())).map((n) => n.id)).toContain('sn-test-generic');
+      expect(
+        (await svc.getActiveFor(BASE_USER.id, new Set(['release']), getCurrentAppVersion())).map((n) => n.id),
+      ).toContain('sn-test-generic');
     });
   });
 

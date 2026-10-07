@@ -3,9 +3,33 @@
  * service answer does to the table, and the payload the worker receives
  * (WPUSH-PAY-*). safeFetchFollow is the boundary; the database is real.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { db as testDb } from '../../../../src/db/database';
+import { ALL_EVENT_TYPES, type ChannelMessage } from '../../../../src/nest/notifications/notification-events';
+import { checkPushSubscription } from '../../../../src/nest/notifications/push/push-subscription.helpers';
+import type { PushSubscriptionsService } from '../../../../src/nest/notifications/push/push-subscriptions.service';
+import { PushController } from '../../../../src/nest/notifications/push/push.controller';
+import {
+  PUSH_UNAVAILABLE_ERROR,
+  VAPID_PRIVATE_KEY_SETTING,
+  VAPID_PUBLIC_KEY_SETTING,
+  type VapidKeysService,
+} from '../../../../src/nest/notifications/push/vapid-keys.service';
+import { generateVapidKeyPair } from '../../../../src/nest/notifications/push/web-push-crypto';
+import {
+  FORBIDDEN_FAILURES_BEFORE_REMOVAL,
+  MAX_PUSH_PAYLOAD_BYTES,
+  WebPushService,
+  buildPushPayload,
+  samePagePath,
+} from '../../../../src/nest/notifications/transports/web-push.service';
+import { SsrfBlockedError } from '../../../../src/utils/ssrfGuard';
+import { createUser } from '../../../helpers/factories';
+import { makePushSubscriptionsService, makeVapidKeysService } from '../../../helpers/notifications';
+import { resetTestDb } from '../../../helpers/test-db';
 import { HttpException } from '@nestjs/common';
+
 import { createDecipheriv, createECDH, hkdfSync, type ECDH } from 'node:crypto';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // One snapshot connection per file, created inside the factory so nothing has
 // to be hoisted above the imports; the tests reach it through the mocked module.
@@ -47,30 +71,6 @@ vi.mock('../../../../src/utils/ssrfGuard', () => {
   }
   return { SsrfBlockedError, safeFetchFollow };
 });
-
-import { db as testDb } from '../../../../src/db/database';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createUser } from '../../../helpers/factories';
-import { makePushSubscriptionsService, makeVapidKeysService } from '../../../helpers/notifications';
-import { SsrfBlockedError } from '../../../../src/utils/ssrfGuard';
-import type { PushSubscriptionsService } from '../../../../src/nest/notifications/push/push-subscriptions.service';
-import {
-  PUSH_UNAVAILABLE_ERROR,
-  VAPID_PRIVATE_KEY_SETTING,
-  VAPID_PUBLIC_KEY_SETTING,
-  type VapidKeysService,
-} from '../../../../src/nest/notifications/push/vapid-keys.service';
-import { PushController } from '../../../../src/nest/notifications/push/push.controller';
-import { checkPushSubscription } from '../../../../src/nest/notifications/push/push-subscription.helpers';
-import { generateVapidKeyPair } from '../../../../src/nest/notifications/push/web-push-crypto';
-import {
-  FORBIDDEN_FAILURES_BEFORE_REMOVAL,
-  MAX_PUSH_PAYLOAD_BYTES,
-  WebPushService,
-  buildPushPayload,
-  samePagePath,
-} from '../../../../src/nest/notifications/transports/web-push.service';
-import { ALL_EVENT_TYPES, type ChannelMessage } from '../../../../src/nest/notifications/notification-events';
 
 // Built in beforeAll: both providers take repositories and a UnitOfWork,
 // which are async to resolve on this file's handle.
@@ -310,7 +310,9 @@ describe('WebPushService delivery', () => {
     await subscribe(user.id, 'https://fcm.googleapis.com/fcm/send/x');
     await subscribe(user.id, 'https://fcm.googleapis.com/fcm/send/y');
     testDb
-      .prepare("UPDATE push_subscriptions SET endpoint = 'https://attacker.example.test/collect' WHERE endpoint LIKE '%/x'")
+      .prepare(
+        "UPDATE push_subscriptions SET endpoint = 'https://attacker.example.test/collect' WHERE endpoint LIKE '%/x'",
+      )
       .run();
     testDb.prepare("UPDATE push_subscriptions SET endpoint = 'not a url' WHERE endpoint LIKE '%/y'").run();
     await expect(push.sendToUser(user.id, MSG)).resolves.toBe(false);

@@ -1,19 +1,23 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { RoadtripDayBoundary } from '@trek/shared';
-import { UnitOfWork } from '../database/unit-of-work';
-import { AccommodationsService, type AccommodationMirror, type MirrorSender } from '../accommodations/accommodations.service';
-import { AssignmentsService } from '../assignments/assignments.service';
-import { DaysService } from './days.service';
-import { toRowId } from '../common/row-id';
-import { Days } from '../../db/entities/Days.entity';
-import type { DaysRepository, DayOrderRow } from '../../db/repositories/Days.repository';
 import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
-import type { DayAccommodationsRepository } from '../../db/repositories/DayAccommodations.repository';
+import { Days } from '../../db/entities/Days.entity';
 import { RoadtripDayBoundaries } from '../../db/entities/RoadtripDayBoundaries.entity';
-import type { RoadtripDayBoundariesRepository } from '../../db/repositories/RoadtripDayBoundaries.repository';
 import { Trips } from '../../db/entities/Trips.entity';
+import type { DayAccommodationsRepository } from '../../db/repositories/DayAccommodations.repository';
+import type { DaysRepository, DayOrderRow } from '../../db/repositories/Days.repository';
+import type { RoadtripDayBoundariesRepository } from '../../db/repositories/RoadtripDayBoundaries.repository';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import {
+  AccommodationsService,
+  type AccommodationMirror,
+  type MirrorSender,
+} from '../accommodations/accommodations.service';
+import { AssignmentsService } from '../assignments/assignments.service';
+import { toRowId } from '../common/row-id';
+import { UnitOfWork } from '../database/unit-of-work';
+import { DaysService } from './days.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type { RoadtripDayBoundary } from '@trek/shared';
 
 /** A day that has to stay where it is; REST answers 400, MCP a tool error, a plugin BadParams. */
 export class DayDeleteError extends Error {}
@@ -95,7 +99,11 @@ export class DayRemovalService {
    * throws a DayDeleteError for the last day of a trip. The journey catches up
    * afterwards, outside the transaction, and a failure there does not undo the delete.
    */
-  async remove(tripId: string | number, dayId: string | number, viewer: { userId: number; socketId?: string }): Promise<DayRemoval> {
+  async remove(
+    tripId: string | number,
+    dayId: string | number,
+    viewer: { userId: number; socketId?: string },
+  ): Promise<DayRemoval> {
     // Every caller (REST, MCP, RPC) already proved the day via `getDay`, so neither id is a live 404 path here.
     const trip = toRowId(tripId)!;
     const id = toRowId(dayId)!;
@@ -103,7 +111,7 @@ export class DayRemovalService {
     const removal = await this.uow.transactional(async () => {
       // DY26
       const rows: DayOrderRow[] = await this.daysRepo.listOrderedForReorder(trip);
-      const target = rows.find(r => r.id === id);
+      const target = rows.find((r) => r.id === id);
       if (!target) throw new DayDeleteError('Day not found');
       if (rows.length <= 1) throw new DayDeleteError(LAST_DAY_MESSAGE);
 
@@ -117,7 +125,7 @@ export class DayRemovalService {
       // DY13
       await this.daysRepo.deleteById(id);
 
-      const remaining = rows.filter(r => r.id !== id);
+      const remaining = rows.filter((r) => r.id !== id);
       await this.shiftBoundaries(trip, rows, remaining);
       const endDate = await this.renumber(trip, rows, remaining);
 
@@ -126,7 +134,7 @@ export class DayRemovalService {
 
       return {
         dayId: id,
-        orderedIds: remaining.map(r => r.id),
+        orderedIds: remaining.map((r) => r.id),
         ...cancelled,
         boundaries: boundariesChanged ? boundariesAfter : null,
         endDate,
@@ -171,7 +179,12 @@ export class DayRemovalService {
   private async cancelStays(tripId: number, dayId: number) {
     // DY41
     const stays = await this.dayAccommodationsRepo.listIdsCheckingInOrOutOn(tripId, dayId);
-    const cancelled = { stayIds: [] as number[], reservationIds: [] as number[], budgetItemIds: [] as number[], mirrors: [] as AccommodationMirror[] };
+    const cancelled = {
+      stayIds: [] as number[],
+      reservationIds: [] as number[],
+      budgetItemIds: [] as number[],
+      mirrors: [] as AccommodationMirror[],
+    };
     for (const stayId of stays) {
       const gone = await this.accommodations.deleteAccommodation(stayId);
       cancelled.stayIds.push(stayId);
@@ -225,12 +238,15 @@ export class DayRemovalService {
    */
   private async renumber(tripId: number, rows: DayOrderRow[], remaining: DayOrderRow[]): Promise<string | null> {
     // ISO dates sort as plain strings.
-    const sortedDates = rows.map(r => r.date).filter((d): d is string => !!d).sort((a, b) => a.localeCompare(b));
+    const sortedDates = rows
+      .map((r) => r.date)
+      .filter((d): d is string => !!d)
+      .sort((a, b) => a.localeCompare(b));
 
     // Two phases, to get past UNIQUE(trip_id, day_number) on the way.
     // DY27
     for (const [i, r] of remaining.entries()) await this.daysRepo.setDayNumber(r.id, -(i + 1));
-    const oldDateById = new Map(remaining.map(r => [r.id, r.date]));
+    const oldDateById = new Map(remaining.map((r) => [r.id, r.date]));
     const newDateById = new Map<number, string | null>();
     for (const [i, r] of remaining.entries()) {
       const date = sortedDates[i] ?? null;
@@ -258,7 +274,7 @@ export class DayRemovalService {
 function withoutDay(mirror: AccommodationMirror, dayId: number): AccommodationMirror {
   return {
     ...mirror,
-    removed: mirror.removed.filter(stop => stop.dayId !== dayId),
-    ...(mirror.vias ? { vias: mirror.vias.filter(day => day.dayId !== dayId) } : {}),
+    removed: mirror.removed.filter((stop) => stop.dayId !== dayId),
+    ...(mirror.vias ? { vias: mirror.vias.filter((day) => day.dayId !== dayId) } : {}),
   };
 }

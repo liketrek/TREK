@@ -1,9 +1,10 @@
-import type { RequestHandler } from 'express';
-import { MikroORM } from '@mikro-orm/core';
-import { DiscoveryMetadataService } from './discovery-metadata.service';
-import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
+import { AddonsService } from '../addons/addons.service';
 import { withRequestContext } from '../database/request-context';
+import { DiscoveryMetadataService } from './discovery-metadata.service';
+import { MikroORM } from '@mikro-orm/core';
+
+import type { RequestHandler } from 'express';
 
 /**
  * The SDK discovery router plus its addon gate: 404 (empty body) on every

@@ -1,4 +1,4 @@
-import type { Components } from 'react-markdown'
+import type { Components } from 'react-markdown';
 
 /**
  * How a link inside a note behaves (#1629).
@@ -19,4 +19,4 @@ export const markdownLinkComponents: Components = {
       {children}
     </a>
   ),
-}
+};

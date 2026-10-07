@@ -1,11 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import crypto from 'crypto';
 import { InviteTokens } from '../../db/entities/InviteTokens.entity';
-import type { InviteTokensRepository } from '../../db/repositories/InviteTokens.repository';
 import { Trips } from '../../db/entities/Trips.entity';
+import type { InviteTokensRepository } from '../../db/repositories/InviteTokens.repository';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { toRowId } from '../common/row-id';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+
+import crypto from 'crypto';
 
 /**
  * Registration invites: the tokens an admin hands out so someone can create an
@@ -78,7 +79,13 @@ export class RegistrationInvitesService {
     // RI4: the write. RI5: the same joined re-select RI1 projects, filtered
     // to the new row — `insertInvite`'s column set already matches this
     // INSERT exactly (Task 0).
-    const created = await this.inviteTokens.insertInvite({ token, max_uses: uses, expires_at: expiresAt, created_by: createdBy, trip_id: tripId });
+    const created = await this.inviteTokens.insertInvite({
+      token,
+      max_uses: uses,
+      expires_at: expiresAt,
+      created_by: createdBy,
+      trip_id: tripId,
+    });
     const invite = await this.inviteTokens.findWithCreatorAndTrip(created.id);
 
     return { invite, inviteId: created.id, uses, expiresInDays: data.expires_in_days ?? null, tripId };

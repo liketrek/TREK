@@ -1,11 +1,11 @@
-import React, { useId, useMemo } from 'react'
-import CustomSelect from '../shared/CustomSelect'
-import { useTranslation } from '../../i18n/TranslationContext'
-import { useSettingsStore } from '../../store/settingsStore'
-import { formatDistance } from '../../utils/units'
-import { StopKindChips, StopStayChips } from './StopChips'
-import { serviceStopChoice, OFF_ROUTE_NOTE_KM, type ServiceStopMode } from './manualStop'
-import type { RoadtripStopType } from '@trek/shared'
+import type { RoadtripStopType } from '@trek/shared';
+import React, { useId, useMemo } from 'react';
+import { useTranslation } from '../../i18n/TranslationContext';
+import { useSettingsStore } from '../../store/settingsStore';
+import { formatDistance } from '../../utils/units';
+import CustomSelect from '../shared/CustomSelect';
+import { StopKindChips, StopStayChips } from './StopChips';
+import { OFF_ROUTE_NOTE_KM, serviceStopChoice, type ServiceStopMode } from './manualStop';
 
 /**
  * Adding a stop the corridor search never found, inside the place form itself.
@@ -27,9 +27,9 @@ import type { RoadtripStopType } from '@trek/shared'
  */
 
 /** Matches the form's own field labels, so the section reads as part of it. */
-const LABEL = 'block text-sm font-medium text-content-secondary mb-1'
+const LABEL = 'block text-sm font-medium text-content-secondary mb-1';
 /** The label above already spaces the row, so the pills bring no margin of their own. */
-const ROW = 'flex flex-wrap gap-1.5'
+const ROW = 'flex flex-wrap gap-1.5';
 /**
  * What holds the pieces of one option apart.
  *
@@ -40,33 +40,41 @@ const ROW = 'flex flex-wrap gap-1.5'
  * option label is plain text and a single space would run a stop's name into the next
  * one's.
  */
-const GAP = ' '
+const GAP = ' ';
 
 interface ServiceStopSectionProps {
-  mode: ServiceStopMode
+  mode: ServiceStopMode;
   /** The kind chosen, from the form's own state: it is saved as `places.stop_type`. */
-  stopType: RoadtripStopType | null
+  stopType: RoadtripStopType | null;
   /** Called only for a kind that is not already on, so a dwell set by hand survives. */
-  onStopType: (kind: RoadtripStopType) => void
-  minutes: number
-  onMinutes: (value: number) => void
+  onStopType: (kind: RoadtripStopType) => void;
+  minutes: number;
+  onMinutes: (value: number) => void;
   /** The leg the traveller picked, or empty while the projection's answer stands. */
-  leg: string
-  onLeg: (value: string) => void
+  leg: string;
+  onLeg: (value: string) => void;
   /** Where the place is, as the form has it. Null until one has been chosen. */
-  lat: number | null
-  lng: number | null
+  lat: number | null;
+  lng: number | null;
 }
 
 export default function ServiceStopSection({
-  mode, stopType, onStopType, minutes, onMinutes, leg, onLeg, lat, lng,
+  mode,
+  stopType,
+  onStopType,
+  minutes,
+  onMinutes,
+  leg,
+  onLeg,
+  lat,
+  lng,
 }: ServiceStopSectionProps): React.ReactElement {
-  const { t } = useTranslation()
-  const distanceUnit = useSettingsStore(s => s.settings.distance_unit)
-  const choice = useMemo(() => serviceStopChoice(mode, lat, lng, leg), [mode, lat, lng, leg])
-  const kindId = useId()
-  const stayId = useId()
-  const legId = useId()
+  const { t } = useTranslation();
+  const distanceUnit = useSettingsStore((s) => s.settings.distance_unit);
+  const choice = useMemo(() => serviceStopChoice(mode, lat, lng, leg), [mode, lat, lng, leg]);
+  const kindId = useId();
+  const stayId = useId();
+  const legId = useId();
 
   /**
    * The stretches on offer, each naming what it is and how far the place lies from it.
@@ -75,33 +83,46 @@ export default function ServiceStopSection({
    * was written down nothing on screen said so: the list looked like a guess to be
    * second-guessed rather than a measurement to be overruled.
    */
-  const options = useMemo(() => [
-    ...choice.legs.map(item => ({
-      value: item.value,
-      label: [
-        item.from,
-        item.to,
-        item.offRouteKm === null ? null : t('roadtrip.poi.offRoute', { distance: formatDistance(item.offRouteKm, distanceUnit) }),
-      ].filter(Boolean).join(GAP),
-      badge: t('roadtrip.day', { number: item.dayNumber }),
-    })),
-    ...(choice.end
-      ? [{
-          // The end of the day the panel is on, which stays reachable however the rest of
-          // the trip has routed. It names its own day, so it carries no badge repeating it.
-          value: choice.end.value,
-          label: t('roadtrip.stop.landsOn', { day: choice.end.dayNumber, position: choice.end.position + 1 }),
-        }]
-      : []),
-  ], [choice, t, distanceUnit])
+  const options = useMemo(
+    () => [
+      ...choice.legs.map((item) => ({
+        value: item.value,
+        label: [
+          item.from,
+          item.to,
+          item.offRouteKm === null
+            ? null
+            : t('roadtrip.poi.offRoute', { distance: formatDistance(item.offRouteKm, distanceUnit) }),
+        ]
+          .filter(Boolean)
+          .join(GAP),
+        badge: t('roadtrip.day', { number: item.dayNumber }),
+      })),
+      ...(choice.end
+        ? [
+            {
+              // The end of the day the panel is on, which stays reachable however the rest of
+              // the trip has routed. It names its own day, so it carries no badge repeating it.
+              value: choice.end.value,
+              label: t('roadtrip.stop.landsOn', { day: choice.end.dayNumber, position: choice.end.position + 1 }),
+            },
+          ]
+        : []),
+    ],
+    [choice, t, distanceUnit]
+  );
 
   return (
     <div className="space-y-3">
       <div>
-        <label id={kindId} className={LABEL}>{t('roadtrip.stop.kind')}</label>
+        <label id={kindId} className={LABEL}>
+          {t('roadtrip.stop.kind')}
+        </label>
         <StopKindChips
           value={stopType}
-          onPick={(kind, wasChosen) => { if (!wasChosen) onStopType(kind) }}
+          onPick={(kind, wasChosen) => {
+            if (!wasChosen) onStopType(kind);
+          }}
           className={ROW}
           labelledBy={kindId}
           white
@@ -109,7 +130,9 @@ export default function ServiceStopSection({
       </div>
 
       <div>
-        <label id={stayId} className={LABEL}>{t('roadtrip.stop.stay')}</label>
+        <label id={stayId} className={LABEL}>
+          {t('roadtrip.stop.stay')}
+        </label>
         <StopStayChips value={minutes} onPick={onMinutes} className={ROW} labelledBy={stayId} white />
       </div>
 
@@ -126,10 +149,12 @@ export default function ServiceStopSection({
         // label would replace the trigger's name, which is the stretch chosen, and a
         // click on it would open the menu.
         <div role="group" aria-labelledby={legId}>
-          <label id={legId} className={LABEL}>{t('roadtrip.poi.addBetween')}</label>
+          <label id={legId} className={LABEL}>
+            {t('roadtrip.poi.addBetween')}
+          </label>
           <CustomSelect
             value={choice.legValue}
-            onChange={value => onLeg(String(value))}
+            onChange={(value) => onLeg(String(value))}
             options={options}
             size="sm"
             menuFit="content"
@@ -139,7 +164,9 @@ export default function ServiceStopSection({
               against the stretch actually chosen, so overruling the projection moves the
               note with it, and a stretch that could not be measured says nothing at all
               rather than borrowing a figure from the one the projection landed on. */}
-          {choice.placement && choice.placement.offRouteKm !== null && choice.placement.offRouteKm > OFF_ROUTE_NOTE_KM ? (
+          {choice.placement &&
+          choice.placement.offRouteKm !== null &&
+          choice.placement.offRouteKm > OFF_ROUTE_NOTE_KM ? (
             <p className="mt-1 text-caption text-warning">
               {t('roadtrip.poi.manualOffRoute', {
                 distance: formatDistance(choice.placement.offRouteKm, distanceUnit),
@@ -156,5 +183,5 @@ export default function ServiceStopSection({
         </div>
       ) : null}
     </div>
-  )
+  );
 }

@@ -201,10 +201,12 @@ const journey: TranslationStrings = {
   'journey.settings.status': 'Статус',
   'journey.settings.statusAuto': 'Автоматически',
   'journey.settings.statusAutoHint': 'Следует датам связанных поездок. Без поездки журнал остаётся черновиком.',
-  'journey.settings.statusManualHint': 'Задан вручную. Даты поездки больше не меняют его, пока вы не вернёте автоматический режим.',
+  'journey.settings.statusManualHint':
+    'Задан вручную. Даты поездки больше не меняют его, пока вы не вернёте автоматический режим.',
   'journey.settings.photosSection': 'Фото',
   'journey.settings.photoLocation': 'Определять место записей по фото',
-  'journey.settings.photoLocationHint': 'Запись без места получает точку, где сделано её первое фото с GPS. Места, заданные вручную, не меняются.',
+  'journey.settings.photoLocationHint':
+    'Запись без места получает точку, где сделано её первое фото с GPS. Места, заданные вручную, не меняются.',
   'journey.settings.endJourney': 'Архивировать путешествие',
   'journey.settings.reopenJourney': 'Восстановить путешествие',
   'journey.settings.archived': 'Путешествие архивировано',
@@ -298,12 +300,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Скачать этот разворот',
-  'journey.studio.downloadSpreadHint': 'Сохраняет оформление разворота в файл, без фотографий, чтобы поделиться им или использовать снова',
+  'journey.studio.downloadSpreadHint':
+    'Сохраняет оформление разворота в файл, без фотографий, чтобы поделиться им или использовать снова',
   'journey.studio.importSpread': 'Импорт',
   'journey.studio.importSpreadHint': 'Добавляет разворот из скачанного файла оформления',
   'journey.studio.importSpreadFailed': 'Этот файл не является разворотом TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Вёрстка книги требует места, поэтому Студия работает только на компьютере, и создание PDF тоже. Всё остальное в путешествии здесь работает как обычно.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Вёрстка книги требует места, поэтому Студия работает только на компьютере, и создание PDF тоже. Всё остальное в путешествии здесь работает как обычно.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -367,7 +371,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -561,7 +566,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Контуры',
   'journey.studio.mapSourceRelief': 'Рельеф',
   'journey.studio.mapSourceSatellite': 'Спутник',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 без облаков, печатать можно свободно с указанием источника. Чёткость вплоть до городской улицы.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 без облаков, печатать можно свободно с указанием источника. Чёткость вплоть до городской улицы.',
   'journey.studio.routeLook': 'Линия',
   'journey.studio.routeStyle': 'Вид',
   'journey.studio.routePlain': 'Обычная',
@@ -584,9 +590,11 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Проложить заново',
   'journey.studio.roadsClear': 'Сбросить',
   'journey.studio.roadsBusy': 'Запрос',
-  'journey.studio.roadsHint': 'Спросить у сервиса маршрутов, по каким дорогам пройден каждый участок. Длинные участки остаются как есть.',
+  'journey.studio.roadsHint':
+    'Спросить у сервиса маршрутов, по каким дорогам пройден каждый участок. Длинные участки остаются как есть.',
   'journey.studio.roadsHave': 'Дороги сохранены в этой книге, поэтому та же линия печатается и без сети.',
-  'journey.studio.mapSourceReliefHint': 'Затенённый рельеф NASA, печатать можно свободно. Подходит для страны или континента, для одного города слишком груб.',
+  'journey.studio.mapSourceReliefHint':
+    'Затенённый рельеф NASA, печатать можно свободно. Подходит для страны или континента, для одного города слишком груб.',
   'journey.studio.mapPrintDpi': 'Печать около',
   'journey.studio.mapPrintDpiLow': 'при таком размере размыто, попробуйте шире охват или другой источник',
   'journey.studio.mapPerTrip': 'По одной поездке',
@@ -656,7 +664,8 @@ const journey: TranslationStrings = {
   'journey.editor.draft': 'Черновик',
   'journey.editor.draftHint':
     'Эту запись видите только вы и другие участники. В общем путешествии она не показывается, пока вы не выключите этот параметр.',
-  'journey.editor.tripSuggestionHint': 'Этот день входит в эту поездку. Свяжите их, и её места добавятся в это путешествие.',
+  'journey.editor.tripSuggestionHint':
+    'Этот день входит в эту поездку. Свяжите их, и её места добавятся в это путешествие.',
   'journey.editor.tripSuggestionLater': 'Не сейчас',
   'journey.suggestions.dismiss': 'Отклонить это предложение',
   'journey.suggestions.dismissed': 'Предложение отклонено',
@@ -668,7 +677,8 @@ const journey: TranslationStrings = {
   'journey.detail.searchPlaceholder': 'Поиск по этому дневнику',
   'journey.detail.searchEmpty': 'Ни одна запись не подходит под «{query}»',
   'journey.settings.entryFields': 'Поля записи',
-  'journey.settings.entryFieldsHint': 'Выключите то, что этот дневник не использует. Ничего из уже написанного не пропадёт.',
+  'journey.settings.entryFieldsHint':
+    'Выключите то, что этот дневник не использует. Ничего из уже написанного не пропадёт.',
   'journey.settings.showVerdict': 'За и против',
   'journey.settings.showMood': 'Настроение',
   'journey.settings.showWeather': 'Погода',

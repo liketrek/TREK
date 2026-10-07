@@ -4,9 +4,14 @@
  * get_place_details, search_pois, reverse_geocode, resolve_maps_url,
  * get_weather, get_detailed_weather.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
+import { MapsService } from '../../../src/nest/maps/maps.service';
+import { getWeather, getDetailedWeather } from '../../../src/nest/weather/weather.impl';
+import { createUser } from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
 
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
@@ -31,22 +36,18 @@ vi.mock('../../../src/nest/weather/weather.impl', () => ({
 // alone on purpose: it fails open, so these cases run on the shipping default
 // with the index answering nothing, which is the drop-through they are about.
 const { trekNearbyMock } = vi.hoisted(() => ({
-  trekNearbyMock: vi.fn(async (
-    _lat: number,
-    _lng: number,
-    _opts?: { radius?: number; limit?: number; category?: string },
-  ): Promise<unknown[]> => []),
+  trekNearbyMock: vi.fn(
+    async (
+      _lat: number,
+      _lng: number,
+      _opts?: { radius?: number; limit?: number; category?: string },
+    ): Promise<unknown[]> => [],
+  ),
 }));
 vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../src/nest/maps/trek-places.client')>()),
   trekPlacesNearby: trekNearbyMock,
 }));
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { MapsService } from '../../../src/nest/maps/maps.service';
-import { getWeather, getDetailedWeather } from '../../../src/nest/weather/weather.impl';
 
 // The geo tools live on the DI-discovered maps.mcp.ts since the maps fold; the
 // test registry builds a real MapsService over the mocked db proxy, so stub the
@@ -90,7 +91,11 @@ afterAll(() => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -173,7 +178,9 @@ describe('Tool: create_tag', () => {
 describe('Tool: update_tag', () => {
   it('updates tag name and color', async () => {
     const { user } = createUser(testDb);
-    const r = testDb.prepare('INSERT INTO tags (user_id, name, color) VALUES (?, ?, ?)').run(user.id, 'Old Name', '#aaaaaa');
+    const r = testDb
+      .prepare('INSERT INTO tags (user_id, name, color) VALUES (?, ?, ?)')
+      .run(user.id, 'Old Name', '#aaaaaa');
     const tagId = r.lastInsertRowid as number;
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -201,7 +208,9 @@ describe('Tool: update_tag', () => {
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const r = testDb.prepare('INSERT INTO tags (user_id, name, color) VALUES (?, ?, ?)').run(user.id, 'Demo Tag', '#aaaaaa');
+    const r = testDb
+      .prepare('INSERT INTO tags (user_id, name, color) VALUES (?, ?, ?)')
+      .run(user.id, 'Demo Tag', '#aaaaaa');
     const tagId = r.lastInsertRowid as number;
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -221,7 +230,9 @@ describe('Tool: update_tag', () => {
 describe('Tool: delete_tag', () => {
   it('removes the tag row', async () => {
     const { user } = createUser(testDb);
-    const r = testDb.prepare('INSERT INTO tags (user_id, name, color) VALUES (?, ?, ?)').run(user.id, 'To Delete', '#cccccc');
+    const r = testDb
+      .prepare('INSERT INTO tags (user_id, name, color) VALUES (?, ?, ?)')
+      .run(user.id, 'To Delete', '#cccccc');
     const tagId = r.lastInsertRowid as number;
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -248,7 +259,9 @@ describe('Tool: delete_tag', () => {
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const r = testDb.prepare('INSERT INTO tags (user_id, name, color) VALUES (?, ?, ?)').run(user.id, 'Demo Tag', '#aaaaaa');
+    const r = testDb
+      .prepare('INSERT INTO tags (user_id, name, color) VALUES (?, ?, ?)')
+      .run(user.id, 'Demo Tag', '#aaaaaa');
     const tagId = r.lastInsertRowid as number;
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -368,7 +381,12 @@ describe('Tool: get_place_details', () => {
       const data = parseToolResult(result) as any;
       expect(data.details.summary).toBe('Wrought-iron lattice tower.');
       expect(data.details.reviews).toHaveLength(1);
-      expect(MapsService.prototype.getPlaceDetailsExpanded).toHaveBeenCalledWith(user.id, 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ', 'de', false);
+      expect(MapsService.prototype.getPlaceDetailsExpanded).toHaveBeenCalledWith(
+        user.id,
+        'ChIJD7fiBh9u5kcRYJSMaMOCCwQ',
+        'de',
+        false,
+      );
       expect(MapsService.prototype.getPlaceDetails).not.toHaveBeenCalled();
     });
   });
@@ -382,7 +400,12 @@ describe('Tool: get_place_details', () => {
         name: 'get_place_details',
         arguments: { placeId: 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ', expand: true, refresh: true },
       });
-      expect(MapsService.prototype.getPlaceDetailsExpanded).toHaveBeenCalledWith(user.id, 'ChIJD7fiBh9u5kcRYJSMaMOCCwQ', 'en', true);
+      expect(MapsService.prototype.getPlaceDetailsExpanded).toHaveBeenCalledWith(
+        user.id,
+        'ChIJD7fiBh9u5kcRYJSMaMOCCwQ',
+        'en',
+        true,
+      );
     });
   });
 
@@ -529,7 +552,16 @@ describe('Tool: search_pois', () => {
     const { user } = createUser(testDb);
     trekNearbyMock.mockClear();
     trekNearbyMock.mockResolvedValueOnce([
-      { gers: 'wide-1', name: 'Far Away', lat: 48.9, lng: 2.4, category: null, address: null, contact: null, hours: null },
+      {
+        gers: 'wide-1',
+        name: 'Far Away',
+        lat: 48.9,
+        lng: 2.4,
+        category: null,
+        address: null,
+        contact: null,
+        hours: null,
+      },
     ]);
 
     await withHarness(user.id, async (h) => {
@@ -761,7 +793,7 @@ describe('Tool: search_airports', () => {
       expect(Array.isArray(data.airports)).toBe(true);
       expect(data.airports.length).toBeGreaterThan(0);
       expect(data.airports.length).toBeLessThanOrEqual(5);
-      expect(data.airports.some(a => a.iata === 'ZRH')).toBe(true);
+      expect(data.airports.some((a) => a.iata === 'ZRH')).toBe(true);
     });
   });
 

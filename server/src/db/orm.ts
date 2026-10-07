@@ -1,7 +1,7 @@
 import mikroOrmConfig from '../mikro-orm.config';
+import { withRequestContext } from '../nest/database/request-context';
 import { registerReinitializeHook, runDemoSeed } from './database';
 import { migrateToHead } from './legacy-baseline';
-import { withRequestContext } from '../nest/database/request-context';
 import type { AnyEntity, EntityClass, EntityManager, EntitySchema, IDatabaseDriver, MikroORM } from '@mikro-orm/core';
 import type { Migrator } from '@mikro-orm/migrations';
 import { MikroORM as SqliteMikroORM } from '@mikro-orm/sqlite';

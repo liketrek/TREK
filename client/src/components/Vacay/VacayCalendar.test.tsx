@@ -1,22 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { render } from '../../../tests/helpers/render'
-import { resetAllStores, seedStore } from '../../../tests/helpers/store'
-import { useVacayStore } from '../../store/vacayStore'
-import VacayCalendar from './VacayCalendar'
+import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { useVacayStore } from '../../store/vacayStore';
+import VacayCalendar from './VacayCalendar';
 
 vi.mock('./VacayMonthCard', () => ({
   default: ({ year, month, onCellClick }: any) => (
     <div data-testid={`month-card-${month}`} data-year={year}>
-      <button onClick={() => onCellClick(`2025-01-${String(month + 1).padStart(2, '0')}`)}>
-        click-{month}
-      </button>
+      <button onClick={() => onCellClick(`2025-01-${String(month + 1).padStart(2, '0')}`)}>click-{month}</button>
     </div>
   ),
-}))
+}));
 
-const fiscalJuly = { year_type: 'fiscal' as const, year_start_month: 7, year_start_day: 1, hire_date: null }
+const fiscalJuly = { year_type: 'fiscal' as const, year_start_month: 7, year_start_day: 1, hire_date: null };
 
 const basePlan = {
   id: 1,
@@ -26,11 +24,11 @@ const basePlan = {
   block_weekends: false,
   carry_over_enabled: false,
   company_holidays_enabled: true,
-}
+};
 
 beforeEach(() => {
-  resetAllStores()
-})
+  resetAllStores();
+});
 
 describe('VacayCalendar', () => {
   it('FE-COMP-VACAYCALENDAR-001: renders 12 month cards', () => {
@@ -42,12 +40,12 @@ describe('VacayCalendar', () => {
       plan: basePlan,
       users: [],
       selectedUserId: null,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
-    expect(screen.getAllByTestId(/^month-card-/)).toHaveLength(12)
-  })
+    expect(screen.getAllByTestId(/^month-card-/)).toHaveLength(12);
+  });
 
   it('FE-COMP-VACAYCALENDAR-001a: renders January to December of the selected year by default', () => {
     seedStore(useVacayStore, {
@@ -58,16 +56,16 @@ describe('VacayCalendar', () => {
       plan: basePlan,
       users: [],
       selectedUserId: null,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
-    const cards = screen.getAllByTestId(/^month-card-/)
-    expect(cards[0]).toHaveAttribute('data-testid', 'month-card-0')
-    expect(cards[0]).toHaveAttribute('data-year', '2025')
-    expect(cards[11]).toHaveAttribute('data-testid', 'month-card-11')
-    expect(cards[11]).toHaveAttribute('data-year', '2025')
-  })
+    const cards = screen.getAllByTestId(/^month-card-/);
+    expect(cards[0]).toHaveAttribute('data-testid', 'month-card-0');
+    expect(cards[0]).toHaveAttribute('data-year', '2025');
+    expect(cards[11]).toHaveAttribute('data-testid', 'month-card-11');
+    expect(cards[11]).toHaveAttribute('data-year', '2025');
+  });
 
   it('FE-COMP-VACAYCALENDAR-001b: rolls the grid over the calendar year for a fiscal window (#737)', () => {
     seedStore(useVacayStore, {
@@ -79,20 +77,20 @@ describe('VacayCalendar', () => {
       users: [],
       selectedUserId: null,
       yearSettings: fiscalJuly,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
-    const cards = screen.getAllByTestId(/^month-card-/)
-    expect(cards).toHaveLength(12)
+    const cards = screen.getAllByTestId(/^month-card-/);
+    expect(cards).toHaveLength(12);
     // Jul 2026 first, Jan 2027 in the middle, Jun 2027 last.
-    expect(cards[0]).toHaveAttribute('data-testid', 'month-card-6')
-    expect(cards[0]).toHaveAttribute('data-year', '2026')
-    expect(cards[6]).toHaveAttribute('data-testid', 'month-card-0')
-    expect(cards[6]).toHaveAttribute('data-year', '2027')
-    expect(cards[11]).toHaveAttribute('data-testid', 'month-card-5')
-    expect(cards[11]).toHaveAttribute('data-year', '2027')
-  })
+    expect(cards[0]).toHaveAttribute('data-testid', 'month-card-6');
+    expect(cards[0]).toHaveAttribute('data-year', '2026');
+    expect(cards[6]).toHaveAttribute('data-testid', 'month-card-0');
+    expect(cards[6]).toHaveAttribute('data-year', '2027');
+    expect(cards[11]).toHaveAttribute('data-testid', 'month-card-5');
+    expect(cards[11]).toHaveAttribute('data-year', '2027');
+  });
 
   it('FE-COMP-VACAYCALENDAR-002: shows vacation mode button by default with username', () => {
     seedStore(useVacayStore, {
@@ -103,12 +101,12 @@ describe('VacayCalendar', () => {
       plan: basePlan,
       users: [{ id: 1, username: 'Alice', color: '#ec4899' }],
       selectedUserId: 1,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
-    expect(screen.getByText('Alice')).toBeInTheDocument()
-  })
+    expect(screen.getByText('Alice')).toBeInTheDocument();
+  });
 
   it('FE-COMP-VACAYCALENDAR-003: company mode button visible when enabled', () => {
     seedStore(useVacayStore, {
@@ -119,17 +117,17 @@ describe('VacayCalendar', () => {
       plan: { ...basePlan, company_holidays_enabled: true },
       users: [],
       selectedUserId: null,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
     // The company button contains the modeCompany translation text
-    const buttons = screen.getAllByRole('button')
+    const buttons = screen.getAllByRole('button');
     // There should be 13 buttons: 12 month click buttons + 1 company mode button + 1 vacation mode button
     // The company mode button is distinct from the month card buttons
-    const toolbarButtons = buttons.filter(b => !b.textContent?.startsWith('click-'))
-    expect(toolbarButtons.length).toBeGreaterThanOrEqual(2)
-  })
+    const toolbarButtons = buttons.filter((b) => !b.textContent?.startsWith('click-'));
+    expect(toolbarButtons.length).toBeGreaterThanOrEqual(2);
+  });
 
   it('FE-COMP-VACAYCALENDAR-004: company mode button hidden when disabled', () => {
     seedStore(useVacayStore, {
@@ -140,18 +138,18 @@ describe('VacayCalendar', () => {
       plan: { ...basePlan, company_holidays_enabled: false },
       users: [],
       selectedUserId: null,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
     // Vacation + the comp and half-day modifiers stay; only the company button is hidden.
-    const buttons = screen.getAllByRole('button')
-    const toolbarButtons = buttons.filter(b => !b.textContent?.startsWith('click-'))
-    expect(toolbarButtons).toHaveLength(3)
-  })
+    const buttons = screen.getAllByRole('button');
+    const toolbarButtons = buttons.filter((b) => !b.textContent?.startsWith('click-'));
+    expect(toolbarButtons).toHaveLength(3);
+  });
 
   it('FE-COMP-VACAYCALENDAR-005: switching to company mode highlights company button', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
     seedStore(useVacayStore, {
       selectedYear: 2025,
@@ -161,24 +159,24 @@ describe('VacayCalendar', () => {
       plan: { ...basePlan, company_holidays_enabled: true },
       users: [],
       selectedUserId: null,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
-    const buttons = screen.getAllByRole('button')
-    const toolbarButtons = buttons.filter(b => !b.textContent?.startsWith('click-'))
+    const buttons = screen.getAllByRole('button');
+    const toolbarButtons = buttons.filter((b) => !b.textContent?.startsWith('click-'));
     // toolbarButtons[0] = vacation, [1] = company mode, [2] = half-day toggle
-    const companyBtn = toolbarButtons[1]
+    const companyBtn = toolbarButtons[1];
 
-    await user.click(companyBtn)
+    await user.click(companyBtn);
 
     // Active company mode paints the button amber via inline style (glass facelift).
-    expect(companyBtn.style.background).toMatch(/#d97706|217,\s*119,\s*6/i)
-  })
+    expect(companyBtn.style.background).toMatch(/#d97706|217,\s*119,\s*6/i);
+  });
 
   it('FE-COMP-VACAYCALENDAR-006: cell click in vacation mode calls toggleEntry', async () => {
-    const user = userEvent.setup()
-    const toggleEntry = vi.fn().mockResolvedValue(undefined)
+    const user = userEvent.setup();
+    const toggleEntry = vi.fn().mockResolvedValue(undefined);
 
     seedStore(useVacayStore, {
       selectedYear: 2025,
@@ -189,19 +187,19 @@ describe('VacayCalendar', () => {
       users: [],
       selectedUserId: 42,
       toggleEntry,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
     // Click the first month card cell button (month 0 → date '2025-01-01')
-    await user.click(screen.getByText('click-0'))
+    await user.click(screen.getByText('click-0'));
 
-    expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', 42, 1, 'vacation')
-  })
+    expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', 42, 1, 'vacation');
+  });
 
   it('FE-COMP-VACAYCALENDAR-006b: half-day mode logs the day as 0.5', async () => {
-    const user = userEvent.setup()
-    const toggleEntry = vi.fn().mockResolvedValue(undefined)
+    const user = userEvent.setup();
+    const toggleEntry = vi.fn().mockResolvedValue(undefined);
 
     seedStore(useVacayStore, {
       selectedYear: 2025,
@@ -212,20 +210,20 @@ describe('VacayCalendar', () => {
       users: [],
       selectedUserId: 42,
       toggleEntry,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
     // Comp and half-day are both modifiers in the toolbar — pick by name, not position.
-    await user.click(screen.getByRole('button', { name: 'Half day' }))
-    await user.click(screen.getByText('click-0'))
+    await user.click(screen.getByRole('button', { name: 'Half day' }));
+    await user.click(screen.getByText('click-0'));
 
-    expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', 42, 0.5, 'vacation')
-  })
+    expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', 42, 0.5, 'vacation');
+  });
 
   it('FE-COMP-VACAYCALENDAR-006c: the comp modifier logs the day as a comp/flex day (#1074)', async () => {
-    const user = userEvent.setup()
-    const toggleEntry = vi.fn().mockResolvedValue(undefined)
+    const user = userEvent.setup();
+    const toggleEntry = vi.fn().mockResolvedValue(undefined);
 
     seedStore(useVacayStore, {
       selectedYear: 2025,
@@ -236,19 +234,19 @@ describe('VacayCalendar', () => {
       users: [],
       selectedUserId: 42,
       toggleEntry,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
-    await user.click(screen.getByRole('button', { name: 'Comp / Flex' }))
-    await user.click(screen.getByText('click-0'))
+    await user.click(screen.getByRole('button', { name: 'Comp / Flex' }));
+    await user.click(screen.getByText('click-0'));
 
-    expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', 42, 1, 'comp')
-  })
+    expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', 42, 1, 'comp');
+  });
 
   it('FE-COMP-VACAYCALENDAR-006d: comp and half-day stack into a half comp day (#1074)', async () => {
-    const user = userEvent.setup()
-    const toggleEntry = vi.fn().mockResolvedValue(undefined)
+    const user = userEvent.setup();
+    const toggleEntry = vi.fn().mockResolvedValue(undefined);
 
     seedStore(useVacayStore, {
       selectedYear: 2025,
@@ -259,20 +257,20 @@ describe('VacayCalendar', () => {
       users: [],
       selectedUserId: 42,
       toggleEntry,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
-    await user.click(screen.getByRole('button', { name: 'Comp / Flex' }))
-    await user.click(screen.getByRole('button', { name: 'Half day' }))
-    await user.click(screen.getByText('click-0'))
+    await user.click(screen.getByRole('button', { name: 'Comp / Flex' }));
+    await user.click(screen.getByRole('button', { name: 'Half day' }));
+    await user.click(screen.getByText('click-0'));
 
-    expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', 42, 0.5, 'comp')
-  })
+    expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', 42, 0.5, 'comp');
+  });
 
   it('FE-COMP-VACAYCALENDAR-006e: a blocked weekend day without an entry stays inert', async () => {
-    const user = userEvent.setup()
-    const toggleEntry = vi.fn().mockResolvedValue(undefined)
+    const user = userEvent.setup();
+    const toggleEntry = vi.fn().mockResolvedValue(undefined);
 
     seedStore(useVacayStore, {
       selectedYear: 2025,
@@ -283,19 +281,19 @@ describe('VacayCalendar', () => {
       users: [],
       selectedUserId: 42,
       toggleEntry,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
     // Month 3 → '2025-01-04', a Saturday.
-    await user.click(screen.getByText('click-3'))
+    await user.click(screen.getByText('click-3'));
 
-    expect(toggleEntry).not.toHaveBeenCalled()
-  })
+    expect(toggleEntry).not.toHaveBeenCalled();
+  });
 
   it('FE-COMP-VACAYCALENDAR-006f: a day stranded by a weekend-config change can still be cleared (#1897)', async () => {
-    const user = userEvent.setup()
-    const toggleEntry = vi.fn().mockResolvedValue(undefined)
+    const user = userEvent.setup();
+    const toggleEntry = vi.fn().mockResolvedValue(undefined);
 
     seedStore(useVacayStore, {
       selectedYear: 2025,
@@ -306,21 +304,21 @@ describe('VacayCalendar', () => {
       users: [],
       selectedUserId: 42,
       toggleEntry,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
     // The half-day modifier must not turn the clear into a conversion — the server
     // only allows the delete on a blocked day.
-    await user.click(screen.getByRole('button', { name: 'Half day' }))
-    await user.click(screen.getByText('click-3'))
+    await user.click(screen.getByRole('button', { name: 'Half day' }));
+    await user.click(screen.getByText('click-3'));
 
-    expect(toggleEntry).toHaveBeenCalledWith('2025-01-04', 42, 1, 'vacation')
-  })
+    expect(toggleEntry).toHaveBeenCalledWith('2025-01-04', 42, 1, 'vacation');
+  });
 
   it('FE-COMP-VACAYCALENDAR-007: cell click on public holiday toggles vacation entry', async () => {
-    const user = userEvent.setup()
-    const toggleEntry = vi.fn().mockResolvedValue(undefined)
+    const user = userEvent.setup();
+    const toggleEntry = vi.fn().mockResolvedValue(undefined);
 
     seedStore(useVacayStore, {
       selectedYear: 2025,
@@ -331,20 +329,20 @@ describe('VacayCalendar', () => {
       users: [],
       selectedUserId: null,
       toggleEntry,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
     // Month 0, button emits '2025-01-01' which is a holiday — should still toggle vacation
-    await user.click(screen.getByText('click-0'))
+    await user.click(screen.getByText('click-0'));
 
-    expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', undefined, 1, 'vacation')
-  })
+    expect(toggleEntry).toHaveBeenCalledWith('2025-01-01', undefined, 1, 'vacation');
+  });
 
   it('FE-COMP-VACAYCALENDAR-008: cell click in company mode calls toggleCompanyHoliday', async () => {
-    const user = userEvent.setup()
-    const toggleCompanyHoliday = vi.fn().mockResolvedValue(undefined)
-    const toggleEntry = vi.fn().mockResolvedValue(undefined)
+    const user = userEvent.setup();
+    const toggleCompanyHoliday = vi.fn().mockResolvedValue(undefined);
+    const toggleEntry = vi.fn().mockResolvedValue(undefined);
 
     seedStore(useVacayStore, {
       selectedYear: 2025,
@@ -356,26 +354,26 @@ describe('VacayCalendar', () => {
       selectedUserId: null,
       toggleEntry,
       toggleCompanyHoliday,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
     // Switch to company mode
-    const buttons = screen.getAllByRole('button')
-    const toolbarButtons = buttons.filter(b => !b.textContent?.startsWith('click-'))
-    const companyBtn = toolbarButtons[1]
-    await user.click(companyBtn)
+    const buttons = screen.getAllByRole('button');
+    const toolbarButtons = buttons.filter((b) => !b.textContent?.startsWith('click-'));
+    const companyBtn = toolbarButtons[1];
+    await user.click(companyBtn);
 
     // Now click a month card cell
-    await user.click(screen.getByText('click-0'))
+    await user.click(screen.getByText('click-0'));
 
-    expect(toggleCompanyHoliday.mock.calls[0][0]).toBe('2025-01-01')
-    expect(toggleEntry).not.toHaveBeenCalled()
-  })
+    expect(toggleCompanyHoliday.mock.calls[0][0]).toBe('2025-01-01');
+    expect(toggleEntry).not.toHaveBeenCalled();
+  });
 
   it('FE-COMP-VACAYCALENDAR-009: company mode click blocked when company_holidays_enabled is false', async () => {
-    const user = userEvent.setup()
-    const toggleCompanyHoliday = vi.fn().mockResolvedValue(undefined)
+    const user = userEvent.setup();
+    const toggleCompanyHoliday = vi.fn().mockResolvedValue(undefined);
 
     // Plan has company_holidays_enabled: false, so the company button won't render.
     // We directly test the guard: even if companyMode were true, the handler returns early.
@@ -391,28 +389,28 @@ describe('VacayCalendar', () => {
       users: [],
       selectedUserId: null,
       toggleCompanyHoliday,
-    })
+    });
 
-    const { rerender } = render(<VacayCalendar />)
+    const { rerender } = render(<VacayCalendar />);
 
     // Switch to company mode while it was enabled
-    const buttons = screen.getAllByRole('button')
-    const toolbarButtons = buttons.filter(b => !b.textContent?.startsWith('click-'))
-    await user.click(toolbarButtons[1]) // company button
+    const buttons = screen.getAllByRole('button');
+    const toolbarButtons = buttons.filter((b) => !b.textContent?.startsWith('click-'));
+    await user.click(toolbarButtons[1]); // company button
 
     // Now disable company holidays in the store
     seedStore(useVacayStore, {
       plan: { ...basePlan, company_holidays_enabled: false },
       toggleCompanyHoliday,
-    })
-    rerender(<VacayCalendar />)
+    });
+    rerender(<VacayCalendar />);
 
     // Clicking a cell now — guard inside handleCellClick should prevent toggleCompanyHoliday
     // Note: after rerender, companyMode state is reset (new component instance from rerender).
     // The guard is tested by verifying toggleCompanyHoliday is not called when plan disables it.
     // Since component re-renders with company button hidden, this validates the guard behavior.
-    expect(toggleCompanyHoliday).not.toHaveBeenCalled()
-  })
+    expect(toggleCompanyHoliday).not.toHaveBeenCalled();
+  });
 
   it('FE-COMP-VACAYCALENDAR-010: selected user color dot shown in toolbar', () => {
     seedStore(useVacayStore, {
@@ -423,15 +421,15 @@ describe('VacayCalendar', () => {
       plan: basePlan,
       users: [{ id: 1, color: '#ec4899', username: 'Alice' }],
       selectedUserId: 1,
-    })
+    });
 
-    render(<VacayCalendar />)
+    render(<VacayCalendar />);
 
     // Find the color dot span with the user's color (JSDOM normalizes hex to rgb)
-    const spans = document.querySelectorAll('span')
+    const spans = document.querySelectorAll('span');
     const colorDot = Array.from(spans).find(
-      s => s.style.backgroundColor === 'rgb(236, 72, 153)' || s.style.backgroundColor === '#ec4899'
-    )
-    expect(colorDot).toBeDefined()
-  })
-})
+      (s) => s.style.backgroundColor === 'rgb(236, 72, 153)' || s.style.backgroundColor === '#ec4899'
+    );
+    expect(colorDot).toBeDefined();
+  });
+});

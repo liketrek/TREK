@@ -9,6 +9,9 @@
  *
  * fetch is stubbed; the DB is mocked the same way maps.service.test.ts does it.
  */
+import { MapsService } from '../../../src/nest/maps/maps.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
+
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('../../../src/db/database', () => ({
@@ -22,9 +25,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   checkSsrf: vi.fn(async () => ({ allowed: true })),
   SsrfBlockedError: class extends Error {},
 }));
-
-import { MapsService } from '../../../src/nest/maps/maps.service';
-import { noGoogleQuota } from '../../helpers/google-quota';
 
 const svcOf = () => new MapsService({} as never, {} as never, {} as never, {} as never, {} as never, noGoogleQuota);
 
@@ -96,7 +96,9 @@ describe('fetchWikidataCandidates', () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        entities: { Q1: { claims: { P18: [{ mainsnak: { datavalue: { value: 'Wrong.jpg' } }, rank: 'deprecated' }] } } },
+        entities: {
+          Q1: { claims: { P18: [{ mainsnak: { datavalue: { value: 'Wrong.jpg' } }, rank: 'deprecated' }] } },
+        },
       }),
     });
     vi.stubGlobal('fetch', fetchMock);

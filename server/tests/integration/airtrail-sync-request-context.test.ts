@@ -23,8 +23,21 @@
  * for that conversion, the same technique `feeds-request-context.test.ts`'s
  * SEAM-FEED-001 uses for the anonymous ICS routes.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { Users } from '../../src/db/entities/Users.entity';
+import { AirtrailLinkService } from '../../src/nest/integrations/airtrail-link.service';
+import { AirtrailSyncJob } from '../../src/nest/integrations/airtrail-sync.job';
+import { AirtrailClient, type AirtrailFlightRaw } from '../../src/nest/integrations/airtrail.client';
+import { AirtrailService } from '../../src/nest/integrations/airtrail.service';
+import { ReservationsService } from '../../src/nest/reservations/reservations.service';
+import { CronRegistrarService } from '../../src/nest/scheduling/cron-registrar.service';
+import { createTrip, createUser } from '../helpers/factories';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
+import { SchedulerRegistry } from '@nestjs/schedule';
+
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -39,20 +52,11 @@ vi.mock('../../src/config', () => ({
   SESSION_DURATION_SECONDS: 86400,
   DEFAULT_LANGUAGE: 'en',
 }));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn(), getOnlineUserIds: vi.fn(() => []) }));
-
-import { MikroORM } from '@mikro-orm/core';
-import { SchedulerRegistry } from '@nestjs/schedule';
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { CronRegistrarService } from '../../src/nest/scheduling/cron-registrar.service';
-import { AirtrailSyncJob } from '../../src/nest/integrations/airtrail-sync.job';
-import { AirtrailLinkService } from '../../src/nest/integrations/airtrail-link.service';
-import { AirtrailService } from '../../src/nest/integrations/airtrail.service';
-import { AirtrailClient, type AirtrailFlightRaw } from '../../src/nest/integrations/airtrail.client';
-import { ReservationsService } from '../../src/nest/reservations/reservations.service';
-import { Users } from '../../src/db/entities/Users.entity';
-import { createTrip, createUser } from '../helpers/factories';
+vi.mock('../../src/websocket', () => ({
+  broadcast: vi.fn(),
+  broadcastToUser: vi.fn(),
+  getOnlineUserIds: vi.fn(() => []),
+}));
 
 describe('airtrail-sync cron tick runs inside a request context', () => {
   let app: INestApplication;

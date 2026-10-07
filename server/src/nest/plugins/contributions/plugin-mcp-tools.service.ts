@@ -10,13 +10,11 @@
  * reads only state already in memory or in SQLite. Nothing here waits on a
  * child process.
  */
-import { Injectable, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
-
+import { demoDenied, errorResult, type McpContext, type McpDynamicTool, type McpTextResult } from '../../../nest-mcp';
+import { setPluginMcpToolSource } from '../../../plugin-mcp-tools';
 import { RuntimeEnvService } from '../../app-config/runtime-env.service';
 import { DemoService } from '../../common/demo.service';
 import { pluginsEnabled } from '../kill-switch';
-import { PluginHooks } from '../plugin-hooks.service';
-import { PluginRuntimeService } from '../plugin-runtime.service';
 import {
   MCP_TOOLS_MAX,
   MCP_TOOLS_TOTAL_MAX,
@@ -24,10 +22,10 @@ import {
   clampToolAnnotations,
   mcpToolName,
 } from '../mcp-tool-schema';
+import { PluginHooks } from '../plugin-hooks.service';
+import { PluginRuntimeService } from '../plugin-runtime.service';
 import { sanitiseAssistantText } from '../text-sanitize';
-import { setPluginMcpToolSource } from '../../../plugin-mcp-tools';
-
-import { demoDenied, errorResult, type McpContext, type McpDynamicTool, type McpTextResult } from '../../../nest-mcp';
+import { Injectable, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
 
 /** The hook a plugin implements to publish tools. */
 const HOOK = 'mcpToolProvider';
@@ -167,18 +165,16 @@ export class PluginMcpToolsService implements OnApplicationBootstrap, OnModuleDe
       // A failed or timed-out invoke is a TOOL error, not a protocol one: the
       // model has to see it and be able to try something else.
       const message = e instanceof Error ? e.message : String(e);
-      return errorResult(`Plugin "${pluginId}" could not run "${name}": ${sanitiseAssistantText(message, RESULT_ERROR_MAX)}`);
+      return errorResult(
+        `Plugin "${pluginId}" could not run "${name}": ${sanitiseAssistantText(message, RESULT_ERROR_MAX)}`,
+      );
     }
   }
 }
 
 /** True for a value already shaped like an MCP result the SDK would accept. */
 function isTextResult(v: unknown): v is McpTextResult {
-  return (
-    typeof v === 'object' &&
-    v !== null &&
-    Array.isArray((v as { content?: unknown }).content)
-  );
+  return typeof v === 'object' && v !== null && Array.isArray((v as { content?: unknown }).content);
 }
 
 /**
@@ -272,21 +268,25 @@ export function toMcpTextResult(raw: unknown): McpTextResult {
 function serialiseBounded(value: unknown): { text: string; cut: boolean } {
   let budget = RESULT_MAX;
   let cut = false;
-  const text = JSON.stringify(value, (_key, v: unknown) => {
-    if (budget <= 0) {
-      cut = true;
-      return undefined;
-    }
-    if (typeof v === 'string') {
-      budget -= v.length;
+  const text = JSON.stringify(
+    value,
+    (_key, v: unknown) => {
       if (budget <= 0) {
         cut = true;
-        return v.slice(0, Math.max(0, v.length + budget));
+        return undefined;
       }
+      if (typeof v === 'string') {
+        budget -= v.length;
+        if (budget <= 0) {
+          cut = true;
+          return v.slice(0, Math.max(0, v.length + budget));
+        }
+        return v;
+      }
+      budget -= 8; // rough cost of a number, boolean, or structural token
       return v;
-    }
-    budget -= 8; // rough cost of a number, boolean, or structural token
-    return v;
-  }, 2);
+    },
+    2,
+  );
   return { text: text ?? '', cut };
 }

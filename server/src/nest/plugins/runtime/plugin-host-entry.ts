@@ -9,15 +9,29 @@
  * MUST NOT import any privileged server module (db, config, websocket). Its only
  * imports are the pure protocol + SDK.
  */
-
-import path from 'node:path';
-import net from 'node:net';
-import dns from 'node:dns';
-import dgram from 'node:dgram';
-import { createRequire } from 'node:module';
-import { createPluginContext, definePlugin, PLUGIN_API_VERSION, type ChildTransport, type PluginContext, type PluginDefinition } from './plugin-sdk';
-import { isBlockedIp, makeHostAllow, classifyConnect, unwrapConnectArgs, dgramSendTarget, dgramConnectTarget } from './egress-policy';
 import type { Envelope, RpcError } from '../protocol/envelope';
+import {
+  isBlockedIp,
+  makeHostAllow,
+  classifyConnect,
+  unwrapConnectArgs,
+  dgramSendTarget,
+  dgramConnectTarget,
+} from './egress-policy';
+import {
+  createPluginContext,
+  definePlugin,
+  PLUGIN_API_VERSION,
+  type ChildTransport,
+  type PluginContext,
+  type PluginDefinition,
+} from './plugin-sdk';
+
+import dgram from 'node:dgram';
+import dns from 'node:dns';
+import { createRequire } from 'node:module';
+import net from 'node:net';
+import path from 'node:path';
 
 const pluginId = process.argv[2] || process.env.TREK_PLUGIN_ID || 'unknown';
 const pluginDir = process.argv[3] || '';
@@ -33,8 +47,7 @@ let seq = 0;
 // Capture the raw IPC write ONCE, before installIpcGuard() locks `process.send`
 // to a throwing stub. The transport keeps sending through this closure; plugin
 // code no longer has any path to the channel. See installIpcGuard().
-const realSend: (msg: Envelope) => void =
-  typeof process.send === 'function' ? process.send.bind(process) : () => {};
+const realSend: (msg: Envelope) => void = typeof process.send === 'function' ? process.send.bind(process) : () => {};
 function send(msg: Envelope): void {
   realSend(msg);
 }
@@ -94,7 +107,8 @@ function functionsOf(impl: unknown): string[] {
   try {
     for (let o: object | null = impl; o && o !== Object.prototype; o = Object.getPrototypeOf(o) as object | null) {
       for (const key of Object.getOwnPropertyNames(o)) {
-        if (key !== 'constructor' && typeof Object.getOwnPropertyDescriptor(o, key)?.value === 'function') names.add(key);
+        if (key !== 'constructor' && typeof Object.getOwnPropertyDescriptor(o, key)?.value === 'function')
+          names.add(key);
       }
     }
   } catch {
@@ -142,7 +156,11 @@ async function boot(config: Record<string, unknown>): Promise<void> {
     // synchronous: the host never asks the child what tools it has, it
     // intersects this with the signed manifest.
     const mcpTools = (def.hooks?.mcpToolProvider?.tools ?? []).filter((t) => typeof t === 'string');
-    send({ k: 'evt', topic: 'loaded', data: { routes, jobs, hooks, hookFns, events, exports: exportNames, subscriptions, mcpTools } });
+    send({
+      k: 'evt',
+      topic: 'loaded',
+      data: { routes, jobs, hooks, hookFns, events, exports: exportNames, subscriptions, mcpTools },
+    });
     activated = true; // past load: a later async throw is a runtime CRASH, not a load failure
     // An immediate first heartbeat confirms liveness without waiting a full interval.
     send({ k: 'evt', topic: 'heartbeat', data: { rss: process.memoryUsage().rss } });
@@ -372,8 +390,14 @@ function installIpcGuard(): void {
   const GUARDED = new Set(['message', 'internalMessage']);
   const ee = process as unknown as Record<string, (...a: unknown[]) => unknown>;
   const emitterMethods = [
-    'on', 'addListener', 'prependListener', 'once', 'prependOnceListener',
-    'off', 'removeListener', 'removeAllListeners',
+    'on',
+    'addListener',
+    'prependListener',
+    'once',
+    'prependOnceListener',
+    'off',
+    'removeListener',
+    'removeAllListeners',
   ] as const;
   for (const m of emitterMethods) {
     const real = ee[m].bind(process);
@@ -428,16 +452,21 @@ function installEgressGuard(egress: string[]): void {
   for (const name of ['binding', '_linkedBinding'] as const) {
     try {
       Object.defineProperty(process, name, {
-        value: () => { throw new Error(`egress: process.${name} is disabled for plugins`); },
-        writable: false, configurable: false,
+        value: () => {
+          throw new Error(`egress: process.${name} is disabled for plugins`);
+        },
+        writable: false,
+        configurable: false,
       });
-    } catch { /* already locked / non-configurable */ }
+    } catch {
+      /* already locked / non-configurable */
+    }
   }
 
   const realFetch = globalThis.fetch;
   if (typeof realFetch === 'function') {
     globalThis.fetch = ((input: unknown, init?: unknown) => {
-      const url = typeof input === 'string' ? input : (input as { url?: string })?.url ?? String(input);
+      const url = typeof input === 'string' ? input : ((input as { url?: string })?.url ?? String(input));
       let host: string;
       try {
         host = new URL(url).hostname.replace(/^\[/, '').replace(/\]$/, '');
@@ -467,7 +496,9 @@ function installEgressGuard(egress: string[]): void {
       const list = Array.isArray(address) ? address : [{ address: address as string }];
       for (const a of list) {
         if (blockPrivate && isBlockedIp((a as { address: string }).address)) {
-          return cb(new Error(`egress: ${hostname} resolves to a blocked address (${(a as { address: string }).address})`));
+          return cb(
+            new Error(`egress: ${hostname} resolves to a blocked address (${(a as { address: string }).address})`),
+          );
         }
       }
       cb(null, address as unknown, family);
@@ -503,7 +534,8 @@ function installEgressGuard(egress: string[]): void {
     // Hostname: inject the resolving guard. Preserve an existing lookup by
     // wrapping the args' options object.
     const first = args[0];
-    const options = first && typeof first === 'object' ? { ...(first as object) } : { host: target.host, port: args[0] };
+    const options =
+      first && typeof first === 'object' ? { ...(first as object) } : { host: target.host, port: args[0] };
     (options as { lookup?: unknown }).lookup = guardedLookup;
     const rest = first && typeof first === 'object' ? args.slice(1) : args.slice(typeof args[1] === 'string' ? 2 : 1);
     return realConnect.call(this, options, ...rest);
@@ -538,7 +570,10 @@ function installEgressGuard(egress: string[]): void {
   // a private/metadata address is refused (the TCP path's rebind backstop, for UDP).
   const injectLookup = (arg: unknown): { type?: unknown; lookup: unknown } =>
     typeof arg === 'string' ? { type: arg, lookup: guardedLookup } : { ...(arg as object), lookup: guardedLookup };
-  const dgramApi = dgram as unknown as { createSocket: (...a: unknown[]) => unknown; Socket: new (o?: unknown, cb?: unknown) => unknown };
+  const dgramApi = dgram as unknown as {
+    createSocket: (...a: unknown[]) => unknown;
+    Socket: new (o?: unknown, cb?: unknown) => unknown;
+  };
   const realCreateSocket = dgramApi.createSocket;
   dgramApi.createSocket = function (this: unknown, ...args: unknown[]): unknown {
     args[0] = injectLookup(args[0]);
@@ -553,7 +588,11 @@ function installEgressGuard(egress: string[]): void {
 
   // Lock the wrapped choke points so a plugin can't restore the originals.
   const lock = (obj: object, key: string, value: unknown) => {
-    try { Object.defineProperty(obj, key, { value, writable: false, configurable: false }); } catch { /* noop */ }
+    try {
+      Object.defineProperty(obj, key, { value, writable: false, configurable: false });
+    } catch {
+      /* noop */
+    }
   };
   lock(proto, 'connect', proto.connect);
   lock(dgramProto, 'send', dgramProto.send);
@@ -566,8 +605,20 @@ function installEgressGuard(egress: string[]): void {
   // itself must be a declared host. Covers the callback module fns, the promise
   // API, and per-Resolver instances (which share Resolver.prototype).
   const DNS_METHODS = [
-    'lookup', 'resolve', 'resolve4', 'resolve6', 'resolveAny', 'resolveCaa', 'resolveCname',
-    'resolveMx', 'resolveNaptr', 'resolveNs', 'resolvePtr', 'resolveSoa', 'resolveSrv', 'resolveTxt',
+    'lookup',
+    'resolve',
+    'resolve4',
+    'resolve6',
+    'resolveAny',
+    'resolveCaa',
+    'resolveCname',
+    'resolveMx',
+    'resolveNaptr',
+    'resolveNs',
+    'resolvePtr',
+    'resolveSoa',
+    'resolveSrv',
+    'resolveTxt',
   ];
   const gateDnsMethods = (obj: Record<string, unknown> | undefined): void => {
     if (!obj) return;
@@ -589,7 +640,8 @@ function installEgressGuard(egress: string[]): void {
   gateDnsMethods(dns.promises as unknown as Record<string, unknown>);
   const resolverProto = (dns as unknown as { Resolver?: { prototype: Record<string, unknown> } }).Resolver?.prototype;
   gateDnsMethods(resolverProto);
-  const promisesResolverProto = (dns.promises as unknown as { Resolver?: { prototype: Record<string, unknown> } })?.Resolver?.prototype;
+  const promisesResolverProto = (dns.promises as unknown as { Resolver?: { prototype: Record<string, unknown> } })
+    ?.Resolver?.prototype;
   gateDnsMethods(promisesResolverProto);
 }
 

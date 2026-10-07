@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { MailerService } from './mailer.service';
-import { Users } from '../../../db/entities/Users.entity';
-import { Settings } from '../../../db/entities/Settings.entity';
 import { AppSettings } from '../../../db/entities/AppSettings.entity';
+import { Settings } from '../../../db/entities/Settings.entity';
+import { Users } from '../../../db/entities/Users.entity';
+import { MailerService } from './mailer.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Outgoing SMTP. A leaf module on purpose: AuthModule imports it for the

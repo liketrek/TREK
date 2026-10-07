@@ -6,13 +6,21 @@
  * on auth, trip-access 404, permission 403, the create-201 status codes, the
  * vote/react 200 overrides and the persisted rows.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
-import request from 'supertest';
+import { CollabModule } from '../../src/nest/collab/collab.module';
+import { RateLimitService } from '../../src/nest/common/rate-limit.service';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -63,29 +71,31 @@ const { db } = vi.hoisted(() => {
 
 const { canAccessTrip } = vi.hoisted(() => ({ canAccessTrip: vi.fn() }));
 vi.mock('../../src/db/database', () => ({
-  db, canAccessTrip, getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
+  db,
+  canAccessTrip,
+  getPlaceWithTags: vi.fn(),
+  closeDb: () => {},
+  reinitialize: () => {},
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
-
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
 // Since the permissions DI migration, the check is a spy on the container's
 // PermissionsService singleton (created in beforeAll, after build()).
 let checkPermission: MockInstance;
-
-import { CollabModule } from '../../src/nest/collab/collab.module';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { RateLimitService } from '../../src/nest/common/rate-limit.service';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
 
 describe('Collab e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, CollabModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        CollabModule,
+      ],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -145,7 +155,10 @@ describe('Collab e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('201 on note create with permission, row persisted', async () => {
-    const res = await request(server).post('/api/trips/5/collab/notes').set('Cookie', sessionCookie(1)).send({ title: 'N' });
+    const res = await request(server)
+      .post('/api/trips/5/collab/notes')
+      .set('Cookie', sessionCookie(1))
+      .send({ title: 'N' });
     expect(res.status).toBe(201);
     expect(res.body.note).toMatchObject({ title: 'N', category: 'General', color: '#6366f1', pinned: 0 });
     const row = db.prepare('SELECT * FROM collab_notes WHERE trip_id = 5').get() as { title: string };
@@ -154,15 +167,23 @@ describe('Collab e2e (real auth guard + temp SQLite)', () => {
 
   it('403 on note create without permission', async () => {
     checkPermission.mockReturnValue(false);
-    const res = await request(server).post('/api/trips/5/collab/notes').set('Cookie', sessionCookie(1)).send({ title: 'N' });
+    const res = await request(server)
+      .post('/api/trips/5/collab/notes')
+      .set('Cookie', sessionCookie(1))
+      .send({ title: 'N' });
     expect(res.status).toBe(403);
     expect(res.body).toEqual({ error: 'No permission' });
   });
 
   it('200 on poll vote (not 201), vote persisted', async () => {
-    db.prepare('INSERT INTO collab_polls (id, trip_id, user_id, question, options) VALUES (7, 5, 1, ?, ?)')
-      .run('Q?', JSON.stringify(['A', 'B']));
-    const res = await request(server).post('/api/trips/5/collab/polls/7/vote').set('Cookie', sessionCookie(1)).send({ option_index: 0 });
+    db.prepare('INSERT INTO collab_polls (id, trip_id, user_id, question, options) VALUES (7, 5, 1, ?, ?)').run(
+      'Q?',
+      JSON.stringify(['A', 'B']),
+    );
+    const res = await request(server)
+      .post('/api/trips/5/collab/polls/7/vote')
+      .set('Cookie', sessionCookie(1))
+      .send({ option_index: 0 });
     expect(res.status).toBe(200);
     expect(res.body.poll).toMatchObject({ id: 7, is_closed: false });
     expect(res.body.poll.options[0].voters).toHaveLength(1);
@@ -171,7 +192,10 @@ describe('Collab e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('201 on message create, row persisted', async () => {
-    const res = await request(server).post('/api/trips/5/collab/messages').set('Cookie', sessionCookie(1)).send({ text: 'hi' });
+    const res = await request(server)
+      .post('/api/trips/5/collab/messages')
+      .set('Cookie', sessionCookie(1))
+      .send({ text: 'hi' });
     expect(res.status).toBe(201);
     expect(res.body.message).toMatchObject({ text: 'hi', trip_id: 5, user_id: 1 });
     const row = db.prepare('SELECT * FROM collab_messages WHERE trip_id = 5').get() as { text: string };
@@ -180,11 +204,16 @@ describe('Collab e2e (real auth guard + temp SQLite)', () => {
 
   it('200 on react (not 201), reaction persisted and toggled', async () => {
     db.prepare("INSERT INTO collab_messages (id, trip_id, user_id, text) VALUES (3, 5, 1, 'react me')").run();
-    const res = await request(server).post('/api/trips/5/collab/messages/3/react').set('Cookie', sessionCookie(1)).send({ emoji: '👍' });
+    const res = await request(server)
+      .post('/api/trips/5/collab/messages/3/react')
+      .set('Cookie', sessionCookie(1))
+      .send({ emoji: '👍' });
     expect(res.status).toBe(200);
     expect(res.body.reactions).toHaveLength(1);
     expect(res.body.reactions[0]).toMatchObject({ emoji: '👍', count: 1 });
-    expect(db.prepare('SELECT COUNT(*) as c FROM collab_message_reactions WHERE message_id = 3').get()).toEqual({ c: 1 });
+    expect(db.prepare('SELECT COUNT(*) as c FROM collab_message_reactions WHERE message_id = 3').get()).toEqual({
+      c: 1,
+    });
   });
 
   // The advisory this route was reported under: it answered anyone with a session,
@@ -207,9 +236,14 @@ describe('Collab e2e (real auth guard + temp SQLite)', () => {
   // the chat, so gating it on the write permission would blank the chat for them.
   it('200 on link-preview for a member without collab_edit', async () => {
     checkPermission.mockReturnValue(false);
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true, headers: { get: () => null }, text: async () => '<title>Lesbar</title>',
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => null },
+        text: async () => '<title>Lesbar</title>',
+      }),
+    );
     const res = await request(server)
       .get('/api/trips/5/collab/link-preview?url=https://example.com/reader')
       .set('Cookie', sessionCookie(1));
@@ -219,15 +253,22 @@ describe('Collab e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('429 once the caller has spent a minute of preview fetches', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true, headers: { get: () => null }, text: async () => '<title>T</title>',
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => null },
+        text: async () => '<title>T</title>',
+      }),
+    );
     // Distinct URLs, because a repeat is served from the cache and costs nothing.
     let last = 200;
     for (let i = 0; i < 61 && last === 200; i++) {
-      last = (await request(server)
-        .get(`/api/trips/5/collab/link-preview?url=${encodeURIComponent(`https://example.com/e2e-${i}`)}`)
-        .set('Cookie', sessionCookie(1))).status;
+      last = (
+        await request(server)
+          .get(`/api/trips/5/collab/link-preview?url=${encodeURIComponent(`https://example.com/e2e-${i}`)}`)
+          .set('Cookie', sessionCookie(1))
+      ).status;
     }
     vi.unstubAllGlobals();
     expect(last).toBe(429);
@@ -254,57 +295,91 @@ describe('Collab e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('201 on create, and the row is persisted with the acting user', async () => {
-      const res = await request(server).post('/api/trips/5/collab/links').set('Cookie', sessionCookie(1))
+      const res = await request(server)
+        .post('/api/trips/5/collab/links')
+        .set('Cookie', sessionCookie(1))
         .send({ title: 'Ferry', url: 'https://example.com/ferry' });
       expect(res.status).toBe(201);
       expect(res.body.link).toMatchObject({ title: 'Ferry', url: 'https://example.com/ferry' });
-      const row = db.prepare('SELECT * FROM collab_links WHERE trip_id = 5').get() as { title: string; user_id: number };
+      const row = db.prepare('SELECT * FROM collab_links WHERE trip_id = 5').get() as {
+        title: string;
+        user_id: number;
+      };
       expect(row).toMatchObject({ title: 'Ferry', user_id: 1 });
     });
 
     it('403 on create without collab_edit', async () => {
       checkPermission.mockReturnValue(false);
-      const res = await request(server).post('/api/trips/5/collab/links').set('Cookie', sessionCookie(1))
+      const res = await request(server)
+        .post('/api/trips/5/collab/links')
+        .set('Cookie', sessionCookie(1))
         .send({ title: 'Ferry', url: 'https://example.com/ferry' });
       expect(res.status).toBe(403);
     });
 
     it('400 when the body does not satisfy the contract', async () => {
-      const res = await request(server).post('/api/trips/5/collab/links').set('Cookie', sessionCookie(1)).send({ title: 'Ferry' });
+      const res = await request(server)
+        .post('/api/trips/5/collab/links')
+        .set('Cookie', sessionCookie(1))
+        .send({ title: 'Ferry' });
       expect(res.status).toBe(400);
     });
 
     it('200 on list, pinned first', async () => {
-      db.prepare("INSERT INTO collab_links (id, trip_id, user_id, title, url, pinned) VALUES (1, 5, 1, 'Plain', 'https://a.test', 0)").run();
-      db.prepare("INSERT INTO collab_links (id, trip_id, user_id, title, url, pinned) VALUES (2, 5, 1, 'Pinned', 'https://b.test', 1)").run();
+      db.prepare(
+        "INSERT INTO collab_links (id, trip_id, user_id, title, url, pinned) VALUES (1, 5, 1, 'Plain', 'https://a.test', 0)",
+      ).run();
+      db.prepare(
+        "INSERT INTO collab_links (id, trip_id, user_id, title, url, pinned) VALUES (2, 5, 1, 'Pinned', 'https://b.test', 1)",
+      ).run();
       const res = await request(server).get('/api/trips/5/collab/links').set('Cookie', sessionCookie(1));
       expect(res.status).toBe(200);
       expect(res.body.links.map((l: { title: string }) => l.title)).toEqual(['Pinned', 'Plain']);
     });
 
     it('200 on update and the pin lands in the row', async () => {
-      db.prepare("INSERT INTO collab_links (id, trip_id, user_id, title, url) VALUES (1, 5, 1, 'Plain', 'https://a.test')").run();
-      const res = await request(server).put('/api/trips/5/collab/links/1').set('Cookie', sessionCookie(1)).send({ pinned: true });
+      db.prepare(
+        "INSERT INTO collab_links (id, trip_id, user_id, title, url) VALUES (1, 5, 1, 'Plain', 'https://a.test')",
+      ).run();
+      const res = await request(server)
+        .put('/api/trips/5/collab/links/1')
+        .set('Cookie', sessionCookie(1))
+        .send({ pinned: true });
       expect(res.status).toBe(200);
       expect(res.body.link).toMatchObject({ id: 1, pinned: 1 });
     });
 
     it('404 on update and delete of a link that is not there', async () => {
-      expect((await request(server).put('/api/trips/5/collab/links/99').set('Cookie', sessionCookie(1)).send({ pinned: true })).status).toBe(404);
-      expect((await request(server).delete('/api/trips/5/collab/links/99').set('Cookie', sessionCookie(1))).status).toBe(404);
+      expect(
+        (
+          await request(server)
+            .put('/api/trips/5/collab/links/99')
+            .set('Cookie', sessionCookie(1))
+            .send({ pinned: true })
+        ).status,
+      ).toBe(404);
+      expect(
+        (await request(server).delete('/api/trips/5/collab/links/99').set('Cookie', sessionCookie(1))).status,
+      ).toBe(404);
     });
 
     it('200 on delete and the row is gone', async () => {
-      db.prepare("INSERT INTO collab_links (id, trip_id, user_id, title, url) VALUES (1, 5, 1, 'Plain', 'https://a.test')").run();
+      db.prepare(
+        "INSERT INTO collab_links (id, trip_id, user_id, title, url) VALUES (1, 5, 1, 'Plain', 'https://a.test')",
+      ).run();
       const res = await request(server).delete('/api/trips/5/collab/links/1').set('Cookie', sessionCookie(1));
       expect(res.status).toBe(200);
       expect(db.prepare('SELECT COUNT(*) c FROM collab_links').get()).toEqual({ c: 0 });
     });
 
     it('403 on delete without collab_edit', async () => {
-      db.prepare("INSERT INTO collab_links (id, trip_id, user_id, title, url) VALUES (1, 5, 1, 'Plain', 'https://a.test')").run();
+      db.prepare(
+        "INSERT INTO collab_links (id, trip_id, user_id, title, url) VALUES (1, 5, 1, 'Plain', 'https://a.test')",
+      ).run();
       checkPermission.mockReturnValue(false);
-      expect((await request(server).delete('/api/trips/5/collab/links/1').set('Cookie', sessionCookie(1))).status).toBe(403);
+      expect((await request(server).delete('/api/trips/5/collab/links/1').set('Cookie', sessionCookie(1))).status).toBe(
+        403,
+      );
     });
   });
 });

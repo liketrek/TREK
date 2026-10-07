@@ -1,26 +1,26 @@
-import { RotateCcw, X } from 'lucide-react'
-import MSheet from '../../../components/MSheet'
-import MIconBtn from '../../../components/MIconBtn'
-import MChip from '../../../components/MChip'
-import { useTripStore } from '../../../../store/tripStore'
-import { countActivePlacesFilters } from '../../../../utils/placesFilter'
-import { useTranslation } from '../../../../i18n'
-import type { Category, Place } from '../../../../types'
-import { MCategoryFilterList, MRatingFloorChips } from './MPlacesFilterControls'
+import { RotateCcw, X } from 'lucide-react';
+import { useTranslation } from '../../../../i18n';
+import { useTripStore } from '../../../../store/tripStore';
+import type { Category, Place } from '../../../../types';
+import { countActivePlacesFilters } from '../../../../utils/placesFilter';
+import MChip from '../../../components/MChip';
+import MIconBtn from '../../../components/MIconBtn';
+import MSheet from '../../../components/MSheet';
+import { MCategoryFilterList, MRatingFloorChips } from './MPlacesFilterControls';
 
 interface MPlacesFilterSheetProps {
-  open: boolean
-  onClose: () => void
-  places: Place[]
-  categories: Category[]
-  toursEnabled: boolean
+  open: boolean;
+  onClose: () => void;
+  places: Place[];
+  categories: Category[];
+  toursEnabled: boolean;
 }
 
 /** Uppercase eyebrow over each group of the sheet. */
 function SectionTitle({ children }: { children: string }) {
   return (
     <div className="mb-2 font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">{children}</div>
-  )
+  );
 }
 
 /**
@@ -29,22 +29,29 @@ function SectionTitle({ children }: { children: string }) {
  * choice lands in the trip store at once, so the markers behind the sheet and the
  * places list change with it (#1541). Routed as shell sheet 'placesFilter'.
  */
-export default function MPlacesFilterSheet({ open, onClose, places, categories, toursEnabled }: MPlacesFilterSheetProps) {
-  const { t } = useTranslation()
-  const filter = useTripStore(s => s.placesFilter)
-  const categoryFilters = useTripStore(s => s.placesCategoryFilter)
-  const ratingFilter = useTripStore(s => s.placesRatingFilter)
-  const setFilter = useTripStore(s => s.setPlacesFilter)
-  const resetPlacesFilters = useTripStore(s => s.resetPlacesFilters)
-  const activeCount = countActivePlacesFilters({ filter, categoryFilters, ratingFilter })
+export default function MPlacesFilterSheet({
+  open,
+  onClose,
+  places,
+  categories,
+  toursEnabled,
+}: MPlacesFilterSheetProps) {
+  const { t } = useTranslation();
+  const filter = useTripStore((s) => s.placesFilter);
+  const categoryFilters = useTripStore((s) => s.placesCategoryFilter);
+  const ratingFilter = useTripStore((s) => s.placesRatingFilter);
+  const setFilter = useTripStore((s) => s.setPlacesFilter);
+  const resetPlacesFilters = useTripStore((s) => s.resetPlacesFilters);
+  const activeCount = countActivePlacesFilters({ filter, categoryFilters, ratingFilter });
 
   const pools = [
     { id: 'all', label: t('places.all') },
     { id: 'unplanned', label: t('places.unplanned') },
     { id: 'planned', label: t('places.planned') },
-  ]
-  if (!toursEnabled && places.some(p => p.route_geometry)) pools.push({ id: 'tracks', label: t('places.filterTracks') })
-  const hasCategoryChoice = categories.length > 0 || places.some(p => p.category_id == null)
+  ];
+  if (!toursEnabled && places.some((p) => p.route_geometry))
+    pools.push({ id: 'tracks', label: t('places.filterTracks') });
+  const hasCategoryChoice = categories.length > 0 || places.some((p) => p.category_id == null);
 
   return (
     // Opaque: the sheet opens over the map, and the default bar glass let the map's
@@ -61,7 +68,7 @@ export default function MPlacesFilterSheet({ open, onClose, places, categories, 
         <section>
           <SectionTitle>{t('places.filterShow')}</SectionTitle>
           <div role="group" aria-label={t('places.filterShow')} className="flex flex-wrap gap-[6px]">
-            {pools.map(pool => (
+            {pools.map((pool) => (
               <MChip key={pool.id} size="tap" pressable active={filter === pool.id} onClick={() => setFilter(pool.id)}>
                 {pool.label}
               </MChip>
@@ -96,5 +103,5 @@ export default function MPlacesFilterSheet({ open, onClose, places, categories, 
         </button>
       </div>
     </MSheet>
-  )
+  );
 }

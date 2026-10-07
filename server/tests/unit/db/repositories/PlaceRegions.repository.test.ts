@@ -6,13 +6,14 @@
  * identical to the legacy today, but nothing ratchets them). One seeded
  * world, `toEqual(<legacy raw>)` per method.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createPlace, createTrip, createUser, addTripMember } from '../../../helpers/factories';
 import { PlaceRegions } from '../../../../src/db/entities/PlaceRegions.entity';
 import type { PlaceRegionsRepository } from '../../../../src/db/repositories/PlaceRegions.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createPlace, createTrip, createUser, addTripMember } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -22,11 +23,18 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(PlaceRegions);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function insertPlaceRegion(placeId: number, countryCode: string, regionCode: string, regionName: string): void {
-  testDb.prepare('INSERT INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)')
+  testDb
+    .prepare('INSERT INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)')
     .run(placeId, countryCode, regionCode, regionName);
 }
 
@@ -40,7 +48,11 @@ describe('PlaceRegionsRepository.listCountryCodesForPlaceIds (AT3)', () => {
     insertPlaceRegion(p1.id, 'FR', 'FR-IDF', 'Île-de-France');
     insertPlaceRegion(p2.id, 'FR', 'FR-IDF', 'Île-de-France');
 
-    const legacy = testDb.prepare(`SELECT place_id, country_code FROM place_regions WHERE place_id IN (${[p1.id, p2.id, p3.id].join(',')})`).all();
+    const legacy = testDb
+      .prepare(
+        `SELECT place_id, country_code FROM place_regions WHERE place_id IN (${[p1.id, p2.id, p3.id].join(',')})`,
+      )
+      .all();
     const typed = await repo.listCountryCodesForPlaceIds([p1.id, p2.id, p3.id]);
     expect(typed).toEqual(legacy);
     expect(typed.map((r) => r.place_id).sort((a, b) => a - b)).toEqual([p1.id, p2.id].sort((a, b) => a - b));
@@ -81,9 +93,11 @@ describe('PlaceRegionsRepository.listDistinctRegionCodesForCountryAndPlaces (AT2
     insertPlaceRegion(p2.id, 'FR', 'FR-IDF', 'Île-de-France'); // same region, dedup target
     insertPlaceRegion(p3.id, 'DE', 'DE-BY', 'Bavaria'); // different country, excluded
 
-    const legacy = testDb.prepare(
-      `SELECT DISTINCT region_code FROM place_regions WHERE country_code = ? AND place_id IN (${[p1.id, p2.id, p3.id].join(',')})`,
-    ).all('FR');
+    const legacy = testDb
+      .prepare(
+        `SELECT DISTINCT region_code FROM place_regions WHERE country_code = ? AND place_id IN (${[p1.id, p2.id, p3.id].join(',')})`,
+      )
+      .all('FR');
     const typed = await repo.listDistinctRegionCodesForCountryAndPlaces('FR', [p1.id, p2.id, p3.id]);
     expect(typed).toEqual(legacy.map((r: unknown) => (r as { region_code: string }).region_code));
     expect(typed).toEqual(['FR-IDF']);
@@ -111,14 +125,21 @@ describe('PlaceRegionsRepository.countPlacesByCountryForTrip (AT40)', () => {
     insertPlaceRegion(foreign.id, 'FR', 'FR-IDF', 'Île-de-France');
     void noRegion;
 
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT pr.country_code, COUNT(DISTINCT p.id) AS places
       FROM place_regions pr JOIN places p ON p.id = pr.place_id
       WHERE p.trip_id = ? AND pr.country_code IS NOT NULL
-      GROUP BY pr.country_code ORDER BY places DESC, pr.country_code ASC`).all(trip.id);
+      GROUP BY pr.country_code ORDER BY places DESC, pr.country_code ASC`,
+      )
+      .all(trip.id);
     const typed = await repo.countPlacesByCountryForTrip(trip.id);
     expect(typed).toEqual(legacy);
-    expect(typed).toEqual([{ country_code: 'FR', places: 2 }, { country_code: 'DE', places: 1 }]);
+    expect(typed).toEqual([
+      { country_code: 'FR', places: 2 },
+      { country_code: 'DE', places: 1 },
+    ]);
   });
 
   it('PLACEREGREPO-008: empty array for a trip with no geocoded places', async () => {
@@ -145,7 +166,9 @@ describe('PlaceRegionsRepository.listVisitedCountryCodesForUser (AT44)', () => {
     insertPlaceRegion(notStartedPlace.id, 'DE', 'DE-BY', 'Bavaria'); // not started, excluded
 
     const today = '2026-01-01';
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT DISTINCT pr.country_code
       FROM place_regions pr
       JOIN places p ON p.id = pr.place_id
@@ -154,13 +177,17 @@ describe('PlaceRegionsRepository.listVisitedCountryCodesForUser (AT44)', () => {
       WHERE (t.user_id = ? OR tm.user_id = ?)
         AND pr.country_code IS NOT NULL
         AND COALESCE(t.start_date, t.end_date) IS NOT NULL
-        AND COALESCE(t.start_date, t.end_date) <= ?`).all(owner.id, owner.id, today);
+        AND COALESCE(t.start_date, t.end_date) <= ?`,
+      )
+      .all(owner.id, owner.id, today);
 
     const typedOwner = await repo.listVisitedCountryCodesForUser(owner.id, today);
     expect(typedOwner).toEqual(legacy.map((r: unknown) => (r as { country_code: string }).country_code));
     expect(typedOwner).toEqual(['FR']);
 
-    const legacyMember = testDb.prepare(`
+    const legacyMember = testDb
+      .prepare(
+        `
       SELECT DISTINCT pr.country_code
       FROM place_regions pr
       JOIN places p ON p.id = pr.place_id
@@ -169,7 +196,9 @@ describe('PlaceRegionsRepository.listVisitedCountryCodesForUser (AT44)', () => {
       WHERE (t.user_id = ? OR tm.user_id = ?)
         AND pr.country_code IS NOT NULL
         AND COALESCE(t.start_date, t.end_date) IS NOT NULL
-        AND COALESCE(t.start_date, t.end_date) <= ?`).all(member.id, member.id, today);
+        AND COALESCE(t.start_date, t.end_date) <= ?`,
+      )
+      .all(member.id, member.id, today);
     const typedMember = await repo.listVisitedCountryCodesForUser(member.id, today);
     expect(typedMember).toEqual(legacyMember.map((r: unknown) => (r as { country_code: string }).country_code));
     expect(typedMember).toEqual(['FR']);

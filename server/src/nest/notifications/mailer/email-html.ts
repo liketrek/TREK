@@ -1,8 +1,8 @@
-import { EMAIL_I18N as I18N, EVENT_TEXTS } from '@trek/shared/i18n/externalNotifications';
-import type { EventText, PasswordResetStrings } from '@trek/shared/i18n/externalNotifications';
 import { getAppUrl } from '../../../app-config';
 import type { NotifEventType } from '../notification-events';
 import { EMAIL_LOGO_CID } from './email-logo';
+import { EMAIL_I18N as I18N, EVENT_TEXTS } from '@trek/shared/i18n/externalNotifications';
+import type { EventText, PasswordResetStrings } from '@trek/shared/i18n/externalNotifications';
 
 /**
  * Pure rendering for outgoing mail: the shell, the CTA and the password-reset

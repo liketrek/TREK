@@ -1,11 +1,11 @@
-import { Body, Controller, Get, Headers, Param, Post, Put, UseGuards } from '@nestjs/common';
-import { ToursService } from './tours.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { ADDON_IDS } from '../../addons';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
-import { ADDON_IDS } from '../../addons';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { TourCreateDto } from './dto/tour-create.dto';
+import { ToursService } from './tours.service';
+import { Body, Controller, Get, Headers, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 /**
  * /api/trips/:tripId/tours: the Tours facet, read and route edits.

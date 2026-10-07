@@ -1,6 +1,6 @@
-import { useRef } from 'react'
-import { useTranslation } from '../../i18n'
-import type { JourneyDay } from './journeyCard'
+import { useRef } from 'react';
+import { useTranslation } from '../../i18n';
+import type { JourneyDay } from './journeyCard';
 
 /**
  * The day bar above the phone timeline.
@@ -18,26 +18,26 @@ import type { JourneyDay } from './journeyCard'
  */
 
 interface Props {
-  days: JourneyDay[]
-  activeDate: string | null
-  onPick: (date: string) => void
+  days: JourneyDay[];
+  activeDate: string | null;
+  onPick: (date: string) => void;
 }
 
 export default function JourneyDayScrubber({ days, activeDate, onPick }: Props) {
-  const { t, locale } = useTranslation()
-  const barRef = useRef<HTMLDivElement>(null)
-  const dragging = useRef(false)
-  const lastPicked = useRef<string | null>(null)
+  const { t, locale } = useTranslation();
+  const barRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+  const lastPicked = useRef<string | null>(null);
 
   // One day is not a journey to scrub through, and the bar would say nothing the
   // card's own date does not already say.
-  if (days.length < 2) return null
+  if (days.length < 2) return null;
 
   const long = (date: string) =>
-    new Date(date + 'T00:00:00').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'long' })
+    new Date(date + 'T00:00:00').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'long' });
 
-  const activeIndex = activeDate ? days.findIndex(d => d.date === activeDate) : -1
-  const shown = activeIndex >= 0 ? days[activeIndex] : days[0]
+  const activeIndex = activeDate ? days.findIndex((d) => d.date === activeDate) : -1;
+  const shown = activeIndex >= 0 ? days[activeIndex] : days[0];
 
   /**
    * The day under a given screen x, measured across the bar.
@@ -46,44 +46,46 @@ export default function JourneyDayScrubber({ days, activeDate, onPick }: Props) 
    * drag that starts on the label still lands on the right day.
    */
   const pickAt = (clientX: number) => {
-    const rect = barRef.current?.getBoundingClientRect()
-    if (!rect || rect.width === 0) return
-    const ratio = (clientX - rect.left) / rect.width
-    const index = Math.min(days.length - 1, Math.max(0, Math.floor(ratio * days.length)))
-    const day = days[index]
-    if (!day || day.date === lastPicked.current) return
-    lastPicked.current = day.date
-    onPick(day.date)
-  }
+    const rect = barRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0) return;
+    const ratio = (clientX - rect.left) / rect.width;
+    const index = Math.min(days.length - 1, Math.max(0, Math.floor(ratio * days.length)));
+    const day = days[index];
+    if (!day || day.date === lastPicked.current) return;
+    lastPicked.current = day.date;
+    onPick(day.date);
+  };
 
   return (
     // touch-none, and the events stop here: the whole thing lies on a map that
     // pans, and a drag along the days must not drag the world with it.
     <div
-      className="pointer-events-auto touch-none px-4 pb-[6px] select-none"
-      onPointerDown={e => {
-        dragging.current = true
-        lastPicked.current = shown.date
-        e.currentTarget.setPointerCapture?.(e.pointerId)
-        e.stopPropagation()
-        pickAt(e.clientX)
+      className="pointer-events-auto touch-none select-none px-4 pb-[6px]"
+      onPointerDown={(e) => {
+        dragging.current = true;
+        lastPicked.current = shown.date;
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+        e.stopPropagation();
+        pickAt(e.clientX);
       }}
-      onPointerMove={e => {
-        if (!dragging.current) return
-        e.stopPropagation()
-        pickAt(e.clientX)
+      onPointerMove={(e) => {
+        if (!dragging.current) return;
+        e.stopPropagation();
+        pickAt(e.clientX);
       }}
-      onPointerUp={e => {
-        dragging.current = false
-        e.currentTarget.releasePointerCapture?.(e.pointerId)
+      onPointerUp={(e) => {
+        dragging.current = false;
+        e.currentTarget.releasePointerCapture?.(e.pointerId);
       }}
-      onPointerCancel={() => { dragging.current = false }}
+      onPointerCancel={() => {
+        dragging.current = false;
+      }}
     >
       {/* The date, and the handle: press it and slide sideways to run through the
           days. "Day 3" stood beside it for a while and was the same fact told
           twice, since the bar below already shows how far along that is. */}
       <div className="mb-[5px] flex items-baseline">
-        <span className="cursor-grab rounded-full bg-black/55 px-[9px] py-[3px] text-[11px] font-bold whitespace-nowrap text-white backdrop-blur-[3px] active:cursor-grabbing">
+        <span className="cursor-grab whitespace-nowrap rounded-full bg-black/55 px-[9px] py-[3px] text-[11px] font-bold text-white backdrop-blur-[3px] active:cursor-grabbing">
           {long(shown.date)}
         </span>
       </div>
@@ -92,8 +94,8 @@ export default function JourneyDayScrubber({ days, activeDate, onPick }: Props) 
           The bar you see is a few pixels tall; the button around it is 20, because
           a 3px target on a phone is not a target. */}
       <div ref={barRef} className="flex items-stretch gap-[3px]">
-        {days.map(day => {
-          const on = day.date === shown.date
+        {days.map((day) => {
+          const on = day.date === shown.date;
           return (
             <button
               key={day.date}
@@ -113,9 +115,9 @@ export default function JourneyDayScrubber({ days, activeDate, onPick }: Props) 
                 }}
               />
             </button>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }

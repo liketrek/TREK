@@ -1,11 +1,12 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { MaintenanceRepository } from '../../../../src/db/repositories/MaintenanceRepository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import Database from 'better-sqlite3';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { MaintenanceRepository } from '../../../../src/db/repositories/MaintenanceRepository';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -15,7 +16,10 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   maintenance = new MaintenanceRepository(t.em);
 });
-afterAll(async () => { await t.close(); testDb.close(); });
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('MaintenanceRepository', () => {
   it('MAINTREPO-001: walCheckpoint renders PRAGMA wal_checkpoint(TRUNCATE) — pinned text, equivalent to the legacy raw call', async () => {
@@ -34,7 +38,7 @@ describe('MaintenanceRepository', () => {
       if (scratchPath && fs.existsSync(scratchPath)) fs.rmSync(scratchPath, { force: true });
     });
 
-    it('MAINTREPO-002: vacuumInto renders `VACUUM INTO \'<path>\'` — pinned text, produces a readable snapshot at the given path', async () => {
+    it("MAINTREPO-002: vacuumInto renders `VACUUM INTO '<path>'` — pinned text, produces a readable snapshot at the given path", async () => {
       scratchPath = path.join(os.tmpdir(), `maintrepo-vacuum-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
       await maintenance.vacuumInto(scratchPath);
       expect(fs.existsSync(scratchPath)).toBe(true);

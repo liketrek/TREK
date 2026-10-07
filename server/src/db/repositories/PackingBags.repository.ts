@@ -1,7 +1,7 @@
 import type { PackingBags } from '../entities/PackingBags.entity';
+import { presenceSet } from './_shared/presence-set';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
-import { presenceSet } from './_shared/presence-set';
 
 /** A bare `packing_bags` row — every scalar column, incl. the two `persist(false)` relation mirrors (`trip_id`, `user_id`). */
 export interface PackingBagRow {
@@ -50,7 +50,13 @@ interface PackingBagsMinimalInsertKyselyDB {
 
 /** The insert-only shape for `insertBag` (PK42/TP67) — a distinct, wider column set from {@link PackingBagsMinimalInsertKyselyDB}'s. */
 interface PackingBagsInsertKyselyDB {
-  packing_bags: { trip_id: number | string; name: string; color: string; sort_order: number | null; weight_limit_grams: number | null };
+  packing_bags: {
+    trip_id: number | string;
+    name: string;
+    color: string;
+    sort_order: number | null;
+    weight_limit_grams: number | null;
+  };
 }
 
 /**
@@ -87,23 +93,41 @@ export class PackingBagsRepository extends TrekRepository<PackingBags> {
    * still-accepted carry.
    */
   async findInTrip(id: number, trip_id: number | string): Promise<PackingBagRow | undefined> {
-    return await this.db().selectFrom('packing_bags').selectAll().where('id', '=', id).where('trip_id', '=', trip_id as number).executeTakeFirst();
+    return await this.db()
+      .selectFrom('packing_bags')
+      .selectAll()
+      .where('id', '=', id)
+      .where('trip_id', '=', trip_id as number)
+      .executeTakeFirst();
   }
 
   /** PK30 (`bulkImport`'s bag-by-name resolution) — `SELECT id FROM packing_bags WHERE trip_id = ? AND name = ?`. */
   async byNameInTrip(trip_id: number | string, name: string): Promise<{ id: number } | undefined> {
-    return await this.db().selectFrom('packing_bags').select('id').where('trip_id', '=', trip_id as number).where('name', '=', name).executeTakeFirst();
+    return await this.db()
+      .selectFrom('packing_bags')
+      .select('id')
+      .where('trip_id', '=', trip_id as number)
+      .where('name', '=', name)
+      .executeTakeFirst();
   }
 
   /** PK31 (`bulkImport`, picks the next `BAG_COLORS` entry) — `SELECT COUNT(*) as c FROM packing_bags WHERE trip_id = ?`. */
   async countForTrip(trip_id: number | string): Promise<number> {
-    const row = await this.db().selectFrom('packing_bags').select((eb) => eb.fn.countAll<number>().as('c')).where('trip_id', '=', trip_id as number).executeTakeFirst();
+    const row = await this.db()
+      .selectFrom('packing_bags')
+      .select((eb) => eb.fn.countAll<number>().as('c'))
+      .where('trip_id', '=', trip_id as number)
+      .executeTakeFirst();
     return row?.c ?? 0;
   }
 
   /** PK41 (`createBag`) — `SELECT MAX(sort_order) as max FROM packing_bags WHERE trip_id = ?`. */
   async maxSortOrder(trip_id: number | string): Promise<number | null> {
-    const row = await this.db().selectFrom('packing_bags').select((eb) => eb.fn.max('sort_order').as('max')).where('trip_id', '=', trip_id as number).executeTakeFirst();
+    const row = await this.db()
+      .selectFrom('packing_bags')
+      .select((eb) => eb.fn.max('sort_order').as('max'))
+      .where('trip_id', '=', trip_id as number)
+      .executeTakeFirst();
     return row?.max ?? null;
   }
 
@@ -119,7 +143,10 @@ export class PackingBagsRepository extends TrekRepository<PackingBags> {
    * the new row's id.
    */
   async insertMinimal(trip_id: number | string, name: string, color: string): Promise<number> {
-    const result = await this.kysely<PackingBagsMinimalInsertKyselyDB>().insertInto('packing_bags').values({ trip_id, name, color }).executeTakeFirstOrThrow();
+    const result = await this.kysely<PackingBagsMinimalInsertKyselyDB>()
+      .insertInto('packing_bags')
+      .values({ trip_id, name, color })
+      .executeTakeFirstOrThrow();
     return Number(result.insertId);
   }
 
@@ -128,14 +155,27 @@ export class PackingBagsRepository extends TrekRepository<PackingBags> {
    * sort_order, weight_limit_grams) VALUES (?×5)`, a distinct, wider column
    * set from {@link insertMinimal}'s. Returns the new row's id.
    */
-  async insertBag(row: { trip_id: number | string; name: string; color: string; sort_order: number | null; weight_limit_grams: number | null }): Promise<number> {
-    const result = await this.kysely<PackingBagsInsertKyselyDB>().insertInto('packing_bags').values(row).executeTakeFirstOrThrow();
+  async insertBag(row: {
+    trip_id: number | string;
+    name: string;
+    color: string;
+    sort_order: number | null;
+    weight_limit_grams: number | null;
+  }): Promise<number> {
+    const result = await this.kysely<PackingBagsInsertKyselyDB>()
+      .insertInto('packing_bags')
+      .values(row)
+      .executeTakeFirstOrThrow();
     return Number(result.insertId);
   }
 
   /** PK43 (`createBag`'s post-insert re-select) — `SELECT * FROM packing_bags WHERE id = ?`. */
   async findById(id: number | string): Promise<PackingBagRow | undefined> {
-    return await this.db().selectFrom('packing_bags').selectAll().where('id', '=', id as number).executeTakeFirst();
+    return await this.db()
+      .selectFrom('packing_bags')
+      .selectAll()
+      .where('id', '=', id as number)
+      .executeTakeFirst();
   }
 
   /**
@@ -155,13 +195,21 @@ export class PackingBagsRepository extends TrekRepository<PackingBags> {
    * (`:222`) and `TodoItems` (`:125`) already carry.
    */
   /** `id: number`, same Plan 4 Task 8b (U6) narrowing as {@link findInTrip} (its one caller, `updateBag`, is only reached with a `toRowId`-parsed/Zod-typed id). */
-  async update(id: number, write: {
-    name?: readonly [present: boolean, value: string | null];
-    color?: readonly [present: boolean, value: string | null];
-    weight_limit_grams?: readonly [present: boolean, value: number | null];
-    user_id?: readonly [present: boolean, value: number | null];
-  }): Promise<void> {
-    const data = presenceSet<{ name: string; color: string; weight_limit_grams: number | null; user_id: number | null }>(write);
+  async update(
+    id: number,
+    write: {
+      name?: readonly [present: boolean, value: string | null];
+      color?: readonly [present: boolean, value: string | null];
+      weight_limit_grams?: readonly [present: boolean, value: number | null];
+      user_id?: readonly [present: boolean, value: number | null];
+    },
+  ): Promise<void> {
+    const data = presenceSet<{
+      name: string;
+      color: string;
+      weight_limit_grams: number | null;
+      user_id: number | null;
+    }>(write);
     if (Object.keys(data).length === 0) return;
     await this.db().updateTable('packing_bags').set(data).where('id', '=', id).execute();
   }
@@ -184,7 +232,13 @@ export class PackingBagsRepository extends TrekRepository<PackingBags> {
 
   /** PK35 (`decorateBags`) — `SELECT * FROM packing_bags WHERE trip_id = ? ORDER BY sort_order, id`. */
   async listForTrip(trip_id: number | string): Promise<PackingBagRow[]> {
-    return await this.db().selectFrom('packing_bags').selectAll().where('trip_id', '=', trip_id as number).orderBy('sort_order', 'asc').orderBy('id', 'asc').execute();
+    return await this.db()
+      .selectFrom('packing_bags')
+      .selectAll()
+      .where('trip_id', '=', trip_id as number)
+      .orderBy('sort_order', 'asc')
+      .orderBy('id', 'asc')
+      .execute();
   }
 
   // ---------------------------------------------------------------------------
@@ -201,14 +255,23 @@ export class PackingBagsRepository extends TrekRepository<PackingBags> {
       .selectFrom('packing_bag_members as bm')
       .innerJoin('users as u', 'u.id', 'bm.user_id')
       .innerJoin('packing_bags as b', 'b.id', 'bm.bag_id')
-      .select(['bm.bag_id', 'bm.user_id', (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'), 'u.avatar'])
+      .select([
+        'bm.bag_id',
+        'bm.user_id',
+        (eb) => eb.fn.coalesce('u.display_name', 'u.username').as('username'),
+        'u.avatar',
+      ])
       .where('b.trip_id', '=', trip_id as number)
       .execute();
   }
 
   /** PK26 (`bagForCloner`) — `SELECT user_id FROM packing_bag_members WHERE bag_id = ?`. */
   async listMemberIdsForBag(bag_id: number): Promise<number[]> {
-    const rows = await this.db().selectFrom('packing_bag_members').select('user_id').where('bag_id', '=', bag_id).execute();
+    const rows = await this.db()
+      .selectFrom('packing_bag_members')
+      .select('user_id')
+      .where('bag_id', '=', bag_id)
+      .execute();
     return rows.map((r) => r.user_id);
   }
 
@@ -259,6 +322,10 @@ export class PackingBagsRepository extends TrekRepository<PackingBags> {
    * directly — same column set, called once per row.
    */
   async listAllForTrip(trip_id: number | string): Promise<PackingBagRow[]> {
-    return await this.db().selectFrom('packing_bags').selectAll().where('trip_id', '=', trip_id as number).execute();
+    return await this.db()
+      .selectFrom('packing_bags')
+      .selectAll()
+      .where('trip_id', '=', trip_id as number)
+      .execute();
   }
 }

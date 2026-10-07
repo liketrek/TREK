@@ -13,9 +13,9 @@
  * which `run()` below reads back out instead of treating the throw as a test
  * failure.
  */
-import { describe, it, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
+import { describe, it, expect } from 'vitest';
 
 const SERVER_ROOT = path.join(__dirname, '../../..');
 const SCRIPT = path.join(SERVER_ROOT, 'scripts/db-call-graph.mjs');
@@ -110,10 +110,15 @@ describe('db-call-graph.mjs', () => {
     // Non-empty lists exit 1 — that is what makes the CI step fail on a regression.
     expect(status).toBe(1);
     expect(syncDbMethodCount).toBe(2);
-    expect(syncDbMethods.map((m) => `${m.class}.${m.method}`).sort()).toEqual(['SyncSample.readSync', 'SyncSample.writeInTx']);
+    expect(syncDbMethods.map((m) => `${m.class}.${m.method}`).sort()).toEqual([
+      'SyncSample.readSync',
+      'SyncSample.writeInTx',
+    ]);
     expect(syncDbMethods.every((m) => m.file.endsWith('sync-db-sample.ts') && m.direct)).toBe(true);
     expect(transactionSiteCount).toBe(1);
-    expect(transactionSites).toEqual([expect.objectContaining({ class: 'SyncSample', method: 'writeInTx', receiver: 'this.db' })]);
+    expect(transactionSites).toEqual([
+      expect.objectContaining({ class: 'SyncSample', method: 'writeInTx', receiver: 'this.db' }),
+    ]);
     // The unawaited fixture beside it stays clean under both flags.
     expect(syncDbMethods.some((m) => m.class === 'Sample')).toBe(false);
   });

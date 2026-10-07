@@ -14,9 +14,10 @@
  * `Migration20200101031100_1939`: migrate to the step immediately before it,
  * seed rows with raw SQL, apply just that one migration, assert.
  */
-import { describe, it, expect } from 'vitest';
-import type { MikroORM } from '@mikro-orm/sqlite';
 import { createMigrationOrm, migrateTo, pendingNames, rawExec, rawQuery } from '../../helpers/migration-step';
+import type { MikroORM } from '@mikro-orm/sqlite';
+
+import { describe, it, expect } from 'vitest';
 
 const TARGET = 'Migration20200101031100_1939';
 

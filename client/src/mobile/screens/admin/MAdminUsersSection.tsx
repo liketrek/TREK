@@ -1,35 +1,45 @@
-import { Copy, Link2, Trash2, UserPlus } from 'lucide-react'
-import type { TranslationFn } from '../../../types'
-import type { useAdmin } from '../../../pages/admin/useAdmin'
-import MAdminPermissionsPanel from './MAdminPermissionsPanel'
-import MSheet from '../../components/MSheet'
-import MChip from '../../components/MChip'
-import { MAdminButton, MAdminCard, MAdminField, MAdminSheetFrame } from './MAdminUi'
+import { Copy, Link2, Trash2, UserPlus } from 'lucide-react';
+import type { useAdmin } from '../../../pages/admin/useAdmin';
+import type { TranslationFn } from '../../../types';
+import MChip from '../../components/MChip';
+import MSheet from '../../components/MSheet';
+import MAdminPermissionsPanel from './MAdminPermissionsPanel';
+import { MAdminButton, MAdminCard, MAdminField, MAdminSheetFrame } from './MAdminUi';
 
 interface MAdminUsersSectionProps {
-  admin: ReturnType<typeof useAdmin>
-  t: TranslationFn
-  locale: string
+  admin: ReturnType<typeof useAdmin>;
+  t: TranslationFn;
+  locale: string;
 }
 
-const INVITE_USES = [1, 2, 3, 4, 5, 0]
+const INVITE_USES = [1, 2, 3, 4, 5, 0];
 const INVITE_EXPIRY: { value: number | ''; label: string }[] = [
   { value: 1, label: '1d' },
   { value: 3, label: '3d' },
   { value: 7, label: '7d' },
   { value: 14, label: '14d' },
   { value: '', label: '∞' },
-]
+];
 
 // Users section: user list with role badges (design §6.4), invite links and the
 // permissions matrix. Rows open the edit sheet; Create opens the create sheet.
 export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSectionProps) {
   const {
-    currentUser, users, isLoading,
-    setShowCreateUser, handleEditUser,
-    invites, inviteTrips, showCreateInvite, setShowCreateInvite, inviteForm, setInviteForm,
-    copyInviteLink, handleCreateInvite, handleDeleteInvite,
-  } = admin
+    currentUser,
+    users,
+    isLoading,
+    setShowCreateUser,
+    handleEditUser,
+    invites,
+    inviteTrips,
+    showCreateInvite,
+    setShowCreateInvite,
+    inviteForm,
+    setInviteForm,
+    copyInviteLink,
+    handleCreateInvite,
+    handleDeleteInvite,
+  } = admin;
 
   return (
     <div className="space-y-3">
@@ -100,9 +110,9 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
           <div className="py-4 text-center font-geist text-[0.6875rem] text-m-faint">{t('admin.invite.empty')}</div>
         ) : (
           invites.map((inv) => {
-            const isExpired = inv.expires_at && new Date(inv.expires_at) < new Date()
-            const isUsedUp = inv.max_uses > 0 && inv.used_count >= inv.max_uses
-            const isActive = !isExpired && !isUsedUp
+            const isExpired = inv.expires_at && new Date(inv.expires_at) < new Date();
+            const isUsedUp = inv.max_uses > 0 && inv.used_count >= inv.max_uses;
+            const isActive = !isExpired && !isUsedUp;
             return (
               <div
                 key={inv.id}
@@ -119,12 +129,17 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
                           : 'bg-[color:var(--m-ic)] text-m-faint'
                       }`}
                     >
-                      {isUsedUp ? t('admin.invite.usedUp') : isExpired ? t('admin.invite.expired') : t('admin.invite.active')}
+                      {isUsedUp
+                        ? t('admin.invite.usedUp')
+                        : isExpired
+                          ? t('admin.invite.expired')
+                          : t('admin.invite.active')}
                     </span>
                   </div>
                   <div className="mt-[2px] truncate font-geist text-[0.59375rem] text-m-muted">
                     {inv.used_count}/{inv.max_uses === 0 ? '∞' : inv.max_uses} {t('admin.invite.uses')}
-                    {inv.expires_at && ` · ${t('admin.invite.expiresAt')} ${new Date(inv.expires_at).toLocaleDateString(locale)}`}
+                    {inv.expires_at &&
+                      ` · ${t('admin.invite.expiresAt')} ${new Date(inv.expires_at).toLocaleDateString(locale)}`}
                     {inv.trip_title && ` · ${t('admin.invite.boundTo', { trip: inv.trip_title })}`}
                     {` · ${t('admin.invite.createdBy')} ${inv.created_by_name}`}
                   </div>
@@ -148,7 +163,7 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
                   <Trash2 size={13} strokeWidth={2} />
                 </button>
               </div>
-            )
+            );
           })
         )}
       </MAdminCard>
@@ -218,5 +233,5 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
         </MAdminSheetFrame>
       </MSheet>
     </div>
-  )
+  );
 }

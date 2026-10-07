@@ -49,7 +49,8 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.alwaysOnHint': '토픽이 설정되면 관리자 ntfy는 항상 실행됩니다',
   'admin.notifications.adminNotificationsHint': '관리자 전용 알림 (예: 버전 알림)을 전달할 채널을 설정하세요.',
   'admin.notificationDefaults.title': '사용자 기본값',
-  'admin.notificationDefaults.hint': '각 사용자의 알림 초기 상태입니다. "끔"은 사용자가 직접 켤 수 있고, "차단"은 모두에게 꺼지며 설정에서 잠금으로 표시됩니다. 해당 칸을 직접 바꾸지 않은 모든 사용자에게 적용됩니다.',
+  'admin.notificationDefaults.hint':
+    '각 사용자의 알림 초기 상태입니다. "끔"은 사용자가 직접 켤 수 있고, "차단"은 모두에게 꺼지며 설정에서 잠금으로 표시됩니다. 해당 칸을 직접 바꾸지 않은 모든 사용자에게 적용됩니다.',
   'admin.notificationDefaults.on': '켬',
   'admin.notificationDefaults.off': '끔',
   'admin.notificationDefaults.blocked': '차단',
@@ -142,36 +143,23 @@ const admin: TranslationStrings = {
     'TREK은 오픈 소스이며 이 점에서 중립이 아닙니다. 이 규모에서 평점과 일반 상점 사진은 Google에만 있고, 그것이 독점입니다. 이 입력란은 대안이 없어서 있는 것이지 권해서가 아닙니다. 쓰면 모든 조회가 Google로 갑니다.',
   'admin.trekApi.tagline':
     'TREK 자체 장소 색인. Google 키 없이, 할당량 없이, 누구도 검색 횟수를 세지 않는 채로 찾습니다.',
-  'admin.trekApi.factPlaces':
-    '전 세계 7,363만 개 장소',
-  'admin.trekApi.factNoKey':
-    '키도 할당량도 없음',
-  'admin.trekApi.factOffline':
-    '국가별 패키지는 오프라인에서도 동작',
-  'admin.trekApi.factPrivacy':
-    '검색어는 결코 기록하지 않음',
-  'admin.trekApi.more':
-    '무엇이 들어 있나',
-  'admin.trekApi.fieldPhone':
-    '전화',
-  'admin.trekApi.fieldStableId':
-    '고정 식별자',
+  'admin.trekApi.factPlaces': '전 세계 7,363만 개 장소',
+  'admin.trekApi.factNoKey': '키도 할당량도 없음',
+  'admin.trekApi.factOffline': '국가별 패키지는 오프라인에서도 동작',
+  'admin.trekApi.factPrivacy': '검색어는 결코 기록하지 않음',
+  'admin.trekApi.more': '무엇이 들어 있나',
+  'admin.trekApi.fieldPhone': '전화',
+  'admin.trekApi.fieldStableId': '고정 식별자',
   'admin.trekApi.includedNote':
     '설명은 장소 자체의 웹사이트에서, 영업시간은 입력되어 있는 경우 OpenStreetMap에서 가져옵니다.',
-  'admin.trekApi.notRatings':
-    '평점',
-  'admin.trekApi.notPhotos':
-    '일반 상점의 사진',
+  'admin.trekApi.notRatings': '평점',
+  'admin.trekApi.notPhotos': '일반 상점의 사진',
   'admin.trekApi.notIncludedNote':
     '둘 다 어떤 값을 치르더라도 공개 데이터에는 없습니다. 이 둘에는 Google 키가 유일한 길로 남습니다.',
-  'admin.trekApi.sourcesLabel':
-    '출처',
-  'admin.trekApi.sourcesNote':
-    '응답의 모든 항목은 이 가운데 어디에서 왔는지 밝힙니다.',
-  'admin.trekApi.included':
-    '포함',
-  'admin.trekApi.notIncluded':
-    '미포함',
+  'admin.trekApi.sourcesLabel': '출처',
+  'admin.trekApi.sourcesNote': '응답의 모든 항목은 이 가운데 어디에서 왔는지 밝힙니다.',
+  'admin.trekApi.included': '포함',
+  'admin.trekApi.notIncluded': '미포함',
   'admin.mapsKey': 'Google Maps API 키',
   'admin.mapsKeyHint': '장소 검색에 필요합니다. console.cloud.google.com에서 발급',
   'admin.mapsKeyHintLong':
@@ -192,7 +180,8 @@ const admin: TranslationStrings = {
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap(高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': '선택한 공급자에 API 키가 설정되어 있지 않아 장소 검색은 TREK 색인과 OpenStreetMap만 응답합니다.',
+  'admin.placesProvider.missingKey':
+    '선택한 공급자에 API 키가 설정되어 있지 않아 장소 검색은 TREK 색인과 OpenStreetMap만 응답합니다.',
   'admin.placesProvider.saved': '장소 검색 제공자를 저장했습니다',
   'admin.validateKey': '테스트',
   'admin.keyValid': '연결됨',
@@ -225,11 +214,15 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     '장소를 추가할 때 사진과 설명을 표시합니다. Wikipedia와 OpenStreetMap은 항상 사용되며, 장소 사진 또는 장소 세부정보가 켜져 있으면 Google도 함께 사용됩니다.',
   'admin.placesGoogleOnly.title': 'Google로만 검색',
-  'admin.placesGoogleOnly.subtitle': '모든 검색과 제안이 Google Places로 갑니다. 끄면 TREK 자체 색인과 OpenStreetMap이 먼저 답하고, 둘 다 찾지 못할 때만 Google에 묻습니다.',
-  'admin.placesGoogleOnly.missingKey': 'Google Maps API 키가 필요합니다. 키가 없으면 이 스위치와 상관없이 TREK 색인과 OpenStreetMap으로 검색합니다.',
-  'admin.placesGoogleOnly.otherProvider': '장소 제공자로 Google이 필요합니다. Amap 또는 OpenStreetMap을 선택한 동안에는 이 스위치와 상관없이 검색이 Google로 가지 않습니다.',
+  'admin.placesGoogleOnly.subtitle':
+    '모든 검색과 제안이 Google Places로 갑니다. 끄면 TREK 자체 색인과 OpenStreetMap이 먼저 답하고, 둘 다 찾지 못할 때만 Google에 묻습니다.',
+  'admin.placesGoogleOnly.missingKey':
+    'Google Maps API 키가 필요합니다. 키가 없으면 이 스위치와 상관없이 TREK 색인과 OpenStreetMap으로 검색합니다.',
+  'admin.placesGoogleOnly.otherProvider':
+    '장소 제공자로 Google이 필요합니다. Amap 또는 OpenStreetMap을 선택한 동안에는 이 스위치와 상관없이 검색이 Google로 가지 않습니다.',
   'admin.googleQuota.title': 'Google 호출 일일 한도',
-  'admin.googleQuota.subtitle': '한도에 도달하면 다음 날(UTC)까지 Google을 호출하지 않고 OpenStreetMap으로 검색합니다. 비워 두면 한도가 없습니다.',
+  'admin.googleQuota.subtitle':
+    '한도에 도달하면 다음 날(UTC)까지 Google을 호출하지 않고 OpenStreetMap으로 검색합니다. 비워 두면 한도가 없습니다.',
   'admin.googleQuota.placeholder': '한도 없음',
   'admin.googleQuota.usedToday': '오늘: {used}',
   'admin.googleQuota.usedOfLimit': '오늘: {used} / {limit}',
@@ -240,9 +233,12 @@ const admin: TranslationStrings = {
   'admin.transitProvider.transitous': 'Transitous (무료)',
   'admin.transitProvider.google': 'Google',
   'admin.transitProvider.transitousHint': '커뮤니티 GTFS 피드. 무료이며 키가 필요 없고 유럽 커버리지가 가장 좋습니다.',
-  'admin.transitProvider.googleHint': '위의 Google 키를 사용하여 Transitous에 데이터가 없는 지역을 처리합니다. 검색당 과금되며, 키가 없으면 Transitous를 사용합니다.',
-  'admin.transitProvider.noKeyWarning': 'Google이 선택되었지만 Google 키가 설정되지 않았습니다 — 대중교통 검색은 여전히 Transitous를 사용합니다. 위의 API 키에서 키를 추가하세요.',
-  'admin.transitProvider.personalKeyWarning': '본인의 Google 키만 설정되어 있어 다른 멤버의 검색은 여전히 Transitous로 대체됩니다. 인스턴스 전체에 적용하려면 관리자로 위에서 키를 저장하세요.',
+  'admin.transitProvider.googleHint':
+    '위의 Google 키를 사용하여 Transitous에 데이터가 없는 지역을 처리합니다. 검색당 과금되며, 키가 없으면 Transitous를 사용합니다.',
+  'admin.transitProvider.noKeyWarning':
+    'Google이 선택되었지만 Google 키가 설정되지 않았습니다 — 대중교통 검색은 여전히 Transitous를 사용합니다. 위의 API 키에서 키를 추가하세요.',
+  'admin.transitProvider.personalKeyWarning':
+    '본인의 Google 키만 설정되어 있어 다른 멤버의 검색은 여전히 Transitous로 대체됩니다. 인스턴스 전체에 적용하려면 관리자로 위에서 키를 저장하세요.',
   'admin.placeShadow.title': '장소 검색 기록',
   'admin.placeShadow.subtitle':
     '어떤 검색 결과가 선택되었는지 기록하여, 나중에 다른 장소 색인을 실제 검색으로 평가할 수 있게 합니다. 이 인스턴스 밖으로 나가는 것은 없으며 관리자는 언제든지 기록을 내보내거나 삭제할 수 있습니다.',
@@ -435,7 +431,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:day-tint-provider': '일자 계획에서 날짜를 색으로 구분(예: 해당 날짜가 여행의 어느 구간인지)',
   'admin.plugins.cap.mcpTools': 'AI 도구 게시',
   'admin.plugins.mcpToolsTitle': '게시하는 AI 도구',
-  'admin.plugins.mcpToolsHint': '어시스턴트가 사용자를 대신해 실행할 수 있습니다. 각 도구는 위에서 부여한 권한으로 동작합니다.',
+  'admin.plugins.mcpToolsHint':
+    '어시스턴트가 사용자를 대신해 실행할 수 있습니다. 각 도구는 위에서 부여한 권한으로 동작합니다.',
   'admin.plugins.poiCategoriesTitle': '추가하는 지도 카테고리',
   'admin.plugins.perm.mcp:tools':
     'AI 어시스턴트가 사용자를 대신해 실행할 수 있는 도구 게시 (여기서 플러그인에 부여한 권한으로 동작하며, 어시스턴트 자신의 권한이 아닙니다)',
@@ -535,7 +532,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': '버전 변경…',
   'admin.plugins.noVersions': '레지스트리에서 게시된 버전을 찾을 수 없습니다.',
   'admin.plugins.downgradeTitle': '이 플러그인을 롤백하시겠습니까?',
-  'admin.plugins.downgradeBody': 'v{from}에서 v{to}(으)로 전환: 최신 버전이 기록한 데이터는 그대로 유지되며, 이전 버전이 이를 인식하지 못할 수 있습니다.',
+  'admin.plugins.downgradeBody':
+    'v{from}에서 v{to}(으)로 전환: 최신 버전이 기록한 데이터는 그대로 유지되며, 이전 버전이 이를 인식하지 못할 수 있습니다.',
   'admin.plugins.downgradeConfirm': '롤백',
   'admin.plugins.updatesHeld': 'v{version}에서 업데이트 일시 중지됨',
   'admin.plugins.resumeUpdates': '업데이트 재개',
@@ -635,7 +633,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': '메모, 투표, 채팅, 제안으로 함께 계획하기',
   'admin.addons.catalog.roadtrip.name': '로드트립',
-  'admin.addons.catalog.roadtrip.description': '경유지가 있는 주행을 계획하세요. 운전 시간과 도착 시간이 자동으로 다시 계산됩니다',
+  'admin.addons.catalog.roadtrip.description':
+    '경유지가 있는 주행을 계획하세요. 운전 시간과 도착 시간이 자동으로 다시 계산됩니다',
   'admin.addons.catalog.memories.name': '사진 (Immich)',
   'admin.addons.catalog.memories.description': 'Immich 인스턴스를 통해 여행 사진 공유',
   'admin.addons.catalog.mcp.name': 'MCP',
@@ -655,7 +654,8 @@ const admin: TranslationStrings = {
   'admin.addons.llm.vision.on': '예',
   'admin.addons.llm.vision.off': '아니요',
   'admin.addons.llm.vision.hintLocal': '자동은 이 모델이 이미지를 읽을 수 있는지 Ollama 서버에 묻습니다.',
-  'admin.addons.llm.vision.hintCloud': '클라우드 모델에서 자동은 아니요를 뜻합니다. 이 모델이 이미지를 읽을 수 있으면 예를 선택하세요.',
+  'admin.addons.llm.vision.hintCloud':
+    '클라우드 모델에서 자동은 아니요를 뜻합니다. 이 모델이 이미지를 읽을 수 있으면 예를 선택하세요.',
   'admin.addons.enabled': '활성화됨',
   'admin.addons.disabled': '비활성화됨',
   'admin.addons.type.trip': '여행',

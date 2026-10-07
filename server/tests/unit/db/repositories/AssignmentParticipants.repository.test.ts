@@ -6,15 +6,16 @@
  * username)` — unlike `AssignmentsService.getParticipants` (AS15) — see the
  * repository's own docstring.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createDay, createDayAssignment, createPlace, createTrip, createUser } from '../../../helpers/factories';
 import { AssignmentParticipants } from '../../../../src/db/entities/AssignmentParticipants.entity';
 import type { AssignmentParticipantsRepository } from '../../../../src/db/repositories/AssignmentParticipants.repository';
-import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
+import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createDay, createDayAssignment, createPlace, createTrip, createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -26,11 +27,19 @@ beforeAll(async () => {
   participants = t.repo(AssignmentParticipants);
   uow = new UnitOfWork(t.em);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function addParticipant(assignmentId: number, userId: number): void {
-  testDb.prepare('INSERT INTO assignment_participants (assignment_id, user_id) VALUES (?, ?)').run(assignmentId, userId);
+  testDb
+    .prepare('INSERT INTO assignment_participants (assignment_id, user_id) VALUES (?, ?)')
+    .run(assignmentId, userId);
 }
 
 async function withQueryCount<T>(fn: () => Promise<T>): Promise<{ value: T; queries: number }> {
@@ -51,7 +60,7 @@ describe('AssignmentParticipantsRepository.listForAssignments', () => {
     expect(queries).toBe(0);
   });
 
-  it('ASSIGNPARTREPO-002: joins the user\'s username/avatar, with NO COALESCE(display_name, username) — raw username only', async () => {
+  it("ASSIGNPARTREPO-002: joins the user's username/avatar, with NO COALESCE(display_name, username) — raw username only", async () => {
     const { user: owner } = createUser(testDb);
     const { user: participant } = createUser(testDb, { username: 'raw-username' });
     testDb.prepare('UPDATE users SET display_name = ? WHERE id = ?').run('A Display Name', participant.id);
@@ -62,7 +71,9 @@ describe('AssignmentParticipantsRepository.listForAssignments', () => {
     addParticipant(assignment.id, participant.id);
 
     const rows = await participants.listForAssignments([assignment.id]);
-    expect(rows).toEqual([{ assignment_id: assignment.id, user_id: participant.id, username: 'raw-username', avatar: null }]);
+    expect(rows).toEqual([
+      { assignment_id: assignment.id, user_id: participant.id, username: 'raw-username', avatar: null },
+    ]);
   });
 
   it('ASSIGNPARTREPO-003: batches across several assignments', async () => {
@@ -112,7 +123,9 @@ describe('AssignmentParticipantsRepository.listForAssignments', () => {
     await t.repo(AssignmentParticipants).find({}, { disableIdentityMap: false }); // populate the identity map with an unrelated (empty) read
     addParticipant(assignment.id, participant.id);
     const rows = await participants.listForAssignments([assignment.id]);
-    expect(rows).toEqual([{ assignment_id: assignment.id, user_id: participant.id, username: 'fresh-participant', avatar: null }]);
+    expect(rows).toEqual([
+      { assignment_id: assignment.id, user_id: participant.id, username: 'fresh-participant', avatar: null },
+    ]);
   });
 });
 
@@ -125,12 +138,16 @@ describe('AssignmentParticipantsRepository.listForAssignments', () => {
 
 /** The AS2/AS15/AS31 statement, run raw — the parity oracle every assertion below is checked against. */
 function legacyParticipantRows(assignmentId: number): unknown {
-  return testDb.prepare(`
+  return testDb
+    .prepare(
+      `
     SELECT ap.user_id, COALESCE(u.display_name, u.username) AS username, u.avatar
     FROM assignment_participants ap
     JOIN users u ON ap.user_id = u.id
     WHERE ap.assignment_id = ?
-  `).all(assignmentId);
+  `,
+    )
+    .all(assignmentId);
 }
 
 describe('AssignmentParticipantsRepository.listWithDisplayName (AS2/AS15/AS31)', () => {
@@ -161,10 +178,12 @@ describe('AssignmentParticipantsRepository.listWithDisplayName (AS2/AS15/AS31)',
     addParticipant(assignment.id, withoutDisplayName.id);
 
     const rows = await participants.listWithDisplayName(assignment.id);
-    expect(rows).toEqual(expect.arrayContaining([
-      { user_id: withDisplayName.id, username: 'Fancy Name', avatar: null },
-      { user_id: withoutDisplayName.id, username: 'plain-username', avatar: null },
-    ]));
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        { user_id: withDisplayName.id, username: 'Fancy Name', avatar: null },
+        { user_id: withoutDisplayName.id, username: 'plain-username', avatar: null },
+      ]),
+    );
     expect(rows).toStrictEqual(legacyParticipantRows(assignment.id));
   });
 
@@ -228,7 +247,9 @@ describe('AssignmentParticipantsRepository.deleteForAssignment / insertIgnore (A
       await participants.insertIgnore(assignment.id, [p1.id, p1.id]);
     });
 
-    const rows = testDb.prepare('SELECT user_id FROM assignment_participants WHERE assignment_id = ?').all(assignment.id);
+    const rows = testDb
+      .prepare('SELECT user_id FROM assignment_participants WHERE assignment_id = ?')
+      .all(assignment.id);
     expect(rows).toEqual([{ user_id: p1.id }]);
   });
 
@@ -257,9 +278,11 @@ describe('AssignmentParticipantsRepository.deleteForAssignment / insertIgnore (A
     const place = createPlace(testDb, trip.id);
     const assignment = createDayAssignment(testDb, day.id, place.id);
 
-    const { queries } = await withQueryCount(() => withRequestContext(t.orm, async () => {
-      await participants.insertIgnore(assignment.id, []);
-    }));
+    const { queries } = await withQueryCount(() =>
+      withRequestContext(t.orm, async () => {
+        await participants.insertIgnore(assignment.id, []);
+      }),
+    );
     expect(queries).toBe(0);
   });
 
@@ -282,10 +305,14 @@ describe('AssignmentParticipantsRepository.deleteForAssignment / insertIgnore (A
           throw new Error('force rollback');
         });
       });
-    } catch (e) { caught = e; }
+    } catch (e) {
+      caught = e;
+    }
     expect((caught as Error).message).toBe('force rollback');
 
-    const rows = testDb.prepare('SELECT user_id FROM assignment_participants WHERE assignment_id = ?').all(assignment.id);
+    const rows = testDb
+      .prepare('SELECT user_id FROM assignment_participants WHERE assignment_id = ?')
+      .all(assignment.id);
     expect(rows).toEqual([{ user_id: p1.id }]);
   });
 });

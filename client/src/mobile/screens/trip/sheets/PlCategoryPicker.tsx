@@ -1,19 +1,19 @@
-import { useState } from 'react'
-import { Ban, Check, Plus } from 'lucide-react'
-import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
-import { FIELD_CLS } from './PlSheetChrome'
-import type { Category } from '../../../../types'
-import type { TripPlanner } from '../MTripShell'
+import { Ban, Check, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { getCategoryIcon } from '../../../../components/shared/categoryIcons';
+import type { Category } from '../../../../types';
+import type { TripPlanner } from '../MTripShell';
+import { FIELD_CLS } from './PlSheetChrome';
 
 interface PlCategoryPickerProps {
-  planner: TripPlanner
+  planner: TripPlanner;
   /** Selected category id as string, '' = no category (form convention). */
-  value: string
-  onChange: (categoryId: string) => void
+  value: string;
+  onChange: (categoryId: string) => void;
 }
 
 const PILL_BASE =
-  'flex flex-none items-center gap-[5px] rounded-full px-[11px] py-[6px] text-[0.71875rem] font-semibold'
+  'flex flex-none items-center gap-[5px] rounded-full px-[11px] py-[6px] text-[0.71875rem] font-semibold';
 
 /**
  * Category pills of the place form: "no category" + every trip category, plus
@@ -21,25 +21,29 @@ const PILL_BASE =
  * desktop form has — new categories are selected right away.
  */
 export default function PlCategoryPicker({ planner, value, onChange }: PlCategoryPickerProps) {
-  const { t, toast, categories, tripActions } = planner
-  const [creating, setCreating] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [saving, setSaving] = useState(false)
+  const { t, toast, categories, tripActions } = planner;
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const handleCreate = async () => {
-    if (!newName.trim() || saving) return
-    setSaving(true)
+    if (!newName.trim() || saving) return;
+    setSaving(true);
     try {
-      const created: Category = await tripActions.addCategory({ name: newName.trim(), color: '#6366f1', icon: 'MapPin' })
-      onChange(String(created.id))
-      setNewName('')
-      setCreating(false)
+      const created: Category = await tripActions.addCategory({
+        name: newName.trim(),
+        color: '#6366f1',
+        icon: 'MapPin',
+      });
+      onChange(String(created.id));
+      setNewName('');
+      setCreating(false);
     } catch {
-      toast.error(t('places.categoryCreateError'))
+      toast.error(t('places.categoryCreateError'));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   return (
     <div className="flex flex-wrap gap-[6px]">
@@ -51,9 +55,9 @@ export default function PlCategoryPicker({ planner, value, onChange }: PlCategor
         <Ban size={13} strokeWidth={2} />
         {t('places.noCategory')}
       </button>
-      {(categories || []).map(cat => {
-        const active = value === String(cat.id)
-        const Icon = getCategoryIcon(cat.icon)
+      {(categories || []).map((cat) => {
+        const active = value === String(cat.id);
+        const Icon = getCategoryIcon(cat.icon);
         return (
           <button
             key={cat.id}
@@ -64,7 +68,7 @@ export default function PlCategoryPicker({ planner, value, onChange }: PlCategor
             <Icon size={13} strokeWidth={2} />
             {cat.name}
           </button>
-        )
+        );
       })}
       {!creating ? (
         <button
@@ -80,11 +84,11 @@ export default function PlCategoryPicker({ planner, value, onChange }: PlCategor
           <input
             type="text"
             value={newName}
-            onChange={e => setNewName(e.target.value)}
-            onKeyDown={e => {
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                e.preventDefault()
-                void handleCreate()
+                e.preventDefault();
+                void handleCreate();
               }
             }}
             placeholder={t('places.categoryNamePlaceholder')}
@@ -103,8 +107,8 @@ export default function PlCategoryPicker({ planner, value, onChange }: PlCategor
           <button
             type="button"
             onClick={() => {
-              setCreating(false)
-              setNewName('')
+              setCreating(false);
+              setNewName('');
             }}
             className="flex-none text-[0.78125rem] font-semibold text-m-muted"
           >
@@ -113,5 +117,5 @@ export default function PlCategoryPicker({ planner, value, onChange }: PlCategor
         </div>
       )}
     </div>
-  )
+  );
 }

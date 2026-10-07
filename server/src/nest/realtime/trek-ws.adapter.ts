@@ -1,15 +1,16 @@
-import { WsAdapter } from '@nestjs/platform-ws';
-import type { INestApplicationContext } from '@nestjs/common';
-import type { IncomingMessage, Server as HttpServer } from 'node:http';
-import type { MessageMappingProperties } from '@nestjs/websockets';
-import { WebSocketServer } from 'ws';
-import type { Observable } from 'rxjs';
-import type { EntityManager } from '@mikro-orm/core';
 import { readEnv } from '../../app-config';
-import { setServer, type TrekWebSocket } from './ws-state';
 import { logError } from '../audit/audit-log.logger';
-import { withRequestContext } from '../database/request-context';
 import { isSameHostOrigin } from '../common/same-origin';
+import { withRequestContext } from '../database/request-context';
+import { setServer, type TrekWebSocket } from './ws-state';
+import type { EntityManager } from '@mikro-orm/core';
+import type { INestApplicationContext } from '@nestjs/common';
+import { WsAdapter } from '@nestjs/platform-ws';
+import type { MessageMappingProperties } from '@nestjs/websockets';
+
+import type { IncomingMessage, Server as HttpServer } from 'node:http';
+import type { Observable } from 'rxjs';
+import { WebSocketServer } from 'ws';
 
 // Per-connection message rate limiting. It lives in the adapter, not in the
 // gateway's handlers, because the original counted EVERY inbound frame before

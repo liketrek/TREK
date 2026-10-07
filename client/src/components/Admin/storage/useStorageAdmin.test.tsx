@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
-import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
 import type { StorageAdminState } from '@trek/shared';
+import { http, HttpResponse } from 'msw';
+import React, { useEffect } from 'react';
+import { describe, expect, it } from 'vitest';
 import { server } from '../../../../tests/helpers/msw/server';
 import { render, screen, waitFor } from '../../../../tests/helpers/render';
 import { useStorageAdmin, type StorageAdmin } from './useStorageAdmin';
@@ -9,7 +9,13 @@ import { useStorageAdmin, type StorageAdmin } from './useStorageAdmin';
 function baseState(overrides: Partial<StorageAdminState> = {}): StorageAdminState {
   return {
     backends: [
-      { name: 'uploads-local', type: 'local', source: 'built-in', options: { root: '/data/uploads' }, categories: ['files'] },
+      {
+        name: 'uploads-local',
+        type: 'local',
+        source: 'built-in',
+        options: { root: '/data/uploads' },
+        categories: ['files'],
+      },
     ],
     categories: { files: { backend: 'uploads-local', source: 'default' } } as StorageAdminState['categories'],
     health: { replicaFailures: [] },
@@ -25,7 +31,18 @@ function baseState(overrides: Partial<StorageAdminState> = {}): StorageAdminStat
 function runningState(): StorageAdminState {
   return baseState({
     migrations: [
-      { category: 'files', from: 'uploads-local', to: 'off-box', status: 'running', done: 1, total: 3, copied: 1, skipped: 0, failed: 0, startedAt: 1 },
+      {
+        category: 'files',
+        from: 'uploads-local',
+        to: 'off-box',
+        status: 'running',
+        done: 1,
+        total: 3,
+        copied: 1,
+        skipped: 0,
+        failed: 0,
+        startedAt: 1,
+      },
     ],
   });
 }
@@ -38,14 +55,22 @@ function Probe({ onReady }: { onReady: (admin: StorageAdmin) => void }): React.R
   const admin = useStorageAdmin('generic', 'conflict');
   // After every render, not during one: the test wants whatever the latest
   // render produced, and a render must stay free of side effects.
-  useEffect(() => { onReady(admin); });
+  useEffect(() => {
+    onReady(admin);
+  });
   return <div data-testid="ready">{admin.state ? 'loaded' : 'loading'}</div>;
 }
 
 describe('useStorageAdmin', () => {
   async function mount(): Promise<() => StorageAdmin> {
     let latest: StorageAdmin | null = null;
-    render(<Probe onReady={(a) => { latest = a; }} />);
+    render(
+      <Probe
+        onReady={(a) => {
+          latest = a;
+        }}
+      />
+    );
     await screen.findByText('loaded');
     return () => latest!;
   }
@@ -57,7 +82,7 @@ describe('useStorageAdmin', () => {
       http.post('/api/admin/storage/migrations', () => {
         posted = true;
         return HttpResponse.json({ started: true });
-      }),
+      })
     );
     const admin = await mount();
     expect(admin().storageBusy()).toBe(false);

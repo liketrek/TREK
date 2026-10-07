@@ -2,14 +2,18 @@
  * `TourWaypointsRepository`: TW1 (`listForPlace`), TW2 (`listForTrip`), TW3
  * (`insertForPlace`) and TW4 (`deleteForPlace`).
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { TourWaypoints } from '../../../../src/db/entities/TourWaypoints.entity';
+import type {
+  TourWaypointRow,
+  TourWaypointsRepository,
+} from '../../../../src/db/repositories/TourWaypoints.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createPlace, createTrip, createUser } from '../../../helpers/factories';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createPlace, createTrip, createUser } from '../../../helpers/factories';
 import { createTour } from '../../../helpers/tours-repos';
-import { TourWaypoints } from '../../../../src/db/entities/TourWaypoints.entity';
-import type { TourWaypointRow, TourWaypointsRepository } from '../../../../src/db/repositories/TourWaypoints.repository';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -19,8 +23,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(TourWaypoints);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 const ROUTE: TourWaypointRow[] = [
   { lat: 47.1, lng: 11.1, role: 'end', sequence: 2 },
@@ -71,7 +81,11 @@ describe('TourWaypointsRepository', () => {
 
     const rows = await repo.listForTrip(trip.id);
     expect(rows.map((r) => [r.place_id, r.sequence])).toEqual([
-      [place.id, 0], [place.id, 1], [place.id, 2], [second.id, 0], [second.id, 2],
+      [place.id, 0],
+      [place.id, 1],
+      [place.id, 2],
+      [second.id, 0],
+      [second.id, 2],
     ]);
     expect(rows[0]).toEqual({ place_id: place.id, lat: 47, lng: 11, role: 'start', sequence: 0 });
   });

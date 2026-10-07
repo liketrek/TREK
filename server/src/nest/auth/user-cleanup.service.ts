@@ -1,35 +1,36 @@
-import fs from 'node:fs';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { EntityManager } from '@mikro-orm/core';
+import { BudgetItems } from '../../db/entities/BudgetItems.entity';
+import { JourneyContributors } from '../../db/entities/JourneyContributors.entity';
+import { JourneyEntries } from '../../db/entities/JourneyEntries.entity';
+import { JourneyShareTokens } from '../../db/entities/JourneyShareTokens.entity';
+import { Journeys } from '../../db/entities/Journeys.entity';
+import { PluginUserErasureQueue } from '../../db/entities/PluginUserErasureQueue.entity';
+import { Plugins } from '../../db/entities/Plugins.entity';
+import { ShareTokens } from '../../db/entities/ShareTokens.entity';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Users } from '../../db/entities/Users.entity';
+import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
+import type { JourneyContributorsRepository } from '../../db/repositories/JourneyContributors.repository';
+import type { JourneyEntriesRepository } from '../../db/repositories/JourneyEntries.repository';
+import type { JourneyShareTokensRepository } from '../../db/repositories/JourneyShareTokens.repository';
+import type { JourneysRepository } from '../../db/repositories/Journeys.repository';
 import { MaintenanceRepository } from '../../db/repositories/MaintenanceRepository';
+import type { PluginUserErasureQueueRepository } from '../../db/repositories/PluginUserErasureQueue.repository';
+import type { PluginsRepository } from '../../db/repositories/Plugins.repository';
+import type { ShareTokensRepository } from '../../db/repositories/ShareTokens.repository';
+import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
 // Injected since BudgetModule dropped its AuthModule import (BudgetMcp's demo
 // guard reads RuntimeEnvService + the users table now), which un-closed the
 // AuthModule -> BudgetModule cycle that used to force budget.bridge here.
 import { BudgetService } from '../budget/budget.service';
-import { pluginsDataRoot } from '../plugins/paths';
 import { UnitOfWork } from '../database/unit-of-work';
-import { Users } from '../../db/entities/Users.entity';
-import type { UsersRepository } from '../../db/repositories/Users.repository';
-import { TripMembers } from '../../db/entities/TripMembers.entity';
-import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
-import { BudgetItems } from '../../db/entities/BudgetItems.entity';
-import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
-import { JourneyShareTokens } from '../../db/entities/JourneyShareTokens.entity';
-import type { JourneyShareTokensRepository } from '../../db/repositories/JourneyShareTokens.repository';
-import { Journeys } from '../../db/entities/Journeys.entity';
-import type { JourneysRepository } from '../../db/repositories/Journeys.repository';
-import { JourneyEntries } from '../../db/entities/JourneyEntries.entity';
-import type { JourneyEntriesRepository } from '../../db/repositories/JourneyEntries.repository';
-import { JourneyContributors } from '../../db/entities/JourneyContributors.entity';
-import type { JourneyContributorsRepository } from '../../db/repositories/JourneyContributors.repository';
-import { ShareTokens } from '../../db/entities/ShareTokens.entity';
-import type { ShareTokensRepository } from '../../db/repositories/ShareTokens.repository';
-import { Plugins } from '../../db/entities/Plugins.entity';
-import type { PluginsRepository } from '../../db/repositories/Plugins.repository';
-import { PluginUserErasureQueue } from '../../db/entities/PluginUserErasureQueue.entity';
-import type { PluginUserErasureQueueRepository } from '../../db/repositories/PluginUserErasureQueue.repository';
+import { pluginsDataRoot } from '../plugins/paths';
 import { enqueueHookUserDataErasures } from '../plugins/user-erasure-enqueue';
+import { EntityManager } from '@mikro-orm/core';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+
+import fs from 'node:fs';
 
 /**
  * Account erasure — everything that has to happen around `DELETE FROM users`
@@ -68,7 +69,8 @@ export class UserCleanupService {
     // Plan 4 Task 8a — UC2/UC3's erasure-enqueue half only (see erasePluginUserData's
     // own docstring for why this narrows the Plan 3b Task 5 "stays raw" ruling).
     @InjectRepository(Plugins) private readonly pluginsRepo: PluginsRepository,
-    @InjectRepository(PluginUserErasureQueue) private readonly pluginUserErasureQueueRepo: PluginUserErasureQueueRepository,
+    @InjectRepository(PluginUserErasureQueue)
+    private readonly pluginUserErasureQueueRepo: PluginUserErasureQueueRepository,
   ) {}
 
   /**
@@ -125,10 +127,15 @@ export class UserCleanupService {
       // that id is reinstalled + active (erasure delivery is a duty, not grant-gated).
       try {
         for (const entry of fs.readdirSync(pluginsDataRoot(), { withFileTypes: true })) {
-          if (entry.isDirectory() && !installed.has(entry.name)) await this.pluginUserErasureQueueRepo.insertIgnore(entry.name, userId);
+          if (entry.isDirectory() && !installed.has(entry.name))
+            await this.pluginUserErasureQueueRepo.insertIgnore(entry.name, userId);
         }
-      } catch { /* no plugin data root yet */ }
-    } catch { /* plugins / queue table absent (slim schema) */ }
+      } catch {
+        /* no plugin data root yet */
+      }
+    } catch {
+      /* plugins / queue table absent (slim schema) */
+    }
   }
 
   /**

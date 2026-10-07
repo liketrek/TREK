@@ -34,7 +34,11 @@ export class PlaceRegionsRepository extends TrekRepository<PlaceRegions> {
   /** AT3 (`resolvePlaceCountries`'s batch cache probe) — `SELECT place_id, country_code FROM place_regions WHERE place_id IN (...)`. Empty-array short-circuit (matches the legacy's own dynamic-`IN` guard). */
   async listCountryCodesForPlaceIds(placeIds: number[]): Promise<{ place_id: number; country_code: string }[]> {
     if (placeIds.length === 0) return [];
-    return await this.db().selectFrom('place_regions').select(['place_id', 'country_code']).where('place_id', 'in', placeIds).execute();
+    return await this.db()
+      .selectFrom('place_regions')
+      .select(['place_id', 'country_code'])
+      .where('place_id', 'in', placeIds)
+      .execute();
   }
 
   /** AT28 (`visitedRegions`'s cache probe) — `SELECT * FROM place_regions WHERE place_id IN (...)`. */
@@ -74,7 +78,9 @@ export class PlaceRegionsRepository extends TrekRepository<PlaceRegions> {
           .where('places.id', '=', place.id)
           .where('places.lat', '=', place.lat)
           .where('places.lng', '=', place.lng)
-          .where((wb) => (place.address == null ? wb('places.address', 'is', null) : wb('places.address', '=', place.address))),
+          .where((wb) =>
+            place.address == null ? wb('places.address', 'is', null) : wb('places.address', '=', place.address),
+          ),
       )
       .onConflict((oc) =>
         oc.column('place_id').doUpdateSet((ub) => ({
@@ -92,7 +98,16 @@ export class PlaceRegionsRepository extends TrekRepository<PlaceRegions> {
    * pr.region_code, p.lat, p.lng, p.address FROM place_regions pr JOIN places p
    * ON p.id = pr.place_id ORDER BY pr.place_id`.
    */
-  async listWithPlaceLocation(): Promise<{ id: number; country_code: string; region_code: string; lat: number | null; lng: number | null; address: string | null }[]> {
+  async listWithPlaceLocation(): Promise<
+    {
+      id: number;
+      country_code: string;
+      region_code: string;
+      lat: number | null;
+      lng: number | null;
+      address: string | null;
+    }[]
+  > {
     return await this.db()
       .selectFrom('place_regions as pr')
       .innerJoin('places as p', 'p.id', 'pr.place_id')
@@ -107,7 +122,14 @@ export class PlaceRegionsRepository extends TrekRepository<PlaceRegions> {
    * id = ? AND lat IS ? AND lng IS ? AND address IS ?)`. Only while the place
    * still holds the location the row was read with. Returns whether a row went.
    */
-  async deleteRegionWhileUnmoved(row: { id: number; country_code: string; region_code: string; lat: number | null; lng: number | null; address: string | null }): Promise<boolean> {
+  async deleteRegionWhileUnmoved(row: {
+    id: number;
+    country_code: string;
+    region_code: string;
+    lat: number | null;
+    lng: number | null;
+    address: string | null;
+  }): Promise<boolean> {
     const result = await this.db()
       .deleteFrom('place_regions')
       .where('place_id', '=', row.id)
@@ -121,7 +143,9 @@ export class PlaceRegionsRepository extends TrekRepository<PlaceRegions> {
             .where('places.id', '=', row.id)
             .where((wb) => (row.lat == null ? wb('places.lat', 'is', null) : wb('places.lat', '=', row.lat)))
             .where((wb) => (row.lng == null ? wb('places.lng', 'is', null) : wb('places.lng', '=', row.lng)))
-            .where((wb) => (row.address == null ? wb('places.address', 'is', null) : wb('places.address', '=', row.address))),
+            .where((wb) =>
+              row.address == null ? wb('places.address', 'is', null) : wb('places.address', '=', row.address),
+            ),
         ),
       )
       .executeTakeFirst();

@@ -1,6 +1,3 @@
-import { Readable } from 'node:stream';
-import { createHash } from 'node:crypto';
-import type { DocsyncErrorCode } from '@trek/shared';
 import { discardBody, readCappedJson } from '../../../utils/cappedFetch';
 import {
   PROVIDER_JSON_MAX_BYTES,
@@ -15,6 +12,10 @@ import {
   type TransportFailure,
   type TransportFailureCode,
 } from './provider-http';
+import type { DocsyncErrorCode } from '@trek/shared';
+
+import { createHash } from 'node:crypto';
+import { Readable } from 'node:stream';
 
 /**
  * Thin HTTP client for the Synology DSM Web API (SYNO.API.Auth + FileStation).
@@ -281,7 +282,11 @@ export class SynologyDriveError extends Error {
   readonly status?: number;
   readonly detail?: string;
 
-  constructor(code: DocsyncErrorCode, message: string, opts: { synoCode?: number; status?: number; detail?: string } = {}) {
+  constructor(
+    code: DocsyncErrorCode,
+    message: string,
+    opts: { synoCode?: number; status?: number; detail?: string } = {},
+  ) {
     super(message);
     this.name = 'SynologyDriveError';
     this.code = code;
@@ -821,7 +826,8 @@ export class SynologyDriveClient {
         api: 'SYNO.API.Info',
         version: '1',
         method: 'query',
-        query: 'SYNO.FileStation.List,SYNO.FileStation.Upload,SYNO.FileStation.Download,SYNO.FileStation.CreateFolder,SYNO.FileStation.Rename,SYNO.FileStation.CopyMove,SYNO.FileStation.MD5',
+        query:
+          'SYNO.FileStation.List,SYNO.FileStation.Upload,SYNO.FileStation.Download,SYNO.FileStation.CreateFolder,SYNO.FileStation.Rename,SYNO.FileStation.CopyMove,SYNO.FileStation.MD5',
       },
       { cgi: QUERY_CGI, session },
     );
@@ -1126,17 +1132,14 @@ export class SynologyDriveClient {
     const status = await this.awaitTask(creds, 'SYNO.FileStation.MD5', '2', taskId);
     const md5 = isRecord(status) && typeof status.md5 === 'string' ? status.md5 : null;
     if (!md5) {
-      throw new SynologyDriveError('provider_error', 'The NAS finished the MD5 task without a digest', { detail: path });
+      throw new SynologyDriveError('provider_error', 'The NAS finished the MD5 task without a digest', {
+        detail: path,
+      });
     }
     return md5.toLowerCase();
   }
 
-  private async awaitTask(
-    creds: SynologyDriveCreds,
-    api: string,
-    version: string,
-    taskId: string,
-  ): Promise<unknown> {
+  private async awaitTask(creds: SynologyDriveCreds, api: string, version: string, taskId: string): Promise<unknown> {
     for (let poll = 0; poll < TASK_MAX_POLLS; poll++) {
       const status = await this.fileStation(creds, {
         api,

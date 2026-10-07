@@ -1,6 +1,7 @@
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext } from '../../nest-mcp';
-import { z } from 'zod';
 import { WeatherService } from './weather.service';
+
+import { z } from 'zod';
 
 /**
  * Weather MCP tools, moved 1:1 from the legacy registrar in
@@ -29,12 +30,18 @@ export class WeatherMcp {
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'weather', mode: 'read' },
   })
-  async getWeather({ lat, lng, date, lang }: { lat: number; lng: number; date: string; lang?: string }, _ctx: McpContext) {
+  async getWeather(
+    { lat, lng, date, lang }: { lat: number; lng: number; date: string; lang?: string },
+    _ctx: McpContext,
+  ) {
     try {
       const weather = await this.weather.get(String(lat), String(lng), date, lang ?? 'en');
       return ok({ weather });
     } catch (err) {
-      return { content: [{ type: 'text' as const, text: (err as Error)?.message ?? 'Weather service not available.' }], isError: true };
+      return {
+        content: [{ type: 'text' as const, text: (err as Error)?.message ?? 'Weather service not available.' }],
+        isError: true,
+      };
     }
   }
 
@@ -50,12 +57,18 @@ export class WeatherMcp {
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'weather', mode: 'read' },
   })
-  async getDetailedWeather({ lat, lng, date, lang }: { lat: number; lng: number; date: string; lang?: string }, _ctx: McpContext) {
+  async getDetailedWeather(
+    { lat, lng, date, lang }: { lat: number; lng: number; date: string; lang?: string },
+    _ctx: McpContext,
+  ) {
     try {
       const weather = await this.weather.getDetailed(String(lat), String(lng), date, lang ?? 'en');
       return ok({ weather });
     } catch (err) {
-      return { content: [{ type: 'text' as const, text: (err as Error)?.message ?? 'Weather service not available.' }], isError: true };
+      return {
+        content: [{ type: 'text' as const, text: (err as Error)?.message ?? 'Weather service not available.' }],
+        isError: true,
+      };
     }
   }
 }

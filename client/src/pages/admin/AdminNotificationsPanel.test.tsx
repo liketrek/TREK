@@ -1,13 +1,12 @@
 // FE-ADMMTX-001 to FE-ADMMTX-011
 import { http, HttpResponse } from 'msw';
-import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildAdminToast } from '../../../tests/helpers/mobileAdmin';
 import { server } from '../../../tests/helpers/msw/server';
 import { act, fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
-import { buildAdminToast } from '../../../tests/helpers/mobileAdmin';
 import { resetAllStores } from '../../../tests/helpers/store';
-import { useTranslation } from '../../i18n';
 import type { useToast } from '../../components/shared/Toast';
+import { useTranslation } from '../../i18n';
 import AdminNotificationsPanel from './AdminNotificationsPanel';
 
 type Spy = ReturnType<typeof vi.fn>;
@@ -152,9 +151,7 @@ describe('AdminNotificationsPanel', () => {
 
   it('FE-ADMMTX-010: a failing save reverts the toggle and toasts', async () => {
     servePreferences(matrix());
-    server.use(
-      http.put('/api/admin/notification-preferences', () => HttpResponse.json({}, { status: 500 }))
-    );
+    server.use(http.put('/api/admin/notification-preferences', () => HttpResponse.json({}, { status: 500 })));
     const toast = renderPanel();
 
     await screen.findByText('New version available');

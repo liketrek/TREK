@@ -1,17 +1,17 @@
 import { BudgetItems } from '../../db/entities/BudgetItems.entity';
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { AccommodationsService } from './accommodations.service';
+import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
+import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { Days } from '../../db/entities/Days.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
+import { Trips } from '../../db/entities/Trips.entity';
 import { AssignmentsDomainModule } from '../assignments/assignments-domain.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { RealtimeModule } from '../realtime/realtime.module';
-import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
-import { DayAssignments } from '../../db/entities/DayAssignments.entity';
-import { Places } from '../../db/entities/Places.entity';
-import { Days } from '../../db/entities/Days.entity';
-import { RoadtripVias } from '../../db/entities/RoadtripVias.entity';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import { Trips } from '../../db/entities/Trips.entity';
+import { AccommodationsService } from './accommodations.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * The accommodations SERVICE, split from the controller/MCP/RPC surfaces (the
@@ -39,8 +39,19 @@ import { Trips } from '../../db/entities/Trips.entity';
  */
 @Module({
   imports: [
-    PermissionsModule, RealtimeModule, AssignmentsDomainModule,
-    MikroOrmModule.forFeature([DayAccommodations, DayAssignments, Places, Days, RoadtripVias, Reservations, BudgetItems, Trips]),
+    PermissionsModule,
+    RealtimeModule,
+    AssignmentsDomainModule,
+    MikroOrmModule.forFeature([
+      DayAccommodations,
+      DayAssignments,
+      Places,
+      Days,
+      RoadtripVias,
+      Reservations,
+      BudgetItems,
+      Trips,
+    ]),
   ],
   providers: [AccommodationsService],
   exports: [AccommodationsService],

@@ -189,7 +189,11 @@ export class CollectionsRepository extends TrekRepository<Collections> {
 
   /** CL5 (`ownerOf`) — `SELECT owner_id FROM collections WHERE id=?`. */
   async ownerId(id: number): Promise<number | undefined> {
-    const row = await this.readDb().selectFrom('collections').select('owner_id').where('id', '=', id).executeTakeFirst();
+    const row = await this.readDb()
+      .selectFrom('collections')
+      .select('owner_id')
+      .where('id', '=', id)
+      .executeTakeFirst();
     return row?.owner_id;
   }
 
@@ -258,18 +262,30 @@ export class CollectionsRepository extends TrekRepository<Collections> {
     }>,
   ): Promise<void> {
     if (Object.keys(write).length === 0) return;
-    await this.readDb().updateTable('collections').set({ ...write, updated_at: new Date().toISOString() }).where('id', '=', id).execute();
+    await this.readDb()
+      .updateTable('collections')
+      .set({ ...write, updated_at: new Date().toISOString() })
+      .where('id', '=', id)
+      .execute();
   }
 
   /** CL31 (`setCollectionCover`) — `SELECT cover_image FROM collections WHERE id=?`. */
   async coverImage(id: number): Promise<string | null | undefined> {
-    const row = await this.readDb().selectFrom('collections').select('cover_image').where('id', '=', id).executeTakeFirst();
+    const row = await this.readDb()
+      .selectFrom('collections')
+      .select('cover_image')
+      .where('id', '=', id)
+      .executeTakeFirst();
     return row?.cover_image;
   }
 
   /** CL32 (`setCollectionCover`) — `UPDATE collections SET cover_image=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`. */
   async setCoverImage(id: number, coverUrl: string | null): Promise<void> {
-    await this.readDb().updateTable('collections').set({ cover_image: coverUrl, updated_at: new Date().toISOString() }).where('id', '=', id).execute();
+    await this.readDb()
+      .updateTable('collections')
+      .set({ cover_image: coverUrl, updated_at: new Date().toISOString() })
+      .where('id', '=', id)
+      .execute();
   }
 
   /** CL35 (`deleteCollection`) — `DELETE FROM collections WHERE id=?` (CASCADE drops members + places + tags). */
@@ -312,11 +328,35 @@ export class CollectionsRepository extends TrekRepository<Collections> {
       .selectFrom('collection_places as cp')
       .leftJoin('categories as c', 'c.id', 'cp.category_id')
       .select([
-        'cp.id', 'cp.collection_id', 'cp.owner_id', 'cp.saved_by', 'cp.name', 'cp.description', 'cp.lat', 'cp.lng',
-        'cp.address', 'cp.category_id', 'cp.price', 'cp.currency', 'cp.notes', 'cp.image_url', 'cp.google_place_id',
-        'cp.google_ftid', 'cp.osm_id', 'cp.website', 'cp.phone', 'cp.status', 'cp.source_trip_id', 'cp.source_place_id',
-        'cp.links', 'cp.sort_order', 'cp.created_at', 'cp.updated_at',
-        'c.name as category_name', 'c.color as category_color', 'c.icon as category_icon',
+        'cp.id',
+        'cp.collection_id',
+        'cp.owner_id',
+        'cp.saved_by',
+        'cp.name',
+        'cp.description',
+        'cp.lat',
+        'cp.lng',
+        'cp.address',
+        'cp.category_id',
+        'cp.price',
+        'cp.currency',
+        'cp.notes',
+        'cp.image_url',
+        'cp.google_place_id',
+        'cp.google_ftid',
+        'cp.osm_id',
+        'cp.website',
+        'cp.phone',
+        'cp.status',
+        'cp.source_trip_id',
+        'cp.source_place_id',
+        'cp.links',
+        'cp.sort_order',
+        'cp.created_at',
+        'cp.updated_at',
+        'c.name as category_name',
+        'c.color as category_color',
+        'c.icon as category_icon',
       ])
       .where('cp.id', '=', id)
       .executeTakeFirst();
@@ -333,11 +373,35 @@ export class CollectionsRepository extends TrekRepository<Collections> {
       .selectFrom('collection_places as cp')
       .leftJoin('categories as c', 'c.id', 'cp.category_id')
       .select([
-        'cp.id', 'cp.collection_id', 'cp.owner_id', 'cp.saved_by', 'cp.name', 'cp.description', 'cp.lat', 'cp.lng',
-        'cp.address', 'cp.category_id', 'cp.price', 'cp.currency', 'cp.notes', 'cp.image_url', 'cp.google_place_id',
-        'cp.google_ftid', 'cp.osm_id', 'cp.website', 'cp.phone', 'cp.status', 'cp.source_trip_id', 'cp.source_place_id',
-        'cp.links', 'cp.sort_order', 'cp.created_at', 'cp.updated_at',
-        'c.name as category_name', 'c.color as category_color', 'c.icon as category_icon',
+        'cp.id',
+        'cp.collection_id',
+        'cp.owner_id',
+        'cp.saved_by',
+        'cp.name',
+        'cp.description',
+        'cp.lat',
+        'cp.lng',
+        'cp.address',
+        'cp.category_id',
+        'cp.price',
+        'cp.currency',
+        'cp.notes',
+        'cp.image_url',
+        'cp.google_place_id',
+        'cp.google_ftid',
+        'cp.osm_id',
+        'cp.website',
+        'cp.phone',
+        'cp.status',
+        'cp.source_trip_id',
+        'cp.source_place_id',
+        'cp.links',
+        'cp.sort_order',
+        'cp.created_at',
+        'cp.updated_at',
+        'c.name as category_name',
+        'c.color as category_color',
+        'c.icon as category_icon',
       ])
       .where('cp.collection_id', '=', collectionId)
       .orderBy('cp.sort_order')
@@ -347,7 +411,11 @@ export class CollectionsRepository extends TrekRepository<Collections> {
 
   /** CL11 (`collectionIdOfPlace`) — `SELECT collection_id FROM collection_places WHERE id=?`. */
   async collectionIdOfPlace(placeId: number): Promise<number | undefined> {
-    const row = await this.placesReadDb().selectFrom('collection_places').select('collection_id').where('id', '=', placeId).executeTakeFirst();
+    const row = await this.placesReadDb()
+      .selectFrom('collection_places')
+      .select('collection_id')
+      .where('id', '=', placeId)
+      .executeTakeFirst();
     return row?.collection_id;
   }
 
@@ -361,7 +429,10 @@ export class CollectionsRepository extends TrekRepository<Collections> {
    */
   async loadTagsByPlaceIds(placeIds: number[]): Promise<{ pid: number; id: number; name: string; color: string }[]> {
     if (placeIds.length === 0) return [];
-    return await this.kysely<{ collection_place_tags: { collection_place_id: number; tag_id: number }; tags: { id: number; name: string; color: string } }>()
+    return await this.kysely<{
+      collection_place_tags: { collection_place_id: number; tag_id: number };
+      tags: { id: number; name: string; color: string };
+    }>()
       .selectFrom('collection_place_tags as cpt')
       .innerJoin('tags as t', 't.id', 'cpt.tag_id')
       .select(['cpt.collection_place_id as pid', 't.id', 't.name', 't.color'])
@@ -392,7 +463,12 @@ export class CollectionsRepository extends TrekRepository<Collections> {
   ): Promise<{ pid: number; user_id: number; username: string; avatar: string | null; rating: number }[]> {
     if (placeIds.length === 0) return [];
     return await this.kysely<{
-      collection_place_ratings: { collection_place_id: number; user_id: number; rating: number; created_at: string | null };
+      collection_place_ratings: {
+        collection_place_id: number;
+        user_id: number;
+        rating: number;
+        created_at: string | null;
+      };
       users: { id: number; username: string; avatar: string | null };
     }>()
       .selectFrom('collection_place_ratings as cpr')
@@ -464,14 +540,23 @@ export class CollectionsRepository extends TrekRepository<Collections> {
       .selectFrom('collection_places')
       .select(['id', 'name'])
       .where('collection_id', '=', collectionId)
-      .where((eb) => eb.or([eb('google_place_id', '=', externalId), eb('google_ftid', '=', externalId), eb('osm_id', '=', externalId)]))
+      .where((eb) =>
+        eb.or([
+          eb('google_place_id', '=', externalId),
+          eb('google_ftid', '=', externalId),
+          eb('osm_id', '=', externalId),
+        ]),
+      )
       .orderBy('id', 'asc')
       .limit(1)
       .executeTakeFirst();
   }
 
   /** CL26 (`findDuplicateCollectionPlace`, name branch) — `SELECT id,name FROM collection_places WHERE collection_id=? AND lower(trim(name))=? ORDER BY id ASC LIMIT 1`. `normalizedName` is already `lower(trim(...))`-shaped by the caller (`_shared/../dialect/sql-functions.ts`'s `lowerTrim`/`lowerTrimParam` precedent). */
-  async findDuplicateByName(collectionId: number, normalizedName: string): Promise<{ id: number; name: string } | undefined> {
+  async findDuplicateByName(
+    collectionId: number,
+    normalizedName: string,
+  ): Promise<{ id: number; name: string } | undefined> {
     return await this.placesReadDb()
       .selectFrom('collection_places')
       .select(['id', 'name'])

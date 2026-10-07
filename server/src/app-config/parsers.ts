@@ -201,7 +201,10 @@ export function synchronousName(level: unknown): string {
 export function parseLinkLocalAllowList(raw: string | undefined): { ips: string[]; invalid: string[] } {
   const ips: string[] = [];
   const invalid: string[] = [];
-  for (const entry of (raw ?? '').split(',').map((e) => e.trim()).filter(Boolean)) {
+  for (const entry of (raw ?? '')
+    .split(',')
+    .map((e) => e.trim())
+    .filter(Boolean)) {
     const m = /^169\.254\.(\d{1,3})\.(\d{1,3})$/.exec(entry);
     const canonical = m !== null && [m[1], m[2]].every((o) => String(Number(o)) === o && Number(o) <= 255);
     if (canonical && m[1] !== '169' && m[1] !== '170') ips.push(entry);

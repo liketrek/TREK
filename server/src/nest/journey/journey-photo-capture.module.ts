@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common';
-import { MemoriesModule } from '../memories/memories.module';
 import { MapsModule } from '../maps/maps.module';
+import { MemoriesModule } from '../memories/memories.module';
 import { JourneyDomainModule } from './journey-domain.module';
 import { JourneyPhotoCaptureService } from './journey-photo-capture.service';
+import { Module } from '@nestjs/common';
 
 /**
  * The capture-time backfill as the journey surfaces use it: fill taken_at, then,

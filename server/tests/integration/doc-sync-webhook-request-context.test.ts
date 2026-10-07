@@ -35,8 +35,15 @@
  * `nudge()`/`getLinkByToken`, so nothing before the `schedule()` call ever
  * touches the EntityManager.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { DocSyncConfigService } from '../../src/nest/doc-sync/doc-sync-config.service';
+import { DocSyncWebhookController } from '../../src/nest/doc-sync/doc-sync-webhook.controller';
+import { WEBHOOK_NUDGE_DEBOUNCE_SECONDS } from '../../src/nest/doc-sync/doc-sync.constants';
+import { createUser, createTrip } from '../helpers/factories';
 import type { INestApplication } from '@nestjs/common';
+
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -51,14 +58,11 @@ vi.mock('../../src/config', () => ({
   SESSION_DURATION_SECONDS: 86400,
   DEFAULT_LANGUAGE: 'en',
 }));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn(), getOnlineUserIds: vi.fn(() => []) }));
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { createUser, createTrip } from '../helpers/factories';
-import { WEBHOOK_NUDGE_DEBOUNCE_SECONDS } from '../../src/nest/doc-sync/doc-sync.constants';
-import { DocSyncWebhookController } from '../../src/nest/doc-sync/doc-sync-webhook.controller';
-import { DocSyncConfigService } from '../../src/nest/doc-sync/doc-sync-config.service';
+vi.mock('../../src/websocket', () => ({
+  broadcast: vi.fn(),
+  broadcastToUser: vi.fn(),
+  getOnlineUserIds: vi.fn(() => []),
+}));
 
 describe('DocSyncWebhookController#schedule() runs its detached timer body inside its own request context', () => {
   let app: INestApplication;
@@ -103,32 +107,28 @@ describe('DocSyncWebhookController#schedule() runs its detached timer body insid
     testDb.close();
   });
 
-  it(
-    'WEBHOOK-CTX-001: schedule(), called from a genuinely bare (non-request) context, never logs cannotUseGlobalContext once its debounce timer fires',
-    async () => {
-      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      try {
-        // Calling the controller's own private `schedule()` directly, bracket
-        // notation only (no `any`/`as unknown as`): this test function body is
-        // not inside ANY AsyncLocalStorage context, unlike a real HTTP request
-        // through Nest's middleware — so the timer this starts is the real
-        // thing the docstring above describes, not one riding a caller's fork.
-        controller['schedule'](linkId, () => config.getLink(linkId));
+  it('WEBHOOK-CTX-001: schedule(), called from a genuinely bare (non-request) context, never logs cannotUseGlobalContext once its debounce timer fires', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      // Calling the controller's own private `schedule()` directly, bracket
+      // notation only (no `any`/`as unknown as`): this test function body is
+      // not inside ANY AsyncLocalStorage context, unlike a real HTTP request
+      // through Nest's middleware — so the timer this starts is the real
+      // thing the docstring above describes, not one riding a caller's fork.
+      controller['schedule'](linkId, () => config.getLink(linkId));
 
-        // Let the real debounce timer fire, then drain the microtasks its
-        // async body queues (real timers here — the detached body is a
-        // genuine `setTimeout`, not something fake timers can fast-forward
-        // through a real HTTP-free integration boot safely).
-        await new Promise((resolve) => setTimeout(resolve, (WEBHOOK_NUDGE_DEBOUNCE_SECONDS + 2) * 1000));
+      // Let the real debounce timer fire, then drain the microtasks its
+      // async body queues (real timers here — the detached body is a
+      // genuine `setTimeout`, not something fake timers can fast-forward
+      // through a real HTTP-free integration boot safely).
+      await new Promise((resolve) => setTimeout(resolve, (WEBHOOK_NUDGE_DEBOUNCE_SECONDS + 2) * 1000));
 
-        const suspicious = errSpy.mock.calls
-          .map((args) => args.map(String).join(' '))
-          .filter((line) => /cannotUseGlobalContext|global EntityManager/i.test(line));
-        expect(suspicious).toEqual([]);
-      } finally {
-        errSpy.mockRestore();
-      }
-    },
-    20_000,
-  );
+      const suspicious = errSpy.mock.calls
+        .map((args) => args.map(String).join(' '))
+        .filter((line) => /cannotUseGlobalContext|global EntityManager/i.test(line));
+      expect(suspicious).toEqual([]);
+    } finally {
+      errSpy.mockRestore();
+    }
+  }, 20_000);
 });

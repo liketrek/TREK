@@ -1,47 +1,47 @@
-import { useRef, type InputHTMLAttributes, type Ref } from 'react'
+import { useRef, type InputHTMLAttributes, type Ref } from 'react';
 
-export type NumericMode = 'integer' | 'decimal' | 'signed' | 'signed-decimal'
+export type NumericMode = 'integer' | 'decimal' | 'signed' | 'signed-decimal';
 
 const SANITIZERS: Record<NumericMode, (raw: string) => string> = {
   // Digits only — quantities, weights, day counts.
-  integer: raw => raw.replace(/[^0-9]/g, ''),
+  integer: (raw) => raw.replace(/[^0-9]/g, ''),
   // Digits plus a decimal separator. Both '.' and ',' pass through; callers already
   // normalize the comma (see CostsPanel.onTotalChange) so a European keypad still works.
-  decimal: raw => raw.replace(/[^0-9.,]/g, ''),
+  decimal: (raw) => raw.replace(/[^0-9.,]/g, ''),
   // Signed decimal — coordinates. Keeps a leading '-'.
-  signed: raw => {
-    const negative = raw.trimStart().startsWith('-')
-    const digits = raw.replace(/[^0-9.]/g, '')
-    return negative ? `-${digits}` : digits
+  signed: (raw) => {
+    const negative = raw.trimStart().startsWith('-');
+    const digits = raw.replace(/[^0-9.]/g, '');
+    return negative ? `-${digits}` : digits;
   },
   // 'decimal' plus a leading '-' — money fields that accept a refund (#2176).
   // Distinct from 'signed' on purpose: that one strips the comma, which a
   // European keypad needs for amounts.
-  'signed-decimal': raw => {
-    const negative = raw.trimStart().startsWith('-')
-    const digits = raw.replace(/[^0-9.,]/g, '')
-    return negative ? `-${digits}` : digits
+  'signed-decimal': (raw) => {
+    const negative = raw.trimStart().startsWith('-');
+    const digits = raw.replace(/[^0-9.,]/g, '');
+    return negative ? `-${digits}` : digits;
   },
-}
+};
 
-const flipSign = (raw: string) => (raw.startsWith('-') ? raw.slice(1) : `-${raw}`)
+const flipSign = (raw: string) => (raw.startsWith('-') ? raw.slice(1) : `-${raw}`);
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'onChange' | 'value'> & {
-  value: string | number | null | undefined
+  value: string | number | null | undefined;
   /** Receives the sanitized raw string. Callers keep their own state and commit logic. */
-  onValueChange: (value: string) => void
-  mode?: NumericMode
+  onValueChange: (value: string) => void;
+  mode?: NumericMode;
   /** Escape hatch for a field that must not steal the caret (none today). */
-  selectOnFocus?: boolean
+  selectOnFocus?: boolean;
   /**
    * Accessible name for a sign toggle rendered beside the field. Set it on a signed
    * money field: iOS draws inputMode="decimal" as a pad with digits, separator and
    * backspace only, so a refund (#2176) has no minus key to type. Ignored on the
    * unsigned modes, where there is no sign to flip.
    */
-  signToggleLabel?: string
-  ref?: Ref<HTMLInputElement>
-}
+  signToggleLabel?: string;
+  ref?: Ref<HTMLInputElement>;
+};
 
 /**
  * A numeric text input that replaces its contents when you type into it.
@@ -71,12 +71,20 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'onChange' | '
  * others on blur. This owns only the part that was uniformly broken.
  */
 export function NumericInput({
-  value, onValueChange, mode = 'integer', selectOnFocus = true, onFocus, inputMode, signToggleLabel, ref, ...rest
+  value,
+  onValueChange,
+  mode = 'integer',
+  selectOnFocus = true,
+  onFocus,
+  inputMode,
+  signToggleLabel,
+  ref,
+  ...rest
 }: Props) {
   // Set while a deferred select() is queued; any input in that window cancels it.
-  const selectPending = useRef(false)
-  const raw = String(value ?? '')
-  const signable = mode === 'signed' || mode === 'signed-decimal'
+  const selectPending = useRef(false);
+  const raw = String(value ?? '');
+  const signable = mode === 'signed' || mode === 'signed-decimal';
 
   return (
     <>
@@ -86,21 +94,21 @@ export function NumericInput({
         type="text"
         inputMode={inputMode ?? (mode === 'integer' ? 'numeric' : 'decimal')}
         value={value ?? ''}
-        onChange={e => {
-          selectPending.current = false
-          onValueChange(SANITIZERS[mode](e.target.value))
+        onChange={(e) => {
+          selectPending.current = false;
+          onValueChange(SANITIZERS[mode](e.target.value));
         }}
-        onFocus={e => {
+        onFocus={(e) => {
           if (selectOnFocus) {
-            const el = e.currentTarget
-            el.select()
-            selectPending.current = true
+            const el = e.currentTarget;
+            el.select();
+            selectPending.current = true;
             requestAnimationFrame(() => {
-              if (selectPending.current && document.activeElement === el) el.select()
-              selectPending.current = false
-            })
+              if (selectPending.current && document.activeElement === el) el.select();
+              selectPending.current = false;
+            });
           }
-          onFocus?.(e)
+          onFocus?.(e);
         }}
       />
       {signToggleLabel && signable && (
@@ -111,7 +119,7 @@ export function NumericInput({
           disabled={rest.disabled}
           // Keeps the caret (and on a phone the keypad) in the field, so the sign can
           // be flipped mid-entry and typing carries on where it left off.
-          onMouseDown={e => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onValueChange(SANITIZERS[mode](flipSign(raw)))}
           className="text-content-faint"
           style={{ border: 0, background: 'none', padding: '0 2px', font: 'inherit', lineHeight: 1, cursor: 'pointer' }}
@@ -120,5 +128,5 @@ export function NumericInput({
         </button>
       )}
     </>
-  )
+  );
 }

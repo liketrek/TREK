@@ -68,7 +68,7 @@ const docsync: TranslationStrings = {
   'docsync.state.local_deleted': 'Borttagen i TREK',
   'docsync.state.scope_drift': 'Flyttad ut ur mappen',
 
-  'docsync.conflict.resolve': "Lös {count}",
+  'docsync.conflict.resolve': 'Lös {count}',
 
   'docsync.conflict.title': 'Båda kopiorna har ändrats',
   'docsync.conflict.keepTrek': 'Behåll TREK-versionen',
@@ -172,7 +172,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'Överföringen gick inte igenom.',
 
   'docsync.error.unknown_provider': 'Den här leverantören är inte tillgänglig på den här instansen.',
-  'docsync.error.provider_disabled': 'Pausad: en administratör har stängt av den här leverantören. Synkroniseringen fortsätter när den slås på igen.',
+  'docsync.error.provider_disabled':
+    'Pausad: en administratör har stängt av den här leverantören. Synkroniseringen fortsätter när den slås på igen.',
   'docsync.binding.reconnect': 'Anslut igen',
 };
 

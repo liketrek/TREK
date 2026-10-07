@@ -14,14 +14,15 @@
  * dropping the guard from the list is a silent regression that opens all seven
  * routes on an instance that switched the addon off.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import { GUARDS_METADATA } from '@nestjs/common/constants';
-import { RoadtripController } from '../../../src/nest/roadtrip/roadtrip.controller';
-import type { RoadtripService } from '../../../src/nest/roadtrip/roadtrip.service';
 import { AddonGuard } from '../../../src/nest/addons/addon.guard';
 import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
 import { TripAccessGuard } from '../../../src/nest/permissions/trip-access.guard';
+import { RoadtripController } from '../../../src/nest/roadtrip/roadtrip.controller';
+import type { RoadtripService } from '../../../src/nest/roadtrip/roadtrip.service';
+import { HttpException } from '@nestjs/common';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const VIA = { id: 5, day_id: 4, after_order_index: 0, sequence: 0, lat: 53, lng: 10 };
 
@@ -44,7 +45,9 @@ function svc(o: Partial<RoadtripService> = {}): RoadtripService {
 }
 
 async function thrown(fn: () => unknown): Promise<{ status: number; body: unknown }> {
-  try { await fn(); } catch (err) {
+  try {
+    await fn();
+  } catch (err) {
     expect(err).toBeInstanceOf(HttpException);
     const e = err as HttpException;
     return { status: e.getStatus(), body: e.getResponse() };
@@ -86,8 +89,10 @@ describe('RoadtripController — reads', () => {
     // part of it. Without the check a valid day id from somebody else's trip is
     // reachable by way of a trip the caller does have access to.
     const s = svc({ dayExists: vi.fn().mockReturnValue(false) });
-    expect(await thrown(() => new RoadtripController(s).list('7', '999')))
-      .toEqual({ status: 404, body: { error: 'Day not found' } });
+    expect(await thrown(() => new RoadtripController(s).list('7', '999'))).toEqual({
+      status: 404,
+      body: { error: 'Day not found' },
+    });
   });
 });
 
@@ -132,8 +137,9 @@ describe('RoadtripController — writes', () => {
     // would otherwise become this day's label, and a place that is not a track
     // would become a label that can never be drawn.
     const s = svc({ trackExists: vi.fn().mockReturnValue(false) });
-    expect(await thrown(() => new RoadtripController(s).createMany('7', '4', { vias: [body], track: { place_id: 3 } })))
-      .toEqual({ status: 404, body: { error: 'Track not found' } });
+    expect(
+      await thrown(() => new RoadtripController(s).createMany('7', '4', { vias: [body], track: { place_id: 3 } })),
+    ).toEqual({ status: 404, body: { error: 'Track not found' } });
     expect(s.createMany).not.toHaveBeenCalled();
   });
 
@@ -148,7 +154,9 @@ describe('RoadtripController — writes', () => {
     // check the existence of. Treating it as one would refuse the only way to
     // detach a track.
     const s = svc({ trackExists: vi.fn().mockReturnValue(false) });
-    expect(await new RoadtripController(s).createMany('7', '4', { vias: [body], track: null })).toEqual({ vias: [VIA] });
+    expect(await new RoadtripController(s).createMany('7', '4', { vias: [body], track: null })).toEqual({
+      vias: [VIA],
+    });
     expect(s.trackExists).not.toHaveBeenCalled();
   });
 
@@ -175,8 +183,10 @@ describe('RoadtripController — writes', () => {
 
   it('ROADTRIP-CTL-013: a via that is not on this day is a 404, not a silent no-op', async () => {
     const s = svc({ move: vi.fn().mockReturnValue(null) });
-    expect(await thrown(() => new RoadtripController(s).update('7', '4', '999', { lat: 1, lng: 2 })))
-      .toEqual({ status: 404, body: { error: 'Via not found' } });
+    expect(await thrown(() => new RoadtripController(s).update('7', '4', '999', { lat: 1, lng: 2 }))).toEqual({
+      status: 404,
+      body: { error: 'Via not found' },
+    });
   });
 
   it('ROADTRIP-CTL-014: removing one reports success', async () => {
@@ -187,8 +197,10 @@ describe('RoadtripController — writes', () => {
 
   it('ROADTRIP-CTL-015: removing a via that is not there is a 404', async () => {
     const s = svc({ remove: vi.fn().mockReturnValue(false) });
-    expect(await thrown(() => new RoadtripController(s).remove('7', '4', '999')))
-      .toEqual({ status: 404, body: { error: 'Via not found' } });
+    expect(await thrown(() => new RoadtripController(s).remove('7', '4', '999'))).toEqual({
+      status: 404,
+      body: { error: 'Via not found' },
+    });
   });
 
   /**
@@ -199,21 +211,16 @@ describe('RoadtripController — writes', () => {
   describe('telling the trip', () => {
     it('SRV-ROADTRIP-020: every write announces the new shape of the day', async () => {
       const cases: [string, (c: RoadtripController) => unknown][] = [
-        ['create', c => c.create('7', '4', { after_order_index: 0, lat: 1, lng: 2 }, 'sock')],
-        ['createMany', c => c.createMany('7', '4', { vias: [{ after_order_index: 0, lat: 1, lng: 2 }] }, 'sock')],
-        ['reanchor', c => c.reanchor('7', '4', { vias: [] }, 'sock')],
-        ['update', c => c.update('7', '4', '9', { lat: 1, lng: 2 }, 'sock')],
-        ['remove', c => c.remove('7', '4', '9', 'sock')],
+        ['create', (c) => c.create('7', '4', { after_order_index: 0, lat: 1, lng: 2 }, 'sock')],
+        ['createMany', (c) => c.createMany('7', '4', { vias: [{ after_order_index: 0, lat: 1, lng: 2 }] }, 'sock')],
+        ['reanchor', (c) => c.reanchor('7', '4', { vias: [] }, 'sock')],
+        ['update', (c) => c.update('7', '4', '9', { lat: 1, lng: 2 }, 'sock')],
+        ['remove', (c) => c.remove('7', '4', '9', 'sock')],
       ];
       for (const [name, run] of cases) {
         const s = svc();
         await run(new RoadtripController(s));
-        expect(s.broadcast, name).toHaveBeenCalledWith(
-          '7',
-          'roadtripVia:changed',
-          { dayId: '4', vias: [VIA] },
-          'sock',
-        );
+        expect(s.broadcast, name).toHaveBeenCalledWith('7', 'roadtripVia:changed', { dayId: '4', vias: [VIA] }, 'sock');
       }
     });
 

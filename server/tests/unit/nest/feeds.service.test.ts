@@ -20,24 +20,25 @@
  * instead of scanning a finished ICS document back apart, so the calendar is a
  * stub here and the parts are the test's own.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { createUser, createTrip, addTripMember } from '../../helpers/factories';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import { FeedsService } from '../../../src/nest/feeds/feeds.service';
-import { FeedsModule } from '../../../src/nest/feeds/feeds.module';
+import type { CalendarService, TripCalendar } from '../../../src/nest/calendar/calendar.service';
 import {
   FeedsPublicController,
   TripFeedTokenController,
   UserFeedTokenController,
 } from '../../../src/nest/feeds/feeds.controller';
-import type { CalendarService, TripCalendar } from '../../../src/nest/calendar/calendar.service';
+import { FeedsModule } from '../../../src/nest/feeds/feeds.module';
+import { FeedsService } from '../../../src/nest/feeds/feeds.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser, createTrip, addTripMember } from '../../helpers/factories';
 import { expectRegisteredProvider, expectRegisteredController } from '../../helpers/module-providers';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const BASE = 'https://trek.example.test';
 
@@ -121,9 +122,7 @@ describe('trip feed token lifecycle', () => {
     // otherwise produce https://host//api/feed/... which some clients reject.
     const { user, trip } = seedTrip('tok-trip');
 
-    expect((await svc.getTripToken(trip.id, user.id, `${BASE}/`)).feed_url).toBe(
-      `${BASE}/api/feed/trip/tok-trip.ics`,
-    );
+    expect((await svc.getTripToken(trip.id, user.id, `${BASE}/`)).feed_url).toBe(`${BASE}/api/feed/trip/tok-trip.ics`);
   });
 
   it('FEED-SVC-004: a user without access gets null, not the token of a foreign trip', async () => {
@@ -143,9 +142,7 @@ describe('trip feed token lifecycle', () => {
     const { user: member } = createUser(testDb);
     addTripMember(testDb, trip.id, member.id);
 
-    expect((await svc.getTripToken(trip.id, member.id, BASE)).feed_url).toBe(
-      `${BASE}/api/feed/trip/tok-trip.ics`,
-    );
+    expect((await svc.getTripToken(trip.id, member.id, BASE)).feed_url).toBe(`${BASE}/api/feed/trip/tok-trip.ics`);
   });
 
   it('FEED-SVC-006: generate mints a token once and stays idempotent', async () => {
@@ -215,7 +212,10 @@ describe('trip feed token lifecycle', () => {
     // ...but the column was never written (setFeedTokenIfReachable affected 0
     // rows: the stranger fails REACHABLE), so the URL 404s for anyone who tries it.
     const mintedToken = result.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
-    expect((testDb.prepare('SELECT feed_token FROM trips WHERE id = ?').get(trip.id) as { feed_token: string | null }).feed_token).toBeNull();
+    expect(
+      (testDb.prepare('SELECT feed_token FROM trips WHERE id = ?').get(trip.id) as { feed_token: string | null })
+        .feed_token,
+    ).toBeNull();
     expect(await svc.buildTripIcs(mintedToken)).toBeNull();
     // Proven directly at the repository too — the affected count IS the 0-row signal.
     expect(await tripsRepo.setFeedTokenIfReachable(trip.id, stranger.id, mintedToken)).toBe(0);
@@ -229,7 +229,7 @@ describe('trip feed token lifecycle', () => {
   // (FD2 is an unconditional UPDATE, not a conflict-checked upsert), so only
   // one of the two minted URLs ever resolves. Pinning today's actual outcome
   // (same class as `roadtrip.service.test.ts`'s R7 vias pin), not a fix.
-  it('R7: two concurrent generateTripToken calls both mint, but only the last write survives — the other caller\'s URL never resolves (unserialized FD1-then-FD2)', async () => {
+  it("R7: two concurrent generateTripToken calls both mint, but only the last write survives — the other caller's URL never resolves (unserialized FD1-then-FD2)", async () => {
     const { user, trip } = seedTrip(); // no token yet
 
     const [r1, r2] = await Promise.all([
@@ -242,7 +242,9 @@ describe('trip feed token lifecycle', () => {
     // FD1 saw no token for either caller, so two distinct tokens were minted.
     expect(token1).not.toBe(token2);
 
-    const stored = (testDb.prepare('SELECT feed_token FROM trips WHERE id = ?').get(trip.id) as { feed_token: string | null }).feed_token;
+    const stored = (
+      testDb.prepare('SELECT feed_token FROM trips WHERE id = ?').get(trip.id) as { feed_token: string | null }
+    ).feed_token;
     expect([token1, token2]).toContain(stored);
     const loser = stored === token1 ? token2 : token1;
     // The loser's URL is well-formed, but resolves nothing.

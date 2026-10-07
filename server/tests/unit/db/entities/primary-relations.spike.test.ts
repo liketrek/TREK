@@ -1,13 +1,14 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { defineEntity, p, wrap, type Ref } from '@mikro-orm/core';
-import { MikroORM } from '@mikro-orm/sqlite';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createTrip, createUser } from '../../../helpers/factories';
 import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
 import { BudgetCategoryOrder } from '../../../../src/db/entities/BudgetCategoryOrder.entity';
 import { VacayUserSettings } from '../../../../src/db/entities/VacayUserSettings.entity';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createTrip, createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+import { defineEntity, p, wrap, type Ref } from '@mikro-orm/core';
+import { MikroORM } from '@mikro-orm/sqlite';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * Plan 2 (ORM entity rewrite) Task 1 — the primary-relation spike.

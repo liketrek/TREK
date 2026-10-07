@@ -1,19 +1,19 @@
-import React from 'react'
-import Navbar from './Navbar'
+import React from 'react';
+import Navbar from './Navbar';
 
 interface PageShellProps {
-  children: React.ReactNode
+  children: React.ReactNode;
   /** Tailwind classes for the full-height root (e.g. "bg-zinc-50 dark:bg-zinc-950"). */
-  className?: string
+  className?: string;
   /** Inline `background` for the root, for pages that theme via CSS vars (e.g. "var(--bg-secondary)"). */
-  background?: string
+  background?: string;
   /** Props forwarded to the shared Navbar (trip title, back button, …). */
-  navbar?: React.ComponentProps<typeof Navbar>
+  navbar?: React.ComponentProps<typeof Navbar>;
   /** paddingTop offset that clears the fixed Navbar. Defaults to the global --nav-h. */
-  navOffset?: string
+  navOffset?: string;
   /** Classes/style for the nav-offset content wrapper. */
-  contentClassName?: string
-  contentStyle?: React.CSSProperties
+  contentClassName?: string;
+  contentStyle?: React.CSSProperties;
 }
 
 /**
@@ -38,5 +38,5 @@ export default function PageShell({
         {children}
       </div>
     </div>
-  )
+  );
 }

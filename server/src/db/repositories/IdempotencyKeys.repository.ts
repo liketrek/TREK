@@ -19,11 +19,13 @@ export class IdempotencyKeysRepository extends TrekRepository<IdempotencyKeys> {
    * response_body FROM idempotency_keys WHERE key = ? AND user_id = ? AND
    * method = ? AND path = ?`.
    */
-  async findResponse(key: string, userId: number, method: string, path: string): Promise<IdempotencyResponseRow | null> {
-    const row = await this.findOne(
-      { key, user: userId, method, path },
-      { fields: ['status_code', 'response_body'] },
-    );
+  async findResponse(
+    key: string,
+    userId: number,
+    method: string,
+    path: string,
+  ): Promise<IdempotencyResponseRow | null> {
+    const row = await this.findOne({ key, user: userId, method, path }, { fields: ['status_code', 'response_body'] });
     return row ? { status_code: row.status_code, response_body: row.response_body } : null;
   }
 

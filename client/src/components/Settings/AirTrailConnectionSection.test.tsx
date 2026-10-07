@@ -1,8 +1,8 @@
 // FE-COMP-AIRTRAIL-001 to FE-COMP-AIRTRAIL-016
-import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
+import { render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { ToastContainer } from '../shared/Toast';
 import AirTrailConnectionSection from './AirTrailConnectionSection';
@@ -17,8 +17,8 @@ interface SavedBody {
 function stubSettings(over: Record<string, unknown> = {}) {
   server.use(
     http.get('/api/integrations/airtrail/settings', () =>
-      HttpResponse.json({ url: '', allowInsecureTls: false, writeEnabled: false, connected: false, ...over }),
-    ),
+      HttpResponse.json({ url: '', allowInsecureTls: false, writeEnabled: false, connected: false, ...over })
+    )
   );
 }
 
@@ -27,7 +27,7 @@ function renderSection() {
     <>
       <ToastContainer />
       <AirTrailConnectionSection />
-    </>,
+    </>
   );
 }
 
@@ -73,7 +73,7 @@ describe('AirTrailConnectionSection', () => {
 
   it('FE-COMP-AIRTRAIL-004: a failing settings fetch still ends the loading state', async () => {
     server.use(
-      http.get('/api/integrations/airtrail/settings', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+      http.get('/api/integrations/airtrail/settings', () => HttpResponse.json({ error: 'boom' }, { status: 500 }))
     );
     renderSection();
 
@@ -106,7 +106,7 @@ describe('AirTrailConnectionSection', () => {
         body = (await request.json()) as SavedBody;
         return HttpResponse.json({ ok: true });
       }),
-      http.get('/api/integrations/airtrail/status', () => HttpResponse.json({ connected: true })),
+      http.get('/api/integrations/airtrail/status', () => HttpResponse.json({ connected: true }))
     );
     renderSection();
 
@@ -125,7 +125,7 @@ describe('AirTrailConnectionSection', () => {
         body = (await request.json()) as SavedBody;
         return HttpResponse.json({ ok: true });
       }),
-      http.get('/api/integrations/airtrail/status', () => HttpResponse.json({ connected: true })),
+      http.get('/api/integrations/airtrail/status', () => HttpResponse.json({ connected: true }))
     );
     renderSection();
 
@@ -141,7 +141,7 @@ describe('AirTrailConnectionSection', () => {
         allowInsecureTls: true,
         writeEnabled: true,
         apiKey: 'tok-123',
-      }),
+      })
     );
     await waitFor(() => expect(screen.getByPlaceholderText('••••••••')).toHaveValue(''));
     expect(screen.getByText('Connected')).toBeInTheDocument();
@@ -152,7 +152,7 @@ describe('AirTrailConnectionSection', () => {
     stubSettings({ url: 'https://air.example.com', connected: true });
     server.use(
       http.put('/api/integrations/airtrail/settings', () => HttpResponse.json({ warning: 'TLS verification is off' })),
-      http.get('/api/integrations/airtrail/status', () => HttpResponse.json({ connected: true })),
+      http.get('/api/integrations/airtrail/status', () => HttpResponse.json({ connected: true }))
     );
     renderSection();
 
@@ -168,7 +168,7 @@ describe('AirTrailConnectionSection', () => {
     stubSettings({ url: 'https://air.example.com', connected: true });
     server.use(
       http.put('/api/integrations/airtrail/settings', () => HttpResponse.json({ ok: true })),
-      http.get('/api/integrations/airtrail/status', () => HttpResponse.json({ error: 'down' }, { status: 500 })),
+      http.get('/api/integrations/airtrail/status', () => HttpResponse.json({ error: 'down' }, { status: 500 }))
     );
     renderSection();
 
@@ -183,8 +183,8 @@ describe('AirTrailConnectionSection', () => {
     stubSettings({ url: 'https://air.example.com', connected: true });
     server.use(
       http.put('/api/integrations/airtrail/settings', () =>
-        HttpResponse.json({ error: 'Instance unreachable' }, { status: 400 }),
-      ),
+        HttpResponse.json({ error: 'Instance unreachable' }, { status: 400 })
+      )
     );
     renderSection();
 
@@ -197,9 +197,7 @@ describe('AirTrailConnectionSection', () => {
   it('FE-COMP-AIRTRAIL-011: a save failure without a server message falls back to the generic error', async () => {
     const user = userEvent.setup();
     stubSettings({ url: 'https://air.example.com', connected: true });
-    server.use(
-      http.put('/api/integrations/airtrail/settings', () => HttpResponse.error()),
-    );
+    server.use(http.put('/api/integrations/airtrail/settings', () => HttpResponse.error()));
     renderSection();
 
     await screen.findByDisplayValue('https://air.example.com');
@@ -214,12 +212,12 @@ describe('AirTrailConnectionSection', () => {
     stubSettings({ url: 'https://air.example.com', connected: true });
     server.use(
       http.put('/api/integrations/airtrail/settings', async () => {
-        await new Promise<void>(resolve => {
+        await new Promise<void>((resolve) => {
           release = resolve;
         });
         return HttpResponse.json({ ok: true });
       }),
-      http.get('/api/integrations/airtrail/status', () => HttpResponse.json({ connected: true })),
+      http.get('/api/integrations/airtrail/status', () => HttpResponse.json({ connected: true }))
     );
     renderSection();
 
@@ -240,7 +238,7 @@ describe('AirTrailConnectionSection', () => {
       http.post('/api/integrations/airtrail/test', async ({ request }) => {
         body = (await request.json()) as { url?: string; allowInsecureTls?: boolean };
         return HttpResponse.json({ connected: true, flightCount: 12 });
-      }),
+      })
     );
     renderSection();
 
@@ -255,9 +253,7 @@ describe('AirTrailConnectionSection', () => {
   it('FE-COMP-AIRTRAIL-014: a test without a flight count still reports zero', async () => {
     const user = userEvent.setup();
     stubSettings({ url: 'https://air.example.com' });
-    server.use(
-      http.post('/api/integrations/airtrail/test', () => HttpResponse.json({ connected: true })),
-    );
+    server.use(http.post('/api/integrations/airtrail/test', () => HttpResponse.json({ connected: true })));
     renderSection();
 
     await screen.findByDisplayValue('https://air.example.com');
@@ -270,7 +266,7 @@ describe('AirTrailConnectionSection', () => {
     const user = userEvent.setup();
     stubSettings({ url: 'https://air.example.com' });
     server.use(
-      http.post('/api/integrations/airtrail/test', () => HttpResponse.json({ connected: false, error: 'Bad token' })),
+      http.post('/api/integrations/airtrail/test', () => HttpResponse.json({ connected: false, error: 'Bad token' }))
     );
     renderSection();
 
@@ -287,11 +283,11 @@ describe('AirTrailConnectionSection', () => {
     stubSettings({ url: 'https://air.example.com' });
     server.use(
       http.post('/api/integrations/airtrail/test', async () => {
-        await new Promise<void>(resolve => {
+        await new Promise<void>((resolve) => {
           release = resolve;
         });
         return HttpResponse.json({ error: 'nope' }, { status: 500 });
-      }),
+      })
     );
     renderSection();
 

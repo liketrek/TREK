@@ -1,12 +1,3 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import {
-  PLUGIN_POI_HIT_CAP,
-  pluginPoiCategoryKey,
-  pluginPoiCategoryLabel,
-  type PluginPoiCategory,
-  type PluginPoiResponse,
-} from '@trek/shared';
 import { Plugins } from '../../../db/entities/Plugins.entity';
 import type { PluginsRepository } from '../../../db/repositories/Plugins.repository';
 import { pluginsEnabled } from '../kill-switch';
@@ -14,6 +5,15 @@ import { PluginHooks } from '../plugin-hooks.service';
 import { poiCategoriesOf } from '../poi-categories';
 import { sanitiseAssistantText } from '../text-sanitize';
 import { normalizePluginPois, pluginPoiWindow } from './plugin-pois.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import {
+  PLUGIN_POI_HIT_CAP,
+  pluginPoiCategoryKey,
+  pluginPoiCategoryLabel,
+  type PluginPoiCategory,
+  type PluginPoiResponse,
+} from '@trek/shared';
 
 /** One search for a plugin POI category, as both the REST route and the MCP tool ask it. */
 export interface PluginPoiSearch {
@@ -38,8 +38,7 @@ export interface AvailablePoiCategory {
 }
 
 export type PluginPoiOutcome =
-  | { ok: true; result: PluginPoiResponse }
-  | { ok: false; status: 404 | 502; error: string };
+  { ok: true; result: PluginPoiResponse } | { ok: false; status: 404 | 502; error: string };
 
 export const UNKNOWN_POI_CATEGORY = 'Unknown POI category';
 

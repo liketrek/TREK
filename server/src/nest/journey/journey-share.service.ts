@@ -1,23 +1,24 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import crypto from 'crypto';
-import { JourneyDomainService } from './journey-domain.service';
-import { decodeEntryRow } from './journey-entry-row';
-import { SettingsService } from '../settings/settings.service';
-import { UnitOfWork } from '../database/unit-of-work';
-import { Journeys } from '../../db/entities/Journeys.entity';
-import type { JourneysRepository } from '../../db/repositories/Journeys.repository';
-import { JourneyShareTokens } from '../../db/entities/JourneyShareTokens.entity';
-import type { JourneyShareTokensRepository } from '../../db/repositories/JourneyShareTokens.repository';
-import { JourneyPhotos } from '../../db/entities/JourneyPhotos.entity';
-import type { JourneyPhotosRepository } from '../../db/repositories/JourneyPhotos.repository';
 import { JourneyEntries } from '../../db/entities/JourneyEntries.entity';
-import type { JourneyEntriesRepository } from '../../db/repositories/JourneyEntries.repository';
 import { JourneyEntryPhotos } from '../../db/entities/JourneyEntryPhotos.entity';
+import { JourneyPhotos } from '../../db/entities/JourneyPhotos.entity';
+import { JourneyShareTokens } from '../../db/entities/JourneyShareTokens.entity';
+import { Journeys } from '../../db/entities/Journeys.entity';
+import type { JourneyEntriesRepository } from '../../db/repositories/JourneyEntries.repository';
 import type {
   JourneyEntryPhotosRepository,
   JourneyPublicEntryPhotoRow,
 } from '../../db/repositories/JourneyEntryPhotos.repository';
+import type { JourneyPhotosRepository } from '../../db/repositories/JourneyPhotos.repository';
+import type { JourneyShareTokensRepository } from '../../db/repositories/JourneyShareTokens.repository';
+import type { JourneysRepository } from '../../db/repositories/Journeys.repository';
+import { UnitOfWork } from '../database/unit-of-work';
+import { SettingsService } from '../settings/settings.service';
+import { JourneyDomainService } from './journey-domain.service';
+import { decodeEntryRow } from './journey-entry-row';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+
+import crypto from 'crypto';
 
 interface JourneySharePermissions {
   share_timeline?: boolean;
@@ -78,7 +79,7 @@ export class JourneyShareService {
   async createOrUpdateJourneyShareLink(
     journeyId: number,
     createdBy: number,
-    permissions: JourneySharePermissions
+    permissions: JourneySharePermissions,
   ): Promise<{ token: string; created: boolean } | null> {
     // Public sharing is an owner-only action — editors/viewers must not be
     // able to publish the journey or change which screens are shared.
@@ -116,12 +117,7 @@ export class JourneyShareService {
         return { token: existing.token, created: false };
       }
 
-      const {
-        share_timeline = true,
-        share_gallery = true,
-        share_map = true,
-        newest_first = false,
-      } = permissions;
+      const { share_timeline = true, share_gallery = true, share_map = true, newest_first = false } = permissions;
 
       const token = crypto.randomBytes(24).toString('base64url');
       // JS3.
@@ -174,7 +170,10 @@ export class JourneyShareService {
     return true;
   }
 
-  async validateShareTokenForPhoto(token: string, photoId: number): Promise<{ journeyId: number; ownerId: number } | null> {
+  async validateShareTokenForPhoto(
+    token: string,
+    photoId: number,
+  ): Promise<{ journeyId: number; ownerId: number } | null> {
     // JS6 — exact-match token lookup, no LIKE/COLLATE (R4).
     const row = await this.shareTokensRepo.findAccessByToken(token);
     if (!row) return null;
@@ -237,18 +236,17 @@ export class JourneyShareService {
     // A photo whose every entry is a draft stays off the public page (#696).
     const gallery = await this.photosRepo.galleryRead(row.journey_id, { hideDraftOnly: true });
 
-    const enrichedEntries = entries
-      .map(e => ({
-        ...decodeEntryRow(e),
-        photos: photosByEntry[e.id] || [],
-      }));
+    const enrichedEntries = entries.map((e) => ({
+      ...decodeEntryRow(e),
+      photos: photosByEntry[e.id] || [],
+    }));
 
     // Stats are derived from the full data so the overview pills stay accurate
     // even when a section is hidden.
     const stats = {
       entries: entries.length,
       photos: gallery.length,
-      places: new Set(entries.filter(e => e.location_name).map(e => e.location_name)).size,
+      places: new Set(entries.filter((e) => e.location_name).map((e) => e.location_name)).size,
     };
 
     const shareTimeline = !!row.share_timeline;
@@ -261,16 +259,19 @@ export class JourneyShareService {
     if (shareTimeline) {
       // Include the full entry, but drop GPS unless the map is shared and inline
       // photos unless the gallery is shared.
-      publicEntries = enrichedEntries.map(e => {
+      publicEntries = enrichedEntries.map((e) => {
         const projected: Record<string, unknown> = { ...e };
-        if (!shareMap) { projected.location_lat = null; projected.location_lng = null; }
+        if (!shareMap) {
+          projected.location_lat = null;
+          projected.location_lng = null;
+        }
         if (!shareGallery) projected.photos = [];
         else if (!shareMap) projected.photos = stripPhotoGps(e.photos);
         return projected;
       });
     } else if (shareMap) {
       // Map-only share: just enough to plot markers, no story/photos/mood.
-      publicEntries = enrichedEntries.map(e => ({
+      publicEntries = enrichedEntries.map((e) => ({
         id: e.id,
         journey_id: e.journey_id,
         type: e.type,
@@ -327,5 +328,5 @@ export class JourneyShareService {
 
 /** Drop capture coordinates from a photo list, keeping everything else. */
 function stripPhotoGps<T>(photos: T[] | undefined | null): T[] {
-  return (photos ?? []).map(p => ({ ...(p as Record<string, unknown>), lat: null, lng: null })) as T[];
+  return (photos ?? []).map((p) => ({ ...(p as Record<string, unknown>), lat: null, lng: null })) as T[];
 }

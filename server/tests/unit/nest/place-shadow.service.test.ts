@@ -8,16 +8,17 @@
  * `createTestOrm()`, the harness every other converted repository test uses)
  * rather than the legacy hand-written `SCHEMA`/`dbFacade` — R8's rewrite list.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
+import { PlaceShadowPicks } from '../../../src/db/entities/PlaceShadowPicks.entity';
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { PlaceShadowPicksRepository } from '../../../src/db/repositories/PlaceShadowPicks.repository';
+import { PlaceShadowService, RETENTION_DAYS } from '../../../src/nest/place-shadow/place-shadow.service';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { PlaceShadowService, RETENTION_DAYS } from '../../../src/nest/place-shadow/place-shadow.service';
-import { PlaceShadowPicks } from '../../../src/db/entities/PlaceShadowPicks.entity';
-import type { PlaceShadowPicksRepository } from '../../../src/db/repositories/PlaceShadowPicks.repository';
-import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import type { PlaceShadowPickRequest } from '@trek/shared';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -38,7 +39,8 @@ const PICK: PlaceShadowPickRequest = {
 };
 
 function enable(on = true) {
-  testDb.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)')
+  testDb
+    .prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)')
     .run('place_shadow_enabled', on ? 'true' : 'false');
 }
 
@@ -48,8 +50,14 @@ beforeAll(async () => {
   const appSettings: AppSettingsRepository = t.repo(AppSettings);
   svc = new PlaceShadowService(picks, appSettings);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('PlaceShadowService', () => {
   describe('the switch', () => {
@@ -61,7 +69,8 @@ describe('PlaceShadowService', () => {
 
     it('is off for any value that is not exactly "true"', async () => {
       for (const value of ['false', '1', 'yes', 'TRUE', '']) {
-        testDb.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)')
+        testDb
+          .prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)')
           .run('place_shadow_enabled', value);
         expect(await svc.enabled(), `value ${JSON.stringify(value)}`).toBe(false);
       }
@@ -110,7 +119,12 @@ describe('PlaceShadowService', () => {
       // Sequential, not Promise.all: the rows are inserted in rank order and the
       // export/paging assertions below read that order back.
       for (const [i, rank] of ranks.entries()) {
-        await svc.record({ ...PICK, liveRank: rank, liveCount: 50, source: i % 2 ? 'search:nominatim' : 'autocomplete:google' });
+        await svc.record({
+          ...PICK,
+          liveRank: rank,
+          liveCount: 50,
+          source: i % 2 ? 'search:nominatim' : 'autocomplete:google',
+        });
       }
     });
 
@@ -159,14 +173,14 @@ describe('PlaceShadowService', () => {
 
     it('pages by id and hands back the cursor for the next page', async () => {
       const first = await svc.export(undefined, 3);
-      expect(first.rows.map(r => r.query)).toEqual(['q0', 'q1', 'q2']);
+      expect(first.rows.map((r) => r.query)).toEqual(['q0', 'q1', 'q2']);
       expect(first.nextAfter).toBe(first.rows[2].id);
 
       const second = await svc.export(first.nextAfter ?? undefined, 3);
-      expect(second.rows.map(r => r.query)).toEqual(['q3', 'q4', 'q5']);
+      expect(second.rows.map((r) => r.query)).toEqual(['q3', 'q4', 'q5']);
 
       const third = await svc.export(second.nextAfter ?? undefined, 3);
-      expect(third.rows.map(r => r.query)).toEqual(['q6']);
+      expect(third.rows.map((r) => r.query)).toEqual(['q6']);
       // Nothing beyond, so no cursor — that is how a reader knows to stop.
       expect(third.nextAfter).toBeNull();
     });
@@ -200,14 +214,17 @@ describe('PlaceShadowService', () => {
       // tests in this file, by design — see its own docstring), so the
       // "first" row's id is read back rather than hardcoded as `1`.
       const [first] = testDb.prepare('SELECT id FROM place_shadow_picks ORDER BY id ASC').all() as { id: number }[];
-      testDb.prepare("UPDATE place_shadow_picks SET created_at = datetime('now', '-200 days') WHERE id = ?").run(first.id);
+      testDb
+        .prepare("UPDATE place_shadow_picks SET created_at = datetime('now', '-200 days') WHERE id = ?")
+        .run(first.id);
       expect(await svc.purgeExpired()).toBe(1);
       expect((await svc.summary()).total).toBe(1);
     });
 
     it('keeps a row that is one day short of the window', async () => {
       await svc.record(PICK);
-      testDb.prepare("UPDATE place_shadow_picks SET created_at = datetime('now', ?)")
+      testDb
+        .prepare("UPDATE place_shadow_picks SET created_at = datetime('now', ?)")
         .run(`-${RETENTION_DAYS - 1} days`);
       expect(await svc.purgeExpired()).toBe(0);
     });

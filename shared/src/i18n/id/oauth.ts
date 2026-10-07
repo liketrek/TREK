@@ -97,17 +97,21 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Berkas',
   'oauth.scope.group.settings': 'Pengaturan',
   'oauth.scope.files:read.label': 'Lihat berkas perjalanan',
-  'oauth.scope.files:read.description': 'Menampilkan dokumen perjalanan: nama, ukuran, siapa yang mengunggah, dan tautannya',
+  'oauth.scope.files:read.description':
+    'Menampilkan dokumen perjalanan: nama, ukuran, siapa yang mengunggah, dan tautannya',
   'oauth.scope.files:write.label': 'Kelola berkas perjalanan',
-  'oauth.scope.files:write.description': 'Ganti nama dan deskripsi berkas, tautkan ke pemesanan dan tempat, beri bintang dan buang ke sampah',
+  'oauth.scope.files:write.description':
+    'Ganti nama dan deskripsi berkas, tautkan ke pemesanan dan tempat, beri bintang dan buang ke sampah',
   'oauth.scope.files:content.label': 'Baca isi berkas',
   'oauth.scope.files:content.description': 'Membaca isi dokumen yang diunggah, misalnya PDF pemesanan atau tiket',
   'oauth.scope.settings:read.label': 'Lihat preferensi Anda',
   'oauth.scope.settings:read.description': 'Membaca satuan, format waktu, bahasa, mata uang bawaan, dan halaman awal',
   'oauth.scope.settings:write.label': 'Ubah preferensi Anda',
-  'oauth.scope.settings:write.description': 'Mengubah satuan, format waktu, bahasa, mata uang bawaan, dan halaman awal. Tidak pernah kunci API tersimpan',
+  'oauth.scope.settings:write.description':
+    'Mengubah satuan, format waktu, bahasa, mata uang bawaan, dan halaman awal. Tidak pernah kunci API tersimpan',
   'oauth.scope.group.plugins': 'Plugin',
   'oauth.scope.plugins:use.label': 'Jalankan alat plugin',
-  'oauth.scope.plugins:use.description': 'Izinkan klien ini memanggil alat yang disediakan oleh plugin yang dipasang dan disetujui administrator. Setiap plugin bertindak dengan akses yang sudah diberikan kepadanya, bukan dengan cakupan token ini',
+  'oauth.scope.plugins:use.description':
+    'Izinkan klien ini memanggil alat yang disediakan oleh plugin yang dipasang dan disetujui administrator. Setiap plugin bertindak dengan akses yang sudah diberikan kepadanya, bukan dengan cakupan token ini',
 };
 export default oauth;

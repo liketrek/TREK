@@ -1,17 +1,17 @@
-import { AlertTriangle, Route } from 'lucide-react'
-import { useTranslation } from '../../i18n'
-import { MapTogglePill } from './MapTogglePill'
-import { routeModeIcon } from '../Planner/routeModes'
-import { formatDistance } from '../../utils/units'
-import type { TripRouteOverview as Overview } from './useTripRouteOverview'
-import type { DistanceUnit } from '../../types'
+import { AlertTriangle, Route } from 'lucide-react';
+import { useTranslation } from '../../i18n';
+import type { DistanceUnit } from '../../types';
+import { formatDistance } from '../../utils/units';
+import { routeModeIcon } from '../Planner/routeModes';
+import { MapTogglePill } from './MapTogglePill';
+import type { TripRouteOverview as Overview } from './useTripRouteOverview';
 
 /**
  * Toggle for the whole-trip route overview (#1736). Same frosted shell as the other
  * map controls, so it lines up with the compass and the layer switcher.
  */
 export function TripRouteOverviewPill({ active, onToggle }: { active: boolean; onToggle: () => void }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   return (
     <MapTogglePill
       active={active}
@@ -20,7 +20,7 @@ export function TripRouteOverviewPill({ active, onToggle }: { active: boolean; o
       testId="trip-overview-pill"
       icon={<Route size={17} strokeWidth={2} />}
     />
-  )
+  );
 }
 
 /**
@@ -29,25 +29,33 @@ export function TripRouteOverviewPill({ active, onToggle }: { active: boolean; o
  * One component for both shells: the phone and the desktop place it differently but the
  * rows are the same rows, and a second copy of them is a second thing to keep in step.
  */
-export function TripRouteOverviewPanel({ overview, unit, selectedDayId, onSelectDay, maxWidth = 320 }: {
-  overview: Overview
-  unit: DistanceUnit
-  selectedDayId?: number | null
-  onSelectDay?: (dayId: number) => void
+export function TripRouteOverviewPanel({
+  overview,
+  unit,
+  selectedDayId,
+  onSelectDay,
+  maxWidth = 320,
+}: {
+  overview: Overview;
+  unit: DistanceUnit;
+  selectedDayId?: number | null;
+  onSelectDay?: (dayId: number) => void;
   /** How wide the card may grow before day names start to ellipsize. */
-  maxWidth?: number
+  maxWidth?: number;
 }) {
-  const { t } = useTranslation()
-  if (!overview.days.length) return null
+  const { t } = useTranslation();
+  if (!overview.days.length) return null;
   // Only once the round is over: while it runs every leg still waiting is unrouted too,
   // and the ellipsis on the total already says the number is growing.
-  const unrouted = overview.loading ? 0 : (overview.unroutedLegs ?? 0)
+  const unrouted = overview.loading ? 0 : (overview.unroutedLegs ?? 0);
 
   return (
     <div
       data-testid="trip-overview-panel"
       style={{
-        pointerEvents: 'auto', borderRadius: 14, overflow: 'hidden',
+        pointerEvents: 'auto',
+        borderRadius: 14,
+        overflow: 'hidden',
         background: 'var(--sidebar-bg)',
         backdropFilter: 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
@@ -55,11 +63,27 @@ export function TripRouteOverviewPanel({ overview, unit, selectedDayId, onSelect
         // Sized to its rows rather than to the space available: a trip of short day
         // names left a band of empty card over the map, which on a phone is most of
         // what there is to look at.
-        width: 'fit-content', maxWidth,
+        width: 'fit-content',
+        maxWidth,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '10px 14px 8px' }}>
-        <span className="text-content-muted" style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          gap: 12,
+          padding: '10px 14px 8px',
+        }}
+      >
+        <span
+          className="text-content-muted"
+          style={{
+            fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
+            textTransform: 'uppercase',
+            letterSpacing: 0.4,
+          }}
+        >
           {t('map.overview.total')}
         </span>
         {/* Same tier as the label beside it: the two read as one line rather than as a
@@ -68,7 +92,12 @@ export function TripRouteOverviewPanel({ overview, unit, selectedDayId, onSelect
           {formatDistance(overview.totalDistance / 1000, unit)}
           {/* Still routing: the number is a partial sum, and saying so beats a total
               that silently grows while you read it. */}
-          {overview.loading && <span className="text-content-muted" style={{ fontWeight: 400 }}>{' '}…</span>}
+          {overview.loading && (
+            <span className="text-content-muted" style={{ fontWeight: 400 }}>
+              {' '}
+              …
+            </span>
+          )}
         </span>
       </div>
       {/* A leg the router refused stays a straight line and adds nothing to the sum, so
@@ -78,26 +107,41 @@ export function TripRouteOverviewPanel({ overview, unit, selectedDayId, onSelect
         <div
           data-testid="trip-overview-unrouted"
           className="text-warning"
-          style={{ display: 'flex', alignItems: 'flex-start', gap: 6, padding: '0 14px 8px', fontSize: 'calc(11px * var(--fs-scale-caption, 1))' }}
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 6,
+            padding: '0 14px 8px',
+            fontSize: 'calc(11px * var(--fs-scale-caption, 1))',
+          }}
         >
           <AlertTriangle size={12} style={{ flexShrink: 0, marginTop: 1 }} aria-hidden />
           <span>{t('map.overview.unrouted', { count: unrouted })}</span>
         </div>
       )}
       <div style={{ maxHeight: 220, overflowY: 'auto', borderTop: '1px solid var(--border-primary)' }}>
-        {overview.days.map(day => {
-          const label = day.title || t('dayplan.dayN', { n: day.dayNumber })
-          const dayUnrouted = overview.loading ? 0 : (day.unroutedLegs ?? 0)
+        {overview.days.map((day) => {
+          const label = day.title || t('dayplan.dayN', { n: day.dayNumber });
+          const dayUnrouted = overview.loading ? 0 : (day.unroutedLegs ?? 0);
           const row = (
             <>
-              <span style={{ width: 8, height: 8, borderRadius: 999, background: day.color.line, flexShrink: 0 }} aria-hidden />
-              <span className="text-content" style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span
+                style={{ width: 8, height: 8, borderRadius: 999, background: day.color.line, flexShrink: 0 }}
+                aria-hidden
+              />
+              <span
+                className="text-content"
+                style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              >
                 {label}
               </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }} className="text-content-muted">
-                {day.modes.map(mode => {
-                  const Icon = routeModeIcon(mode)
-                  return <Icon key={mode} size={12} strokeWidth={2} aria-hidden />
+              <span
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0 }}
+                className="text-content-muted"
+              >
+                {day.modes.map((mode) => {
+                  const Icon = routeModeIcon(mode);
+                  return <Icon key={mode} size={12} strokeWidth={2} aria-hidden />;
                 })}
               </span>
               {/* The day's own share of the shortfall, so the reader knows which figure
@@ -115,23 +159,34 @@ export function TripRouteOverviewPanel({ overview, unit, selectedDayId, onSelect
                 {formatDistance(day.distance / 1000, unit)}
               </span>
             </>
-          )
+          );
           const style = {
-            display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-            padding: '7px 14px', textAlign: 'left' as const,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            width: '100%',
+            padding: '7px 14px',
+            textAlign: 'left' as const,
             fontSize: 'calc(12px * var(--fs-scale-body, 1))',
             background: day.dayId === selectedDayId ? 'var(--bg-hover)' : 'transparent',
             border: 'none',
-          }
+          };
           return onSelectDay ? (
-            <button key={day.dayId} type="button" onClick={() => onSelectDay(day.dayId)} style={{ ...style, cursor: 'pointer' }}>
+            <button
+              key={day.dayId}
+              type="button"
+              onClick={() => onSelectDay(day.dayId)}
+              style={{ ...style, cursor: 'pointer' }}
+            >
               {row}
             </button>
           ) : (
-            <div key={day.dayId} style={style}>{row}</div>
-          )
+            <div key={day.dayId} style={style}>
+              {row}
+            </div>
+          );
         })}
       </div>
     </div>
-  )
+  );
 }

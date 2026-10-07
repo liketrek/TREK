@@ -1,13 +1,18 @@
-import type { CSSProperties } from 'react'
 import type {
-  BookElement, BookIconElement, BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread,
-} from '@trek/shared'
-import { photoSrc } from './bookRender'
-import { fontStack } from './bookFonts'
-import { iconComponent } from './iconLibrary'
-import { HOLED_SHAPES, SHAPE_PATHS, scalePath, unitPath } from './shapes'
-import { TravelElementView } from './TravelElements'
-import { PageNumbers } from './PageNumbers'
+  BookElement,
+  BookIconElement,
+  BookPageSetup,
+  BookPhotoElement,
+  BookShapeElement,
+  BookSpread,
+} from '@trek/shared';
+import type { CSSProperties } from 'react';
+import { fontStack } from './bookFonts';
+import { photoSrc } from './bookRender';
+import { iconComponent } from './iconLibrary';
+import { PageNumbers } from './PageNumbers';
+import { HOLED_SHAPES, SHAPE_PATHS, scalePath, unitPath } from './shapes';
+import { TravelElementView } from './TravelElements';
 
 /**
  * One spread, drawn.
@@ -31,16 +36,16 @@ function frameStyle(el: BookElement): CSSProperties {
     height: `${el.frame.h}mm`,
     opacity: el.opacity,
     transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
-  }
+  };
 }
 
 /** Two decimals of a millimetre, matching what the document itself stores. */
-const round2 = (n: number) => Math.round(n * 100) / 100
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /** #rrggbb plus an alpha, for the fades a cover panel needs. */
 function hexToRgba(hex: string, alpha: number): string {
-  const n = Number.parseInt(hex.slice(1), 16)
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
+  const n = Number.parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
 }
 
 const FILTERS: Record<string, string | undefined> = {
@@ -51,7 +56,7 @@ const FILTERS: Record<string, string | undefined> = {
   // Faded, the way a print left in the light goes: lifted blacks, less colour.
   fade: 'saturate(0.72) contrast(0.88) brightness(1.08)',
   contrast: 'contrast(1.22) saturate(1.06)',
-}
+};
 
 /**
  * How much of the frame the decoration around a picture eats, as a fraction of
@@ -68,7 +73,7 @@ const FRAME_INSET: Record<string, { pad: number; bottom: number }> = {
   shadow: { pad: 0, bottom: 0 },
   film: { pad: 0.075, bottom: 0.075 },
   tape: { pad: 0, bottom: 0 },
-}
+};
 
 /**
  * A shape, drawn.
@@ -85,17 +90,17 @@ const FRAME_INSET: Record<string, { pad: number; bottom: number }> = {
  * and a drawn edge line up.
  */
 function ShapeView({ el }: { el: BookShapeElement }) {
-  const fill = el.fill ?? 'transparent'
-  const gradientId = `g-${el.id}`
-  const gradient = el.gradient !== 'none' && el.fill
+  const fill = el.fill ?? 'transparent';
+  const gradientId = `g-${el.id}`;
+  const gradient = el.gradient !== 'none' && el.fill;
 
   if (el.shape === 'rect' || el.shape === 'ellipse') {
     const background = !gradient
       ? fill
-      : `linear-gradient(${el.gradient === 'up' ? 'to top' : 'to bottom'},`
-        + ` ${hexToRgba(el.fill!, 0)} 0%,`
-        + ` ${hexToRgba(el.fill!, 0.55)} 46%,`
-        + ` ${hexToRgba(el.fill!, 1)} 100%)`
+      : `linear-gradient(${el.gradient === 'up' ? 'to top' : 'to bottom'},` +
+        ` ${hexToRgba(el.fill!, 0)} 0%,` +
+        ` ${hexToRgba(el.fill!, 0.55)} 46%,` +
+        ` ${hexToRgba(el.fill!, 1)} 100%)`;
     return (
       <div
         style={{
@@ -106,19 +111,22 @@ function ShapeView({ el }: { el: BookShapeElement }) {
           borderRadius: el.shape === 'ellipse' ? '50%' : el.radius ? `${el.radius}mm` : undefined,
         }}
       />
-    )
+    );
   }
 
-  const sw = el.stroke ? el.strokeWidth : 0
-  const w = Math.max(0.01, el.frame.w - sw)
-  const h = Math.max(0.01, el.frame.h - sw)
-  const d = scalePath(SHAPE_PATHS[el.shape], w, h)
+  const sw = el.stroke ? el.strokeWidth : 0;
+  const w = Math.max(0.01, el.frame.w - sw);
+  const h = Math.max(0.01, el.frame.h - sw);
+  const d = scalePath(SHAPE_PATHS[el.shape], w, h);
 
   // Proportional to the stroke, so a dashed outline keeps its rhythm whether it
   // is a hairline on a caption rule or a 2mm band around a cover panel.
-  const dash = el.strokeStyle === 'dashed' ? `${sw * 3} ${sw * 2}`
-    : el.strokeStyle === 'dotted' ? `${sw * 0.01} ${sw * 2}`
-    : undefined
+  const dash =
+    el.strokeStyle === 'dashed'
+      ? `${sw * 3} ${sw * 2}`
+      : el.strokeStyle === 'dotted'
+        ? `${sw * 0.01} ${sw * 2}`
+        : undefined;
 
   return (
     <div style={frameStyle(el)}>
@@ -130,7 +138,13 @@ function ShapeView({ el }: { el: BookShapeElement }) {
       >
         {gradient && (
           <defs>
-            <linearGradient id={gradientId} x1="0" y1={el.gradient === 'up' ? '1' : '0'} x2="0" y2={el.gradient === 'up' ? '0' : '1'}>
+            <linearGradient
+              id={gradientId}
+              x1="0"
+              y1={el.gradient === 'up' ? '1' : '0'}
+              x2="0"
+              y2={el.gradient === 'up' ? '0' : '1'}
+            >
               <stop offset="0%" stopColor={el.fill!} stopOpacity="0" />
               <stop offset="46%" stopColor={el.fill!} stopOpacity="0.55" />
               <stop offset="100%" stopColor={el.fill!} stopOpacity="1" />
@@ -150,7 +164,7 @@ function ShapeView({ el }: { el: BookShapeElement }) {
         />
       </svg>
     </div>
-  )
+  );
 }
 
 /**
@@ -160,19 +174,27 @@ function ShapeView({ el }: { el: BookShapeElement }) {
  * is a silly thing to want and there is no reason to stop anyone wanting it, and
  * keeping them separate means neither has to know about the other.
  */
-function PhotoView({ el, big, print, dropLabel }: {
-  el: BookPhotoElement; big: boolean; print: boolean; dropLabel: string
+function PhotoView({
+  el,
+  big,
+  print,
+  dropLabel,
+}: {
+  el: BookPhotoElement;
+  big: boolean;
+  print: boolean;
+  dropLabel: string;
 }) {
-  const deco = FRAME_INSET[el.frameStyle] ?? FRAME_INSET.none
-  const side = Math.min(el.frame.w, el.frame.h)
+  const deco = FRAME_INSET[el.frameStyle] ?? FRAME_INSET.none;
+  const side = Math.min(el.frame.w, el.frame.h);
   // Rounded to a hundredth of a millimetre — the same precision the document
   // stores. Without it a fraction of the frame lands in the CSS as
   // `10.200000000000001mm`, which is not wrong but is float noise in a
   // stylesheet that a person may well end up reading.
-  const pad = round2(deco.pad * side)
-  const bottom = round2(deco.bottom * side)
-  const clipId = `c-${el.id}`
-  const clipped = el.mask && el.mask !== 'rect'
+  const pad = round2(deco.pad * side);
+  const bottom = round2(deco.bottom * side);
+  const clipId = `c-${el.id}`;
+  const clipped = el.mask && el.mask !== 'rect';
 
   /*
    * An empty frame is a template's promise: it says where a picture goes before
@@ -183,16 +205,16 @@ function PhotoView({ el, big, print, dropLabel }: {
    * it and the chin appeared from nowhere. The two branches have been folded
    * together: the surround is drawn once, and only what goes inside it differs.
    */
-  const empty = el.photoId == null
+  const empty = el.photoId == null;
 
   // In the printed book an unfilled frame is nothing at all — a hatch and an
   // instruction on a page someone paid to have bound would be a defect.
-  if (empty && print) return null
+  if (empty && print) return null;
 
   // The label is sized in millimetres so it scales with the zoom exactly as the
   // page does, and it steps aside on a frame too small to hold it.
-  const labelSize = Math.max(2.4, Math.min(4.6, side * 0.085))
-  const roomy = side - pad * 2 > 22 && el.frame.w - pad * 2 > 34
+  const labelSize = Math.max(2.4, Math.min(4.6, side * 0.085));
+  const roomy = side - pad * 2 > 22 && el.frame.w - pad * 2 > 34;
 
   const hatch = (
     <div
@@ -209,8 +231,7 @@ function PhotoView({ el, big, print, dropLabel }: {
          * photograph landed in it and it suddenly covered things. A frame is a
          * promise that a picture goes here, and a picture is not see-through.
          */
-        background:
-          'repeating-linear-gradient(45deg, rgba(0,0,0,.055) 0 6px, rgba(0,0,0,.025) 6px 12px), #ffffff', // theme-lint-disable — paper, not app chrome
+        background: 'repeating-linear-gradient(45deg, rgba(0,0,0,.055) 0 6px, rgba(0,0,0,.025) 6px 12px), #ffffff', // theme-lint-disable — paper, not app chrome
         // A dashed border would be cut in half lengthwise by the clip, so a
         // masked placeholder shows its shape through the hatch alone.
         border: clipped ? undefined : '1px dashed rgba(0,0,0,.16)',
@@ -240,7 +261,7 @@ function PhotoView({ el, big, print, dropLabel }: {
         </span>
       )}
     </div>
-  )
+  );
 
   const picture = (
     <div
@@ -255,7 +276,9 @@ function PhotoView({ el, big, print, dropLabel }: {
         clipPath: clipped ? `url(#${clipId})` : undefined,
       }}
     >
-      {empty ? hatch : (
+      {empty ? (
+        hatch
+      ) : (
         <img
           src={photoSrc(el.photoId!, big)}
           alt=""
@@ -272,20 +295,22 @@ function PhotoView({ el, big, print, dropLabel }: {
         />
       )}
     </div>
-  )
+  );
 
   return (
     <div
       style={{
         ...frameStyle(el),
-        background: el.frameStyle === 'polaroid' || el.frameStyle === 'white' ? '#ffffff'
-          : el.frameStyle === 'film' ? '#141414'
-          : undefined,
+        background:
+          el.frameStyle === 'polaroid' || el.frameStyle === 'white'
+            ? '#ffffff'
+            : el.frameStyle === 'film'
+              ? '#141414'
+              : undefined,
         // A photograph lying on a page, rather than printed into it. Soft and
         // low: a hard shadow reads as a UI card, not as paper.
-        boxShadow: el.frameStyle === 'shadow' || el.frameStyle === 'polaroid'
-          ? '0 1.2mm 3mm rgba(0,0,0,.22)'
-          : undefined,
+        boxShadow:
+          el.frameStyle === 'shadow' || el.frameStyle === 'polaroid' ? '0 1.2mm 3mm rgba(0,0,0,.22)' : undefined,
       }}
     >
       {clipped && (
@@ -303,20 +328,22 @@ function PhotoView({ el, big, print, dropLabel }: {
       {/* Sprocket holes. Drawn as a repeating gradient rather than as elements
           so the count follows the width instead of being fixed at a size that
           only looks right on one frame. */}
-      {el.frameStyle === 'film' && [0, 1].map(row => (
-        <div
-          key={row}
-          style={{
-            position: 'absolute',
-            left: `${pad * 0.35}mm`,
-            right: `${pad * 0.35}mm`,
-            [row ? 'bottom' : 'top']: `${pad * 0.22}mm`,
-            height: `${pad * 0.42}mm`,
-            background: 'repeating-linear-gradient(90deg,'
-              + ` #f4f4f4 0 ${pad * 0.5}mm, transparent ${pad * 0.5}mm ${pad * 1.1}mm)`,
-          }}
-        />
-      ))}
+      {el.frameStyle === 'film' &&
+        [0, 1].map((row) => (
+          <div
+            key={row}
+            style={{
+              position: 'absolute',
+              left: `${pad * 0.35}mm`,
+              right: `${pad * 0.35}mm`,
+              [row ? 'bottom' : 'top']: `${pad * 0.22}mm`,
+              height: `${pad * 0.42}mm`,
+              background:
+                'repeating-linear-gradient(90deg,' +
+                ` #f4f4f4 0 ${pad * 0.5}mm, transparent ${pad * 0.5}mm ${pad * 1.1}mm)`,
+            }}
+          />
+        ))}
 
       {/* Two strips of tape, held at an angle across opposite corners. */}
       {/*
@@ -325,29 +352,30 @@ function PhotoView({ el, big, print, dropLabel }: {
         tape does. Offsetting by a fraction of the strip instead left them
         sitting beside the corners rather than across them.
       */}
-      {el.frameStyle === 'tape' && ([-1, 1] as const).map(dir => {
-        const tapeW = side * 0.26
-        const tapeH = side * 0.075
-        return (
-          <div
-            key={dir}
-            style={{
-              position: 'absolute',
-              [dir < 0 ? 'left' : 'right']: `${round2(-tapeW / 2)}mm`,
-              top: `${round2(-tapeH / 2)}mm`,
-              width: `${round2(tapeW)}mm`,
-              height: `${round2(tapeH)}mm`,
-              background: 'rgba(236,228,206,.82)',
-              boxShadow: '0 .3mm .6mm rgba(0,0,0,.12)',
-              // Away from the corner on each side: anticlockwise on the left,
-              // clockwise on the right, so the pair reads as symmetric.
-              transform: `rotate(${dir * 45}deg)`,
-            }}
-          />
-        )
-      })}
+      {el.frameStyle === 'tape' &&
+        ([-1, 1] as const).map((dir) => {
+          const tapeW = side * 0.26;
+          const tapeH = side * 0.075;
+          return (
+            <div
+              key={dir}
+              style={{
+                position: 'absolute',
+                [dir < 0 ? 'left' : 'right']: `${round2(-tapeW / 2)}mm`,
+                top: `${round2(-tapeH / 2)}mm`,
+                width: `${round2(tapeW)}mm`,
+                height: `${round2(tapeH)}mm`,
+                background: 'rgba(236,228,206,.82)',
+                boxShadow: '0 .3mm .6mm rgba(0,0,0,.12)',
+                // Away from the corner on each side: anticlockwise on the left,
+                // clockwise on the right, so the pair reads as symmetric.
+                transform: `rotate(${dir * 45}deg)`,
+              }}
+            />
+          );
+        })}
     </div>
-  )
+  );
 }
 
 /**
@@ -363,37 +391,41 @@ function PhotoView({ el, big, print, dropLabel }: {
  * the weight against lucide's own 24-unit grid, exactly as the icons are drawn.
  */
 function IconView({ el }: { el: BookIconElement }) {
-  const Icon = iconComponent(el.name)
+  const Icon = iconComponent(el.name);
   return (
     <div style={{ ...frameStyle(el), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Icon
-        color={el.color}
-        strokeWidth={el.lineWidth}
-        style={{ width: '100%', height: '100%', display: 'block' }}
-      />
+      <Icon color={el.color} strokeWidth={el.lineWidth} style={{ width: '100%', height: '100%', display: 'block' }} />
     </div>
-  )
+  );
 }
 
 export function ElementView({
-  el, big, print = false, dropLabel = '',
-}: { el: BookElement; big: boolean; print?: boolean; dropLabel?: string }) {
+  el,
+  big,
+  print = false,
+  dropLabel = '',
+}: {
+  el: BookElement;
+  big: boolean;
+  print?: boolean;
+  dropLabel?: string;
+}) {
   if (el.kind === 'photo') {
-    return <PhotoView el={el} big={big} print={print} dropLabel={dropLabel} />
+    return <PhotoView el={el} big={big} print={print} dropLabel={dropLabel} />;
   }
 
-  if (el.kind === 'shape') return <ShapeView el={el} />
+  if (el.kind === 'shape') return <ShapeView el={el} />;
 
   // Above the catch-all below, which routes everything that is not text into
   // the travel elements and draws null for anything they do not know.
-  if (el.kind === 'icon') return <IconView el={el} />
+  if (el.kind === 'icon') return <IconView el={el} />;
 
   if (el.kind !== 'text') {
     // map, stats, countries, badge — the elements drawn from the journey's own
     // figures. They live in their own file because they are a different kind of
     // drawing: type and vector graphics laid out from data, rather than one box
     // with one property set.
-    return <TravelElementView el={el} frameStyle={frameStyle(el)} big={big} />
+    return <TravelElementView el={el} frameStyle={frameStyle(el)} big={big} />;
   }
 
   return (
@@ -417,7 +449,7 @@ export function ElementView({
     >
       {el.text}
     </div>
-  )
+  );
 }
 
 /**
@@ -433,23 +465,23 @@ export function SpreadView({
   print = false,
   dropLabel = '',
 }: {
-  spread: BookSpread
-  page: BookPageSetup
+  spread: BookSpread;
+  page: BookPageSetup;
   /**
    * The page numbers this spread carries, from foliosOf. Only PageNumbers
    * needs them — a page number is the one thing on the page that is a
    * function of position in the book rather than of the spread itself, and
    * the caller is the one holding the book.
    */
-  folios?: readonly number[]
-  big?: boolean
-  showGuides?: boolean
+  folios?: readonly number[];
+  big?: boolean;
+  showGuides?: boolean;
   /** The print renderer passes this: no guides, no placeholders, no chrome. */
-  print?: boolean
-  dropLabel?: string
+  print?: boolean;
+  dropLabel?: string;
 }) {
-  const isSingle = spread.role !== 'inner'
-  const w = isSingle ? page.pageWidth : page.pageWidth * 2
+  const isSingle = spread.role !== 'inner';
+  const w = isSingle ? page.pageWidth : page.pageWidth * 2;
 
   return (
     <div
@@ -467,7 +499,7 @@ export function SpreadView({
         overflow: print ? 'visible' : 'hidden',
       }}
     >
-      {spread.elements.map(el => (
+      {spread.elements.map((el) => (
         <ElementView key={el.id} el={el} big={big} print={print} dropLabel={dropLabel} />
       ))}
 
@@ -477,7 +509,7 @@ export function SpreadView({
         <>
           {/* Safe area, per page: on a spread the inner margin belongs to the
               gutter, so one box around the whole sheet would be a lie. */}
-          {(isSingle ? [0] : [0, page.pageWidth]).map(offset => (
+          {(isSingle ? [0] : [0, page.pageWidth]).map((offset) => (
             <div
               key={offset}
               style={{
@@ -491,16 +523,12 @@ export function SpreadView({
               }}
             />
           ))}
-          <div
-            aria-hidden
-            style={{ position: 'absolute', inset: 0, width: `${w}mm`, pointerEvents: 'none' }}
-          />
+          <div aria-hidden style={{ position: 'absolute', inset: 0, width: `${w}mm`, pointerEvents: 'none' }} />
         </>
       )}
     </div>
-  )
+  );
 }
-
 
 /**
  * The fold down the middle of an open book.
@@ -518,8 +546,8 @@ export function SpreadView({
 export function SpreadFold({ page, scaled }: { page: BookPageSetup; scaled: number }) {
   // Wide on purpose: the lift has to ramp over a long distance to read as
   // paper curving. A narrow band reads as two painted stripes instead.
-  const width = 52 * scaled
-  const left = page.pageWidth * scaled - width / 2
+  const width = 52 * scaled;
+  const left = page.pageWidth * scaled - width / 2;
   return (
     <div style={{ position: 'absolute', left, top: 0, width, bottom: 0, pointerEvents: 'none' }}>
       <div
@@ -527,24 +555,24 @@ export function SpreadFold({ page, scaled }: { page: BookPageSetup; scaled: numb
           position: 'absolute',
           inset: 0,
           background:
-            'linear-gradient(90deg,'
-            + ' rgba(255,255,255,0) 0%,'
-            + ' rgba(255,255,255,.07) 12%,'
-            + ' rgba(255,255,255,.17) 27%,'
-            + ' rgba(255,255,255,.11) 37%,'
-            + ' rgba(255,255,255,0) 43%,'
-            + ' rgba(0,0,0,.035) 45.5%,'
-            + ' rgba(0,0,0,.10) 48%,'
-            + ' rgba(0,0,0,.18) 49.6%,'
-            + ' rgba(0,0,0,.21) 50%,'
-            + ' rgba(0,0,0,.18) 50.4%,'
-            + ' rgba(0,0,0,.10) 52%,'
-            + ' rgba(0,0,0,.035) 54.5%,'
-            + ' rgba(255,255,255,0) 57%,'
-            + ' rgba(255,255,255,.11) 63%,'
-            + ' rgba(255,255,255,.17) 73%,'
-            + ' rgba(255,255,255,.07) 88%,'
-            + ' rgba(255,255,255,0) 100%)',
+            'linear-gradient(90deg,' +
+            ' rgba(255,255,255,0) 0%,' +
+            ' rgba(255,255,255,.07) 12%,' +
+            ' rgba(255,255,255,.17) 27%,' +
+            ' rgba(255,255,255,.11) 37%,' +
+            ' rgba(255,255,255,0) 43%,' +
+            ' rgba(0,0,0,.035) 45.5%,' +
+            ' rgba(0,0,0,.10) 48%,' +
+            ' rgba(0,0,0,.18) 49.6%,' +
+            ' rgba(0,0,0,.21) 50%,' +
+            ' rgba(0,0,0,.18) 50.4%,' +
+            ' rgba(0,0,0,.10) 52%,' +
+            ' rgba(0,0,0,.035) 54.5%,' +
+            ' rgba(255,255,255,0) 57%,' +
+            ' rgba(255,255,255,.11) 63%,' +
+            ' rgba(255,255,255,.17) 73%,' +
+            ' rgba(255,255,255,.07) 88%,' +
+            ' rgba(255,255,255,0) 100%)',
         }}
       />
       {/* The crease itself. Sub-pixel at small zoom, which is right — you should
@@ -561,5 +589,5 @@ export function SpreadFold({ page, scaled }: { page: BookPageSetup; scaled: numb
         }}
       />
     </div>
-  )
+  );
 }

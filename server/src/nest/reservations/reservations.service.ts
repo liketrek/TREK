@@ -1,45 +1,53 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { TripAccess } from '../../db/repositories/Trips.repository';
-import { UnitOfWork } from '../database/unit-of-work';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
-import { ReservationsReadService, toTraveler } from './reservations-read.service';
-import { keepMirroredPrice } from './reservation-metadata';
-import type { Reservation, User } from '../../types';
-import { BudgetService } from '../budget/budget.service';
-import { typeToCostCategory } from '@trek/shared';
-import { NotificationsService } from '../notifications/notifications.service';
-import { AccommodationsService, noStayMirror, type AccommodationMirror } from '../accommodations/accommodations.service';
-import { toRowId, legacyBoundIntegerText } from '../common/row-id';
-import { Reservations } from '../../db/entities/Reservations.entity';
-import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
-import { ReservationEndpoints as ReservationEndpointsEntity } from '../../db/entities/ReservationEndpoints.entity';
-import type { ReservationEndpointsRepository, ReservationEndpointRow } from '../../db/repositories/ReservationEndpoints.repository';
-import { ReservationTravelers as ReservationTravelersEntity } from '../../db/entities/ReservationTravelers.entity';
-import type { ReservationTravelersRepository } from '../../db/repositories/ReservationTravelers.repository';
-import { ReservationDayPositions } from '../../db/entities/ReservationDayPositions.entity';
-import type { ReservationDayPositionsRepository } from '../../db/repositories/ReservationDayPositions.repository';
-import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
-import type { DayAccommodationsRepository } from '../../db/repositories/DayAccommodations.repository';
-import { Days } from '../../db/entities/Days.entity';
-import type { DaysRepository } from '../../db/repositories/Days.repository';
-import { Places } from '../../db/entities/Places.entity';
-import type { PlacesRepository } from '../../db/repositories/Places.repository';
-import { DayAssignments } from '../../db/entities/DayAssignments.entity';
-import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
-import { TripMembers } from '../../db/entities/TripMembers.entity';
-import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
-import { Users } from '../../db/entities/Users.entity';
-import type { UsersRepository } from '../../db/repositories/Users.repository';
-import { Trips } from '../../db/entities/Trips.entity';
 import { BudgetItems } from '../../db/entities/BudgetItems.entity';
+import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
+import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { Days } from '../../db/entities/Days.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { ReservationDayPositions } from '../../db/entities/ReservationDayPositions.entity';
+import { ReservationEndpoints as ReservationEndpointsEntity } from '../../db/entities/ReservationEndpoints.entity';
+import { ReservationTravelers as ReservationTravelersEntity } from '../../db/entities/ReservationTravelers.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
 import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
+import type { DayAccommodationsRepository } from '../../db/repositories/DayAccommodations.repository';
+import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
+import type { DaysRepository } from '../../db/repositories/Days.repository';
+import type { PlacesRepository } from '../../db/repositories/Places.repository';
+import type { ReservationDayPositionsRepository } from '../../db/repositories/ReservationDayPositions.repository';
+import type {
+  ReservationEndpointsRepository,
+  ReservationEndpointRow,
+} from '../../db/repositories/ReservationEndpoints.repository';
+import type { ReservationTravelersRepository } from '../../db/repositories/ReservationTravelers.repository';
+import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
+import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
+import type { TripAccess } from '../../db/repositories/Trips.repository';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
+import type { Reservation, User } from '../../types';
+import {
+  AccommodationsService,
+  noStayMirror,
+  type AccommodationMirror,
+} from '../accommodations/accommodations.service';
+import { BudgetService } from '../budget/budget.service';
+import { toRowId, legacyBoundIntegerText } from '../common/row-id';
+import { UnitOfWork } from '../database/unit-of-work';
+import { NotificationsService } from '../notifications/notifications.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { keepMirroredPrice } from './reservation-metadata';
+import { ReservationsReadService, toTraveler } from './reservations-read.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import { typeToCostCategory } from '@trek/shared';
 
 type Trip = TripAccess;
-type BudgetEntry = { total_price?: number; category?: string; currency?: string | null; exchange_rate?: number } | undefined;
+type BudgetEntry =
+  { total_price?: number; category?: string; currency?: string | null; exchange_rate?: number } | undefined;
 
 export interface ReservationEndpoint {
   id?: number;
@@ -213,10 +221,21 @@ export class ReservationsService {
   }
 
   async canEdit(trip: Trip, user: User): Promise<boolean> {
-    return this.permissions.checkPermission('reservation_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
+    return this.permissions.checkPermission(
+      'reservation_edit',
+      user.role,
+      trip.user_id,
+      user.id,
+      trip.user_id !== user.id,
+    );
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -234,7 +253,9 @@ export class ReservationsService {
    * drew what it sent, and it never sent this.
    */
   private async announceStayMirror(tripId: string | number, mirror: AccommodationMirror): Promise<void> {
-    await this.accommodations.announceMirror(tripId, mirror, (event, payload) => this.realtime.broadcast(tripId, event, payload));
+    await this.accommodations.announceMirror(tripId, mirror, (event, payload) =>
+      this.realtime.broadcast(tripId, event, payload),
+    );
   }
 
   /** Fire-and-forget booking-change notification, mirroring the legacy dynamic import. */
@@ -249,19 +270,21 @@ export class ReservationsService {
       if (!actorEmail) return;
       // RS2
       const tripTitle = await this.tripsRepo.getTitle(tripId);
-      this.notifications.send({
-        event: 'booking_change',
-        actorId,
-        scope: 'trip',
-        targetId: Number(tripId),
-        params: {
-          trip: tripTitle || 'Untitled',
-          actor: actorEmail,
-          booking,
-          type: type || 'booking',
-          tripId: String(tripId),
-        },
-      }).catch(() => {});
+      this.notifications
+        .send({
+          event: 'booking_change',
+          actorId,
+          scope: 'trip',
+          targetId: Number(tripId),
+          params: {
+            trip: tripTitle || 'Untitled',
+            actor: actorEmail,
+            booking,
+            type: type || 'booking',
+            tripId: String(tripId),
+          },
+        })
+        .catch(() => {});
     } catch {
       // Notifications must never make the booking write fail.
     }
@@ -314,10 +337,14 @@ export class ReservationsService {
    * accepted — ids that aren't on the trip are silently dropped so a stale client
    * can't leak a cross-trip user. #1517.
    */
-  async setReservationTravelers(reservationId: number | string, tripId: string | number, userIds: number[]): Promise<void> {
+  async setReservationTravelers(
+    reservationId: number | string,
+    tripId: string | number,
+    userIds: number[],
+  ): Promise<void> {
     // RS7: the roster is computed BEFORE the transaction opens (unchanged).
     const allowed = await this.assignableUserIds(tripId);
-    const ids = [...new Set(userIds)].filter(uid => allowed.has(uid));
+    const ids = [...new Set(userIds)].filter((uid) => allowed.has(uid));
     const reservationIdNum = this.rowIdNum(reservationId);
     await this.uow.transactional(async () => {
       // RS8
@@ -504,7 +531,10 @@ export class ReservationsService {
    *
    * Returns the offending field names, empty when the body is clean.
    */
-  async referencesOutsideTrip(tripId: string | number, data: CreateReservationData | UpdateReservationData): Promise<string[]> {
+  async referencesOutsideTrip(
+    tripId: string | number,
+    data: CreateReservationData | UpdateReservationData,
+  ): Promise<string[]> {
     const offenders: string[] = [];
     // An id that resolves to nothing is not an offender. accommodation_id in
     // particular carries no foreign key, so shortening a trip's date range
@@ -534,12 +564,15 @@ export class ReservationsService {
       return rowTripId !== undefined && String(rowTripId) !== String(tripId);
     };
 
-    const check = (field: string, offending: boolean) => { if (offending) offenders.push(field); };
+    const check = (field: string, offending: boolean) => {
+      if (offending) offenders.push(field);
+    };
 
     if (data.day_id != null) check('day_id', await elsewhere('days', data.day_id));
     if (data.end_day_id != null) check('end_day_id', await elsewhere('days', data.end_day_id));
     if (data.place_id != null) check('place_id', await elsewhere('places', data.place_id));
-    if (data.accommodation_id != null) check('accommodation_id', await elsewhere('day_accommodations', data.accommodation_id));
+    if (data.accommodation_id != null)
+      check('accommodation_id', await elsewhere('day_accommodations', data.accommodation_id));
     if (data.assignment_id != null) {
       // An assignment belongs to a trip through its day, so the join is the
       // lookup — same shape as the MCP tool's getAssignmentForTrip. RS22.
@@ -550,7 +583,8 @@ export class ReservationsService {
     const acc = data.create_accommodation;
     if (acc) {
       if (acc.place_id != null) check('create_accommodation.place_id', await elsewhere('places', acc.place_id));
-      if (acc.start_day_id != null) check('create_accommodation.start_day_id', await elsewhere('days', acc.start_day_id));
+      if (acc.start_day_id != null)
+        check('create_accommodation.start_day_id', await elsewhere('days', acc.start_day_id));
       if (acc.end_day_id != null) check('create_accommodation.end_day_id', await elsewhere('days', acc.end_day_id));
     }
 
@@ -577,7 +611,10 @@ export class ReservationsService {
    * that belongs to another trip is named here too — the REST controller asks
    * the older guard first, so that case keeps its own answer.
    */
-  async unresolvedReferences(tripId: string | number, data: CreateReservationData | UpdateReservationData): Promise<string[]> {
+  async unresolvedReferences(
+    tripId: string | number,
+    data: CreateReservationData | UpdateReservationData,
+  ): Promise<string[]> {
     const offenders: string[] = [];
     // RS23 — a CLOSED union ('days' | 'places') dispatched to the existing
     // typed `existsInTrip` methods. R1: this closure has NO typed
@@ -606,7 +643,10 @@ export class ReservationsService {
     if (data.create_accommodation && data.type === 'hotel') {
       const acc = data.create_accommodation;
       const errors = await this.accommodations.validateAccommodationRefs(
-        tripId, acc.place_id || undefined, acc.start_day_id || undefined, acc.end_day_id || undefined,
+        tripId,
+        acc.place_id || undefined,
+        acc.start_day_id || undefined,
+        acc.end_day_id || undefined,
       );
       for (const { field } of errors) offenders.push(`create_accommodation.${field}`);
     }
@@ -637,7 +677,10 @@ export class ReservationsService {
    * (#2355), and an update rebinds whatever the row already held, so a guard
    * on the body alone never reaches it.
    */
-  private async resolvedOrNull(table: 'days' | 'places' | 'day_assignments', id: number | null): Promise<number | null> {
+  private async resolvedOrNull(
+    table: 'days' | 'places' | 'day_assignments',
+    id: number | null,
+  ): Promise<number | null> {
     return id != null && (await this.referenceExists(table, id)) ? id : null;
   }
 
@@ -667,24 +710,46 @@ export class ReservationsService {
     if (!(await this.referenceExists('days', acc.start_day_id!))) missing.push('start_day_id');
     if (!(await this.referenceExists('days', acc.end_day_id!))) missing.push('end_day_id');
     if (missing.length > 0) {
-      throw new BadRequestException(`Unknown reference: ${missing.map((field) => `create_accommodation.${field}`).join(', ')}`);
+      throw new BadRequestException(
+        `Unknown reference: ${missing.map((field) => `create_accommodation.${field}`).join(', ')}`,
+      );
     }
   }
 
   /** The accommodation insert, the reservation insert, the endpoint save and
    *  the metadata sync are one logical write — all-or-nothing. */
-  async create(tripId: string | number, data: CreateReservationData): Promise<{ reservation: ReservationRow; accommodationCreated: boolean }> {
+  async create(
+    tripId: string | number,
+    data: CreateReservationData,
+  ): Promise<{ reservation: ReservationRow; accommodationCreated: boolean }> {
     const { stayMirror, ...written } = await this.uow.transactional(() => this.createInTx(tripId, data));
     await this.announceStayMirror(tripId, stayMirror);
     return written;
   }
 
-  private async createInTx(tripId: string | number, data: CreateReservationData): Promise<{ reservation: ReservationRow; accommodationCreated: boolean; stayMirror: AccommodationMirror }> {
+  private async createInTx(
+    tripId: string | number,
+    data: CreateReservationData,
+  ): Promise<{ reservation: ReservationRow; accommodationCreated: boolean; stayMirror: AccommodationMirror }> {
     const {
-      title, reservation_time, reservation_end_time, location,
-      confirmation_number, notes, url, day_id, end_day_id, place_id, assignment_id,
-      status, type, accommodation_id, metadata, create_accommodation,
-      endpoints, needs_review
+      title,
+      reservation_time,
+      reservation_end_time,
+      location,
+      confirmation_number,
+      notes,
+      url,
+      day_id,
+      end_day_id,
+      place_id,
+      assignment_id,
+      status,
+      type,
+      accommodation_id,
+      metadata,
+      create_accommodation,
+      endpoints,
+      needs_review,
     } = data;
 
     let accommodationCreated = false;
@@ -698,7 +763,14 @@ export class ReservationsService {
     // part that must not exist twice, so it comes from AccommodationsService.
     let resolvedAccommodationId: number | null = accommodation_id || null;
     if (type === 'hotel' && !resolvedAccommodationId && create_accommodation) {
-      const { place_id: accPlaceId, start_day_id, end_day_id, check_in, check_out, confirmation: accConf } = create_accommodation;
+      const {
+        place_id: accPlaceId,
+        start_day_id,
+        end_day_id,
+        check_in,
+        check_out,
+        confirmation: accConf,
+      } = create_accommodation;
       if (start_day_id && end_day_id) {
         await this.requireResolvableStay(create_accommodation);
         // RS27
@@ -716,7 +788,12 @@ export class ReservationsService {
         // night entered under Days. Without it the hotel booked on this form is the
         // one place the drive does not know about, which is the duplicate entry this
         // whole change exists to remove.
-        stayMirror = await this.accommodations.attachStayStop(resolvedAccommodationId, accPlaceId || null, start_day_id, check_in);
+        stayMirror = await this.accommodations.attachStayStop(
+          resolvedAccommodationId,
+          accPlaceId || null,
+          start_day_id,
+          check_in,
+        );
       }
     }
 
@@ -779,7 +856,10 @@ export class ReservationsService {
       if (meta.check_in_time || meta.check_in_end_time || meta.check_out_time) {
         // RS29
         await this.dayAccommodationsRepo.patchTimes(
-          resolvedAccommodationId, meta.check_in_time || null, meta.check_in_end_time || null, meta.check_out_time || null,
+          resolvedAccommodationId,
+          meta.check_in_time || null,
+          meta.check_in_end_time || null,
+          meta.check_out_time || null,
         );
       }
       if (confirmation_number) {
@@ -793,7 +873,11 @@ export class ReservationsService {
     return { reservation, accommodationCreated, stayMirror };
   }
 
-  async updatePositions(tripId: string | number, positions: { id: number; day_plan_position?: number }[], dayId?: number | string | null) {
+  async updatePositions(
+    tripId: string | number,
+    positions: { id: number; day_plan_position?: number }[],
+    dayId?: number | string | null,
+  ) {
     if (dayId) {
       // Per-day positions for multi-day reservations, scoped the way the legacy
       // branch below already scopes its update. The table carries no trip_id and
@@ -853,18 +937,42 @@ export class ReservationsService {
 
   /** The accommodation upsert, the reservation update, the endpoint replace
    *  and the metadata sync are one logical write — all-or-nothing. */
-  async update(id: string | number, tripId: string | number, data: UpdateReservationData, current: Reservation): Promise<{ reservation: ReservationRow; accommodationChanged: boolean }> {
+  async update(
+    id: string | number,
+    tripId: string | number,
+    data: UpdateReservationData,
+    current: Reservation,
+  ): Promise<{ reservation: ReservationRow; accommodationChanged: boolean }> {
     const { stayMirror, ...written } = await this.uow.transactional(() => this.updateInTx(id, tripId, data, current));
     await this.announceStayMirror(tripId, stayMirror);
     return written;
   }
 
-  private async updateInTx(id: string | number, tripId: string | number, data: UpdateReservationData, current: Reservation): Promise<{ reservation: ReservationRow; accommodationChanged: boolean; stayMirror: AccommodationMirror }> {
+  private async updateInTx(
+    id: string | number,
+    tripId: string | number,
+    data: UpdateReservationData,
+    current: Reservation,
+  ): Promise<{ reservation: ReservationRow; accommodationChanged: boolean; stayMirror: AccommodationMirror }> {
     const {
-      title, reservation_time, reservation_end_time, location,
-      confirmation_number, notes, url, day_id, end_day_id, place_id, assignment_id,
-      status, type, accommodation_id, metadata, create_accommodation,
-      endpoints, needs_review
+      title,
+      reservation_time,
+      reservation_end_time,
+      location,
+      confirmation_number,
+      notes,
+      url,
+      day_id,
+      end_day_id,
+      place_id,
+      assignment_id,
+      status,
+      type,
+      accommodation_id,
+      metadata,
+      create_accommodation,
+      endpoints,
+      needs_review,
     } = data;
 
     let accommodationChanged = false;
@@ -898,19 +1006,32 @@ export class ReservationsService {
     // a bare `String(...)` stored `'<id>'`, not the legacy's REAL-bound
     // `'<id>.0'`) and passes an already-string value through unchanged, a
     // no-op.
-    let resolvedAccId: number | string | null = accommodation_id !== undefined
-      ? (accommodation_id == null ? null : toRowId(accommodation_id))
-      : (current.accommodation_id ?? null);
+    let resolvedAccId: number | string | null =
+      accommodation_id !== undefined
+        ? accommodation_id == null
+          ? null
+          : toRowId(accommodation_id)
+        : (current.accommodation_id ?? null);
     const accIdForRead = (v: number | string | null): number | null => (v == null ? null : Number(v));
     if (resolvedAccId) {
       // Scoped to the trip on purpose: an id belonging to someone else's trip
       // must read as absent here, not as an accommodation to write through to.
       // RS37
-      const accExists = await this.dayAccommodationsRepo.existsInTrip(accIdForRead(resolvedAccId)!, this.rowIdNum(tripId));
+      const accExists = await this.dayAccommodationsRepo.existsInTrip(
+        accIdForRead(resolvedAccId)!,
+        this.rowIdNum(tripId),
+      );
       if (!accExists) resolvedAccId = null;
     }
     if (type === 'hotel' && create_accommodation) {
-      const { place_id: accPlaceId, start_day_id, end_day_id, check_in, check_out, confirmation: accConf } = create_accommodation;
+      const {
+        place_id: accPlaceId,
+        start_day_id,
+        end_day_id,
+        check_in,
+        check_out,
+        confirmation: accConf,
+      } = create_accommodation;
       if (start_day_id && end_day_id) {
         await this.requireResolvableStay(create_accommodation);
         if (resolvedAccId) {
@@ -929,9 +1050,15 @@ export class ReservationsService {
           // The stay just moved. Its stop moves with it, or it is left sitting on a
           // day nobody sleeps there any more, hidden from the day list because it
           // still carries this booking's id and stranded in the middle of the drive.
-          stayMirror = await this.accommodations.moveStayStop(resolvedAccIdNum, accPlaceId || null, start_day_id, check_in, {
-            checkInChanged: (check_in || null) !== (priorCheckIn ?? null),
-          });
+          stayMirror = await this.accommodations.moveStayStop(
+            resolvedAccIdNum,
+            accPlaceId || null,
+            start_day_id,
+            check_in,
+            {
+              checkInChanged: (check_in || null) !== (priorCheckIn ?? null),
+            },
+          );
         } else if (accPlaceId) {
           // RS40
           resolvedAccId = await this.dayAccommodationsRepo.insertBookingStay({
@@ -957,12 +1084,18 @@ export class ReservationsService {
     const nextMetadata = keepMirroredPrice(metadata, current.metadata);
 
     const resolvedType = (type ?? current.type) || 'other';
-    const nextReservationTime = resolvedType === 'hotel'
-      ? null
-      : (reservation_time !== undefined ? (reservation_time || null) : current.reservation_time);
-    const nextReservationEndTime = resolvedType === 'hotel'
-      ? null
-      : (reservation_end_time !== undefined ? (reservation_end_time || null) : current.reservation_end_time);
+    const nextReservationTime =
+      resolvedType === 'hotel'
+        ? null
+        : reservation_time !== undefined
+          ? reservation_time || null
+          : current.reservation_time;
+    const nextReservationEndTime =
+      resolvedType === 'hotel'
+        ? null
+        : reservation_end_time !== undefined
+          ? reservation_end_time || null
+          : current.reservation_end_time;
 
     // day_id / end_day_id: honour an explicit value from the client,
     // otherwise derive from the (possibly updated) reservation_time so the
@@ -994,8 +1127,14 @@ export class ReservationsService {
 
     nextDayId = await this.resolvedOrNull('days', nextDayId);
     nextEndDayId = await this.resolvedOrNull('days', nextEndDayId);
-    const nextPlaceId = await this.resolvedOrNull('places', place_id !== undefined ? (place_id || null) : (current.place_id ?? null));
-    const nextAssignmentId = await this.resolvedOrNull('day_assignments', assignment_id !== undefined ? (assignment_id || null) : (current.assignment_id ?? null));
+    const nextPlaceId = await this.resolvedOrNull(
+      'places',
+      place_id !== undefined ? place_id || null : (current.place_id ?? null),
+    );
+    const nextAssignmentId = await this.resolvedOrNull(
+      'day_assignments',
+      assignment_id !== undefined ? assignment_id || null : (current.assignment_id ?? null),
+    );
 
     // RS41. The `PlacesRepository.updatePlace`/PL11 precedent: the four
     // legacy `COALESCE(?, col)` keep-if-null columns (`title`/`status`/
@@ -1010,19 +1149,26 @@ export class ReservationsService {
       title: title || current.title,
       reservation_time: nextReservationTime,
       reservation_end_time: nextReservationEndTime,
-      location: location !== undefined ? (location || null) : (current.location ?? null),
-      confirmation_number: confirmation_number !== undefined ? (confirmation_number || null) : (current.confirmation_number ?? null),
-      notes: notes !== undefined ? (notes || null) : (current.notes ?? null),
-      url: url !== undefined ? (url || null) : ((current as Reservation & { url?: string | null }).url ?? null),
+      location: location !== undefined ? location || null : (current.location ?? null),
+      confirmation_number:
+        confirmation_number !== undefined ? confirmation_number || null : (current.confirmation_number ?? null),
+      notes: notes !== undefined ? notes || null : (current.notes ?? null),
+      url: url !== undefined ? url || null : ((current as Reservation & { url?: string | null }).url ?? null),
       day_id: nextDayId,
       end_day_id: nextEndDayId,
       place_id: nextPlaceId,
       assignment_id: nextAssignmentId,
       status: status || current.status,
       type: type || current.type,
-      accommodation_id: resolvedAccId == null ? null : (typeof resolvedAccId === 'number' ? legacyBoundIntegerText(resolvedAccId) : resolvedAccId),
-      metadata: nextMetadata !== undefined ? (nextMetadata ? JSON.stringify(nextMetadata) : null) : (current.metadata ?? null),
-      needs_review: needs_review === undefined ? (current.needs_review ?? 0) : (needs_review ? 1 : 0),
+      accommodation_id:
+        resolvedAccId == null
+          ? null
+          : typeof resolvedAccId === 'number'
+            ? legacyBoundIntegerText(resolvedAccId)
+            : resolvedAccId,
+      metadata:
+        nextMetadata !== undefined ? (nextMetadata ? JSON.stringify(nextMetadata) : null) : (current.metadata ?? null),
+      needs_review: needs_review === undefined ? (current.needs_review ?? 0) : needs_review ? 1 : 0,
     });
 
     if (endpoints !== undefined) {
@@ -1030,14 +1176,20 @@ export class ReservationsService {
     }
 
     // Sync check-in/out to accommodation if linked
-    const resolvedMeta = nextMetadata !== undefined ? nextMetadata : (current.metadata ? JSON.parse(current.metadata as string) : null);
+    const resolvedMeta =
+      nextMetadata !== undefined ? nextMetadata : current.metadata ? JSON.parse(current.metadata as string) : null;
     if (resolvedAccId && resolvedMeta) {
-      const meta = (typeof resolvedMeta === 'string' ? JSON.parse(resolvedMeta) : resolvedMeta) as AccommodationTimesMeta;
+      const meta = (
+        typeof resolvedMeta === 'string' ? JSON.parse(resolvedMeta) : resolvedMeta
+      ) as AccommodationTimesMeta;
       const resolvedAccIdNum = accIdForRead(resolvedAccId)!;
       if (meta.check_in_time || meta.check_in_end_time || meta.check_out_time) {
         // RS42
         await this.dayAccommodationsRepo.patchTimes(
-          resolvedAccIdNum, meta.check_in_time || null, meta.check_in_end_time || null, meta.check_out_time || null,
+          resolvedAccIdNum,
+          meta.check_in_time || null,
+          meta.check_in_end_time || null,
+          meta.check_out_time || null,
         );
       }
       const resolvedConf = confirmation_number !== undefined ? confirmation_number : current.confirmation_number;
@@ -1055,7 +1207,15 @@ export class ReservationsService {
 
   /** The accommodation + budget-item + reservation deletes are one logical
    *  cascade — all-or-nothing. */
-  async remove(id: string | number, tripId: string | number): Promise<{ deleted: { id: number; title: string; type: string | null; accommodation_id: string | null } | undefined; accommodationDeleted: boolean; deletedBudgetItemId: number | null; deletedBudgetItemIds: number[] }> {
+  async remove(
+    id: string | number,
+    tripId: string | number,
+  ): Promise<{
+    deleted: { id: number; title: string; type: string | null; accommodation_id: string | null } | undefined;
+    accommodationDeleted: boolean;
+    deletedBudgetItemId: number | null;
+    deletedBudgetItemIds: number[];
+  }> {
     // M4, Plan 3d Task 7 review: parsed ONCE here with `toRowId` (rule 21),
     // not `rowIdNum` — `rowIdNum`'s `Number(...)` fallback let a hex/exponent
     // id (`0x1`, `1e1`) reach `findHeaderInTrip` and delete a real row where
@@ -1069,7 +1229,14 @@ export class ReservationsService {
     const removed = await this.uow.transactional(async () => {
       // RS45
       const reservation = await this.reservationsRepo.findHeaderInTrip(idNum, tripIdNum);
-      if (!reservation) return { deleted: undefined, accommodationDeleted: false, deletedBudgetItemId: null, deletedBudgetItemIds: [], stayMirror: noStayMirror() };
+      if (!reservation)
+        return {
+          deleted: undefined,
+          accommodationDeleted: false,
+          deletedBudgetItemId: null,
+          deletedBudgetItemIds: [],
+          stayMirror: noStayMirror(),
+        };
 
       let accommodationDeleted = false;
       let stayMirror = noStayMirror();
@@ -1100,12 +1267,20 @@ export class ReservationsService {
 
       // RS48/RS49: a booking can carry several expenses (#2084); every one of them goes with it.
       // Same `toRowId`-parsed ids the gate above (`findHeaderInTrip`) used (rule 21).
-      const deletedBudgetItemIds = (await this.budgetItemsRepo.listIdAndCategoryByReservation(tripIdNum, idNum)).map(item => item.id);
+      const deletedBudgetItemIds = (await this.budgetItemsRepo.listIdAndCategoryByReservation(tripIdNum, idNum)).map(
+        (item) => item.id,
+      );
       await this.budgetItemsRepo.deleteByIds(deletedBudgetItemIds);
 
       // RS50
       await this.reservationsRepo.deleteById(idNum);
-      return { deleted: reservation, accommodationDeleted, deletedBudgetItemId: deletedBudgetItemIds[0] ?? null, deletedBudgetItemIds, stayMirror };
+      return {
+        deleted: reservation,
+        accommodationDeleted,
+        deletedBudgetItemId: deletedBudgetItemIds[0] ?? null,
+        deletedBudgetItemIds,
+        stayMirror,
+      };
     });
     const { stayMirror, ...answer } = removed;
     await this.announceStayMirror(tripId, stayMirror);
@@ -1133,7 +1308,14 @@ export class ReservationsService {
   }
 
   /** POST side effect: auto-create a linked budget item when a price is provided. */
-  async syncBudgetOnCreate(tripId: string, reservationId: number, title: string, type: string | undefined, entry: BudgetEntry, socketId: string | undefined): Promise<void> {
+  async syncBudgetOnCreate(
+    tripId: string,
+    reservationId: number,
+    title: string,
+    type: string | undefined,
+    entry: BudgetEntry,
+    socketId: string | undefined,
+  ): Promise<void> {
     if (!entry || !(Number(entry.total_price) > 0)) return;
     try {
       const item = await this.budget.linkBudgetItemToReservation(tripId, reservationId, {
@@ -1150,7 +1332,16 @@ export class ReservationsService {
   }
 
   /** PUT side effect: drop the linked budget item when the price is cleared, else create/update it. */
-  async syncBudgetOnUpdate(tripId: string, id: string, title: string, type: string | undefined, currentTitle: string, currentType: string | undefined, entry: BudgetEntry, socketId: string | undefined): Promise<void> {
+  async syncBudgetOnUpdate(
+    tripId: string,
+    id: string,
+    title: string,
+    type: string | undefined,
+    currentTitle: string,
+    currentType: string | undefined,
+    entry: BudgetEntry,
+    socketId: string | undefined,
+  ): Promise<void> {
     // When the booking type changes, keep a linked expense's category in sync —
     // but only if it still carries the auto-derived category (so a manual pick in
     // the Costs editor is preserved). Runs regardless of create_budget_entry.
@@ -1159,7 +1350,7 @@ export class ReservationsService {
       const newCat = typeToCostCategory(type);
       // RS51. Every linked expense (#2084), each only while it still has the derived category.
       const linked = oldCat === newCat ? [] : await this.budgetItemsRepo.listIdAndCategoryByReservation(tripId, id);
-      for (const item of linked.filter(i => i.category === oldCat)) {
+      for (const item of linked.filter((i) => i.category === oldCat)) {
         const updated = await this.budget.updateBudgetItem(item.id, tripId, { category: newCat });
         this.realtime.broadcast(tripId, 'budget:updated', { item: updated }, socketId);
       }
@@ -1190,10 +1381,18 @@ export class ReservationsService {
       // RS53 — Plan 3e Task 2, converted.
       const existing = await this.budgetItemsRepo.findIdByReservationInTrip(tripId, id);
       if (existing) {
-        const updated = await this.budget.updateBudgetItem(existing.id, tripId, { name: itemName, category, total_price: entry.total_price });
+        const updated = await this.budget.updateBudgetItem(existing.id, tripId, {
+          name: itemName,
+          category,
+          total_price: entry.total_price,
+        });
         this.realtime.broadcast(tripId, 'budget:updated', { item: updated }, socketId);
       } else {
-        const item = await this.budget.createBudgetItem(tripId, { name: itemName, category, total_price: entry.total_price });
+        const item = await this.budget.createBudgetItem(tripId, {
+          name: itemName,
+          category,
+          total_price: entry.total_price,
+        });
         // RS54 — Plan 3e Task 2, converted.
         await this.budgetItemsRepo.setReservationId(item.id, id);
         item.reservation_id = Number(id);

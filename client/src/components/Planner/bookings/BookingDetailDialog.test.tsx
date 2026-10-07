@@ -1,20 +1,38 @@
 // FE-PLANNER-BKDETAIL-001 to FE-PLANNER-BKDETAIL-013
-import { render, screen, waitFor, within } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import {
+  buildAssignment,
+  buildDay,
+  buildPlace,
+  buildReservation,
+  buildTrip,
+  buildUser,
+} from '../../../../tests/helpers/factories';
 import { server } from '../../../../tests/helpers/msw/server';
+import { render, screen, waitFor, within } from '../../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../../tests/helpers/store';
-import { buildAssignment, buildDay, buildPlace, buildReservation, buildTrip, buildUser } from '../../../../tests/helpers/factories';
-import { resetBodyScrollLock } from '../../../utils/bodyScrollLock';
 import { useAuthStore } from '../../../store/authStore';
-import { useTripStore } from '../../../store/tripStore';
 import { usePluginStore } from '../../../store/pluginStore';
 import { useSettingsStore } from '../../../store/settingsStore';
+import { useTripStore } from '../../../store/tripStore';
 import type { Reservation, ReservationEndpoint } from '../../../types';
+import { resetBodyScrollLock } from '../../../utils/bodyScrollLock';
 import BookingDetailHost, { type BookingDetailHostProps } from './BookingDetailHost';
 
 function ep(over: Partial<ReservationEndpoint>): ReservationEndpoint {
-  return { role: 'from', sequence: 0, name: 'Stop', code: null, lat: 1, lng: 1, timezone: null, local_time: null, local_date: null, ...over };
+  return {
+    role: 'from',
+    sequence: 0,
+    name: 'Stop',
+    code: null,
+    lat: 1,
+    lng: 1,
+    timezone: null,
+    local_time: null,
+    local_date: null,
+    ...over,
+  };
 }
 
 const onClose = vi.fn();
@@ -26,8 +44,19 @@ const d3 = buildDay({ id: 1303, day_number: 3, date: '2025-06-04', title: null }
 
 function renderDetail(r: Reservation, props: Partial<BookingDetailHostProps> = {}) {
   return render(
-    <BookingDetailHost r={r} tripId={1} days={[d1, d2, d3]} assignments={{}} files={[]} canEdit contributions={[]}
-      onClose={onClose} onDelete={vi.fn()} onNavigateToFiles={vi.fn()} {...props} />,
+    <BookingDetailHost
+      r={r}
+      tripId={1}
+      days={[d1, d2, d3]}
+      assignments={{}}
+      files={[]}
+      canEdit
+      contributions={[]}
+      onClose={onClose}
+      onDelete={vi.fn()}
+      onNavigateToFiles={vi.fn()}
+      {...props}
+    />
   );
 }
 
@@ -40,7 +69,10 @@ beforeEach(() => {
   seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'EUR' }), budgetItems: [] });
   seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: false, language: 'en' } });
   usePluginStore.setState({ plugins: [] });
-  window.__addToast = ((message: string, type: string) => { toasts.push({ message, type }); return 1; }) as unknown as typeof window.__addToast;
+  window.__addToast = ((message: string, type: string) => {
+    toasts.push({ message, type });
+    return 1;
+  }) as unknown as typeof window.__addToast;
   server.use(http.get('/api/view-contributions/:view/:tripId', () => HttpResponse.json({ contributions: [] })));
 });
 
@@ -52,13 +84,26 @@ afterEach(() => {
 describe('BookingDetailDialog', () => {
   it('FE-PLANNER-BKDETAIL-001: a transport states its carrier and route in the head, its times as tiles', () => {
     const r = buildReservation({
-      title: 'LH 716', type: 'flight', day_id: 1301, reservation_time: '2025-06-01T08:00', reservation_end_time: '2025-06-01T12:30',
-      metadata: JSON.stringify({ airline: 'Lufthansa', flight_number: 'LH716', platform: 'B', seat: '12A', class: 'Business' }),
-      endpoints: [ep({ role: 'from', name: 'Frankfurt', code: 'FRA' }), ep({ role: 'to', sequence: 1, name: 'Haneda', code: 'HND' })],
+      title: 'LH 716',
+      type: 'flight',
+      day_id: 1301,
+      reservation_time: '2025-06-01T08:00',
+      reservation_end_time: '2025-06-01T12:30',
+      metadata: JSON.stringify({
+        airline: 'Lufthansa',
+        flight_number: 'LH716',
+        platform: 'B',
+        seat: '12A',
+        class: 'Business',
+      }),
+      endpoints: [
+        ep({ role: 'from', name: 'Frankfurt', code: 'FRA' }),
+        ep({ role: 'to', sequence: 1, name: 'Haneda', code: 'HND' }),
+      ],
     });
     renderDetail(r);
     const dialog = screen.getByRole('dialog', { name: 'LH 716' });
-    expect(within(dialog).getByText('Lufthansa  LH716  FRA → HND', { normalizer: s => s })).toBeInTheDocument();
+    expect(within(dialog).getByText('Lufthansa  LH716  FRA → HND', { normalizer: (s) => s })).toBeInTheDocument();
     expect(within(dialog).getByText('08:00')).toBeInTheDocument();
     expect(within(dialog).getByText('Frankfurt')).toBeInTheDocument();
     expect(within(dialog).getByText('12:30')).toBeInTheDocument();
@@ -71,14 +116,24 @@ describe('BookingDetailDialog', () => {
   });
 
   it('FE-PLANNER-BKDETAIL-002: without endpoints the tiles fall back to Start and End', () => {
-    renderDetail(buildReservation({ title: 'Rental', type: 'car', reservation_time: '2025-06-01T09:00', reservation_end_time: '2025-06-02T18:00' }));
+    renderDetail(
+      buildReservation({
+        title: 'Rental',
+        type: 'car',
+        reservation_time: '2025-06-01T09:00',
+        reservation_end_time: '2025-06-02T18:00',
+      })
+    );
     expect(screen.getByText('Start')).toBeInTheDocument();
     expect(screen.getByText('End')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-BKDETAIL-003: a stay shows check-in, check-out and its nights, without repeating the date', () => {
     const r = buildReservation({
-      title: 'Ryokan', type: 'hotel', accommodation_start_day_id: 1301, accommodation_end_day_id: 1303,
+      title: 'Ryokan',
+      type: 'hotel',
+      accommodation_start_day_id: 1301,
+      accommodation_end_day_id: 1303,
       metadata: JSON.stringify({ check_in_time: '15:00', check_out_time: '10:00' }),
     });
     renderDetail(r);
@@ -99,8 +154,14 @@ describe('BookingDetailDialog', () => {
 
   it('FE-PLANNER-BKDETAIL-005: a route with stops is listed stop by stop, and segment codes under it', () => {
     const r = buildReservation({
-      title: 'Via Munich', type: 'flight',
-      metadata: JSON.stringify({ legs: [{ from: 'FRA', to: 'MUC', confirmation_number: 'SEG1' }, { from: 'MUC', to: 'HND', confirmation_number: 'SEG2' }] }),
+      title: 'Via Munich',
+      type: 'flight',
+      metadata: JSON.stringify({
+        legs: [
+          { from: 'FRA', to: 'MUC', confirmation_number: 'SEG1' },
+          { from: 'MUC', to: 'HND', confirmation_number: 'SEG2' },
+        ],
+      }),
       endpoints: [
         ep({ role: 'from', name: 'Frankfurt', code: 'FRA', local_time: '07:00' }),
         ep({ role: 'stop', sequence: 1, name: 'Munich', code: null }),
@@ -119,15 +180,24 @@ describe('BookingDetailDialog', () => {
     const place = buildPlace({ name: 'Kinkaku-ji', place_time: '10:00' });
     const a = buildAssignment({ id: 4401, day_id: 1302, place });
     const r = buildReservation({
-      title: 'Temple tour', type: 'tour', location: 'Kyoto', accommodation_name: 'Ryokan', assignment_id: 4401, url: 'https://example.com/tour',
-      notes: '**Bring** cash', travelers: [{ user_id: 3, username: 'maria' }],
+      title: 'Temple tour',
+      type: 'tour',
+      location: 'Kyoto',
+      accommodation_name: 'Ryokan',
+      assignment_id: 4401,
+      url: 'https://example.com/tour',
+      notes: '**Bring** cash',
+      travelers: [{ user_id: 3, username: 'maria' }],
       metadata: JSON.stringify({ price: '30' }),
     });
     renderDetail(r, { assignments: { '1302': [a] } });
     expect(screen.getByText('Kyoto')).toBeInTheDocument();
     expect(screen.getByText('Ryokan')).toBeInTheDocument();
     expect(screen.getByText('Day 2, Kinkaku-ji, 10:00')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'https://example.com/tour' })).toHaveAttribute('href', 'https://example.com/tour');
+    expect(screen.getByRole('link', { name: 'https://example.com/tour' })).toHaveAttribute(
+      'href',
+      'https://example.com/tour'
+    );
     expect(screen.getByText('maria')).toBeInTheDocument();
     expect(screen.getByText('Bring')).toBeInTheDocument();
     expect(screen.getByText('Price')).toBeInTheDocument();
@@ -180,7 +250,9 @@ describe('BookingDetailDialog', () => {
 
   it('FE-PLANNER-BKDETAIL-011: an unchanged name saves nothing, a failed rename says so', async () => {
     const user = userEvent.setup();
-    const updateReservation = vi.fn(async () => { throw new Error('offline'); });
+    const updateReservation = vi.fn(async () => {
+      throw new Error('offline');
+    });
     useTripStore.setState({ updateReservation } as never);
     renderDetail(buildReservation({ title: 'Dinner' }));
     await user.click(screen.getByRole('button', { name: 'Dinner' }));
@@ -202,7 +274,14 @@ describe('BookingDetailDialog', () => {
 
   it('FE-PLANNER-BKDETAIL-013: a booking with only an end time shows it in the clock format of the user', () => {
     seedStore(useSettingsStore, { settings: { time_format: '12h', blur_booking_codes: false, language: 'en' } });
-    const r = buildReservation({ id: 950, type: 'train', title: 'Night train', status: 'confirmed', reservation_time: null, reservation_end_time: '2025-06-01T15:00' } as never);
+    const r = buildReservation({
+      id: 950,
+      type: 'train',
+      title: 'Night train',
+      status: 'confirmed',
+      reservation_time: null,
+      reservation_end_time: '2025-06-01T15:00',
+    } as never);
     renderDetail(r);
     expect(screen.getByText('3:00 PM')).toBeInTheDocument();
     expect(screen.queryByText('15:00')).not.toBeInTheDocument();

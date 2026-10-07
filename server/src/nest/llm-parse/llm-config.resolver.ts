@@ -1,12 +1,12 @@
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { ADDON_IDS } from '../../addons';
-import { AddonsService } from '../addons/addons.service';
-import { asLlmVision } from '@trek/shared';
-import { decryptLlmApiKey, LLM_PROVIDERS, type LlmProvider, type ResolvedLlmConfig } from './llm-config';
 import { Addons } from '../../db/entities/Addons.entity';
 import type { AddonsRepository } from '../../db/repositories/Addons.repository';
+import { AddonsService } from '../addons/addons.service';
 import { SettingsService } from '../settings/settings.service';
+import { decryptLlmApiKey, LLM_PROVIDERS, type LlmProvider, type ResolvedLlmConfig } from './llm-config';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
+import { asLlmVision } from '@trek/shared';
 
 function asProvider(v: unknown): LlmProvider | null {
   return typeof v === 'string' && (LLM_PROVIDERS as string[]).includes(v) ? (v as LlmProvider) : null;

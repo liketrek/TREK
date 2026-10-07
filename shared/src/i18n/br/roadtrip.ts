@@ -282,7 +282,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.summary.partial': 'O restante do trajeto ainda está sendo calculado',
   'roadtrip.stay.releaseTitle': 'Remover a pernoita?',
   'roadtrip.stay.releaseBody': 'A noite em “{name}” será removida. A paragem continua na viagem como pausa.',
-  'roadtrip.stay.releaseBookedBody': 'A noite em “{name}” será removida juntamente com a reserva “{booking}” e qualquer despesa associada. A paragem continua na viagem como pausa.',
+  'roadtrip.stay.releaseBookedBody':
+    'A noite em “{name}” será removida juntamente com a reserva “{booking}” e qualquer despesa associada. A paragem continua na viagem como pausa.',
   'roadtrip.stay.releaseAction': 'Tornar uma pausa',
   'roadtrip.ride.departure': 'Partida {time}',
   'roadtrip.ride.arrival': 'Chegada {time}',

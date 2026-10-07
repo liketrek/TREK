@@ -1,16 +1,16 @@
 // FE-PLANNER-RESVIEW-001 to FE-PLANNER-RESVIEW-020
-import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { buildBudgetItem, buildDay, buildReservation, buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
-import { useAuthStore } from '../../store/authStore';
-import { useTripStore } from '../../store/tripStore';
-import { useSettingsStore } from '../../store/settingsStore';
-import { usePermissionsStore } from '../../store/permissionsStore';
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip, buildReservation, buildDay, buildBudgetItem } from '../../../tests/helpers/factories';
-import { resetBodyScrollLock } from '../../utils/bodyScrollLock';
+import { useAuthStore } from '../../store/authStore';
+import { usePermissionsStore } from '../../store/permissionsStore';
+import { useSettingsStore } from '../../store/settingsStore';
+import { useTripStore } from '../../store/tripStore';
 import type { Reservation } from '../../types';
+import { resetBodyScrollLock } from '../../utils/bodyScrollLock';
 import ReservationsPanel from './ReservationsPanel';
 
 const onAdd = vi.fn();
@@ -21,21 +21,64 @@ const d1 = buildDay({ id: 1101, day_number: 1, date: '2025-06-01', title: 'Arriv
 const d2 = buildDay({ id: 1102, day_number: 2, date: '2025-06-02', title: null });
 
 const flight = buildReservation({
-  id: 1201, title: 'LH 716', type: 'flight', status: 'confirmed', reservation_time: '2025-06-01T08:00', reservation_end_time: '2025-06-01T12:00',
-  confirmation_number: 'ABC123', metadata: JSON.stringify({ airline: 'Lufthansa', flight_number: 'LH716', seat: '12A' }),
+  id: 1201,
+  title: 'LH 716',
+  type: 'flight',
+  status: 'confirmed',
+  reservation_time: '2025-06-01T08:00',
+  reservation_end_time: '2025-06-01T12:00',
+  confirmation_number: 'ABC123',
+  metadata: JSON.stringify({ airline: 'Lufthansa', flight_number: 'LH716', seat: '12A' }),
   travelers: [{ user_id: 1, username: 'ada' }],
   endpoints: [
-    { role: 'from', sequence: 0, name: 'Frankfurt', code: 'FRA', lat: 50, lng: 8, timezone: null, local_time: null, local_date: null },
-    { role: 'to', sequence: 1, name: 'Haneda', code: 'HND', lat: 35, lng: 139, timezone: null, local_time: null, local_date: null },
+    {
+      role: 'from',
+      sequence: 0,
+      name: 'Frankfurt',
+      code: 'FRA',
+      lat: 50,
+      lng: 8,
+      timezone: null,
+      local_time: null,
+      local_date: null,
+    },
+    {
+      role: 'to',
+      sequence: 1,
+      name: 'Haneda',
+      code: 'HND',
+      lat: 35,
+      lng: 139,
+      timezone: null,
+      local_time: null,
+      local_date: null,
+    },
   ],
 });
-const dinner = buildReservation({ id: 1202, title: 'Kaiseki dinner', type: 'restaurant', status: 'pending', day_id: 1102, reservation_time: '19:00', location: 'Gion' });
+const dinner = buildReservation({
+  id: 1202,
+  title: 'Kaiseki dinner',
+  type: 'restaurant',
+  status: 'pending',
+  day_id: 1102,
+  reservation_time: '19:00',
+  location: 'Gion',
+});
 const metro = buildReservation({
-  id: 1203, title: 'Metro ride', type: 'transit', status: 'confirmed', day_id: 1102,
-  metadata: JSON.stringify({ transit: { legs: [{ mode: 'SUBWAY', line: 'Ginza', from: { name: 'Ueno' }, to: { name: 'Ginza' } }] } }),
+  id: 1203,
+  title: 'Metro ride',
+  type: 'transit',
+  status: 'confirmed',
+  day_id: 1102,
+  metadata: JSON.stringify({
+    transit: { legs: [{ mode: 'SUBWAY', line: 'Ginza', from: { name: 'Ueno' }, to: { name: 'Ginza' } }] },
+  }),
 });
 
-function renderPanel(reservations: Reservation[] = [flight, dinner], props: Partial<Parameters<typeof ReservationsPanel>[0]> = {}) {
+function renderPanel(
+  reservations: Reservation[] = [flight, dinner],
+  props: Partial<Parameters<typeof ReservationsPanel>[0]> = {}
+) {
   return render(
     <ReservationsPanel
       tripId={1}
@@ -48,11 +91,12 @@ function renderPanel(reservations: Reservation[] = [flight, dinner], props: Part
       onDelete={onDelete}
       onNavigateToFiles={vi.fn()}
       {...props}
-    />,
+    />
   );
 }
 
-const viewButton = (name: 'Cards' | 'List' | 'Timeline') => within(screen.getByRole('group', { name: 'View' })).getByRole('button', { name });
+const viewButton = (name: 'Cards' | 'List' | 'Timeline') =>
+  within(screen.getByRole('group', { name: 'View' })).getByRole('button', { name });
 
 async function openViewOptions(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('button', { name: 'View options' }));
@@ -66,7 +110,10 @@ beforeEach(() => {
   resetAllStores();
   resetBodyScrollLock();
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
-  seedStore(useTripStore, { trip: buildTrip({ id: 1, start_date: '2025-06-01', end_date: '2025-06-02' }), budgetItems: [] });
+  seedStore(useTripStore, {
+    trip: buildTrip({ id: 1, start_date: '2025-06-01', end_date: '2025-06-02' }),
+    budgetItems: [],
+  });
   seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: false, language: 'en' } });
   server.use(http.get('/api/view-contributions/:view/:tripId', () => HttpResponse.json({ contributions: [] })));
 });
@@ -141,18 +188,42 @@ describe('ReservationsPanel views', () => {
   it('FE-PLANNER-RESVIEW-006: a failed status switch says so', async () => {
     const user = userEvent.setup();
     const toasts: string[] = [];
-    window.__addToast = ((message: string) => { toasts.push(message); return 1; }) as unknown as typeof window.__addToast;
-    useTripStore.setState({ toggleReservationStatus: vi.fn(async () => { throw new Error('offline'); }) } as never);
+    window.__addToast = ((message: string) => {
+      toasts.push(message);
+      return 1;
+    }) as unknown as typeof window.__addToast;
+    useTripStore.setState({
+      toggleReservationStatus: vi.fn(async () => {
+        throw new Error('offline');
+      }),
+    } as never);
     renderPanel();
-    await user.click(within(screen.getByRole('article', { name: 'Kaiseki dinner' })).getByRole('button', { name: 'Set to Confirmed' }));
+    await user.click(
+      within(screen.getByRole('article', { name: 'Kaiseki dinner' })).getByRole('button', { name: 'Set to Confirmed' })
+    );
     await waitFor(() => expect(toasts.length).toBe(1));
     delete window.__addToast;
   });
 
   it('FE-PLANNER-RESVIEW-007: a transit journey shows its legs in the list, and linked costs and files on the row', async () => {
     const user = userEvent.setup();
-    seedStore(useTripStore, { budgetItems: [buildBudgetItem({ reservation_id: 1202, total_price: 80, currency: 'JPY' } as never)] });
-    renderPanel([flight, dinner, metro], { files: [{ id: 5, trip_id: 1, filename: 'a.pdf', original_name: 'menu.pdf', mime_type: 'application/pdf', url: '/f', reservation_id: 1202, created_at: '' } as never] });
+    seedStore(useTripStore, {
+      budgetItems: [buildBudgetItem({ reservation_id: 1202, total_price: 80, currency: 'JPY' } as never)],
+    });
+    renderPanel([flight, dinner, metro], {
+      files: [
+        {
+          id: 5,
+          trip_id: 1,
+          filename: 'a.pdf',
+          original_name: 'menu.pdf',
+          mime_type: 'application/pdf',
+          url: '/f',
+          reservation_id: 1202,
+          created_at: '',
+        } as never,
+      ],
+    });
     await user.click(viewButton('List'));
     expect(screen.getByRole('button', { name: 'Metro ride' })).toHaveTextContent('Ginza');
     const dinnerRow = screen.getByRole('button', { name: 'Kaiseki dinner' });
@@ -171,16 +242,28 @@ describe('ReservationsPanel views', () => {
 
   it('FE-PLANNER-RESVIEW-009: the timeline options switch the type lanes and the other tab', async () => {
     const user = userEvent.setup();
-    const hotel = buildReservation({ id: 1204, type: 'hotel', title: 'Ryokan', accommodation_start_day_id: 1101, accommodation_end_day_id: 1102 });
+    const hotel = buildReservation({
+      id: 1204,
+      type: 'hotel',
+      title: 'Ryokan',
+      accommodation_start_day_id: 1101,
+      accommodation_end_day_id: 1102,
+    });
     renderPanel([flight, dinner], { contributionView: 'transports', contextReservations: [hotel] });
     await user.click(viewButton('Timeline'));
     const menu = await openViewOptions(user);
     await user.click(within(menu).getByRole('button', { name: 'One lane per type' }));
     expect(screen.getByText('All')).toBeInTheDocument();
     await user.click(within(screen.getByRole('menu')).getByRole('button', { name: 'Show the other tab' }));
-    expect(JSON.parse(localStorage.getItem('trek:bookings-transports-timeline') || '{}')).toMatchObject({ byType: false, context: false });
+    expect(JSON.parse(localStorage.getItem('trek:bookings-transports-timeline') || '{}')).toMatchObject({
+      byType: false,
+      context: false,
+    });
     await user.click(within(screen.getByRole('menu')).getByRole('button', { name: 'Reset view' }));
-    expect(JSON.parse(localStorage.getItem('trek:bookings-transports-timeline') || '{}')).toMatchObject({ byType: true, context: true });
+    expect(JSON.parse(localStorage.getItem('trek:bookings-transports-timeline') || '{}')).toMatchObject({
+      byType: true,
+      context: true,
+    });
   });
 
   it('FE-PLANNER-RESVIEW-010: the view options group and sort the cards', async () => {
@@ -197,7 +280,7 @@ describe('ReservationsPanel views', () => {
     expect(within(screen.getByRole('menu')).getByRole('button', { name: 'A to Z' })).toBeInTheDocument();
     await user.click(within(screen.getByRole('menu')).getByRole('button', { name: 'A to Z' }));
     expect(within(screen.getByRole('menu')).getByRole('button', { name: 'Z to A' })).toBeInTheDocument();
-    const titles = screen.getAllByRole('article').map(a => a.getAttribute('aria-label'));
+    const titles = screen.getAllByRole('article').map((a) => a.getAttribute('aria-label'));
     expect(titles).toEqual(['LH 716', 'Kaiseki dinner']);
   });
 
@@ -280,7 +363,9 @@ describe('ReservationsPanel views', () => {
     renderPanel();
     await user.click(screen.getByRole('article', { name: 'Kaiseki dinner' }));
     expect(screen.getByRole('dialog', { name: 'Kaiseki dinner' })).toBeInTheDocument();
-    await user.click(within(screen.getByRole('article', { name: 'Kaiseki dinner' })).getByRole('button', { name: 'Delete' }));
+    await user.click(
+      within(screen.getByRole('article', { name: 'Kaiseki dinner' })).getByRole('button', { name: 'Delete' })
+    );
     const deletes = screen.getAllByRole('button', { name: 'Delete' });
     await user.click(deletes[deletes.length - 1]);
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith(1202));
@@ -291,7 +376,14 @@ describe('ReservationsPanel views', () => {
     const user = userEvent.setup();
     const onImport = vi.fn();
     const onAirTrailImport = vi.fn();
-    renderPanel([], { contributionView: 'transports', addManualKey: 'transport.addManual', onImport, bookingImportAvailable: true, onAirTrailImport, airTrailAvailable: true });
+    renderPanel([], {
+      contributionView: 'transports',
+      addManualKey: 'transport.addManual',
+      onImport,
+      bookingImportAvailable: true,
+      onAirTrailImport,
+      airTrailAvailable: true,
+    });
     await user.click(screen.getByRole('button', { name: 'Import from file' }));
     expect(onImport).toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'AirTrail' }));
@@ -300,7 +392,9 @@ describe('ReservationsPanel views', () => {
   });
 
   it('FE-PLANNER-RESVIEW-019: a card shows its linked expense and a transit card its journey', () => {
-    seedStore(useTripStore, { budgetItems: [buildBudgetItem({ reservation_id: 1201, total_price: 420, currency: 'EUR' } as never)] });
+    seedStore(useTripStore, {
+      budgetItems: [buildBudgetItem({ reservation_id: 1201, total_price: 420, currency: 'EUR' } as never)],
+    });
     renderPanel([flight, metro]);
     expect(within(screen.getByRole('article', { name: 'LH 716' })).getByText(/420/)).toBeInTheDocument();
     expect(within(screen.getByRole('article', { name: 'Metro ride' })).getByText('Ueno')).toBeInTheDocument();

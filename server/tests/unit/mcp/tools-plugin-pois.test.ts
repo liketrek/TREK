@@ -4,6 +4,12 @@
  * counterparts of the GET /api/plugins feed and GET /api/plugin-pois. Both go through
  * PluginPoisService, so the gate, the window and the normalization are the REST ones.
  */
+import { db as testDb } from '../../../src/db/database';
+import { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+import { createUser } from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { pluginsEnabled } = vi.hoisted(() => ({ pluginsEnabled: vi.fn(() => true) }));
@@ -20,16 +26,16 @@ vi.mock('../../../src/config', () => ({
 }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { db as testDb } from '../../../src/db/database';
-import { createUser } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
-
 const providersOfMock = vi.spyOn(PluginHooks.prototype, 'providersOf');
 const categoryPoisMock = vi.spyOn(PluginHooks.prototype, 'categoryPois');
 
-const trailheads = { id: 'trailheads', label: 'Trailheads', labels: { de: 'Wanderparkplätze' }, icon: 'Signpost', color: '#2f855a' };
+const trailheads = {
+  id: 'trailheads',
+  label: 'Trailheads',
+  labels: { de: 'Wanderparkplätze' },
+  icon: 'Signpost',
+  color: '#2f855a',
+};
 const bbox = { south: 47, west: 11, north: 47.5, east: 11.5 };
 
 beforeEach(() => {
@@ -37,7 +43,12 @@ beforeEach(() => {
   testDb.prepare('DELETE FROM plugins').run();
   testDb
     .prepare("INSERT INTO plugins (id, name, status, capabilities, granted_permissions) VALUES (?, ?, 'active', ?, ?)")
-    .run('trail-finder', 'Trail Finder', JSON.stringify({ poiCategories: [trailheads] }), JSON.stringify(['hook:poi-category-provider']));
+    .run(
+      'trail-finder',
+      'Trail Finder',
+      JSON.stringify({ poiCategories: [trailheads] }),
+      JSON.stringify(['hook:poi-category-provider']),
+    );
   pluginsEnabled.mockReturnValue(true);
   providersOfMock.mockReset().mockReturnValue(['trail-finder']);
   categoryPoisMock.mockReset().mockResolvedValue([]);
@@ -49,7 +60,11 @@ afterAll(() => {
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false, scopes: null });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 const search = (h: McpHarness, args: Record<string, unknown>) =>
@@ -61,10 +76,17 @@ describe('Tool: list_plugin_poi_categories', () => {
     await withHarness(user.id, async (h) => {
       const res = await h.client.callTool({ name: 'list_plugin_poi_categories', arguments: { lang: 'de' } });
       expect(parseToolResult(res)).toEqual({
-        categories: [{
-          key: 'plugin:trail-finder/trailheads', pluginId: 'trail-finder', pluginName: 'Trail Finder',
-          id: 'trailheads', label: 'Wanderparkplätze', icon: 'Signpost', color: '#2f855a',
-        }],
+        categories: [
+          {
+            key: 'plugin:trail-finder/trailheads',
+            pluginId: 'trail-finder',
+            pluginName: 'Trail Finder',
+            id: 'trailheads',
+            label: 'Wanderparkplätze',
+            icon: 'Signpost',
+            color: '#2f855a',
+          },
+        ],
       });
       expect(providersOfMock).toHaveBeenCalledWith('poiCategoryProvider');
     });
@@ -84,12 +106,24 @@ describe('Tool: search_plugin_pois', () => {
   it('returns the plugin answer in the search_pois row shape, asked as the requesting user', async () => {
     const { user } = createUser(testDb);
     categoryPoisMock.mockResolvedValue([
-      { id: 'th-1', name: 'Trailhead', lat: 47.2, lng: 11.2, rating: 4.5, details: [{ label: 'Length', value: '12 km' }] },
+      {
+        id: 'th-1',
+        name: 'Trailhead',
+        lat: 47.2,
+        lng: 11.2,
+        rating: 4.5,
+        details: [{ label: 'Length', value: '12 km' }],
+      },
       { id: 'far', name: 'Elsewhere', lat: 50, lng: 11.2 },
     ]);
     await withHarness(user.id, async (h) => {
-      const payload = parseToolResult(await search(h, { pluginId: 'trail-finder', category: 'trailheads', bbox, lang: 'de' })) as {
-        pois: Array<Record<string, unknown>>; source: string; truncated: boolean; clamped: boolean;
+      const payload = parseToolResult(
+        await search(h, { pluginId: 'trail-finder', category: 'trailheads', bbox, lang: 'de' }),
+      ) as {
+        pois: Array<Record<string, unknown>>;
+        source: string;
+        truncated: boolean;
+        clamped: boolean;
       };
       expect(payload.source).toBe('plugin:trail-finder');
       expect(payload.clamped).toBe(false);
@@ -103,7 +137,11 @@ describe('Tool: search_plugin_pois', () => {
         icon: 'Signpost',
         color: '#2f855a',
       });
-      expect(categoryPoisMock).toHaveBeenCalledWith('trail-finder', { category: 'trailheads', bounds: bbox, lang: 'de', limit: 60 }, user.id);
+      expect(categoryPoisMock).toHaveBeenCalledWith(
+        'trail-finder',
+        { category: 'trailheads', bounds: bbox, lang: 'de', limit: 60 },
+        user.id,
+      );
     });
   });
 
@@ -113,7 +151,11 @@ describe('Tool: search_plugin_pois', () => {
       const unknown = await search(h, { pluginId: 'trail-finder', category: 'huts', bbox });
       expect(unknown.isError).toBe(true);
       expect(JSON.stringify(unknown.content)).toContain('list_plugin_poi_categories');
-      const inverted = await search(h, { pluginId: 'trail-finder', category: 'trailheads', bbox: { ...bbox, south: 48 } });
+      const inverted = await search(h, {
+        pluginId: 'trail-finder',
+        category: 'trailheads',
+        bbox: { ...bbox, south: 48 },
+      });
       expect(inverted.isError).toBe(true);
       expect(categoryPoisMock).not.toHaveBeenCalled();
     });
@@ -126,7 +168,11 @@ describe('Tool: search_plugin_pois', () => {
       const bboxOf = (name: string) => tools.find((t) => t.name === name)?.inputSchema.properties?.bbox;
       expect(bboxOf('search_plugin_pois')).toBeDefined();
       expect(bboxOf('search_plugin_pois')).toEqual(bboxOf('search_pois'));
-      const offGlobe = await search(h, { pluginId: 'trail-finder', category: 'trailheads', bbox: { ...bbox, north: 118 } });
+      const offGlobe = await search(h, {
+        pluginId: 'trail-finder',
+        category: 'trailheads',
+        bbox: { ...bbox, north: 118 },
+      });
       expect(offGlobe.isError).toBe(true);
       expect(categoryPoisMock).not.toHaveBeenCalled();
     });

@@ -1,5 +1,5 @@
 // FE-LOGIN-WORLD-001 to FE-LOGIN-WORLD-014
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '../../../tests/helpers/render';
 import LoginWorld from './LoginWorld';
 
@@ -247,7 +247,7 @@ describe('LoginWorld', () => {
   it('FE-LOGIN-WORLD-011: holds a still frame when the user asked for reduced motion', () => {
     vi.stubGlobal(
       'matchMedia',
-      vi.fn(() => ({ matches: true })),
+      vi.fn(() => ({ matches: true }))
     );
     render(<LoginWorld />);
 
@@ -260,7 +260,7 @@ describe('LoginWorld', () => {
     contextBudget = 1;
     vi.stubGlobal(
       'matchMedia',
-      vi.fn(() => ({ matches: true })),
+      vi.fn(() => ({ matches: true }))
     );
     render(<LoginWorld />);
 

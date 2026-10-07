@@ -33,7 +33,10 @@ export class TrekPhotoCacheMetaRepository extends TrekRepository<TrekPhotoCacheM
    * shape as `AppSettingsRepository.setValue`.
    */
   async upsertMeta(cache_key: string, content_type: string, fetched_at: number): Promise<void> {
-    await this.upsert({ cache_key, content_type, fetched_at }, { onConflictFields: ['cache_key'], onConflictAction: 'merge' });
+    await this.upsert(
+      { cache_key, content_type, fetched_at },
+      { onConflictFields: ['cache_key'], onConflictAction: 'merge' },
+    );
   }
 
   /** TC5 — `SELECT cache_key FROM trek_photo_cache_meta WHERE fetched_at < ?`, `sweepExpired`'s stale-row pass. */

@@ -1,17 +1,17 @@
 // FE-PLANNER-PSHOOK-001 to FE-PLANNER-PSHOOK-060
-import { http, HttpResponse } from 'msw';
 import userEvent from '@testing-library/user-event';
-import { render, screen, fireEvent, act, waitFor } from '../../../tests/helpers/render';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip, buildPlace, buildDay, buildAssignment } from '../../../tests/helpers/factories';
+import { http, HttpResponse } from 'msw';
+import { buildAssignment, buildDay, buildPlace, buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
-import { useAuthStore } from '../../store/authStore';
-import { useTripStore } from '../../store/tripStore';
-import { usePermissionsStore } from '../../store/permissionsStore';
+import { act, fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useAddonStore } from '../../store/addonStore';
+import { useAuthStore } from '../../store/authStore';
+import { usePermissionsStore } from '../../store/permissionsStore';
 import { useSaveToCollectionStore } from '../../store/saveToCollectionStore';
-import { ContextMenu } from '../shared/ContextMenu';
+import { useTripStore } from '../../store/tripStore';
 import type { Place } from '../../types';
+import { ContextMenu } from '../shared/ContextMenu';
 import { usePlacesSidebar, type PlacesSidebarProps, type SidebarState } from './usePlacesSidebar';
 
 let S: SidebarState;
@@ -36,7 +36,9 @@ function Host(props: PlacesSidebarProps) {
         <div
           key={p.id}
           data-testid={`row-${p.id}`}
-          ref={(el) => { state.registerPlaceRow(p.id, el); }}
+          ref={(el) => {
+            state.registerPlaceRow(p.id, el);
+          }}
           onContextMenu={(e) => state.openContextMenu(e, p)}
         >
           {p.name}
@@ -106,7 +108,9 @@ describe('usePlacesSidebar filtering', () => {
   it('FE-PLANNER-PSHOOK-002: search matches the name case-insensitively', () => {
     const places = [buildPlace({ name: 'Museum of Art' }), buildPlace({ name: 'Central Park' })];
     render(<Host {...makeProps({ places })} />);
-    act(() => { S.setSearch('MUSEUM'); });
+    act(() => {
+      S.setSearch('MUSEUM');
+    });
     expect(names()).toEqual(['Museum of Art']);
   });
 
@@ -116,14 +120,18 @@ describe('usePlacesSidebar filtering', () => {
       buildPlace({ name: 'Other', address: null }),
     ];
     render(<Host {...makeProps({ places })} />);
-    act(() => { S.setSearch('downing'); });
+    act(() => {
+      S.setSearch('downing');
+    });
     expect(names()).toEqual(['UK Office']);
   });
 
   it('FE-PLANNER-PSHOOK-004: a search that matches nothing empties the list', () => {
     const places = [buildPlace({ name: 'Alpha', address: 'Rue A' })];
     render(<Host {...makeProps({ places })} />);
-    act(() => { S.setSearch('zzz'); });
+    act(() => {
+      S.setSearch('zzz');
+    });
     expect(names()).toEqual([]);
   });
 
@@ -132,7 +140,9 @@ describe('usePlacesSidebar filtering', () => {
     const loose = buildPlace({ id: 2, name: 'Loose' });
     const assignments = { '3': [buildAssignment({ place: planned, day_id: 3 })] };
     render(<Host {...makeProps({ places: [planned, loose], assignments })} />);
-    act(() => { S.setFilter('unplanned'); });
+    act(() => {
+      S.setFilter('unplanned');
+    });
     expect(names()).toEqual(['Loose']);
     expect([...S.plannedIds]).toEqual([1]);
   });
@@ -145,9 +155,13 @@ describe('usePlacesSidebar filtering', () => {
     const accommodations = [{ place_id: 1, start_day_id: 3, end_day_id: 5 }];
     render(<Host {...makeProps({ places: [hotel, loose], accommodations })} />);
 
-    act(() => { S.setFilter('unplanned'); });
+    act(() => {
+      S.setFilter('unplanned');
+    });
     expect(names()).toEqual(['Loose']);
-    act(() => { S.setFilter('planned'); });
+    act(() => {
+      S.setFilter('planned');
+    });
     expect(names()).toEqual(['Hotel']);
   });
 
@@ -157,7 +171,9 @@ describe('usePlacesSidebar filtering', () => {
     seedStore(useTripStore, { reservations: [{ id: 9, place_id: 1, day_id: 3 }] });
     render(<Host {...makeProps({ places: [venue, loose] })} />);
 
-    act(() => { S.setFilter('unplanned'); });
+    act(() => {
+      S.setFilter('unplanned');
+    });
     expect(names()).toEqual(['Loose']);
   });
 
@@ -166,7 +182,9 @@ describe('usePlacesSidebar filtering', () => {
     seedStore(useTripStore, { reservations: [{ id: 9, place_id: 1, day_id: null }] });
     render(<Host {...makeProps({ places: [venue] })} />);
 
-    act(() => { S.setFilter('unplanned'); });
+    act(() => {
+      S.setFilter('unplanned');
+    });
     expect(names()).toEqual(['Venue']);
   });
 
@@ -175,7 +193,9 @@ describe('usePlacesSidebar filtering', () => {
     const loose = buildPlace({ id: 2, name: 'Loose' });
     const assignments = { '3': [buildAssignment({ place: planned, day_id: 3 })] };
     render(<Host {...makeProps({ places: [planned, loose], assignments })} />);
-    act(() => { S.setFilter('planned'); });
+    act(() => {
+      S.setFilter('planned');
+    });
     expect(names()).toEqual(['Planned']);
   });
 
@@ -184,19 +204,37 @@ describe('usePlacesSidebar filtering', () => {
     const spot = buildPlace({ name: 'Plain Spot' });
     render(<Host {...makeProps({ places: [track, spot] })} />);
     expect(S.hasTracks).toBe(true);
-    act(() => { S.setFilter('tracks'); });
+    act(() => {
+      S.setFilter('tracks');
+    });
     expect(names()).toEqual(['GPX Track']);
   });
 
   it('Tours addon excludes Tour-backed Places from rows, counts, and localities', () => {
-    const legacyTrack = buildPlace({ id: 41, name: 'Legacy track', route_geometry: '[[1,2],[3,4]]', rating_avg: 4, address: 'Vienna, Austria' });
+    const legacyTrack = buildPlace({
+      id: 41,
+      name: 'Legacy track',
+      route_geometry: '[[1,2],[3,4]]',
+      rating_avg: 4,
+      address: 'Vienna, Austria',
+    });
     const ordinary = buildPlace({ id: 42, name: 'Ordinary place', address: 'Linz, Austria' });
-    const tour = buildPlace({ id: 43, name: 'Tour place', tour_place_id: 43, route_geometry: '[[5,6],[7,8]]', address: 'Denver, United States' });
-    render(<Host {...makeProps({
-      places: [legacyTrack, ordinary, tour],
-      toursEnabled: true,
-      excludePlaceIds: new Set([tour.id]),
-    })} />);
+    const tour = buildPlace({
+      id: 43,
+      name: 'Tour place',
+      tour_place_id: 43,
+      route_geometry: '[[5,6],[7,8]]',
+      address: 'Denver, United States',
+    });
+    render(
+      <Host
+        {...makeProps({
+          places: [legacyTrack, ordinary, tour],
+          toursEnabled: true,
+          excludePlaceIds: new Set([tour.id]),
+        })}
+      />
+    );
 
     expect(S.hasTracks).toBe(false);
     expect(names()).toEqual(expect.arrayContaining(['Legacy track', 'Ordinary place']));
@@ -204,23 +242,36 @@ describe('usePlacesSidebar filtering', () => {
     expect(S.filterCounts).toEqual({ all: 2, unplanned: 2, planned: 0, tracks: 1 });
     expect(S.localities).toEqual([{ country: 'Austria', count: 2, regions: [] }]);
 
-    act(() => { S.setRatingFilter(4); });
+    act(() => {
+      S.setRatingFilter(4);
+    });
     expect(names()).toEqual(['Legacy track']);
     expect(S.filterCounts.all).toBe(2);
   });
 
   it('Tours addon OFF preserves legacy track Places and ignores the exclusion set', () => {
     const legacyTrack = buildPlace({ id: 51, name: 'Legacy track', route_geometry: '[[1,2],[3,4]]' });
-    const dormantTour = buildPlace({ id: 52, name: 'Dormant Tour', tour_place_id: 52, route_geometry: '[[5,6],[7,8]]' });
-    render(<Host {...makeProps({
-      places: [legacyTrack, dormantTour],
-      toursEnabled: false,
-      excludePlaceIds: new Set([dormantTour.id]),
-    })} />);
+    const dormantTour = buildPlace({
+      id: 52,
+      name: 'Dormant Tour',
+      tour_place_id: 52,
+      route_geometry: '[[5,6],[7,8]]',
+    });
+    render(
+      <Host
+        {...makeProps({
+          places: [legacyTrack, dormantTour],
+          toursEnabled: false,
+          excludePlaceIds: new Set([dormantTour.id]),
+        })}
+      />
+    );
 
     expect(S.hasTracks).toBe(true);
     expect(S.filterCounts).toEqual({ all: 2, unplanned: 2, planned: 0, tracks: 2 });
-    act(() => { S.setFilter('tracks'); });
+    act(() => {
+      S.setFilter('tracks');
+    });
     expect(names()).toEqual(expect.arrayContaining(['Legacy track', 'Dormant Tour']));
   });
 
@@ -233,7 +284,9 @@ describe('usePlacesSidebar filtering', () => {
     const other = buildPlace({ name: 'Other', category_id: 5 });
     const none = buildPlace({ name: 'None', category_id: null });
     render(<Host {...makeProps({ places: [tagged, other, none] })} />);
-    act(() => { S.setCategoryFilters(new Set(['4'])); });
+    act(() => {
+      S.setCategoryFilters(new Set(['4']));
+    });
     expect(names()).toEqual(['Tagged']);
   });
 
@@ -241,15 +294,21 @@ describe('usePlacesSidebar filtering', () => {
     const tagged = buildPlace({ name: 'Tagged', category_id: 4 });
     const none = buildPlace({ name: 'None', category_id: null });
     render(<Host {...makeProps({ places: [tagged, none] })} />);
-    act(() => { S.setCategoryFilters(new Set(['uncategorized'])); });
+    act(() => {
+      S.setCategoryFilters(new Set(['uncategorized']));
+    });
     expect(names()).toEqual(['None']);
   });
 
   it('FE-PLANNER-PSHOOK-011: toggleCategoryFilter adds and removes a category', () => {
     render(<Host {...makeProps()} />);
-    act(() => { S.toggleCategoryFilter('7'); });
+    act(() => {
+      S.toggleCategoryFilter('7');
+    });
     expect([...useTripStore.getState().placesCategoryFilter]).toEqual(['7']);
-    act(() => { S.toggleCategoryFilter('7'); });
+    act(() => {
+      S.toggleCategoryFilter('7');
+    });
     expect([...useTripStore.getState().placesCategoryFilter]).toEqual([]);
   });
 
@@ -261,30 +320,37 @@ describe('usePlacesSidebar filtering', () => {
       buildPlace({ name: 'Meh', rating_avg: 2.5 }),
     ];
     render(<Host {...makeProps({ places })} />);
-    act(() => { S.setRatingFilter(4); });
+    act(() => {
+      S.setRatingFilter(4);
+    });
     // The list keeps its own order; the filter only decides who is on it.
     expect(names()).toEqual(['Good', 'Best']);
   });
 
   it('FE-PLANNER-PSHOOK-013: an unrated place drops out as soon as a floor is set, and comes back with "all"', () => {
-    const places = [
-      buildPlace({ name: 'Unrated' }),
-      buildPlace({ name: 'Rated', rating_avg: 1 }),
-    ];
+    const places = [buildPlace({ name: 'Unrated' }), buildPlace({ name: 'Rated', rating_avg: 1 })];
     render(<Host {...makeProps({ places })} />);
-    act(() => { S.setRatingFilter(1); });
+    act(() => {
+      S.setRatingFilter(1);
+    });
     expect(names()).toEqual(['Rated']);
-    act(() => { S.setRatingFilter('all'); });
+    act(() => {
+      S.setRatingFilter('all');
+    });
     expect(names()).toEqual(['Unrated', 'Rated']);
   });
 
   it('FE-PLANNER-PSHOOK-060: the star floor lives in the trip store, so the map and the phone list follow it', () => {
     const places = [buildPlace({ name: 'Good', rating_avg: 4 }), buildPlace({ name: 'Meh', rating_avg: 2 })];
     render(<Host {...makeProps({ places })} />);
-    act(() => { S.setRatingFilter(3); });
+    act(() => {
+      S.setRatingFilter(3);
+    });
     expect(useTripStore.getState().placesRatingFilter).toBe(3);
     // And back: a floor picked elsewhere (the phone's filter sheet) narrows this list too.
-    act(() => { useTripStore.getState().setPlacesRatingFilter('all'); });
+    act(() => {
+      useTripStore.getState().setPlacesRatingFilter('all');
+    });
     expect(S.ratingFilter).toBe('all');
     expect(names()).toEqual(['Good', 'Meh']);
   });
@@ -309,17 +375,26 @@ describe('usePlacesSidebar filtering', () => {
 describe('usePlacesSidebar selection', () => {
   it('FE-PLANNER-PSHOOK-015: toggleSelected adds and removes an id', () => {
     render(<Host {...makeProps({ places: [buildPlace({ id: 9 })] })} />);
-    act(() => { S.toggleSelected(9); });
+    act(() => {
+      S.toggleSelected(9);
+    });
     expect([...S.selectedIds]).toEqual([9]);
-    act(() => { S.toggleSelected(9); });
+    act(() => {
+      S.toggleSelected(9);
+    });
     expect([...S.selectedIds]).toEqual([]);
   });
 
   it('FE-PLANNER-PSHOOK-016: exitSelectMode clears the mode and the selection', () => {
     render(<Host {...makeProps({ places: [buildPlace({ id: 9 })] })} />);
-    act(() => { S.setSelectMode(true); S.toggleSelected(9); });
+    act(() => {
+      S.setSelectMode(true);
+      S.toggleSelected(9);
+    });
     expect(S.selectMode).toBe(true);
-    act(() => { S.exitSelectMode(); });
+    act(() => {
+      S.exitSelectMode();
+    });
     expect(S.selectMode).toBe(false);
     expect(S.selectedIds.size).toBe(0);
   });
@@ -328,7 +403,10 @@ describe('usePlacesSidebar selection', () => {
     const a = buildPlace({ id: 1, name: 'A' });
     const b = buildPlace({ id: 2, name: 'B' });
     const { rerender } = render(<Host {...makeProps({ places: [a, b] })} />);
-    act(() => { S.setSelectMode(true); S.toggleSelected(1); });
+    act(() => {
+      S.setSelectMode(true);
+      S.toggleSelected(1);
+    });
 
     rerender(<Host {...makeProps({ places: [b] })} />);
 
@@ -340,7 +418,11 @@ describe('usePlacesSidebar selection', () => {
     const a = buildPlace({ id: 1, name: 'A' });
     const b = buildPlace({ id: 2, name: 'B' });
     const { rerender } = render(<Host {...makeProps({ places: [a, b] })} />);
-    act(() => { S.setSelectMode(true); S.toggleSelected(1); S.toggleSelected(2); });
+    act(() => {
+      S.setSelectMode(true);
+      S.toggleSelected(1);
+      S.toggleSelected(2);
+    });
 
     rerender(<Host {...makeProps({ places: [a] })} />);
 
@@ -438,7 +520,9 @@ describe('usePlacesSidebar scrolling', () => {
     const scrollIntoView = Element.prototype.scrollIntoView as unknown as ReturnType<typeof vi.fn>;
     const places = [buildPlace({ id: 1, name: 'Visible' }), buildPlace({ id: 2, name: 'Hidden' })];
     const { rerender } = render(<Host {...makeProps({ places, selectedPlaceId: null })} />);
-    act(() => { S.setSearch('Visible'); });
+    act(() => {
+      S.setSearch('Visible');
+    });
     scrollIntoView.mockClear();
 
     // The row is unmounted by the search, so registerPlaceRow has dropped its ref.
@@ -518,13 +602,19 @@ describe('usePlacesSidebar list import', () => {
 
   it('FE-PLANNER-PSHOOK-034: an empty URL does not start an import', async () => {
     let calls = 0;
-    server.use(http.post('/api/trips/1/places/import/google-list', () => {
-      calls++;
-      return HttpResponse.json({ count: 0, skipped: 0, places: [] });
-    }));
+    server.use(
+      http.post('/api/trips/1/places/import/google-list', () => {
+        calls++;
+        return HttpResponse.json({ count: 0, skipped: 0, places: [] });
+      })
+    );
     render(<Host {...makeProps()} />);
-    act(() => { S.setListImportUrl('   '); });
-    await act(async () => { await S.handleListImport(); });
+    act(() => {
+      S.setListImportUrl('   ');
+    });
+    await act(async () => {
+      await S.handleListImport();
+    });
 
     expect(calls).toBe(0);
     expect(S.listImportLoading).toBe(false);
@@ -535,17 +625,24 @@ describe('usePlacesSidebar list import', () => {
     seedStore(useTripStore, { loadTrip });
     let sentUrl: string | undefined;
     let sentEnrich: boolean | undefined;
-    server.use(http.post('/api/trips/1/places/import/google-list', async ({ request }) => {
-      const body = await request.json() as { url: string; enrich?: boolean };
-      sentUrl = body.url;
-      sentEnrich = body.enrich;
-      return HttpResponse.json({ count: 2, skipped: 0, listName: 'Tokyo', places: [{ id: 20 }, { id: 21 }] });
-    }));
+    server.use(
+      http.post('/api/trips/1/places/import/google-list', async ({ request }) => {
+        const body = (await request.json()) as { url: string; enrich?: boolean };
+        sentUrl = body.url;
+        sentEnrich = body.enrich;
+        return HttpResponse.json({ count: 2, skipped: 0, listName: 'Tokyo', places: [{ id: 20 }, { id: 21 }] });
+      })
+    );
 
     const pushUndo = vi.fn((_label: string, _fn: () => Promise<void> | void) => {});
     render(<Host {...makeProps({ pushUndo })} />);
-    act(() => { S.setListImportOpen(true); S.setListImportUrl(' https://maps.app.goo.gl/abc '); });
-    await act(async () => { await S.handleListImport(); });
+    act(() => {
+      S.setListImportOpen(true);
+      S.setListImportUrl(' https://maps.app.goo.gl/abc ');
+    });
+    await act(async () => {
+      await S.handleListImport();
+    });
 
     expect(sentUrl).toBe('https://maps.app.goo.gl/abc');
     expect(sentEnrich).toBe(false);
@@ -559,21 +656,34 @@ describe('usePlacesSidebar list import', () => {
   it('FE-PLANNER-PSHOOK-036: the undo entry bulk-deletes the imported places', async () => {
     const loadTrip = vi.fn().mockResolvedValue(undefined);
     seedStore(useTripStore, { loadTrip });
-    server.use(http.post('/api/trips/1/places/import/google-list', () =>
-      HttpResponse.json({ count: 2, skipped: 0, listName: 'Tokyo', places: [{ id: 20 }, { id: 21 }] })));
+    server.use(
+      http.post('/api/trips/1/places/import/google-list', () =>
+        HttpResponse.json({ count: 2, skipped: 0, listName: 'Tokyo', places: [{ id: 20 }, { id: 21 }] })
+      )
+    );
     let deletedIds: number[] = [];
-    server.use(http.post('/api/trips/1/places/bulk-delete', async ({ request }) => {
-      deletedIds = ((await request.json()) as { ids: number[] }).ids;
-      return HttpResponse.json({ deleted: deletedIds.length });
-    }));
+    server.use(
+      http.post('/api/trips/1/places/bulk-delete', async ({ request }) => {
+        deletedIds = ((await request.json()) as { ids: number[] }).ids;
+        return HttpResponse.json({ deleted: deletedIds.length });
+      })
+    );
 
     let undoFn: (() => Promise<void> | void) | undefined;
-    const pushUndo = vi.fn((_label: string, fn: () => Promise<void> | void) => { undoFn = fn; });
+    const pushUndo = vi.fn((_label: string, fn: () => Promise<void> | void) => {
+      undoFn = fn;
+    });
     render(<Host {...makeProps({ pushUndo })} />);
-    act(() => { S.setListImportUrl('https://maps.app.goo.gl/abc'); });
-    await act(async () => { await S.handleListImport(); });
+    act(() => {
+      S.setListImportUrl('https://maps.app.goo.gl/abc');
+    });
+    await act(async () => {
+      await S.handleListImport();
+    });
 
-    await act(async () => { await undoFn?.(); });
+    await act(async () => {
+      await undoFn?.();
+    });
 
     expect(deletedIds).toEqual([20, 21]);
     expect(loadTrip).toHaveBeenCalledTimes(2);
@@ -581,12 +691,19 @@ describe('usePlacesSidebar list import', () => {
 
   it('FE-PLANNER-PSHOOK-037: an import that skips everything warns instead of celebrating', async () => {
     seedStore(useTripStore, { loadTrip: vi.fn().mockResolvedValue(undefined) });
-    server.use(http.post('/api/trips/1/places/import/google-list', () =>
-      HttpResponse.json({ count: 0, skipped: 4, listName: 'Tokyo', places: [] })));
+    server.use(
+      http.post('/api/trips/1/places/import/google-list', () =>
+        HttpResponse.json({ count: 0, skipped: 4, listName: 'Tokyo', places: [] })
+      )
+    );
 
     render(<Host {...makeProps()} />);
-    act(() => { S.setListImportUrl('https://maps.app.goo.gl/abc'); });
-    await act(async () => { await S.handleListImport(); });
+    act(() => {
+      S.setListImportUrl('https://maps.app.goo.gl/abc');
+    });
+    await act(async () => {
+      await S.handleListImport();
+    });
 
     expect(addToast).toHaveBeenCalledWith('All places were already in the trip.', 'warning', undefined);
   });
@@ -595,10 +712,12 @@ describe('usePlacesSidebar list import', () => {
     seedStore(useAuthStore, { hasMapsKey: true });
     seedStore(useTripStore, { loadTrip: vi.fn().mockResolvedValue(undefined) });
     let sentEnrich: boolean | undefined;
-    server.use(http.post('/api/trips/1/places/import/naver-list', async ({ request }) => {
-      sentEnrich = ((await request.json()) as { enrich?: boolean }).enrich;
-      return HttpResponse.json({ count: 1, skipped: 0, listName: 'Seoul', places: [{ id: 30 }] });
-    }));
+    server.use(
+      http.post('/api/trips/1/places/import/naver-list', async ({ request }) => {
+        sentEnrich = ((await request.json()) as { enrich?: boolean }).enrich;
+        return HttpResponse.json({ count: 1, skipped: 0, listName: 'Seoul', places: [{ id: 30 }] });
+      })
+    );
 
     const pushUndo = vi.fn((_label: string, _fn: () => Promise<void> | void) => {});
     render(<Host {...makeProps({ pushUndo })} />);
@@ -608,7 +727,9 @@ describe('usePlacesSidebar list import', () => {
       S.setListImportEnrich(true);
       S.setListImportUrl('https://naver.me/xyz');
     });
-    await act(async () => { await S.handleListImport(); });
+    await act(async () => {
+      await S.handleListImport();
+    });
 
     expect(sentEnrich).toBe(true);
     expect(addToast).toHaveBeenCalledWith('1 places imported from "Seoul"', 'success', undefined);
@@ -618,26 +739,41 @@ describe('usePlacesSidebar list import', () => {
   it('FE-PLANNER-PSHOOK-039: enrichment stays off while the instance has no maps key', async () => {
     seedStore(useTripStore, { loadTrip: vi.fn().mockResolvedValue(undefined) });
     let sentEnrich: boolean | undefined;
-    server.use(http.post('/api/trips/1/places/import/google-list', async ({ request }) => {
-      sentEnrich = ((await request.json()) as { enrich?: boolean }).enrich;
-      return HttpResponse.json({ count: 1, skipped: 0, listName: 'Tokyo', places: [] });
-    }));
+    server.use(
+      http.post('/api/trips/1/places/import/google-list', async ({ request }) => {
+        sentEnrich = ((await request.json()) as { enrich?: boolean }).enrich;
+        return HttpResponse.json({ count: 1, skipped: 0, listName: 'Tokyo', places: [] });
+      })
+    );
 
     render(<Host {...makeProps()} />);
     expect(S.canEnrichImport).toBe(false);
-    act(() => { S.setListImportEnrich(true); S.setListImportUrl('https://maps.app.goo.gl/abc'); });
-    await act(async () => { await S.handleListImport(); });
+    act(() => {
+      S.setListImportEnrich(true);
+      S.setListImportUrl('https://maps.app.goo.gl/abc');
+    });
+    await act(async () => {
+      await S.handleListImport();
+    });
 
     expect(sentEnrich).toBe(false);
   });
 
   it('FE-PLANNER-PSHOOK-040: a failing import surfaces the server message', async () => {
-    server.use(http.post('/api/trips/1/places/import/google-list', () =>
-      HttpResponse.json({ error: 'List is private' }, { status: 400 })));
+    server.use(
+      http.post('/api/trips/1/places/import/google-list', () =>
+        HttpResponse.json({ error: 'List is private' }, { status: 400 })
+      )
+    );
 
     render(<Host {...makeProps()} />);
-    act(() => { S.setListImportOpen(true); S.setListImportUrl('https://maps.app.goo.gl/abc'); });
-    await act(async () => { await S.handleListImport(); });
+    act(() => {
+      S.setListImportOpen(true);
+      S.setListImportUrl('https://maps.app.goo.gl/abc');
+    });
+    await act(async () => {
+      await S.handleListImport();
+    });
 
     expect(addToast).toHaveBeenCalledWith('List is private', 'error', undefined);
     // The dialog stays open so the URL can be corrected.
@@ -649,8 +785,13 @@ describe('usePlacesSidebar list import', () => {
     server.use(http.post('/api/trips/1/places/import/naver-list', () => new HttpResponse(null, { status: 500 })));
 
     render(<Host {...makeProps()} />);
-    act(() => { S.setListImportProvider('naver'); S.setListImportUrl('https://naver.me/xyz'); });
-    await act(async () => { await S.handleListImport(); });
+    act(() => {
+      S.setListImportProvider('naver');
+      S.setListImportUrl('https://naver.me/xyz');
+    });
+    await act(async () => {
+      await S.handleListImport();
+    });
 
     expect(addToast).toHaveBeenCalledWith('Failed to import Naver Maps list', 'error', undefined);
   });
@@ -730,7 +871,14 @@ describe('usePlacesSidebar context menu', () => {
     const user = userEvent.setup();
     const open = vi.fn(() => null);
     vi.stubGlobal('open', open);
-    const place = buildPlace({ id: 3, name: 'Cafe', website: 'https://cafe.example', lat: 48.8584, lng: 2.2945, google_place_id: null });
+    const place = buildPlace({
+      id: 3,
+      name: 'Cafe',
+      website: 'https://cafe.example',
+      lat: 48.8584,
+      lng: 2.2945,
+      google_place_id: null,
+    });
     render(<Host {...makeProps({ places: [place] })} />);
 
     fireEvent.contextMenu(screen.getByTestId('row-3'));
@@ -770,11 +918,17 @@ describe('usePlacesSidebar filter panel', () => {
     render(<Host {...makeProps({ places: [planned, loose, other], assignments })} />);
     expect(S.filterCounts).toEqual({ all: 3, unplanned: 2, planned: 1, tracks: 1 });
 
-    act(() => { S.setSearch('alpha'); });
-    act(() => { S.setRatingFilter(5); });
+    act(() => {
+      S.setSearch('alpha');
+    });
+    act(() => {
+      S.setRatingFilter(5);
+    });
     expect(S.filterCounts).toEqual({ all: 2, unplanned: 1, planned: 1, tracks: 1 });
 
-    act(() => { S.setCategoryFilters(new Set(['uncategorized'])); });
+    act(() => {
+      S.setCategoryFilters(new Set(['uncategorized']));
+    });
     expect(S.filterCounts).toEqual({ all: 0, unplanned: 0, planned: 0, tracks: 0 });
   });
 
@@ -785,19 +939,31 @@ describe('usePlacesSidebar filter panel', () => {
       '1': [buildAssignment({ place: today, day_id: 1 })],
       '2': [buildAssignment({ place: later, day_id: 2 })],
     };
-    render(<Host {...makeProps({ places: [today, later], assignments, days: [buildDay({ id: 1 }), buildDay({ id: 2 })], selectedDayId: 1 })} />);
+    render(
+      <Host
+        {...makeProps({
+          places: [today, later],
+          assignments,
+          days: [buildDay({ id: 1 }), buildDay({ id: 2 })],
+          selectedDayId: 1,
+        })}
+      />
+    );
     expect(S.filterCounts.planned).toBe(1);
     expect(S.filterCounts.unplanned).toBe(0);
   });
 
   it('FE-PLANNER-PSHOOK-056: pickFilter changes the choice and starts a fresh selection', () => {
     render(<Host {...makeProps({ places: [buildPlace({ id: 1 }), buildPlace({ id: 2 })] })} />);
-    act(() => { S.setSelectedIds(new Set([1, 2])); });
-    act(() => { S.pickFilter('planned'); });
+    act(() => {
+      S.setSelectedIds(new Set([1, 2]));
+    });
+    act(() => {
+      S.pickFilter('planned');
+    });
     expect(useTripStore.getState().placesFilter).toBe('planned');
     expect(S.selectedIds.size).toBe(0);
   });
-
 });
 
 describe('usePlacesSidebar row menu entries', () => {
@@ -808,19 +974,29 @@ describe('usePlacesSidebar row menu entries', () => {
     render(<Host {...makeProps({ places: [place], onAssignToDay })} />);
 
     const withDay = S.placeMenuItems(place, 4);
-    expect(withDay.map(e => e.divider ? '---' : e.label)).toEqual(['Edit', '+ Day', 'Open Website', 'Google Maps', 'Save to Collection', '---', 'Delete']);
+    expect(withDay.map((e) => (e.divider ? '---' : e.label))).toEqual([
+      'Edit',
+      '+ Day',
+      'Open Website',
+      'Google Maps',
+      'Save to Collection',
+      '---',
+      'Delete',
+    ]);
     withDay[1].onClick?.();
     expect(onAssignToDay).toHaveBeenCalledWith(3, 4);
 
     // No day, no "+ Day".
-    expect(S.placeMenuItems(place, null).some(e => e.label === '+ Day')).toBe(false);
+    expect(S.placeMenuItems(place, null).some((e) => e.label === '+ Day')).toBe(false);
   });
 
   it('FE-PLANNER-PSHOOK-059: a read-only member gets no edit or delete entries from placeMenuItems', () => {
     seedStore(usePermissionsStore, { permissions: { place_edit: 'admin' } });
     const place = buildPlace({ id: 3, name: 'Cafe', website: null, lat: null, lng: null, google_place_id: null });
     render(<Host {...makeProps({ places: [place] })} />);
-    const labels = S.placeMenuItems(place, null).filter(e => !e.divider).map(e => e.label);
+    const labels = S.placeMenuItems(place, null)
+      .filter((e) => !e.divider)
+      .map((e) => e.label);
     expect(labels).not.toContain('Edit');
     expect(labels).not.toContain('Delete');
   });

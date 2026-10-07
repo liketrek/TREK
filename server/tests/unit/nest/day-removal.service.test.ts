@@ -6,6 +6,62 @@
  * accommodations and assignments services over the ORM test harness, so the
  * foreign key cascades and the stay cancellation are the ones production runs.
  */
+import { db as testDb } from '../../../src/db/database';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
+import { AccommodationsService, type MirrorSender } from '../../../src/nest/accommodations/accommodations.service';
+import { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
+import {
+  DayRemovalService,
+  DayDeleteError,
+  LAST_DAY_MESSAGE,
+  type DayRemoval,
+} from '../../../src/nest/days/day-removal.service';
+import { DaysService } from '../../../src/nest/days/days.service';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
+import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  createDayAssignment,
+  createDayAccommodation,
+} from '../../helpers/factories';
+import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
+import {
+  createTestJourneysRepo,
+  createTestJourneyContributorsRepo,
+  createTestJourneyTripsRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyPhotosRepo,
+  createTestJourneyEntryPhotosRepo,
+} from '../../helpers/journey-repos';
+import { resetTestDb } from '../../helpers/test-db';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestTagsRepo,
+  createTestPlaceRatingsRepo,
+  createTestAssignmentParticipantsRepo,
+  createTestDayAssignmentsRepo,
+  createTestDaysRepo,
+  createTestPlacesRepo,
+  createTestTripMembersRepo,
+  createTestRoadtripViasRepo,
+  createTestDayAccommodationsRepo,
+  createTestReservationsRepo,
+  createTestReservationEndpointsRepo,
+  createTestDayNotesRepo,
+  createTestRoadtripDayBoundariesRepo,
+  sharedTestOrm,
+  createTestTripsRepo,
+} from '../../helpers/test-uow';
+import { createTestToursRepo } from '../../helpers/tours-repos';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
@@ -17,7 +73,11 @@ vi.mock('../../../src/db/database', async () => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: number | string, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
+      db
+        .prepare(
+          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: number | string, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
@@ -29,34 +89,6 @@ vi.mock('../../../src/config', () => ({
 }));
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createDayAssignment, createDayAccommodation } from '../../helpers/factories';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
-import { DaysService } from '../../../src/nest/days/days.service';
-import { DayRemovalService, DayDeleteError, LAST_DAY_MESSAGE, type DayRemoval } from '../../../src/nest/days/day-removal.service';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { AssignmentsService } from '../../../src/nest/assignments/assignments.service';
-import { AccommodationsService, type MirrorSender } from '../../../src/nest/accommodations/accommodations.service';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import {
-  createTestUnitOfWork, createTestAppSettingsRepo, createTestTagsRepo, createTestPlaceRatingsRepo,
-  createTestAssignmentParticipantsRepo, createTestDayAssignmentsRepo, createTestDaysRepo, createTestPlacesRepo,
-  createTestTripMembersRepo, createTestRoadtripViasRepo, createTestDayAccommodationsRepo, createTestReservationsRepo,
-  createTestReservationEndpointsRepo, createTestDayNotesRepo, createTestRoadtripDayBoundariesRepo,
-  sharedTestOrm, createTestTripsRepo,
-} from '../../helpers/test-uow';
-import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
-import {
-  createTestJourneysRepo, createTestJourneyContributorsRepo, createTestJourneyTripsRepo, createTestJourneyEntriesRepo,
-  createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
-} from '../../helpers/journey-repos';
-import { createTestToursRepo } from '../../helpers/tours-repos';
-
 let days: DaysService;
 let journey: JourneyDomainService;
 let assignments: AssignmentsService;
@@ -66,31 +98,63 @@ let removal: DayRemovalService;
 /** A DayRemovalService over the test connection, with the accommodations service given. */
 async function removalWith(acc: AccommodationsService): Promise<DayRemovalService> {
   return new DayRemovalService(
-    days, acc, assignments, await createTestUnitOfWork(testDb),
-    await createTestDaysRepo(testDb), await createTestDayAccommodationsRepo(testDb),
-    await createTestRoadtripDayBoundariesRepo(testDb), await createTestTripsRepo(testDb),
+    days,
+    acc,
+    assignments,
+    await createTestUnitOfWork(testDb),
+    await createTestDaysRepo(testDb),
+    await createTestDayAccommodationsRepo(testDb),
+    await createTestRoadtripDayBoundariesRepo(testDb),
+    await createTestTripsRepo(testDb),
   );
 }
 
 beforeAll(async () => {
-  const permissions = new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb));
+  const permissions = new PermissionsService(
+    await createTestAppSettingsRepo(testDb),
+    await createTestUnitOfWork(testDb),
+  );
   const realtime = new RealtimeService();
-  const queryHelpers = new QueryHelpersService(await createTestTagsRepo(testDb), await createTestPlaceRatingsRepo(testDb), await createTestAssignmentParticipantsRepo(testDb));
+  const queryHelpers = new QueryHelpersService(
+    await createTestTagsRepo(testDb),
+    await createTestPlaceRatingsRepo(testDb),
+    await createTestAssignmentParticipantsRepo(testDb),
+  );
   const t = await sharedTestOrm(testDb);
   days = new DaysService(
-    permissions, realtime, queryHelpers, await createTestUnitOfWork(testDb),
-    await createTestDaysRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestDayNotesRepo(testDb),
-    await createTestTripsRepo(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb),
-    await createTestDayAccommodationsRepo(testDb), await createTestRoadtripViasRepo(testDb), await createTestRoadtripDayBoundariesRepo(testDb),
+    permissions,
+    realtime,
+    queryHelpers,
+    await createTestUnitOfWork(testDb),
+    await createTestDaysRepo(testDb),
+    await createTestDayAssignmentsRepo(testDb),
+    await createTestDayNotesRepo(testDb),
+    await createTestTripsRepo(testDb),
+    await createTestReservationsRepo(testDb),
+    await createTestReservationEndpointsRepo(testDb),
+    await createTestDayAccommodationsRepo(testDb),
+    await createTestRoadtripViasRepo(testDb),
+    await createTestRoadtripDayBoundariesRepo(testDb),
   );
   journey = new JourneyDomainService(
-    realtime, new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), await createTestJourneyPhotosRepo(testDb)), await createTestUnitOfWork(testDb),
-    await createTestJourneysRepo(testDb), await createTestJourneyContributorsRepo(testDb),
-    await createTestJourneyTripsRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestTripsRepo(testDb),
-    await createTestJourneyPhotosRepo(testDb), await createTestJourneyEntryPhotosRepo(testDb), await createTestPlacesRepo(testDb),
+    realtime,
+    new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), await createTestJourneyPhotosRepo(testDb)),
+    await createTestUnitOfWork(testDb),
+    await createTestJourneysRepo(testDb),
+    await createTestJourneyContributorsRepo(testDb),
+    await createTestJourneyTripsRepo(testDb),
+    await createTestJourneyEntriesRepo(testDb),
+    await createTestTripsRepo(testDb),
+    await createTestJourneyPhotosRepo(testDb),
+    await createTestJourneyEntryPhotosRepo(testDb),
+    await createTestPlacesRepo(testDb),
   );
   assignments = new AssignmentsService(
-    await createTestTripsRepo(testDb), permissions, realtime, queryHelpers, journey,
+    await createTestTripsRepo(testDb),
+    permissions,
+    realtime,
+    queryHelpers,
+    journey,
     await createTestUnitOfWork(testDb),
     await createTestDayAssignmentsRepo(testDb),
     await createTestAssignmentParticipantsRepo(testDb),
@@ -101,7 +165,10 @@ beforeAll(async () => {
     await createTestToursRepo(testDb),
   );
   accommodations = new AccommodationsService(
-    permissions, realtime, assignments, await createTestUnitOfWork(testDb),
+    permissions,
+    realtime,
+    assignments,
+    await createTestUnitOfWork(testDb),
     await createTestTripsRepo(testDb),
     await createTestDayAccommodationsRepo(testDb),
     await createTestDayAssignmentsRepo(testDb),
@@ -132,16 +199,36 @@ const dayRows = (tripId: number): Row[] =>
   testDb.prepare('SELECT id, day_number, date FROM days WHERE trip_id = ? ORDER BY day_number').all(tripId) as Row[];
 
 const range = (tripId: number) =>
-  testDb.prepare('SELECT start_date, end_date FROM trips WHERE id = ?').get(tripId) as { start_date: string | null; end_date: string | null };
+  testDb.prepare('SELECT start_date, end_date FROM trips WHERE id = ?').get(tripId) as {
+    start_date: string | null;
+    end_date: string | null;
+  };
 
 const reservationRow = (id: number) =>
-  testDb.prepare('SELECT day_id, end_day_id, reservation_time, reservation_end_time FROM reservations WHERE id = ?').get(id) as
-    { day_id: number | null; end_day_id: number | null; reservation_time: string | null; reservation_end_time: string | null } | undefined;
+  testDb
+    .prepare('SELECT day_id, end_day_id, reservation_time, reservation_end_time FROM reservations WHERE id = ?')
+    .get(id) as
+    | {
+        day_id: number | null;
+        end_day_id: number | null;
+        reservation_time: string | null;
+        reservation_end_time: string | null;
+      }
+    | undefined;
 
-function booking(tripId: number, dayId: number | null, time: string | null, extra: { endDayId?: number; endTime?: string } = {}): number {
-  return Number(testDb.prepare(
-    'INSERT INTO reservations (trip_id, day_id, end_day_id, title, type, reservation_time, reservation_end_time) VALUES (?, ?, ?, ?, ?, ?, ?)',
-  ).run(tripId, dayId, extra.endDayId ?? null, 'Booking', 'restaurant', time, extra.endTime ?? null).lastInsertRowid);
+function booking(
+  tripId: number,
+  dayId: number | null,
+  time: string | null,
+  extra: { endDayId?: number; endTime?: string } = {},
+): number {
+  return Number(
+    testDb
+      .prepare(
+        'INSERT INTO reservations (trip_id, day_id, end_day_id, title, type, reservation_time, reservation_end_time) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      )
+      .run(tripId, dayId, extra.endDayId ?? null, 'Booking', 'restaurant', time, extra.endTime ?? null).lastInsertRowid,
+  );
 }
 
 /** A dated trip whose days the factory generated, one per date. */
@@ -154,20 +241,33 @@ function datedTrip(start: string, end: string) {
 /** A booked night: the stay, its hotel booking, the stop on its check-in day and an expense. */
 async function bookedNight(tripId: number, startDayId: number, endDayId: number) {
   const place = createPlace(testDb, tripId, { name: 'Harbour Hotel' });
-  const { accommodation } = await accommodations.createAccommodation(tripId, { place_id: place.id, start_day_id: startDayId, end_day_id: endDayId });
+  const { accommodation } = await accommodations.createAccommodation(tripId, {
+    place_id: place.id,
+    start_day_id: startDayId,
+    end_day_id: endDayId,
+  });
   const stayId = (accommodation as { id: number }).id;
-  const reservationId = (testDb.prepare('SELECT id FROM reservations WHERE accommodation_id = ?').get(stayId) as { id: number }).id;
-  const budgetId = Number(testDb.prepare(
-    'INSERT INTO budget_items (trip_id, name, category, total_price, reservation_id) VALUES (?, ?, ?, ?, ?)',
-  ).run(tripId, 'Harbour Hotel', 'Accommodation', 240, reservationId).lastInsertRowid);
-  const stop = testDb.prepare('SELECT id, day_id FROM day_assignments WHERE accommodation_id = ?').get(stayId) as { id: number; day_id: number };
+  const reservationId = (
+    testDb.prepare('SELECT id FROM reservations WHERE accommodation_id = ?').get(stayId) as { id: number }
+  ).id;
+  const budgetId = Number(
+    testDb
+      .prepare('INSERT INTO budget_items (trip_id, name, category, total_price, reservation_id) VALUES (?, ?, ?, ?, ?)')
+      .run(tripId, 'Harbour Hotel', 'Accommodation', 240, reservationId).lastInsertRowid,
+  );
+  const stop = testDb.prepare('SELECT id, day_id FROM day_assignments WHERE accommodation_id = ?').get(stayId) as {
+    id: number;
+    day_id: number;
+  };
   return { place, stayId, reservationId, budgetId, stop };
 }
 
 function boundary(tripId: number, dayNumber: number, fromAssignmentId: number) {
-  testDb.prepare(
-    'INSERT INTO roadtrip_day_boundaries (trip_id, day_number, from_assignment_id, to_assignment_id, fraction) VALUES (?, ?, ?, NULL, 1)',
-  ).run(tripId, dayNumber, fromAssignmentId);
+  testDb
+    .prepare(
+      'INSERT INTO roadtrip_day_boundaries (trip_id, day_number, from_assignment_id, to_assignment_id, fraction) VALUES (?, ?, ?, NULL, 1)',
+    )
+    .run(tripId, dayNumber, fromAssignmentId);
 }
 
 describe('DayRemovalService.remove', () => {
@@ -182,7 +282,13 @@ describe('DayRemovalService.remove', () => {
       { id: a.id, day_number: 1, date: null },
       { id: c.id, day_number: 2, date: null },
     ]);
-    expect(result).toMatchObject({ dayId: b.id, orderedIds: [a.id, c.id], endDate: null, boundaries: null, stayIds: [] });
+    expect(result).toMatchObject({
+      dayId: b.id,
+      orderedIds: [a.id, c.id],
+      endDate: null,
+      boundaries: null,
+      stayIds: [],
+    });
 
     // The extra day of a dated trip, the case the dialog was asked for: no date moves.
     const dated = datedTrip('2026-03-01', '2026-03-02');
@@ -199,9 +305,13 @@ describe('DayRemovalService.remove', () => {
     const [d1, d2, d3] = rows;
     const spare = createDay(testDb, trip.id);
     const flight = booking(trip.id, d3.id, '2026-01-03T10:00', { endDayId: d3.id, endTime: '2026-01-03T12:00' });
-    const leg = Number(testDb.prepare(
-      'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng, local_date) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    ).run(flight, 'from', 0, 'HEL', 60.31, 24.96, '2026-01-03').lastInsertRowid);
+    const leg = Number(
+      testDb
+        .prepare(
+          'INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, lat, lng, local_date) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        )
+        .run(flight, 'from', 0, 'HEL', 60.31, 24.96, '2026-01-03').lastInsertRowid,
+    );
 
     const result = await removal.remove(trip.id, d2.id, { userId: user.id });
 
@@ -210,8 +320,13 @@ describe('DayRemovalService.remove', () => {
       { id: d3.id, day_number: 2, date: '2026-01-02' },
       { id: spare.id, day_number: 3, date: '2026-01-03' },
     ]);
-    expect(reservationRow(flight)).toMatchObject({ reservation_time: '2026-01-02T10:00', reservation_end_time: '2026-01-02T12:00' });
-    expect(testDb.prepare('SELECT local_date FROM reservation_endpoints WHERE id = ?').get(leg)).toEqual({ local_date: '2026-01-02' });
+    expect(reservationRow(flight)).toMatchObject({
+      reservation_time: '2026-01-02T10:00',
+      reservation_end_time: '2026-01-02T12:00',
+    });
+    expect(testDb.prepare('SELECT local_date FROM reservation_endpoints WHERE id = ?').get(leg)).toEqual({
+      local_date: '2026-01-02',
+    });
     // The spare day took the last date, so the trip keeps its range.
     expect(range(trip.id)).toEqual({ start_date: '2026-01-01', end_date: '2026-01-03' });
     expect(result.endDate).toBeNull();
@@ -230,20 +345,28 @@ describe('DayRemovalService.remove', () => {
     expect(range(trip.id)).toEqual({ start_date: '2026-01-01', end_date: '2026-01-02' });
     expect(result.endDate).toBe('2026-01-02');
     // The trip in list shape for the trip header, without its feed credential.
-    expect(result.trip).toMatchObject({ id: trip.id, end_date: '2026-01-02', day_count: 2, is_owner: 1, feed_token: null });
+    expect(result.trip).toMatchObject({
+      id: trip.id,
+      end_date: '2026-01-02',
+      day_count: 2,
+      is_owner: 1,
+      feed_token: null,
+    });
   });
 
   it('DAY-DEL-004 the last day of a trip stays, and nothing is written', async () => {
     const { user, trip, rows } = datedTrip('2026-05-01', '2026-05-01');
     const night = await bookedNight(trip.id, rows[0].id, rows[0].id);
 
-    await expect(removal.remove(trip.id, rows[0].id, { userId: user.id })).rejects.toThrow(new DayDeleteError(LAST_DAY_MESSAGE));
+    await expect(removal.remove(trip.id, rows[0].id, { userId: user.id })).rejects.toThrow(
+      new DayDeleteError(LAST_DAY_MESSAGE),
+    );
     expect(dayRows(trip.id)).toEqual(rows);
     expect(testDb.prepare('SELECT id FROM day_accommodations WHERE id = ?').get(night.stayId)).toBeDefined();
     expect(reservationRow(night.reservationId)).toBeDefined();
   });
 
-  it('DAY-DEL-005 a stay checking in on the day is cancelled with its booking and that booking\'s expense', async () => {
+  it("DAY-DEL-005 a stay checking in on the day is cancelled with its booking and that booking's expense", async () => {
     const { user, trip, rows } = datedTrip('2026-01-01', '2026-01-03');
     const night = await bookedNight(trip.id, rows[1].id, rows[2].id);
     expect(night.stop.day_id).toBe(rows[1].id);
@@ -255,7 +378,11 @@ describe('DayRemovalService.remove', () => {
     expect(testDb.prepare('SELECT id FROM budget_items WHERE id = ?').get(night.budgetId)).toBeUndefined();
     // The hotel itself is a place and stays on the list.
     expect(testDb.prepare('SELECT id FROM places WHERE id = ?').get(night.place.id)).toBeDefined();
-    expect(result).toMatchObject({ stayIds: [night.stayId], reservationIds: [night.reservationId], budgetItemIds: [night.budgetId] });
+    expect(result).toMatchObject({
+      stayIds: [night.stayId],
+      reservationIds: [night.reservationId],
+      budgetItemIds: [night.budgetId],
+    });
     // Its stop sat on the deleted day, which day:deleted already covers.
     expect(result.mirrors[0].removed).toEqual([]);
   });
@@ -278,8 +405,9 @@ describe('DayRemovalService.remove', () => {
 
     const result = await removal.remove(trip.id, rows[1].id, { userId: user.id });
 
-    expect(testDb.prepare('SELECT start_day_id, end_day_id FROM day_accommodations WHERE id = ?').get(night.stayId))
-      .toEqual({ start_day_id: rows[0].id, end_day_id: rows[2].id });
+    expect(
+      testDb.prepare('SELECT start_day_id, end_day_id FROM day_accommodations WHERE id = ?').get(night.stayId),
+    ).toEqual({ start_day_id: rows[0].id, end_day_id: rows[2].id });
     expect(reservationRow(night.reservationId)).toBeDefined();
     expect(result.stayIds).toEqual([]);
   });
@@ -292,14 +420,24 @@ describe('DayRemovalService.remove', () => {
 
     await removal.remove(trip.id, d2.id, { userId: user.id });
 
-    expect(reservationRow(dinner)).toEqual({ day_id: null, end_day_id: null, reservation_time: '2026-01-02T19:00', reservation_end_time: null });
-    expect(reservationRow(car)).toEqual({ day_id: d1.id, end_day_id: null, reservation_time: '2026-01-01T09:00', reservation_end_time: '2026-01-02T10:00' });
+    expect(reservationRow(dinner)).toEqual({
+      day_id: null,
+      end_day_id: null,
+      reservation_time: '2026-01-02T19:00',
+      reservation_end_time: null,
+    });
+    expect(reservationRow(car)).toEqual({
+      day_id: d1.id,
+      end_day_id: null,
+      reservation_time: '2026-01-01T09:00',
+      reservation_end_time: '2026-01-02T10:00',
+    });
   });
 
   it('DAY-DEL-009 the road trip boundaries after the day move up with their days', async () => {
     const { user, trip, rows } = datedTrip('2026-01-01', '2026-01-04');
     const place = createPlace(testDb, trip.id);
-    const stops = rows.map(r => createDayAssignment(testDb, r.id, place.id));
+    const stops = rows.map((r) => createDayAssignment(testDb, r.id, place.id));
     rows.forEach((_, i) => boundary(trip.id, i + 1, stops[i].id));
 
     const result = await removal.remove(trip.id, rows[1].id, { userId: user.id });
@@ -309,8 +447,13 @@ describe('DayRemovalService.remove', () => {
       { day_number: 2, from_assignment_id: stops[2].id, to_assignment_id: null, fraction: 1 },
       { day_number: 3, from_assignment_id: stops[3].id, to_assignment_id: null, fraction: 1 },
     ];
-    expect(testDb.prepare('SELECT day_number, from_assignment_id, to_assignment_id, fraction FROM roadtrip_day_boundaries WHERE trip_id = ? ORDER BY day_number').all(trip.id))
-      .toEqual(expected);
+    expect(
+      testDb
+        .prepare(
+          'SELECT day_number, from_assignment_id, to_assignment_id, fraction FROM roadtrip_day_boundaries WHERE trip_id = ? ORDER BY day_number',
+        )
+        .all(trip.id),
+    ).toEqual(expected);
     expect(result.boundaries).toEqual(expected);
   });
 
@@ -351,7 +494,9 @@ describe('DayRemovalService.remove', () => {
   it('DAY-DEL-012 a failure halfway rolls the whole delete back', async () => {
     const { user, trip, rows } = datedTrip('2026-01-01', '2026-01-03');
     const night = await bookedNight(trip.id, rows[1].id, rows[2].id);
-    vi.spyOn(days, 'restampReservationDates').mockImplementation(() => { throw new Error('disk full'); });
+    vi.spyOn(days, 'restampReservationDates').mockImplementation(() => {
+      throw new Error('disk full');
+    });
 
     await expect(removal.remove(trip.id, rows[1].id, { userId: user.id })).rejects.toThrow('disk full');
 
@@ -363,7 +508,9 @@ describe('DayRemovalService.remove', () => {
 
   it('DAY-DEL-013 the journey catches up after the commit, and a failure there does not undo the delete', async () => {
     const { user, trip, rows } = datedTrip('2026-01-01', '2026-01-02');
-    const reconcile = vi.spyOn(journey, 'reconcileTripSkeletons').mockImplementation(() => { throw new Error('journey down'); });
+    const reconcile = vi.spyOn(journey, 'reconcileTripSkeletons').mockImplementation(() => {
+      throw new Error('journey down');
+    });
 
     const result = await removal.remove(trip.id, rows[0].id, { userId: user.id, socketId: 'sock-1' });
 
@@ -376,7 +523,9 @@ describe('DayRemovalService.remove', () => {
     const { user, trip, rows } = datedTrip('2026-01-01', '2026-01-02');
     const other = datedTrip('2026-02-01', '2026-02-02');
 
-    await expect(removal.remove(trip.id, other.rows[0].id, { userId: user.id })).rejects.toThrow(new DayDeleteError('Day not found'));
+    await expect(removal.remove(trip.id, other.rows[0].id, { userId: user.id })).rejects.toThrow(
+      new DayDeleteError('Day not found'),
+    );
     expect(dayRows(trip.id)).toEqual(rows);
     expect(dayRows(other.trip.id)).toEqual(other.rows);
   });
@@ -400,28 +549,45 @@ describe('DayRemovalService.remove', () => {
     createDayAccommodation(testDb, trip.id, place.id, rows[1].id, rows[1].id);
     const stub = {
       deleteAccommodation: vi.fn(() => ({
-        linkedReservationId: null, deletedBudgetItemId: null, linkedReservationIds: [], deletedBudgetItemIds: [],
+        linkedReservationId: null,
+        deletedBudgetItemId: null,
+        linkedReservationIds: [],
+        deletedBudgetItemIds: [],
         mirror: {
-          created: null, moved: null, updated: [], stamped: null,
-          removed: [{ id: 1, dayId: rows[1].id }, { id: 2, dayId: rows[0].id }],
-          vias: [{ dayId: rows[1].id, vias: [] }, { dayId: rows[0].id, vias: [] }],
+          created: null,
+          moved: null,
+          updated: [],
+          stamped: null,
+          removed: [
+            { id: 1, dayId: rows[1].id },
+            { id: 2, dayId: rows[0].id },
+          ],
+          vias: [
+            { dayId: rows[1].id, vias: [] },
+            { dayId: rows[0].id, vias: [] },
+          ],
         },
       })),
     } as unknown as AccommodationsService;
 
     const result = await (await removalWith(stub)).remove(trip.id, rows[1].id, { userId: user.id });
 
-    expect(result.mirrors).toEqual([{
-      created: null, moved: null, updated: [], stamped: null,
-      removed: [{ id: 2, dayId: rows[0].id }],
-      vias: [{ dayId: rows[0].id, vias: [] }],
-    }]);
+    expect(result.mirrors).toEqual([
+      {
+        created: null,
+        moved: null,
+        updated: [],
+        stamped: null,
+        removed: [{ id: 2, dayId: rows[0].id }],
+        vias: [{ dayId: rows[0].id, vias: [] }],
+      },
+    ]);
   });
 
   it('DAY-DEL-019 a hole left in the numbering closes too, and the boundaries follow their own days into it', async () => {
     const { user, trip, rows } = datedTrip('2026-01-01', '2026-01-05');
     const place = createPlace(testDb, trip.id);
-    const stops = rows.map(r => createDayAssignment(testDb, r.id, place.id));
+    const stops = rows.map((r) => createDayAssignment(testDb, r.id, place.id));
     // Days 1, 2, 4 and 5: the third went through the old bare delete, which left
     // its number empty and one boundary on it. Another one sits past the last day.
     boundary(trip.id, 2, stops[1].id);
@@ -433,14 +599,23 @@ describe('DayRemovalService.remove', () => {
 
     const result = await removal.remove(trip.id, rows[1].id, { userId: user.id });
 
-    expect(dayRows(trip.id).map(r => [r.id, r.day_number])).toEqual([[rows[0].id, 1], [rows[3].id, 2], [rows[4].id, 3]]);
+    expect(dayRows(trip.id).map((r) => [r.id, r.day_number])).toEqual([
+      [rows[0].id, 1],
+      [rows[3].id, 2],
+      [rows[4].id, 3],
+    ]);
     const expected = [
       { day_number: 2, from_assignment_id: stops[3].id, to_assignment_id: null, fraction: 1 },
       { day_number: 3, from_assignment_id: stops[4].id, to_assignment_id: null, fraction: 1 },
       { day_number: 5, from_assignment_id: stops[0].id, to_assignment_id: null, fraction: 1 },
     ];
-    expect(testDb.prepare('SELECT day_number, from_assignment_id, to_assignment_id, fraction FROM roadtrip_day_boundaries WHERE trip_id = ? ORDER BY day_number').all(trip.id))
-      .toEqual(expected);
+    expect(
+      testDb
+        .prepare(
+          'SELECT day_number, from_assignment_id, to_assignment_id, fraction FROM roadtrip_day_boundaries WHERE trip_id = ? ORDER BY day_number',
+        )
+        .all(trip.id),
+    ).toEqual(expected);
     expect(result.boundaries).toEqual(expected);
   });
 });
@@ -448,8 +623,12 @@ describe('DayRemovalService.remove', () => {
 describe('DayRemovalService.announce', () => {
   function recorder() {
     const sent: [string, string, unknown][] = [];
-    const all: MirrorSender = (event, payload) => { sent.push(['all', event, payload]); };
-    const others: MirrorSender = (event, payload) => { sent.push(['others', event, payload]); };
+    const all: MirrorSender = (event, payload) => {
+      sent.push(['all', event, payload]);
+    };
+    const others: MirrorSender = (event, payload) => {
+      sent.push(['others', event, payload]);
+    };
     return { sent, all, others };
   }
 
@@ -488,8 +667,15 @@ describe('DayRemovalService.announce', () => {
 
   it('DAY-DEL-017 a plain delete announces the day and the new order, nothing else', async () => {
     const removed: DayRemoval = {
-      dayId: 4, orderedIds: [3, 5], stayIds: [], reservationIds: [], budgetItemIds: [], mirrors: [],
-      boundaries: null, endDate: null, trip: null,
+      dayId: 4,
+      orderedIds: [3, 5],
+      stayIds: [],
+      reservationIds: [],
+      budgetItemIds: [],
+      mirrors: [],
+      boundaries: null,
+      endDate: null,
+      trip: null,
     };
     const { sent, all, others } = recorder();
 

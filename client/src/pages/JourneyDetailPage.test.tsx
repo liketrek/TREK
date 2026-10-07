@@ -1,14 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { localIsoDate } from '../utils/localDate';
-import { render, screen, waitFor, cleanup, within } from '../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { server } from '../../tests/helpers/msw/server';
-import { resetAllStores, seedStore } from '../../tests/helpers/store';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildUser } from '../../tests/helpers/factories';
+import { server } from '../../tests/helpers/msw/server';
+import { cleanup, render, screen, waitFor, within } from '../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../tests/helpers/store';
 import { useAuthStore } from '../store/authStore';
-import { usePermissionsStore } from '../store/permissionsStore';
 import { useJourneyStore } from '../store/journeyStore';
+import { usePermissionsStore } from '../store/permissionsStore';
+import { localIsoDate } from '../utils/localDate';
 import JourneyDetailPage from './JourneyDetailPage';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
@@ -39,9 +39,7 @@ vi.mock('../components/Layout/Navbar', () => ({
 // JourneyMap uses forwardRef -- must use require inside the hoisted factory
 vi.mock('../components/Journey/JourneyMap', async () => {
   const React = await import('react');
-  const Comp = React.forwardRef((_props: any, _ref: any) => (
-    <div data-testid="journey-map">Map</div>
-  ));
+  const Comp = React.forwardRef((_props: any, _ref: any) => <div data-testid="journey-map">Map</div>);
   Comp.displayName = 'MockJourneyMap';
   return { __esModule: true, default: Comp };
 });
@@ -201,9 +199,7 @@ const mockJourneyDetail = {
 // ── MSW Handlers ─────────────────────────────────────────────────────────────
 
 function setupDefaultHandlers(journeyOverride?: Record<string, unknown>) {
-  const journey = journeyOverride
-    ? { ...mockJourneyDetail, ...journeyOverride }
-    : mockJourneyDetail;
+  const journey = journeyOverride ? { ...mockJourneyDetail, ...journeyOverride } : mockJourneyDetail;
 
   server.use(
     http.get('/api/journeys/1', () => {
@@ -225,7 +221,7 @@ function setupDefaultHandlers(journeyOverride?: Record<string, unknown>) {
     }),
     http.get('/api/journeys/1/share-link', () => {
       return HttpResponse.json({ link: null });
-    }),
+    })
   );
 }
 
@@ -577,19 +573,52 @@ describe('JourneyDetailPage', () => {
         ...mockJourneyDetail.entries[0],
         photos: [
           {
-            id: 100, entry_id: 10, photo_id: 100, provider: 'local' as const, file_path: 'photos/a.jpg',
-            asset_id: null, owner_id: null, thumbnail_path: null,
-            caption: null, sort_order: 0, width: 800, height: 600, shared: 1, created_at: now,
+            id: 100,
+            entry_id: 10,
+            photo_id: 100,
+            provider: 'local' as const,
+            file_path: 'photos/a.jpg',
+            asset_id: null,
+            owner_id: null,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 0,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
           },
           {
-            id: 101, entry_id: 10, photo_id: 101, provider: 'local' as const, file_path: 'photos/b.jpg',
-            asset_id: null, owner_id: null, thumbnail_path: null,
-            caption: null, sort_order: 1, width: 800, height: 600, shared: 1, created_at: now,
+            id: 101,
+            entry_id: 10,
+            photo_id: 101,
+            provider: 'local' as const,
+            file_path: 'photos/b.jpg',
+            asset_id: null,
+            owner_id: null,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 1,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
           },
           {
-            id: 102, entry_id: 10, photo_id: 102, provider: 'local' as const, file_path: 'photos/c.jpg',
-            asset_id: null, owner_id: null, thumbnail_path: null,
-            caption: null, sort_order: 2, width: 800, height: 600, shared: 1, created_at: now,
+            id: 102,
+            entry_id: 10,
+            photo_id: 102,
+            provider: 'local' as const,
+            file_path: 'photos/c.jpg',
+            asset_id: null,
+            owner_id: null,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 2,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
           },
         ],
       };
@@ -737,7 +766,18 @@ describe('JourneyDetailPage', () => {
   describe.skip('FE-PAGE-JOURNEYDETAIL-030: Active status badge shows Live indicator', () => {
     it('renders a "Live" badge when linked trip spans today', async () => {
       setupDefaultHandlers({
-        trips: [{ trip_id: 5, added_at: now, title: 'Current Trip', start_date: '2020-01-01', end_date: '2099-12-31', cover_image: null, currency: 'EUR', place_count: 8 }],
+        trips: [
+          {
+            trip_id: 5,
+            added_at: now,
+            title: 'Current Trip',
+            start_date: '2020-01-01',
+            end_date: '2099-12-31',
+            cover_image: null,
+            currency: 'EUR',
+            place_count: 8,
+          },
+        ],
       });
       await renderAndWait();
       expect(screen.getByText('Live')).toBeInTheDocument();
@@ -753,7 +793,18 @@ describe('JourneyDetailPage', () => {
   describe.skip('FE-PAGE-JOURNEYDETAIL-031: Synced with Trips badge renders', () => {
     it('renders the "Synced with Trips" text in the hero for live journeys', async () => {
       setupDefaultHandlers({
-        trips: [{ trip_id: 5, added_at: now, title: 'Current Trip', start_date: '2020-01-01', end_date: '2099-12-31', cover_image: null, currency: 'EUR', place_count: 8 }],
+        trips: [
+          {
+            trip_id: 5,
+            added_at: now,
+            title: 'Current Trip',
+            start_date: '2020-01-01',
+            end_date: '2099-12-31',
+            cover_image: null,
+            currency: 'EUR',
+            place_count: 8,
+          },
+        ],
       });
       await renderAndWait();
       expect(screen.getByText('Synced with Trips')).toBeInTheDocument();
@@ -1044,9 +1095,7 @@ describe('JourneyDetailPage', () => {
       // Click Cancel in settings footer
       const cancelButtons = screen.getAllByText('Cancel');
       // Find the Cancel that belongs to the settings dialog
-      const settingsCancel = cancelButtons.find(
-        (btn) => btn.closest('[class*="fixed"]') !== null,
-      );
+      const settingsCancel = cancelButtons.find((btn) => btn.closest('[class*="fixed"]') !== null);
       expect(settingsCancel).toBeTruthy();
       await user.click(settingsCancel!);
 
@@ -1323,14 +1372,28 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.post('/api/journeys/1/entries', () => {
           return HttpResponse.json({
-            id: 99, journey_id: 1, author_id: 1, type: 'entry',
+            id: 99,
+            journey_id: 1,
+            author_id: 1,
+            type: 'entry',
             entry_date: localIsoDate(),
-            title: 'Test Entry', story: null, location_name: null,
-            location_lat: null, location_lng: null, mood: null, weather: null,
-            tags: [], pros_cons: null, visibility: 'private', sort_order: 0,
-            entry_time: null, photos: [], created_at: now, updated_at: now,
+            title: 'Test Entry',
+            story: null,
+            location_name: null,
+            location_lat: null,
+            location_lng: null,
+            mood: null,
+            weather: null,
+            tags: [],
+            pros_cons: null,
+            visibility: 'private',
+            sort_order: 0,
+            entry_time: null,
+            photos: [],
+            created_at: now,
+            updated_at: now,
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -1378,7 +1441,7 @@ describe('JourneyDetailPage', () => {
         http.patch('/api/journeys/1', () => {
           patchCalled = true;
           return HttpResponse.json({ ...mockJourneyDetail, title: 'Updated Title' });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -1388,7 +1451,7 @@ describe('JourneyDetailPage', () => {
       // The settings dialog footer has [Delete, Cancel, Save] buttons
       const settingsDialog = screen.getByText('Journey Settings').closest('[class*="fixed"]')!;
       const saveBtns = settingsDialog.querySelectorAll('button');
-      const saveBtn = Array.from(saveBtns).find(b => b.textContent === 'Save')!;
+      const saveBtn = Array.from(saveBtns).find((b) => b.textContent === 'Save')!;
       await user.click(saveBtn as HTMLElement);
 
       await waitFor(() => {
@@ -1444,7 +1507,7 @@ describe('JourneyDetailPage', () => {
             share_gallery: true,
             share_map: true,
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -1480,7 +1543,7 @@ describe('JourneyDetailPage', () => {
               share_map: true,
             },
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -1512,7 +1575,7 @@ describe('JourneyDetailPage', () => {
         http.delete('/api/journeys/1/share-link', () => {
           deleteCalled = true;
           return HttpResponse.json({ success: true });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -1545,7 +1608,7 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.get('/api/journeys/available-trips', () => {
           return HttpResponse.json({ trips: [] });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -1573,11 +1636,17 @@ describe('JourneyDetailPage', () => {
         http.get('/api/journeys/available-trips', () => {
           return HttpResponse.json({
             trips: [
-              { id: 20, title: 'Paris Weekend', destination: 'Paris', start_date: '2026-05-01', end_date: '2026-05-03' },
+              {
+                id: 20,
+                title: 'Paris Weekend',
+                destination: 'Paris',
+                start_date: '2026-05-01',
+                end_date: '2026-05-03',
+              },
               { id: 21, title: 'Berlin Trip', destination: 'Berlin', start_date: '2026-06-10', end_date: '2026-06-15' },
             ],
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -1605,14 +1674,20 @@ describe('JourneyDetailPage', () => {
         http.get('/api/journeys/available-trips', () => {
           return HttpResponse.json({
             trips: [
-              { id: 20, title: 'Paris Weekend', destination: 'Paris', start_date: '2026-05-01', end_date: '2026-05-03' },
+              {
+                id: 20,
+                title: 'Paris Weekend',
+                destination: 'Paris',
+                start_date: '2026-05-01',
+                end_date: '2026-05-03',
+              },
             ],
           });
         }),
         http.post('/api/journeys/1/trips', () => {
           linkCalled = true;
           return HttpResponse.json({ success: true });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -1647,7 +1722,7 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.get('/api/auth/users', () => {
           return HttpResponse.json({ users: [] });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -1679,7 +1754,7 @@ describe('JourneyDetailPage', () => {
               { id: 3, username: 'bob', email: 'bob@example.com', avatar: null },
             ],
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -1706,15 +1781,13 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.get('/api/auth/users', () => {
           return HttpResponse.json({
-            users: [
-              { id: 2, username: 'alice', email: 'alice@example.com', avatar: null },
-            ],
+            users: [{ id: 2, username: 'alice', email: 'alice@example.com', avatar: null }],
           });
         }),
         http.post('/api/journeys/1/contributors', () => {
           contributorCalled = true;
           return HttpResponse.json({ success: true });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -1836,7 +1909,7 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.patch('/api/journeys/entries/11', () => {
           return HttpResponse.json({ ...mockJourneyDetail.entries[1] });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -1911,7 +1984,7 @@ describe('JourneyDetailPage', () => {
       // Click the "Arrived in Rome" location item in the map view's location list
       // (timeline is still mounted but hidden, so find the one inside a cursor-pointer container)
       const romeItems = screen.getAllByText('Arrived in Rome');
-      const romeItem = romeItems.find(el => el.closest('[class*="cursor-pointer"]')) ?? romeItems[0];
+      const romeItem = romeItems.find((el) => el.closest('[class*="cursor-pointer"]')) ?? romeItems[0];
       await user.click(romeItem);
 
       // After clicking, the item should gain active styles (translate-x-0.5 on the container)
@@ -2039,20 +2112,46 @@ describe('JourneyDetailPage', () => {
 
       const immichEntry = {
         ...mockJourneyDetail.entries[0],
-        photos: [{
-          id: 200, entry_id: 10, photo_id: 200, provider: 'immich', file_path: null,
-          asset_id: 'asset-123', owner_id: 1, thumbnail_path: null,
-          caption: null, sort_order: 0, width: 800, height: 600, shared: 1, created_at: now,
-        }],
+        photos: [
+          {
+            id: 200,
+            entry_id: 10,
+            photo_id: 200,
+            provider: 'immich',
+            file_path: null,
+            asset_id: 'asset-123',
+            owner_id: 1,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 0,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
+          },
+        ],
       };
       setupDefaultHandlers({
         entries: [immichEntry, mockJourneyDetail.entries[1]],
         stats: { entries: 2, photos: 1, places: 2 },
-        gallery: [{
-          id: 200, journey_id: 1, photo_id: 200, provider: 'immich', file_path: null,
-          asset_id: 'asset-123', owner_id: 1, thumbnail_path: null,
-          caption: null, sort_order: 0, width: 800, height: 600, shared: 1, created_at: now,
-        }],
+        gallery: [
+          {
+            id: 200,
+            journey_id: 1,
+            photo_id: 200,
+            provider: 'immich',
+            file_path: null,
+            asset_id: 'asset-123',
+            owner_id: 1,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 0,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
+          },
+        ],
       });
 
       render(<JourneyDetailPage />);
@@ -2080,20 +2179,46 @@ describe('JourneyDetailPage', () => {
 
       const synologyEntry = {
         ...mockJourneyDetail.entries[0],
-        photos: [{
-          id: 201, entry_id: 10, photo_id: 201, provider: 'synologyphotos', file_path: null,
-          asset_id: '456_cachekey', owner_id: 1, thumbnail_path: null,
-          caption: null, sort_order: 0, width: 800, height: 600, shared: 1, created_at: now,
-        }],
+        photos: [
+          {
+            id: 201,
+            entry_id: 10,
+            photo_id: 201,
+            provider: 'synologyphotos',
+            file_path: null,
+            asset_id: '456_cachekey',
+            owner_id: 1,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 0,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
+          },
+        ],
       };
       setupDefaultHandlers({
         entries: [synologyEntry, mockJourneyDetail.entries[1]],
         stats: { entries: 2, photos: 1, places: 2 },
-        gallery: [{
-          id: 201, journey_id: 1, photo_id: 201, provider: 'synologyphotos', file_path: null,
-          asset_id: '456_cachekey', owner_id: 1, thumbnail_path: null,
-          caption: null, sort_order: 0, width: 800, height: 600, shared: 1, created_at: now,
-        }],
+        gallery: [
+          {
+            id: 201,
+            journey_id: 1,
+            photo_id: 201,
+            provider: 'synologyphotos',
+            file_path: null,
+            asset_id: '456_cachekey',
+            owner_id: 1,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 0,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
+          },
+        ],
       });
 
       render(<JourneyDetailPage />);
@@ -2136,7 +2261,7 @@ describe('JourneyDetailPage', () => {
             { id: 'album-1', albumName: 'Italy Album', assetCount: 10, startDate: '2026-03-14', endDate: '2026-03-20' },
           ],
         });
-      }),
+      })
     );
 
     render(<JourneyDetailPage />);
@@ -2222,9 +2347,7 @@ describe('JourneyDetailPage', () => {
 
       // Footer has Cancel button
       const cancelBtns = screen.getAllByText('Cancel');
-      const pickerCancel = cancelBtns.find(
-        btn => btn.closest('[class*="fixed"]') !== null,
-      );
+      const pickerCancel = cancelBtns.find((btn) => btn.closest('[class*="fixed"]') !== null);
       expect(pickerCancel).toBeTruthy();
       await user.click(pickerCancel!);
 
@@ -2262,9 +2385,9 @@ describe('JourneyDetailPage', () => {
 
       // The date picker shows today's formatted date (e.g., "Apr 11, 2026")
       const dateButtons = document.querySelectorAll('button[type="button"]');
-      const dateBtnTexts = Array.from(dateButtons).map(b => b.textContent);
+      const dateBtnTexts = Array.from(dateButtons).map((b) => b.textContent);
       // Should have at least one button with a month name
-      const hasDateButton = dateBtnTexts.some(t => t && /\w{3}\s+\d+,\s+\d{4}/.test(t));
+      const hasDateButton = dateBtnTexts.some((t) => t && /\w{3}\s+\d+,\s+\d{4}/.test(t));
       expect(hasDateButton).toBe(true);
     });
   });
@@ -2278,7 +2401,7 @@ describe('JourneyDetailPage', () => {
 
       // Find and click the date picker button (the one with the formatted date)
       const dateButtons = Array.from(document.querySelectorAll('button[type="button"]'));
-      const dateBtn = dateButtons.find(b => b.textContent && /\w{3}\s+\d+,\s+\d{4}/.test(b.textContent));
+      const dateBtn = dateButtons.find((b) => b.textContent && /\w{3}\s+\d+,\s+\d{4}/.test(b.textContent));
       expect(dateBtn).toBeTruthy();
       await user.click(dateBtn as HTMLElement);
 
@@ -2304,7 +2427,7 @@ describe('JourneyDetailPage', () => {
 
       // Open the date picker
       const dateButtons = Array.from(document.querySelectorAll('button[type="button"]'));
-      const dateBtn = dateButtons.find(b => b.textContent && /\w{3}\s+\d+,\s+\d{4}/.test(b.textContent));
+      const dateBtn = dateButtons.find((b) => b.textContent && /\w{3}\s+\d+,\s+\d{4}/.test(b.textContent));
       await user.click(dateBtn as HTMLElement);
 
       // The calendar should have the month name and two navigation buttons
@@ -2376,7 +2499,7 @@ describe('JourneyDetailPage', () => {
       // it stays image-only: `capture` is for taking a photo, not filming one.
       const fileInputs = document.querySelectorAll('input[type="file"][accept="image/*,video/*"]');
       expect(fileInputs.length).toBeGreaterThanOrEqual(1);
-      const editorFileInput = Array.from(fileInputs).find(input => {
+      const editorFileInput = Array.from(fileInputs).find((input) => {
         return input.closest('[class*="fixed"]') !== null;
       });
       expect(editorFileInput).toBeTruthy();
@@ -2418,11 +2541,17 @@ describe('JourneyDetailPage', () => {
         http.get('/api/journeys/available-trips', () => {
           return HttpResponse.json({
             trips: [
-              { id: 20, title: 'Paris Weekend', destination: 'Paris', start_date: '2026-05-01', end_date: '2026-05-03' },
+              {
+                id: 20,
+                title: 'Paris Weekend',
+                destination: 'Paris',
+                start_date: '2026-05-01',
+                end_date: '2026-05-03',
+              },
               { id: 21, title: 'Berlin Trip', destination: 'Berlin', start_date: '2026-06-10', end_date: '2026-06-15' },
             ],
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -2458,7 +2587,7 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.get('/api/journeys/available-trips', () => {
           return HttpResponse.json({ trips: [] });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -2484,10 +2613,16 @@ describe('JourneyDetailPage', () => {
         http.get('/api/journeys/available-trips', () => {
           return HttpResponse.json({
             trips: [
-              { id: 20, title: 'Paris Weekend', destination: 'Paris', start_date: '2026-05-01', end_date: '2026-05-03' },
+              {
+                id: 20,
+                title: 'Paris Weekend',
+                destination: 'Paris',
+                start_date: '2026-05-01',
+                end_date: '2026-05-03',
+              },
             ],
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -2517,11 +2652,9 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.get('/api/auth/users', () => {
           return HttpResponse.json({
-            users: [
-              { id: 2, username: 'alice', email: 'alice@example.com', avatar: null },
-            ],
+            users: [{ id: 2, username: 'alice', email: 'alice@example.com', avatar: null }],
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -2550,11 +2683,9 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.get('/api/auth/users', () => {
           return HttpResponse.json({
-            users: [
-              { id: 2, username: 'alice', email: 'alice@example.com', avatar: null },
-            ],
+            users: [{ id: 2, username: 'alice', email: 'alice@example.com', avatar: null }],
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -2591,7 +2722,7 @@ describe('JourneyDetailPage', () => {
               { id: 3, username: 'bob', email: 'bob@example.com', avatar: null },
             ],
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -2682,11 +2813,86 @@ describe('JourneyDetailPage', () => {
       const multiPhotoEntry = {
         ...mockJourneyDetail.entries[0],
         photos: [
-          { id: 100, entry_id: 10, photo_id: 100, provider: 'local', file_path: 'photos/a.jpg', asset_id: null, owner_id: null, thumbnail_path: null, caption: null, sort_order: 0, width: 800, height: 600, shared: 1, created_at: now },
-          { id: 101, entry_id: 10, photo_id: 101, provider: 'local', file_path: 'photos/b.jpg', asset_id: null, owner_id: null, thumbnail_path: null, caption: null, sort_order: 1, width: 800, height: 600, shared: 1, created_at: now },
-          { id: 102, entry_id: 10, photo_id: 102, provider: 'local', file_path: 'photos/c.jpg', asset_id: null, owner_id: null, thumbnail_path: null, caption: null, sort_order: 2, width: 800, height: 600, shared: 1, created_at: now },
-          { id: 103, entry_id: 10, photo_id: 103, provider: 'local', file_path: 'photos/d.jpg', asset_id: null, owner_id: null, thumbnail_path: null, caption: null, sort_order: 3, width: 800, height: 600, shared: 1, created_at: now },
-          { id: 104, entry_id: 10, photo_id: 104, provider: 'local', file_path: 'photos/e.jpg', asset_id: null, owner_id: null, thumbnail_path: null, caption: null, sort_order: 4, width: 800, height: 600, shared: 1, created_at: now },
+          {
+            id: 100,
+            entry_id: 10,
+            photo_id: 100,
+            provider: 'local',
+            file_path: 'photos/a.jpg',
+            asset_id: null,
+            owner_id: null,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 0,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
+          },
+          {
+            id: 101,
+            entry_id: 10,
+            photo_id: 101,
+            provider: 'local',
+            file_path: 'photos/b.jpg',
+            asset_id: null,
+            owner_id: null,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 1,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
+          },
+          {
+            id: 102,
+            entry_id: 10,
+            photo_id: 102,
+            provider: 'local',
+            file_path: 'photos/c.jpg',
+            asset_id: null,
+            owner_id: null,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 2,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
+          },
+          {
+            id: 103,
+            entry_id: 10,
+            photo_id: 103,
+            provider: 'local',
+            file_path: 'photos/d.jpg',
+            asset_id: null,
+            owner_id: null,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 3,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
+          },
+          {
+            id: 104,
+            entry_id: 10,
+            photo_id: 104,
+            provider: 'local',
+            file_path: 'photos/e.jpg',
+            asset_id: null,
+            owner_id: null,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 4,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
+          },
         ],
       };
       setupDefaultHandlers({
@@ -2710,8 +2916,38 @@ describe('JourneyDetailPage', () => {
       const twoPhotoEntry = {
         ...mockJourneyDetail.entries[0],
         photos: [
-          { id: 100, entry_id: 10, photo_id: 100, provider: 'local', file_path: 'photos/a.jpg', asset_id: null, owner_id: null, thumbnail_path: null, caption: null, sort_order: 0, width: 800, height: 600, shared: 1, created_at: now },
-          { id: 101, entry_id: 10, photo_id: 101, provider: 'local', file_path: 'photos/b.jpg', asset_id: null, owner_id: null, thumbnail_path: null, caption: null, sort_order: 1, width: 800, height: 600, shared: 1, created_at: now },
+          {
+            id: 100,
+            entry_id: 10,
+            photo_id: 100,
+            provider: 'local',
+            file_path: 'photos/a.jpg',
+            asset_id: null,
+            owner_id: null,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 0,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
+          },
+          {
+            id: 101,
+            entry_id: 10,
+            photo_id: 101,
+            provider: 'local',
+            file_path: 'photos/b.jpg',
+            asset_id: null,
+            owner_id: null,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 1,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
+          },
         ],
       };
       setupDefaultHandlers({
@@ -2726,7 +2962,7 @@ describe('JourneyDetailPage', () => {
 
       // Both photos render in the grid
       const imgs = document.querySelectorAll('img');
-      const srcs = Array.from(imgs).map(img => img.getAttribute('src'));
+      const srcs = Array.from(imgs).map((img) => img.getAttribute('src'));
       expect(srcs).toContain('/api/photos/100/thumbnail');
       expect(srcs).toContain('/api/photos/101/thumbnail');
     });
@@ -2798,7 +3034,7 @@ describe('JourneyDetailPage', () => {
       const filterButtons = pickerModal.querySelectorAll('[class*="px-3"][class*="py-1\\.5"][class*="rounded-lg"]');
 
       // Find the Albums tab button
-      const albumTab = Array.from(filterButtons).find(btn => btn.textContent === 'Albums');
+      const albumTab = Array.from(filterButtons).find((btn) => btn.textContent === 'Albums');
       expect(albumTab).toBeTruthy();
       await user.click(albumTab as HTMLElement);
 
@@ -2818,7 +3054,7 @@ describe('JourneyDetailPage', () => {
 
       // Open date picker
       const dateButtons = Array.from(document.querySelectorAll('button[type="button"]'));
-      const dateBtn = dateButtons.find(b => b.textContent && /\w{3}\s+\d+,\s+\d{4}/.test(b.textContent));
+      const dateBtn = dateButtons.find((b) => b.textContent && /\w{3}\s+\d+,\s+\d{4}/.test(b.textContent));
       await user.click(dateBtn as HTMLElement);
 
       // Wait for calendar to open
@@ -2828,7 +3064,7 @@ describe('JourneyDetailPage', () => {
 
       // Click day 15 (should be a button in the grid)
       const day15Btn = Array.from(document.querySelectorAll('button[type="button"]')).find(
-        b => b.textContent?.trim() === '15' && b.closest('[class*="grid-cols-7"]')
+        (b) => b.textContent?.trim() === '15' && b.closest('[class*="grid-cols-7"]')
       );
       expect(day15Btn).toBeTruthy();
       await user.click(day15Btn as HTMLElement);
@@ -2849,7 +3085,7 @@ describe('JourneyDetailPage', () => {
 
       // Open date picker
       const dateButtons = Array.from(document.querySelectorAll('button[type="button"]'));
-      const dateBtn = dateButtons.find(b => b.textContent && /\w{3}\s+\d+,\s+\d{4}/.test(b.textContent));
+      const dateBtn = dateButtons.find((b) => b.textContent && /\w{3}\s+\d+,\s+\d{4}/.test(b.textContent));
       await user.click(dateBtn as HTMLElement);
 
       await waitFor(() => {
@@ -2882,7 +3118,7 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.patch('/api/journeys/entries/10', () => {
           return HttpResponse.json({ ...mockJourneyDetail.entries[0] });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -2892,7 +3128,7 @@ describe('JourneyDetailPage', () => {
       // The photo entry card has the menu button overlaid on the photo
       const menuButtons = romeWrapper.querySelectorAll('button');
       // Find the MoreHorizontal button (it's in the absolute positioned area)
-      const menuBtn = Array.from(menuButtons).find(b => {
+      const menuBtn = Array.from(menuButtons).find((b) => {
         return b.closest('[class*="absolute"][class*="top-2"]') !== null;
       });
       expect(menuBtn).toBeTruthy();
@@ -2911,7 +3147,7 @@ describe('JourneyDetailPage', () => {
       // The entry editor should show the existing photo as a thumbnail
       const editorModal = screen.getByText('Edit Entry').closest('[class*="fixed"]')!;
       const editorImgs = editorModal.querySelectorAll('img');
-      const editorSrcs = Array.from(editorImgs).map(img => img.getAttribute('src'));
+      const editorSrcs = Array.from(editorImgs).map((img) => img.getAttribute('src'));
       expect(editorSrcs).toContain('/api/photos/100/thumbnail');
     });
   });
@@ -2931,7 +3167,7 @@ describe('JourneyDetailPage', () => {
               share_map: true,
             },
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -2968,8 +3204,13 @@ describe('JourneyDetailPage', () => {
         }),
         http.post('/api/journeys/1/share-link', () => {
           postCalled = true;
-          return HttpResponse.json({ token: 'perm-token', share_timeline: false, share_gallery: true, share_map: true });
-        }),
+          return HttpResponse.json({
+            token: 'perm-token',
+            share_timeline: false,
+            share_gallery: true,
+            share_map: true,
+          });
+        })
       );
 
       await renderAndWait();
@@ -3023,7 +3264,7 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.get('/api/journeys/available-trips', () => {
           return HttpResponse.json({ trips: [] });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -3149,11 +3390,9 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.get('/api/auth/users', () => {
           return HttpResponse.json({
-            users: [
-              { id: 2, username: 'alice', email: 'alice@example.com', avatar: null },
-            ],
+            users: [{ id: 2, username: 'alice', email: 'alice@example.com', avatar: null }],
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -3182,11 +3421,9 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.get('/api/auth/users', () => {
           return HttpResponse.json({
-            users: [
-              { id: 2, username: 'alice', email: 'alice@example.com', avatar: null },
-            ],
+            users: [{ id: 2, username: 'alice', email: 'alice@example.com', avatar: null }],
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -3213,11 +3450,9 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.get('/api/auth/users', () => {
           return HttpResponse.json({
-            users: [
-              { id: 2, username: 'alice', email: 'alice@example.com', avatar: null },
-            ],
+            users: [{ id: 2, username: 'alice', email: 'alice@example.com', avatar: null }],
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -3241,11 +3476,9 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.get('/api/auth/users', () => {
           return HttpResponse.json({
-            users: [
-              { id: 2, username: 'alice', email: 'alice@example.com', avatar: null },
-            ],
+            users: [{ id: 2, username: 'alice', email: 'alice@example.com', avatar: null }],
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -3312,7 +3545,7 @@ describe('JourneyDetailPage', () => {
         http.post('/api/journeys/1/gallery/photos', () => {
           uploadCalled = true;
           return HttpResponse.json({ photos: [] });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -3325,7 +3558,9 @@ describe('JourneyDetailPage', () => {
       });
 
       // Find the hidden file input in the gallery view
-      const fileInput = document.querySelector('input[type="file"][accept="image/*,video/*"][multiple]') as HTMLInputElement;
+      const fileInput = document.querySelector(
+        'input[type="file"][accept="image/*,video/*"][multiple]'
+      ) as HTMLInputElement;
       expect(fileInput).toBeTruthy();
 
       // Simulate file selection
@@ -3348,7 +3583,7 @@ describe('JourneyDetailPage', () => {
         http.delete('/api/journeys/1/gallery/100', () => {
           deleteCalled = true;
           return new HttpResponse(null, { status: 204 });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -3365,7 +3600,7 @@ describe('JourneyDetailPage', () => {
       const galleryGrid = screen.getByText(/1 photos/i).closest('div')!.parentElement!;
       const xButtons = galleryGrid.querySelectorAll('button');
       // Find the X delete button on the photo
-      const deleteBtn = Array.from(xButtons).find(btn => {
+      const deleteBtn = Array.from(xButtons).find((btn) => {
         return btn.closest('[class*="aspect-square"]') !== null && btn.className.includes('rounded-full');
       });
       expect(deleteBtn).toBeTruthy();
@@ -3388,17 +3623,49 @@ describe('JourneyDetailPage', () => {
         http.post('/api/journeys/1/entries', () => {
           entryCalled = true;
           return HttpResponse.json({
-            id: 88, journey_id: 1, author_id: 1, type: 'entry',
-            entry_date: '2026-04-11', title: 'New entry', story: null, location_name: null,
-            location_lat: null, location_lng: null, mood: null, weather: null,
-            tags: [], pros_cons: null, visibility: 'private', sort_order: 0,
-            entry_time: null, photos: [], created_at: now, updated_at: now,
+            id: 88,
+            journey_id: 1,
+            author_id: 1,
+            type: 'entry',
+            entry_date: '2026-04-11',
+            title: 'New entry',
+            story: null,
+            location_name: null,
+            location_lat: null,
+            location_lng: null,
+            mood: null,
+            weather: null,
+            tags: [],
+            pros_cons: null,
+            visibility: 'private',
+            sort_order: 0,
+            entry_time: null,
+            photos: [],
+            created_at: now,
+            updated_at: now,
           });
         }),
         http.post('/api/journeys/entries/88/photos', () => {
           uploadCalled = true;
-          return HttpResponse.json([{ id: 999, entry_id: 88, photo_id: 999, provider: 'local', file_path: 'photos/new.jpg', asset_id: null, owner_id: null, thumbnail_path: null, caption: null, sort_order: 0, width: 100, height: 100, shared: 1, created_at: now }]);
-        }),
+          return HttpResponse.json([
+            {
+              id: 999,
+              entry_id: 88,
+              photo_id: 999,
+              provider: 'local',
+              file_path: 'photos/new.jpg',
+              asset_id: null,
+              owner_id: null,
+              thumbnail_path: null,
+              caption: null,
+              sort_order: 0,
+              width: 100,
+              height: 100,
+              shared: 1,
+              created_at: now,
+            },
+          ]);
+        })
       );
 
       await renderAndWait();
@@ -3410,8 +3677,8 @@ describe('JourneyDetailPage', () => {
 
       // Add a file via the file input (pending upload for new entry)
       const fileInputs = document.querySelectorAll('input[type="file"][accept="image/*"]');
-      const editorFileInput = Array.from(fileInputs).find(input =>
-        input.closest('[class*="fixed"]') !== null,
+      const editorFileInput = Array.from(fileInputs).find(
+        (input) => input.closest('[class*="fixed"]') !== null
       ) as HTMLInputElement;
       expect(editorFileInput).toBeTruthy();
 
@@ -3444,7 +3711,7 @@ describe('JourneyDetailPage', () => {
               { name: 'Vatican Museums', address: 'Viale Vaticano', lat: 41.91, lng: 12.46 },
             ],
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -3472,11 +3739,9 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.post('/api/maps/search', () => {
           return HttpResponse.json({
-            places: [
-              { name: 'Vatican City', address: 'Vatican, Rome', lat: 41.9, lng: 12.45 },
-            ],
+            places: [{ name: 'Vatican City', address: 'Vatican, Rome', lat: 41.9, lng: 12.45 }],
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -3519,7 +3784,7 @@ describe('JourneyDetailPage', () => {
         }),
         http.get('/api/integrations/memories/:provider/albums', () => {
           return HttpResponse.json({ albums: [] });
-        }),
+        })
       );
 
       render(<JourneyDetailPage />);
@@ -3542,9 +3807,7 @@ describe('JourneyDetailPage', () => {
 
       // Switch to custom (Date Range) tab
       const pickerModal = screen.getByText('Add to').closest('[class*="fixed"]')!;
-      const editTab = Array.from(pickerModal.querySelectorAll('button')).find(
-        b => b.textContent === 'Date Range',
-      );
+      const editTab = Array.from(pickerModal.querySelectorAll('button')).find((b) => b.textContent === 'Date Range');
       expect(editTab).toBeTruthy();
       await user.click(editTab as HTMLElement);
 
@@ -3563,8 +3826,38 @@ describe('JourneyDetailPage', () => {
       const entryWithMultiPhotos = {
         ...mockJourneyDetail.entries[0],
         photos: [
-          { id: 100, entry_id: 10, photo_id: 100, provider: 'local', file_path: 'photos/a.jpg', asset_id: null, owner_id: null, thumbnail_path: null, caption: null, sort_order: 0, width: 800, height: 600, shared: 1, created_at: now },
-          { id: 101, entry_id: 10, photo_id: 101, provider: 'local', file_path: 'photos/b.jpg', asset_id: null, owner_id: null, thumbnail_path: null, caption: null, sort_order: 1, width: 800, height: 600, shared: 1, created_at: now },
+          {
+            id: 100,
+            entry_id: 10,
+            photo_id: 100,
+            provider: 'local',
+            file_path: 'photos/a.jpg',
+            asset_id: null,
+            owner_id: null,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 0,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
+          },
+          {
+            id: 101,
+            entry_id: 10,
+            photo_id: 101,
+            provider: 'local',
+            file_path: 'photos/b.jpg',
+            asset_id: null,
+            owner_id: null,
+            thumbnail_path: null,
+            caption: null,
+            sort_order: 1,
+            width: 800,
+            height: 600,
+            shared: 1,
+            created_at: now,
+          },
         ],
       };
       setupDefaultHandlers({
@@ -3575,7 +3868,7 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.patch('/api/journeys/entries/10', () => {
           return HttpResponse.json(entryWithMultiPhotos);
-        }),
+        })
       );
 
       render(<JourneyDetailPage />);
@@ -3585,8 +3878,8 @@ describe('JourneyDetailPage', () => {
 
       // Open context menu on the Rome entry (has photos)
       const romeWrapper = document.querySelector('[data-entry-id="10"]')!;
-      const menuBtn = Array.from(romeWrapper.querySelectorAll('button')).find(b =>
-        b.closest('[class*="absolute"][class*="top-2"]') !== null,
+      const menuBtn = Array.from(romeWrapper.querySelectorAll('button')).find(
+        (b) => b.closest('[class*="absolute"][class*="top-2"]') !== null
       );
       await user.click(menuBtn as HTMLElement);
 
@@ -3617,8 +3910,25 @@ describe('JourneyDetailPage', () => {
         }),
         http.post('/api/journeys/entries/11/photos', () => {
           uploadCalled = true;
-          return HttpResponse.json([{ id: 300, entry_id: 11, photo_id: 300, provider: 'local', file_path: 'photos/new.jpg', asset_id: null, owner_id: null, thumbnail_path: null, caption: null, sort_order: 0, width: 100, height: 100, shared: 1, created_at: now }]);
-        }),
+          return HttpResponse.json([
+            {
+              id: 300,
+              entry_id: 11,
+              photo_id: 300,
+              provider: 'local',
+              file_path: 'photos/new.jpg',
+              asset_id: null,
+              owner_id: null,
+              thumbnail_path: null,
+              caption: null,
+              sort_order: 0,
+              width: 100,
+              height: 100,
+              shared: 1,
+              created_at: now,
+            },
+          ]);
+        })
       );
 
       await renderAndWait();
@@ -3695,7 +4005,7 @@ describe('JourneyDetailPage', () => {
         }),
         http.get('/api/integrations/memories/:provider/albums', () => {
           return HttpResponse.json({ albums: [] });
-        }),
+        })
       );
 
       render(<JourneyDetailPage />);
@@ -3747,7 +4057,7 @@ describe('JourneyDetailPage', () => {
               share_map: true,
             },
           });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -3776,9 +4086,12 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.get('/api/integrations/memories/:provider/status', () => HttpResponse.json({ connected: true })),
         http.post('/api/integrations/memories/:provider/search', async ({ request }) => {
-          searches.push(await request.json() as { from?: string; to?: string });
-          return HttpResponse.json({ assets: [{ id: 'context-1', takenAt: '2026-03-15T12:00:00Z', city: 'Rome' }], hasMore: false });
-        }),
+          searches.push((await request.json()) as { from?: string; to?: string });
+          return HttpResponse.json({
+            assets: [{ id: 'context-1', takenAt: '2026-03-15T12:00:00Z', city: 'Rome' }],
+            hasMore: false,
+          });
+        })
       );
 
       await renderAndWait();
@@ -3798,7 +4111,9 @@ describe('JourneyDetailPage', () => {
       expect(document.querySelector('img[src*="/api/integrations/memories/"]')).toBeTruthy();
 
       await user.click(screen.getByText('Trip Period'));
-      await waitFor(() => expect(searches.some(search => search.from === '2026-03-14' && search.to === '2026-03-20')).toBe(true));
+      await waitFor(() =>
+        expect(searches.some((search) => search.from === '2026-03-14' && search.to === '2026-03-20')).toBe(true)
+      );
       expect(screen.queryByText(/No trips linked/i)).not.toBeInTheDocument();
     });
 
@@ -3810,18 +4125,35 @@ describe('JourneyDetailPage', () => {
 
       server.use(
         http.get('/api/integrations/memories/:provider/status', () => HttpResponse.json({ connected: true })),
-        http.post('/api/integrations/memories/:provider/search', () => HttpResponse.json({
-          assets: [{ id: 'context-1', takenAt: '2026-03-15T12:00:00Z', city: 'Rome' }],
-          hasMore: false,
-        })),
+        http.post('/api/integrations/memories/:provider/search', () =>
+          HttpResponse.json({
+            assets: [{ id: 'context-1', takenAt: '2026-03-15T12:00:00Z', city: 'Rome' }],
+            hasMore: false,
+          })
+        ),
         http.post('/api/journeys/1/entries', () => {
           createCalls++;
           return HttpResponse.json({
-            id: 88, journey_id: 1, author_id: 1, type: 'entry',
-            entry_date: '2026-03-15', title: null, story: null, location_name: null,
-            location_lat: null, location_lng: null, mood: null, weather: null,
-            tags: [], pros_cons: null, visibility: 'private', sort_order: 0,
-            entry_time: null, photos: [], created_at: now, updated_at: now,
+            id: 88,
+            journey_id: 1,
+            author_id: 1,
+            type: 'entry',
+            entry_date: '2026-03-15',
+            title: null,
+            story: null,
+            location_name: null,
+            location_lat: null,
+            location_lng: null,
+            mood: null,
+            weather: null,
+            tags: [],
+            pros_cons: null,
+            visibility: 'private',
+            sort_order: 0,
+            entry_time: null,
+            photos: [],
+            created_at: now,
+            updated_at: now,
           });
         }),
         http.patch('/api/journeys/entries/88', () => {
@@ -3833,7 +4165,7 @@ describe('JourneyDetailPage', () => {
           return providerCalls === 1
             ? HttpResponse.json({ error: 'provider unavailable' }, { status: 502 })
             : HttpResponse.json({ added: 1 });
-        }),
+        })
       );
 
       await renderAndWait();
@@ -3872,13 +4204,20 @@ describe('JourneyDetailPage', () => {
     }
 
     const stubGeoSuccess = () =>
-      stubGeolocation(success => success({
-        coords: {
-          latitude: 41.9, longitude: 12.5, accuracy: 10,
-          heading: null, speed: null, altitude: null, altitudeAccuracy: null,
-        },
-        timestamp: now,
-      } as unknown as GeolocationPosition));
+      stubGeolocation((success) =>
+        success({
+          coords: {
+            latitude: 41.9,
+            longitude: 12.5,
+            accuracy: 10,
+            heading: null,
+            speed: null,
+            altitude: null,
+            altitudeAccuracy: null,
+          },
+          timestamp: now,
+        } as unknown as GeolocationPosition)
+      );
 
     afterEach(() => {
       if (originalGeolocation) {
@@ -3894,7 +4233,7 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.get('/api/maps/reverse', () => {
           return HttpResponse.json({ name: 'Colosseum', address: 'Rome, Italy' });
-        }),
+        })
       );
 
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
@@ -3913,7 +4252,7 @@ describe('JourneyDetailPage', () => {
       server.use(
         http.get('/api/maps/reverse', () => {
           return HttpResponse.json({ name: null, address: null });
-        }),
+        })
       );
 
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
@@ -3930,10 +4269,15 @@ describe('JourneyDetailPage', () => {
     it('shows an error toast when location permission is denied', async () => {
       const addToast = vi.fn();
       (window as { __addToast?: unknown }).__addToast = addToast;
-      stubGeolocation((_success, error) => error?.({
-        code: 1, message: 'denied',
-        PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3,
-      } as GeolocationPositionError));
+      stubGeolocation((_success, error) =>
+        error?.({
+          code: 1,
+          message: 'denied',
+          PERMISSION_DENIED: 1,
+          POSITION_UNAVAILABLE: 2,
+          TIMEOUT: 3,
+        } as GeolocationPositionError)
+      );
 
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       await renderAndWait();
@@ -3945,7 +4289,7 @@ describe('JourneyDetailPage', () => {
         expect(addToast).toHaveBeenCalledWith(
           'Location access was denied. Allow it in your browser settings and try again.',
           'error',
-          undefined,
+          undefined
         );
       });
     });
@@ -3953,7 +4297,9 @@ describe('JourneyDetailPage', () => {
     it('keeps a search result picked while the reverse geocode is in flight', async () => {
       stubGeoSuccess();
       let releaseReverse!: () => void;
-      const reverseGate = new Promise<void>(resolve => { releaseReverse = resolve; });
+      const reverseGate = new Promise<void>((resolve) => {
+        releaseReverse = resolve;
+      });
       let reverseReturned = false;
       server.use(
         http.get('/api/maps/reverse', async () => {
@@ -3966,7 +4312,7 @@ describe('JourneyDetailPage', () => {
             places: [{ name: 'Vatican City', address: 'Vatican, Rome', lat: 41.9, lng: 12.45 }],
             source: 'osm',
           });
-        }),
+        })
       );
 
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
@@ -3998,9 +4344,7 @@ describe('JourneyDetailPage', () => {
       await waitFor(() => {
         expect(reverseReturned).toBe(true);
       });
-      await expect(
-        waitFor(() => expect(locationInput).toHaveValue('Colosseum'), { timeout: 300 }),
-      ).rejects.toThrow();
+      await expect(waitFor(() => expect(locationInput).toHaveValue('Colosseum'), { timeout: 300 })).rejects.toThrow();
       expect(locationInput).toHaveValue('Vatican City');
     });
   });

@@ -1,7 +1,7 @@
 // FE-MAP-LOCBTN-001 to FE-MAP-LOCBTN-005
 import { render } from '@testing-library/react';
-import LocationButton from './LocationButton';
 import type { GeoWatchErrorCode } from '../../hooks/useGeolocation';
+import LocationButton from './LocationButton';
 
 // useToast talks to the mounted ToastContainer through window.__addToast,
 // so a spy there observes exactly what the user would get shown. Outside a

@@ -1,78 +1,85 @@
-import { Injectable, Optional, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import semver from 'semver';
-import { MikroORM } from '@mikro-orm/core';
-import { UnitOfWork } from '../database/unit-of-work';
-import { withRequestContext } from '../database/request-context';
-import { CronRegistrarService } from '../scheduling/cron-registrar.service';
-import { logError } from '../audit/audit-log.logger';
-import { Plugins } from '../../db/entities/Plugins.entity';
-import type { PluginsRepository } from '../../db/repositories/Plugins.repository';
-import { PluginErrorLog } from '../../db/entities/PluginErrorLog.entity';
-import type { PluginErrorLogRepository } from '../../db/repositories/PluginErrorLog.repository';
-import { PluginScheduledTasks } from '../../db/entities/PluginScheduledTasks.entity';
-import type { PluginScheduledTasksRepository } from '../../db/repositories/PluginScheduledTasks.repository';
-import { PluginUserErasureQueue } from '../../db/entities/PluginUserErasureQueue.entity';
-import type { PluginUserErasureQueueRepository } from '../../db/repositories/PluginUserErasureQueue.repository';
-import { PluginEgressHosts } from '../../db/entities/PluginEgressHosts.entity';
-import type { PluginEgressHostsRepository } from '../../db/repositories/PluginEgressHosts.repository';
-import { PluginSettingsFields } from '../../db/entities/PluginSettingsFields.entity';
-import type { PluginSettingsFieldsRepository } from '../../db/repositories/PluginSettingsFields.repository';
-import { PluginActions } from '../../db/entities/PluginActions.entity';
-import type { PluginActionsRepository } from '../../db/repositories/PluginActions.repository';
-import { PluginUserConfig } from '../../db/entities/PluginUserConfig.entity';
-import type { PluginUserConfigRepository } from '../../db/repositories/PluginUserConfig.repository';
-import { PluginEntityMetadata } from '../../db/entities/PluginEntityMetadata.entity';
-import type { PluginEntityMetadataRepository } from '../../db/repositories/PluginEntityMetadata.repository';
-import { PluginOauthTokens } from '../../db/entities/PluginOauthTokens.entity';
-import type { PluginOauthTokensRepository } from '../../db/repositories/PluginOauthTokens.repository';
-import { PluginOauthState } from '../../db/entities/PluginOauthState.entity';
-import type { PluginOauthStateRepository } from '../../db/repositories/PluginOauthState.repository';
-import { PluginMetaMigrations } from '../../db/entities/PluginMetaMigrations.entity';
-import type { PluginMetaMigrationsRepository } from '../../db/repositories/PluginMetaMigrations.repository';
-import { PluginCapabilityAudit } from '../../db/entities/PluginCapabilityAudit.entity';
-import type { PluginCapabilityAuditRepository } from '../../db/repositories/PluginCapabilityAudit.repository';
-import { Settings } from '../../db/entities/Settings.entity';
-import type { SettingsRepository } from '../../db/repositories/Settings.repository';
 import { NotificationChannelPreferences } from '../../db/entities/NotificationChannelPreferences.entity';
+import { PluginActions } from '../../db/entities/PluginActions.entity';
+import { PluginCapabilityAudit } from '../../db/entities/PluginCapabilityAudit.entity';
+import { PluginEgressHosts } from '../../db/entities/PluginEgressHosts.entity';
+import { PluginEntityMetadata } from '../../db/entities/PluginEntityMetadata.entity';
+import { PluginErrorLog } from '../../db/entities/PluginErrorLog.entity';
+import { PluginMetaMigrations } from '../../db/entities/PluginMetaMigrations.entity';
+import { PluginOauthState } from '../../db/entities/PluginOauthState.entity';
+import { PluginOauthTokens } from '../../db/entities/PluginOauthTokens.entity';
+import { PluginScheduledTasks } from '../../db/entities/PluginScheduledTasks.entity';
+import { PluginSettingsFields } from '../../db/entities/PluginSettingsFields.entity';
+import { PluginUserConfig } from '../../db/entities/PluginUserConfig.entity';
+import { PluginUserErasureQueue } from '../../db/entities/PluginUserErasureQueue.entity';
+import { Plugins } from '../../db/entities/Plugins.entity';
+import { Settings } from '../../db/entities/Settings.entity';
 import type { NotificationChannelPreferencesRepository } from '../../db/repositories/NotificationChannelPreferences.repository';
-import { pluginsEnabled } from './kill-switch';
+import type { PluginActionsRepository } from '../../db/repositories/PluginActions.repository';
+import type { PluginCapabilityAuditRepository } from '../../db/repositories/PluginCapabilityAudit.repository';
+import type { PluginEgressHostsRepository } from '../../db/repositories/PluginEgressHosts.repository';
+import type { PluginEntityMetadataRepository } from '../../db/repositories/PluginEntityMetadata.repository';
+import type { PluginErrorLogRepository } from '../../db/repositories/PluginErrorLog.repository';
+import type { PluginMetaMigrationsRepository } from '../../db/repositories/PluginMetaMigrations.repository';
+import type { PluginOauthStateRepository } from '../../db/repositories/PluginOauthState.repository';
+import type { PluginOauthTokensRepository } from '../../db/repositories/PluginOauthTokens.repository';
+import type { PluginScheduledTasksRepository } from '../../db/repositories/PluginScheduledTasks.repository';
+import type { PluginSettingsFieldsRepository } from '../../db/repositories/PluginSettingsFields.repository';
+import type { PluginUserConfigRepository } from '../../db/repositories/PluginUserConfig.repository';
+import type { PluginUserErasureQueueRepository } from '../../db/repositories/PluginUserErasureQueue.repository';
+import type { PluginsRepository } from '../../db/repositories/Plugins.repository';
+import type { SettingsRepository } from '../../db/repositories/Settings.repository';
 import { setPluginEventSink } from '../../plugin-event-sink';
 import { setUserDeletedSink } from '../../plugin-user-lifecycle';
+import { AddonsService } from '../addons/addons.service';
+import { logError } from '../audit/audit-log.logger';
+import { AuditService } from '../audit/audit.service';
+import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { withRequestContext } from '../database/request-context';
+import { UnitOfWork } from '../database/unit-of-work';
 import { setPluginChannelSource, pluginChannelId } from '../notifications/channel-registry';
 import type { ChannelMessage, ExternalChannel } from '../notifications/notification-events';
-import { PluginUserSettingsService } from './plugin-user-settings.service';
-import { PLUGIN_CHANNEL_EVENTS } from './install/manifest';
-import { stripEmoji } from './text-sanitize';
-import { applyStagedPluginTrees, setStagedRestoreApplier } from './plugin-backup';
-import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { applySettingDefaults, settingDefaults } from './settings-defaults';
-import { PluginSupervisor, type PluginRouteInfo } from './supervisor/plugin-supervisor';
-import fs from 'node:fs';
-import path from 'node:path';
-import { PluginRpcHostFactory } from './host/plugin-rpc-host.factory';
-import { closePluginDataDb } from './host/plugin-host-state';
-import { ForbiddenResource } from './host/rpc-host';
-import { removePluginData } from './host/plugin-data.service';
-import { isKnownPermission } from './protocol/envelope';
-import { discoverPlugins, type DiscoveryRepos } from './install/discovery';
-import { enqueueHookUserDataErasures } from './user-erasure-enqueue';
-import { parseJsonText, parseManifest, parseMcpToolCapabilities } from './install/manifest';
-import { scanForNativeBinaries } from './install/native-scan';
+import { CronRegistrarService } from '../scheduling/cron-registrar.service';
+import type { VersionMismatch, PluginDepRow } from './dependencies';
+import {
+  parseDependencies,
+  disabledRequiredAddons,
+  resolveDependencyState,
+  enableOrder,
+  findDependentsTransitive,
+  DependencyCycleError,
+} from './dependencies';
 import { devLinkEnabled, DEV_LINK_SOURCE } from './dev-link';
-import { pluginCodeDir, pluginDataDir } from './paths';
-import { assertHostCompatible, PluginRegistryService, RegistryError } from './registry/registry.service';
+import { removePluginData } from './host/plugin-data.service';
+import { closePluginDataDb } from './host/plugin-host-state';
+import { PluginRpcHostFactory } from './host/plugin-rpc-host.factory';
+import { ForbiddenResource } from './host/rpc-host';
+import { discoverPlugins, type DiscoveryRepos } from './install/discovery';
 import { hostSatisfies, hostVersion, bypassedRange, warnRangeBypass } from './install/host-compat';
 import type { TrekRangeBypass } from './install/host-compat';
-import { keyFingerprint } from './signature-status';
-import { AuditService } from '../audit/audit.service';
-import { AddonsService } from '../addons/addons.service';
+import { PLUGIN_CHANNEL_EVENTS } from './install/manifest';
+import { parseJsonText, parseManifest, parseMcpToolCapabilities } from './install/manifest';
 import type { McpToolCapability, PluginDependency } from './install/manifest';
-import type { VersionMismatch, PluginDepRow } from './dependencies';
-import { parseDependencies, disabledRequiredAddons, resolveDependencyState, enableOrder, findDependentsTransitive, DependencyCycleError } from './dependencies';
-
+import { scanForNativeBinaries } from './install/native-scan';
+import { pluginsEnabled } from './kill-switch';
+import { pluginCodeDir, pluginDataDir } from './paths';
+import { applyStagedPluginTrees, setStagedRestoreApplier } from './plugin-backup';
+import { PluginUserSettingsService } from './plugin-user-settings.service';
+import { isKnownPermission } from './protocol/envelope';
 import { HTTP_OUTBOUND_PREFIX as HTTP_OUTBOUND, PLUGIN_API_VERSION } from './protocol/envelope';
+import { assertHostCompatible, PluginRegistryService, RegistryError } from './registry/registry.service';
+import { applySettingDefaults, settingDefaults } from './settings-defaults';
+import { keyFingerprint } from './signature-status';
+import { PluginSupervisor, type PluginRouteInfo } from './supervisor/plugin-supervisor';
+import { stripEmoji } from './text-sanitize';
+import { enqueueHookUserDataErasures } from './user-erasure-enqueue';
+import { MikroORM } from '@mikro-orm/core';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, Optional, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
 import type { PluginActionDescriptor, PluginActionResult, PluginActionScope } from '@trek/shared';
+
+import fs from 'node:fs';
+import path from 'node:path';
+import semver from 'semver';
 
 // Mirrors HOST_RE in install/manifest.ts: an exact hostname or a `*.`-prefixed wildcard
 // with a real multi-label suffix. Rejects a bare `*`, a whole-TLD wildcard, a scheme and
@@ -91,7 +98,6 @@ const EGRESS_HOST_RE = /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)
 // longer phase-locked to boot time. See task-0-report.md for the full "For the user" note.
 const PLUGIN_SCHEDULER_SWEEP_NAME = 'plugin-scheduler-sweep';
 const PLUGIN_SCHEDULER_SWEEP_CRON = '*/30 * * * * *';
-
 
 /**
  * Remove `<plugins>/<id>` whether it is a real directory, a POSIX symlink or a
@@ -126,7 +132,11 @@ function removePluginCodeEntry(dest: string): void {
 
 /** Thrown when (re-)activating would grant permissions the admin hasn't consented to. */
 export class PluginConsentRequired extends Error {
-  constructor(message: string, readonly newPermissions: string[] = [], readonly newEgress: string[] = []) {
+  constructor(
+    message: string,
+    readonly newPermissions: string[] = [],
+    readonly newEgress: string[] = [],
+  ) {
     super(message);
   }
 }
@@ -157,7 +167,13 @@ export class PluginDependencyError extends Error {
   constructor(
     message: string,
     readonly code: PluginDependencyCode,
-    readonly detail: { addons?: string[]; missing?: PluginDependency[]; versionMismatch?: VersionMismatch[]; trekRange?: string | null; hostVersion?: string } = {},
+    readonly detail: {
+      addons?: string[];
+      missing?: PluginDependency[];
+      versionMismatch?: VersionMismatch[];
+      trekRange?: string | null;
+      hostVersion?: string;
+    } = {},
   ) {
     super(message);
     this.name = 'PluginDependencyError';
@@ -181,49 +197,61 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   // ordering (it runs before the constructor params are assigned) is safe. `orm`
   // (D6, task-2-review.md C3) needs the same laziness — it is read once per RPC
   // dispatch, well after the constructor has run, not at field-init time.
-  private readonly supervisor = new PluginSupervisor((id, granted) => {
-    if (!this.hostFactory) throw new Error('PluginRpcHostFactory not provided — tests that activate plugins must pass one');
-    return this.hostFactory.create(id, granted, this);
-  }, {
-    // Both hooks run from child lifecycle EventEmitter callbacks (exit / stderr 'data'),
-    // so a throw here becomes an uncaughtException that has no host-side handler. During a
-    // restore the core DB is briefly CLOSED (closeDb → the this.db proxy throws on access), so a
-    // status/log write in that window would otherwise take the whole process down mid-
-    // restore. Swallow any DB error — a missed status row / log line is never worth a crash.
-    //
-    // Plan 3j Task 2 (§4a, inventory §8): these callbacks are plain EventEmitter hooks —
-    // NOT async, no enclosing request/tick — so there is no ambient request context a
-    // repository call could resolve through. Resolved lazily, per call, the same way
-    // `budgetFor(pluginId, this.db.connection)` resolves its own connection lazily today:
-    // `withRequestContext(this.orm, ...)` wraps EACH write attempt fresh (never a context
-    // built once at construction), and `.catch()` replaces the old synchronous try/catch
-    // (a repository call is a Promise, not a synchronous throw) — same swallow, same
-    // "a status/log write must never crash the host" guarantee, unchanged. No `this.orm`
-    // (a hand-built test instance without one) means nothing to write to safely — skipped,
-    // not thrown, mirroring `onApplicationBootstrap`'s own no-ORM branch.
-    onStatus: (id, status, error) => {
-      if (!this.orm) return;
-      void withRequestContext(this.orm, () => this.plugins.updateStatusAndError(id, status, error ?? null)).catch(() => {
-        /* DB unavailable (e.g. mid-restore) — a status write must never crash the host */
-      });
+  private readonly supervisor = new PluginSupervisor(
+    (id, granted) => {
+      if (!this.hostFactory)
+        throw new Error('PluginRpcHostFactory not provided — tests that activate plugins must pass one');
+      return this.hostFactory.create(id, granted, this);
     },
-    onLog: (id, level, msg) => {
-      if (level !== 'error' && level !== 'warn') return;
-      if (!this.orm) return;
-      const orm = this.orm;
-      void withRequestContext(orm, () => this.pluginErrorLog.insertLog(id, level, msg))
-        .then(() => {
-          // Retention: a crash-looping plugin emits a stderr line per restart, so an
-          // uncapped table grows without bound in the shared trek.db. Keep only the
-          // most recent LOG_RETENTION rows per plugin (the admin view shows 200).
-          // R1.5: this hook is a child-lifecycle EventEmitter callback the supervisor
-          // cannot await, so the now-async prune is fired off with its own handler —
-          // the same "a log line must never crash the host" rule as the catch below.
-          void withRequestContext(orm, () => this.pruneErrorLog(id)).catch(() => { /* retention is best-effort */ });
-        })
-        .catch(() => { /* DB unavailable — a log line must never crash the host */ });
+    {
+      // Both hooks run from child lifecycle EventEmitter callbacks (exit / stderr 'data'),
+      // so a throw here becomes an uncaughtException that has no host-side handler. During a
+      // restore the core DB is briefly CLOSED (closeDb → the this.db proxy throws on access), so a
+      // status/log write in that window would otherwise take the whole process down mid-
+      // restore. Swallow any DB error — a missed status row / log line is never worth a crash.
+      //
+      // Plan 3j Task 2 (§4a, inventory §8): these callbacks are plain EventEmitter hooks —
+      // NOT async, no enclosing request/tick — so there is no ambient request context a
+      // repository call could resolve through. Resolved lazily, per call, the same way
+      // `budgetFor(pluginId, this.db.connection)` resolves its own connection lazily today:
+      // `withRequestContext(this.orm, ...)` wraps EACH write attempt fresh (never a context
+      // built once at construction), and `.catch()` replaces the old synchronous try/catch
+      // (a repository call is a Promise, not a synchronous throw) — same swallow, same
+      // "a status/log write must never crash the host" guarantee, unchanged. No `this.orm`
+      // (a hand-built test instance without one) means nothing to write to safely — skipped,
+      // not thrown, mirroring `onApplicationBootstrap`'s own no-ORM branch.
+      onStatus: (id, status, error) => {
+        if (!this.orm) return;
+        void withRequestContext(this.orm, () => this.plugins.updateStatusAndError(id, status, error ?? null)).catch(
+          () => {
+            /* DB unavailable (e.g. mid-restore) — a status write must never crash the host */
+          },
+        );
+      },
+      onLog: (id, level, msg) => {
+        if (level !== 'error' && level !== 'warn') return;
+        if (!this.orm) return;
+        const orm = this.orm;
+        void withRequestContext(orm, () => this.pluginErrorLog.insertLog(id, level, msg))
+          .then(() => {
+            // Retention: a crash-looping plugin emits a stderr line per restart, so an
+            // uncapped table grows without bound in the shared trek.db. Keep only the
+            // most recent LOG_RETENTION rows per plugin (the admin view shows 200).
+            // R1.5: this hook is a child-lifecycle EventEmitter callback the supervisor
+            // cannot await, so the now-async prune is fired off with its own handler —
+            // the same "a log line must never crash the host" rule as the catch below.
+            void withRequestContext(orm, () => this.pruneErrorLog(id)).catch(() => {
+              /* retention is best-effort */
+            });
+          })
+          .catch(() => {
+            /* DB unavailable — a log line must never crash the host */
+          });
+      },
     },
-  }, {}, () => this.orm);
+    {},
+    () => this.orm,
+  );
 
   // Filesystem watchers for dev-linked plugins (id -> watcher), so a rebuild of the
   // author's source auto-reloads. Empty unless dev-link is used.
@@ -269,7 +297,8 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     @InjectRepository(PluginMetaMigrations) private readonly pluginMetaMigrations: PluginMetaMigrationsRepository,
     @InjectRepository(PluginCapabilityAudit) private readonly pluginCapabilityAudit: PluginCapabilityAuditRepository,
     @InjectRepository(Settings) private readonly settingsRepo: SettingsRepository,
-    @InjectRepository(NotificationChannelPreferences) private readonly notificationChannelPreferences: NotificationChannelPreferencesRepository,
+    @InjectRepository(NotificationChannelPreferences)
+    private readonly notificationChannelPreferences: NotificationChannelPreferencesRepository,
     // Plan 4 Task 4: no longer `@Optional()` — every hand-built test instance now
     // passes a real one (the same requirement the 14 repositories above already
     // carry). Ordered ahead of `registry?`/`hostFactory?` below because TypeScript
@@ -312,7 +341,13 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   // every hand-built test instance now passes a real one (the same requirement
   // `PluginsService`'s six repositories already carried).
   private get discoveryRepos(): DiscoveryRepos {
-    return { plugins: this.plugins, actions: this.pluginActions, settingsFields: this.pluginSettingsFields, errorLog: this.pluginErrorLog, uow: this.uow };
+    return {
+      plugins: this.plugins,
+      actions: this.pluginActions,
+      settingsFields: this.pluginSettingsFields,
+      errorLog: this.pluginErrorLog,
+      uow: this.uow,
+    };
   }
 
   // onApplicationBootstrap, NOT onModuleInit: boot activation builds each plugin's
@@ -332,7 +367,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     try {
       const applied = applyStagedPluginTrees();
       if (applied.length) console.log(`[plugins] applied staged restore: ${applied.join(', ')}`);
-    } catch { /* reconcile must never stop the server from starting */ }
+    } catch {
+      /* reconcile must never stop the server from starting */
+    }
     // Let a live restore apply its staged plugin trees IMMEDIATELY instead of leaving
     // them for an arbitrary future boot: quiesce every plugin (closing its DB handles)
     // then swap. Plugins stay down until the app restart the restore already requires.
@@ -445,7 +482,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       // errors (each body is wrapped in try/catch); the .catch below is defense-in-
       // depth against a future regression, same shape as the pruneErrorLog call in
       // the onLog hook above.
-      void this.fireDueScheduled().catch(() => { /* fireDueScheduled already handles its own errors — this is a backstop */ });
+      void this.fireDueScheduled().catch(() => {
+        /* fireDueScheduled already handles its own errors — this is a backstop */
+      });
       void this.drainUserErasures();
     });
   }
@@ -474,7 +513,11 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
           : await this.pluginScheduledTasks.deleteById(t.id, now);
         if (!claimed) continue; // another concurrent pass already claimed this row
         let payload: unknown = null;
-        try { payload = JSON.parse(t.payload); } catch { /* corrupt payload -> null */ }
+        try {
+          payload = JSON.parse(t.payload);
+        } catch {
+          /* corrupt payload -> null */
+        }
         this.supervisor.deliverScheduled(t.plugin_id, t.name, payload);
       }
     } catch {
@@ -505,7 +548,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // running two concurrently would select the SAME rows and deliver an erasure twice.
     // A caller that awaits still waits for a full pass (the in-flight one).
     if (this.drainInFlight !== null) return await this.drainInFlight;
-    this.drainInFlight = this.runDrainOnce().finally(() => { this.drainInFlight = null; });
+    this.drainInFlight = this.runDrainOnce().finally(() => {
+      this.drainInFlight = null;
+    });
     return await this.drainInFlight;
   }
 
@@ -543,22 +588,40 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   /** GDPR portability: aggregate what every granted plugin holds about a user. An active
    * plugin whose export ERRORED and an inactive granted plugin are both flagged `pending`
    * (rather than silently omitted), so the export never reads as complete while missing data. */
-  async exportUserData(userId: number): Promise<Array<{ pluginId: string; data?: unknown; pending?: boolean; settings?: Record<string, unknown>; oauthConnected?: boolean }>> {
-    const out: Array<{ pluginId: string; data?: unknown; pending?: boolean; settings?: Record<string, unknown>; oauthConnected?: boolean }> = [];
+  async exportUserData(userId: number): Promise<
+    Array<{
+      pluginId: string;
+      data?: unknown;
+      pending?: boolean;
+      settings?: Record<string, unknown>;
+      oauthConnected?: boolean;
+    }>
+  > {
+    const out: Array<{
+      pluginId: string;
+      data?: unknown;
+      pending?: boolean;
+      settings?: Record<string, unknown>;
+      oauthConnected?: boolean;
+    }> = [];
     if (!pluginsEnabled()) return out;
     const rows = await this.plugins.listIdsAndPermissions();
     for (const r of rows) {
       if (this.supervisor.isActive(r.id)) {
         const res = await this.supervisor.collectUserExport(r.id, userId);
-        if (res === undefined) continue;                       // not granted → nothing to export
+        if (res === undefined) continue; // not granted → nothing to export
         if (res.ok) out.push({ pluginId: r.id, data: res.data });
-        else out.push({ pluginId: r.id, pending: true });      // errored/timed out → incomplete, retryable
+        else out.push({ pluginId: r.id, pending: true }); // errored/timed out → incomplete, retryable
       } else {
         // An inactive plugin can't export now — but if it holds hook:user-data it MAY
         // hold this user's data. Flag it as pending (rather than silently omitting it)
         // so the admin knows to reactivate it to complete a data-access request.
         let perms: unknown;
-        try { perms = JSON.parse(r.permissions ?? '[]'); } catch { perms = []; }
+        try {
+          perms = JSON.parse(r.permissions ?? '[]');
+        } catch {
+          perms = [];
+        }
         if (Array.isArray(perms) && perms.includes('hook:user-data')) out.push({ pluginId: r.id, pending: true });
       }
     }
@@ -572,18 +635,29 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       const byId = new Map(out.map((o) => [o.pluginId, o]));
       const entryFor = (pluginId: string) => {
         let e = byId.get(pluginId);
-        if (!e) { e = { pluginId }; out.push(e); byId.set(pluginId, e); }
+        if (!e) {
+          e = { pluginId };
+          out.push(e);
+          byId.set(pluginId, e);
+        }
         return e;
       };
       const secretKeys = new Map<string, Set<string>>();
       for (const f of await this.pluginSettingsFields.listSecretUserFields()) {
         let s = secretKeys.get(f.plugin_id);
-        if (!s) { s = new Set(); secretKeys.set(f.plugin_id, s); }
+        if (!s) {
+          s = new Set();
+          secretKeys.set(f.plugin_id, s);
+        }
         s.add(f.field_key);
       }
       for (const c of await this.pluginUserConfig.listForUser(userId)) {
         let cfg: Record<string, unknown> = {};
-        try { cfg = JSON.parse(c.config || '{}'); } catch { /* ignore */ }
+        try {
+          cfg = JSON.parse(c.config || '{}');
+        } catch {
+          /* ignore */
+        }
         const secrets = secretKeys.get(c.plugin_id) ?? new Set<string>();
         const masked: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(cfg)) masked[k] = secrets.has(k) ? '***' : v;
@@ -634,7 +708,11 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // nothing was ever registered (e.g. plugins disabled).
     this.registrar?.unregister(PLUGIN_SCHEDULER_SWEEP_NAME);
     for (const w of this.linkWatchers.values()) {
-      try { w.close(); } catch { /* ignore */ }
+      try {
+        w.close();
+      } catch {
+        /* ignore */
+      }
     }
     this.linkWatchers.clear();
     await this.supervisor.shutdownAll();
@@ -683,7 +761,11 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    * plugin-API version compatibility → permission re-consent → required addon disabled →
    * missing/mismatched plugin dependency.
    */
-  private async assertActivatable(id: string, installed: Map<string, PluginDepRow>, consentWiden: boolean): Promise<void> {
+  private async assertActivatable(
+    id: string,
+    installed: Map<string, PluginDepRow>,
+    consentWiden: boolean,
+  ): Promise<void> {
     const row = await this.plugins.findActivationGate(id);
     if (!row) throw new Error(`plugin ${id} not found`);
 
@@ -729,17 +811,28 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // the declared set without an explicit consent; any later widening needs one.
     const everConsented = !!row.granted_permissions;
     if (everConsented && newGrants.length > 0 && !consentWiden) {
-      const newEgress = newGrants.filter((p) => p.startsWith(HTTP_OUTBOUND)).map((p) => p.slice(HTTP_OUTBOUND.length)).filter(Boolean);
+      const newEgress = newGrants
+        .filter((p) => p.startsWith(HTTP_OUTBOUND))
+        .map((p) => p.slice(HTTP_OUTBOUND.length))
+        .filter(Boolean);
       const newPermissions = newGrants.filter((p) => !p.startsWith(HTTP_OUTBOUND));
-      throw new PluginConsentRequired(`plugin ${id} requests new permissions; explicit re-consent is required`, newPermissions, newEgress);
+      throw new PluginConsentRequired(
+        `plugin ${id} requests new permissions; explicit re-consent is required`,
+        newPermissions,
+        newEgress,
+      );
     }
 
     const deps = parseDependencies(row.dependencies);
     const disabledAddons = await disabledRequiredAddons(deps, (id) => this.addons.isAddonEnabled(id));
     if (disabledAddons.length) {
-      throw new PluginDependencyError(`plugin ${id} requires disabled addon(s): ${disabledAddons.join(', ')}`, 'ADDON_DISABLED', {
-        addons: disabledAddons,
-      });
+      throw new PluginDependencyError(
+        `plugin ${id} requires disabled addon(s): ${disabledAddons.join(', ')}`,
+        'ADDON_DISABLED',
+        {
+          addons: disabledAddons,
+        },
+      );
     }
     const state = resolveDependencyState(deps, installed);
     if (state.missing.length || state.versionMismatch.length) {
@@ -759,7 +852,10 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     await this.plugins.grantPermissionsAndEnable(id, JSON.stringify(declared));
     // Manifest defaults fill whatever the admin never set, so the child's ctx.config is
     // the same effective value the settings form shows (see settings-defaults.ts).
-    const config = applySettingDefaults(decryptConfig(parseObject(row.config)), await settingDefaults(this.pluginSettingsFields, id, 'instance'));
+    const config = applySettingDefaults(
+      decryptConfig(parseObject(row.config)),
+      await settingDefaults(this.pluginSettingsFields, id, 'instance'),
+    );
     const manifestHosts = declared.filter((p) => p.startsWith(HTTP_OUTBOUND)).map((p) => p.slice(HTTP_OUTBOUND.length));
     // Union in the hosts the ADMIN added post-install. A plugin that talks to a
     // self-hosted service can't name the operator's hostname in its manifest, so without
@@ -798,7 +894,10 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     }
     const clean: string[] = [];
     for (const raw of hosts) {
-      const host = String(raw ?? '').trim().toLowerCase().replace(/\.$/, '');
+      const host = String(raw ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/\.$/, '');
       if (!host) continue;
       // Same shape the manifest enforces — this string is interpolated into the egress
       // guard AND the iframe CSP connect-src, so a bare `*` or a scheme must never land.
@@ -856,7 +955,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     const enabledById = new Map(rows.map((r) => [r.id, r.enabled]));
     // findDependentsTransitive returns nearest-first; reverse so the deepest dependent
     // (the furthest caller) stops before the plugin it depends on.
-    const dependents = findDependentsTransitive(id, rows).filter((d) => enabledById.get(d)).reverse();
+    const dependents = findDependentsTransitive(id, rows)
+      .filter((d) => enabledById.get(d))
+      .reverse();
     const order = [...dependents, id];
     for (const pid of order) await this.deactivate(pid).catch(() => {});
     return order;
@@ -876,7 +977,13 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   async update(
     id: string,
     opts?: { version?: string; retrustKey?: string },
-  ): Promise<{ version: string; activated: boolean; newPermissions: string[]; newEgress: string[]; trekRangeBypassed: TrekRangeBypass | null }> {
+  ): Promise<{
+    version: string;
+    activated: boolean;
+    newPermissions: string[];
+    newEgress: string[];
+    trekRangeBypassed: TrekRangeBypass | null;
+  }> {
     const before = await this.plugins.findPreUpdateSnapshot(id);
     if (!before) throw new Error(`plugin ${id} not found`);
     if (!this.registry) throw new Error('registry service unavailable');
@@ -893,19 +1000,34 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // swaps code + refreshes declared permissions; keeps granted
     const res = await this.registry.install(id, { version: target, retrustKey: opts?.retrustKey });
 
-    const declared = parseArray(await this.plugins.findPermissions(id) ?? '[]').filter(isKnownPermission);
+    const declared = parseArray((await this.plugins.findPermissions(id)) ?? '[]').filter(isKnownPermission);
     const newGrants = declared.filter((p) => !granted.has(p));
-    const newEgress = newGrants.filter((p) => p.startsWith(HTTP_OUTBOUND)).map((p) => p.slice(HTTP_OUTBOUND.length)).filter(Boolean);
+    const newEgress = newGrants
+      .filter((p) => p.startsWith(HTTP_OUTBOUND))
+      .map((p) => p.slice(HTTP_OUTBOUND.length))
+      .filter(Boolean);
     const newPermissions = newGrants.filter((p) => !p.startsWith(HTTP_OUTBOUND));
 
     if (wasEnabled) await this.deactivate(id); // stop the old child now that new code is in place
     if (newGrants.length === 0 && wasEnabled) {
       await this.activate(id); // no wider rights → transparent restart on the new code
-      return { version: res.version, activated: true, newPermissions, newEgress, trekRangeBypassed: res.trekRangeBypassed };
+      return {
+        version: res.version,
+        activated: true,
+        newPermissions,
+        newEgress,
+        trekRangeBypassed: res.trekRangeBypassed,
+      };
     }
     // New rights requested (or it was already disabled): leave it inactive until
     // an admin explicitly consents by activating it.
-    return { version: res.version, activated: false, newPermissions, newEgress, trekRangeBypassed: res.trekRangeBypassed };
+    return {
+      version: res.version,
+      activated: false,
+      newPermissions,
+      newEgress,
+      trekRangeBypassed: res.trekRangeBypassed,
+    };
   }
 
   /**
@@ -981,7 +1103,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    * commits it as an INACTIVE sideloaded plugin. Never auto-activates — the admin
    * re-activates (and re-consents to permissions) explicitly.
    */
-  async sideload(bytes: Buffer): Promise<{ id: string; version: string; replaced: boolean; trekRangeBypassed: TrekRangeBypass | null }> {
+  async sideload(
+    bytes: Buffer,
+  ): Promise<{ id: string; version: string; replaced: boolean; trekRangeBypassed: TrekRangeBypass | null }> {
     if (!this.registry) throw new Error('registry service unavailable');
     const staged = this.registry.stageUpload(bytes);
     try {
@@ -996,7 +1120,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       return { id: staged.id, version: staged.version, replaced, trekRangeBypassed: staged.trekRangeBypassed };
     } catch (e) {
       // A failure before commitUpload leaves staging behind — clean it up.
-      try { fs.rmSync(staged.stagingDir, { recursive: true, force: true }); } catch {}
+      try {
+        fs.rmSync(staged.stagingDir, { recursive: true, force: true });
+      } catch {}
       throw e;
     }
   }
@@ -1009,7 +1135,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    * and starts an fs.watch that re-forks on rebuild. Gated behind TREK_PLUGINS_DEV_LINK
    * on top of the controller's admin + kill-switch gates — see dev-link.ts for why.
    */
-  async link(sourceDir: string): Promise<{ id: string; version: string; replaced: boolean; trekRangeBypassed: TrekRangeBypass | null }> {
+  async link(
+    sourceDir: string,
+  ): Promise<{ id: string; version: string; replaced: boolean; trekRangeBypassed: TrekRangeBypass | null }> {
     if (!devLinkEnabled()) throw new Error('dev-link is disabled (set TREK_PLUGINS_DEV_LINK=1)');
     if (!path.isAbsolute(sourceDir)) throw new Error('the dev-link path must be absolute');
     const manifestPath = path.join(sourceDir, 'trek-plugin.json');
@@ -1017,7 +1145,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     const manifest = parseManifest(parseJsonText(fs.readFileSync(manifestPath, 'utf8')), { requireTrek: true });
     const trekRangeBypassed = assertHostCompatible(manifest.trekRange, manifest.id);
     if (!fs.existsSync(path.join(sourceDir, 'server', 'index.js'))) {
-      throw new Error('no built server/index.js — build the plugin first (the loader runs the compiled artifact, not TS source)');
+      throw new Error(
+        'no built server/index.js — build the plugin first (the loader runs the compiled artifact, not TS source)',
+      );
     }
     if (scanForNativeBinaries(sourceDir).length) throw new Error('directory contains native binaries');
 
@@ -1083,7 +1213,11 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   private stopWatch(id: string): void {
     const w = this.linkWatchers.get(id);
     if (w) {
-      try { w.close(); } catch { /* ignore */ }
+      try {
+        w.close();
+      } catch {
+        /* ignore */
+      }
       this.linkWatchers.delete(id);
     }
   }
@@ -1108,11 +1242,19 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     removePluginCodeEntry(pluginCodeDir(id));
     await this.plugins.deleteById(id);
     await this.pluginSettingsFields.deleteAllForPlugin(id);
-    try { await this.pluginActions.deleteAllForPlugin(id); } catch { /* table absent */ }
+    try {
+      await this.pluginActions.deleteAllForPlugin(id);
+    } catch {
+      /* table absent */
+    }
     // The admin's egress consent dies with the plugin. Unconditional: leaving it would
     // silently grant a LATER plugin that reuses this id the hosts the admin approved for
     // a different one.
-    try { await this.pluginEgressHosts.deleteAllForPlugin(id); } catch { /* table absent */ }
+    try {
+      await this.pluginEgressHosts.deleteAllForPlugin(id);
+    } catch {
+      /* table absent */
+    }
     // Scheduled tasks are operational (not user data), so they go unconditionally —
     // a scheduled callback for a plugin that no longer exists must never fire.
     await this.pluginScheduledTasks.deleteAllForPlugin(id);
@@ -1179,7 +1321,14 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    * timeout than a route call so a slow provider can't delay the core response;
    * the acting user is host-bound so any trip read the hook makes is membership-checked.
    */
-  invokeHook(id: string, hook: string, fn: string, args: unknown[], actingUserId?: number, timeoutMs = 5000): Promise<unknown> {
+  invokeHook(
+    id: string,
+    hook: string,
+    fn: string,
+    args: unknown[],
+    actingUserId?: number,
+    timeoutMs = 5000,
+  ): Promise<unknown> {
     // Defense-in-depth: only a plugin that both implements the hook AND holds the
     // hook:* grant (providersOf enforces both) may be invoked, even if a caller
     // passes an id directly rather than one returned by providersOf.
@@ -1198,14 +1347,25 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    * `capabilities.provides` AND implemented, as reported at load). The acting user
    * is forwarded, so the target's export runs membership-checked as the caller's user.
    */
-  async callPlugin(callerId: string, targetId: string, fn: string, args: unknown, actingUserId: number | undefined): Promise<unknown> {
+  async callPlugin(
+    callerId: string,
+    targetId: string,
+    fn: string,
+    args: unknown,
+    actingUserId: number | undefined,
+  ): Promise<unknown> {
     if (!this.supervisor.isActive(targetId)) {
       return Promise.reject(new ForbiddenResource(`plugin ${targetId} is not active`));
     }
     if (!(await this.dependsOnSatisfied(callerId, targetId))) {
-      return Promise.reject(new ForbiddenResource(`plugin ${callerId} does not declare ${targetId} as a satisfied dependency`));
+      return Promise.reject(
+        new ForbiddenResource(`plugin ${callerId} does not declare ${targetId} as a satisfied dependency`),
+      );
     }
-    if (!(await this.capabilityList(targetId, 'provides')).includes(fn) || !this.supervisor.exportsOf(targetId).includes(fn)) {
+    if (
+      !(await this.capabilityList(targetId, 'provides')).includes(fn) ||
+      !this.supervisor.exportsOf(targetId).includes(fn)
+    ) {
       return Promise.reject(new ForbiddenResource(`plugin ${targetId} does not export "${fn}"`));
     }
     return this.supervisor.invoke(targetId, 'invoke.export', { fn, args }, { actingUserId, timeoutMs: 5000 });
@@ -1223,7 +1383,12 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     for (const subscriberId of this.supervisor.subscribersOf(sourceId, event)) {
       if (!(await this.dependsOnSatisfied(subscriberId, sourceId))) continue;
       this.supervisor
-        .invoke(subscriberId, 'invoke.pluginEvent', { source: sourceId, event, payload }, { actingUserId: undefined, timeoutMs: 5000 })
+        .invoke(
+          subscriberId,
+          'invoke.pluginEvent',
+          { source: sourceId, event, payload },
+          { actingUserId: undefined, timeoutMs: 5000 },
+        )
         .catch(() => {
           /* a subscriber that throws/times out must not affect the emitter or peers */
         });
@@ -1255,7 +1420,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // module).
     try {
       await this.notificationChannelPreferences.deleteAllForChannel(pluginChannelId(id));
-    } catch { /* no notifications schema here — nothing to retire */ }
+    } catch {
+      /* no notifications schema here — nothing to retire */
+    }
   }
 
   /**
@@ -1276,8 +1443,11 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       const row = await this.plugins.findNameAndCapabilities(id);
       let cap: { title?: string; events?: string[] } = {};
       try {
-        cap = ((JSON.parse(row?.capabilities || '{}') as Record<string, unknown>).notificationChannel ?? {}) as typeof cap;
-      } catch { /* a malformed capabilities blob just means "no overrides" */ }
+        cap = ((JSON.parse(row?.capabilities || '{}') as Record<string, unknown>).notificationChannel ??
+          {}) as typeof cap;
+      } catch {
+        /* a malformed capabilities blob just means "no overrides" */
+      }
 
       const allowed = new Set(cap.events?.length ? cap.events : PLUGIN_CHANNEL_EVENTS);
 
@@ -1303,7 +1473,10 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
             id,
             'notificationChannel',
             'send',
-            [{ event: msg.event, title: msg.title, body: msg.body, url: msg.url, tripName: msg.tripName }, await this.userSettings.readAll(id, userId)],
+            [
+              { event: msg.event, title: msg.title, body: msg.body, url: msg.url, tripName: msg.tripName },
+              await this.userSettings.readAll(id, userId),
+            ],
             // No acting user: a notification is host-initiated for an arbitrary
             // recipient, so the hook gets the recipient's config as an argument
             // rather than the right to read anything AS them.
@@ -1312,7 +1485,14 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
           ),
         test: async (userId: number) => {
           try {
-            await this.invokeHook(id, 'notificationChannel', 'test', [await this.userSettings.readAll(id, userId)], undefined, 8000);
+            await this.invokeHook(
+              id,
+              'notificationChannel',
+              'test',
+              [await this.userSettings.readAll(id, userId)],
+              undefined,
+              8000,
+            );
             return { success: true };
           } catch (e) {
             return { success: false, error: e instanceof Error ? e.message : String(e) };
@@ -1345,15 +1525,19 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
    * any trip read it makes is membership-checked against them. The scope is the
    * CALLER's route, so a user route can never fire an admin button, nor the reverse.
    */
-  async invokeAction(id: string, key: string, actingUserId: number, scope: PluginActionScope): Promise<PluginActionResult> {
+  async invokeAction(
+    id: string,
+    key: string,
+    actingUserId: number,
+    scope: PluginActionScope,
+  ): Promise<PluginActionResult> {
     if (!(await this.actionsOf(id, scope)).some((a) => a.key === key)) {
       throw new ForbiddenResource(`plugin ${id} did not declare action "${key}" in scope ${scope}`);
     }
     const cap = (v: unknown) => stripEmoji(String(v)).slice(0, 200);
     try {
       const raw = (await this.supervisor.invoke(id, 'invoke.action', { key }, { actingUserId, timeoutMs: 15_000 })) as
-        | { ok?: unknown; message?: unknown }
-        | undefined;
+        { ok?: unknown; message?: unknown } | undefined;
       // The message is plugin-supplied and rendered to the user — bound it like every
       // other plugin string the host displays.
       return { ok: raw?.ok !== false, message: raw?.message === undefined ? undefined : cap(raw.message) };

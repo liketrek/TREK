@@ -1,8 +1,8 @@
-import { SlidersHorizontal } from 'lucide-react'
-import { MapTogglePill } from '../../../../components/Map/MapTogglePill'
-import { useTripStore } from '../../../../store/tripStore'
-import { countActivePlacesFilters } from '../../../../utils/placesFilter'
-import { useTranslation } from '../../../../i18n'
+import { SlidersHorizontal } from 'lucide-react';
+import { MapTogglePill } from '../../../../components/Map/MapTogglePill';
+import { useTranslation } from '../../../../i18n';
+import { useTripStore } from '../../../../store/tripStore';
+import { countActivePlacesFilters } from '../../../../utils/placesFilter';
 
 /**
  * The phone map's way into the places filter: a round control in the right-hand
@@ -11,12 +11,12 @@ import { useTranslation } from '../../../../i18n'
  * rather than a pressed state.
  */
 export function MPlacesFilterPill({ onOpen }: { onOpen: () => void }) {
-  const { t } = useTranslation()
-  const filter = useTripStore(s => s.placesFilter)
-  const categoryFilters = useTripStore(s => s.placesCategoryFilter)
-  const ratingFilter = useTripStore(s => s.placesRatingFilter)
-  const count = countActivePlacesFilters({ filter, categoryFilters, ratingFilter })
-  const label = count > 0 ? `${t('places.filters')} (${count})` : t('places.filters')
+  const { t } = useTranslation();
+  const filter = useTripStore((s) => s.placesFilter);
+  const categoryFilters = useTripStore((s) => s.placesCategoryFilter);
+  const ratingFilter = useTripStore((s) => s.placesRatingFilter);
+  const count = countActivePlacesFilters({ filter, categoryFilters, ratingFilter });
+  const label = count > 0 ? `${t('places.filters')} (${count})` : t('places.filters');
   return (
     <MapTogglePill
       active={count > 0}
@@ -27,5 +27,5 @@ export function MPlacesFilterPill({ onOpen }: { onOpen: () => void }) {
       opensDialog
       icon={<SlidersHorizontal size={17} strokeWidth={2} />}
     />
-  )
+  );
 }

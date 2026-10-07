@@ -1,20 +1,32 @@
 // FE-PLANNER-FILEIMP-001 to FE-PLANNER-FILEIMP-021
-import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import { http, HttpResponse } from 'msw';
+import { buildTrip } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
 import { readMultipart } from '../../../tests/helpers/multipart';
-import { useTripStore } from '../../store/tripStore';
+import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildTrip } from '../../../tests/helpers/factories';
+import { useTripStore } from '../../store/tripStore';
 import FileImportModal from './FileImportModal';
 
 const toastCalls: Array<[string, string]> = [];
 vi.mock('../shared/Toast', () => ({
   useToast: () => ({
-    success: (m: string) => { toastCalls.push(['success', m]); return 0; },
-    error: (m: string) => { toastCalls.push(['error', m]); return 0; },
-    warning: (m: string) => { toastCalls.push(['warning', m]); return 0; },
-    info: (m: string) => { toastCalls.push(['info', m]); return 0; },
+    success: (m: string) => {
+      toastCalls.push(['success', m]);
+      return 0;
+    },
+    error: (m: string) => {
+      toastCalls.push(['error', m]);
+      return 0;
+    },
+    warning: (m: string) => {
+      toastCalls.push(['warning', m]);
+      return 0;
+    },
+    info: (m: string) => {
+      toastCalls.push(['info', m]);
+      return 0;
+    },
   }),
 }));
 
@@ -38,7 +50,9 @@ beforeEach(() => {
   resetAllStores();
   seedStore(useTripStore, { trip: buildTrip({ id: 3 }) });
   server.use(
-    http.get('/api/trips/3', () => HttpResponse.json({ trip: buildTrip({ id: 3 }), days: [], places: [], assignments: {} })),
+    http.get('/api/trips/3', () =>
+      HttpResponse.json({ trip: buildTrip({ id: 3 }), days: [], places: [], assignments: {} })
+    )
   );
 });
 
@@ -135,7 +149,7 @@ describe('FileImportModal', () => {
           tracks: fields.importTracks,
         };
         return HttpResponse.json({ count: 4, skipped: 0, places: [{ id: 11 }, { id: 12 }] });
-      }),
+      })
     );
     render(<FileImportModal {...defaultProps} onClose={onClose} initialFile={gpx()} />);
     fireEvent.click(screen.getByText('Routes'));
@@ -151,11 +165,12 @@ describe('FileImportModal', () => {
     let deleted: number[] = [];
     server.use(
       http.post('/api/trips/3/places/import/gpx', () =>
-        HttpResponse.json({ count: 2, skipped: 0, places: [{ id: 21 }, { id: 22 }] })),
+        HttpResponse.json({ count: 2, skipped: 0, places: [{ id: 21 }, { id: 22 }] })
+      ),
       http.post('/api/trips/3/places/bulk-delete', async ({ request }) => {
         deleted = ((await request.json()) as { ids: number[] }).ids;
         return HttpResponse.json({ deleted: deleted.length });
-      }),
+      })
     );
     render(<FileImportModal {...defaultProps} pushUndo={pushUndo} initialFile={gpx()} />);
     fireEvent.click(importBtn());
@@ -173,8 +188,15 @@ describe('FileImportModal', () => {
         HttpResponse.json({
           count: 3,
           places: [{ id: 31 }],
-          summary: { totalPlacemarks: 5, createdCount: 3, skippedCount: 2, warnings: ['2 placemarks had no coordinates'], errors: [] },
-        })),
+          summary: {
+            totalPlacemarks: 5,
+            createdCount: 3,
+            skippedCount: 2,
+            warnings: ['2 placemarks had no coordinates'],
+            errors: [],
+          },
+        })
+      )
     );
     render(<FileImportModal {...defaultProps} onClose={onClose} initialFile={kml()} />);
     fireEvent.click(importBtn());
@@ -191,7 +213,8 @@ describe('FileImportModal', () => {
           count: 1,
           places: [{ id: 41 }],
           summary: { totalPlacemarks: 2, createdCount: 1, skippedCount: 1, warnings: ['w'], errors: [] },
-        })),
+        })
+      )
     );
     render(<FileImportModal {...defaultProps} />);
     fireEvent.change(fileInput(), { target: { files: [kml('a.kml'), kml('b.kmz')] } });
@@ -201,7 +224,7 @@ describe('FileImportModal', () => {
 
   it('FE-PLANNER-FILEIMP-015: an import where everything was skipped warns instead of claiming success', async () => {
     server.use(
-      http.post('/api/trips/3/places/import/gpx', () => HttpResponse.json({ count: 0, skipped: 3, places: [] })),
+      http.post('/api/trips/3/places/import/gpx', () => HttpResponse.json({ count: 0, skipped: 3, places: [] }))
     );
     render(<FileImportModal {...defaultProps} initialFile={gpx()} />);
     fireEvent.click(importBtn());
@@ -211,7 +234,7 @@ describe('FileImportModal', () => {
   it('FE-PLANNER-FILEIMP-016: a failing import shows the server error and keeps the modal open', async () => {
     const onClose = vi.fn();
     server.use(
-      http.post('/api/trips/3/places/import/gpx', () => HttpResponse.json({ error: 'Malformed GPX' }, { status: 400 })),
+      http.post('/api/trips/3/places/import/gpx', () => HttpResponse.json({ error: 'Malformed GPX' }, { status: 400 }))
     );
     render(<FileImportModal {...defaultProps} onClose={onClose} initialFile={gpx()} />);
     fireEvent.click(importBtn());
@@ -221,9 +244,7 @@ describe('FileImportModal', () => {
   });
 
   it('FE-PLANNER-FILEIMP-017: with several files each error is prefixed with its file name', async () => {
-    server.use(
-      http.post('/api/trips/3/places/import/gpx', () => HttpResponse.error()),
-    );
+    server.use(http.post('/api/trips/3/places/import/gpx', () => HttpResponse.error()));
     render(<FileImportModal {...defaultProps} />);
     fireEvent.change(fileInput(), { target: { files: [gpx('one.gpx'), gpx('two.gpx')] } });
     fireEvent.click(importBtn());

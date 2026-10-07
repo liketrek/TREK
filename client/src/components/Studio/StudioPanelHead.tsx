@@ -11,5 +11,5 @@ export function PanelHead({ label, count }: { label: string; count?: number }) {
       <span>{label}</span>
       {count != null && <span style={{ fontVariantNumeric: 'tabular-nums' }}>{count}</span>}
     </div>
-  )
+  );
 }

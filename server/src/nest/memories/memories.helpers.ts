@@ -1,7 +1,8 @@
-import { pipeline } from 'node:stream/promises';
-import { Readable } from 'node:stream';
-import { Response } from 'express';
 import { safeFetch, SsrfBlockedError, type SafeFetchOptions } from '../../utils/ssrfGuard';
+
+import { Response } from 'express';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
 /**
  * The shared vocabulary of the memories domain: the ServiceResult envelope, the
@@ -17,80 +18,76 @@ import { safeFetch, SsrfBlockedError, type SafeFetchOptions } from '../../utils/
 type ServiceError = { success: false; error: { message: string; status: number } };
 export type ServiceResult<T> = { success: true; data: T } | ServiceError;
 
-
 export function fail(error: string, status: number): ServiceError {
-    return { success: false, error: { message: error, status } };
+  return { success: false, error: { message: error, status } };
 }
-
 
 export function success<T>(data: T): ServiceResult<T> {
-    return { success: true, data: data };
+  return { success: true, data: data };
 }
-
 
 export function mapDbError(error: Error, fallbackMessage: string): ServiceError {
-    if (error && /unique|constraint/i.test(error.message)) {
-        return fail('Resource already exists', 409);
-    }
-    return fail(error.message, 500);
+  if (error && /unique|constraint/i.test(error.message)) {
+    return fail('Resource already exists', 409);
+  }
+  return fail(error.message, 500);
 }
 
-
 export function handleServiceResult<T>(res: Response, result: ServiceResult<T>): void {
-    if ('error' in result) {
-        res.status(result.error.status).json({ error: result.error.message });
-    }
-    else {
-        res.json(result.data);
-    }
+  if ('error' in result) {
+    res.status(result.error.status).json({ error: result.error.message });
+  } else {
+    res.json(result.data);
+  }
 }
 
 // ----------------------------------------------
 // types used across memories services
 export type Selection = {
-    provider: string;
-    asset_ids: string[];
-    passphrase?: string;
+  provider: string;
+  asset_ids: string[];
+  passphrase?: string;
 };
 
-export type StatusResult = {
-    connected: true;
-    user: { name: string }
-} | {
-    connected: false;
-    error: string
-};
+export type StatusResult =
+  | {
+      connected: true;
+      user: { name: string };
+    }
+  | {
+      connected: false;
+      error: string;
+    };
 
 export type SyncAlbumResult = {
-    added: number;
-    total: number
+  added: number;
+  total: number;
 };
 
-
 export type AlbumsList = {
-    albums: Array<{ id: string; albumName: string; assetCount: number; passphrase?: string }>
+  albums: Array<{ id: string; albumName: string; assetCount: number; passphrase?: string }>;
 };
 
 export type Asset = {
-    id: string;
-    takenAt: string;
-    /**
-     * The wall clock the photographer read, timezone-agnostic, when the provider
-     * knows it. Absent from providers that store instants only, so read it with
-     * `takenAt` as the fallback.
-     */
-    localTakenAt?: string | null;
-    mediaType?: string;
-    city?: string | null;
-    country?: string | null;
-    lat?: number | null;
-    lng?: number | null;
+  id: string;
+  takenAt: string;
+  /**
+   * The wall clock the photographer read, timezone-agnostic, when the provider
+   * knows it. Absent from providers that store instants only, so read it with
+   * `takenAt` as the fallback.
+   */
+  localTakenAt?: string | null;
+  mediaType?: string;
+  city?: string | null;
+  country?: string | null;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export type AssetsList = {
-    assets: Asset[],
-    total: number,
-    hasMore: boolean
+  assets: Asset[];
+  total: number;
+  hasMore: boolean;
 };
 
 /**
@@ -113,20 +110,19 @@ export type AssetsList = {
  * would re-parse the same string O(n log n) times.
  */
 export function sortAssetsByTakenAtDesc<T extends { takenAt?: string | null }>(assets: T[]): T[] {
-    return assets
-        .map(asset => {
-            const parsed = asset.takenAt ? Date.parse(asset.takenAt) : Number.NaN;
-            return { asset, at: Number.isNaN(parsed) ? null : parsed };
-        })
-        .sort((a, b) => {
-            if (a.at === null && b.at === null) return 0;
-            if (a.at === null) return 1;
-            if (b.at === null) return -1;
-            return b.at - a.at;
-        })
-        .map(entry => entry.asset);
+  return assets
+    .map((asset) => {
+      const parsed = asset.takenAt ? Date.parse(asset.takenAt) : Number.NaN;
+      return { asset, at: Number.isNaN(parsed) ? null : parsed };
+    })
+    .sort((a, b) => {
+      if (a.at === null && b.at === null) return 0;
+      if (a.at === null) return 1;
+      if (b.at === null) return -1;
+      return b.at - a.at;
+    })
+    .map((entry) => entry.asset);
 }
-
 
 /**
  * A calendar day shifted by whole days, as 'YYYY-MM-DD'.
@@ -141,11 +137,10 @@ export function sortAssetsByTakenAtDesc<T extends { takenAt?: string | null }>(a
  * than turning into a different window here.
  */
 export function shiftCalendarDay(day: string, deltaDays: number): string {
-    const parsed = Date.parse(`${day}T00:00:00.000Z`);
-    if (Number.isNaN(parsed)) return day;
-    return new Date(parsed + deltaDays * 86400000).toISOString().slice(0, 10);
+  const parsed = Date.parse(`${day}T00:00:00.000Z`);
+  if (Number.isNaN(parsed)) return day;
+  return new Date(parsed + deltaDays * 86400000).toISOString().slice(0, 10);
 }
-
 
 /**
  * Does this asset belong to the requested calendar days?
@@ -160,17 +155,16 @@ export function shiftCalendarDay(day: string, deltaDays: number): string {
  * photo the caller could see before this filter existed.
  */
 export function isWithinLocalDayRange(
-    asset: { takenAt?: string | null; localTakenAt?: string | null },
-    from?: string,
-    to?: string,
+  asset: { takenAt?: string | null; localTakenAt?: string | null },
+  from?: string,
+  to?: string,
 ): boolean {
-    const day = (asset.localTakenAt || asset.takenAt || '').slice(0, 10);
-    if (day.length < 10) return true;
-    if (from && day < from) return false;
-    if (to && day > to) return false;
-    return true;
+  const day = (asset.localTakenAt || asset.takenAt || '').slice(0, 10);
+  if (day.length < 10) return true;
+  if (from && day < from) return false;
+  if (to && day > to) return false;
+  return true;
 }
-
 
 /**
  * When a calendar day starts, in whole epoch seconds, read in the caller's zone.
@@ -183,11 +177,10 @@ export function isWithinLocalDayRange(
  * it, which is what the window did with it before.
  */
 export function dayStartEpochSeconds(day: string, tzOffsetMinutes = 0): number {
-    const dayOnly = Date.parse(`${day}T00:00:00.000Z`);
-    if (Number.isNaN(dayOnly)) return Math.floor(Date.parse(day) / 1000);
-    return Math.floor(dayOnly / 1000) - tzOffsetMinutes * 60;
+  const dayOnly = Date.parse(`${day}T00:00:00.000Z`);
+  if (Number.isNaN(dayOnly)) return Math.floor(Date.parse(day) / 1000);
+  return Math.floor(dayOnly / 1000) - tzOffsetMinutes * 60;
 }
-
 
 // 'YYYY:MM:DD HH:MM:SS' as EXIF writes it. The dashed date is what some
 // converters produce and what exifr's own reviver accepted, so it keeps working,
@@ -204,17 +197,16 @@ const EXIF_ZONE = /^(?:(Z|UTC|GMT)|([+-])(\d{2}):?(\d{2}))$/i;
 
 /** An EXIF zone ('+02:00', an OffsetTime* tag or a stamp's own) in minutes east of UTC, or null when it is not one. */
 function exifZoneMinutes(value: unknown): number | null {
-    if (typeof value !== 'string') return null;
-    const m = EXIF_ZONE.exec(value.trim());
-    if (!m) return null;
-    if (m[1]) return 0;
-    const hours = Number(m[3]);
-    const minutes = Number(m[4]);
-    // Real zones run from -12:00 to +14:00; anything past that is a broken tag.
-    if (hours > 14 || minutes > 59) return null;
-    return (m[2] === '-' ? -1 : 1) * (hours * 60 + minutes);
+  if (typeof value !== 'string') return null;
+  const m = EXIF_ZONE.exec(value.trim());
+  if (!m) return null;
+  if (m[1]) return 0;
+  const hours = Number(m[3]);
+  const minutes = Number(m[4]);
+  // Real zones run from -12:00 to +14:00; anything past that is a broken tag.
+  if (hours > 14 || minutes > 59) return null;
+  return (m[2] === '-' ? -1 : 1) * (hours * 60 + minutes);
 }
-
 
 /**
  * The instant an EXIF capture stamp names, as an ISO string, or null.
@@ -235,56 +227,60 @@ function exifZoneMinutes(value: unknown): number | null {
  * writes, 30 February, 25 o'clock) is null, not whatever Date rolls it over to.
  */
 export function exifCaptureInstant(stamp: unknown, offsets: unknown[]): string | null {
-    if (typeof stamp !== 'string') return null;
-    const text = stamp.trim();
-    if (text.length > EXIF_STAMP_MAX) return null;
-    const m = EXIF_STAMP.exec(text);
-    if (!m) return null;
-    const suffix = text.slice(m[0].length).trim();
-    // After the time there is either nothing or a zone; anything else ('CEST',
-    // '+2', 'later') is not a stamp. A zone that is out of range leaves the
-    // decision to the tags.
-    if (suffix && !EXIF_ZONE.test(suffix)) return null;
-    const [year, month, day, hour, minute, second] = m.slice(1, 7).map(Number);
-    const wall = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
-    // Date.UTC quietly rolls an impossible part into the next one (and reads
-    // years below 100 as 19xx), so the parts have to survive the round trip. It
-    // is checked on the UTC reading so a local DST gap does not count as invalid.
-    if (wall.getUTCFullYear() !== year || wall.getUTCMonth() !== month - 1 || wall.getUTCDate() !== day
-        || wall.getUTCHours() !== hour || wall.getUTCMinutes() !== minute || wall.getUTCSeconds() !== second) {
-        return null;
-    }
-    const offset = exifZoneMinutes(suffix) ?? offsets.map(exifZoneMinutes).find(o => o !== null);
-    const instant = offset == null
-        ? new Date(year, month - 1, day, hour, minute, second)
-        : new Date(wall.getTime() - offset * 60000);
-    return instant.toISOString();
+  if (typeof stamp !== 'string') return null;
+  const text = stamp.trim();
+  if (text.length > EXIF_STAMP_MAX) return null;
+  const m = EXIF_STAMP.exec(text);
+  if (!m) return null;
+  const suffix = text.slice(m[0].length).trim();
+  // After the time there is either nothing or a zone; anything else ('CEST',
+  // '+2', 'later') is not a stamp. A zone that is out of range leaves the
+  // decision to the tags.
+  if (suffix && !EXIF_ZONE.test(suffix)) return null;
+  const [year, month, day, hour, minute, second] = m.slice(1, 7).map(Number);
+  const wall = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+  // Date.UTC quietly rolls an impossible part into the next one (and reads
+  // years below 100 as 19xx), so the parts have to survive the round trip. It
+  // is checked on the UTC reading so a local DST gap does not count as invalid.
+  if (
+    wall.getUTCFullYear() !== year ||
+    wall.getUTCMonth() !== month - 1 ||
+    wall.getUTCDate() !== day ||
+    wall.getUTCHours() !== hour ||
+    wall.getUTCMinutes() !== minute ||
+    wall.getUTCSeconds() !== second
+  ) {
+    return null;
+  }
+  const offset = exifZoneMinutes(suffix) ?? offsets.map(exifZoneMinutes).find((o) => o !== null);
+  const instant =
+    offset == null ? new Date(year, month - 1, day, hour, minute, second) : new Date(wall.getTime() - offset * 60000);
+  return instant.toISOString();
 }
-
 
 export type AssetInfo = {
-    id: string;
-    takenAt: string | null;
-    /** What the provider says this is. Absent means the provider does not tell us. */
-    mediaType?: 'image' | 'video';
-    city: string | null;
-    country: string | null;
-    state?: string | null;
-    camera?: string | null;
-    lens?: string | null;
-    focalLength?: string | number | null;
-    aperture?: string | number | null;
-    shutter?: string | number | null;
-    iso?: string | number | null;
-    lat?: number | null;
-    lng?: number | null;
-    orientation?: number | null;
-    description?: string | null;
-    width?: number | null;
-    height?: number | null;
-    fileSize?: number | null;
-    fileName?: string | null;
-}
+  id: string;
+  takenAt: string | null;
+  /** What the provider says this is. Absent means the provider does not tell us. */
+  mediaType?: 'image' | 'video';
+  city: string | null;
+  country: string | null;
+  state?: string | null;
+  camera?: string | null;
+  lens?: string | null;
+  focalLength?: string | number | null;
+  aperture?: string | number | null;
+  shutter?: string | number | null;
+  iso?: string | number | null;
+  lat?: number | null;
+  lng?: number | null;
+  orientation?: number | null;
+  description?: string | null;
+  width?: number | null;
+  height?: number | null;
+  fileSize?: number | null;
+  fileName?: string | null;
+};
 
 const NODE_OPERATOR_HINT = /;\s*if the root CA is installed locally.*$/is;
 
@@ -300,14 +296,14 @@ const NODE_OPERATOR_HINT = /;\s*if the root CA is installed locally.*$/is;
  * card cannot act on it.
  */
 export function describeFetchFailure(err: unknown): string {
-    if (!(err instanceof Error)) return 'Connection failed';
-    let cause: unknown = err.cause;
-    for (let depth = 0; depth < 3 && cause instanceof Error; depth++) {
-        const reason = cause.message.replace(NODE_OPERATOR_HINT, '').trim();
-        if (reason && reason !== err.message) return `${err.message} (${reason})`;
-        cause = cause.cause;
-    }
-    return err.message;
+  if (!(err instanceof Error)) return 'Connection failed';
+  let cause: unknown = err.cause;
+  for (let depth = 0; depth < 3 && cause instanceof Error; depth++) {
+    const reason = cause.message.replace(NODE_OPERATOR_HINT, '').trim();
+    if (reason && reason !== err.message) return `${err.message} (${reason})`;
+    cause = cause.cause;
+  }
+  return err.message;
 }
 
 /**
@@ -319,44 +315,53 @@ export function describeFetchFailure(err: unknown): string {
  * on an error status, and has to answer differently once headers are already
  * sent. All three controllers take @Res() anyway.
  */
-export async function pipeAsset(url: string, response: Response, headers?: Record<string, string>, signal?: AbortSignal, defaultCacheControl?: string, fetchOptions?: SafeFetchOptions): Promise<void> {
-    try {
-        const resp = await safeFetch(url, { headers, signal: signal as any }, fetchOptions);
+export async function pipeAsset(
+  url: string,
+  response: Response,
+  headers?: Record<string, string>,
+  signal?: AbortSignal,
+  defaultCacheControl?: string,
+  fetchOptions?: SafeFetchOptions,
+): Promise<void> {
+  try {
+    const resp = await safeFetch(url, { headers, signal: signal as any }, fetchOptions);
 
-        response.status(resp.status);
-        if (resp.headers.get('content-type')) response.set('Content-Type', resp.headers.get('content-type') as string);
-        if (!resp.ok) {
-            response.set('Cache-Control', 'no-store, max-age=0');
-        } else if (resp.headers.get('cache-control')) {
-            response.set('Cache-Control', resp.headers.get('cache-control') as string);
-        } else if (defaultCacheControl) {
-            response.set('Cache-Control', defaultCacheControl);
-        }
-        if (resp.headers.get('content-length')) response.set('Content-Length', resp.headers.get('content-length') as string);
-        if (resp.headers.get('content-disposition')) response.set('Content-Disposition', resp.headers.get('content-disposition') as string);
-        // Pass byte-range metadata through so a <video> can seek (#823). Upstream
-        // returns 206 + Content-Range when the caller forwarded a Range header.
-        if (resp.headers.get('accept-ranges')) response.set('Accept-Ranges', resp.headers.get('accept-ranges') as string);
-        if (resp.headers.get('content-range')) response.set('Content-Range', resp.headers.get('content-range') as string);
-
-        if (!resp.body) {
-            response.end();
-        } else {
-            await pipeline(Readable.fromWeb(resp.body as any), response);
-        }
-    } catch (error) {
-        if (response.headersSent) {
-            response.end();
-            return;
-        }
-        if (error instanceof SsrfBlockedError) {
-            response.status(400).json({ error: error.message });
-        } else {
-            // Don't log the URL — it can carry a Synology _sid / passphrase.
-            console.error('pipeAsset: upstream fetch failed:', error);
-            response.status(500).json({ error: 'Failed to fetch asset' });
-        }
+    response.status(resp.status);
+    if (resp.headers.get('content-type')) response.set('Content-Type', resp.headers.get('content-type') as string);
+    if (!resp.ok) {
+      response.set('Cache-Control', 'no-store, max-age=0');
+    } else if (resp.headers.get('cache-control')) {
+      response.set('Cache-Control', resp.headers.get('cache-control') as string);
+    } else if (defaultCacheControl) {
+      response.set('Cache-Control', defaultCacheControl);
     }
+    if (resp.headers.get('content-length'))
+      response.set('Content-Length', resp.headers.get('content-length') as string);
+    if (resp.headers.get('content-disposition'))
+      response.set('Content-Disposition', resp.headers.get('content-disposition') as string);
+    // Pass byte-range metadata through so a <video> can seek (#823). Upstream
+    // returns 206 + Content-Range when the caller forwarded a Range header.
+    if (resp.headers.get('accept-ranges')) response.set('Accept-Ranges', resp.headers.get('accept-ranges') as string);
+    if (resp.headers.get('content-range')) response.set('Content-Range', resp.headers.get('content-range') as string);
+
+    if (!resp.body) {
+      response.end();
+    } else {
+      await pipeline(Readable.fromWeb(resp.body as any), response);
+    }
+  } catch (error) {
+    if (response.headersSent) {
+      response.end();
+      return;
+    }
+    if (error instanceof SsrfBlockedError) {
+      response.status(400).json({ error: error.message });
+    } else {
+      // Don't log the URL — it can carry a Synology _sid / passphrase.
+      console.error('pipeAsset: upstream fetch failed:', error);
+      response.status(500).json({ error: 'Failed to fetch asset' });
+    }
+  }
 }
 
 // ── Route shape for the settings page ─────────────────────────────────────

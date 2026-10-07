@@ -1,5 +1,4 @@
 // FE-ADMBAN-001 to FE-ADMBAN-005
-import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '../../../tests/helpers/render';
 import { useTranslation } from '../../i18n';

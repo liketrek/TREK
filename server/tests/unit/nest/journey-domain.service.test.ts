@@ -2,12 +2,44 @@
  * Unit tests for JourneyDomainService (JOURNEY-SVC-001 through JOURNEY-SVC-038).
  * Uses a real in-memory SQLite DB so SQL logic is exercised faithfully.
  */
+import { db as testDb } from '../../../src/db/database';
+import { db as dbConn } from '../../../src/db/database';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
+import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
+import { GALLERY_CHRONOLOGICAL_ORDER } from '../../../src/nest/journey/journey-gallery-order';
+import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import {
+  createUser,
+  createTrip,
+  createJourney,
+  createJourneyEntry,
+  addJourneyContributor,
+  createPlace,
+  createDay,
+  createDayAssignment,
+  addTripPhoto,
+} from '../../helpers/factories';
+import {
+  createTestJourneysRepo,
+  createTestJourneyContributorsRepo,
+  createTestJourneyTripsRepo,
+  createTestJourneyEntriesRepo,
+  createTestJourneyPhotosRepo,
+  createTestJourneyEntryPhotosRepo,
+} from '../../helpers/journey-repos';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestUnitOfWork, sharedTestOrm, createTestTripsRepo, createTestPlacesRepo } from '../../helpers/test-uow';
+// M5d (task-5-review.md) — full-key parity tests for Task 2's read models,
+// ported from the reviewer's probe (scratchpad r3g/probe/zz-r3g-parity-probe.test.ts).
+import { todayUtc } from '@trek/shared';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 
 // -- DB setup -----------------------------------------------------------------
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   // Plan 3g Task 1 (Part A, R9): `getPlaceWithTags`/`canAccessTrip`/`isOwner`
@@ -21,9 +53,8 @@ vi.mock('../../../src/db/database', async () => {
   // guard now goes through a REAL `TripsRepository.findAccessible` below
   // (`createTestTripsRepo`), not a hand-written closure.
   const mock = { db, closeDb: () => {}, reinitialize: () => {} };
-    return mock;
+  return mock;
 });
-
 
 vi.mock('../../../src/config', () => ({
   JWT_SECRET: 'test-secret',
@@ -31,35 +62,6 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 vi.mock('../../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import {
-  createUser,
-  createTrip,
-  createJourney,
-  createJourneyEntry,
-  addJourneyContributor,
-  createPlace,
-  createDay,
-  createDayAssignment,
-  addTripPhoto,
-} from '../../helpers/factories';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { db as dbConn } from '../../../src/db/database';
-import { createTestUnitOfWork, sharedTestOrm, createTestTripsRepo, createTestPlacesRepo } from '../../helpers/test-uow';
-import {
-  createTestJourneysRepo, createTestJourneyContributorsRepo, createTestJourneyTripsRepo, createTestJourneyEntriesRepo,
-  createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
-} from '../../helpers/journey-repos';
-// M5d (task-5-review.md) — full-key parity tests for Task 2's read models,
-// ported from the reviewer's probe (scratchpad r3g/probe/zz-r3g-parity-probe.test.ts).
-import { todayUtc } from '@trek/shared';
-import { GALLERY_CHRONOLOGICAL_ORDER } from '../../../src/nest/journey/journey-gallery-order';
 
 let svc: JourneyDomainService;
 // Plan 3g Task 1's own additions (below, "repositories (R9's parity + mutation
@@ -102,13 +104,21 @@ beforeAll(async () => {
   entryPhotosRepoDirect = await createTestJourneyEntryPhotosRepo(testDb);
   placesRepoDirect = await createTestPlacesRepo(testDb);
   svc = new JourneyDomainService(
-    new RealtimeService(), new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), photosRepoDirect), await createTestUnitOfWork(testDb),
-    journeysRepoDirect, contributorsRepoDirect, journeyTripsRepoDirect, entriesRepoDirect, tripsRepoDirect,
+    new RealtimeService(),
+    new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), photosRepoDirect),
+    await createTestUnitOfWork(testDb),
+    journeysRepoDirect,
+    contributorsRepoDirect,
+    journeyTripsRepoDirect,
+    entriesRepoDirect,
+    tripsRepoDirect,
     // Plan 3g Task 2's own append to this SAME construction call — the two
     // repositories this task builds, plus `PlacesRepository` (JG44) — per
     // R9, Task 2 only appends to what Task 1's construction already
     // established, never re-touches the wrapping mechanism itself.
-    photosRepoDirect, entryPhotosRepoDirect, placesRepoDirect,
+    photosRepoDirect,
+    entryPhotosRepoDirect,
+    placesRepoDirect,
   );
 });
 
@@ -285,9 +295,9 @@ describe('createJourney (service)', () => {
     expect(journey.status).toBe('active');
 
     // owner should be added as contributor
-    const contrib = testDb.prepare(
-      'SELECT * FROM journey_contributors WHERE journey_id = ? AND user_id = ?'
-    ).get(journey.id, user.id) as { role: string } | undefined;
+    const contrib = testDb
+      .prepare('SELECT * FROM journey_contributors WHERE journey_id = ? AND user_id = ?')
+      .get(journey.id, user.id) as { role: string } | undefined;
     expect(contrib).toBeDefined();
     expect(contrib!.role).toBe('owner');
   });
@@ -298,9 +308,9 @@ describe('createJourney (service)', () => {
 
     const journey = await svc.createJourney(user.id, { title: 'Euro Trip', trip_ids: [trip.id] });
 
-    const link = testDb.prepare(
-      'SELECT * FROM journey_trips WHERE journey_id = ? AND trip_id = ?'
-    ).get(journey.id, trip.id);
+    const link = testDb
+      .prepare('SELECT * FROM journey_trips WHERE journey_id = ? AND trip_id = ?')
+      .get(journey.id, trip.id);
     expect(link).toBeDefined();
   });
 });
@@ -338,12 +348,28 @@ describe('getJourneyFull', () => {
 
 describe('placeEntriesFromPhotos (#1003)', () => {
   /** A geotagged (or not) photo on an entry, wired the way the upload wires it. */
-  function photoOnEntry(journeyId: number, entryId: number, ownerId: number, coords: [number, number] | null, sort = 0) {
-    const tp = testDb.prepare("INSERT INTO trek_photos (provider, owner_id, file_path, lat, lng) VALUES ('local', ?, 'journey/x.jpg', ?, ?)")
+  function photoOnEntry(
+    journeyId: number,
+    entryId: number,
+    ownerId: number,
+    coords: [number, number] | null,
+    sort = 0,
+  ) {
+    const tp = testDb
+      .prepare(
+        "INSERT INTO trek_photos (provider, owner_id, file_path, lat, lng) VALUES ('local', ?, 'journey/x.jpg', ?, ?)",
+      )
       .run(ownerId, coords?.[0] ?? null, coords?.[1] ?? null).lastInsertRowid as number;
-    const gp = testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, shared, sort_order, created_at) VALUES (?, ?, 1, 0, ?)')
+    const gp = testDb
+      .prepare(
+        'INSERT INTO journey_photos (journey_id, photo_id, shared, sort_order, created_at) VALUES (?, ?, 1, 0, ?)',
+      )
       .run(journeyId, tp, Date.now()).lastInsertRowid as number;
-    testDb.prepare('INSERT INTO journey_entry_photos (entry_id, journey_photo_id, sort_order, created_at) VALUES (?, ?, ?, ?)').run(entryId, gp, sort, Date.now());
+    testDb
+      .prepare(
+        'INSERT INTO journey_entry_photos (entry_id, journey_photo_id, sort_order, created_at) VALUES (?, ?, ?, ?)',
+      )
+      .run(entryId, gp, sort, Date.now());
     return tp;
   }
 
@@ -356,15 +382,21 @@ describe('placeEntriesFromPhotos (#1003)', () => {
     const first = photoOnEntry(journey.id, entry.id, user.id, [48.137, 11.575], 1);
     const second = photoOnEntry(journey.id, entry.id, user.id, [40.4, -3.7], 2);
 
-    expect(await svc.placeEntriesFromPhotos([blank, first, second])).toEqual([{ entryId: entry.id, journeyId: journey.id, lat: 48.137, lng: 11.575 }]);
-    const row = testDb.prepare('SELECT location_lat, location_lng, country_code FROM journey_entries WHERE id = ?').get(entry.id) as any;
+    expect(await svc.placeEntriesFromPhotos([blank, first, second])).toEqual([
+      { entryId: entry.id, journeyId: journey.id, lat: 48.137, lng: 11.575 },
+    ]);
+    const row = testDb
+      .prepare('SELECT location_lat, location_lng, country_code FROM journey_entries WHERE id = ?')
+      .get(entry.id) as any;
     expect(row).toMatchObject({ location_lat: 48.137, location_lng: 11.575 });
 
     // Placed now: a later photo does not move it, and a name only lands while there is none.
     expect(await svc.placeEntriesFromPhotos([second])).toEqual([]);
     await svc.nameEntryLocation(entry.id, 'Marienplatz');
     await svc.nameEntryLocation(entry.id, 'Somewhere else');
-    expect((testDb.prepare('SELECT location_name FROM journey_entries WHERE id = ?').get(entry.id) as any).location_name).toBe('Marienplatz');
+    expect(
+      (testDb.prepare('SELECT location_name FROM journey_entries WHERE id = ?').get(entry.id) as any).location_name,
+    ).toBe('Marienplatz');
   });
 
   it('JOURNEY-SVC-1003-2: off by default, and it leaves entries with a place alone', async () => {
@@ -438,7 +470,9 @@ describe('updateJourney', () => {
     const journey = createJourney(testDb, user.id);
 
     expect((await svc.updateJourney(journey.id, user.id, { status_override: 'live' }))!.status_override).toBe('live');
-    expect((await svc.updateJourney(journey.id, user.id, { status_override: 'upcoming' }))!.status_override).toBe('live');
+    expect((await svc.updateJourney(journey.id, user.id, { status_override: 'upcoming' }))!.status_override).toBe(
+      'live',
+    );
     expect((await svc.updateJourney(journey.id, user.id, { status_override: null }))!.status_override).toBeNull();
   });
 
@@ -479,7 +513,8 @@ describe('updateJourney', () => {
     const { user } = createUser(testDb);
     const { user: editor } = createUser(testDb, { username: 'tracks-editor' });
     const journey = createJourney(testDb, user.id, { title: 'Norway' });
-    testDb.prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)")
+    testDb
+      .prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'editor', 0)")
       .run(journey.id, editor.id);
 
     // Journey-level settings stay owner-only, same as title and status.
@@ -524,9 +559,9 @@ describe('addTripToJourney / removeTripFromJourney', () => {
     const result = await svc.addTripToJourney(journey.id, trip.id, user.id);
 
     expect(result).toBe(true);
-    const link = testDb.prepare(
-      'SELECT * FROM journey_trips WHERE journey_id = ? AND trip_id = ?'
-    ).get(journey.id, trip.id);
+    const link = testDb
+      .prepare('SELECT * FROM journey_trips WHERE journey_id = ? AND trip_id = ?')
+      .get(journey.id, trip.id);
     expect(link).toBeDefined();
   });
 
@@ -540,9 +575,9 @@ describe('addTripToJourney / removeTripFromJourney', () => {
     const result = await svc.addTripToJourney(journey.id, foreignTrip.id, user.id);
 
     expect(result).toBe(false);
-    const link = testDb.prepare(
-      'SELECT * FROM journey_trips WHERE journey_id = ? AND trip_id = ?'
-    ).get(journey.id, foreignTrip.id);
+    const link = testDb
+      .prepare('SELECT * FROM journey_trips WHERE journey_id = ? AND trip_id = ?')
+      .get(journey.id, foreignTrip.id);
     expect(link).toBeUndefined();
   });
 
@@ -555,14 +590,16 @@ describe('addTripToJourney / removeTripFromJourney', () => {
       end_date: '2026-03-03',
     });
     const place = createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
-    const day025 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as { id: number };
+    const day025 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as {
+      id: number;
+    };
     createDayAssignment(testDb, day025.id, place.id);
 
     await svc.addTripToJourney(journey.id, trip.id, user.id);
 
-    const skeletons = testDb.prepare(
-      "SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ? AND type = 'skeleton'"
-    ).all(journey.id, place.id);
+    const skeletons = testDb
+      .prepare("SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ? AND type = 'skeleton'")
+      .all(journey.id, place.id);
     expect(skeletons.length).toBe(1);
   });
 
@@ -575,9 +612,9 @@ describe('addTripToJourney / removeTripFromJourney', () => {
     const result = await svc.removeTripFromJourney(journey.id, trip.id, user.id);
 
     expect(result).toBe(true);
-    const link = testDb.prepare(
-      'SELECT * FROM journey_trips WHERE journey_id = ? AND trip_id = ?'
-    ).get(journey.id, trip.id);
+    const link = testDb
+      .prepare('SELECT * FROM journey_trips WHERE journey_id = ? AND trip_id = ?')
+      .get(journey.id, trip.id);
     expect(link).toBeUndefined();
   });
 
@@ -636,11 +673,11 @@ describe('listEntries', () => {
     const on = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-03-02' });
 
     const listed = (await svc.listEntries(journey.id, user.id))!;
-    expect(listed.find(e => e.id === off.id)!.stats_excluded).toBe(true);
-    expect(listed.find(e => e.id === on.id)!.stats_excluded).toBe(false);
+    expect(listed.find((e) => e.id === off.id)!.stats_excluded).toBe(true);
+    expect(listed.find((e) => e.id === on.id)!.stats_excluded).toBe(false);
 
     const full = (await svc.getJourneyFull(journey.id, user.id))!;
-    expect(full.entries.map(e => e.stats_excluded)).toEqual([true, false]);
+    expect(full.entries.map((e) => e.stats_excluded)).toEqual([true, false]);
   });
 });
 
@@ -725,7 +762,9 @@ describe('updateEntry', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const entry = await svc.createEntry(journey.id, user.id, {
-      title: 'Beach Day', entry_date: '2026-03-10', tags: ['beach', 'sunset'],
+      title: 'Beach Day',
+      entry_date: '2026-03-10',
+      tags: ['beach', 'sunset'],
     });
 
     expect(entry!.tags).toEqual(['beach', 'sunset']);
@@ -750,7 +789,9 @@ describe('updateEntry', () => {
     const journey = createJourney(testDb, user.id);
     const prosCons = { pros: ['warm'], cons: ['crowded'] };
     const entry = await svc.createEntry(journey.id, user.id, {
-      title: 'Verdict', entry_date: '2026-03-10', pros_cons: prosCons,
+      title: 'Verdict',
+      entry_date: '2026-03-10',
+      pros_cons: prosCons,
     });
 
     expect(entry!.pros_cons).toEqual(prosCons);
@@ -778,7 +819,10 @@ describe('updateEntry', () => {
     expect(updated!.tags).toEqual([]);
     expect(updated!.pros_cons).toBeNull();
 
-    const row = testDb.prepare('SELECT tags, pros_cons FROM journey_entries WHERE id = ?').get(entry.id) as { tags: string | null; pros_cons: string | null };
+    const row = testDb.prepare('SELECT tags, pros_cons FROM journey_entries WHERE id = ?').get(entry.id) as {
+      tags: string | null;
+      pros_cons: string | null;
+    };
     expect(row.tags).toBeNull();
     expect(row.pros_cons).toBeNull();
 
@@ -792,7 +836,9 @@ describe('updateEntry', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const entry = await svc.createEntry(journey.id, user.id, {
-      title: 'Beach Day', entry_date: '2026-03-10', tags: ['beach'],
+      title: 'Beach Day',
+      entry_date: '2026-03-10',
+      tags: ['beach'],
     });
 
     expect((await svc.updateEntry(entry!.id, user.id, {}))!.tags).toEqual(['beach']);
@@ -807,7 +853,9 @@ describe('updateEntry', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
     const entry = await svc.createEntry(journey.id, user.id, {
-      title: 'Beach Day', entry_date: '2026-03-10', tags: ['beach', 'sunset'],
+      title: 'Beach Day',
+      entry_date: '2026-03-10',
+      tags: ['beach', 'sunset'],
     });
 
     const spy = vi.spyOn(RealtimeService.prototype, 'broadcastToUser').mockImplementation(() => {});
@@ -830,11 +878,18 @@ describe('updateEntry', () => {
   it('creates and toggles a draft, answering the flag as a boolean (#696)', async () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
-    const created = await svc.createEntry(journey.id, user.id, { entry_date: '2026-03-01', title: 'Rough', is_draft: true });
+    const created = await svc.createEntry(journey.id, user.id, {
+      entry_date: '2026-03-01',
+      title: 'Rough',
+      is_draft: true,
+    });
     expect(created!.is_draft).toBe(true);
     const published = await svc.updateEntry(created!.id, user.id, { is_draft: false });
     expect(published!.is_draft).toBe(false);
-    expect((testDb.prepare('SELECT is_draft FROM journey_entries WHERE id = ?').get(created!.id) as { is_draft: number }).is_draft).toBe(0);
+    expect(
+      (testDb.prepare('SELECT is_draft FROM journey_entries WHERE id = ?').get(created!.id) as { is_draft: number })
+        .is_draft,
+    ).toBe(0);
   });
 
   it('switches a stop off and back on, and answers with the flag as a boolean', async () => {
@@ -842,7 +897,8 @@ describe('updateEntry', () => {
     const journey = createJourney(testDb, user.id);
     const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-03-01' });
     const flagOf = (id: number) =>
-      (testDb.prepare('SELECT stats_excluded FROM journey_entries WHERE id = ?').get(id) as { stats_excluded: number }).stats_excluded;
+      (testDb.prepare('SELECT stats_excluded FROM journey_entries WHERE id = ?').get(id) as { stats_excluded: number })
+        .stats_excluded;
 
     const spy = vi.spyOn(RealtimeService.prototype, 'broadcastToUser').mockImplementation(() => {});
     try {
@@ -922,7 +978,9 @@ describe('updateEntry', () => {
     const journeyUpdateSpy = vi.spyOn(journeysRepoDirect, 'updateFields');
     const broadcastSpy = vi.spyOn(RealtimeService.prototype, 'broadcastToUser').mockImplementation(() => {});
     try {
-      const updated = await svc.updateEntry(entry.id, user.id, { foo: 1 } as unknown as Parameters<typeof svc.updateEntry>[2]);
+      const updated = await svc.updateEntry(entry.id, user.id, { foo: 1 } as unknown as Parameters<
+        typeof svc.updateEntry
+      >[2]);
 
       expect(updated).not.toBeNull();
       expect(updated!.title).toBe('Original');
@@ -974,11 +1032,17 @@ describe('deleteEntry', () => {
 
     // Create a filled entry that originated from a trip skeleton
     const now = Date.now();
-    testDb.prepare(`
+    testDb
+      .prepare(
+        `
       INSERT INTO journey_entries (journey_id, source_trip_id, source_place_id, author_id, type, title, story, mood, entry_date, location_name, visibility, sort_order, created_at, updated_at)
       VALUES (?, ?, ?, ?, 'entry', 'Tokyo Tower', 'Amazing view!', 'amazing', '2026-03-01', 'Tokyo', 'private', 0, ?, ?)
-    `).run(journey.id, trip.id, place.id, user.id, now, now);
-    const entry = testDb.prepare('SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ?').get(journey.id, place.id) as any;
+    `,
+      )
+      .run(journey.id, trip.id, place.id, user.id, now, now);
+    const entry = testDb
+      .prepare('SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ?')
+      .get(journey.id, place.id) as any;
 
     const result = await svc.deleteEntry(entry.id, user.id);
     expect(result).toBe(true);
@@ -1100,9 +1164,9 @@ describe('addContributor / updateContributorRole / removeContributor', () => {
     const result = await svc.addContributor(journey.id, owner.id, newContrib.id, 'editor');
 
     expect(result).toBe(true);
-    const row = testDb.prepare(
-      'SELECT * FROM journey_contributors WHERE journey_id = ? AND user_id = ?'
-    ).get(journey.id, newContrib.id) as { role: string } | undefined;
+    const row = testDb
+      .prepare('SELECT * FROM journey_contributors WHERE journey_id = ? AND user_id = ?')
+      .get(journey.id, newContrib.id) as { role: string } | undefined;
     expect(row).toBeDefined();
     expect(row!.role).toBe('editor');
   });
@@ -1137,9 +1201,9 @@ describe('addContributor / updateContributorRole / removeContributor', () => {
     const result = await svc.updateContributorRole(journey.id, owner.id, contrib.id, 'editor');
 
     expect(result).toBe(true);
-    const row = testDb.prepare(
-      'SELECT role FROM journey_contributors WHERE journey_id = ? AND user_id = ?'
-    ).get(journey.id, contrib.id) as { role: string };
+    const row = testDb
+      .prepare('SELECT role FROM journey_contributors WHERE journey_id = ? AND user_id = ?')
+      .get(journey.id, contrib.id) as { role: string };
     expect(row.role).toBe('editor');
   });
 
@@ -1170,10 +1234,17 @@ describe('addContributor / updateContributorRole / removeContributor', () => {
     const journey = createJourney(testDb, owner.id);
     addJourneyContributor(testDb, journey.id, target.id, 'editor');
 
-    const result = await svc.updateContributorRole(journey.id, owner.id, target.id, 'owner' as unknown as 'editor' | 'viewer');
+    const result = await svc.updateContributorRole(
+      journey.id,
+      owner.id,
+      target.id,
+      'owner' as unknown as 'editor' | 'viewer',
+    );
 
     expect(result).toBe(true);
-    const row = testDb.prepare('SELECT role FROM journey_contributors WHERE journey_id = ? AND user_id = ?').get(journey.id, target.id) as { role: string };
+    const row = testDb
+      .prepare('SELECT role FROM journey_contributors WHERE journey_id = ? AND user_id = ?')
+      .get(journey.id, target.id) as { role: string };
     expect(row.role).toBe('owner');
   });
 
@@ -1186,9 +1257,9 @@ describe('addContributor / updateContributorRole / removeContributor', () => {
     const result = await svc.removeContributor(journey.id, owner.id, contrib.id);
 
     expect(result).toBe(true);
-    const row = testDb.prepare(
-      'SELECT * FROM journey_contributors WHERE journey_id = ? AND user_id = ?'
-    ).get(journey.id, contrib.id);
+    const row = testDb
+      .prepare('SELECT * FROM journey_contributors WHERE journey_id = ? AND user_id = ?')
+      .get(journey.id, contrib.id);
     expect(row).toBeUndefined();
   });
 
@@ -1200,9 +1271,9 @@ describe('addContributor / updateContributorRole / removeContributor', () => {
     // (the SQL filters role != 'owner')
     await svc.removeContributor(journey.id, owner.id, owner.id);
 
-    const row = testDb.prepare(
-      'SELECT * FROM journey_contributors WHERE journey_id = ? AND user_id = ?'
-    ).get(journey.id, owner.id);
+    const row = testDb
+      .prepare('SELECT * FROM journey_contributors WHERE journey_id = ? AND user_id = ?')
+      .get(journey.id, owner.id);
     expect(row).toBeDefined();
   });
 });
@@ -1223,7 +1294,11 @@ describe('R3 composite-PK writes — reset-on-conflict behaviour and rendered SQ
     await svc.addContributor(journey.id, owner.id, contrib.id, 'editor');
     await svc.updateJourneyPreferences(journey.id, contrib.id, { hide_skeletons: true });
     expect(
-      (testDb.prepare('SELECT hide_skeletons FROM journey_contributors WHERE journey_id = ? AND user_id = ?').get(journey.id, contrib.id) as { hide_skeletons: number }).hide_skeletons,
+      (
+        testDb
+          .prepare('SELECT hide_skeletons FROM journey_contributors WHERE journey_id = ? AND user_id = ?')
+          .get(journey.id, contrib.id) as { hide_skeletons: number }
+      ).hide_skeletons,
     ).toBe(1);
 
     // Re-add (same target, a possibly different role) — the ON CONFLICT
@@ -1246,7 +1321,9 @@ describe('R3 composite-PK writes — reset-on-conflict behaviour and rendered SQ
     const spy = vi.spyOn(connection, 'execute');
     try {
       await contributorsRepoDirect.upsertContributor(journey.id, contrib.id, 'editor', Date.now());
-      const insertSql = spy.mock.calls.map(([sql]) => sql).find((sql): sql is string => typeof sql === 'string' && /insert into/i.test(sql));
+      const insertSql = spy.mock.calls
+        .map(([sql]) => sql)
+        .find((sql): sql is string => typeof sql === 'string' && /insert into/i.test(sql));
       expect(insertSql).toBeDefined();
       expect(insertSql).toMatch(/on conflict \(`journey_id`, ?`user_id`\)/i);
       expect(insertSql).toMatch(/do update set/i);
@@ -1264,7 +1341,9 @@ describe('R3 composite-PK writes — reset-on-conflict behaviour and rendered SQ
     const spy = vi.spyOn(connection, 'execute');
     try {
       await journeyTripsRepoDirect.insertIgnore(journey.id, trip.id, Date.now());
-      const insertSql = spy.mock.calls.map(([sql]) => sql).find((sql): sql is string => typeof sql === 'string' && /insert into/i.test(sql));
+      const insertSql = spy.mock.calls
+        .map(([sql]) => sql)
+        .find((sql): sql is string => typeof sql === 'string' && /insert into/i.test(sql));
       expect(insertSql).toBeDefined();
       expect(insertSql).toMatch(/on conflict \(`journey_id`, ?`trip_id`\)/i);
       expect(insertSql).toMatch(/do nothing/i);
@@ -1290,7 +1369,9 @@ describe('R3 composite-PK writes — reset-on-conflict behaviour and rendered SQ
     const spy = vi.spyOn(connection, 'execute');
     try {
       await entryPhotosRepoDirect.insertIgnore(entry.id, journeyPhotoId, 0, Date.now());
-      const insertSql = spy.mock.calls.map(([sql]) => sql).find((sql): sql is string => typeof sql === 'string' && /insert into/i.test(sql));
+      const insertSql = spy.mock.calls
+        .map(([sql]) => sql)
+        .find((sql): sql is string => typeof sql === 'string' && /insert into/i.test(sql));
       expect(insertSql).toBeDefined();
       expect(insertSql).toMatch(/on conflict \(`entry_id`, ?`journey_photo_id`\)/i);
       expect(insertSql).toMatch(/do nothing/i);
@@ -1375,15 +1456,17 @@ describe('syncTripPlaces', () => {
     });
     const place1 = createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
     const place2 = createPlace(testDb, trip.id, { name: 'Louvre' });
-    const days055 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 2').all(trip.id) as { id: number }[];
+    const days055 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 2').all(trip.id) as {
+      id: number;
+    }[];
     createDayAssignment(testDb, days055[0].id, place1.id);
     createDayAssignment(testDb, days055[1].id, place2.id);
 
     await svc.syncTripPlaces(journey.id, trip.id, user.id);
 
-    const skeletons = testDb.prepare(
-      "SELECT * FROM journey_entries WHERE journey_id = ? AND type = 'skeleton'"
-    ).all(journey.id) as any[];
+    const skeletons = testDb
+      .prepare("SELECT * FROM journey_entries WHERE journey_id = ? AND type = 'skeleton'")
+      .all(journey.id) as any[];
     expect(skeletons.length).toBe(2);
     const names = skeletons.map((s: any) => s.title).sort();
     expect(names).toEqual(['Eiffel Tower', 'Louvre']);
@@ -1398,15 +1481,17 @@ describe('syncTripPlaces', () => {
       end_date: '2026-05-02',
     });
     const place056 = createPlace(testDb, trip.id, { name: 'Notre Dame' });
-    const day056 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as { id: number };
+    const day056 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as {
+      id: number;
+    };
     createDayAssignment(testDb, day056.id, place056.id);
 
     await svc.syncTripPlaces(journey.id, trip.id, user.id);
     await svc.syncTripPlaces(journey.id, trip.id, user.id); // second call
 
-    const skeletons = testDb.prepare(
-      "SELECT * FROM journey_entries WHERE journey_id = ? AND type = 'skeleton'"
-    ).all(journey.id);
+    const skeletons = testDb
+      .prepare("SELECT * FROM journey_entries WHERE journey_id = ? AND type = 'skeleton'")
+      .all(journey.id);
     expect(skeletons.length).toBe(1);
   });
 
@@ -1419,17 +1504,17 @@ describe('syncTripPlaces', () => {
       start_date: '2026-06-10',
       end_date: '2026-06-12',
     });
-    const day = testDb.prepare(
-      "SELECT * FROM days WHERE trip_id = ? AND date = '2026-06-11'"
-    ).get(trip.id) as { id: number };
+    const day = testDb.prepare("SELECT * FROM days WHERE trip_id = ? AND date = '2026-06-11'").get(trip.id) as {
+      id: number;
+    };
     const place = createPlace(testDb, trip.id, { name: 'Colosseum' });
     createDayAssignment(testDb, day.id, place.id);
 
     await svc.syncTripPlaces(journey.id, trip.id, user.id);
 
-    const skeleton = testDb.prepare(
-      "SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ?"
-    ).get(journey.id, place.id) as any;
+    const skeleton = testDb
+      .prepare('SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ?')
+      .get(journey.id, place.id) as any;
     expect(skeleton).toBeDefined();
     expect(skeleton.entry_date).toBe('2026-06-11');
   });
@@ -1450,13 +1535,15 @@ describe('onPlaceCreated', () => {
 
     // Create a new place after trip is linked
     const place = createPlace(testDb, trip.id, { name: 'Sagrada Familia' });
-    const day058 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as { id: number };
+    const day058 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as {
+      id: number;
+    };
     createDayAssignment(testDb, day058.id, place.id);
     await svc.onPlaceCreated(trip.id, place.id);
 
-    const skeleton = testDb.prepare(
-      "SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ? AND type = 'skeleton'"
-    ).get(journey.id, place.id);
+    const skeleton = testDb
+      .prepare("SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ? AND type = 'skeleton'")
+      .get(journey.id, place.id);
     expect(skeleton).toBeDefined();
   });
 
@@ -1467,9 +1554,7 @@ describe('onPlaceCreated', () => {
 
     await svc.onPlaceCreated(trip.id, place.id);
 
-    const entries = testDb.prepare(
-      "SELECT * FROM journey_entries WHERE source_place_id = ?"
-    ).all(place.id);
+    const entries = testDb.prepare('SELECT * FROM journey_entries WHERE source_place_id = ?').all(place.id);
     expect(entries.length).toBe(0);
   });
 
@@ -1484,14 +1569,16 @@ describe('onPlaceCreated', () => {
     await svc.addTripToJourney(journey.id, trip.id, user.id);
 
     const place = createPlace(testDb, trip.id, { name: 'Arc de Triomphe' });
-    const day060 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as { id: number };
+    const day060 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as {
+      id: number;
+    };
     createDayAssignment(testDb, day060.id, place.id);
     await svc.onPlaceCreated(trip.id, place.id);
     await svc.onPlaceCreated(trip.id, place.id); // second call
 
-    const entries = testDb.prepare(
-      "SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ?"
-    ).all(journey.id, place.id);
+    const entries = testDb
+      .prepare('SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ?')
+      .all(journey.id, place.id);
     expect(entries.length).toBe(1);
   });
 });
@@ -1506,7 +1593,9 @@ describe('onPlaceUpdated', () => {
       end_date: '2026-08-03',
     });
     const place = createPlace(testDb, trip.id, { name: 'Old Name' });
-    const day061 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as { id: number };
+    const day061 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as {
+      id: number;
+    };
     createDayAssignment(testDb, day061.id, place.id);
     await svc.addTripToJourney(journey.id, trip.id, user.id);
 
@@ -1514,9 +1603,9 @@ describe('onPlaceUpdated', () => {
     testDb.prepare('UPDATE places SET name = ?, address = ? WHERE id = ?').run('New Name', 'New Address', place.id);
     await svc.onPlaceUpdated(place.id);
 
-    const entry = testDb.prepare(
-      "SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ? AND type = 'skeleton'"
-    ).get(journey.id, place.id) as any;
+    const entry = testDb
+      .prepare("SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ? AND type = 'skeleton'")
+      .get(journey.id, place.id) as any;
     expect(entry).toBeDefined();
     expect(entry.title).toBe('New Name');
     expect(entry.location_name).toBe('New Address');
@@ -1531,23 +1620,25 @@ describe('onPlaceUpdated', () => {
       end_date: '2026-08-02',
     });
     const place = createPlace(testDb, trip.id, { name: 'Original Place' });
-    const day062 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as { id: number };
+    const day062 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as {
+      id: number;
+    };
     createDayAssignment(testDb, day062.id, place.id);
     await svc.addTripToJourney(journey.id, trip.id, user.id);
 
     // Promote the skeleton to a full entry
-    const skeleton = testDb.prepare(
-      "SELECT id FROM journey_entries WHERE journey_id = ? AND source_place_id = ?"
-    ).get(journey.id, place.id) as { id: number };
+    const skeleton = testDb
+      .prepare('SELECT id FROM journey_entries WHERE journey_id = ? AND source_place_id = ?')
+      .get(journey.id, place.id) as { id: number };
     await svc.updateEntry(skeleton.id, user.id, { story: 'My story', title: 'Custom Title' });
 
     // Now update the place
-    testDb.prepare('UPDATE places SET name = ?, address = ? WHERE id = ?').run('Changed Place', 'Changed Addr', place.id);
+    testDb
+      .prepare('UPDATE places SET name = ?, address = ? WHERE id = ?')
+      .run('Changed Place', 'Changed Addr', place.id);
     await svc.onPlaceUpdated(place.id);
 
-    const entry = testDb.prepare(
-      "SELECT * FROM journey_entries WHERE id = ?"
-    ).get(skeleton.id) as any;
+    const entry = testDb.prepare('SELECT * FROM journey_entries WHERE id = ?').get(skeleton.id) as any;
     expect(entry.title).toBe('Custom Title'); // title unchanged
     expect(entry.location_name).toBe('Changed Addr'); // location updated
   });
@@ -1560,9 +1651,7 @@ describe('onPlaceUpdated', () => {
     // Should not throw
     await svc.onPlaceUpdated(place.id);
 
-    const entries = testDb.prepare(
-      "SELECT * FROM journey_entries WHERE source_place_id = ?"
-    ).all(place.id);
+    const entries = testDb.prepare('SELECT * FROM journey_entries WHERE source_place_id = ?').all(place.id);
     expect(entries.length).toBe(0);
   });
 });
@@ -1581,9 +1670,7 @@ describe('onPlaceDeleted', () => {
 
     await svc.onPlaceDeleted(place.id);
 
-    const entry = testDb.prepare(
-      "SELECT * FROM journey_entries WHERE source_place_id = ?"
-    ).get(place.id);
+    const entry = testDb.prepare('SELECT * FROM journey_entries WHERE source_place_id = ?').get(place.id);
     expect(entry).toBeUndefined();
   });
 
@@ -1596,21 +1683,21 @@ describe('onPlaceDeleted', () => {
       end_date: '2026-09-02',
     });
     const place = createPlace(testDb, trip.id, { name: 'Detach Place' });
-    const day065 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as { id: number };
+    const day065 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as {
+      id: number;
+    };
     createDayAssignment(testDb, day065.id, place.id);
     await svc.addTripToJourney(journey.id, trip.id, user.id);
 
     // Promote the skeleton to a filled entry
-    const skeleton = testDb.prepare(
-      "SELECT id FROM journey_entries WHERE journey_id = ? AND source_place_id = ?"
-    ).get(journey.id, place.id) as { id: number };
+    const skeleton = testDb
+      .prepare('SELECT id FROM journey_entries WHERE journey_id = ? AND source_place_id = ?')
+      .get(journey.id, place.id) as { id: number };
     await svc.updateEntry(skeleton.id, user.id, { story: 'I really enjoyed this place' });
 
     await svc.onPlaceDeleted(place.id);
 
-    const entry = testDb.prepare(
-      "SELECT * FROM journey_entries WHERE id = ?"
-    ).get(skeleton.id) as any;
+    const entry = testDb.prepare('SELECT * FROM journey_entries WHERE id = ?').get(skeleton.id) as any;
     expect(entry).toBeDefined();
     expect(entry.source_place_id).toBeNull();
     expect(entry.source_trip_id).toBeNull();
@@ -1624,9 +1711,9 @@ describe('onPlaceDeleted', () => {
 
     await expect(svc.onPlaceDeleted(place.id)).resolves.toBeUndefined();
 
-    const orphaned = testDb.prepare(
-      "SELECT COUNT(*) AS n FROM journey_entries WHERE source_place_id = ?"
-    ).get(place.id) as { n: number };
+    const orphaned = testDb
+      .prepare('SELECT COUNT(*) AS n FROM journey_entries WHERE source_place_id = ?')
+      .get(place.id) as { n: number };
     expect(orphaned.n).toBe(0);
   });
 });
@@ -1700,11 +1787,15 @@ describe('setPhotoProvider', () => {
 
     await svc.setPhotoProvider(photo!.id, 'immich', 'immich-asset-789', user.id);
 
-    const updated = testDb.prepare(`
+    const updated = testDb
+      .prepare(
+        `
       SELECT jp.*, tkp.provider, tkp.asset_id, tkp.owner_id
       FROM journey_photos jp JOIN trek_photos tkp ON tkp.id = jp.photo_id
       WHERE jp.id = ?
-    `).get(photo!.id) as any;
+    `,
+      )
+      .get(photo!.id) as any;
     expect(updated.provider).toBe('immich');
     expect(updated.asset_id).toBe('immich-asset-789');
     expect(updated.owner_id).toBe(user.id);
@@ -1827,7 +1918,9 @@ describe('Edge cases', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
 
-    const result = await svc.updateJourney(journey.id, user.id, { cover_gradient: 'linear-gradient(to right, #ff0000, #0000ff)' });
+    const result = await svc.updateJourney(journey.id, user.id, {
+      cover_gradient: 'linear-gradient(to right, #ff0000, #0000ff)',
+    });
 
     expect(result).not.toBeNull();
     expect((result as any).cover_gradient).toBe('linear-gradient(to right, #ff0000, #0000ff)');
@@ -1906,29 +1999,29 @@ describe('Edge cases', () => {
     });
     const place1 = createPlace(testDb, trip.id, { name: 'Skeleton Place' });
     const place2 = createPlace(testDb, trip.id, { name: 'Filled Place' });
-    const days087 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 2').all(trip.id) as { id: number }[];
+    const days087 = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 2').all(trip.id) as {
+      id: number;
+    }[];
     createDayAssignment(testDb, days087[0].id, place1.id);
     createDayAssignment(testDb, days087[1].id, place2.id);
     await svc.addTripToJourney(journey.id, trip.id, user.id);
 
     // Promote one skeleton to a filled entry
-    const filled = testDb.prepare(
-      "SELECT id FROM journey_entries WHERE journey_id = ? AND source_place_id = ? AND type = 'skeleton'"
-    ).get(journey.id, place2.id) as { id: number };
+    const filled = testDb
+      .prepare("SELECT id FROM journey_entries WHERE journey_id = ? AND source_place_id = ? AND type = 'skeleton'")
+      .get(journey.id, place2.id) as { id: number };
     await svc.updateEntry(filled.id, user.id, { story: 'Now filled!' });
 
     await svc.removeTripFromJourney(journey.id, trip.id, user.id);
 
     // skeleton for place1 should be deleted
-    const skeletonRow = testDb.prepare(
-      "SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ?"
-    ).get(journey.id, place1.id);
+    const skeletonRow = testDb
+      .prepare('SELECT * FROM journey_entries WHERE journey_id = ? AND source_place_id = ?')
+      .get(journey.id, place1.id);
     expect(skeletonRow).toBeUndefined();
 
     // filled entry for place2 should be detached but still present
-    const filledRow = testDb.prepare(
-      "SELECT * FROM journey_entries WHERE id = ?"
-    ).get(filled.id) as any;
+    const filledRow = testDb.prepare('SELECT * FROM journey_entries WHERE id = ?').get(filled.id) as any;
     expect(filledRow).toBeDefined();
     expect(filledRow.source_trip_id).toBeNull();
     expect(filledRow.source_place_id).toBeNull();
@@ -1947,7 +2040,8 @@ describe('addProviderPhoto — passphrase', () => {
 
     expect(photo).not.toBeNull();
 
-    const row = testDb.prepare('SELECT passphrase FROM trek_photos WHERE provider = ? AND asset_id = ? AND owner_id = ?')
+    const row = testDb
+      .prepare('SELECT passphrase FROM trek_photos WHERE provider = ? AND asset_id = ? AND owner_id = ?')
       .get('synologyphotos', 'pp-asset-1', user.id) as { passphrase: string | null } | undefined;
     expect(row?.passphrase).not.toBeNull();
     expect(typeof row?.passphrase).toBe('string');
@@ -1958,24 +2052,47 @@ describe('addProviderPhoto — passphrase', () => {
 
 // -- reorderEntries (#846) ----------------------------------------------------
 
-function insertEntry(journeyId: number, authorId: number, opts: { entry_date: string; entry_time?: string | null; sort_order?: number }): { id: number } {
+function insertEntry(
+  journeyId: number,
+  authorId: number,
+  opts: { entry_date: string; entry_time?: string | null; sort_order?: number },
+): { id: number } {
   const now = Date.now();
-  const res = testDb.prepare(`
+  const res = testDb
+    .prepare(
+      `
     INSERT INTO journey_entries (journey_id, author_id, type, entry_date, entry_time, sort_order, visibility, created_at, updated_at)
     VALUES (?, ?, 'entry', ?, ?, ?, 'private', ?, ?)
-  `).run(journeyId, authorId, opts.entry_date, opts.entry_time ?? null, opts.sort_order ?? 0, now, now);
+  `,
+    )
+    .run(journeyId, authorId, opts.entry_date, opts.entry_time ?? null, opts.sort_order ?? 0, now, now);
   return { id: Number(res.lastInsertRowid) };
 }
 
 describe('reorderEntryPhotos (#824)', () => {
   function photoOn(journeyId: number, entryIds: number[], order = 0): number {
-    const trek = testDb.prepare("INSERT INTO trek_photos (provider, file_path, created_at) VALUES ('local', '/p.jpg', ?)").run(Date.now()).lastInsertRowid;
-    const gp = Number(testDb.prepare('INSERT INTO journey_photos (journey_id, photo_id, sort_order, created_at) VALUES (?, ?, 0, ?)').run(journeyId, trek, Date.now()).lastInsertRowid);
-    for (const entryId of entryIds) testDb.prepare('INSERT INTO journey_entry_photos (entry_id, journey_photo_id, sort_order, created_at) VALUES (?, ?, ?, ?)').run(entryId, gp, order, Date.now());
+    const trek = testDb
+      .prepare("INSERT INTO trek_photos (provider, file_path, created_at) VALUES ('local', '/p.jpg', ?)")
+      .run(Date.now()).lastInsertRowid;
+    const gp = Number(
+      testDb
+        .prepare('INSERT INTO journey_photos (journey_id, photo_id, sort_order, created_at) VALUES (?, ?, 0, ?)')
+        .run(journeyId, trek, Date.now()).lastInsertRowid,
+    );
+    for (const entryId of entryIds)
+      testDb
+        .prepare(
+          'INSERT INTO journey_entry_photos (entry_id, journey_photo_id, sort_order, created_at) VALUES (?, ?, ?, ?)',
+        )
+        .run(entryId, gp, order, Date.now());
     return gp;
   }
   const orderOf = (entryId: number) =>
-    (testDb.prepare('SELECT journey_photo_id FROM journey_entry_photos WHERE entry_id = ? ORDER BY sort_order').all(entryId) as { journey_photo_id: number }[]).map(r => r.journey_photo_id);
+    (
+      testDb
+        .prepare('SELECT journey_photo_id FROM journey_entry_photos WHERE entry_id = ? ORDER BY sort_order')
+        .all(entryId) as { journey_photo_id: number }[]
+    ).map((r) => r.journey_photo_id);
 
   it('JOURNEY-SVC-089b: orders the photos of one entry and leaves the same photo elsewhere alone', async () => {
     const { user } = createUser(testDb);
@@ -1987,7 +2104,11 @@ describe('reorderEntryPhotos (#824)', () => {
     const p3 = photoOn(journey.id, [a.id], 2);
     expect(await svc.reorderEntryPhotos(a.id, user.id, [p3, p1, p2])).toBe(true);
     expect(orderOf(a.id)).toEqual([p3, p1, p2]);
-    expect(testDb.prepare('SELECT sort_order FROM journey_entry_photos WHERE entry_id = ? AND journey_photo_id = ?').get(b.id, p1)).toEqual({ sort_order: 0 });
+    expect(
+      testDb
+        .prepare('SELECT sort_order FROM journey_entry_photos WHERE entry_id = ? AND journey_photo_id = ?')
+        .get(b.id, p1),
+    ).toEqual({ sort_order: 0 });
   });
 
   it('JOURNEY-SVC-089c: refuses a list that is not exactly the photos of the entry, and a stranger', async () => {
@@ -2017,8 +2138,8 @@ describe('reorderEntries', () => {
     expect(ok).toBe(true);
 
     const entries = (await svc.listEntries(journey.id, user.id))!;
-    const dayEntries = entries.filter(e => e.entry_date === '2026-08-01');
-    expect(dayEntries.map(e => e.id)).toEqual([e2.id, e1.id]);
+    const dayEntries = entries.filter((e) => e.entry_date === '2026-08-01');
+    expect(dayEntries.map((e) => e.id)).toEqual([e2.id, e1.id]);
   });
 
   it('JOURNEY-SVC-090: reorderEntries rejects ids from another journey', async () => {
@@ -2041,7 +2162,7 @@ describe('reorderEntries', () => {
     await svc.reorderEntries(journey.id, user.id, [day1b.id, day1a.id]);
 
     const entries = (await svc.listEntries(journey.id, user.id))!;
-    const day2Entry = entries.find(e => e.id === day2.id)!;
+    const day2Entry = entries.find((e) => e.id === day2.id)!;
     expect(day2Entry.sort_order).toBe(0);
   });
 });
@@ -2055,7 +2176,9 @@ describe('syncTripPlaces sort_order', () => {
       start_date: '2026-09-01',
       end_date: '2026-09-02',
     });
-    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as { id: number };
+    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as {
+      id: number;
+    };
     const p1 = createPlace(testDb, trip.id, { name: 'Place A' });
     const p2 = createPlace(testDb, trip.id, { name: 'Place B' });
     const p3 = createPlace(testDb, trip.id, { name: 'Place C' });
@@ -2065,10 +2188,10 @@ describe('syncTripPlaces sort_order', () => {
 
     await svc.syncTripPlaces(journey.id, trip.id, user.id);
 
-    const rows = testDb.prepare(
-      'SELECT sort_order FROM journey_entries WHERE journey_id = ? ORDER BY sort_order ASC'
-    ).all(journey.id) as { sort_order: number }[];
-    const orders = rows.map(r => r.sort_order);
+    const rows = testDb
+      .prepare('SELECT sort_order FROM journey_entries WHERE journey_id = ? ORDER BY sort_order ASC')
+      .all(journey.id) as { sort_order: number }[];
+    const orders = rows.map((r) => r.sort_order);
     expect(new Set(orders).size).toBe(orders.length);
     expect(orders).toEqual([0, 1, 2]);
   });
@@ -2085,16 +2208,18 @@ describe('onPlaceCreated sort_order', () => {
     });
     await svc.addTripToJourney(journey.id, trip.id, user.id);
 
-    const day = testDb.prepare('SELECT id, date FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as { id: number; date: string };
+    const day = testDb
+      .prepare('SELECT id, date FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1')
+      .get(trip.id) as { id: number; date: string };
     insertEntry(journey.id, user.id, { entry_date: day.date, sort_order: 5 });
 
     const place = createPlace(testDb, trip.id, { name: 'Late Addition' });
     createDayAssignment(testDb, day.id, place.id);
     await svc.onPlaceCreated(trip.id, place.id);
 
-    const newEntry = testDb.prepare(
-      'SELECT sort_order FROM journey_entries WHERE journey_id = ? AND source_place_id = ?'
-    ).get(journey.id, place.id) as { sort_order: number } | undefined;
+    const newEntry = testDb
+      .prepare('SELECT sort_order FROM journey_entries WHERE journey_id = ? AND source_place_id = ?')
+      .get(journey.id, place.id) as { sort_order: number } | undefined;
     expect(newEntry).toBeDefined();
     expect(newEntry!.sort_order).toBe(6);
   });
@@ -2241,13 +2366,14 @@ describe('reconcileTripSkeletons', () => {
       createDayAssignment(testDb, days[0].id, placeA.id);
       createDayAssignment(testDb, days[1].id, placeB.id);
 
-      await Promise.all([
-        svc.reconcileTripSkeletons(trip.id),
-        svc.reconcileTripSkeletons(trip.id),
-      ]);
+      await Promise.all([svc.reconcileTripSkeletons(trip.id), svc.reconcileTripSkeletons(trip.id)]);
 
       const countFor = (placeId: number) =>
-        (testDb.prepare('SELECT COUNT(*) AS n FROM journey_entries WHERE journey_id = ? AND source_place_id = ?').get(journey.id, placeId) as { n: number }).n;
+        (
+          testDb
+            .prepare('SELECT COUNT(*) AS n FROM journey_entries WHERE journey_id = ? AND source_place_id = ?')
+            .get(journey.id, placeId) as { n: number }
+        ).n;
       expect(countFor(placeA.id)).toBe(1);
       expect(countFor(placeB.id)).toBe(1);
     });
@@ -2258,12 +2384,13 @@ describe('reconcileTripSkeletons', () => {
       const place = createPlace(testDb, trip.id, { name: 'Race Place C' });
       createDayAssignment(testDb, days[0].id, place.id);
 
-      await Promise.all([
-        svc.onPlaceCreated(trip.id, place.id),
-        svc.reconcileTripSkeletons(trip.id),
-      ]);
+      await Promise.all([svc.onPlaceCreated(trip.id, place.id), svc.reconcileTripSkeletons(trip.id)]);
 
-      const count = (testDb.prepare('SELECT COUNT(*) AS n FROM journey_entries WHERE journey_id = ? AND source_place_id = ?').get(journey.id, place.id) as { n: number }).n;
+      const count = (
+        testDb
+          .prepare('SELECT COUNT(*) AS n FROM journey_entries WHERE journey_id = ? AND source_place_id = ?')
+          .get(journey.id, place.id) as { n: number }
+      ).n;
       expect(count).toBe(1);
     });
   });
@@ -2495,7 +2622,9 @@ describe('skeleton sync', () => {
     const { trip, place } = tripWithPlace(user.id);
     const journey = await svc.createJourney(user.id, { title: 'J', trip_ids: [trip.id] });
 
-    testDb.prepare('UPDATE places SET name = ?, address = ? WHERE id = ?').run('Kinkaku-ji', '1 Kinkakujicho', place.id);
+    testDb
+      .prepare('UPDATE places SET name = ?, address = ? WHERE id = ?')
+      .run('Kinkaku-ji', '1 Kinkakujicho', place.id);
     await svc.onPlaceUpdated(place.id);
 
     const [skeleton] = skeletonsOf(journey.id);
@@ -2674,11 +2803,7 @@ describe('journey gallery', () => {
     await shot('journey/day2.jpg', '2026-05-02T12:00:00.000Z');
 
     const gallery = (await svc.getJourneyFull(journey.id, user.id))!.gallery as { file_path: string }[];
-    expect(gallery.map((p) => p.file_path)).toEqual([
-      'journey/day1.jpg',
-      'journey/day2.jpg',
-      'journey/day3.jpg',
-    ]);
+    expect(gallery.map((p) => p.file_path)).toEqual(['journey/day1.jpg', 'journey/day2.jpg', 'journey/day3.jpg']);
   });
 
   it('JOURNEY-SVC-PHOTO-009: a photo with no capture time rides on the date of the stop it hangs on', async () => {
@@ -2700,11 +2825,7 @@ describe('journey gallery', () => {
       .run(Date.parse('2026-06-01T00:00:00Z'), loose.id);
 
     const gallery = (await svc.getJourneyFull(journey.id, user.id))!.gallery as { file_path: string }[];
-    expect(gallery.map((p) => p.file_path)).toEqual([
-      'journey/day1.jpg',
-      'journey/day2.jpg',
-      'journey/loose.jpg',
-    ]);
+    expect(gallery.map((p) => p.file_path)).toEqual(['journey/day1.jpg', 'journey/day2.jpg', 'journey/loose.jpg']);
   });
 });
 
@@ -2712,8 +2833,12 @@ describe('per-user journey preferences', () => {
   it('JOURNEY-SVC-PREF-001: hide_skeletons round-trips for the owner', async () => {
     const { user } = createUser(testDb);
     const journey = await svc.createJourney(user.id, { title: 'J' });
-    expect(await svc.updateJourneyPreferences(journey.id, user.id, { hide_skeletons: true })).toEqual({ hide_skeletons: true });
-    expect(await svc.updateJourneyPreferences(journey.id, user.id, { hide_skeletons: false })).toEqual({ hide_skeletons: false });
+    expect(await svc.updateJourneyPreferences(journey.id, user.id, { hide_skeletons: true })).toEqual({
+      hide_skeletons: true,
+    });
+    expect(await svc.updateJourneyPreferences(journey.id, user.id, { hide_skeletons: false })).toEqual({
+      hide_skeletons: false,
+    });
   });
 
   it('JOURNEY-SVC-PREF-002: an empty patch is accepted and changes nothing', async () => {
@@ -2772,23 +2897,39 @@ describe('journeyTracks', () => {
   it('JOURNEY-SVC-TRACKS-001: returns the tracks of the trips the entries came from', async () => {
     const { user } = createUser(testDb);
     const { trip, place } = tripWithPlace(user.id);
-    withGeometry(place.id, [[35.1, 135.7], [35.2, 135.8]], '#ff0000');
+    withGeometry(
+      place.id,
+      [
+        [35.1, 135.7],
+        [35.2, 135.8],
+      ],
+      '#ff0000',
+    );
     const journey = await svc.createJourney(user.id, { title: 'J', trip_ids: [trip.id] });
 
     const tracks = (await svc.journeyTracks(journey.id, user.id))!;
     expect(tracks).toHaveLength(1);
     expect(tracks[0]).toMatchObject({ place_id: place.id, trip_id: trip.id, color: '#ff0000' });
-    expect(tracks[0].points).toEqual([[35.1, 135.7], [35.2, 135.8]]);
+    expect(tracks[0].points).toEqual([
+      [35.1, 135.7],
+      [35.2, 135.8],
+    ]);
   });
 
   it('JOURNEY-SVC-TRACKS-002: keeps the elevation out and the pair in', async () => {
     const { user } = createUser(testDb);
     const { trip, place } = tripWithPlace(user.id);
     // The importer keeps elevation as a third value where the file had it.
-    withGeometry(place.id, [[47.1, 11.2, 1830], [47.2, 11.3, 1902]]);
+    withGeometry(place.id, [
+      [47.1, 11.2, 1830],
+      [47.2, 11.3, 1902],
+    ]);
     const journey = await svc.createJourney(user.id, { title: 'J', trip_ids: [trip.id] });
 
-    expect((await svc.journeyTracks(journey.id, user.id))![0].points).toEqual([[47.1, 11.2], [47.2, 11.3]]);
+    expect((await svc.journeyTracks(journey.id, user.id))![0].points).toEqual([
+      [47.1, 11.2],
+      [47.2, 11.3],
+    ]);
   });
 
   it('JOURNEY-SVC-TRACKS-003: a place without geometry contributes nothing', async () => {
@@ -2804,11 +2945,14 @@ describe('journeyTracks', () => {
     const { trip, place } = tripWithPlace(user.id);
     const second = createPlace(testDb, trip.id, { name: 'Good one' });
     withGeometry(place.id, 'not json at all');
-    withGeometry(second.id, [[1, 2], [3, 4]]);
+    withGeometry(second.id, [
+      [1, 2],
+      [3, 4],
+    ]);
     const journey = await svc.createJourney(user.id, { title: 'J', trip_ids: [trip.id] });
 
     const tracks = (await svc.journeyTracks(journey.id, user.id))!;
-    expect(tracks.map(t => t.place_id)).toEqual([second.id]);
+    expect(tracks.map((t) => t.place_id)).toEqual([second.id]);
   });
 
   it('JOURNEY-SVC-TRACKS-005: a single point is a pin, not a line', async () => {
@@ -2824,7 +2968,10 @@ describe('journeyTracks', () => {
     const { user } = createUser(testDb);
     const { user: stranger } = createUser(testDb);
     const { trip, place } = tripWithPlace(user.id);
-    withGeometry(place.id, [[1, 2], [3, 4]]);
+    withGeometry(place.id, [
+      [1, 2],
+      [3, 4],
+    ]);
     const journey = await svc.createJourney(user.id, { title: 'J', trip_ids: [trip.id] });
 
     expect(await svc.journeyTracks(journey.id, stranger.id)).toBeNull();
@@ -2850,7 +2997,8 @@ describe('addTripToJourney guards', () => {
     const { user: owner } = createUser(testDb);
     const { user: helper } = createUser(testDb);
     const journey = createJourney(testDb, owner.id, { title: 'Shared journey' });
-    testDb.prepare('INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, ?, ?)')
+    testDb
+      .prepare('INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, ?, ?)')
       .run(journey.id, helper.id, 'editor', new Date().toISOString());
     const trip = createTrip(testDb, helper.id, { title: 'Helper trip' });
 
@@ -2862,10 +3010,13 @@ describe('addTripToJourney guards', () => {
     const journey = createJourney(testDb, user.id, { title: 'Photo journey' });
     const trip = createTrip(testDb, user.id, { title: 'Photo trip' });
 
-    const r = testDb.prepare(
-      "INSERT INTO trek_photos (provider, asset_id, owner_id, media_type) VALUES ('immich', 'shared-asset', ?, 'image')",
-    ).run(user.id);
-    testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared) VALUES (?, ?, ?, 1)')
+    const r = testDb
+      .prepare(
+        "INSERT INTO trek_photos (provider, asset_id, owner_id, media_type) VALUES ('immich', 'shared-asset', ?, 'image')",
+      )
+      .run(user.id);
+    testDb
+      .prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared) VALUES (?, ?, ?, 1)')
       .run(trip.id, user.id, Number(r.lastInsertRowid));
 
     await svc.addTripToJourney(journey.id, trip.id, user.id);
@@ -3017,21 +3168,27 @@ describe('country_code', () => {
     const journey = createJourney(testDb, user.id);
     const trip = createTrip(testDb, user.id, { title: 'Border', start_date: '2026-08-01', end_date: '2026-08-03' });
     const place = createPlace(testDb, trip.id, { name: 'Grenzstein', lat: 48.8584, lng: 2.2945 });
-    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as { id: number };
+    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as {
+      id: number;
+    };
     createDayAssignment(testDb, day.id, place.id);
     await svc.addTripToJourney(journey.id, trip.id, user.id);
 
-    const before = testDb.prepare(
-      "SELECT country_code FROM journey_entries WHERE journey_id = ? AND source_place_id = ? AND type = 'skeleton'"
-    ).get(journey.id, place.id) as { country_code: string | null };
+    const before = testDb
+      .prepare(
+        "SELECT country_code FROM journey_entries WHERE journey_id = ? AND source_place_id = ? AND type = 'skeleton'",
+      )
+      .get(journey.id, place.id) as { country_code: string | null };
     expect(before.country_code).toBe('FR');
 
     testDb.prepare('UPDATE places SET lat = ?, lng = ? WHERE id = ?').run(52.52, 13.405, place.id);
     await svc.onPlaceUpdated(place.id);
 
-    const after = testDb.prepare(
-      "SELECT country_code FROM journey_entries WHERE journey_id = ? AND source_place_id = ? AND type = 'skeleton'"
-    ).get(journey.id, place.id) as { country_code: string | null };
+    const after = testDb
+      .prepare(
+        "SELECT country_code FROM journey_entries WHERE journey_id = ? AND source_place_id = ? AND type = 'skeleton'",
+      )
+      .get(journey.id, place.id) as { country_code: string | null };
     expect(after.country_code).toBe('DE');
   });
 
@@ -3040,7 +3197,9 @@ describe('country_code', () => {
     const journey = createJourney(testDb, user.id);
     const trip = createTrip(testDb, user.id, { title: 'Border 2', start_date: '2026-08-01', end_date: '2026-08-03' });
     const place = createPlace(testDb, trip.id, { name: 'Grenzstein', lat: 48.8584, lng: 2.2945 });
-    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as { id: number };
+    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY date ASC LIMIT 1').get(trip.id) as {
+      id: number;
+    };
     createDayAssignment(testDb, day.id, place.id);
     await svc.addTripToJourney(journey.id, trip.id, user.id);
     // Writing a story turns the skeleton into a filled entry.
@@ -3049,9 +3208,9 @@ describe('country_code', () => {
     testDb.prepare('UPDATE places SET lat = ?, lng = ? WHERE id = ?').run(52.52, 13.405, place.id);
     await svc.onPlaceUpdated(place.id);
 
-    const after = testDb.prepare(
-      'SELECT country_code, location_lat FROM journey_entries WHERE source_place_id = ?'
-    ).get(place.id) as { country_code: string | null; location_lat: number };
+    const after = testDb
+      .prepare('SELECT country_code, location_lat FROM journey_entries WHERE source_place_id = ?')
+      .get(place.id) as { country_code: string | null; location_lat: number };
     expect(after).toMatchObject({ country_code: 'DE', location_lat: 52.52 });
   });
 
@@ -3132,7 +3291,9 @@ describe('Plan 3g Task 1 — repository parity (full-key toEqual against the leg
     addJourneyContributor(testDb, journey.id, viewer.id, 'viewer');
 
     const trip = createTrip(testDb, owner.id, {
-      title: 'Parity Trip', start_date: '2026-05-01', end_date: '2026-05-03',
+      title: 'Parity Trip',
+      start_date: '2026-05-01',
+      end_date: '2026-05-03',
     });
     const day1 = createDay(testDb, trip.id, { date: '2026-05-01' });
     const day2 = createDay(testDb, trip.id, { date: '2026-05-02' });
@@ -3153,7 +3314,9 @@ describe('Plan 3g Task 1 — repository parity (full-key toEqual against the leg
     const filledSkeleton = testDb
       .prepare('SELECT id FROM journey_entries WHERE source_place_id = ? LIMIT 1')
       .get(singleDayPlace.id) as { id: number };
-    testDb.prepare("UPDATE journey_entries SET type = 'entry', story = 'Great fish' WHERE id = ?").run(filledSkeleton.id);
+    testDb
+      .prepare("UPDATE journey_entries SET type = 'entry', story = 'Great fish' WHERE id = ?")
+      .run(filledSkeleton.id);
     await svc.onPlaceDeleted(singleDayPlace.id);
     // The place is now actually removed from the trip (the hook already
     // detached the entry, so this cascade touches nothing left referencing it).
@@ -3203,7 +3366,7 @@ describe('Plan 3g Task 1 — repository parity (full-key toEqual against the leg
     expect(converted).toEqual(legacy);
   });
 
-  it("JourneyContributorsRepository.listForJourney (JG18) matches the legacy statement — owner, editor AND viewer all present", async () => {
+  it('JourneyContributorsRepository.listForJourney (JG18) matches the legacy statement — owner, editor AND viewer all present', async () => {
     const { journey } = await seedFullJourney();
 
     const legacy = testDb
@@ -3243,7 +3406,9 @@ describe('Plan 3g Task 1 — repository parity (full-key toEqual against the leg
     const { journey } = await seedFullJourney();
 
     const legacy = testDb
-      .prepare('SELECT * FROM journey_entries WHERE journey_id = ? AND dismissed = 0 ORDER BY entry_date ASC, sort_order ASC, id ASC')
+      .prepare(
+        'SELECT * FROM journey_entries WHERE journey_id = ? AND dismissed = 0 ORDER BY entry_date ASC, sort_order ASC, id ASC',
+      )
       .all(journey.id);
 
     const converted = await entriesRepoDirect.listForJourney(journey.id);
@@ -3265,7 +3430,17 @@ describe('Plan 3g Task 1 — repository parity (full-key toEqual against the leg
         ORDER BY d.day_number ASC, da.order_index ASC
       `,
         )
-        .all(trip.id) as { id: number; name: string; address: string | null; lat: number | null; lng: number | null; place_time: string | null; assignment_id: number; day_date: string | null; assignment_time: string | null }[]
+        .all(trip.id) as {
+        id: number;
+        name: string;
+        address: string | null;
+        lat: number | null;
+        lng: number | null;
+        place_time: string | null;
+        assignment_id: number;
+        day_date: string | null;
+        assignment_time: string | null;
+      }[]
     ).map((r) => ({
       id: r.id,
       name: r.name,
@@ -3307,12 +3482,16 @@ describe('Plan 3g Task 2 — repository parity (full-key toEqual against the leg
     const t3 = createTrip(testDb, member.id, { title: 'T3 recent', start_date: d(10), end_date: d(5) });
     const t4 = createTrip(testDb, owner.id, { title: 'T4 recent', start_date: d(12), end_date: d(2) });
     testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(t3.id, owner.id);
-    const days = testDb.prepare('SELECT id, date FROM days WHERE trip_id = ? ORDER BY date').all(t1.id) as { id: number }[];
+    const days = testDb.prepare('SELECT id, date FROM days WHERE trip_id = ? ORDER BY date').all(t1.id) as {
+      id: number;
+    }[];
     const pA = createPlace(testDb, t1.id, { name: 'A' });
     const pB = createPlace(testDb, t1.id, { name: 'B', lat: 1, lng: 2 });
     createPlace(testDb, t1.id, { name: 'C unassigned' });
     const pD = createPlace(testDb, t2.id, { name: 'D' });
-    testDb.prepare("UPDATE places SET route_geometry = '[[1,2],[3,4]]', route_color = '#f00' WHERE id IN (?, ?)").run(pA.id, pD.id);
+    testDb
+      .prepare("UPDATE places SET route_geometry = '[[1,2],[3,4]]', route_color = '#f00' WHERE id IN (?, ?)")
+      .run(pA.id, pD.id);
     createDayAssignment(testDb, days[1].id, pA.id);
     createDayAssignment(testDb, days[0].id, pA.id);
     createDayAssignment(testDb, days[0].id, pB.id);
@@ -3329,36 +3508,104 @@ describe('Plan 3g Task 2 — repository parity (full-key toEqual against the leg
     const ins = testDb.prepare(
       `INSERT INTO journey_entries (journey_id, author_id, type, title, story, entry_date, entry_time, location_name, location_lat, location_lng, sort_order, created_at, updated_at, stats_excluded, dismissed) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     );
-    const e1 = Number(ins.run(journey.id, owner.id, 'entry', 'E1', 's', '2026-01-02', '10:00', 'Paris', 48.8, 2.3, 0, now, now, 0, 0).lastInsertRowid);
-    const e2 = Number(ins.run(journey.id, owner.id, 'entry', 'E2', null, '2026-01-02', '', null, null, null, 0, now, now, 1, 0).lastInsertRowid);
-    const e3 = Number(ins.run(journey.id, owner.id, 'entry', 'E3 dismissed', null, '2026-01-01', null, 'X', null, null, 1, now, now, 0, 1).lastInsertRowid);
-    const e4 = Number(ins.run(journey.id, owner.id, 'entry', 'E4', null, '2025-12-31', null, 'Paris', 1, 1, 5, now, now, 0, 0).lastInsertRowid);
+    const e1 = Number(
+      ins.run(journey.id, owner.id, 'entry', 'E1', 's', '2026-01-02', '10:00', 'Paris', 48.8, 2.3, 0, now, now, 0, 0)
+        .lastInsertRowid,
+    );
+    const e2 = Number(
+      ins.run(journey.id, owner.id, 'entry', 'E2', null, '2026-01-02', '', null, null, null, 0, now, now, 1, 0)
+        .lastInsertRowid,
+    );
+    const e3 = Number(
+      ins.run(
+        journey.id,
+        owner.id,
+        'entry',
+        'E3 dismissed',
+        null,
+        '2026-01-01',
+        null,
+        'X',
+        null,
+        null,
+        1,
+        now,
+        now,
+        0,
+        1,
+      ).lastInsertRowid,
+    );
+    const e4 = Number(
+      ins.run(journey.id, owner.id, 'entry', 'E4', null, '2025-12-31', null, 'Paris', 1, 1, 5, now, now, 0, 0)
+        .lastInsertRowid,
+    );
     const tp = testDb.prepare(
       `INSERT INTO trek_photos (provider, asset_id, owner_id, file_path, thumbnail_path, width, height, media_type, taken_at, lat, lng) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
     );
-    const gp = testDb.prepare(`INSERT INTO journey_photos (journey_id, photo_id, caption, shared, sort_order, provider, asset_id, owner_id, created_at) VALUES (?,?,?,?,?,?,?,?,?)`);
-    const jep = testDb.prepare(`INSERT INTO journey_entry_photos (entry_id, journey_photo_id, sort_order, created_at) VALUES (?,?,?,?)`);
+    const gp = testDb.prepare(
+      `INSERT INTO journey_photos (journey_id, photo_id, caption, shared, sort_order, provider, asset_id, owner_id, created_at) VALUES (?,?,?,?,?,?,?,?,?)`,
+    );
+    const jep = testDb.prepare(
+      `INSERT INTO journey_entry_photos (entry_id, journey_photo_id, sort_order, created_at) VALUES (?,?,?,?)`,
+    );
     // taken_at/media_type combinations: null, empty string, two ties at the
     // same taken_at (one video — excluded from listFirstPhotoPerEntry), and
     // a null media_type (treated as 'image').
     const specs: [string | null, string | null][] = [
-      [null, 'image'], ['', 'image'], ['2026-01-02T08:00:00', 'image'], ['2026-01-02T08:00:00', 'video'],
-      [null, 'image'], ['', null], [null, 'image'],
+      [null, 'image'],
+      ['', 'image'],
+      ['2026-01-02T08:00:00', 'image'],
+      ['2026-01-02T08:00:00', 'video'],
+      [null, 'image'],
+      ['', null],
+      [null, 'image'],
     ];
     const gids: number[] = [];
     specs.forEach(([taken, mt], i) => {
       const pid = Number(
-        tp.run('local', null, owner.id, `f${i}.jpg`, i % 2 ? null : `t${i}.jpg`, 100, i % 3 ? null : 50, mt ?? 'image', taken, i % 2 ? 1.5 : null, i % 2 ? 2.5 : null).lastInsertRowid,
+        tp.run(
+          'local',
+          null,
+          owner.id,
+          `f${i}.jpg`,
+          i % 2 ? null : `t${i}.jpg`,
+          100,
+          i % 3 ? null : 50,
+          mt ?? 'image',
+          taken,
+          i % 2 ? 1.5 : null,
+          i % 2 ? 2.5 : null,
+        ).lastInsertRowid,
       );
-      gids.push(Number(gp.run(journey.id, pid, i % 2 ? `cap${i}` : null, i % 2, i % 3, null, null, null, 1700000000000 + (i % 4) * 1000).lastInsertRowid));
+      gids.push(
+        Number(
+          gp.run(
+            journey.id,
+            pid,
+            i % 2 ? `cap${i}` : null,
+            i % 2,
+            i % 3,
+            null,
+            null,
+            null,
+            1700000000000 + (i % 4) * 1000,
+          ).lastInsertRowid,
+        ),
+      );
     });
-    jep.run(e1, gids[0], 0, now); jep.run(e1, gids[1], 0, now); jep.run(e1, gids[2], 0, now);
-    jep.run(e2, gids[0], 1, now); jep.run(e2, gids[3], 0, now);
-    jep.run(e4, gids[5], 2, now); jep.run(e4, gids[4], 2, now);
+    jep.run(e1, gids[0], 0, now);
+    jep.run(e1, gids[1], 0, now);
+    jep.run(e1, gids[2], 0, now);
+    jep.run(e2, gids[0], 1, now);
+    jep.run(e2, gids[3], 0, now);
+    jep.run(e4, gids[5], 2, now);
+    jep.run(e4, gids[4], 2, now);
     jep.run(e3, gids[6], 0, now);
     // An unrelated journey's photo — must never leak into this journey's reads.
     const other = createJourney(testDb, member.id);
-    const opid = Number(tp.run('local', null, member.id, 'o.jpg', null, null, null, 'image', null, null, null).lastInsertRowid);
+    const opid = Number(
+      tp.run('local', null, member.id, 'o.jpg', null, null, null, 'image', null, null, null).lastInsertRowid,
+    );
     gp.run(other.id, opid, null, 0, 0, null, null, null, 1);
 
     return { owner, member, journey };
@@ -3394,7 +3641,10 @@ describe('Plan 3g Task 2 — repository parity (full-key toEqual against the leg
   it('JourneyEntryPhotosRepository.listForJourney (JG15) matches the legacy statement, grouped by entry (L8: flat order may tie-break differently)', async () => {
     const { journey } = await seedParityJourney();
     const legacy = testDb.prepare(LEG.JG15).all(journey.id) as { entry_id: number; id: number }[];
-    const converted = (await entryPhotosRepoDirect.listForJourney(journey.id)) as unknown as { entry_id: number; id: number }[];
+    const converted = (await entryPhotosRepoDirect.listForJourney(journey.id)) as unknown as {
+      entry_id: number;
+      id: number;
+    }[];
 
     expect(groupedByEntry(converted)).toEqual(groupedByEntry(legacy));
     // Full-key equality still holds per row (only ORDER may tie-differ) — a
@@ -3540,7 +3790,11 @@ describe('Plan 3g Task 1 — reconcileTripSkeletons: all three branches in one c
   it('inserts a newly-assigned place, claims an unclaimed pre-assignment-link row, and drops a gone assignment, simultaneously', async () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);
-    const trip = createTrip(testDb, user.id, { title: 'Three Branches', start_date: '2026-06-01', end_date: '2026-06-03' });
+    const trip = createTrip(testDb, user.id, {
+      title: 'Three Branches',
+      start_date: '2026-06-01',
+      end_date: '2026-06-03',
+    });
     const day1 = createDay(testDb, trip.id, { date: '2026-06-01' });
     const day2 = createDay(testDb, trip.id, { date: '2026-06-02' });
 
@@ -3607,7 +3861,7 @@ describe('Plan 3g Task 2 — transaction rollback proofs (JG-TX1..4)', () => {
     vi.restoreAllMocks();
   });
 
-  it('JG-TX1 (addPhoto): a failure after ensureInGallery\'s insert rolls the insert back — no orphan journey_photos row', async () => {
+  it("JG-TX1 (addPhoto): a failure after ensureInGallery's insert rolls the insert back — no orphan journey_photos row", async () => {
     const { user } = createUser(testDb);
     const journey = await svc.createJourney(user.id, { title: 'J' });
     const entry = await svc.createEntry(journey.id, user.id, { entry_date: '2026-01-01' });
@@ -3620,7 +3874,7 @@ describe('Plan 3g Task 2 — transaction rollback proofs (JG-TX1..4)', () => {
     expect(rows).toHaveLength(0);
   });
 
-  it('JG-TX2 (addProviderPhoto): a failure after ensureInGallery\'s insert rolls the insert back — no orphan journey_photos row', async () => {
+  it("JG-TX2 (addProviderPhoto): a failure after ensureInGallery's insert rolls the insert back — no orphan journey_photos row", async () => {
     const { user } = createUser(testDb);
     const journey = await svc.createJourney(user.id, { title: 'J' });
     const entry = await svc.createEntry(journey.id, user.id, { entry_date: '2026-01-01' });
@@ -3633,7 +3887,7 @@ describe('Plan 3g Task 2 — transaction rollback proofs (JG-TX1..4)', () => {
     expect(rows).toHaveLength(0);
   });
 
-  it('JG-TX3 (addProviderPhotoToGallery): a failure after ensureInGallery\'s insert rolls the insert back — no orphan journey_photos row', async () => {
+  it("JG-TX3 (addProviderPhotoToGallery): a failure after ensureInGallery's insert rolls the insert back — no orphan journey_photos row", async () => {
     const { user } = createUser(testDb);
     const journey = await svc.createJourney(user.id, { title: 'J' });
 
@@ -3660,7 +3914,9 @@ describe('Plan 3g Task 2 — transaction rollback proofs (JG-TX1..4)', () => {
     // None of the three sort_order writes the loop made before the journey
     // touch failed should have survived the rollback — every entry is still
     // at its pre-call sort_order (0), not just the last one in the loop.
-    const rows = testDb.prepare('SELECT id, sort_order FROM journey_entries WHERE journey_id = ? ORDER BY id').all(journey.id) as {
+    const rows = testDb
+      .prepare('SELECT id, sort_order FROM journey_entries WHERE journey_id = ? ORDER BY id')
+      .all(journey.id) as {
       id: number;
       sort_order: number;
     }[];
@@ -3669,7 +3925,7 @@ describe('Plan 3g Task 2 — transaction rollback proofs (JG-TX1..4)', () => {
 });
 
 describe('Plan 3g Task 2 — JG112 mutation proof (sort_order table targeting)', () => {
-  it('updatePhoto\'s sort_order write lands on journey_entry_photos (entry-scoped), never journey_photos (the gallery row\'s own, unrelated sort_order)', async () => {
+  it("updatePhoto's sort_order write lands on journey_entry_photos (entry-scoped), never journey_photos (the gallery row's own, unrelated sort_order)", async () => {
     const { user } = createUser(testDb);
     const journey = await svc.createJourney(user.id, { title: 'J' });
     const entry = await svc.createEntry(journey.id, user.id, { entry_date: '2026-01-01' });

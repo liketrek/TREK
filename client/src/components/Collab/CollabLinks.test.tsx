@@ -10,17 +10,17 @@ vi.mock('../../api/websocket', () => ({
   removeListener: vi.fn(),
 }));
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
-import { useAuthStore } from '../../store/authStore';
-import { useTripStore } from '../../store/tripStore';
-import { usePermissionsStore } from '../../store/permissionsStore';
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip } from '../../../tests/helpers/factories';
+import { useAuthStore } from '../../store/authStore';
+import { usePermissionsStore } from '../../store/permissionsStore';
+import { useTripStore } from '../../store/tripStore';
 import CollabLinks from './CollabLinks';
 
 const currentUser = buildUser({ id: 1, username: 'testuser' });
@@ -36,9 +36,7 @@ const buildLink = (overrides: Record<string, unknown> = {}) => ({
 beforeEach(() => {
   resetAllStores();
   vi.clearAllMocks();
-  server.use(
-    http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [] })),
-  );
+  server.use(http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [] })));
   seedStore(useAuthStore, { user: currentUser, isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: 1 }) });
 });
@@ -60,14 +58,15 @@ describe('CollabLinks', () => {
   });
 
   it('FE-COMP-LINKS-003: renders a link with its title and url', async () => {
-    server.use(
-      http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [buildLink()] })),
-    );
+    server.use(http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [buildLink()] })));
     render(<CollabLinks tripId={1} />);
     expect(await screen.findByText('Ferry timetable')).toBeInTheDocument();
     // The chip shows the host, not the whole address, and links to the address itself.
     expect(screen.getByText('ferries.example')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /ferry timetable/i })).toHaveAttribute('href', 'https://ferries.example/timetable');
+    expect(screen.getByRole('link', { name: /ferry timetable/i })).toHaveAttribute(
+      'href',
+      'https://ferries.example/timetable'
+    );
   });
 
   it('FE-COMP-LINKS-004: the add button opens the form in a dialog, not inside the list', async () => {
@@ -75,7 +74,9 @@ describe('CollabLinks', () => {
     render(<CollabLinks tripId={1} />);
     await user.click(await screen.findByRole('button', { name: /add link|collab\.links\.add/i }));
     expect(await screen.findByLabelText(/link title|collab\.links\.titlePlaceholder/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^link$|^reservations\.urlLabel$|https|collab\.links\.urlPlaceholder/i)).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/^link$|^reservations\.urlLabel$|https|collab\.links\.urlPlaceholder/i)
+    ).toBeInTheDocument();
   });
 
   it('FE-COMP-LINKS-005: saving posts the link and closes the form', async () => {
@@ -85,37 +86,41 @@ describe('CollabLinks', () => {
       http.post('/api/trips/1/collab/links', async ({ request }) => {
         posted = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ link: buildLink({ id: 7, title: 'Ferry timetable' }) });
-      }),
+      })
     );
     render(<CollabLinks tripId={1} />);
     await user.click(await screen.findByRole('button', { name: /add link|collab\.links\.add/i }));
     await user.type(await screen.findByLabelText(/link title|collab\.links\.titlePlaceholder/i), 'Ferry timetable');
-    await user.type(screen.getByLabelText(/^link$|^reservations\.urlLabel$|https|collab\.links\.urlPlaceholder/i), 'https://ferries.example/timetable');
+    await user.type(
+      screen.getByLabelText(/^link$|^reservations\.urlLabel$|https|collab\.links\.urlPlaceholder/i),
+      'https://ferries.example/timetable'
+    );
     await user.click(screen.getByRole('button', { name: /save link|collab\.links\.save/i }));
 
     await waitFor(() => expect(posted).toEqual({ title: 'Ferry timetable', url: 'https://ferries.example/timetable' }));
-    await waitFor(() => expect(screen.queryByLabelText(/link title|collab\.links\.titlePlaceholder/i)).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByLabelText(/link title|collab\.links\.titlePlaceholder/i)).not.toBeInTheDocument()
+    );
     expect(await screen.findByText('Ferry timetable')).toBeInTheDocument();
   });
 
   it('FE-COMP-LINKS-006: a failed save keeps the form open so the input is not lost', async () => {
     const user = userEvent.setup();
-    server.use(
-      http.post('/api/trips/1/collab/links', () => new HttpResponse(null, { status: 500 })),
-    );
+    server.use(http.post('/api/trips/1/collab/links', () => new HttpResponse(null, { status: 500 })));
     render(<CollabLinks tripId={1} />);
     await user.click(await screen.findByRole('button', { name: /add link|collab\.links\.add/i }));
     await user.type(await screen.findByLabelText(/link title|collab\.links\.titlePlaceholder/i), 'Ferry timetable');
-    await user.type(screen.getByLabelText(/^link$|^reservations\.urlLabel$|https|collab\.links\.urlPlaceholder/i), 'https://ferries.example/timetable');
+    await user.type(
+      screen.getByLabelText(/^link$|^reservations\.urlLabel$|https|collab\.links\.urlPlaceholder/i),
+      'https://ferries.example/timetable'
+    );
     await user.click(screen.getByRole('button', { name: /save link|collab\.links\.save/i }));
 
     expect(await screen.findByLabelText(/link title|collab\.links\.titlePlaceholder/i)).toHaveValue('Ferry timetable');
   });
 
   it('FE-COMP-LINKS-007: pin and delete are offered on a link', async () => {
-    server.use(
-      http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [buildLink()] })),
-    );
+    server.use(http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [buildLink()] })));
     render(<CollabLinks tripId={1} />);
     expect(await screen.findByRole('button', { name: /pin link|collab\.links\.pin/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /delete link|collab\.links\.delete/i })).toBeInTheDocument();
@@ -129,8 +134,10 @@ describe('CollabLinks', () => {
       http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [buildLink()] })),
       http.put('/api/trips/1/collab/links/1', async ({ request }) => {
         put = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json({ link: buildLink({ title: 'Ferry timetable 2026', url: 'https://ferries.example/2026' }) });
-      }),
+        return HttpResponse.json({
+          link: buildLink({ title: 'Ferry timetable 2026', url: 'https://ferries.example/2026' }),
+        });
+      })
     );
     render(<CollabLinks tripId={1} />);
     await user.click(await screen.findByRole('button', { name: /edit link|collab\.links\.edit/i }));
@@ -145,15 +152,18 @@ describe('CollabLinks', () => {
     await user.click(screen.getByRole('button', { name: /save link|collab\.links\.save/i }));
 
     await waitFor(() => expect(put).toEqual({ title: 'Ferry timetable 2026', url: 'https://ferries.example/2026' }));
-    await waitFor(() => expect(screen.queryByLabelText(/link title|collab\.links\.titlePlaceholder/i)).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByLabelText(/link title|collab\.links\.titlePlaceholder/i)).not.toBeInTheDocument()
+    );
     expect(await screen.findByText('Ferry timetable 2026')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /ferry timetable 2026/i })).toHaveAttribute('href', 'https://ferries.example/2026');
+    expect(screen.getByRole('link', { name: /ferry timetable 2026/i })).toHaveAttribute(
+      'href',
+      'https://ferries.example/2026'
+    );
   });
 
   it('FE-COMP-LINKS-010: the chip is the link and opens the address in a new tab', async () => {
-    server.use(
-      http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [buildLink()] })),
-    );
+    server.use(http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [buildLink()] })));
     render(<CollabLinks tripId={1} />);
     const open = await screen.findByRole('link', { name: /ferry timetable/i });
     expect(open).toHaveAttribute('href', 'https://ferries.example/timetable');
@@ -169,7 +179,10 @@ describe('CollabLinks', () => {
     let deleted = false;
     server.use(
       http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [buildLink()] })),
-      http.delete('/api/trips/1/collab/links/1', () => { deleted = true; return HttpResponse.json({ success: true }); }),
+      http.delete('/api/trips/1/collab/links/1', () => {
+        deleted = true;
+        return HttpResponse.json({ success: true });
+      })
     );
     render(<CollabLinks tripId={1} />);
     await user.click(await screen.findByRole('button', { name: /delete link|collab\.links\.delete/i }));
@@ -178,7 +191,9 @@ describe('CollabLinks', () => {
     expect(screen.getByText('Ferry timetable')).toBeInTheDocument();
 
     // The confirm button of the question itself, found by its role rather than a colour class.
-    const question = screen.getByText(/delete link\?|collab\.links\.confirmDeleteTitle/i).closest('.trek-modal-enter') as HTMLElement;
+    const question = screen
+      .getByText(/delete link\?|collab\.links\.confirmDeleteTitle/i)
+      .closest('.trek-modal-enter') as HTMLElement;
     await user.click(within(question).getByRole('button', { name: /^(delete|common\.delete)$/i }));
     await waitFor(() => expect(deleted).toBe(true));
     await waitFor(() => expect(screen.queryByText('Ferry timetable')).not.toBeInTheDocument());
@@ -189,8 +204,12 @@ describe('CollabLinks', () => {
     // so the corrected address kept the generic glyph until the panel remounted.
     const user = userEvent.setup();
     server.use(
-      http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [buildLink({ url: 'https://old.example/page' })] })),
-      http.put('/api/trips/1/collab/links/1', () => HttpResponse.json({ link: buildLink({ url: 'https://new.example/page' }) })),
+      http.get('/api/trips/1/collab/links', () =>
+        HttpResponse.json({ links: [buildLink({ url: 'https://old.example/page' })] })
+      ),
+      http.put('/api/trips/1/collab/links/1', () =>
+        HttpResponse.json({ link: buildLink({ url: 'https://new.example/page' }) })
+      )
     );
     render(<CollabLinks tripId={1} />);
     const chip = await screen.findByRole('link', { name: /ferry timetable/i });
@@ -203,8 +222,12 @@ describe('CollabLinks', () => {
     await user.type(url, 'https://new.example/page');
     await user.click(screen.getByRole('button', { name: /save link|collab\.links\.save/i }));
 
-    await waitFor(() => expect(screen.getByRole('link', { name: /ferry timetable/i }).querySelector('img'))
-      .toHaveAttribute('src', 'https://new.example/favicon.ico'));
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: /ferry timetable/i }).querySelector('img')).toHaveAttribute(
+        'src',
+        'https://new.example/favicon.ico'
+      )
+    );
   });
 
   it('FE-COMP-LINKS-013: on touch the chip actions are finger-sized and apart', () => {
@@ -264,9 +287,9 @@ describe('CollabLinks', () => {
     server.use(
       http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [buildLink()] })),
       http.put('/api/trips/1/collab/links/1', async ({ request }) => {
-        put = await request.json() as Record<string, unknown>;
+        put = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ link: buildLink({ pinned: 1 }) });
-      }),
+      })
     );
     render(<CollabLinks tripId={1} />);
     await user.click(await screen.findByRole('button', { name: /^pin link$|^collab\.links\.pin$/i }));
@@ -278,10 +301,13 @@ describe('CollabLinks', () => {
     const user = userEvent.setup();
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
     const toasts: string[] = [];
-    window.__addToast = ((message: string) => { toasts.push(message); return 1; }) as unknown as typeof window.__addToast;
+    window.__addToast = ((message: string) => {
+      toasts.push(message);
+      return 1;
+    }) as unknown as typeof window.__addToast;
     server.use(
       http.get('/api/trips/1/collab/links', () => HttpResponse.json({ links: [buildLink()] })),
-      http.put('/api/trips/1/collab/links/1', () => new HttpResponse(null, { status: 500 })),
+      http.put('/api/trips/1/collab/links/1', () => new HttpResponse(null, { status: 500 }))
     );
     render(<CollabLinks tripId={1} />);
     await user.click(await screen.findByRole('button', { name: /^pin link$|^collab\.links\.pin$/i }));

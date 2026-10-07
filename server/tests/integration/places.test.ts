@@ -7,11 +7,20 @@
  * - PLACE-014: reordering within a day is tested in assignments.test.ts
  * - PLACE-019: GPX bulk import tested here using the test fixture
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll, type MockInstance } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
+import { PlacesService } from '../../src/nest/places/places.service';
+import { broadcast } from '../../src/websocket';
+import { authCookie } from '../helpers/auth';
+import { createUser, createAdmin, createTrip, createPlace, addTripMember } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
 import path from 'path';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll, type MockInstance } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -27,15 +36,6 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createAdmin, createTrip, createPlace, addTripMember } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { PlacesService } from '../../src/nest/places/places.service';
-import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
-import { broadcast } from '../../src/websocket';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -150,9 +150,7 @@ describe('List places', () => {
     createPlace(testDb, trip.id, { name: 'Place A' });
     createPlace(testDb, trip.id, { name: 'Place B' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/places`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/places`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.places).toHaveLength(2);
   });
@@ -164,9 +162,7 @@ describe('List places', () => {
     addTripMember(testDb, trip.id, member.id);
     createPlace(testDb, trip.id, { name: 'Shared Place' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/places`)
-      .set('Cookie', authCookie(member.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/places`).set('Cookie', authCookie(member.id));
     expect(res.status).toBe(200);
     expect(res.body.places).toHaveLength(1);
   });
@@ -176,9 +172,7 @@ describe('List places', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/places`)
-      .set('Cookie', authCookie(other.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/places`).set('Cookie', authCookie(other.id));
     expect(res.status).toBe(404);
   });
 
@@ -212,9 +206,7 @@ describe('Get place', () => {
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id, { name: 'Test Place' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/places/${place.id}`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/places/${place.id}`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.place.id).toBe(place.id);
     expect(Array.isArray(res.body.place.tags)).toBe(true);
@@ -224,9 +216,7 @@ describe('Get place', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/places/99999`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/places/99999`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
   });
 });
@@ -278,9 +268,7 @@ describe('Delete place', () => {
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
 
-    const get = await request(app)
-      .get(`/api/trips/${trip.id}/places/${place.id}`)
-      .set('Cookie', authCookie(user.id));
+    const get = await request(app).get(`/api/trips/${trip.id}/places/${place.id}`).set('Cookie', authCookie(user.id));
     expect(get.status).toBe(404);
   });
 
@@ -308,9 +296,7 @@ describe('Tags', () => {
     // Create a tag in DB
     testDb.prepare('INSERT INTO tags (name, user_id) VALUES (?, ?)').run('Must-see', user.id);
 
-    const res = await request(app)
-      .get('/api/tags')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/tags').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.tags).toBeDefined();
     const names = (res.body.tags as any[]).map((t: any) => t.name);
@@ -343,9 +329,7 @@ describe('Tags', () => {
     const tagResult = testDb.prepare('INSERT INTO tags (name, user_id) VALUES (?, ?)').run('OldTag', user.id);
     const tagId = tagResult.lastInsertRowid as number;
 
-    const res = await request(app)
-      .delete(`/api/tags/${tagId}`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).delete(`/api/tags/${tagId}`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
 
     const tags = await request(app).get('/api/tags').set('Cookie', authCookie(user.id));
@@ -450,9 +434,7 @@ describe('Search places', () => {
     createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
     createPlace(testDb, trip.id, { name: 'Arc de Triomphe' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/places?search=Eiffel`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/places?search=Eiffel`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.places).toHaveLength(1);
     expect(res.body.places[0].name).toBe('Eiffel Tower');
@@ -474,9 +456,7 @@ describe('Search places', () => {
 
     createPlace(testDb, trip.id, { name: 'Plain Place' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/places?tag=${tagId}`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/places?tag=${tagId}`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.places).toHaveLength(1);
     expect(res.body.places[0].name).toBe('Scenic Place');
@@ -490,9 +470,7 @@ describe('Search places', () => {
 describe('Categories', () => {
   it('PLACE-015 — GET /api/categories returns all categories', async () => {
     const { user } = createUser(testDb);
-    const res = await request(app)
-      .get('/api/categories')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/categories').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.categories)).toBe(true);
     expect(res.body.categories.length).toBeGreaterThan(0);
@@ -519,29 +497,38 @@ describe('Naver list import', () => {
 
     testDb.prepare("UPDATE addons SET enabled = 1 WHERE id = 'naver_list_import'").run();
 
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce({
         ok: true,
         url: `https://map.naver.com/v5/favorite/myPlace/folder/${folderId}`,
       })
       .mockResolvedValueOnce({
         ok: true,
-        text: async () => JSON.stringify({
-          folder: { name: 'Seoul Food', bookmarkCount: 22 },
-          bookmarkList: [
-            { name: 'SINSAJEON', px: 127.0226195, py: 37.5186363, memo: null, address: 'Sinsa-dong Seoul' },
-            { name: 'Ilpyeondeungsim', px: 126.9852986, py: 37.5629334, memo: 'Try lunch set', address: 'Myeong-dong Seoul' },
-          ],
-        }),
+        text: async () =>
+          JSON.stringify({
+            folder: { name: 'Seoul Food', bookmarkCount: 22 },
+            bookmarkList: [
+              { name: 'SINSAJEON', px: 127.0226195, py: 37.5186363, memo: null, address: 'Sinsa-dong Seoul' },
+              {
+                name: 'Ilpyeondeungsim',
+                px: 126.9852986,
+                py: 37.5629334,
+                memo: 'Try lunch set',
+                address: 'Myeong-dong Seoul',
+              },
+            ],
+          }),
       })
       .mockResolvedValueOnce({
         ok: true,
-        text: async () => JSON.stringify({
-          folder: { name: 'Seoul Food', bookmarkCount: 22 },
-          bookmarkList: [
-            { name: 'WAIKIKI MARKET', px: 126.8886523, py: 37.5589079, memo: null, address: 'Mapo-gu Seoul' },
-          ],
-        }),
+        text: async () =>
+          JSON.stringify({
+            folder: { name: 'Seoul Food', bookmarkCount: 22 },
+            bookmarkList: [
+              { name: 'WAIKIKI MARKET', px: 126.8886523, py: 37.5589079, memo: null, address: 'Mapo-gu Seoul' },
+            ],
+          }),
       });
 
     vi.stubGlobal('fetch', fetchMock);
@@ -587,8 +574,7 @@ describe('Naver list import', () => {
 
     testDb.prepare("UPDATE addons SET enabled = 1 WHERE id = 'naver_list_import'").run();
 
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: false });
+    const fetchMock = vi.fn().mockResolvedValueOnce({ ok: false });
 
     vi.stubGlobal('fetch', fetchMock);
 
@@ -633,13 +619,14 @@ describe('Naver list import', () => {
 
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: true,
-      text: async () => JSON.stringify({
-        folder: { name: 'No Coords', bookmarkCount: 2 },
-        bookmarkList: [
-          { name: 'Place A', px: undefined, py: undefined },
-          { name: 'Place B', px: 'not-a-number', py: 'not-a-number' },
-        ],
-      }),
+      text: async () =>
+        JSON.stringify({
+          folder: { name: 'No Coords', bookmarkCount: 2 },
+          bookmarkList: [
+            { name: 'Place A', px: undefined, py: undefined },
+            { name: 'Place B', px: 'not-a-number', py: 'not-a-number' },
+          ],
+        }),
     });
 
     vi.stubGlobal('fetch', fetchMock);
@@ -662,10 +649,11 @@ describe('Naver list import', () => {
 
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: true,
-      text: async () => JSON.stringify({
-        folder: { name: 'Seoul', bookmarkCount: 1 },
-        bookmarkList: [{ name: 'Gyeongbokgung', px: 126.9770, py: 37.5796, memo: null, address: 'Sejongno Seoul' }],
-      }),
+      text: async () =>
+        JSON.stringify({
+          folder: { name: 'Seoul', bookmarkCount: 1 },
+          bookmarkList: [{ name: 'Gyeongbokgung', px: 126.977, py: 37.5796, memo: null, address: 'Sejongno Seoul' }],
+        }),
     });
 
     vi.stubGlobal('fetch', fetchMock);
@@ -703,9 +691,7 @@ describe('GPX Import', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const res = await request(app)
-      .post(`/api/trips/${trip.id}/places/import/gpx`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).post(`/api/trips/${trip.id}/places/import/gpx`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(400);
   });
 });
@@ -719,7 +705,8 @@ describe('KML/KMZ Import', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    testDb.prepare('INSERT INTO categories (name, color, icon, user_id) VALUES (?, ?, ?, ?)')
+    testDb
+      .prepare('INSERT INTO categories (name, color, icon, user_id) VALUES (?, ?, ?, ?)')
       .run('Museums', '#3b82f6', 'Landmark', user.id);
 
     const res = await request(app)
@@ -745,7 +732,8 @@ describe('KML/KMZ Import', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    testDb.prepare('INSERT INTO categories (name, color, icon, user_id) VALUES (?, ?, ?, ?)')
+    testDb
+      .prepare('INSERT INTO categories (name, color, icon, user_id) VALUES (?, ?, ?, ?)')
       .run('Parks', '#22c55e', 'Trees', user.id);
 
     const res = await request(app)
@@ -787,7 +775,9 @@ describe('KML/KMZ Import', () => {
 
     const prefix = Buffer.from('<?xml version="1.0"?><kml><Document><Placemark><name>Caf');
     const invalidByte = Buffer.from([0xe9]); // invalid UTF-8 sequence when used standalone
-    const suffix = Buffer.from('</name><Point><coordinates>2.1,48.1,0</coordinates></Point></Placemark></Document></kml>');
+    const suffix = Buffer.from(
+      '</name><Point><coordinates>2.1,48.1,0</coordinates></Point></Placemark></Document></kml>',
+    );
     const nonUtf8Kml = Buffer.concat([prefix, invalidByte, suffix]);
 
     const res = await request(app)
@@ -840,8 +830,7 @@ describe('GPX Import — edge cases', () => {
 
     // Minimal valid GPX with no waypoints, tracks, or routes
     const emptyGpx = Buffer.from(
-      '<?xml version="1.0" encoding="UTF-8"?>' +
-      '<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1"></gpx>'
+      '<?xml version="1.0" encoding="UTF-8"?>' + '<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1"></gpx>',
     );
 
     const res = await request(app)
@@ -998,9 +987,7 @@ describe('Delete place — not found', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const res = await request(app)
-      .delete(`/api/trips/${trip.id}/places/99999`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).delete(`/api/trips/${trip.id}/places/99999`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
   });
 });
@@ -1061,15 +1048,13 @@ describe('Custom place image upload', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('H1 — trip id parsed once at the gate (rule 21)', () => {
-  it('GET by the trip\'s hex-spelled id 404s — it does not read the real trip\'s place', async () => {
+  it("GET by the trip's hex-spelled id 404s — it does not read the real trip's place", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id, { name: 'Spot' });
     const hexTripId = '0x' + trip.id.toString(16);
 
-    const res = await request(app)
-      .get(`/api/trips/${hexTripId}/places/${place.id}`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${hexTripId}/places/${place.id}`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Place not found' });
   });
@@ -1094,9 +1079,7 @@ describe('H1 — trip id parsed once at the gate (rule 21)', () => {
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
 
-    const after = await request(app)
-      .get(`/api/trips/${trip.id}/places/${placeId}`)
-      .set('Cookie', authCookie(user.id));
+    const after = await request(app).get(`/api/trips/${trip.id}/places/${placeId}`).set('Cookie', authCookie(user.id));
     expect(after.body.place.name).toBe('Taggable');
     expect((after.body.place.tags as { id: number }[]).some((t) => t.id === tagId)).toBe(true);
   });
@@ -1113,7 +1096,9 @@ describe('H1 — trip id parsed once at the gate (rule 21)', () => {
       .send({ rating: 4 });
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
-    expect(testDb.prepare('SELECT COUNT(*) AS n FROM place_ratings WHERE place_id = ?').get(place.id)).toEqual({ n: 0 });
+    expect(testDb.prepare('SELECT COUNT(*) AS n FROM place_ratings WHERE place_id = ?').get(place.id)).toEqual({
+      n: 0,
+    });
   });
 
   it('POST create by the hex-spelled trip id now 404s "Trip not found" (Task 9 fix wave, M1: `verifyTripAccess` gates with `toRowId` before `create()` is ever reached — the base 94c6efbbc 500 this test used to mirror was ruled a defect, not the contract to preserve, once the gate itself refuses the id)', async () => {
@@ -1134,7 +1119,9 @@ describe('H1 — trip id parsed once at the gate (rule 21)', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id, { name: 'Louvre' });
-    testDb.prepare("INSERT INTO budget_items (trip_id, name, total_price, place_id) VALUES (?, 'Tickets', 34, ?)").run(trip.id, place.id);
+    testDb
+      .prepare("INSERT INTO budget_items (trip_id, name, total_price, place_id) VALUES (?, 'Tickets', 34, ?)")
+      .run(trip.id, place.id);
     const hexTripId = '0x' + trip.id.toString(16);
     vi.mocked(broadcast).mockClear();
 
@@ -1152,7 +1139,9 @@ describe('H1 — trip id parsed once at the gate (rule 21)', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id, { name: 'Louvre' });
-    testDb.prepare("INSERT INTO budget_items (trip_id, name, total_price, place_id) VALUES (?, 'Tickets', 34, ?)").run(trip.id, place.id);
+    testDb
+      .prepare("INSERT INTO budget_items (trip_id, name, total_price, place_id) VALUES (?, 'Tickets', 34, ?)")
+      .run(trip.id, place.id);
     const hexTripId = '0x' + trip.id.toString(16);
     vi.mocked(broadcast).mockClear();
 
@@ -1189,7 +1178,7 @@ describe('A-H1 / A-M1 / B-H1 — verifyTripAccess parses once with toRowId (Task
     ['a non-numeric id (abc)', () => 'abc'],
     ['a numeric-suffixed id (1abc)', (id) => `${id}abc`],
     ['a decimal-spelled id (1.0) — rule-15 narrowing, base 201', (id) => `${id}.0`],
-    ['a leading-space id (\' 1\') — rule-15 narrowing, base 201', (id) => ` ${id}`],
+    ["a leading-space id (' 1') — rule-15 narrowing, base 201", (id) => ` ${id}`],
     ['a leading-plus id (+1) — rule-15 narrowing, base 201', (id) => `+${id}`],
     ['an exponent-spelled id (1e0) — rule-15 narrowing, base 201', (id) => `${id}e0`],
   ];
@@ -1276,7 +1265,9 @@ describe('A-H1 / A-M1 / B-H1 — verifyTripAccess parses once with toRowId (Task
         .send({ rating: 4 });
       expect(res.status).toBe(404);
       expect(res.body).toEqual({ error: 'Trip not found' });
-      expect(testDb.prepare('SELECT COUNT(*) AS n FROM place_ratings WHERE place_id = ?').get(place.id)).toEqual({ n: 0 });
+      expect(testDb.prepare('SELECT COUNT(*) AS n FROM place_ratings WHERE place_id = ?').get(place.id)).toEqual({
+        n: 0,
+      });
     });
   });
 
@@ -1286,9 +1277,7 @@ describe('A-H1 / A-M1 / B-H1 — verifyTripAccess parses once with toRowId (Task
       const trip = createTrip(testDb, user.id);
       const spelled = spell(trip.id);
 
-      const res = await request(app)
-        .get(`/api/trips/${spelled}/places/export.gpx`)
-        .set('Cookie', authCookie(user.id));
+      const res = await request(app).get(`/api/trips/${spelled}/places/export.gpx`).set('Cookie', authCookie(user.id));
       expect(res.status).toBe(404);
       expect(res.body).toEqual({ error: 'Trip not found' });
     });
@@ -1319,7 +1308,7 @@ describe('A-H1 / A-M1 / B-H1 — verifyTripAccess parses once with toRowId (Task
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('M1 — NUL-safe value quoting on the SQLite platform (rule 22)', () => {
-  it('GET ?search=%00 is 200, not 500 (status parity — SQLite\'s LIKE pattern matcher itself iterates its RHS as NUL-terminated, an independent SQLite limitation this platform fix does not touch, so a NUL search matches everything on BOTH trees, not nothing)', async () => {
+  it("GET ?search=%00 is 200, not 500 (status parity — SQLite's LIKE pattern matcher itself iterates its RHS as NUL-terminated, an independent SQLite limitation this platform fix does not touch, so a NUL search matches everything on BOTH trees, not nothing)", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     createPlace(testDb, trip.id, { name: 'Spot' });
@@ -1329,9 +1318,7 @@ describe('M1 — NUL-safe value quoting on the SQLite platform (rule 22)', () =>
     // goes through superagent's own `qs` encoder, which is not guaranteed to
     // round-trip a NUL character the same way; the literal query string is
     // what Express/the route actually receives in production.
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/places?search=%00`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/places?search=%00`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
   });
 

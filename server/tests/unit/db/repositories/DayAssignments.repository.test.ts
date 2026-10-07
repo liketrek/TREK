@@ -3,16 +3,25 @@
  * assignment-with-place projection contract (built here, Task 3 consumes it
  * unchanged for AS1/AS3).
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createCategory, createDay, createDayAccommodation, createDayAssignment, createPlace, createTrip, createUser } from '../../../helpers/factories';
-import { createTour } from '../../../helpers/tours-repos';
 import { DayAssignments } from '../../../../src/db/entities/DayAssignments.entity';
 import type { DayAssignmentsRepository } from '../../../../src/db/repositories/DayAssignments.repository';
-import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
+import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import {
+  createCategory,
+  createDay,
+  createDayAccommodation,
+  createDayAssignment,
+  createPlace,
+  createTrip,
+  createUser,
+} from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+import { createTour } from '../../../helpers/tours-repos';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -24,12 +33,20 @@ beforeAll(async () => {
   assignments = t.repo(DayAssignments);
   uow = new UnitOfWork(t.em);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 /** The DY1/DY3/AS1/AS3 statement, run raw — the parity oracle every assertion below is checked against. */
 function legacyProjectionRow(id: number): unknown {
-  return testDb.prepare(`
+  return testDb
+    .prepare(
+      `
     SELECT da.*, p.id as place_id, p.name as place_name, p.description as place_description,
       p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
       COALESCE(da.assignment_time, p.place_time) as place_time,
@@ -43,7 +60,9 @@ function legacyProjectionRow(id: number): unknown {
     LEFT JOIN tours t ON t.place_id = p.id
     LEFT JOIN categories c ON p.category_id = c.id
     WHERE da.id = ?
-  `).get(id);
+  `,
+    )
+    .get(id);
 }
 
 async function withQueryCount<T>(fn: () => Promise<T>): Promise<{ value: T; queries: number }> {
@@ -78,9 +97,14 @@ describe('DayAssignmentsRepository — the DY1/DY3/AS1/AS3 projection', () => {
     expect(rows[0]).toStrictEqual(legacyProjectionRow(assignment.id));
     // Named spot-checks so a future field rename fails loudly here, not just via toStrictEqual.
     expect(rows[0]).toMatchObject({
-      id: assignment.id, day_id: day.id, place_id: place.id,
-      place_name: 'Louvre', category_id: category.id,
-      category_name: 'Museum', category_color: '#111111', category_icon: '🏛️',
+      id: assignment.id,
+      day_id: day.id,
+      place_id: place.id,
+      place_name: 'Louvre',
+      category_id: category.id,
+      category_name: 'Museum',
+      category_color: '#111111',
+      category_icon: '🏛️',
     });
   });
 
@@ -110,23 +134,31 @@ describe('DayAssignmentsRepository — the DY1/DY3/AS1/AS3 projection', () => {
     const one = await assignments.findWithPlaceAndCategory(tour.id);
     expect(one).toStrictEqual(legacyProjectionRow(tour.id));
     expect(one).toMatchObject({ tour_place_id: tourPlace.id, tour_route_geometry: '[[47,11],[47.1,11.1]]' });
-    expect(await assignments.findWithPlaceAndCategory(track.id)).toMatchObject({ tour_place_id: null, tour_route_geometry: null });
+    expect(await assignments.findWithPlaceAndCategory(track.id)).toMatchObject({
+      tour_place_id: null,
+      tour_route_geometry: null,
+    });
 
     const facets = (rows: { tour_place_id: number | null; tour_route_geometry: string | null }[]) =>
       rows.map((r) => [r.tour_place_id, r.tour_route_geometry]);
-    const expected = [[tourPlace.id, '[[47,11],[47.1,11.1]]'], [null, null]];
+    const expected = [
+      [tourPlace.id, '[[47,11],[47.1,11.1]]'],
+      [null, null],
+    ];
     expect(facets(await assignments.listForDay(day.id))).toEqual(expected);
     expect(facets(await assignments.listWithPlaceAndCategory([day.id]))).toEqual(expected);
   });
 
-  it('ASSIGNPLACEREPO-004: place_time/end_time COALESCE — the assignment\'s own time wins, the place\'s time is the fallback', async () => {
+  it("ASSIGNPLACEREPO-004: place_time/end_time COALESCE — the assignment's own time wins, the place's time is the fallback", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id);
     testDb.prepare('UPDATE places SET place_time = ?, end_time = ? WHERE id = ?').run('09:00', '10:00', place.id);
     const withOwnTime = createDayAssignment(testDb, day.id, place.id);
-    testDb.prepare('UPDATE day_assignments SET assignment_time = ?, assignment_end_time = ? WHERE id = ?').run('14:00', '15:00', withOwnTime.id);
+    testDb
+      .prepare('UPDATE day_assignments SET assignment_time = ?, assignment_end_time = ? WHERE id = ?')
+      .run('14:00', '15:00', withOwnTime.id);
     const withoutOwnTime = createDayAssignment(testDb, day.id, place.id);
 
     const rows = await assignments.listForDay(day.id);
@@ -212,7 +244,7 @@ describe('DayAssignmentsRepository — the DY1/DY3/AS1/AS3 projection', () => {
   });
 });
 
-describe('DayAssignmentsRepository — AC20/AC21 (the stop a booking owns, carried to another day by night-seat.ts\'s reseatOwnStopWith)', () => {
+describe("DayAssignmentsRepository — AC20/AC21 (the stop a booking owns, carried to another day by night-seat.ts's reseatOwnStopWith)", () => {
   it('ASSIGNREPO-036 (AC20, maxOrderIndexExcluding): the highest order_index on the day without the excluded row — null for a day holding nothing else, a stored 0 not confused with "no rows"', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
@@ -272,7 +304,7 @@ describe('DayAssignmentsRepository — AS4/AS9/AS12 existence + trip-scoped read
     expect(await assignments.existsInDay(a.id, day.id, trip.id + 1)).toBe(false);
   });
 
-  it('ASSIGNREPO-002 (AS9): raw-bind on day_id/trip_id — a string binds unconverted, same as a real number; `id` itself is `number`-only now (Task 3 review H1, absorbed in Task 4: the method\'s only caller `toRowId`s `id` before calling, so the type narrowed to match)', async () => {
+  it("ASSIGNREPO-002 (AS9): raw-bind on day_id/trip_id — a string binds unconverted, same as a real number; `id` itself is `number`-only now (Task 3 review H1, absorbed in Task 4: the method's only caller `toRowId`s `id` before calling, so the type narrowed to match)", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
@@ -287,10 +319,14 @@ describe('DayAssignmentsRepository — AS4/AS9/AS12 existence + trip-scoped read
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id);
     const a = createDayAssignment(testDb, day.id, place.id, { order_index: 3 });
-    testDb.prepare('UPDATE day_assignments SET assignment_time = ?, notes = ? WHERE id = ?').run('09:00', 'a note', a.id);
+    testDb
+      .prepare('UPDATE day_assignments SET assignment_time = ?, notes = ? WHERE id = ?')
+      .run('09:00', 'a note', a.id);
 
     const row = await assignments.findInTrip(a.id, trip.id);
-    const legacy = testDb.prepare(`SELECT da.* FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE da.id = ? AND d.trip_id = ?`).get(a.id, trip.id);
+    const legacy = testDb
+      .prepare(`SELECT da.* FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE da.id = ? AND d.trip_id = ?`)
+      .get(a.id, trip.id);
     expect(row).toStrictEqual(legacy);
     expect(row).toMatchObject({ id: a.id, day_id: day.id, order_index: 3, assignment_time: '09:00', notes: 'a note' });
     expect(await assignments.findInTrip(a.id, trip.id + 1)).toBeUndefined();
@@ -321,9 +357,13 @@ describe('DayAssignmentsRepository — AS6/AS7/AS8 (createAssignment)', () => {
     const after = createDayAssignment(testDb, day.id, place.id, { order_index: 2 });
     const foreign = createDayAssignment(testDb, otherDay.id, place.id, { order_index: 1 });
 
-    await withRequestContext(t.orm, async () => { await assignments.shiftOrderFrom(day.id, 1); });
+    await withRequestContext(t.orm, async () => {
+      await assignments.shiftOrderFrom(day.id, 1);
+    });
 
-    const order = (id: number) => (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number }).order_index;
+    const order = (id: number) =>
+      (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number })
+        .order_index;
     expect(order(before.id)).toBe(0);
     expect(order(at.id)).toBe(2);
     expect(order(after.id)).toBe(3);
@@ -336,16 +376,30 @@ describe('DayAssignmentsRepository — AS6/AS7/AS8 (createAssignment)', () => {
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id);
 
-    const id = await withRequestContext(t.orm, () => assignments.insertAssignment({
-      day_id: day.id, place_id: place.id, order_index: 2, notes: null, accommodation_id: null,
-    }));
+    const id = await withRequestContext(t.orm, () =>
+      assignments.insertAssignment({
+        day_id: day.id,
+        place_id: place.id,
+        order_index: 2,
+        notes: null,
+        accommodation_id: null,
+      }),
+    );
     expect(typeof id).toBe('number');
-    const row = testDb.prepare('SELECT day_id, place_id, order_index, notes, accommodation_id FROM day_assignments WHERE id = ?').get(id);
+    const row = testDb
+      .prepare('SELECT day_id, place_id, order_index, notes, accommodation_id FROM day_assignments WHERE id = ?')
+      .get(id);
     expect(row).toEqual({ day_id: day.id, place_id: place.id, order_index: 2, notes: null, accommodation_id: null });
 
-    const id2 = await withRequestContext(t.orm, () => assignments.insertAssignment({
-      day_id: day.id, place_id: place.id, order_index: 0, notes: 'skip the line', accommodation_id: 42,
-    }));
+    const id2 = await withRequestContext(t.orm, () =>
+      assignments.insertAssignment({
+        day_id: day.id,
+        place_id: place.id,
+        order_index: 0,
+        notes: 'skip the line',
+        accommodation_id: 42,
+      }),
+    );
     const row2 = testDb.prepare('SELECT notes, accommodation_id FROM day_assignments WHERE id = ?').get(id2);
     expect(row2).toEqual({ notes: 'skip the line', accommodation_id: 42 });
   });
@@ -375,7 +429,9 @@ describe('DayAssignmentsRepository — AS10/AS11/AS13/AS14/AS19 (delete / order 
     // A day_id mismatch (this id does not sit on otherDay) writes nothing.
     await withRequestContext(t.orm, () => assignments.setOrderIndex(foreign.id, day.id, 9));
 
-    const order = (id: number) => (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number }).order_index;
+    const order = (id: number) =>
+      (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number })
+        .order_index;
     expect(order(a.id)).toBe(7);
     expect(order(foreign.id)).toBe(0);
   });
@@ -387,10 +443,13 @@ describe('DayAssignmentsRepository — AS10/AS11/AS13/AS14/AS19 (delete / order 
     const place = createPlace(testDb, trip.id);
     const a = createDayAssignment(testDb, day.id, place.id, { order_index: 0 });
     await withRequestContext(t.orm, () => assignments.setOrderIndex(a.id, undefined, 3));
-    expect((testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(a.id) as { order_index: number }).order_index).toBe(3);
+    expect(
+      (testDb.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(a.id) as { order_index: number })
+        .order_index,
+    ).toBe(3);
   });
 
-  it('ASSIGNREPO-010 (AS13, getDayId): the assignment\'s day_id, undefined for a missing id', async () => {
+  it("ASSIGNREPO-010 (AS13, getDayId): the assignment's day_id, undefined for a missing id", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
@@ -443,7 +502,9 @@ describe('DayAssignmentsRepository — AS10/AS11/AS13/AS14/AS19 (delete / order 
           throw new Error('force rollback');
         });
       });
-    } catch (e) { caught = e; }
+    } catch (e) {
+      caught = e;
+    }
     expect((caught as Error).message).toBe('force rollback');
 
     const row = testDb.prepare('SELECT day_id, order_index FROM day_assignments WHERE id = ?').get(a.id);
@@ -452,7 +513,7 @@ describe('DayAssignmentsRepository — AS10/AS11/AS13/AS14/AS19 (delete / order 
 });
 
 describe('DayAssignmentsRepository.effectiveStart (AS16, Kysely)', () => {
-  it('ASSIGNREPO-012: byte-identical to the legacy three-way COALESCE, own time wins over the place\'s', async () => {
+  it("ASSIGNREPO-012: byte-identical to the legacy three-way COALESCE, own time wins over the place's", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
@@ -462,38 +523,52 @@ describe('DayAssignmentsRepository.effectiveStart (AS16, Kysely)', () => {
     testDb.prepare('UPDATE day_assignments SET assignment_time = ? WHERE id = ?').run('14:00', a.id);
 
     const row = await withRequestContext(t.orm, () => assignments.effectiveStart(a.id));
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT da.day_id, COALESCE(da.assignment_time, p.place_time, acc.check_in) AS start
       FROM day_assignments da JOIN places p ON da.place_id = p.id
       LEFT JOIN day_accommodations acc ON acc.id = da.accommodation_id
       WHERE da.id = ?
-    `).get(a.id);
+    `,
+      )
+      .get(a.id);
     expect(row).toEqual(legacy);
     expect(row).toEqual({ day_id: day.id, start: '14:00' });
   });
 
-  it('ASSIGNREPO-013: falls back to the place\'s own time when the assignment has none', async () => {
+  it("ASSIGNREPO-013: falls back to the place's own time when the assignment has none", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id);
     testDb.prepare('UPDATE places SET place_time = ? WHERE id = ?').run('08:00', place.id);
     const a = createDayAssignment(testDb, day.id, place.id);
-    expect(await withRequestContext(t.orm, () => assignments.effectiveStart(a.id))).toEqual({ day_id: day.id, start: '08:00' });
+    expect(await withRequestContext(t.orm, () => assignments.effectiveStart(a.id))).toEqual({
+      day_id: day.id,
+      start: '08:00',
+    });
   });
 
-  it('ASSIGNREPO-014: a booked night falls back further, to the accommodation\'s check_in (a LEFT JOIN through the plain accommodation_id column, no ORM relation)', async () => {
+  it("ASSIGNREPO-014: a booked night falls back further, to the accommodation's check_in (a LEFT JOIN through the plain accommodation_id column, no ORM relation)", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
     const hotel = createPlace(testDb, trip.id);
     const night = createDayAssignment(testDb, day.id, hotel.id);
-    const stay = testDb.prepare(
-      "INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in) VALUES (?, ?, ?, ?, '17:00')",
-    ).run(trip.id, hotel.id, day.id, day.id);
-    testDb.prepare('UPDATE day_assignments SET accommodation_id = ? WHERE id = ?').run(Number(stay.lastInsertRowid), night.id);
+    const stay = testDb
+      .prepare(
+        "INSERT INTO day_accommodations (trip_id, place_id, start_day_id, end_day_id, check_in) VALUES (?, ?, ?, ?, '17:00')",
+      )
+      .run(trip.id, hotel.id, day.id, day.id);
+    testDb
+      .prepare('UPDATE day_assignments SET accommodation_id = ? WHERE id = ?')
+      .run(Number(stay.lastInsertRowid), night.id);
 
-    expect(await withRequestContext(t.orm, () => assignments.effectiveStart(night.id))).toEqual({ day_id: day.id, start: '17:00' });
+    expect(await withRequestContext(t.orm, () => assignments.effectiveStart(night.id))).toEqual({
+      day_id: day.id,
+      start: '17:00',
+    });
   });
 
   it('ASSIGNREPO-015: null start when nothing sets a time anywhere in the chain', async () => {
@@ -502,7 +577,10 @@ describe('DayAssignmentsRepository.effectiveStart (AS16, Kysely)', () => {
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id);
     const a = createDayAssignment(testDb, day.id, place.id);
-    expect(await withRequestContext(t.orm, () => assignments.effectiveStart(a.id))).toEqual({ day_id: day.id, start: null });
+    expect(await withRequestContext(t.orm, () => assignments.effectiveStart(a.id))).toEqual({
+      day_id: day.id,
+      start: null,
+    });
   });
 
   it('ASSIGNREPO-016: undefined for a missing id', async () => {
@@ -523,14 +601,18 @@ describe('DayAssignmentsRepository.listForTimeSort (AS18, Kysely)', () => {
     testDb.prepare('UPDATE day_assignments SET assignment_time = ? WHERE id = ?').run('09:00', a1.id);
 
     const rows = await withRequestContext(t.orm, () => assignments.listForTimeSort(day.id));
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT da.id, da.order_index, COALESCE(da.assignment_time, p.place_time, acc.check_in) as effective_time,
         (p.lat IS NOT NULL AND p.lng IS NOT NULL) as located
       FROM day_assignments da JOIN places p ON da.place_id = p.id
       LEFT JOIN day_accommodations acc ON acc.id = da.accommodation_id
       WHERE da.day_id = ?
       ORDER BY da.order_index ASC, da.created_at ASC, da.id ASC
-    `).all(day.id);
+    `,
+      )
+      .all(day.id);
     expect(rows).toEqual(legacy);
     expect(rows.map((r) => r.id)).toEqual([a2.id, a1.id]);
     expect(rows.find((r) => r.id === a1.id)?.located).toBe(1);
@@ -546,7 +628,7 @@ describe('DayAssignmentsRepository.listForTimeSort (AS18, Kysely)', () => {
 });
 
 describe('DayAssignmentsRepository.listSeatRows (AC7, Kysely)', () => {
-  it('ASSIGNREPO-038: byte-identical to the legacy statement — a booked night at its check_in, a stop at its own time, a stop at its place\'s, `located` 0/1 and the three-key ORDER BY', async () => {
+  it("ASSIGNREPO-038: byte-identical to the legacy statement — a booked night at its check_in, a stop at its own time, a stop at its place's, `located` 0/1 and the three-key ORDER BY", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
@@ -566,7 +648,9 @@ describe('DayAssignmentsRepository.listSeatRows (AC7, Kysely)', () => {
     testDb.prepare('UPDATE day_assignments SET assignment_time = ? WHERE id = ?').run('09:00', ownTime.id);
 
     const rows = await withRequestContext(t.orm, () => assignments.listSeatRows(day.id));
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT da.id, da.order_index,
         CASE WHEN other.id IS NULL THEN COALESCE(da.assignment_time, p.place_time) ELSE other.check_in END AS at,
         other.id AS night_id,
@@ -575,7 +659,9 @@ describe('DayAssignmentsRepository.listSeatRows (AC7, Kysely)', () => {
       LEFT JOIN day_accommodations other ON other.id = da.accommodation_id
       WHERE da.day_id = ?
       ORDER BY da.order_index ASC, da.created_at ASC, da.id ASC
-    `).all(day.id);
+    `,
+      )
+      .all(day.id);
     expect(rows).toEqual(legacy);
     expect(rows.map((r) => r.id)).toEqual([placeTime.id, ownTime.id, noCoords.id, night.id]);
     expect(rows.find((r) => r.id === night.id)).toMatchObject({ at: '17:00', night_id: stay.id, located: 1 });
@@ -593,11 +679,13 @@ describe('DayAssignmentsRepository — AS17/AS24/AS25/AS26/AS27/AS32/AS33/AS34 (
     const place = createPlace(testDb, trip.id);
     const a = createDayAssignment(testDb, day.id, place.id);
     await withRequestContext(t.orm, () => assignments.setTimes(a.id, '09:00', '10:30'));
-    expect(testDb.prepare('SELECT assignment_time, assignment_end_time FROM day_assignments WHERE id = ?').get(a.id))
-      .toEqual({ assignment_time: '09:00', assignment_end_time: '10:30' });
+    expect(
+      testDb.prepare('SELECT assignment_time, assignment_end_time FROM day_assignments WHERE id = ?').get(a.id),
+    ).toEqual({ assignment_time: '09:00', assignment_end_time: '10:30' });
     await withRequestContext(t.orm, () => assignments.setTimes(a.id, null, null));
-    expect(testDb.prepare('SELECT assignment_time, assignment_end_time FROM day_assignments WHERE id = ?').get(a.id))
-      .toEqual({ assignment_time: null, assignment_end_time: null });
+    expect(
+      testDb.prepare('SELECT assignment_time, assignment_end_time FROM day_assignments WHERE id = ?').get(a.id),
+    ).toEqual({ assignment_time: null, assignment_end_time: null });
   });
 
   // Task 9 fix wave (B-M5, the OAUTHTOKREPO-012/REANCHORDAY-003 rollback
@@ -618,11 +706,14 @@ describe('DayAssignmentsRepository — AS17/AS24/AS25/AS26/AS27/AS32/AS33/AS34 (
           throw new Error('force rollback');
         });
       });
-    } catch (e) { caught = e; }
+    } catch (e) {
+      caught = e;
+    }
     expect((caught as Error).message).toBe('force rollback');
 
-    expect(testDb.prepare('SELECT assignment_time, assignment_end_time FROM day_assignments WHERE id = ?').get(a.id))
-      .toEqual({ assignment_time: null, assignment_end_time: null });
+    expect(
+      testDb.prepare('SELECT assignment_time, assignment_end_time FROM day_assignments WHERE id = ?').get(a.id),
+    ).toEqual({ assignment_time: null, assignment_end_time: null });
   });
 
   it('ASSIGNREPO-020 (AS24, setEndDay): writes the 0/1 flag', async () => {
@@ -632,7 +723,9 @@ describe('DayAssignmentsRepository — AS17/AS24/AS25/AS26/AS27/AS32/AS33/AS34 (
     const place = createPlace(testDb, trip.id);
     const a = createDayAssignment(testDb, day.id, place.id);
     await withRequestContext(t.orm, () => assignments.setEndDay(a.id, 1));
-    expect((testDb.prepare('SELECT end_day FROM day_assignments WHERE id = ?').get(a.id) as { end_day: number }).end_day).toBe(1);
+    expect(
+      (testDb.prepare('SELECT end_day FROM day_assignments WHERE id = ?').get(a.id) as { end_day: number }).end_day,
+    ).toBe(1);
   });
 
   it('ASSIGNREPO-021 (AS25, setNotes): null-clearable', async () => {
@@ -642,9 +735,13 @@ describe('DayAssignmentsRepository — AS17/AS24/AS25/AS26/AS27/AS32/AS33/AS34 (
     const place = createPlace(testDb, trip.id);
     const a = createDayAssignment(testDb, day.id, place.id);
     await withRequestContext(t.orm, () => assignments.setNotes(a.id, 'a note'));
-    expect((testDb.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(a.id) as { notes: string | null }).notes).toBe('a note');
+    expect(
+      (testDb.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(a.id) as { notes: string | null }).notes,
+    ).toBe('a note');
     await withRequestContext(t.orm, () => assignments.setNotes(a.id, null));
-    expect((testDb.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(a.id) as { notes: string | null }).notes).toBeNull();
+    expect(
+      (testDb.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(a.id) as { notes: string | null }).notes,
+    ).toBeNull();
   });
 
   it('ASSIGNREPO-022 (AS26/AS27, setLegMode/setIncomingLegMode): each writes its own column', async () => {
@@ -655,13 +752,22 @@ describe('DayAssignmentsRepository — AS17/AS24/AS25/AS26/AS27/AS32/AS33/AS34 (
     const a = createDayAssignment(testDb, day.id, place.id);
     await withRequestContext(t.orm, () => assignments.setLegMode(a.id, 'cycling'));
     await withRequestContext(t.orm, () => assignments.setIncomingLegMode(a.id, 'walking'));
-    expect(testDb.prepare('SELECT leg_transport_mode, incoming_leg_transport_mode FROM day_assignments WHERE id = ?').get(a.id))
-      .toEqual({ leg_transport_mode: 'cycling', incoming_leg_transport_mode: 'walking' });
+    expect(
+      testDb
+        .prepare('SELECT leg_transport_mode, incoming_leg_transport_mode FROM day_assignments WHERE id = ?')
+        .get(a.id),
+    ).toEqual({ leg_transport_mode: 'cycling', incoming_leg_transport_mode: 'walking' });
     await withRequestContext(t.orm, () => assignments.setLegMode(a.id, null));
-    expect((testDb.prepare('SELECT leg_transport_mode FROM day_assignments WHERE id = ?').get(a.id) as { leg_transport_mode: string | null }).leg_transport_mode).toBeNull();
+    expect(
+      (
+        testDb.prepare('SELECT leg_transport_mode FROM day_assignments WHERE id = ?').get(a.id) as {
+          leg_transport_mode: string | null;
+        }
+      ).leg_transport_mode,
+    ).toBeNull();
   });
 
-  it('ASSIGNREPO-039 (AS32, listIdsToClear): exactly the day\'s ids, [] for an empty day', async () => {
+  it("ASSIGNREPO-039 (AS32, listIdsToClear): exactly the day's ids, [] for an empty day", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
@@ -671,11 +777,14 @@ describe('DayAssignmentsRepository — AS17/AS24/AS25/AS26/AS27/AS32/AS33/AS34 (
     const a1 = createDayAssignment(testDb, day.id, place.id);
     const a2 = createDayAssignment(testDb, day.id, place.id);
     createDayAssignment(testDb, otherDay.id, place.id);
-    expect((await withRequestContext(t.orm, () => assignments.listIdsToClear(day.id))).sort((x, y) => x - y)).toEqual([a1.id, a2.id]);
+    expect((await withRequestContext(t.orm, () => assignments.listIdsToClear(day.id))).sort((x, y) => x - y)).toEqual([
+      a1.id,
+      a2.id,
+    ]);
     expect(await withRequestContext(t.orm, () => assignments.listIdsToClear(emptyDay.id))).toEqual([]);
   });
 
-  it('ASSIGNREPO-040 (AS33, deleteForDay): removes only that day\'s rows', async () => {
+  it("ASSIGNREPO-040 (AS33, deleteForDay): removes only that day's rows", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
@@ -686,7 +795,9 @@ describe('DayAssignmentsRepository — AS17/AS24/AS25/AS26/AS27/AS32/AS33/AS34 (
     const kept = createDayAssignment(testDb, otherDay.id, place.id);
     await withRequestContext(t.orm, () => assignments.deleteForDay(day.id));
     expect(testDb.prepare('SELECT id FROM day_assignments WHERE day_id = ?').all(day.id)).toEqual([]);
-    expect(testDb.prepare('SELECT id FROM day_assignments WHERE day_id = ?').all(otherDay.id)).toEqual([{ id: kept.id }]);
+    expect(testDb.prepare('SELECT id FROM day_assignments WHERE day_id = ?').all(otherDay.id)).toEqual([
+      { id: kept.id },
+    ]);
   });
 
   it('ASSIGNREPO-041 (AS34, setRouteExcluded): writes 1 and then 0 on exactly the given row', async () => {
@@ -696,7 +807,9 @@ describe('DayAssignmentsRepository — AS17/AS24/AS25/AS26/AS27/AS32/AS33/AS34 (
     const place = createPlace(testDb, trip.id);
     const a = createDayAssignment(testDb, day.id, place.id);
     const other = createDayAssignment(testDb, day.id, place.id);
-    const routeExcluded = (id: number) => (testDb.prepare('SELECT route_excluded FROM day_assignments WHERE id = ?').get(id) as { route_excluded: number }).route_excluded;
+    const routeExcluded = (id: number) =>
+      (testDb.prepare('SELECT route_excluded FROM day_assignments WHERE id = ?').get(id) as { route_excluded: number })
+        .route_excluded;
     await withRequestContext(t.orm, () => assignments.setRouteExcluded(a.id, 1));
     expect(routeExcluded(a.id)).toBe(1);
     expect(routeExcluded(other.id)).toBe(0);
@@ -735,7 +848,9 @@ describe('DayAssignmentsRepository.listItineraryForGpx (PL30)', () => {
     const day1 = createDay(testDb, trip.id, { day_number: 1, date: '2026-01-01', title: 'Day One' });
     const day2 = createDay(testDb, trip.id, { day_number: 2, date: '2026-01-02' });
     const geo = createPlace(testDb, trip.id, { name: 'Has Coords', lat: 1, lng: 2 });
-    const noGeo = testDb.prepare('INSERT INTO places (trip_id, name, lat, lng) VALUES (?, ?, NULL, NULL)').run(trip.id, 'No Coords').lastInsertRowid as number;
+    const noGeo = testDb
+      .prepare('INSERT INTO places (trip_id, name, lat, lng) VALUES (?, ?, NULL, NULL)')
+      .run(trip.id, 'No Coords').lastInsertRowid as number;
     const secondStop = createPlace(testDb, trip.id, { name: 'Second Stop', lat: 3, lng: 4 });
     // day2's stop first (order_index 0), day1's stop second — proves the
     // ORDER BY is day_number then order_index, not insertion/id order.
@@ -754,12 +869,14 @@ describe('DayAssignmentsRepository.listItineraryForGpx (PL30)', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
-    const noGeo = testDb.prepare('INSERT INTO places (trip_id, name, lat, lng) VALUES (?, ?, NULL, NULL)').run(trip.id, 'No Coords').lastInsertRowid as number;
+    const noGeo = testDb
+      .prepare('INSERT INTO places (trip_id, name, lat, lng) VALUES (?, ?, NULL, NULL)')
+      .run(trip.id, 'No Coords').lastInsertRowid as number;
     createDayAssignment(testDb, day.id, noGeo);
     expect(await assignments.listItineraryForGpx(trip.id)).toEqual([]);
   });
 
-  it('ASSIGNREPO-026: another trip\'s stops never leak in', async () => {
+  it("ASSIGNREPO-026: another trip's stops never leak in", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const other = createTrip(testDb, user.id);
@@ -799,24 +916,34 @@ describe('DayAssignmentsRepository.listAllForTrip (TP48)', () => {
     // Row A: every nullable column non-null, a unicode string and a
     // '007'-style digit string among the values.
     const a1 = insert.run(
-      day.id, place.id, 5, 'Notes — 日本 ☕️ 007', 'confirmed', 'resv notes 007',
-      '2026-01-01T10:00:00Z', '2026-01-01 09:00:00', '10:00', '11:00',
-      'walking', 'driving', 1, accommodation.id,
+      day.id,
+      place.id,
+      5,
+      'Notes — 日本 ☕️ 007',
+      'confirmed',
+      'resv notes 007',
+      '2026-01-01T10:00:00Z',
+      '2026-01-01 09:00:00',
+      '10:00',
+      '11:00',
+      'walking',
+      'driving',
+      1,
+      accommodation.id,
     ).lastInsertRowid as number;
 
     // Row B: every nullable column NULL (end_day is NOT NULL, given 0).
-    const a2 = insert.run(
-      day.id, bare.id, null, null, null, null,
-      null, null, null, null,
-      null, null, 0, null,
-    ).lastInsertRowid as number;
+    const a2 = insert.run(day.id, bare.id, null, null, null, null, null, null, null, null, null, null, 0, null)
+      .lastInsertRowid as number;
 
     const otherDay = createDay(testDb, other.id);
     const otherPlace = createPlace(testDb, other.id);
     createDayAssignment(testDb, otherDay.id, otherPlace.id);
 
     const rows = await assignments.listAllForTrip(trip.id);
-    const legacy = testDb.prepare('SELECT da.* FROM day_assignments da JOIN days d ON d.id = da.day_id WHERE d.trip_id = ?').all(trip.id);
+    const legacy = testDb
+      .prepare('SELECT da.* FROM day_assignments da JOIN days d ON d.id = da.day_id WHERE d.trip_id = ?')
+      .all(trip.id);
     expect(rows).toEqual(legacy);
     expect(rows.map((r) => r.id)).toEqual([a1, a2]);
   });
@@ -836,20 +963,39 @@ describe('DayAssignmentsRepository.insertAssignmentCopy (TP49)', () => {
     const place = createPlace(testDb, trip.id);
 
     const newId = await assignments.insertAssignmentCopy({
-      day_id: day.id, place_id: place.id, order_index: 2, notes: 'n',
-      reservation_status: 'booked', reservation_notes: 'rn', reservation_datetime: '2026-01-01T10:00',
-      assignment_time: '10:00', assignment_end_time: '11:00', end_day: 0,
+      day_id: day.id,
+      place_id: place.id,
+      order_index: 2,
+      notes: 'n',
+      reservation_status: 'booked',
+      reservation_notes: 'rn',
+      reservation_datetime: '2026-01-01T10:00',
+      assignment_time: '10:00',
+      assignment_end_time: '11:00',
+      end_day: 0,
     });
 
-    const row = testDb.prepare(`
+    const row = testDb
+      .prepare(
+        `
       SELECT day_id, place_id, order_index, notes, reservation_status, reservation_notes,
         reservation_datetime, assignment_time, assignment_end_time, end_day, accommodation_id
       FROM day_assignments WHERE id = ?
-    `).get(newId);
+    `,
+      )
+      .get(newId);
     expect(row).toEqual({
-      day_id: day.id, place_id: place.id, order_index: 2, notes: 'n',
-      reservation_status: 'booked', reservation_notes: 'rn', reservation_datetime: '2026-01-01T10:00',
-      assignment_time: '10:00', assignment_end_time: '11:00', end_day: 0, accommodation_id: null,
+      day_id: day.id,
+      place_id: place.id,
+      order_index: 2,
+      notes: 'n',
+      reservation_status: 'booked',
+      reservation_notes: 'rn',
+      reservation_datetime: '2026-01-01T10:00',
+      assignment_time: '10:00',
+      assignment_end_time: '11:00',
+      end_day: 0,
+      accommodation_id: null,
     });
   });
 });
@@ -866,8 +1012,20 @@ describe('DayAssignmentsRepository.setAccommodation (TP57)', () => {
 
     await assignments.setAccommodation(assignment.id, accom.id);
 
-    expect((testDb.prepare('SELECT accommodation_id FROM day_assignments WHERE id = ?').get(assignment.id) as { accommodation_id: number }).accommodation_id).toBe(accom.id);
-    expect((testDb.prepare('SELECT accommodation_id FROM day_assignments WHERE id = ?').get(other.id) as { accommodation_id: number | null }).accommodation_id).toBeNull();
+    expect(
+      (
+        testDb.prepare('SELECT accommodation_id FROM day_assignments WHERE id = ?').get(assignment.id) as {
+          accommodation_id: number;
+        }
+      ).accommodation_id,
+    ).toBe(accom.id);
+    expect(
+      (
+        testDb.prepare('SELECT accommodation_id FROM day_assignments WHERE id = ?').get(other.id) as {
+          accommodation_id: number | null;
+        }
+      ).accommodation_id,
+    ).toBeNull();
   });
 });
 
@@ -903,14 +1061,25 @@ describe('DayAssignmentsRepository.listRoadtripVisits (RPL2, roadtrip-plan.servi
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
     const place = createPlace(testDb, trip.id, { name: 'Museum' });
-    testDb.prepare('UPDATE places SET place_time = ?, end_time = ?, duration_minutes = ?, stop_type = ?, fill_percent = ? WHERE id = ?')
+    testDb
+      .prepare(
+        'UPDATE places SET place_time = ?, end_time = ?, duration_minutes = ?, stop_type = ?, fill_percent = ? WHERE id = ?',
+      )
       .run('09:00', '11:00', 90, null, null, place.id);
     createDayAssignment(testDb, day.id, place.id);
 
     const legacy = testDb.prepare(LEGACY_LIST_ROADTRIP_VISITS).all(trip.id);
     const typed = await assignments.listRoadtripVisits(trip.id);
     expect(typed).toEqual(legacy);
-    expect(typed[0]).toMatchObject({ time: '09:00', end_time: '11:00', stay_id: null, check_in: null, check_out: null, checkout_day: null, leg_transport_mode: null });
+    expect(typed[0]).toMatchObject({
+      time: '09:00',
+      end_time: '11:00',
+      stay_id: null,
+      check_in: null,
+      check_out: null,
+      checkout_day: null,
+      leg_transport_mode: null,
+    });
   });
 
   it('ASSIGNREPO-035: matches the legacy statement — a matching stay populates stay/checkout columns, explicit overrides win over coalesce', async () => {
@@ -919,20 +1088,38 @@ describe('DayAssignmentsRepository.listRoadtripVisits (RPL2, roadtrip-plan.servi
     const day = createDay(testDb, trip.id, { day_number: 1 });
     const checkoutDay = createDay(testDb, trip.id, { day_number: 2 });
     const place = createPlace(testDb, trip.id, { name: 'Grand Hotel' });
-    testDb.prepare('UPDATE places SET place_time = ?, end_time = ?, duration_minutes = ?, stop_type = ?, fill_percent = ? WHERE id = ?')
+    testDb
+      .prepare(
+        'UPDATE places SET place_time = ?, end_time = ?, duration_minutes = ?, stop_type = ?, fill_percent = ? WHERE id = ?',
+      )
       .run('08:00', '10:00', 45, 'lodging', 80, place.id);
-    const stay = createDayAccommodation(testDb, trip.id, place.id, day.id, checkoutDay.id, { check_in: '15:00', check_out: '11:00' });
+    const stay = createDayAccommodation(testDb, trip.id, place.id, day.id, checkoutDay.id, {
+      check_in: '15:00',
+      check_out: '11:00',
+    });
     const assignment = createDayAssignment(testDb, day.id, place.id);
-    testDb.prepare('UPDATE day_assignments SET assignment_time = ?, assignment_end_time = ?, leg_transport_mode = ?, incoming_leg_transport_mode = ?, end_day = ? WHERE id = ?')
+    testDb
+      .prepare(
+        'UPDATE day_assignments SET assignment_time = ?, assignment_end_time = ?, leg_transport_mode = ?, incoming_leg_transport_mode = ?, end_day = ? WHERE id = ?',
+      )
       .run('14:00', '14:30', 'driving', 'walking', 1, assignment.id);
 
     const legacy = testDb.prepare(LEGACY_LIST_ROADTRIP_VISITS).all(trip.id);
     const typed = await assignments.listRoadtripVisits(trip.id);
     expect(typed).toEqual(legacy);
     expect(typed[0]).toMatchObject({
-      time: '14:00', end_time: '14:30', stay_id: stay.id, check_in: '15:00', check_out: '11:00',
-      checkout_day: 2, leg_transport_mode: 'driving', incoming_leg_transport_mode: 'walking', end_day: 1,
-      stop_type: 'lodging', fill_percent: 80, duration_minutes: 45,
+      time: '14:00',
+      end_time: '14:30',
+      stay_id: stay.id,
+      check_in: '15:00',
+      check_out: '11:00',
+      checkout_day: 2,
+      leg_transport_mode: 'driving',
+      incoming_leg_transport_mode: 'walking',
+      end_day: 1,
+      stop_type: 'lodging',
+      fill_percent: 80,
+      duration_minutes: 45,
     });
   });
 
@@ -956,7 +1143,9 @@ describe('DayAssignmentsRepository.listRoadtripVisits (RPL2, roadtrip-plan.servi
 function legacyPublicForShare(dayIds: number[]): unknown {
   if (dayIds.length === 0) return [];
   const placeholders = dayIds.map(() => '?').join(',');
-  return testDb.prepare(`
+  return testDb
+    .prepare(
+      `
     SELECT da.*, p.id as place_id, p.name as place_name, p.description as place_description,
       p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
       COALESCE(da.assignment_time, p.place_time) as place_time,
@@ -969,7 +1158,9 @@ function legacyPublicForShare(dayIds: number[]): unknown {
     LEFT JOIN categories c ON p.category_id = c.id
     WHERE da.day_id IN (${placeholders})
     ORDER BY da.order_index ASC, da.created_at ASC
-  `).all(...dayIds);
+  `,
+    )
+    .all(...dayIds);
 }
 
 describe('DayAssignmentsRepository.listPublicForShare (SH9, share.service.ts)', () => {
@@ -981,26 +1172,57 @@ describe('DayAssignmentsRepository.listPublicForShare (SH9, share.service.ts)', 
     const excludedDay = createDay(testDb, trip.id, { day_number: 3 });
     const category = createCategory(testDb, { name: 'Museum', color: '#111111', icon: '🏛️' });
 
-    const placeFull = createPlace(testDb, trip.id, { name: 'Louvre', lat: 48.86, lng: 2.34, category_id: category.id, description: 'Art museum' });
-    testDb.prepare(`
+    const placeFull = createPlace(testDb, trip.id, {
+      name: 'Louvre',
+      lat: 48.86,
+      lng: 2.34,
+      category_id: category.id,
+      description: 'Art museum',
+    });
+    testDb
+      .prepare(
+        `
       UPDATE places SET address = ?, price = ?, currency = ?, place_time = ?, end_time = ?,
         duration_minutes = ?, notes = ?, image_url = ?, transport_mode = ?, website = ?, phone = ?,
         google_place_id = 'ChIJ123', google_ftid = 'ftid1', osm_id = 'osm1', amap_poi_id = 'amap1',
         stop_type = 'lodging', fill_percent = 80
-      WHERE id = ?`).run('Rue de Rivoli', 17.5, 'EUR', '09:00', '11:00', 120, 'bring ID', 'https://img/louvre.jpg', 'walking', 'https://louvre.fr', '+33140205050', placeFull.id);
+      WHERE id = ?`,
+      )
+      .run(
+        'Rue de Rivoli',
+        17.5,
+        'EUR',
+        '09:00',
+        '11:00',
+        120,
+        'bring ID',
+        'https://img/louvre.jpg',
+        'walking',
+        'https://louvre.fr',
+        '+33140205050',
+        placeFull.id,
+      );
     const assignmentOnFullPlace = createDayAssignment(testDb, day1.id, placeFull.id, { order_index: 2 });
-    testDb.prepare(`
+    testDb
+      .prepare(
+        `
       UPDATE day_assignments SET assignment_time = ?, assignment_end_time = ?, reservation_status = 'confirmed',
         reservation_notes = 'window seat', reservation_datetime = '2026-09-01T09:00:00.000Z',
         leg_transport_mode = 'driving', incoming_leg_transport_mode = 'walking', accommodation_id = NULL
-      WHERE id = ?`).run('14:00', '14:30', assignmentOnFullPlace.id);
+      WHERE id = ?`,
+      )
+      .run('14:00', '14:30', assignmentOnFullPlace.id);
 
     const placeBare = createPlace(testDb, trip.id, { name: 'Unnamed spot' });
-    testDb.prepare(`
+    testDb
+      .prepare(
+        `
       UPDATE places SET category_id = NULL, lat = NULL, lng = NULL, address = NULL, price = NULL,
         currency = NULL, place_time = NULL, end_time = NULL, duration_minutes = NULL, notes = NULL,
         image_url = NULL, transport_mode = NULL, website = NULL, phone = NULL, description = NULL
-      WHERE id = ?`).run(placeBare.id);
+      WHERE id = ?`,
+      )
+      .run(placeBare.id);
     const assignmentOnBarePlace = createDayAssignment(testDb, day2.id, placeBare.id, { order_index: 1 });
 
     // A second assignment on day1, ordered before both of the above by order_index.
@@ -1015,10 +1237,20 @@ describe('DayAssignmentsRepository.listPublicForShare (SH9, share.service.ts)', 
     const legacy = legacyPublicForShare(dayIds);
     const typed = await assignments.listPublicForShare(dayIds);
     expect(typed).toEqual(legacy);
-    expect(typed.map((r) => r.id)).toEqual([earlierOrderAssignment.id, assignmentOnBarePlace.id, assignmentOnFullPlace.id]);
+    expect(typed.map((r) => r.id)).toEqual([
+      earlierOrderAssignment.id,
+      assignmentOnBarePlace.id,
+      assignmentOnFullPlace.id,
+    ]);
 
     const fullRow = typed.find((r) => r.id === assignmentOnFullPlace.id)!;
-    expect(fullRow).toMatchObject({ category_name: 'Museum', category_color: '#111111', category_icon: '🏛️', place_time: '14:00', end_time: '14:30' });
+    expect(fullRow).toMatchObject({
+      category_name: 'Museum',
+      category_color: '#111111',
+      category_icon: '🏛️',
+      place_time: '14:00',
+      end_time: '14:30',
+    });
     expect(fullRow).not.toHaveProperty('google_place_id');
     expect(fullRow).not.toHaveProperty('google_ftid');
     expect(fullRow).not.toHaveProperty('osm_id');
@@ -1027,7 +1259,14 @@ describe('DayAssignmentsRepository.listPublicForShare (SH9, share.service.ts)', 
     expect(fullRow).not.toHaveProperty('fill_percent');
 
     const bareRow = typed.find((r) => r.id === assignmentOnBarePlace.id)!;
-    expect(bareRow).toMatchObject({ category_id: null, category_name: null, category_color: null, category_icon: null, place_time: null, end_time: null });
+    expect(bareRow).toMatchObject({
+      category_id: null,
+      category_name: null,
+      category_color: null,
+      category_icon: null,
+      place_time: null,
+      end_time: null,
+    });
   });
 
   it('[] for an empty day_ids array (no query issued)', async () => {

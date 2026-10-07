@@ -1,15 +1,14 @@
-import React from 'react';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import React from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildSettings, buildUser } from '../../tests/helpers/factories';
 import { server } from '../../tests/helpers/msw/server';
+import { fireEvent, render, screen, waitFor } from '../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
-import { buildUser, buildSettings } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
 import AtlasPage from './AtlasPage';
-import { maplibreGL } from '@maplibre/maplibre-gl-leaflet';
 
 // ── Captured style() results, for tests asserting fill/border on a specific
 // feature (e.g. the wishlist hatch pattern) without duplicating the mock's
@@ -25,12 +24,15 @@ vi.mock('@maplibre/maplibre-gl-leaflet', () => ({
     // One GL map per layer, kept stable: a fresh object per call would hand the
     // assertions a different spy than the code just used.
     const gl = {
-      setStyle: vi.fn(), on: vi.fn(), isStyleLoaded: () => false,
-      getStyle: () => ({ layers: [] }), setLayoutProperty: vi.fn(),
-    }
-    const layer: Record<string, unknown> = { remove: vi.fn(), getMaplibreMap: vi.fn(() => gl) }
-    layer.addTo = vi.fn(() => layer)
-    return layer
+      setStyle: vi.fn(),
+      on: vi.fn(),
+      isStyleLoaded: () => false,
+      getStyle: () => ({ layers: [] }),
+      setLayoutProperty: vi.fn(),
+    };
+    const layer: Record<string, unknown> = { remove: vi.fn(), getMaplibreMap: vi.fn(() => gl) };
+    layer.addTo = vi.fn(() => layer);
+    return layer;
   }),
 }));
 vi.mock('../components/Map/engines/maplibre', () => ({ default: {} }));
@@ -43,7 +45,11 @@ vi.mock('leaflet', () => {
       on: vi.fn().mockImplementation((event: string, cb: Function) => {
         // Immediately invoke mouseover/mouseout/click to cover callback bodies
         if (event === 'mouseover' || event === 'mouseout' || event === 'click') {
-          try { cb({ target: layer }); } catch { /* ignore null ref errors */ }
+          try {
+            cb({ target: layer });
+          } catch {
+            /* ignore null ref errors */
+          }
         }
         return layer;
       }),
@@ -62,13 +68,25 @@ vi.mock('leaflet', () => {
         // Invoke with zoom=5 to cover the shouldShow=true branch (loadRegionsForViewport)
         const origGetZoom = mockMap.getZoom;
         mockMap.getZoom = vi.fn(() => 5);
-        try { cb(); } catch { /* ignore */ }
+        try {
+          cb();
+        } catch {
+          /* ignore */
+        }
         // Invoke with zoom=4 to cover the shouldShow=false else branch (lines 335-338)
         mockMap.getZoom = vi.fn(() => 4);
-        try { cb(); } catch { /* ignore */ }
+        try {
+          cb();
+        } catch {
+          /* ignore */
+        }
         mockMap.getZoom = origGetZoom;
       } else if (event === 'moveend') {
-        try { cb(); } catch { /* ignore */ }
+        try {
+          cb();
+        } catch {
+          /* ignore */
+        }
       }
       return mockMap;
     }),
@@ -214,7 +232,7 @@ function useDefaultAtlasHandlers() {
     // country features override this handler via server.use(...).
     http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json({ type: 'FeatureCollection', features: [] })),
     // Handler for region GeoJSON fetch (triggered by loadRegionsForViewport when intersects=true)
-    http.get('/api/addons/atlas/regions/geo', () => HttpResponse.json({ features: [] })),
+    http.get('/api/addons/atlas/regions/geo', () => HttpResponse.json({ features: [] }))
   );
 }
 
@@ -240,7 +258,7 @@ describe('AtlasPage', () => {
         http.get('/api/addons/atlas/stats', async () => {
           await new Promise((r) => setTimeout(r, 200));
           return HttpResponse.json(atlasStatsResponse);
-        }),
+        })
       );
 
       render(<AtlasPage />);
@@ -342,9 +360,7 @@ describe('AtlasPage', () => {
 
   describe('FE-PAGE-ATLAS-008: empty atlas data shows zero stats', () => {
     it('renders zero counts when API returns no data', async () => {
-      server.use(
-        http.get('/api/addons/atlas/stats', () => HttpResponse.json(emptyAtlasResponse)),
-      );
+      server.use(http.get('/api/addons/atlas/stats', () => HttpResponse.json(emptyAtlasResponse)));
 
       render(<AtlasPage />);
 
@@ -382,9 +398,7 @@ describe('AtlasPage', () => {
   describe('FE-PAGE-ATLAS-011: tripsThisYear shows trips-in-year label', () => {
     it('shows tripsThisYear count and "trips in YEAR" label when > 1', async () => {
       server.use(
-        http.get('/api/addons/atlas/stats', () =>
-          HttpResponse.json({ ...atlasStatsResponse, tripsThisYear: 3 }),
-        ),
+        http.get('/api/addons/atlas/stats', () => HttpResponse.json({ ...atlasStatsResponse, tripsThisYear: 3 }))
       );
 
       render(<AtlasPage />);
@@ -397,9 +411,7 @@ describe('AtlasPage', () => {
 
   describe('FE-PAGE-ATLAS-012: empty state shows noData message in sidebar', () => {
     it('shows "No travel data yet" when no countries and no lastTrip', async () => {
-      server.use(
-        http.get('/api/addons/atlas/stats', () => HttpResponse.json(emptyAtlasResponse)),
-      );
+      server.use(http.get('/api/addons/atlas/stats', () => HttpResponse.json(emptyAtlasResponse)));
 
       render(<AtlasPage />);
 
@@ -446,7 +458,7 @@ describe('AtlasPage', () => {
       await user.click(screen.getAllByRole('button', { name: /add place/i })[0]);
 
       await waitFor(() =>
-        expect(screen.getByPlaceholderText(/name \(country, city, place\.\.\.\)/i)).toBeInTheDocument(),
+        expect(screen.getByPlaceholderText(/name \(country, city, place\.\.\.\)/i)).toBeInTheDocument()
       );
 
       // Click Cancel
@@ -454,7 +466,7 @@ describe('AtlasPage', () => {
       await user.click(cancelBtn);
 
       await waitFor(() =>
-        expect(screen.queryByPlaceholderText(/name \(country, city, place\.\.\.\)/i)).not.toBeInTheDocument(),
+        expect(screen.queryByPlaceholderText(/name \(country, city, place\.\.\.\)/i)).not.toBeInTheDocument()
       );
     });
   });
@@ -467,8 +479,8 @@ describe('AtlasPage', () => {
             items: [
               { id: 1, name: 'Kyoto', country_code: 'JP', lat: null, lng: null, notes: null, target_date: '2027-04' },
             ],
-          }),
-        ),
+          })
+        )
       );
 
       const user = userEvent.setup();
@@ -497,9 +509,7 @@ describe('AtlasPage', () => {
   describe('FE-PAGE-ATLAS-017: country search filters options from GeoJSON', () => {
     it('typing in search updates the input value', async () => {
       // Override fetch to return GeoJSON with FR feature
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
-      );
+      server.use(http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)));
 
       const user = userEvent.setup();
       render(<AtlasPage />);
@@ -540,13 +550,9 @@ describe('AtlasPage', () => {
 
   describe('FE-PAGE-ATLAS-019: confirm popup shows via Enter on search with GeoJSON', () => {
     it('pressing Enter in search with matching GeoJSON result triggers confirm popup', async () => {
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
-      );
+      server.use(http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)));
 
-      server.use(
-        http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ success: true })),
-      );
+      server.use(http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ success: true })));
 
       const user = userEvent.setup();
       render(<AtlasPage />);
@@ -573,7 +579,7 @@ describe('AtlasPage', () => {
             expect(searchInput).toBeInTheDocument();
           }
         },
-        { timeout: 2000 },
+        { timeout: 2000 }
       );
     });
   });
@@ -614,9 +620,7 @@ describe('AtlasPage', () => {
 
   describe('FE-PAGE-ATLAS-022: confirm popup for bucket type shows month/year selects', () => {
     it('selecting Add to bucket list in confirm popup shows month/year pickers', async () => {
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
-      );
+      server.use(http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)));
 
       const user = userEvent.setup();
       render(<AtlasPage />);
@@ -642,20 +646,16 @@ describe('AtlasPage', () => {
             expect(searchInput).toBeInTheDocument();
           }
         },
-        { timeout: 2000 },
+        { timeout: 2000 }
       );
     });
   });
 
   describe('FE-PAGE-ATLAS-031: confirm popup opens and mark-visited action works', () => {
     it('opens confirm popup via search and clicking Mark as visited closes it', async () => {
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
-      );
+      server.use(http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)));
 
-      server.use(
-        http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ success: true })),
-      );
+      server.use(http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ success: true })));
 
       const user = userEvent.setup();
       render(<AtlasPage />);
@@ -669,12 +669,12 @@ describe('AtlasPage', () => {
       // Wait until atlas_country_results is populated — the dropdown button should appear
       await waitFor(
         () => {
-          const dropdownBtns = screen.queryAllByRole('button').filter(
-            (b) => b.textContent?.includes('France') || b.textContent?.includes('FR'),
-          );
+          const dropdownBtns = screen
+            .queryAllByRole('button')
+            .filter((b) => b.textContent?.includes('France') || b.textContent?.includes('FR'));
           expect(dropdownBtns.length).toBeGreaterThan(0);
         },
-        { timeout: 3000 },
+        { timeout: 3000 }
       ).catch(() => {
         // If no dropdown appeared, fall back to Enter key
       });
@@ -688,7 +688,7 @@ describe('AtlasPage', () => {
           () => {
             expect(screen.getByText(/mark as visited/i)).toBeInTheDocument();
           },
-          { timeout: 3000 },
+          { timeout: 3000 }
         );
 
         // Popup appeared — verify its content
@@ -710,9 +710,7 @@ describe('AtlasPage', () => {
 
   describe('FE-PAGE-ATLAS-032: confirm popup Add to Bucket opens bucket type', () => {
     it('clicking Add to bucket list in choose popup switches to bucket type', async () => {
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
-      );
+      server.use(http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)));
 
       const user = userEvent.setup();
       render(<AtlasPage />);
@@ -728,7 +726,7 @@ describe('AtlasPage', () => {
           () => {
             expect(screen.getByText(/mark as visited/i)).toBeInTheDocument();
           },
-          { timeout: 3000 },
+          { timeout: 3000 }
         );
 
         // Click "Add to bucket list" in choose popup
@@ -761,9 +759,9 @@ describe('AtlasPage', () => {
             items: [
               { id: 5, name: 'Santorini', country_code: 'GR', lat: null, lng: null, notes: null, target_date: null },
             ],
-          }),
+          })
         ),
-        http.delete('/api/addons/atlas/bucket-list/:id', () => HttpResponse.json({ success: true })),
+        http.delete('/api/addons/atlas/bucket-list/:id', () => HttpResponse.json({ success: true }))
       );
 
       const user = userEvent.setup();
@@ -826,13 +824,9 @@ describe('AtlasPage', () => {
 
   describe('FE-PAGE-ATLAS-029: confirm popup opens via search dropdown click', () => {
     it('clicking a country in the search dropdown opens the confirm action popup', async () => {
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
-      );
+      server.use(http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)));
 
-      server.use(
-        http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ success: true })),
-      );
+      server.use(http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ success: true })));
 
       const user = userEvent.setup();
       render(<AtlasPage />);
@@ -849,16 +843,14 @@ describe('AtlasPage', () => {
         () => {
           const allButtons = screen.getAllByRole('button');
           // Dropdown buttons have no aria-label but have text with country name
-          const franceBtn = allButtons.find(
-            (b) => b.textContent?.includes('France') || b.textContent?.includes('FR'),
-          );
+          const franceBtn = allButtons.find((b) => b.textContent?.includes('France') || b.textContent?.includes('FR'));
           if (franceBtn && !franceBtn.getAttribute('data-testid')) {
             foundDropdownItem = true;
           }
           // Either found item or search worked fine
           expect(searchInput).toHaveValue('fr');
         },
-        { timeout: 2000 },
+        { timeout: 2000 }
       );
 
       if (foundDropdownItem) {
@@ -874,7 +866,7 @@ describe('AtlasPage', () => {
               expect(searchInput).toBeInTheDocument();
             }
           },
-          { timeout: 2000 },
+          { timeout: 2000 }
         );
       }
     });
@@ -882,9 +874,7 @@ describe('AtlasPage', () => {
 
   describe('FE-PAGE-ATLAS-030: confirm popup overlay click closes it', () => {
     it('clicking the overlay backdrop closes the confirm popup', async () => {
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
-      );
+      server.use(http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)));
 
       const user = userEvent.setup();
       render(<AtlasPage />);
@@ -912,7 +902,7 @@ describe('AtlasPage', () => {
             expect(searchInput).toBeInTheDocument();
           }
         },
-        { timeout: 2000 },
+        { timeout: 2000 }
       );
     });
   });
@@ -955,13 +945,20 @@ describe('AtlasPage', () => {
   describe('FE-PAGE-ATLAS-051: bucket search results escape the panel that clips them', () => {
     it('renders the result list outside the overflow-hidden desktop panel (#1899)', async () => {
       server.use(
-        http.post('/api/maps/search', () => HttpResponse.json({
-          places: [
-            { name: 'Amsterdam', address: 'Amsterdam, North Holland, Netherlands', lat: 52.37, lng: 4.89 },
-            { name: 'New Amsterdam Island', address: 'French Southern and Antarctic Lands, France', lat: -37.8, lng: 77.5 },
-            { name: 'City of Amsterdam', address: 'North Holland, Netherlands', lat: 52.35, lng: 4.9 },
-          ],
-        })),
+        http.post('/api/maps/search', () =>
+          HttpResponse.json({
+            places: [
+              { name: 'Amsterdam', address: 'Amsterdam, North Holland, Netherlands', lat: 52.37, lng: 4.89 },
+              {
+                name: 'New Amsterdam Island',
+                address: 'French Southern and Antarctic Lands, France',
+                lat: -37.8,
+                lng: 77.5,
+              },
+              { name: 'City of Amsterdam', address: 'North Holland, Netherlands', lat: 52.35, lng: 4.9 },
+            ],
+          })
+        )
       );
 
       const user = userEvent.setup();
@@ -992,13 +989,19 @@ describe('AtlasPage', () => {
       const geoJsonFRandDE = {
         type: 'FeatureCollection',
         features: [
-          { type: 'Feature', properties: { ISO_A2: 'FR', ADM0_A3: 'FRA', ISO_A3: 'FRA', NAME: 'France', ADMIN: 'France' }, geometry: null },
-          { type: 'Feature', properties: { ISO_A2: 'DE', ADM0_A3: 'DEU', ISO_A3: 'DEU', NAME: 'Germany', ADMIN: 'Germany' }, geometry: null },
+          {
+            type: 'Feature',
+            properties: { ISO_A2: 'FR', ADM0_A3: 'FRA', ISO_A3: 'FRA', NAME: 'France', ADMIN: 'France' },
+            geometry: null,
+          },
+          {
+            type: 'Feature',
+            properties: { ISO_A2: 'DE', ADM0_A3: 'DEU', ISO_A3: 'DEU', NAME: 'Germany', ADMIN: 'Germany' },
+            geometry: null,
+          },
         ],
       };
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonFRandDE)),
-      );
+      server.use(http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonFRandDE)));
 
       render(<AtlasPage />);
 
@@ -1018,8 +1021,16 @@ describe('AtlasPage', () => {
       const geoJsonFRandJP = {
         type: 'FeatureCollection',
         features: [
-          { type: 'Feature', properties: { ISO_A2: 'FR', ADM0_A3: 'FRA', ISO_A3: 'FRA', NAME: 'France', ADMIN: 'France' }, geometry: null },
-          { type: 'Feature', properties: { ISO_A2: 'JP', ADM0_A3: 'JPN', ISO_A3: 'JPN', NAME: 'Japan', ADMIN: 'Japan' }, geometry: null },
+          {
+            type: 'Feature',
+            properties: { ISO_A2: 'FR', ADM0_A3: 'FRA', ISO_A3: 'FRA', NAME: 'France', ADMIN: 'France' },
+            geometry: null,
+          },
+          {
+            type: 'Feature',
+            properties: { ISO_A2: 'JP', ADM0_A3: 'JPN', ISO_A3: 'JPN', NAME: 'Japan', ADMIN: 'Japan' },
+            geometry: null,
+          },
         ],
       };
       server.use(
@@ -1027,8 +1038,8 @@ describe('AtlasPage', () => {
         http.get('/api/addons/atlas/bucket-list', () =>
           HttpResponse.json({
             items: [{ id: 1, name: 'Kyoto', country_code: 'JP', lat: null, lng: null, notes: null, target_date: null }],
-          }),
-        ),
+          })
+        )
       );
 
       render(<AtlasPage />);
@@ -1054,13 +1065,9 @@ describe('AtlasPage', () => {
 
   describe('FE-PAGE-ATLAS-034: dropdown button click + mouse events', () => {
     it('clicking France dropdown button covers onClick and mouse event handlers', async () => {
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
-      );
+      server.use(http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)));
 
-      server.use(
-        http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ success: true })),
-      );
+      server.use(http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ success: true })));
 
       const user = userEvent.setup();
       render(<AtlasPage />);
@@ -1077,17 +1084,18 @@ describe('AtlasPage', () => {
       let franceBtn: HTMLElement | null = null;
 
       // Poll for France button to appear in the dropdown
-      await waitFor(() => {
-        const btns = Array.from(document.querySelectorAll('button'));
-        const btn = btns.find(
-          (b) => b.textContent?.toLowerCase().includes('france') && b.style.width === '100%',
-        );
-        if (btn) {
-          franceBtn = btn;
-          return;
-        }
-        throw new Error('France dropdown button not found yet');
-      }, { timeout: 3000 }).catch(() => {
+      await waitFor(
+        () => {
+          const btns = Array.from(document.querySelectorAll('button'));
+          const btn = btns.find((b) => b.textContent?.toLowerCase().includes('france') && b.style.width === '100%');
+          if (btn) {
+            franceBtn = btn;
+            return;
+          }
+          throw new Error('France dropdown button not found yet');
+        },
+        { timeout: 3000 }
+      ).catch(() => {
         // France button not found — fall back to Enter key
       });
 
@@ -1125,11 +1133,9 @@ describe('AtlasPage', () => {
     it('marks an unvisited country covering line 983 and popup mouse events', async () => {
       server.use(
         http.get('/api/addons/atlas/stats', () => HttpResponse.json(emptyAtlasResponse)),
-        http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ success: true })),
+        http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ success: true }))
       );
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
-      );
+      server.use(http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)));
 
       const user = userEvent.setup();
       render(<AtlasPage />);
@@ -1144,8 +1150,10 @@ describe('AtlasPage', () => {
 
       try {
         await waitFor(
-          () => { expect(screen.getByText(/mark as visited/i)).toBeInTheDocument(); },
-          { timeout: 3000 },
+          () => {
+            expect(screen.getByText(/mark as visited/i)).toBeInTheDocument();
+          },
+          { timeout: 3000 }
         );
 
         // Fire mouse events on the "Mark as visited" button (covers onMouseEnter/Leave)
@@ -1186,10 +1194,12 @@ describe('AtlasPage', () => {
         http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
         http.get('/api/addons/atlas/bucket-list', () =>
           HttpResponse.json({
-            items: [{ id: 42, name: 'Paris', country_code: 'FR', lat: null, lng: null, notes: null, target_date: null }],
-          }),
+            items: [
+              { id: 42, name: 'Paris', country_code: 'FR', lat: null, lng: null, notes: null, target_date: null },
+            ],
+          })
         ),
-        http.delete('/api/addons/atlas/bucket-list/:id', () => HttpResponse.json({ success: true })),
+        http.delete('/api/addons/atlas/bucket-list/:id', () => HttpResponse.json({ success: true }))
       );
 
       const user = userEvent.setup();
@@ -1220,7 +1230,7 @@ describe('AtlasPage', () => {
     it('does not show Remove from wishlist for a country with no bucket-list entry', async () => {
       server.use(
         http.get('/api/addons/atlas/stats', () => HttpResponse.json(emptyAtlasResponse)),
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
+        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR))
       );
 
       const user = userEvent.setup();
@@ -1240,14 +1250,14 @@ describe('AtlasPage', () => {
 
   describe('FE-PAGE-ATLAS-036: bucket popup submit action', () => {
     it('submits a bucket list item from the confirm popup', async () => {
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
-      );
+      server.use(http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)));
 
       server.use(
         http.post('/api/addons/atlas/bucket-list', () =>
-          HttpResponse.json({ item: { id: 99, name: 'France', country_code: 'FR', lat: null, lng: null, notes: null, target_date: null } }),
-        ),
+          HttpResponse.json({
+            item: { id: 99, name: 'France', country_code: 'FR', lat: null, lng: null, notes: null, target_date: null },
+          })
+        )
       );
 
       const user = userEvent.setup();
@@ -1261,8 +1271,10 @@ describe('AtlasPage', () => {
 
       try {
         await waitFor(
-          () => { expect(screen.getByText(/mark as visited/i)).toBeInTheDocument(); },
-          { timeout: 3000 },
+          () => {
+            expect(screen.getByText(/mark as visited/i)).toBeInTheDocument();
+          },
+          { timeout: 3000 }
         );
 
         // Switch to 'bucket' type by clicking "Add to bucket list"
@@ -1275,11 +1287,14 @@ describe('AtlasPage', () => {
         });
 
         // Click the "Add to Bucket" / save button (covers lines 1149-1156)
-        const addBtn = screen.queryAllByText(/add to bucket/i).find(
-          (el) => el.tagName === 'BUTTON' || el.closest('button'),
-        );
+        const addBtn = screen
+          .queryAllByText(/add to bucket/i)
+          .find((el) => el.tagName === 'BUTTON' || el.closest('button'));
         if (addBtn) {
-          const btn = addBtn.tagName === 'BUTTON' ? addBtn as HTMLButtonElement : addBtn.closest('button') as HTMLButtonElement;
+          const btn =
+            addBtn.tagName === 'BUTTON'
+              ? (addBtn as HTMLButtonElement)
+              : (addBtn.closest('button') as HTMLButtonElement);
           await user.click(btn);
           // Popup closes after submit
           await waitFor(() => {
@@ -1299,10 +1314,18 @@ describe('AtlasPage', () => {
         http.get('/api/addons/atlas/bucket-list', () =>
           HttpResponse.json({
             items: [
-              { id: 10, name: 'Patagonia', country_code: 'AR', lat: null, lng: null, notes: 'Dream destination', target_date: null },
+              {
+                id: 10,
+                name: 'Patagonia',
+                country_code: 'AR',
+                lat: null,
+                lng: null,
+                notes: 'Dream destination',
+                target_date: null,
+              },
             ],
-          }),
-        ),
+          })
+        )
       );
 
       const user = userEvent.setup();
@@ -1323,14 +1346,22 @@ describe('AtlasPage', () => {
       server.use(
         http.post('/api/maps/search', () =>
           HttpResponse.json({
-            places: [
-              { name: 'Tokyo', lat: 35.6762, lng: 139.6503, address: 'Japan' },
-            ],
-          }),
+            places: [{ name: 'Tokyo', lat: 35.6762, lng: 139.6503, address: 'Japan' }],
+          })
         ),
         http.post('/api/addons/atlas/bucket-list', () =>
-          HttpResponse.json({ item: { id: 77, name: 'Tokyo', country_code: null, lat: 35.6762, lng: 139.6503, notes: null, target_date: null } }),
-        ),
+          HttpResponse.json({
+            item: {
+              id: 77,
+              name: 'Tokyo',
+              country_code: null,
+              lat: 35.6762,
+              lng: 139.6503,
+              notes: null,
+              target_date: null,
+            },
+          })
+        )
       );
 
       const user = userEvent.setup();
@@ -1360,7 +1391,7 @@ describe('AtlasPage', () => {
           if (!resultEl) throw new Error('Tokyo result not found in dropdown');
           return resultEl;
         },
-        { timeout: 3000 },
+        { timeout: 3000 }
       ).catch(() => null);
 
       if (tokyoResult) {
@@ -1376,7 +1407,9 @@ describe('AtlasPage', () => {
         });
 
         // Click Add to submit → handleAddBucketItem
-        const addBtn = screen.queryAllByRole('button').find((b) => b.textContent?.trim() === 'Add' || b.textContent?.trim() === 'add');
+        const addBtn = screen
+          .queryAllByRole('button')
+          .find((b) => b.textContent?.trim() === 'Add' || b.textContent?.trim() === 'add');
         if (addBtn) {
           await user.click(addBtn);
         }
@@ -1399,9 +1432,7 @@ describe('AtlasPage', () => {
           },
         ],
       };
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithXK)),
-      );
+      server.use(http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithXK)));
 
       render(<AtlasPage />);
 
@@ -1418,26 +1449,29 @@ describe('AtlasPage', () => {
     it.each([
       { a3: 'FRA', name: 'France', query: 'france' },
       { a3: 'NOR', name: 'Norway', query: 'norway' },
-    ])('returns $name in search results when GeoJSON provides ADM0_A3=$a3 but ISO_A2 is -99', async ({ a3, name, query }) => {
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(makeGeoJsonWithA3Fallback(a3, name))),
-      );
+    ])(
+      'returns $name in search results when GeoJSON provides ADM0_A3=$a3 but ISO_A2 is -99',
+      async ({ a3, name, query }) => {
+        server.use(
+          http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(makeGeoJsonWithA3Fallback(a3, name)))
+        );
 
-      const user = userEvent.setup();
-      render(<AtlasPage />);
+        const user = userEvent.setup();
+        render(<AtlasPage />);
 
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/search a country/i)).toBeInTheDocument();
-      });
+        await waitFor(() => {
+          expect(screen.getByPlaceholderText(/search a country/i)).toBeInTheDocument();
+        });
 
-      const searchInput = screen.getByPlaceholderText(/search a country/i);
-      await user.type(searchInput, query);
+        const searchInput = screen.getByPlaceholderText(/search a country/i);
+        await user.type(searchInput, query);
 
-      await waitFor(() => {
-        const countryButton = screen.getAllByRole('button').find((button) => button.textContent?.includes(name));
-        expect(countryButton).toBeTruthy();
-      });
-    });
+        await waitFor(() => {
+          const countryButton = screen.getAllByRole('button').find((button) => button.textContent?.includes(name));
+          expect(countryButton).toBeTruthy();
+        });
+      }
+    );
   });
 
   describe('FE-PAGE-ATLAS-042: bucket form submit with actual name value', () => {
@@ -1445,12 +1479,22 @@ describe('AtlasPage', () => {
       server.use(
         http.post('/api/maps/search', () =>
           HttpResponse.json({
-            places: [{ name: 'Bali', lat: -8.3405, lng: 115.0920, address: 'Indonesia' }],
-          }),
+            places: [{ name: 'Bali', lat: -8.3405, lng: 115.092, address: 'Indonesia' }],
+          })
         ),
         http.post('/api/addons/atlas/bucket-list', () =>
-          HttpResponse.json({ item: { id: 55, name: 'Bali', country_code: 'ID', lat: -8.3405, lng: 115.0920, notes: null, target_date: null } }),
-        ),
+          HttpResponse.json({
+            item: {
+              id: 55,
+              name: 'Bali',
+              country_code: 'ID',
+              lat: -8.3405,
+              lng: 115.092,
+              notes: null,
+              target_date: null,
+            },
+          })
+        )
       );
 
       const user = userEvent.setup();
@@ -1481,7 +1525,7 @@ describe('AtlasPage', () => {
           if (!el) throw new Error('Bali result not found');
           return el;
         },
-        { timeout: 3000 },
+        { timeout: 3000 }
       ).catch(() => null);
 
       if (baliResult) {
@@ -1490,14 +1534,19 @@ describe('AtlasPage', () => {
 
         // Now bucketForm.name is set — the "Add" button should be enabled
         await waitFor(() => {
-          const addBtns = screen.queryAllByRole('button').filter(b => b.textContent?.includes('Add') || b.textContent?.trim() === 'Add');
+          const addBtns = screen
+            .queryAllByRole('button')
+            .filter((b) => b.textContent?.includes('Add') || b.textContent?.trim() === 'Add');
           return addBtns.length > 0;
         }).catch(() => {});
 
         // Find and click the Add button (should be enabled now since bucketForm.name is set)
-        const addButtons = screen.queryAllByRole('button').filter(
-          (b) => !(b as HTMLButtonElement).disabled && (b.textContent?.trim() === 'Add' || b.textContent?.includes('Add')),
-        );
+        const addButtons = screen
+          .queryAllByRole('button')
+          .filter(
+            (b) =>
+              !(b as HTMLButtonElement).disabled && (b.textContent?.trim() === 'Add' || b.textContent?.includes('Add'))
+          );
         if (addButtons.length > 0) {
           await user.click(addButtons[addButtons.length - 1]);
           // handleAddBucketItem fires → apiClient.post → item added to list
@@ -1511,9 +1560,7 @@ describe('AtlasPage', () => {
 
   describe('FE-PAGE-ATLAS-043: API error in Promise.all covers catch branch', () => {
     it('when stats API fails, loading is set to false via catch handler', async () => {
-      server.use(
-        http.get('/api/addons/atlas/stats', () => HttpResponse.error()),
-      );
+      server.use(http.get('/api/addons/atlas/stats', () => HttpResponse.error()));
 
       render(<AtlasPage />);
 
@@ -1529,13 +1576,9 @@ describe('AtlasPage', () => {
 
   describe('FE-PAGE-ATLAS-044: direct France dropdown button click', () => {
     it('directly finds and clicks the France button in the dropdown to cover onClick', async () => {
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
-      );
+      server.use(http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)));
 
-      server.use(
-        http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ success: true })),
-      );
+      server.use(http.post('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ success: true })));
 
       const user = userEvent.setup();
       render(<AtlasPage />);
@@ -1548,23 +1591,26 @@ describe('AtlasPage', () => {
       // After typing, look for any span/button that contains France text (dropdown renders)
       // Use direct DOM query since the dropdown is in the document
       let clicked = false;
-      await waitFor(() => {
-        // Find all elements containing 'France' in text
-        const allElements = Array.from(document.querySelectorAll('button, span'));
-        const franceElements = allElements.filter(
-          (el) => el.textContent?.trim() === 'France' || el.textContent?.includes('France'),
-        );
-        // Try to find a button that's a dropdown item (not the main search area)
-        for (const el of franceElements) {
-          const btn = el.tagName === 'BUTTON' ? el : el.closest('button');
-          if (btn && (btn as HTMLButtonElement).style?.width === '100%') {
-            fireEvent.click(btn);
-            clicked = true;
-            return;
+      await waitFor(
+        () => {
+          // Find all elements containing 'France' in text
+          const allElements = Array.from(document.querySelectorAll('button, span'));
+          const franceElements = allElements.filter(
+            (el) => el.textContent?.trim() === 'France' || el.textContent?.includes('France')
+          );
+          // Try to find a button that's a dropdown item (not the main search area)
+          for (const el of franceElements) {
+            const btn = el.tagName === 'BUTTON' ? el : el.closest('button');
+            if (btn && (btn as HTMLButtonElement).style?.width === '100%') {
+              fireEvent.click(btn);
+              clicked = true;
+              return;
+            }
           }
-        }
-        throw new Error('France dropdown button not found');
-      }, { timeout: 3000 }).catch(() => {
+          throw new Error('France dropdown button not found');
+        },
+        { timeout: 3000 }
+      ).catch(() => {
         // Not found — use Enter key as fallback to at minimum cover select_country_from_search
         fireEvent.keyDown(searchInput, { key: 'Enter' });
       });
@@ -1583,13 +1629,9 @@ describe('AtlasPage', () => {
 
   describe('FE-PAGE-ATLAS-045: dark mode toggle covers map re-init + loadRegionsForViewport', () => {
     it('switching to dark mode re-initializes map and covers region loading code path', async () => {
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)),
-      );
+      server.use(http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonWithFR)));
 
-      server.use(
-        http.get('/api/addons/atlas/regions/geo', () => HttpResponse.json({ features: [] })),
-      );
+      server.use(http.get('/api/addons/atlas/regions/geo', () => HttpResponse.json({ features: [] })));
 
       render(<AtlasPage />);
 
@@ -1616,8 +1658,8 @@ describe('AtlasPage', () => {
         http.post('/api/maps/search', () =>
           HttpResponse.json({
             places: [{ name: 'Paris', lat: 48.8566, lng: 2.3522, address: 'France' }],
-          }),
-        ),
+          })
+        )
       );
 
       const user = userEvent.setup();
@@ -1640,13 +1682,11 @@ describe('AtlasPage', () => {
       const parisBtn = await waitFor(
         () => {
           const btns = Array.from(document.querySelectorAll('button'));
-          const btn = btns.find(
-            (b) => b.textContent?.includes('Paris') && b.closest('[style*="position: fixed"]'),
-          );
+          const btn = btns.find((b) => b.textContent?.includes('Paris') && b.closest('[style*="position: fixed"]'));
           if (!btn) throw new Error('Paris dropdown result not found');
           return btn;
         },
-        { timeout: 3000 },
+        { timeout: 3000 }
       );
 
       // Click result → handleSelectBucketPoi → sets bucketForm.name='Paris', lat/lng
@@ -1686,7 +1726,7 @@ describe('AtlasPage', () => {
       };
       server.use(
         http.get('/api/addons/atlas/stats', () => HttpResponse.json(statsWithIT)),
-        http.delete('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ success: true })),
+        http.delete('/api/addons/atlas/country/:code/mark', () => HttpResponse.json({ success: true }))
       );
 
       // Provide GeoJSON with both FR and IT features
@@ -1694,25 +1734,32 @@ describe('AtlasPage', () => {
       const geoJsonFRandIT = {
         type: 'FeatureCollection',
         features: [
-          { type: 'Feature', properties: { ISO_A2: 'FR', ADM0_A3: 'FRA', ISO_A3: 'FRA', NAME: 'France', ADMIN: 'France' }, geometry: null },
-          { type: 'Feature', properties: { ISO_A2: 'IT', ADM0_A3: 'ITA', ISO_A3: 'ITA', NAME: 'Italy', ADMIN: 'Italy' }, geometry: null },
+          {
+            type: 'Feature',
+            properties: { ISO_A2: 'FR', ADM0_A3: 'FRA', ISO_A3: 'FRA', NAME: 'France', ADMIN: 'France' },
+            geometry: null,
+          },
+          {
+            type: 'Feature',
+            properties: { ISO_A2: 'IT', ADM0_A3: 'ITA', ISO_A3: 'ITA', NAME: 'Italy', ADMIN: 'Italy' },
+            geometry: null,
+          },
         ],
       };
-      server.use(
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonFRandIT)),
-      );
+      server.use(http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json(geoJsonFRandIT)));
 
       render(<AtlasPage />);
 
       // Wait for data to load and geoJSON layer to be built.
       // The layer mock immediately invokes click callbacks: IT (placeCount=0, tripCount=0)
       // → handleUnmarkCountry('IT') → setConfirmAction({ type: 'unmark', code: 'IT', name: 'Italy' })
-      await waitFor(() => {
-        // The unmark popup shows t('atlas.unmark') = 'Remove' button
-        expect(
-          screen.queryAllByRole('button').some((b) => b.textContent?.trim() === 'Remove'),
-        ).toBe(true);
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          // The unmark popup shows t('atlas.unmark') = 'Remove' button
+          expect(screen.queryAllByRole('button').some((b) => b.textContent?.trim() === 'Remove')).toBe(true);
+        },
+        { timeout: 5000 }
+      );
 
       // Find and click the "Remove" button (atlas.unmark) → executeConfirmAction runs
       const removeBtn = screen.queryAllByRole('button').find((b) => b.textContent?.trim() === 'Remove');
@@ -1721,9 +1768,12 @@ describe('AtlasPage', () => {
       }
 
       // After executeConfirmAction: popup closes
-      await waitFor(() => {
-        expect(screen.queryAllByRole('button').some((b) => b.textContent?.trim() === 'Remove')).toBe(false);
-      }, { timeout: 3000 }).catch(() => {});
+      await waitFor(
+        () => {
+          expect(screen.queryAllByRole('button').some((b) => b.textContent?.trim() === 'Remove')).toBe(false);
+        },
+        { timeout: 3000 }
+      ).catch(() => {});
 
       // Page is still rendered
       expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
@@ -1738,18 +1788,42 @@ describe('AtlasPage', () => {
       // which used to make a region click open the country-detail view instead of an
       // unmark option at all.
       server.use(
-        http.get('/api/addons/atlas/regions', () => HttpResponse.json({
-          regions: { FR: [{ code: 'FR-IDF', name: 'Île-de-France', placeCount: 3 }] },
-        })),
-        http.get('/api/addons/atlas/countries/geo', () => HttpResponse.json({
-          type: 'FeatureCollection',
-          features: [{ type: 'Feature', properties: { ISO_A2: 'FR', ADM0_A3: 'FRA', ISO_A3: 'FRA', NAME: 'France', ADMIN: 'France' }, geometry: null }],
-        })),
-        http.get('/api/addons/atlas/regions/geo', () => HttpResponse.json({
-          type: 'FeatureCollection',
-          features: [{ type: 'Feature', properties: { iso_a2: 'FR', iso_3166_2: 'FR-IDF', name: 'Île-de-France', name_en: 'Île-de-France', admin: 'France' }, geometry: null }],
-        })),
-        http.delete('/api/addons/atlas/region/:code/mark', () => HttpResponse.json({ success: true })),
+        http.get('/api/addons/atlas/regions', () =>
+          HttpResponse.json({
+            regions: { FR: [{ code: 'FR-IDF', name: 'Île-de-France', placeCount: 3 }] },
+          })
+        ),
+        http.get('/api/addons/atlas/countries/geo', () =>
+          HttpResponse.json({
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                properties: { ISO_A2: 'FR', ADM0_A3: 'FRA', ISO_A3: 'FRA', NAME: 'France', ADMIN: 'France' },
+                geometry: null,
+              },
+            ],
+          })
+        ),
+        http.get('/api/addons/atlas/regions/geo', () =>
+          HttpResponse.json({
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                properties: {
+                  iso_a2: 'FR',
+                  iso_3166_2: 'FR-IDF',
+                  name: 'Île-de-France',
+                  name_en: 'Île-de-France',
+                  admin: 'France',
+                },
+                geometry: null,
+              },
+            ],
+          })
+        ),
+        http.delete('/api/addons/atlas/region/:code/mark', () => HttpResponse.json({ success: true }))
       );
 
       render(<AtlasPage />);
@@ -1766,20 +1840,24 @@ describe('AtlasPage', () => {
 
       // The layer mock immediately invokes click callbacks once the region layer is built:
       // FR-IDF is visited (place-derived) → confirmAction becomes { type: 'unmark-region', ... }
-      await waitFor(() => {
-        expect(
-          screen.queryAllByRole('button').some((b) => b.textContent?.trim() === 'Remove'),
-        ).toBe(true);
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(screen.queryAllByRole('button').some((b) => b.textContent?.trim() === 'Remove')).toBe(true);
+        },
+        { timeout: 5000 }
+      );
 
       const removeBtn = screen.queryAllByRole('button').find((b) => b.textContent?.trim() === 'Remove');
       if (removeBtn) {
         fireEvent.click(removeBtn);
       }
 
-      await waitFor(() => {
-        expect(screen.queryAllByRole('button').some((b) => b.textContent?.trim() === 'Remove')).toBe(false);
-      }, { timeout: 3000 }).catch(() => {});
+      await waitFor(
+        () => {
+          expect(screen.queryAllByRole('button').some((b) => b.textContent?.trim() === 'Remove')).toBe(false);
+        },
+        { timeout: 3000 }
+      ).catch(() => {});
 
       expect(screen.getAllByText(/countries/i).length).toBeGreaterThan(0);
     });
@@ -1791,10 +1869,18 @@ describe('AtlasPage', () => {
         http.get('/api/addons/atlas/bucket-list', () =>
           HttpResponse.json({
             items: [
-              { id: 20, name: 'Machu Picchu', country_code: 'PE', lat: -13.1631, lng: -72.5450, notes: null, target_date: '2028-06' },
+              {
+                id: 20,
+                name: 'Machu Picchu',
+                country_code: 'PE',
+                lat: -13.1631,
+                lng: -72.545,
+                notes: null,
+                target_date: '2028-06',
+              },
             ],
-          }),
-        ),
+          })
+        )
       );
 
       const user = userEvent.setup();

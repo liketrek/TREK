@@ -1,10 +1,15 @@
-import fs from 'fs';
-import path from 'path';
-import { RequestContext, type EntityManager } from '@mikro-orm/core';
 import { readEnv } from '../app-config';
 import { closeDb, getRawConnection, reinitialize } from '../db/database';
-import { DemoRepository, type DemoAdminCredentialsRow, type DemoInstanceKeyRow } from '../db/repositories/DemoRepository';
+import {
+  DemoRepository,
+  type DemoAdminCredentialsRow,
+  type DemoInstanceKeyRow,
+} from '../db/repositories/DemoRepository';
 import { MaintenanceRepository } from '../db/repositories/MaintenanceRepository';
+import { RequestContext, type EntityManager } from '@mikro-orm/core';
+
+import fs from 'fs';
+import path from 'path';
 
 const dataDir = path.join(__dirname, '../../data');
 const baselinePath = path.join(dataDir, 'travel-baseline.db');
@@ -95,8 +100,12 @@ async function resetDemoUser(): Promise<void> {
   try {
     fs.copyFileSync(baselinePath, dbPath);
     // Remove WAL/SHM files if they exist (stale from old connection)
-    try { fs.unlinkSync(dbPath + '-wal'); } catch (e) {}
-    try { fs.unlinkSync(dbPath + '-shm'); } catch (e) {}
+    try {
+      fs.unlinkSync(dbPath + '-wal');
+    } catch (e) {}
+    try {
+      fs.unlinkSync(dbPath + '-shm');
+    } catch (e) {}
   } catch (e: unknown) {
     console.error('[Demo Reset] Failed to restore baseline:', e instanceof Error ? e.message : e);
     await reinitialize();

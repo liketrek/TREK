@@ -1,18 +1,18 @@
-import { useEffect, useRef } from 'react'
-import { MAP_CONTROL_SHADOW } from './mapControlShadow'
-import { Navigation, LocateFixed, Locate } from 'lucide-react'
-import type { TrackingMode, GeoWatchErrorCode } from '../../hooks/useGeolocation'
-import { useTranslation } from '../../i18n'
-import { useToast } from '../shared/Toast'
+import { Locate, LocateFixed, Navigation } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import type { GeoWatchErrorCode, TrackingMode } from '../../hooks/useGeolocation';
+import { useTranslation } from '../../i18n';
+import { useToast } from '../shared/Toast';
+import { MAP_CONTROL_SHADOW } from './mapControlShadow';
 
 interface Props {
-  mode: TrackingMode
-  error: string | null
-  errorCode: GeoWatchErrorCode | null
-  onClick: () => void
+  mode: TrackingMode;
+  error: string | null;
+  errorCode: GeoWatchErrorCode | null;
+  onClick: () => void;
   // Offset from the bottom edge — callers push this up above the mobile
   // bottom nav. Defaults to 20px for desktop.
-  bottomOffset?: number
+  bottomOffset?: number;
 }
 
 // The raw error string from the browser is unlocalized WebKit English, so the
@@ -22,43 +22,43 @@ interface Props {
 // exactly this in all locales.
 const ERROR_KEYS: Record<GeoWatchErrorCode, string> = {
   'permission-denied': 'map.location.denied',
-  'unavailable': 'map.location.unavailable',
-  'timeout': 'map.location.timeout',
-  'unsupported': 'map.location.unavailable',
+  unavailable: 'map.location.unavailable',
+  timeout: 'map.location.timeout',
+  unsupported: 'map.location.unavailable',
   'insecure-context': 'journey.editor.locationInsecureContext',
-}
+};
 
 // Three-state FAB. Matches the Apple/Google Maps pattern:
 //   off    → outline locate icon
 //   show   → filled locate (blue dot is visible on the map)
 //   follow → filled navigation arrow (map follows + rotates with heading)
 export default function LocationButton({ mode, error, errorCode, onClick, bottomOffset = 20 }: Props) {
-  const { t } = useTranslation()
-  const toast = useToast()
+  const { t } = useTranslation();
+  const toast = useToast();
   // A title tooltip is invisible on touch, which is exactly where geolocation
   // errors happen (iOS PWA, see discussion #2095), so surface new errors as a
   // toast. The ref guards against re-fires: only the transition from no error
   // to an error announces itself.
-  const prevCodeRef = useRef<GeoWatchErrorCode | null>(null)
+  const prevCodeRef = useRef<GeoWatchErrorCode | null>(null);
   useEffect(() => {
-    const prev = prevCodeRef.current
-    prevCodeRef.current = errorCode
+    const prev = prevCodeRef.current;
+    prevCodeRef.current = errorCode;
     if (errorCode && prev === null) {
       // The denied message is long, so give the toast extra time to be read.
-      toast.error(t(ERROR_KEYS[errorCode]), 6000)
+      toast.error(t(ERROR_KEYS[errorCode]), 6000);
     }
-  }, [errorCode, t, toast])
+  }, [errorCode, t, toast]);
 
-  const Icon = mode === 'follow' ? Navigation : mode === 'show' ? LocateFixed : Locate
-  const isActive = mode !== 'off'
-  const errorText = errorCode ? t(ERROR_KEYS[errorCode]) : error
+  const Icon = mode === 'follow' ? Navigation : mode === 'show' ? LocateFixed : Locate;
+  const isActive = mode !== 'off';
+  const errorText = errorCode ? t(ERROR_KEYS[errorCode]) : error;
   const title = errorText
     ? errorText
     : mode === 'off'
       ? 'Show my location'
       : mode === 'show'
         ? 'Follow my location'
-        : 'Stop following'
+        : 'Stop following';
 
   return (
     <button
@@ -77,7 +77,7 @@ export default function LocationButton({ mode, error, errorCode, onClick, bottom
         border: 'none',
         cursor: 'pointer',
         background: isActive ? '#3b82f6' : 'var(--bg-card, white)',
-        color: isActive ? 'white' : (error ? '#ef4444' : 'var(--text-muted, #6b7280)'),
+        color: isActive ? 'white' : error ? '#ef4444' : 'var(--text-muted, #6b7280)',
         boxShadow: MAP_CONTROL_SHADOW,
         display: 'flex',
         alignItems: 'center',
@@ -87,5 +87,5 @@ export default function LocationButton({ mode, error, errorCode, onClick, bottom
     >
       <Icon size={20} strokeWidth={mode === 'follow' ? 2.5 : 2} />
     </button>
-  )
+  );
 }

@@ -1,9 +1,9 @@
-import { QueryFlag } from '@mikro-orm/core';
-import type { Trips } from '../entities/Trips.entity';
 import { coalesceParam, currentTimestamp, nowDateOffset } from '../dialect/sql-functions';
+import type { Trips } from '../entities/Trips.entity';
 import type { AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 import { tripAccessExpr } from './_shared/trip-access';
+import { QueryFlag } from '@mikro-orm/core';
 
 /** What a trip-scoped request learns about the trip once access is verified. */
 export interface TripAccess {
@@ -104,7 +104,14 @@ export interface ActiveTripRow {
 
 /** The narrow `trips`/`trip_members` shape `activeTrip` needs. */
 interface ActiveTripKyselyDB {
-  trips: { id: number; title: string; start_date: string | null; end_date: string | null; user_id: number; is_archived: number | null };
+  trips: {
+    id: number;
+    title: string;
+    start_date: string | null;
+    end_date: string | null;
+    user_id: number;
+    is_archived: number | null;
+  };
   trip_members: { id: number; trip_id: number; user_id: number };
 }
 
@@ -258,10 +265,7 @@ export class TripsRepository extends TrekRepository<Trips> {
    * confirmed to exist).
    */
   async existsById(id: number): Promise<boolean> {
-    const row = await this.qb('t')
-      .select(['t.id'])
-      .where({ id })
-      .execute<{ id: number } | undefined>('get', false);
+    const row = await this.qb('t').select(['t.id']).where({ id }).execute<{ id: number } | undefined>('get', false);
     return !!row;
   }
 
@@ -334,7 +338,9 @@ export class TripsRepository extends TrekRepository<Trips> {
    * `'Only the owner can transfer ownership'`, both decided by the caller).
    * Raw-bind, the same seam as `getTitle` above.
    */
-  async findIdTitleOwner(trip_id: number | string): Promise<{ id: number; title: string; user_id: number } | undefined> {
+  async findIdTitleOwner(
+    trip_id: number | string,
+  ): Promise<{ id: number; title: string; user_id: number } | undefined> {
     return this.qb('t')
       .select(['t.id', 't.title', 't.user'])
       .where('t.id = ?', [trip_id])
@@ -410,11 +416,23 @@ export class TripsRepository extends TrekRepository<Trips> {
       .selectAll('t')
       .select((eb) => [
         eb.val<string | null>(null).as('feed_token'),
-        eb.selectFrom('days as d').select((eb2) => eb2.fn.countAll<number>().as('c')).whereRef('d.trip_id', '=', 't.id').as('day_count'),
-        eb.selectFrom('places as p').select((eb2) => eb2.fn.countAll<number>().as('c')).whereRef('p.trip_id', '=', 't.id').as('place_count'),
+        eb
+          .selectFrom('days as d')
+          .select((eb2) => eb2.fn.countAll<number>().as('c'))
+          .whereRef('d.trip_id', '=', 't.id')
+          .as('day_count'),
+        eb
+          .selectFrom('places as p')
+          .select((eb2) => eb2.fn.countAll<number>().as('c'))
+          .whereRef('p.trip_id', '=', 't.id')
+          .as('place_count'),
         eb.case().when('t.user_id', '=', user_id).then(1).else(0).end().as('is_owner'),
         'u.username as owner_username',
-        eb.selectFrom('trip_members as tm').select((eb2) => eb2.fn.countAll<number>().as('c')).whereRef('tm.trip_id', '=', 't.id').as('shared_count'),
+        eb
+          .selectFrom('trip_members as tm')
+          .select((eb2) => eb2.fn.countAll<number>().as('c'))
+          .whereRef('tm.trip_id', '=', 't.id')
+          .as('shared_count'),
       ]);
   }
 
@@ -498,8 +516,16 @@ export class TripsRepository extends TrekRepository<Trips> {
       .leftJoin('trip_members as m', (join) => join.onRef('m.trip_id', '=', 't.id').on('m.user_id', '=', user_id))
       .select(['t.id', 't.title', 't.start_date', 't.end_date'])
       .select((eb) => [
-        eb.case()
-          .when(eb.and([eb('t.start_date', 'is not', null), eb('t.end_date', 'is not', null), eb('t.start_date', '<=', today), eb('t.end_date', '>=', today)]))
+        eb
+          .case()
+          .when(
+            eb.and([
+              eb('t.start_date', 'is not', null),
+              eb('t.end_date', 'is not', null),
+              eb('t.start_date', '<=', today),
+              eb('t.end_date', '>=', today),
+            ]),
+          )
           .then(0)
           .when(eb.and([eb('t.start_date', 'is not', null), eb('t.start_date', '>=', today)]))
           .then(1)
@@ -509,30 +535,65 @@ export class TripsRepository extends TrekRepository<Trips> {
       ])
       .where((eb) => tripAccessExpr(eb, 't.user_id', 'm.user_id', user_id))
       .where('t.is_archived', '=', 0)
-      .orderBy((eb) =>
-        eb.case()
-          .when(eb.and([eb('t.start_date', 'is not', null), eb('t.end_date', 'is not', null), eb('t.start_date', '<=', today), eb('t.end_date', '>=', today)]))
-          .then(0)
-          .when(eb.and([eb('t.start_date', 'is not', null), eb('t.start_date', '>=', today)]))
-          .then(1)
-          .else(2)
-          .end(), 'asc')
-      .orderBy((eb) =>
-        eb.case()
-          .when(eb.or([
-            eb.and([eb('t.start_date', 'is not', null), eb('t.end_date', 'is not', null), eb('t.start_date', '<=', today), eb('t.end_date', '>=', today)]),
-            eb.and([eb('t.start_date', 'is not', null), eb('t.start_date', '>=', today)]),
-          ]))
-          .then(eb.ref('t.start_date'))
-          .end(), 'asc')
-      .orderBy((eb) =>
-        eb.case()
-          .when(eb.not(eb.or([
-            eb.and([eb('t.start_date', 'is not', null), eb('t.end_date', 'is not', null), eb('t.start_date', '<=', today), eb('t.end_date', '>=', today)]),
-            eb.and([eb('t.start_date', 'is not', null), eb('t.start_date', '>=', today)]),
-          ])))
-          .then(eb.ref('t.start_date'))
-          .end(), 'desc')
+      .orderBy(
+        (eb) =>
+          eb
+            .case()
+            .when(
+              eb.and([
+                eb('t.start_date', 'is not', null),
+                eb('t.end_date', 'is not', null),
+                eb('t.start_date', '<=', today),
+                eb('t.end_date', '>=', today),
+              ]),
+            )
+            .then(0)
+            .when(eb.and([eb('t.start_date', 'is not', null), eb('t.start_date', '>=', today)]))
+            .then(1)
+            .else(2)
+            .end(),
+        'asc',
+      )
+      .orderBy(
+        (eb) =>
+          eb
+            .case()
+            .when(
+              eb.or([
+                eb.and([
+                  eb('t.start_date', 'is not', null),
+                  eb('t.end_date', 'is not', null),
+                  eb('t.start_date', '<=', today),
+                  eb('t.end_date', '>=', today),
+                ]),
+                eb.and([eb('t.start_date', 'is not', null), eb('t.start_date', '>=', today)]),
+              ]),
+            )
+            .then(eb.ref('t.start_date'))
+            .end(),
+        'asc',
+      )
+      .orderBy(
+        (eb) =>
+          eb
+            .case()
+            .when(
+              eb.not(
+                eb.or([
+                  eb.and([
+                    eb('t.start_date', 'is not', null),
+                    eb('t.end_date', 'is not', null),
+                    eb('t.start_date', '<=', today),
+                    eb('t.end_date', '>=', today),
+                  ]),
+                  eb.and([eb('t.start_date', 'is not', null), eb('t.start_date', '>=', today)]),
+                ]),
+              ),
+            )
+            .then(eb.ref('t.start_date'))
+            .end(),
+        'desc',
+      )
       .limit(1)
       .executeTakeFirst();
     return row as ActiveTripRow | undefined;
@@ -624,16 +685,19 @@ export class TripsRepository extends TrekRepository<Trips> {
    * here would tempt a caller to paper over that with its own `?? 0`, the
    * exact regression the review found.
    */
-  async updateTripRow(id: number, data: {
-    title: string;
-    description: string | null;
-    start_date: string | null;
-    end_date: string | null;
-    currency: string;
-    is_archived: number | null;
-    cover_image: string | null;
-    reminder_days: number;
-  }): Promise<void> {
+  async updateTripRow(
+    id: number,
+    data: {
+      title: string;
+      description: string | null;
+      start_date: string | null;
+      end_date: string | null;
+      currency: string;
+      is_archived: number | null;
+      cover_image: string | null;
+      reminder_days: number;
+    },
+  ): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
     await this.nativeUpdate({ id }, { ...data, updated_at: currentTimestamp(platform) });
   }
@@ -769,7 +833,16 @@ export class TripsRepository extends TrekRepository<Trips> {
   async listSummariesByIds(ids: number[]): Promise<TripSummaryProjectionRow[]> {
     if (ids.length === 0) return [];
     return this.qb('t')
-      .select(['t.id', 't.title', 't.description', 't.start_date', 't.end_date', 't.currency', 't.is_archived', 't.updated_at'])
+      .select([
+        't.id',
+        't.title',
+        't.description',
+        't.start_date',
+        't.end_date',
+        't.currency',
+        't.is_archived',
+        't.updated_at',
+      ])
       .where({ id: { $in: ids } })
       .orderBy({ start_date: 'desc', id: 'desc' })
       .execute<TripSummaryProjectionRow[]>('all', false);
@@ -783,7 +856,16 @@ export class TripsRepository extends TrekRepository<Trips> {
    */
   async findSummaryById(id: number): Promise<TripSummaryProjectionRow | null> {
     const row = await this.qb('t')
-      .select(['t.id', 't.title', 't.description', 't.start_date', 't.end_date', 't.currency', 't.is_archived', 't.updated_at'])
+      .select([
+        't.id',
+        't.title',
+        't.description',
+        't.start_date',
+        't.end_date',
+        't.currency',
+        't.is_archived',
+        't.updated_at',
+      ])
       .where({ id })
       .execute<TripSummaryProjectionRow | undefined>('get', false);
     return row ?? null;
@@ -931,7 +1013,10 @@ export class TripsRepository extends TrekRepository<Trips> {
    * (`todayUtc()`) and bound here — the `activeTrip(user_id, today)`
    * precedent above for a literal `date('now')` comparison.
    */
-  async lastStartedTrip(user_id: number, today: string): Promise<{ id: number; title: string; start_date: string | null; end_date: string | null } | undefined> {
+  async lastStartedTrip(
+    user_id: number,
+    today: string,
+  ): Promise<{ id: number; title: string; start_date: string | null; end_date: string | null } | undefined> {
     return await this.kysely<LastStartedTripKyselyDB>()
       .selectFrom('trips as t')
       .leftJoin('trip_members as tm', 'tm.trip_id', 't.id')
@@ -954,7 +1039,10 @@ export class TripsRepository extends TrekRepository<Trips> {
    * `days_until` column (`CAST(julianday(start_date) - julianday(date('now'))
    * AS INTEGER)`) is computed by the caller from the same `today`.
    */
-  async nextUpcomingTrip(user_id: number, today: string): Promise<{ id: number; title: string; start_date: string; end_date: string | null } | undefined> {
+  async nextUpcomingTrip(
+    user_id: number,
+    today: string,
+  ): Promise<{ id: number; title: string; start_date: string; end_date: string | null } | undefined> {
     const row = await this.kysely<LastStartedTripKyselyDB>()
       .selectFrom('trips as t')
       .leftJoin('trip_members as tm', 'tm.trip_id', 't.id')
@@ -982,7 +1070,10 @@ export class TripsRepository extends TrekRepository<Trips> {
       .selectFrom('trips as t')
       .leftJoin('days as d', 'd.trip_id', 't.id')
       .leftJoin('trip_members as tm', 'tm.trip_id', 't.id')
-      .select((eb) => [eb.fn.count<number>('t.id').distinct().as('trips'), eb.fn.count<number>('d.id').distinct().as('days')])
+      .select((eb) => [
+        eb.fn.count<number>('t.id').distinct().as('trips'),
+        eb.fn.count<number>('d.id').distinct().as('days'),
+      ])
       .where((eb) => eb.or([eb('t.user_id', '=', user_id), eb('tm.user_id', '=', user_id)]))
       .executeTakeFirst();
     return { trips: Number(row?.trips ?? 0), days: Number(row?.days ?? 0) };
@@ -1009,7 +1100,9 @@ export class TripsRepository extends TrekRepository<Trips> {
    * site (Task 0's own CONTROLLER NOTE flagged this as a possibility, not a
    * certainty).
    */
-  async listTripsToSync(user_id: number): Promise<{ id: number; start_date: string | null; end_date: string | null }[]> {
+  async listTripsToSync(
+    user_id: number,
+  ): Promise<{ id: number; start_date: string | null; end_date: string | null }[]> {
     const platform = this.getEntityManager().getPlatform();
     return await this.accessibleTripsQuery(user_id)
       .select(['t.id', 't.start_date', 't.end_date'], true)

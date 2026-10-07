@@ -1,28 +1,28 @@
-import { useRef, useState } from 'react'
-import { Check, FileDown } from 'lucide-react'
-import { placesApi } from '../../../../api/client'
-import { useAuthStore } from '../../../../store/authStore'
-import MToggle from '../../../components/MToggle'
-import { Eyebrow, FormSheetFooter } from './PlSheetChrome'
-import type { TripPlanner } from '../MTripShell'
+import { Check, FileDown } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { placesApi } from '../../../../api/client';
+import { useAuthStore } from '../../../../store/authStore';
+import MToggle from '../../../components/MToggle';
+import type { TripPlanner } from '../MTripShell';
+import { Eyebrow, FormSheetFooter } from './PlSheetChrome';
 
 interface ImportSummary {
-  totalPlacemarks: number
-  createdCount: number
-  skippedCount: number
-  warnings: string[]
-  errors: string[]
+  totalPlacemarks: number;
+  createdCount: number;
+  skippedCount: number;
+  warnings: string[];
+  errors: string[];
 }
 
 interface ImpFileStepProps {
-  planner: TripPlanner
+  planner: TripPlanner;
   /** Back to the import menu. */
-  onBack: () => void
+  onBack: () => void;
   /** Close the whole sheet after a clean import. */
-  onDone: () => void
+  onDone: () => void;
 }
 
-const MAX_FILE_BYTES = 10 * 1024 * 1024
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 /**
  * GPX/KML/KMZ file import step — same endpoints and undo behaviour as the
@@ -30,67 +30,67 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024
  * tap-to-pick flow.
  */
 export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProps) {
-  const { t, toast, tripId, tripActions, pushUndo } = planner
-  const inputRef = useRef<HTMLInputElement>(null)
+  const { t, toast, tripId, tripActions, pushUndo } = planner;
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const [files, setFiles] = useState<File[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [summary, setSummary] = useState<ImportSummary | null>(null)
-  const [gpxOpts, setGpxOpts] = useState({ waypoints: true, routes: true, tracks: true })
-  const [kmlOpts, setKmlOpts] = useState({ points: true, paths: true })
+  const [files, setFiles] = useState<File[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [summary, setSummary] = useState<ImportSummary | null>(null);
+  const [gpxOpts, setGpxOpts] = useState({ waypoints: true, routes: true, tracks: true });
+  const [kmlOpts, setKmlOpts] = useState({ points: true, paths: true });
   // The Google pass the list import offers, for a file's points too (#2536).
-  const canEnrich = useAuthStore(s => s.hasMapsKey)
-  const [enrich, setEnrich] = useState(false)
+  const canEnrich = useAuthStore((s) => s.hasMapsKey);
+  const [enrich, setEnrich] = useState(false);
 
   const validateFile = (f: File): string | null => {
-    const ext = f.name.toLowerCase().split('.').pop()
-    if (ext !== 'gpx' && ext !== 'kml' && ext !== 'kmz') return t('places.importFileUnsupported')
-    if (f.size > MAX_FILE_BYTES) return t('places.importFileTooLarge', { maxMb: 10 })
-    return null
-  }
+    const ext = f.name.toLowerCase().split('.').pop();
+    if (ext !== 'gpx' && ext !== 'kml' && ext !== 'kmz') return t('places.importFileUnsupported');
+    if (f.size > MAX_FILE_BYTES) return t('places.importFileTooLarge', { maxMb: 10 });
+    return null;
+  };
 
   const selectFiles = (incoming: File[]) => {
-    const valid: File[] = []
-    let firstError: string | null = null
+    const valid: File[] = [];
+    let firstError: string | null = null;
     for (const f of incoming) {
-      const validationError = validateFile(f)
-      if (validationError) firstError = firstError ?? validationError
-      else valid.push(f)
+      const validationError = validateFile(f);
+      if (validationError) firstError = firstError ?? validationError;
+      else valid.push(f);
     }
-    setFiles(valid)
-    setError(firstError ?? '')
-    setSummary(null)
-  }
+    setFiles(valid);
+    setError(firstError ?? '');
+    setSummary(null);
+  };
 
   const handleImport = async () => {
-    if (files.length === 0 || loading) return
-    setLoading(true)
-    setError('')
-    setSummary(null)
+    if (files.length === 0 || loading) return;
+    setLoading(true);
+    setError('');
+    setSummary(null);
 
     // Counted per format so a mixed selection gets each half's own label.
-    let gpxCreated = 0
-    let kmlCreated = 0
-    let totalSkipped = 0
-    const gpxIds: number[] = []
-    const kmlIds: number[] = []
-    const errors: string[] = []
-    let mergedSummary: ImportSummary | null = null
+    let gpxCreated = 0;
+    let kmlCreated = 0;
+    let totalSkipped = 0;
+    const gpxIds: number[] = [];
+    const kmlIds: number[] = [];
+    const errors: string[] = [];
+    let mergedSummary: ImportSummary | null = null;
 
     for (const f of files) {
-      const ext = f.name.toLowerCase().split('.').pop()
+      const ext = f.name.toLowerCase().split('.').pop();
       try {
         if (ext === 'gpx') {
-          const result = await placesApi.importGpx(tripId, f, { ...gpxOpts, enrich: enrich && canEnrich })
-          gpxCreated += result.count ?? 0
-          totalSkipped += result.skipped ?? 0
-          if (result.places?.length > 0) gpxIds.push(...result.places.map((p: { id: number }) => p.id))
+          const result = await placesApi.importGpx(tripId, f, { ...gpxOpts, enrich: enrich && canEnrich });
+          gpxCreated += result.count ?? 0;
+          totalSkipped += result.skipped ?? 0;
+          if (result.places?.length > 0) gpxIds.push(...result.places.map((p: { id: number }) => p.id));
         } else {
-          const result = await placesApi.importMapFile(tripId, f, { ...kmlOpts, enrich: enrich && canEnrich })
-          kmlCreated += result.count ?? 0
-          if (result.places?.length > 0) kmlIds.push(...result.places.map((p: { id: number }) => p.id))
-          const s = result.summary as ImportSummary | undefined
+          const result = await placesApi.importMapFile(tripId, f, { ...kmlOpts, enrich: enrich && canEnrich });
+          kmlCreated += result.count ?? 0;
+          if (result.places?.length > 0) kmlIds.push(...result.places.map((p: { id: number }) => p.id));
+          const s = result.summary as ImportSummary | undefined;
           if (s) {
             mergedSummary = mergedSummary
               ? {
@@ -100,58 +100,61 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
                   warnings: [...mergedSummary.warnings, ...(s.warnings ?? [])],
                   errors: [...mergedSummary.errors, ...(s.errors ?? [])],
                 }
-              : s
+              : s;
           }
           // A response without a summary carries the count on the top level.
-          totalSkipped += s?.skippedCount ?? result.skipped ?? 0
+          totalSkipped += s?.skippedCount ?? result.skipped ?? 0;
         }
       } catch (err: unknown) {
         const message =
-          (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('places.importFileError')
-        errors.push(files.length > 1 ? `${f.name}: ${message}` : message)
+          (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t('places.importFileError');
+        errors.push(files.length > 1 ? `${f.name}: ${message}` : message);
       }
     }
 
-    await tripActions.loadTrip(tripId)
+    await tripActions.loadTrip(tripId);
 
-    const createdIds = [...gpxIds, ...kmlIds]
+    const createdIds = [...gpxIds, ...kmlIds];
     if (createdIds.length > 0) {
-      const undoLabel = gpxIds.length > 0 && kmlIds.length > 0
-        ? t('undo.importFiles')
-        : gpxIds.length > 0 ? t('undo.importGpx') : t('undo.importKeyholeMarkup')
+      const undoLabel =
+        gpxIds.length > 0 && kmlIds.length > 0
+          ? t('undo.importFiles')
+          : gpxIds.length > 0
+            ? t('undo.importGpx')
+            : t('undo.importKeyholeMarkup');
       pushUndo(undoLabel, async () => {
         try {
-          await placesApi.bulkDelete(tripId, createdIds)
+          await placesApi.bulkDelete(tripId, createdIds);
         } catch {
           // best effort — the trip reload below reflects whatever happened
         }
-        await tripActions.loadTrip(tripId)
-      })
+        await tripActions.loadTrip(tripId);
+      });
     }
 
-    if (gpxCreated > 0) toast.success(t('places.gpxImported', { count: gpxCreated }))
-    if (kmlCreated > 0) toast.success(t('places.kmlKmzImported', { count: kmlCreated }))
+    if (gpxCreated > 0) toast.success(t('places.gpxImported', { count: gpxCreated }));
+    if (kmlCreated > 0) toast.success(t('places.kmlKmzImported', { count: kmlCreated }));
     if (gpxCreated === 0 && kmlCreated === 0 && totalSkipped > 0 && errors.length === 0) {
-      toast.warning(t('places.importAllSkipped'))
+      toast.warning(t('places.importAllSkipped'));
     }
 
-    if (mergedSummary) setSummary(mergedSummary)
+    if (mergedSummary) setSummary(mergedSummary);
     if (errors.length > 0) {
-      setError(errors.join('\n'))
-      toast.error(errors[0])
+      setError(errors.join('\n'));
+      toast.error(errors[0]);
     }
 
-    setLoading(false)
+    setLoading(false);
     // Close once everything succeeded and there's no KML summary left to show.
-    if (errors.length === 0 && !mergedSummary) onDone()
-  }
+    if (errors.length === 0 && !mergedSummary) onDone();
+  };
 
-  const exts = files.map(f => f.name.toLowerCase().split('.').pop() ?? '')
-  const isGpx = exts.includes('gpx')
-  const isKml = exts.some(e => e === 'kml' || e === 'kmz')
-  const gpxNoneSelected = isGpx && !gpxOpts.waypoints && !gpxOpts.routes && !gpxOpts.tracks
-  const kmlNoneSelected = isKml && !kmlOpts.points && !kmlOpts.paths
-  const canImport = files.length > 0 && !loading && !gpxNoneSelected && !kmlNoneSelected
+  const exts = files.map((f) => f.name.toLowerCase().split('.').pop() ?? '');
+  const isGpx = exts.includes('gpx');
+  const isKml = exts.some((e) => e === 'kml' || e === 'kmz');
+  const gpxNoneSelected = isGpx && !gpxOpts.waypoints && !gpxOpts.routes && !gpxOpts.tracks;
+  const kmlNoneSelected = isKml && !kmlOpts.points && !kmlOpts.paths;
+  const canImport = files.length > 0 && !loading && !gpxNoneSelected && !kmlNoneSelected;
 
   return (
     <>
@@ -164,10 +167,10 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
           accept=".gpx,.kml,.kmz"
           multiple
           className="hidden"
-          onChange={e => {
-            const list = e.target.files ? Array.from(e.target.files) : []
-            e.target.value = ''
-            if (list.length) selectFiles(list)
+          onChange={(e) => {
+            const list = e.target.files ? Array.from(e.target.files) : [];
+            e.target.value = '';
+            if (list.length) selectFiles(list);
           }}
         />
         <button
@@ -178,7 +181,7 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
           <FileDown size={17} strokeWidth={1.9} className="text-m-faint" />
           {files.length > 0 ? (
             <span className="break-all text-center text-[0.78125rem] font-semibold text-m-ink">
-              {files.map(f => f.name).join(', ')}
+              {files.map((f) => f.name).join(', ')}
             </span>
           ) : (
             <span className="text-center text-[0.75rem] font-semibold text-m-muted">
@@ -195,7 +198,7 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
               { key: 'routes', label: t('places.gpxImportRoutes'), on: gpxOpts.routes },
               { key: 'tracks', label: t('places.gpxImportTracks'), on: gpxOpts.tracks },
             ]}
-            onToggle={key => setGpxOpts(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
+            onToggle={(key) => setGpxOpts((prev) => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
             noneSelected={gpxNoneSelected}
             noneSelectedLabel={t('places.gpxImportNoneSelected')}
           />
@@ -207,7 +210,7 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
               { key: 'points', label: t('places.kmlImportPoints'), on: kmlOpts.points },
               { key: 'paths', label: t('places.kmlImportPaths'), on: kmlOpts.paths },
             ]}
-            onToggle={key => setKmlOpts(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
+            onToggle={(key) => setKmlOpts((prev) => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))}
             noneSelected={kmlNoneSelected}
             noneSelectedLabel={t('places.kmlImportNoneSelected')}
           />
@@ -217,9 +220,16 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
           <div className="mt-3 flex items-start gap-3">
             <div className="min-w-0 flex-1">
               <div className="text-[0.78125rem] font-semibold text-m-ink">{t('places.enrichOnImport')}</div>
-              <div className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-faint">{t('places.enrichOnImportFileHint')}</div>
+              <div className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-faint">
+                {t('places.enrichOnImportFileHint')}
+              </div>
             </div>
-            <MToggle checked={enrich} onChange={setEnrich} ariaLabel={t('places.enrichOnImport')} className="mt-[2px]" />
+            <MToggle
+              checked={enrich}
+              onChange={setEnrich}
+              ariaLabel={t('places.enrichOnImport')}
+              className="mt-[2px]"
+            />
           </div>
         )}
 
@@ -255,15 +265,15 @@ export default function ImpFileStep({ planner, onBack, onDone }: ImpFileStepProp
         submitDisabled={!canImport}
       />
     </>
-  )
+  );
 }
 
 interface ImpTypeTogglesProps {
-  title: string
-  options: { key: string; label: string; on: boolean }[]
-  onToggle: (key: string) => void
-  noneSelected: boolean
-  noneSelectedLabel: string
+  title: string;
+  options: { key: string; label: string; on: boolean }[];
+  onToggle: (key: string) => void;
+  noneSelected: boolean;
+  noneSelectedLabel: string;
 }
 
 /** GPX/KML entity checkboxes ("what do you want to import?"). */
@@ -271,7 +281,7 @@ function ImpTypeToggles({ title, options, onToggle, noneSelected, noneSelectedLa
   return (
     <div className="mt-3">
       <Eyebrow className="mb-[5px] uppercase">{title}</Eyebrow>
-      {options.map(opt => (
+      {options.map((opt) => (
         <button
           key={opt.key}
           type="button"
@@ -293,5 +303,5 @@ function ImpTypeToggles({ title, options, onToggle, noneSelected, noneSelectedLa
         <div className="mt-1 font-geist text-[0.6875rem] text-[color:var(--m-st-pending)]">{noneSelectedLabel}</div>
       )}
     </div>
-  )
+  );
 }

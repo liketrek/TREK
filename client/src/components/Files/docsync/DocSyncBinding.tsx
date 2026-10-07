@@ -1,16 +1,14 @@
-import { useState } from 'react'
-import {
-  AlertTriangle, Check, ChevronDown, Clock, Copy, FolderOpen, Link2Off, RefreshCw,
-} from 'lucide-react'
-import ConfirmDialog from '../../shared/ConfirmDialog'
-import CustomSelect from '../../shared/CustomSelect'
-import ToggleSwitch from '../../Settings/ToggleSwitch'
-import Tooltip from '../../shared/Tooltip'
-import { useTranslation } from '../../../i18n/TranslationContext'
-import { DOCUMENT_PROVIDER_ICONS } from '../../shared/DocumentProviderIcons'
-import DocSyncFlow, { type SyncDirection } from './DocSyncFlow'
-import { Badge, CONFLICT_POLICIES, conflictPolicyKey, LastRun, StateBadge } from './DocSyncBits'
-import { bindingNotice, needsReauth, type DocSyncLink, type useDocSync } from './useDocSync'
+import { AlertTriangle, Check, ChevronDown, Clock, Copy, FolderOpen, Link2Off, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from '../../../i18n/TranslationContext';
+import ToggleSwitch from '../../Settings/ToggleSwitch';
+import ConfirmDialog from '../../shared/ConfirmDialog';
+import CustomSelect from '../../shared/CustomSelect';
+import { DOCUMENT_PROVIDER_ICONS } from '../../shared/DocumentProviderIcons';
+import Tooltip from '../../shared/Tooltip';
+import { Badge, CONFLICT_POLICIES, conflictPolicyKey, LastRun, StateBadge } from './DocSyncBits';
+import DocSyncFlow, { type SyncDirection } from './DocSyncFlow';
+import { bindingNotice, needsReauth, type DocSyncLink, type useDocSync } from './useDocSync';
 
 /**
  * One binding: where this trip's documents live, which way they move, and what
@@ -28,39 +26,39 @@ export default function DocSyncBinding({
   canManage,
   onReconnect,
 }: {
-  link: DocSyncLink
-  providerName: string
-  sync: ReturnType<typeof useDocSync>
-  canManage: boolean
+  link: DocSyncLink;
+  providerName: string;
+  sync: ReturnType<typeof useDocSync>;
+  canManage: boolean;
   /**
    * Opens the credential form for this binding's store. Only the panel can,
    * because the form needs the provider's field list, which the card does
    * not carry; left out, a refused credential is reported but not curable.
    */
-  onReconnect?: () => void
+  onReconnect?: () => void;
 }) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [confirmUnlink, setConfirmUnlink] = useState(false)
-  const Icon = DOCUMENT_PROVIDER_ICONS[link.providerId]
-  const busy = sync.busy === `sync-${link.id}`
-  const notice = bindingNotice(link, t)
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [confirmUnlink, setConfirmUnlink] = useState(false);
+  const Icon = DOCUMENT_PROVIDER_ICONS[link.providerId];
+  const busy = sync.busy === `sync-${link.id}`;
+  const notice = bindingNotice(link, t);
   // Not while the provider is switched off: the paused notice stands in front
   // of the refusal then, and a new credential would change nothing until an
   // admin turns the provider back on.
-  const reconnect = canManage && onReconnect && !link.providerOff && needsReauth(link) ? onReconnect : null
+  const reconnect = canManage && onReconnect && !link.providerOff && needsReauth(link) ? onReconnect : null;
 
   const copyWebhook = async () => {
-    if (!link.webhookUrl) return
+    if (!link.webhookUrl) return;
     try {
-      await navigator.clipboard.writeText(link.webhookUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1600)
+      await navigator.clipboard.writeText(link.webhookUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
     } catch {
       // Clipboard is blocked outside a secure context; the URL is selectable.
     }
-  }
+  };
 
   return (
     <article className="overflow-hidden rounded-2xl border border-edge bg-surface shadow-card">
@@ -71,9 +69,7 @@ export default function DocSyncBinding({
 
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="truncate text-subtitle font-semibold text-content">
-              {providerName}
-            </span>
+            <span className="truncate text-subtitle font-semibold text-content">{providerName}</span>
             {/* A healthy binding needs no word for it: the dot is the whole
                 message, and the states that do need words get them below. */}
             <StateBadge state={link.lastSyncState} compact={link.lastSyncState === 'ok'} />
@@ -84,9 +80,7 @@ export default function DocSyncBinding({
               a member checks before asking why a file has not turned up. */}
           <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <Badge tone="neutral" icon={<FolderOpen size={12} />} title={link.remoteRootPath || undefined}>
-              <span className="max-w-[12rem] truncate">
-                {link.remoteLabel || link.remoteRootPath || link.scopeKey}
-              </span>
+              <span className="max-w-[12rem] truncate">{link.remoteLabel || link.remoteRootPath || link.scopeKey}</span>
             </Badge>
             <Badge tone="neutral" icon={<Clock size={12} />}>
               <LastRun at={link.lastSyncAt} />
@@ -187,7 +181,7 @@ export default function DocSyncBinding({
                 <CustomSelect
                   size="sm"
                   value={link.deletePolicy}
-                  onChange={v => void sync.updateLink(link.id, { deletePolicy: String(v) })}
+                  onChange={(v) => void sync.updateLink(link.id, { deletePolicy: String(v) })}
                   options={[
                     { value: 'unlink', label: t('docsync.deleteUnlink') },
                     { value: 'trash', label: t('docsync.deleteTrash') },
@@ -199,8 +193,8 @@ export default function DocSyncBinding({
                 <CustomSelect
                   size="sm"
                   value={link.conflictPolicy}
-                  onChange={v => void sync.updateLink(link.id, { conflictPolicy: String(v) })}
-                  options={CONFLICT_POLICIES.map(p => ({ value: p, label: t(conflictPolicyKey(p)) }))}
+                  onChange={(v) => void sync.updateLink(link.id, { conflictPolicy: String(v) })}
+                  options={CONFLICT_POLICIES.map((p) => ({ value: p, label: t(conflictPolicyKey(p)) }))}
                 />
               </Row>
 
@@ -242,7 +236,7 @@ export default function DocSyncBinding({
         </>
       )}
     </article>
-  )
+  );
 }
 
 function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
@@ -254,5 +248,5 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
       </span>
       <span className="w-56 shrink-0">{children}</span>
     </div>
-  )
+  );
 }

@@ -1,15 +1,16 @@
-import { CalendarPlus, CalendarRange, Plus, Trash2 } from 'lucide-react'
-import MSheet from '../../../components/MSheet'
-import { ReorderStack } from '../plan/MPlanTimelineRows'
-import { INNER_CLS, TileHeader } from './MTripSheetUi'
-import { useTranslation } from '../../../../i18n'
-import { dayDate, dayLabel } from '../../../../utils/dayLabel'
-import type { MTripSheetsProps } from '../MTripShell'
+import { CalendarPlus, CalendarRange, Plus, Trash2 } from 'lucide-react';
+import { useTranslation } from '../../../../i18n';
+import { dayDate, dayLabel } from '../../../../utils/dayLabel';
+import MSheet from '../../../components/MSheet';
+import type { MTripSheetsProps } from '../MTripShell';
+import { ReorderStack } from '../plan/MPlanTimelineRows';
+import { INNER_CLS, TileHeader } from './MTripSheetUi';
 
 /** A 44px pill, the tap size of the sheet's other actions; the label never wraps, the row does. */
-const PILL = 'inline-flex h-11 flex-1 basis-auto items-center justify-center gap-[6px] whitespace-nowrap rounded-full px-4 text-[0.8125rem] font-semibold disabled:opacity-40'
-const PILL_MAIN = `${PILL} bg-m-act text-m-actfg`
-const PILL_QUIET = `${PILL} border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink`
+const PILL =
+  'inline-flex h-11 flex-1 basis-auto items-center justify-center gap-[6px] whitespace-nowrap rounded-full px-4 text-[0.8125rem] font-semibold disabled:opacity-40';
+const PILL_MAIN = `${PILL} bg-m-act text-m-actfg`;
+const PILL_QUIET = `${PILL} border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink`;
 
 /**
  * Day management sheet ('days'): move whole days up/down, add a day or delete
@@ -25,30 +26,36 @@ const PILL_QUIET = `${PILL} border border-[color:var(--m-rowbr)] bg-[color:var(-
  * by side in every language; its accessible name keeps the whole action.
  */
 export default function MDaysSheet({ planner, shell }: MTripSheetsProps) {
-  const { t, locale } = useTranslation()
-  const open = shell.sheet?.id === 'days'
-  const canEditDays = planner.can('day_edit', planner.trip)
-  const ordered = [...planner.days].sort((a, b) => (a.day_number ?? 0) - (b.day_number ?? 0))
-  const deleteBlocked = planner.deleteDayBlocked
-  const { dayAdd } = planner
-  const addOff = dayAdd.busy || !!dayAdd.blocked
-  const date = dayAdd.nextDate ? dayDate(dayAdd.nextDate, locale) ?? dayAdd.nextDate : null
+  const { t, locale } = useTranslation();
+  const open = shell.sheet?.id === 'days';
+  const canEditDays = planner.can('day_edit', planner.trip);
+  const ordered = [...planner.days].sort((a, b) => (a.day_number ?? 0) - (b.day_number ?? 0));
+  const deleteBlocked = planner.deleteDayBlocked;
+  const { dayAdd } = planner;
+  const addOff = dayAdd.busy || !!dayAdd.blocked;
+  const date = dayAdd.nextDate ? (dayDate(dayAdd.nextDate, locale) ?? dayAdd.nextDate) : null;
   // The lines above the buttons: why a day cannot be deleted, and what the
   // dated button does or why adding is off. Offline both say the same
   // sentence; it is shown once.
-  const addLine = dayAdd.blocked ?? (date ? dayAdd.datedBlocked ?? t('dayplan.addDatedDayHint', { date }) : null)
-  const captions = [deleteBlocked, addLine].filter((n, i, all): n is string => !!n && all.indexOf(n) === i)
+  const addLine = dayAdd.blocked ?? (date ? (dayAdd.datedBlocked ?? t('dayplan.addDatedDayHint', { date })) : null);
+  const captions = [deleteBlocked, addLine].filter((n, i, all): n is string => !!n && all.indexOf(n) === i);
 
   const move = (from: number, to: number) => {
-    if (to < 0 || to >= ordered.length || from === to) return
-    const ids = ordered.map(d => d.id)
-    const [moved] = ids.splice(from, 1)
-    ids.splice(to, 0, moved)
-    planner.handleReorderDays(ids)
-  }
+    if (to < 0 || to >= ordered.length || from === to) return;
+    const ids = ordered.map((d) => d.id);
+    const [moved] = ids.splice(from, 1);
+    ids.splice(to, 0, moved);
+    planner.handleReorderDays(ids);
+  };
 
   return (
-    <MSheet open={open} onClose={shell.closeSheet} variant="card" material="glass" ariaLabel={t('dayplan.reorderTitle')}>
+    <MSheet
+      open={open}
+      onClose={shell.closeSheet}
+      variant="card"
+      material="glass"
+      ariaLabel={t('dayplan.reorderTitle')}
+    >
       <div className="flex-none px-[18px] pt-4">
         <TileHeader
           icon={<CalendarRange size={19} strokeWidth={1.8} />}
@@ -67,7 +74,9 @@ export default function MDaysSheet({ planner, shell }: MTripSheetsProps) {
               <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] font-geist text-[0.65625rem] font-bold text-m-muted">
                 {i + 1}
               </span>
-              <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">{dayLabel(day, i, t, locale)}</span>
+              <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">
+                {dayLabel(day, i, t, locale)}
+              </span>
               {canEditDays && (
                 <ReorderStack
                   onUp={() => move(i, i - 1)}
@@ -97,8 +106,10 @@ export default function MDaysSheet({ planner, shell }: MTripSheetsProps) {
 
       {canEditDays && (
         <div className="flex-none border-t border-[color:var(--m-rowbr)] px-[18px] pb-[16px] pt-[10px]">
-          {captions.map(line => (
-            <p key={line} className="mb-[8px] text-[0.6875rem] leading-snug text-m-muted">{line}</p>
+          {captions.map((line) => (
+            <p key={line} className="mb-[8px] text-[0.6875rem] leading-snug text-m-muted">
+              {line}
+            </p>
           ))}
           <div className="flex flex-wrap gap-[8px]">
             {date ? (
@@ -128,5 +139,5 @@ export default function MDaysSheet({ planner, shell }: MTripSheetsProps) {
         </div>
       )}
     </MSheet>
-  )
+  );
 }

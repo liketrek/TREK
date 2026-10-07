@@ -1,14 +1,14 @@
 // FE-COMP-MEMBERS-001 to FE-COMP-MEMBERS-060
-import type { Mock } from 'vitest';
-import { act, render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
+import type { Mock } from 'vitest';
+import { buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
-import { useAuthStore } from '../../store/authStore';
-import { useTripStore } from '../../store/tripStore';
-import { usePermissionsStore } from '../../store/permissionsStore';
+import { act, fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip } from '../../../tests/helpers/factories';
+import { useAuthStore } from '../../store/authStore';
+import { usePermissionsStore } from '../../store/permissionsStore';
+import { useTripStore } from '../../store/tripStore';
 import TripMembersModal from './TripMembersModal';
 
 const defaultProps = {
@@ -32,11 +32,12 @@ interface MemberRow {
 }
 
 /** Replaces the roster handler; `owner` defaults to the seeded owner user. */
-function mockRoster(members: MemberRow[], owner: MemberRow = { id: ownerUser.id, username: ownerUser.username, avatar_url: null }): void {
+function mockRoster(
+  members: MemberRow[],
+  owner: MemberRow = { id: ownerUser.id, username: ownerUser.username, avatar_url: null }
+): void {
   server.use(
-    http.get('/api/trips/1/members', () =>
-      HttpResponse.json({ owner, members, current_user_id: ownerUser.id })
-    ),
+    http.get('/api/trips/1/members', () => HttpResponse.json({ owner, members, current_user_id: ownerUser.id }))
   );
 }
 
@@ -78,7 +79,11 @@ let realLocation: PropertyDescriptor | undefined;
 function stubReload(): Mock<() => void> {
   const reload = vi.fn();
   realLocation ??= Object.getOwnPropertyDescriptor(window, 'location');
-  Object.defineProperty(window, 'location', { value: { ...window.location, reload }, writable: true, configurable: true });
+  Object.defineProperty(window, 'location', {
+    value: { ...window.location, reload },
+    writable: true,
+    configurable: true,
+  });
   return reload;
 }
 
@@ -92,12 +97,8 @@ beforeEach(() => {
         current_user_id: ownerUser.id,
       })
     ),
-    http.get('/api/trips/1/share-link', () =>
-      HttpResponse.json({ token: null })
-    ),
-    http.get('/api/auth/users', () =>
-      HttpResponse.json({ users: [memberUser] })
-    ),
+    http.get('/api/trips/1/share-link', () => HttpResponse.json({ token: null })),
+    http.get('/api/auth/users', () => HttpResponse.json({ users: [memberUser] }))
   );
   seedStore(useAuthStore, { user: ownerUser, isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1, title: 'Test Trip' }) });
@@ -171,7 +172,9 @@ describe('TripMembersModal', () => {
   it('FE-COMP-MEMBERS-009: Cancel/close button is present', () => {
     render(<TripMembersModal {...defaultProps} />);
     // Modal has a close button (×)
-    const closeBtn = screen.queryByRole('button', { name: /close/i }) || document.querySelector('[aria-label="close"], button[title="Close"]');
+    const closeBtn =
+      screen.queryByRole('button', { name: /close/i }) ||
+      document.querySelector('[aria-label="close"], button[title="Close"]');
     // The modal renders at minimum a close button or can be closed by clicking overlay
     expect(document.body).toBeInTheDocument();
   });
@@ -287,7 +290,7 @@ describe('TripMembersModal', () => {
           share_budget: false,
           share_collab: false,
         })
-      ),
+      )
     );
 
     render(<TripMembersModal {...defaultProps} />);
@@ -317,7 +320,7 @@ describe('TripMembersModal', () => {
           share_budget: false,
           share_collab: false,
         })
-      ),
+      )
     );
 
     render(<TripMembersModal {...defaultProps} />);
@@ -348,7 +351,7 @@ describe('TripMembersModal', () => {
       http.delete('/api/trips/1/share-link', () => {
         deleteHandlerCalled = true;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
 
     render(<TripMembersModal {...defaultProps} />);
@@ -377,9 +380,9 @@ describe('TripMembersModal', () => {
         })
       ),
       http.post('/api/trips/1/share-link', async ({ request }) => {
-        postedPerms = await request.json() as Record<string, unknown>;
+        postedPerms = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ token: 'tok99', ...postedPerms });
-      }),
+      })
     );
 
     render(<TripMembersModal {...defaultProps} />);
@@ -402,9 +405,9 @@ describe('TripMembersModal', () => {
     let postBody: Record<string, unknown> | null = null;
     server.use(
       http.post('/api/trips/1/members', async ({ request }) => {
-        postBody = await request.json() as Record<string, unknown>;
+        postBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
 
     render(<TripMembersModal {...defaultProps} />);
@@ -458,7 +461,7 @@ describe('TripMembersModal', () => {
       http.delete('/api/trips/1/members/:userId', ({ params }) => {
         deleteCalledForUserId = params.userId as string;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
 
     render(<TripMembersModal {...defaultProps} />);
@@ -482,9 +485,7 @@ describe('TripMembersModal', () => {
           current_user_id: ownerUser.id,
         })
       ),
-      http.get('/api/auth/users', () =>
-        HttpResponse.json({ users: [memberUser] })
-      ),
+      http.get('/api/auth/users', () => HttpResponse.json({ users: [memberUser] }))
     );
 
     render(<TripMembersModal {...defaultProps} />);
@@ -497,7 +498,7 @@ describe('TripMembersModal', () => {
       http.post('/api/trips/1/guests', async ({ request }) => {
         createdName = ((await request.json()) as { name: string }).name;
         return HttpResponse.json({ member: { id: 99, username: createdName, is_guest: true } });
-      }),
+      })
     );
     render(<TripMembersModal {...defaultProps} />);
     // The guests section + add affordance is shown to the owner.
@@ -519,7 +520,7 @@ describe('TripMembersModal', () => {
           ],
           current_user_id: ownerUser.id,
         })
-      ),
+      )
     );
     render(<TripMembersModal {...defaultProps} />);
     await screen.findByText('Grandma');
@@ -588,7 +589,7 @@ describe('TripMembersModal', () => {
       http.post('/api/trips/1/share-link', async ({ request }) => {
         postedPerms = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ token: 'tok77', ...postedPerms });
-      }),
+      })
     );
     render(<TripMembersModal {...defaultProps} />);
 
@@ -597,9 +598,15 @@ describe('TripMembersModal', () => {
     expect(postedPerms).toBeNull();
 
     await user.click(screen.getByText('Costs'));
-    await waitFor(() => expect(postedPerms).toMatchObject({
-      share_map: true, share_bookings: true, share_packing: false, share_budget: true, share_collab: false,
-    }));
+    await waitFor(() =>
+      expect(postedPerms).toMatchObject({
+        share_map: true,
+        share_bookings: true,
+        share_packing: false,
+        share_budget: true,
+        share_collab: false,
+      })
+    );
   });
 
   it('FE-COMP-MEMBERS-033b: the two narrowing options post with the link (#1712)', async () => {
@@ -611,7 +618,7 @@ describe('TripMembersModal', () => {
       http.post('/api/trips/1/share-link', async ({ request }) => {
         postedPerms = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ token: 'tok77' });
-      }),
+      })
     );
     render(<TripMembersModal {...defaultProps} />);
 
@@ -624,7 +631,7 @@ describe('TripMembersModal', () => {
     asShareOwner();
     server.use(
       http.get('/api/trips/1/share-link', () => HttpResponse.json({ token: 'tok77' })),
-      http.post('/api/trips/1/share-link', () => HttpResponse.json({}, { status: 500 })),
+      http.post('/api/trips/1/share-link', () => HttpResponse.json({}, { status: 500 }))
     );
     render(<TripMembersModal {...defaultProps} />);
 
@@ -638,7 +645,7 @@ describe('TripMembersModal', () => {
     asShareOwner();
     server.use(
       http.get('/api/trips/1/share-link', () => HttpResponse.json({ token: 'tok77' })),
-      http.delete('/api/trips/1/share-link', () => HttpResponse.json({}, { status: 500 })),
+      http.delete('/api/trips/1/share-link', () => HttpResponse.json({}, { status: 500 }))
     );
     render(<TripMembersModal {...defaultProps} />);
 
@@ -664,7 +671,9 @@ describe('TripMembersModal', () => {
     // A second copy replaces the pending reset rather than stacking timers.
     fireEvent.click(screen.getByText('Copied').closest('button')!);
     await act(async () => {});
-    act(() => { vi.advanceTimersByTime(2000); });
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
 
     expect(screen.getByText('Copy')).toBeInTheDocument();
     expect(writeText).toHaveBeenCalledTimes(2);
@@ -683,7 +692,7 @@ describe('TripMembersModal', () => {
         await delay(20);
         return HttpResponse.json({ token: tokens.shift() });
       }),
-      http.delete('/api/trips/1/invite-link', () => HttpResponse.json({ success: true })),
+      http.delete('/api/trips/1/invite-link', () => HttpResponse.json({ success: true }))
     );
     const view = render(<TripMembersModal {...defaultProps} />);
 
@@ -728,7 +737,7 @@ describe('TripMembersModal', () => {
     asShareOwner();
     server.use(
       http.get('/api/trips/1/invite-link', () => HttpResponse.json({ token: 'inv9' })),
-      http.delete('/api/trips/1/invite-link', () => HttpResponse.json({}, { status: 500 })),
+      http.delete('/api/trips/1/invite-link', () => HttpResponse.json({}, { status: 500 }))
     );
     render(<TripMembersModal {...defaultProps} />);
 
@@ -742,7 +751,9 @@ describe('TripMembersModal', () => {
 
   it('FE-COMP-MEMBERS-040: a failing invite surfaces the server error', async () => {
     const user = userEvent.setup();
-    server.use(http.post('/api/trips/1/members', () => HttpResponse.json({ error: 'User is already a member' }, { status: 409 })));
+    server.use(
+      http.post('/api/trips/1/members', () => HttpResponse.json({ error: 'User is already a member' }, { status: 409 }))
+    );
     render(<TripMembersModal {...defaultProps} />);
 
     await screen.findByText('Invite User');
@@ -798,7 +809,7 @@ describe('TripMembersModal', () => {
         transferBody = (await request.json()) as Record<string, unknown>;
         await delay(20);
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     render(<TripMembersModal {...defaultProps} onClose={onClose} />);
 
@@ -816,14 +827,21 @@ describe('TripMembersModal', () => {
     const user = userEvent.setup();
     mockRoster([{ id: memberUser.id, username: 'alice', avatar_url: null }]);
     let transferCalled = false;
-    server.use(http.post('/api/trips/1/transfer', () => { transferCalled = true; return HttpResponse.json({}); }));
+    server.use(
+      http.post('/api/trips/1/transfer', () => {
+        transferCalled = true;
+        return HttpResponse.json({});
+      })
+    );
     render(<TripMembersModal {...defaultProps} />);
 
     await user.click(await screen.findByRole('button', { name: 'Make owner' }));
     expect(screen.getByText('Transfer ownership to alice? You will become a regular member.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(screen.queryByText('Transfer ownership to alice? You will become a regular member.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Transfer ownership to alice? You will become a regular member.')
+    ).not.toBeInTheDocument();
     expect(transferCalled).toBe(false);
   });
 
@@ -844,7 +862,12 @@ describe('TripMembersModal', () => {
     const user = userEvent.setup();
     mockRoster([{ id: memberUser.id, username: 'alice', avatar_url: null }]);
     let deletes = 0;
-    server.use(http.delete('/api/trips/1/members/:userId', () => { deletes++; return HttpResponse.json({}, { status: 500 }); }));
+    server.use(
+      http.delete('/api/trips/1/members/:userId', () => {
+        deletes++;
+        return HttpResponse.json({}, { status: 500 });
+      })
+    );
     render(<TripMembersModal {...defaultProps} />);
 
     await user.click(await screen.findByRole('button', { name: 'Remove access' }));
@@ -870,7 +893,7 @@ describe('TripMembersModal', () => {
       http.post('/api/trips/1/guests', async ({ request }) => {
         createdName = ((await request.json()) as { name: string }).name;
         return HttpResponse.json({ member: { id: 9, username: createdName, is_guest: true } });
-      }),
+      })
     );
     render(<TripMembersModal {...defaultProps} onMembersChanged={onMembersChanged} />);
 
@@ -888,7 +911,9 @@ describe('TripMembersModal', () => {
 
   it('FE-COMP-MEMBERS-047: a failing guest creation is reported', async () => {
     const user = userEvent.setup();
-    server.use(http.post('/api/trips/1/guests', () => HttpResponse.json({ error: 'Guest limit reached' }, { status: 400 })));
+    server.use(
+      http.post('/api/trips/1/guests', () => HttpResponse.json({ error: 'Guest limit reached' }, { status: 400 }))
+    );
     render(<TripMembersModal {...defaultProps} />);
 
     await user.type(await screen.findByPlaceholderText('Guest name'), 'Grandpa');
@@ -905,7 +930,7 @@ describe('TripMembersModal', () => {
       http.put('/api/trips/1/guests/:userId', async ({ params, request }) => {
         renamed = { id: params.userId as string, name: ((await request.json()) as { name: string }).name };
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     render(<TripMembersModal {...defaultProps} />);
 
@@ -923,7 +948,12 @@ describe('TripMembersModal', () => {
     const user = userEvent.setup();
     mockRoster([guestRow]);
     let renames = 0;
-    server.use(http.put('/api/trips/1/guests/:userId', () => { renames++; return HttpResponse.json({ success: true }); }));
+    server.use(
+      http.put('/api/trips/1/guests/:userId', () => {
+        renames++;
+        return HttpResponse.json({ success: true });
+      })
+    );
     render(<TripMembersModal {...defaultProps} />);
 
     await user.click(await screen.findByRole('button', { name: 'Rename' }));
@@ -940,7 +970,12 @@ describe('TripMembersModal', () => {
     const user = userEvent.setup();
     mockRoster([guestRow]);
     let renames = 0;
-    server.use(http.put('/api/trips/1/guests/:userId', () => { renames++; return HttpResponse.json({ success: true }); }));
+    server.use(
+      http.put('/api/trips/1/guests/:userId', () => {
+        renames++;
+        return HttpResponse.json({ success: true });
+      })
+    );
     render(<TripMembersModal {...defaultProps} />);
 
     await user.click(await screen.findByRole('button', { name: 'Rename' }));
@@ -959,7 +994,9 @@ describe('TripMembersModal', () => {
   it('FE-COMP-MEMBERS-050: a failing rename is reported', async () => {
     const user = userEvent.setup();
     mockRoster([guestRow]);
-    server.use(http.put('/api/trips/1/guests/:userId', () => HttpResponse.json({ error: 'Name taken' }, { status: 409 })));
+    server.use(
+      http.put('/api/trips/1/guests/:userId', () => HttpResponse.json({ error: 'Name taken' }, { status: 409 }))
+    );
     render(<TripMembersModal {...defaultProps} />);
 
     await user.click(await screen.findByRole('button', { name: 'Rename' }));
@@ -980,13 +1017,15 @@ describe('TripMembersModal', () => {
         deletedId = params.userId as string;
         await delay(20);
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     render(<TripMembersModal {...defaultProps} onMembersChanged={onMembersChanged} />);
 
     const trash = await screen.findByRole('button', { name: 'Remove access' });
     await user.click(trash);
-    expect(screen.getByText('Remove this guest? Their assignments and cost shares will be removed too.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Remove this guest? Their assignments and cost shares will be removed too.')
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(deletedId).toBeNull();
 
@@ -1077,7 +1116,9 @@ describe('TripMembersModal', () => {
     fireEvent.click(copyBtn);
     await act(async () => {});
     expect(screen.getByText('Copied')).toBeInTheDocument();
-    act(() => { vi.advanceTimersByTime(2000); });
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
 
     expect(screen.getByText('Copy')).toBeInTheDocument();
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/join/inv9'));
@@ -1106,7 +1147,12 @@ describe('TripMembersModal on a phone', () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     mockRoster([{ id: memberUser.id, username: 'alice', avatar_url: null }]);
     let deletes = 0;
-    server.use(http.delete('/api/trips/1/members/:userId', () => { deletes++; return HttpResponse.json({ success: true }); }));
+    server.use(
+      http.delete('/api/trips/1/members/:userId', () => {
+        deletes++;
+        return HttpResponse.json({ success: true });
+      })
+    );
     render(<TripMembersModal {...defaultProps} />);
 
     await user.click(await screen.findByTitle('Remove access'));
@@ -1129,7 +1175,10 @@ describe('TripMembersModal on a phone', () => {
         renamed = ((await request.json()) as { name: string }).name;
         return HttpResponse.json({ success: true });
       }),
-      http.delete('/api/trips/1/guests/:userId', () => { deleted = true; return HttpResponse.json({ success: true }); }),
+      http.delete('/api/trips/1/guests/:userId', () => {
+        deleted = true;
+        return HttpResponse.json({ success: true });
+      })
     );
     render(<TripMembersModal {...defaultProps} />);
 

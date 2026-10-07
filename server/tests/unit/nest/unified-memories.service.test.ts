@@ -3,12 +3,37 @@
  * Moved 1:1 with the fold; the free functions became methods.
  * Covers error paths: access denied, disabled provider, no providers enabled.
  */
+import { ADDON_IDS } from '../../../src/addons';
+import { db as testDb } from '../../../src/db/database';
+import { JourneyContributors } from '../../../src/db/entities/JourneyContributors.entity';
+import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
+import { Journeys } from '../../../src/db/entities/Journeys.entity';
+import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
+import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
+import { TripAlbumLinks } from '../../../src/db/entities/TripAlbumLinks.entity';
+import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import type { TripAlbumLinksRepository } from '../../../src/db/repositories/TripAlbumLinks.repository';
+import type { TripPhotosRepository } from '../../../src/db/repositories/TripPhotos.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import type { ImmichService } from '../../../src/nest/memories/immich.service';
+import { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
+import type { ServiceResult } from '../../../src/nest/memories/memories.helpers';
+import type { SynologyService } from '../../../src/nest/memories/synology.service';
+import { UnifiedMemoriesService } from '../../../src/nest/memories/unified-memories.service';
+import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
+import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { createUser, createTrip } from '../../helpers/factories';
+import { notificationsStub } from '../../helpers/notifications';
+import { createTestAddonsService } from '../../helpers/test-addons';
+import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
+import { createTestUnitOfWork, sharedTestOrm, createTestUsersRepo } from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ─────────────────────────────────────────────────────────────────
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
   const mock = {
@@ -17,49 +42,26 @@ vi.mock('../../../src/db/database', async () => {
     reinitialize: () => {},
     getPlaceWithTags: () => null,
     canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`
+      db
+        .prepare(
+          `
         SELECT t.id FROM trips t
         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
-      `).get(userId, tripId, userId),
+      `,
+        )
+        .get(userId, tripId, userId),
     isOwner: (tripId: any, userId: number) =>
       !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
-    return mock;
+  return mock;
 });
-
 
 vi.mock('../../../src/config', () => ({
   JWT_SECRET: 'test-secret',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
 }));
-
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { ADDON_IDS } from '../../../src/addons';
-import { createTestAddonsService } from '../../helpers/test-addons';
-import { UnifiedMemoriesService } from '../../../src/nest/memories/unified-memories.service';
-import { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import { TripAlbumLinks } from '../../../src/db/entities/TripAlbumLinks.entity';
-import { Trips } from '../../../src/db/entities/Trips.entity';
-import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
-import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
-import { Journeys } from '../../../src/db/entities/Journeys.entity';
-import { JourneyContributors } from '../../../src/db/entities/JourneyContributors.entity';
-import type { ServiceResult } from '../../../src/nest/memories/memories.helpers';
-import type { ImmichService } from '../../../src/nest/memories/immich.service';
-import type { SynologyService } from '../../../src/nest/memories/synology.service';
-import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import type { TripPhotosRepository } from '../../../src/db/repositories/TripPhotos.repository';
-import type { TripAlbumLinksRepository } from '../../../src/db/repositories/TripAlbumLinks.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import { notificationsStub } from '../../helpers/notifications';
-import { createTestUnitOfWork, sharedTestOrm, createTestUsersRepo } from '../../helpers/test-uow';
 
 // The album-sync paths are the providers' half and have their own suites; these
 // cases never reach them, so stubs keep the graph small.
@@ -111,7 +113,15 @@ beforeAll(async () => {
     new TrekPhotoRegistrationService(t.repo(TrekPhotos), t.repo(TripPhotos), t.repo(JourneyPhotos)),
     {} as ImmichService,
     {} as SynologyService,
-    new MemoriesAccessService(t.repo(TripPhotos), t.repo(TrekPhotos), t.repo(TripAlbumLinks), t.repo(Trips), t.repo(Journeys), t.repo(JourneyContributors), t.repo(JourneyPhotos)),
+    new MemoriesAccessService(
+      t.repo(TripPhotos),
+      t.repo(TrekPhotos),
+      t.repo(TripAlbumLinks),
+      t.repo(Trips),
+      t.repo(Journeys),
+      t.repo(JourneyContributors),
+      t.repo(JourneyPhotos),
+    ),
     notificationsStub(),
     await createTestAddonsService(testDb),
     await createTestUnitOfWork(testDb),
@@ -207,9 +217,11 @@ describe('addTripPhotos', () => {
     const trip = createTrip(testDb, user.id);
 
     // Insert a disabled provider
-    testDb.prepare(
-      'INSERT OR IGNORE INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run('disabled-prov', 'Disabled', 'Disabled provider', 'Image', 0, 99);
+    testDb
+      .prepare(
+        'INSERT OR IGNORE INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+      )
+      .run('disabled-prov', 'Disabled', 'Disabled provider', 'Image', 0, 99);
 
     const result = await addTripPhotos(
       String(trip.id),
@@ -275,9 +287,11 @@ describe('createTripAlbumLink', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    testDb.prepare(
-      'INSERT OR IGNORE INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run('disabled-prov2', 'Disabled2', 'desc', 'Image', 0, 100);
+    testDb
+      .prepare(
+        'INSERT OR IGNORE INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+      )
+      .run('disabled-prov2', 'Disabled2', 'desc', 'Image', 0, 100);
 
     const result = await createTripAlbumLink(String(trip.id), user.id, 'disabled-prov2', 'album-1', 'My Album');
     expect(result.success).toBe(false);
@@ -294,7 +308,9 @@ describe('createTripAlbumLink', () => {
     const second = await createTripAlbumLink(String(trip.id), user.id, 'immich', 'album-dup-1', 'Second Name');
     expect(expectFailure(second).status).toBe(409);
 
-    const rows = testDb.prepare('SELECT COUNT(*) as c FROM trip_album_links WHERE trip_id = ? AND user_id = ?').get(trip.id, user.id) as { c: number };
+    const rows = testDb
+      .prepare('SELECT COUNT(*) as c FROM trip_album_links WHERE trip_id = ? AND user_id = ?')
+      .get(trip.id, user.id) as { c: number };
     expect(rows.c).toBe(1);
   });
 });
@@ -314,10 +330,21 @@ describe('removeAlbumLink', () => {
 
     const linked = await createTripAlbumLink(String(trip.id), user.id, 'immich', 'album-rm-1', 'To Remove');
     expect(linked.success).toBe(true);
-    const linkRow = testDb.prepare('SELECT id FROM trip_album_links WHERE trip_id = ? AND user_id = ? AND album_id = ?').get(trip.id, user.id, 'album-rm-1') as { id: number };
+    const linkRow = testDb
+      .prepare('SELECT id FROM trip_album_links WHERE trip_id = ? AND user_id = ? AND album_id = ?')
+      .get(trip.id, user.id, 'album-rm-1') as { id: number };
 
-    await addTripPhotos(String(trip.id), user.id, true, [{ provider: 'immich', asset_ids: ['asset-rm-1'] }], 'sid-6', String(linkRow.id));
-    const photoRow = testDb.prepare('SELECT photo_id FROM trip_photos WHERE trip_id = ? AND album_link_id = ?').get(trip.id, linkRow.id) as { photo_id: number };
+    await addTripPhotos(
+      String(trip.id),
+      user.id,
+      true,
+      [{ provider: 'immich', asset_ids: ['asset-rm-1'] }],
+      'sid-6',
+      String(linkRow.id),
+    );
+    const photoRow = testDb
+      .prepare('SELECT photo_id FROM trip_photos WHERE trip_id = ? AND album_link_id = ?')
+      .get(trip.id, linkRow.id) as { photo_id: number };
     expect(photoRow).toBeDefined();
 
     const result = await removeAlbumLink(String(trip.id), String(linkRow.id), user.id);
@@ -325,7 +352,9 @@ describe('removeAlbumLink', () => {
 
     const remainingLink = testDb.prepare('SELECT * FROM trip_album_links WHERE id = ?').get(linkRow.id);
     expect(remainingLink).toBeUndefined();
-    const remainingPhoto = testDb.prepare('SELECT * FROM trip_photos WHERE trip_id = ? AND album_link_id = ?').get(trip.id, linkRow.id);
+    const remainingPhoto = testDb
+      .prepare('SELECT * FROM trip_photos WHERE trip_id = ? AND album_link_id = ?')
+      .get(trip.id, linkRow.id);
     expect(remainingPhoto).toBeUndefined();
     // The orphaned trek_photos row is reclaimed too (TrekPhotoRegistrationService.deleteIfOrphan, PH10/PH11).
     const orphan = testDb.prepare('SELECT * FROM trek_photos WHERE id = ?').get(photoRow.photo_id);
@@ -342,18 +371,33 @@ describe('listTripPhotos / listTripAlbumLinks — parity', () => {
 
     // A photo under a disabled provider must not appear — the legacy `tkp.provider IN (...)`
     // only ever names the enabled set.
-    testDb.prepare(
-      'INSERT OR IGNORE INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, 0, 50)'
-    ).run('disabled-x', 'Disabled X', 'desc', 'Image');
+    testDb
+      .prepare(
+        'INSERT OR IGNORE INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, 0, 50)',
+      )
+      .run('disabled-x', 'Disabled X', 'desc', 'Image');
 
-    const enabledPhoto = testDb.prepare('INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)').run('immich', 'asset-enabled', user.id).lastInsertRowid as number;
-    const disabledPhoto = testDb.prepare('INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)').run('disabled-x', 'asset-disabled', user.id).lastInsertRowid as number;
+    const enabledPhoto = testDb
+      .prepare('INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)')
+      .run('immich', 'asset-enabled', user.id).lastInsertRowid as number;
+    const disabledPhoto = testDb
+      .prepare('INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)')
+      .run('disabled-x', 'asset-disabled', user.id).lastInsertRowid as number;
 
-    testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared) VALUES (?, ?, ?, 1)').run(trip.id, user.id, enabledPhoto);
-    testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared) VALUES (?, ?, ?, 1)').run(trip.id, user.id, disabledPhoto);
+    testDb
+      .prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared) VALUES (?, ?, ?, 1)')
+      .run(trip.id, user.id, enabledPhoto);
+    testDb
+      .prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared) VALUES (?, ?, ?, 1)')
+      .run(trip.id, user.id, disabledPhoto);
 
-    const enabledProviders = testDb.prepare('SELECT id FROM photo_providers WHERE enabled = 1').all().map((r: { id: string }) => r.id);
-    const oracle = testDb.prepare(`
+    const enabledProviders = testDb
+      .prepare('SELECT id FROM photo_providers WHERE enabled = 1')
+      .all()
+      .map((r: { id: string }) => r.id);
+    const oracle = testDb
+      .prepare(
+        `
       SELECT tp.photo_id, tkp.asset_id, tkp.provider, tp.user_id, tp.shared, tp.added_at,
              u.username, u.avatar
       FROM trip_photos tp
@@ -363,7 +407,9 @@ describe('listTripPhotos / listTripAlbumLinks — parity', () => {
         AND (tp.user_id = ? OR tp.shared = 1)
         AND tkp.provider IN (${enabledProviders.map(() => '?').join(',')})
       ORDER BY tp.added_at ASC
-    `).all(trip.id, user.id, ...enabledProviders);
+    `,
+      )
+      .all(trip.id, user.id, ...enabledProviders);
 
     const result = await listTripPhotos(String(trip.id), user.id);
     const data = expectSuccess(result);
@@ -375,10 +421,22 @@ describe('listTripPhotos / listTripAlbumLinks — parity', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    await createTripAlbumLink(String(trip.id), user.id, 'synologyphotos', 'album-p1', 'Passphrase Album', 'secret-pass');
+    await createTripAlbumLink(
+      String(trip.id),
+      user.id,
+      'synologyphotos',
+      'album-p1',
+      'Passphrase Album',
+      'secret-pass',
+    );
 
-    const enabledProviders = testDb.prepare('SELECT id FROM photo_providers WHERE enabled = 1').all().map((r: { id: string }) => r.id);
-    const oracle = testDb.prepare(`
+    const enabledProviders = testDb
+      .prepare('SELECT id FROM photo_providers WHERE enabled = 1')
+      .all()
+      .map((r: { id: string }) => r.id);
+    const oracle = testDb
+      .prepare(
+        `
       SELECT tal.id,
              tal.trip_id,
              tal.user_id,
@@ -394,7 +452,9 @@ describe('listTripPhotos / listTripAlbumLinks — parity', () => {
       WHERE tal.trip_id = ?
         AND tal.provider IN (${enabledProviders.map(() => '?').join(',')})
       ORDER BY tal.created_at ASC
-    `).all(trip.id, ...enabledProviders);
+    `,
+      )
+      .all(trip.id, ...enabledProviders);
 
     const result = await listTripAlbumLinks(String(trip.id), user.id);
     const data = expectSuccess(result);
@@ -425,25 +485,47 @@ describe('R8 — injected RealtimeService, not the legacy module broadcast', () 
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const result = await addTripPhotos(String(trip.id), user.id, false, [{ provider: 'immich', asset_ids: ['asset-r8-1'] }], 'sid-1');
+    const result = await addTripPhotos(
+      String(trip.id),
+      user.id,
+      false,
+      [{ provider: 'immich', asset_ids: ['asset-r8-1'] }],
+      'sid-1',
+    );
 
     expect(expectSuccess(result).added).toBe(1);
     expect(realtimeMock.broadcast).toHaveBeenCalledTimes(1);
-    expect(realtimeMock.broadcast).toHaveBeenCalledWith(String(trip.id), 'memories:updated', { userId: user.id }, 'sid-1');
+    expect(realtimeMock.broadcast).toHaveBeenCalledWith(
+      String(trip.id),
+      'memories:updated',
+      { userId: user.id },
+      'sid-1',
+    );
   });
 
   it('MEM-UNIFIED-016: setTripPhotoSharing calls this.realtime.broadcast', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const photoId = testDb.prepare('INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)').run('immich', 'asset-r8-2', user.id).lastInsertRowid as number;
-    testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared) VALUES (?, ?, ?, 0)').run(trip.id, user.id, photoId);
+    const photoId = testDb
+      .prepare('INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)')
+      .run('immich', 'asset-r8-2', user.id).lastInsertRowid as number;
+    testDb
+      .prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared) VALUES (?, ?, ?, 0)')
+      .run(trip.id, user.id, photoId);
 
     const result = await setTripPhotoSharing(String(trip.id), user.id, photoId, true, 'sid-2');
 
     expect(result.success).toBe(true);
     expect(realtimeMock.broadcast).toHaveBeenCalledTimes(1);
-    expect(realtimeMock.broadcast).toHaveBeenCalledWith(String(trip.id), 'memories:updated', { userId: user.id }, 'sid-2');
-    const row = testDb.prepare('SELECT shared FROM trip_photos WHERE trip_id = ? AND user_id = ? AND photo_id = ?').get(trip.id, user.id, photoId) as { shared: number };
+    expect(realtimeMock.broadcast).toHaveBeenCalledWith(
+      String(trip.id),
+      'memories:updated',
+      { userId: user.id },
+      'sid-2',
+    );
+    const row = testDb
+      .prepare('SELECT shared FROM trip_photos WHERE trip_id = ? AND user_id = ? AND photo_id = ?')
+      .get(trip.id, user.id, photoId) as { shared: number };
     expect(row.shared).toBe(1);
   });
 
@@ -451,29 +533,54 @@ describe('R8 — injected RealtimeService, not the legacy module broadcast', () 
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const first = await addTripPhotos(String(trip.id), user.id, false, [{ provider: 'immich', asset_ids: ['asset-dup-1'] }], 'sid-4');
+    const first = await addTripPhotos(
+      String(trip.id),
+      user.id,
+      false,
+      [{ provider: 'immich', asset_ids: ['asset-dup-1'] }],
+      'sid-4',
+    );
     expect(expectSuccess(first).added).toBe(1);
     realtimeMock.broadcast.mockClear();
 
-    const second = await addTripPhotos(String(trip.id), user.id, false, [{ provider: 'immich', asset_ids: ['asset-dup-1'] }], 'sid-5');
+    const second = await addTripPhotos(
+      String(trip.id),
+      user.id,
+      false,
+      [{ provider: 'immich', asset_ids: ['asset-dup-1'] }],
+      'sid-5',
+    );
     expect(expectSuccess(second).added).toBe(0);
 
-    const rows = testDb.prepare('SELECT COUNT(*) as c FROM trip_photos WHERE trip_id = ? AND user_id = ?').get(trip.id, user.id) as { c: number };
+    const rows = testDb
+      .prepare('SELECT COUNT(*) as c FROM trip_photos WHERE trip_id = ? AND user_id = ?')
+      .get(trip.id, user.id) as { c: number };
     expect(rows.c).toBe(1);
   });
 
   it('MEM-UNIFIED-017: removeTripPhoto calls this.realtime.broadcast and deletes the row', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const photoId = testDb.prepare('INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)').run('immich', 'asset-r8-3', user.id).lastInsertRowid as number;
-    testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared) VALUES (?, ?, ?, 0)').run(trip.id, user.id, photoId);
+    const photoId = testDb
+      .prepare('INSERT INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)')
+      .run('immich', 'asset-r8-3', user.id).lastInsertRowid as number;
+    testDb
+      .prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared) VALUES (?, ?, ?, 0)')
+      .run(trip.id, user.id, photoId);
 
     const result = await removeTripPhoto(String(trip.id), user.id, photoId, 'sid-3');
 
     expect(result.success).toBe(true);
     expect(realtimeMock.broadcast).toHaveBeenCalledTimes(1);
-    expect(realtimeMock.broadcast).toHaveBeenCalledWith(String(trip.id), 'memories:updated', { userId: user.id }, 'sid-3');
-    const row = testDb.prepare('SELECT * FROM trip_photos WHERE trip_id = ? AND user_id = ? AND photo_id = ?').get(trip.id, user.id, photoId);
+    expect(realtimeMock.broadcast).toHaveBeenCalledWith(
+      String(trip.id),
+      'memories:updated',
+      { userId: user.id },
+      'sid-3',
+    );
+    const row = testDb
+      .prepare('SELECT * FROM trip_photos WHERE trip_id = ? AND user_id = ? AND photo_id = ?')
+      .get(trip.id, user.id, photoId);
     expect(row).toBeUndefined();
   });
 });

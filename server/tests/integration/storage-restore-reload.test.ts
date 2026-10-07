@@ -21,17 +21,17 @@
  * accepted precedent from storage-registry.service.test.ts, harmless (mkdir
  * -p on an existing dir), and orthogonal to what this test actually exercises.
  */
-import { describe, it, expect, afterEach } from 'vitest';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-
-import { createSnapshotTestDb } from '../helpers/db-mock';
 import type { RuntimeEnvService } from '../../src/nest/app-config/runtime-env.service';
 import { StorageEventsService } from '../../src/nest/storage/storage-events.service';
 import { BACKENDS_KEY, CATEGORIES_KEY, StorageRegistryService } from '../../src/nest/storage/storage-registry.service';
 import { StorageService } from '../../src/nest/storage/storage.service';
+import { createSnapshotTestDb } from '../helpers/db-mock';
 import { createTestUnitOfWork, createTestAppSettingsRepo, sharedTestOrm } from '../helpers/test-uow';
+
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { describe, it, expect, afterEach } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 
@@ -47,9 +47,7 @@ function envStub(): RuntimeEnvService {
 }
 
 function setSetting(key: string, value: unknown): void {
-  testDb
-    .prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)')
-    .run(key, JSON.stringify(value));
+  testDb.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(key, JSON.stringify(value));
 }
 
 afterEach(() => {

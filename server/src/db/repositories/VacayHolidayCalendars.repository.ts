@@ -55,7 +55,10 @@ export class VacayHolidayCalendarsRepository extends TrekRepository<VacayHoliday
 
   /** VC22 — `SELECT * FROM vacay_holiday_calendars WHERE plan_id = ? AND type = 'public_holiday' ORDER BY sort_order, id` (`applyHolidayCalendars`). */
   async listPublicForPlan(planId: number): Promise<VacayHolidayCalendarRow[]> {
-    const rows = await this.find({ plan: planId, type: 'public_holiday' }, { orderBy: { sort_order: 'asc', id: 'asc' } });
+    const rows = await this.find(
+      { plan: planId, type: 'public_holiday' },
+      { orderBy: { sort_order: 'asc', id: 'asc' } },
+    );
     return rows.map((row) => toRow(row) as VacayHolidayCalendarRow);
   }
 
@@ -87,7 +90,14 @@ export class VacayHolidayCalendarsRepository extends TrekRepository<VacayHoliday
    * not `insert` — `EntityRepository#insert` already exists with an
    * incompatible signature.
    */
-  async insertCalendar(planId: number, type: 'public_holiday' | 'school_holiday', region: string, label: string | null, color: string, sortOrder: number): Promise<number> {
+  async insertCalendar(
+    planId: number,
+    type: 'public_holiday' | 'school_holiday',
+    region: string,
+    label: string | null,
+    color: string,
+    sortOrder: number,
+  ): Promise<number> {
     return this.insert({ plan: planId, type, region, label, color, sort_order: sortOrder });
   }
 

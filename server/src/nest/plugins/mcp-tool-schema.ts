@@ -12,11 +12,10 @@
  * static-token deprecation notice is delivered in a tool RESULT precisely
  * because that is what an assistant reliably surfaces.
  */
+import type { McpZodSchema } from '../../nest-mcp';
 import { sanitiseAssistantText } from './text-sanitize';
 
 import { z } from 'zod';
-
-import type { McpZodSchema } from '../../nest-mcp';
 
 /** Tools one plugin may advertise. A long list crowds out the built-ins. */
 export const MCP_TOOLS_MAX = 8;
@@ -333,11 +332,29 @@ export function normaliseToolSchema(raw: unknown): Record<string, unknown> | und
  * accordingly, and the handler then receives whatever a caller actually sent.
  */
 const SUPPORTED_KEYWORDS = new Set([
-  'type', 'properties', 'required', 'additionalProperties', 'items',
-  'enum', 'const', 'description', 'title', 'default', 'examples',
-  'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf',
-  'minLength', 'maxLength', 'pattern', 'format',
-  'minItems', 'maxItems', 'uniqueItems',
+  'type',
+  'properties',
+  'required',
+  'additionalProperties',
+  'items',
+  'enum',
+  'const',
+  'description',
+  'title',
+  'default',
+  'examples',
+  'minimum',
+  'maximum',
+  'exclusiveMinimum',
+  'exclusiveMaximum',
+  'multipleOf',
+  'minLength',
+  'maxLength',
+  'pattern',
+  'format',
+  'minItems',
+  'maxItems',
+  'uniqueItems',
   'nullable',
 ]);
 
@@ -345,12 +362,19 @@ const SUPPORTED_TYPES = new Set(['object', 'string', 'number', 'integer', 'boole
 
 /** Keywords the branches below read with a `typeof` guard, and the type they need. */
 const NUMERIC_KEYWORDS: ReadonlyArray<readonly [string, 'number' | 'string' | 'boolean']> = [
-  ['minimum', 'number'], ['maximum', 'number'],
-  ['exclusiveMinimum', 'number'], ['exclusiveMaximum', 'number'],
-  ['multipleOf', 'number'], ['minLength', 'number'], ['maxLength', 'number'],
-  ['minItems', 'number'], ['maxItems', 'number'],
-  ['pattern', 'string'], ['format', 'string'],
-  ['uniqueItems', 'boolean'], ['nullable', 'boolean'],
+  ['minimum', 'number'],
+  ['maximum', 'number'],
+  ['exclusiveMinimum', 'number'],
+  ['exclusiveMaximum', 'number'],
+  ['multipleOf', 'number'],
+  ['minLength', 'number'],
+  ['maxLength', 'number'],
+  ['minItems', 'number'],
+  ['maxItems', 'number'],
+  ['pattern', 'string'],
+  ['format', 'string'],
+  ['uniqueItems', 'boolean'],
+  ['nullable', 'boolean'],
 ];
 
 /**
@@ -493,9 +517,12 @@ function nodeToZod(node: unknown, path: string): z.ZodType {
       let ac = z.array(items);
       if (typeof node.minItems === 'number') ac = ac.min(node.minItems);
       if (typeof node.maxItems === 'number') ac = ac.max(node.maxItems);
-      out = node.uniqueItems === true
-        ? ac.refine((v) => new Set(v.map((x) => JSON.stringify(x))).size === v.length, { message: 'items must be unique' })
-        : ac;
+      out =
+        node.uniqueItems === true
+          ? ac.refine((v) => new Set(v.map((x) => JSON.stringify(x))).size === v.length, {
+              message: 'items must be unique',
+            })
+          : ac;
       break;
     }
     default: {

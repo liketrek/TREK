@@ -1,11 +1,12 @@
-import { Injectable, Optional, type OnApplicationShutdown } from '@nestjs/common';
-import { SchedulerRegistry } from '@nestjs/schedule';
-import { CronJob } from 'cron';
-import { MikroORM } from '@mikro-orm/core';
 import { readEnv } from '../../app-config';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
-import { withRequestContext } from '../database/request-context';
 import { logError } from '../audit/audit-log.logger';
+import { withRequestContext } from '../database/request-context';
+import { MikroORM } from '@mikro-orm/core';
+import { Injectable, Optional, type OnApplicationShutdown } from '@nestjs/common';
+import { SchedulerRegistry } from '@nestjs/schedule';
+
+import { CronJob } from 'cron';
 
 /**
  * The one way TREK code schedules a cron. Job providers register here from

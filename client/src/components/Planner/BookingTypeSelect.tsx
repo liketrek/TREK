@@ -1,11 +1,11 @@
-import type { LucideIcon } from 'lucide-react'
-import CustomSelect from '../shared/CustomSelect'
-import { useTranslation } from '../../i18n'
+import type { LucideIcon } from 'lucide-react';
+import { useTranslation } from '../../i18n';
+import CustomSelect from '../shared/CustomSelect';
 
 export interface BookingTypeOption {
-  value: string
-  labelKey: string
-  Icon: LucideIcon
+  value: string;
+  labelKey: string;
+  Icon: LucideIcon;
 }
 
 /**
@@ -13,21 +13,25 @@ export interface BookingTypeOption {
  * icon, so it takes a single field at the head of the dialog instead of a row
  * of chips.
  */
-export function BookingTypeSelect({ options, value, onChange }: {
-  options: readonly BookingTypeOption[]
-  value: string
-  onChange: (value: string) => void
+export function BookingTypeSelect({
+  options,
+  value,
+  onChange,
+}: {
+  options: readonly BookingTypeOption[];
+  value: string;
+  onChange: (value: string) => void;
 }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   return (
     <CustomSelect
       value={value}
-      onChange={v => onChange(String(v))}
+      onChange={(v) => onChange(String(v))}
       options={options.map(({ value: optionValue, labelKey, Icon }) => ({
         value: optionValue,
         label: t(labelKey),
         icon: <Icon size={14} className="text-content-muted" />,
       }))}
     />
-  )
+  );
 }

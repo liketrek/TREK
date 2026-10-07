@@ -1,12 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
-import { AuditLog } from '../../../../src/db/entities/AuditLog.entity';
 import { AppSettings } from '../../../../src/db/entities/AppSettings.entity';
+import { AuditLog } from '../../../../src/db/entities/AuditLog.entity';
 import type { AuditLogRepository } from '../../../../src/db/repositories/AuditLog.repository';
 import { DB_TIMESTAMP_RE } from '../../../../src/db/types';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -16,13 +17,25 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   auditLog = t.repo(AuditLog);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('AuditLogRepository', () => {
   it('AUDITREPO-001: insert writes the legacy column set, matching the SELECT * row exactly', async () => {
     const { user } = createUser(testDb);
-    await auditLog.insertEntry({ user_id: user.id, action: 'trip.create', resource: 'trip', details: '{"title":"Rome"}', ip: '1.2.3.4' });
+    await auditLog.insertEntry({
+      user_id: user.id,
+      action: 'trip.create',
+      resource: 'trip',
+      details: '{"title":"Rome"}',
+      ip: '1.2.3.4',
+    });
     const row = testDb.prepare('SELECT * FROM audit_log').get() as { id: number; created_at: string };
     expect(row).toStrictEqual({
       id: expect.any(Number),
@@ -38,7 +51,10 @@ describe('AuditLogRepository', () => {
   it('AUDITREPO-002: created_at is left to the column default, as text, in the YYYY-MM-DD HH:MM:SS shape', async () => {
     const { user } = createUser(testDb);
     await auditLog.insertEntry({ user_id: user.id, action: 'user.login', resource: null, details: null, ip: null });
-    const stored = testDb.prepare('SELECT created_at, typeof(created_at) AS kind FROM audit_log').get() as { created_at: string; kind: string };
+    const stored = testDb.prepare('SELECT created_at, typeof(created_at) AS kind FROM audit_log').get() as {
+      created_at: string;
+      kind: string;
+    };
     expect(stored.kind).toBe('text');
     expect(stored.created_at).toMatch(DB_TIMESTAMP_RE);
   });
@@ -69,7 +85,11 @@ describe('AuditLogRepository', () => {
     t.em.create(AppSettings, { key: 'pending-during-audit-insert', value: 'should-not-be-written' });
     await auditLog.insertEntry({ user_id: user.id, action: 'trip.create', resource: 'trip', details: null, ip: null });
 
-    const pendingCount = (testDb.prepare('SELECT COUNT(*) AS n FROM app_settings WHERE key = ?').get('pending-during-audit-insert') as { n: number }).n;
+    const pendingCount = (
+      testDb.prepare('SELECT COUNT(*) AS n FROM app_settings WHERE key = ?').get('pending-during-audit-insert') as {
+        n: number;
+      }
+    ).n;
     expect(pendingCount).toBe(0);
 
     const auditRow = testDb.prepare('SELECT action FROM audit_log').get() as { action: string };
@@ -91,8 +111,20 @@ describe('AuditLogRepository', () => {
     const { user: alice } = createUser(testDb, { username: 'alice', email: 'alice@test.example.com' });
     const { user: bob } = createUser(testDb, { username: 'bob', email: 'bob@test.example.com' });
 
-    await auditLog.insertEntry({ user_id: alice.id, action: 'trip.create', resource: 'trip', details: '{"title":"Rome"}', ip: '1.1.1.1' });
-    await auditLog.insertEntry({ user_id: bob.id, action: 'trip.update', resource: 'trip', details: null, ip: '2.2.2.2' });
+    await auditLog.insertEntry({
+      user_id: alice.id,
+      action: 'trip.create',
+      resource: 'trip',
+      details: '{"title":"Rome"}',
+      ip: '1.1.1.1',
+    });
+    await auditLog.insertEntry({
+      user_id: bob.id,
+      action: 'trip.update',
+      resource: 'trip',
+      details: null,
+      ip: '2.2.2.2',
+    });
     await auditLog.insertEntry({ user_id: null, action: 'user.login', resource: null, details: null, ip: null });
 
     // bob is deleted after the fact; `audit_log.user_id REFERENCES users(id)

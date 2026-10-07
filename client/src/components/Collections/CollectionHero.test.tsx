@@ -1,8 +1,8 @@
 // FE-COMP-COLHERO-001 to FE-COMP-COLHERO-015
-import React from 'react';
-import { render, screen, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import type { CollectionMember } from '@trek/shared';
+import React from 'react';
+import { render, screen, within } from '../../../tests/helpers/render';
 import { useTranslation } from '../../i18n/TranslationContext';
 import CollectionHero from './CollectionHero';
 
@@ -48,16 +48,30 @@ describe('CollectionHero', () => {
 
   it('FE-COMP-COLHERO-002: a cover image replaces the gradient and adds the tint layer', () => {
     renderHero({ coverImage: '/uploads/covers/rome.jpg' });
-    expect(document.querySelector<HTMLImageElement>('.col-hero-img')?.getAttribute('src')).toBe('/uploads/covers/rome.jpg');
+    expect(document.querySelector<HTMLImageElement>('.col-hero-img')?.getAttribute('src')).toBe(
+      '/uploads/covers/rome.jpg'
+    );
     expect(document.querySelector('.col-hero-tint')).not.toBeNull();
     expect(document.querySelector('.col-hero-bg')).toBeNull();
   });
 
   it('FE-COMP-COLHERO-003: the description renders only when present', () => {
-    const { unmount } = render(<Harness {...{
-      eyebrow: 'x', title: 'y', color: '#000', members: [], canShare: false, isOwner: false,
-      canEdit: false, onEdit: vi.fn(), shareMemberCount: 0, onShare: vi.fn(),
-    }} />);
+    const { unmount } = render(
+      <Harness
+        {...{
+          eyebrow: 'x',
+          title: 'y',
+          color: '#000',
+          members: [],
+          canShare: false,
+          isOwner: false,
+          canEdit: false,
+          onEdit: vi.fn(),
+          shareMemberCount: 0,
+          onShare: vi.fn(),
+        }}
+      />
+    );
     expect(document.querySelector('.col-hero-desc')).toBeNull();
     unmount();
 
@@ -101,8 +115,8 @@ describe('CollectionHero', () => {
   });
 
   it('FE-COMP-COLHERO-007: an uploaded avatar renders as an image, and beyond five members a +N chip appears', () => {
-    const members = [1, 2, 3, 4, 5, 6, 7].map(i =>
-      member({ user_id: i, username: `user${i}`, avatar: i === 1 ? 'me.png' : null }),
+    const members = [1, 2, 3, 4, 5, 6, 7].map((i) =>
+      member({ user_id: i, username: `user${i}`, avatar: i === 1 ? 'me.png' : null })
     );
     renderHero({ members });
     const stack = document.querySelector('.members') as HTMLElement;
@@ -167,7 +181,7 @@ describe('CollectionHero', () => {
     const onExport = vi.fn();
     renderHero({ canEdit: true, canShare: true, isOwner: true, onExport });
 
-    const actions = ['Edit', 'Export', 'Share'].map(name => screen.getByRole('button', { name }));
+    const actions = ['Edit', 'Export', 'Share'].map((name) => screen.getByRole('button', { name }));
     // Reading order in the DOM is the reading order on screen.
     const all = [...document.querySelectorAll('.col-hero-actions button')];
     expect(all).toEqual(actions);

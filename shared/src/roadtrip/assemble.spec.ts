@@ -237,9 +237,11 @@ describe('assembleRoadtrip connected days', () => {
     // Shift that night off the stop and the same leg stops counting as one.
     const midLeg = {
       ...routes,
-      days: routes.days.map((d) => (d.dayNumber === 2
-        ? { ...d, stops: [{ ...d.stops[0]!, automaticNight: { ...opening, position: 0.4 } }, ...d.stops.slice(1)] }
-        : d)),
+      days: routes.days.map((d) =>
+        d.dayNumber === 2
+          ? { ...d, stops: [{ ...d.stops[0]!, automaticNight: { ...opening, position: 0.4 } }, ...d.stops.slice(1)] }
+          : d,
+      ),
     };
     const shifted = midLeg.days.find((d) => d.dayNumber === 2)!.stops[0]!.automaticNight!;
     expect(Number.isInteger(shifted.position ?? 0)).toBe(false);

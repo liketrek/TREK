@@ -1,13 +1,23 @@
-import { Controller, Headers, HttpException, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
-import type { User } from '../../types';
 import { ADDON_IDS } from '../../addons';
+import type { User } from '../../types';
 import { AddonsService } from '../addons/addons.service';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PlacesService } from '../places/places.service';
 import { ToursService } from './tours.service';
+import {
+  Controller,
+  Headers,
+  HttpException,
+  Param,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+
+import { memoryStorage } from 'multer';
 
 const UPLOAD = { storage: memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } };
 

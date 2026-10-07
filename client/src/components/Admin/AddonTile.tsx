@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
-import ToggleSwitch from '../Settings/ToggleSwitch'
-import { fs } from '../shared/DialogShell'
+import type { ReactNode } from 'react';
+import ToggleSwitch from '../Settings/ToggleSwitch';
+import { fs } from '../shared/DialogShell';
 
 /**
  * One addon in its type's card: a row like the bag sidebar's (#2541), with the
@@ -23,13 +23,13 @@ export default function AddonTile({
   onToggle,
   children,
 }: {
-  icon: ReactNode
-  name: string
-  description?: string
-  enabled: boolean
-  onToggle: () => void
+  icon: ReactNode;
+  name: string;
+  description?: string;
+  enabled: boolean;
+  onToggle: () => void;
   /** The sub-shelf: `<AddonSubRow>` children. */
-  children?: ReactNode
+  children?: ReactNode;
 }) {
   return (
     <article className="px-3.5 py-3 transition-colors duration-150 focus-within:bg-surface-secondary">
@@ -38,7 +38,9 @@ export default function AddonTile({
           // overflow-hidden so a brand mark that fills the slot keeps the slot's
           // rounded corners instead of squaring them off.
           className={`grid h-9 w-9 flex-none place-items-center overflow-hidden rounded-[10px] transition-colors ${
-            enabled ? 'bg-surface-card text-content shadow-sm ring-1 ring-edge-faint' : 'bg-surface-tertiary text-content-faint'
+            enabled
+              ? 'bg-surface-card text-content shadow-sm ring-1 ring-edge-faint'
+              : 'bg-surface-tertiary text-content-faint'
           }`}
         >
           {icon}
@@ -70,5 +72,5 @@ export default function AddonTile({
         </div>
       )}
     </article>
-  )
+  );
 }

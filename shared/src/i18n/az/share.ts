@@ -1,4 +1,5 @@
 import type { TranslationStrings } from '../types';
+
 const share: TranslationStrings = {
   'share.linkTitle': 'İctimai link',
   'share.linkHint':

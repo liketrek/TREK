@@ -7,12 +7,19 @@
  * outbound `fetch` is, so what is asserted is the URL the install would really
  * have called and the setting/key state that decided it.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { clearGoogleTransitCache } from '../../src/nest/transit/google-transit.provider';
+import { TransitModule } from '../../src/nest/transit/transit.module';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -27,13 +34,6 @@ const { db } = vi.hoisted(() => {
   return { db: tmp };
 });
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
-
-import { TransitModule } from '../../src/nest/transit/transit.module';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { clearGoogleTransitCache } from '../../src/nest/transit/google-transit.provider';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
 
 const ADMIN = 1;
 
@@ -50,7 +50,12 @@ describe('Transit backend switch e2e (#1699)', () => {
 
   async function build() {
     const moduleRef = await Test.createTestingModule({
-      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), RealtimeModule, TransitModule],
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        TransitModule,
+      ],
     }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
@@ -64,7 +69,9 @@ describe('Transit backend switch e2e (#1699)', () => {
     app = await build();
     server = app.getHttpServer();
   });
-  afterAll(async () => { await app?.close(); });
+  afterAll(async () => {
+    await app?.close();
+  });
 
   beforeEach(() => {
     vi.stubGlobal('fetch', fetchMock);
@@ -72,7 +79,10 @@ describe('Transit backend switch e2e (#1699)', () => {
     // MOTIS and Routes shapes both parse as "no itineraries", which is all this
     // suite needs — it asserts where the request went, not how it mapped.
     fetchMock.mockResolvedValue({
-      ok: true, status: 200, headers: { get: () => null }, json: async () => ({}),
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({}),
     });
     db.prepare('DELETE FROM app_settings').run();
     db.prepare('UPDATE users SET maps_api_key = NULL WHERE id = ?').run(ADMIN);

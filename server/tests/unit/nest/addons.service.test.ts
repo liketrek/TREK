@@ -21,24 +21,25 @@
  * filter itself (the disabled row is excluded) alongside the boolean coercion
  * of the enabled row that remains.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { Addons } from '../../../src/db/entities/Addons.entity';
+import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
+import { PhotoProviderFields } from '../../../src/db/entities/PhotoProviderFields.entity';
+import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
+import { PlaceShadowPicks } from '../../../src/db/entities/PlaceShadowPicks.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import type { AddonsRepository } from '../../../src/db/repositories/Addons.repository';
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { PhotoProviderFieldsRepository } from '../../../src/db/repositories/PhotoProviderFields.repository';
+import type { PhotoProvidersRepository } from '../../../src/db/repositories/PhotoProviders.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import { AddonsService } from '../../../src/nest/addons/addons.service';
 import { PlaceShadowService } from '../../../src/nest/place-shadow/place-shadow.service';
-import { Addons } from '../../../src/db/entities/Addons.entity';
-import type { AddonsRepository } from '../../../src/db/repositories/Addons.repository';
-import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
-import type { PhotoProvidersRepository } from '../../../src/db/repositories/PhotoProviders.repository';
-import { PhotoProviderFields } from '../../../src/db/entities/PhotoProviderFields.entity';
-import type { PhotoProviderFieldsRepository } from '../../../src/db/repositories/PhotoProviderFields.repository';
-import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { PlaceShadowPicks } from '../../../src/db/entities/PlaceShadowPicks.entity';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createUser } from '../../helpers/factories';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 
 const { getPhotoProviderConfig } = vi.hoisted(() => ({ getPhotoProviderConfig: vi.fn(() => ({})) }));
 vi.mock('../../../src/nest/memories/memories.helpers', () => ({ getPhotoProviderConfig }));
@@ -76,9 +77,18 @@ function providerFields(addon: ListAddon): PhotoProviderField[] {
   return (addon as ListAddon & { fields: PhotoProviderField[] }).fields;
 }
 
-function insertAddon(row: { id: string; name: string; type?: string; icon?: string | null; enabled: 0 | 1; sort_order?: number }): void {
+function insertAddon(row: {
+  id: string;
+  name: string;
+  type?: string;
+  icon?: string | null;
+  enabled: 0 | 1;
+  sort_order?: number;
+}): void {
   testDb
-    .prepare('INSERT INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES (?, ?, NULL, ?, ?, ?, ?)')
+    .prepare(
+      'INSERT INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES (?, ?, NULL, ?, ?, ?, ?)',
+    )
     .run(row.id, row.name, row.type ?? 'global', row.icon ?? null, row.enabled, row.sort_order ?? 0);
 }
 
@@ -99,9 +109,17 @@ function stubJourneyEnabled(): ReturnType<typeof vi.spyOn> {
   return vi.spyOn(addonsRepo, 'isEnabled').mockImplementation(async (id: string) => id === 'journey');
 }
 
-function insertProvider(row: { id: string; name: string; icon?: string | null; enabled: 0 | 1; sort_order?: number }): void {
+function insertProvider(row: {
+  id: string;
+  name: string;
+  icon?: string | null;
+  enabled: 0 | 1;
+  sort_order?: number;
+}): void {
   testDb
-    .prepare('INSERT INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, NULL, ?, ?, ?)')
+    .prepare(
+      'INSERT INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, NULL, ?, ?, ?)',
+    )
     .run(row.id, row.name, row.icon ?? null, row.enabled, row.sort_order ?? 0);
 }
 
@@ -145,8 +163,7 @@ function setAppSetting(key: string, value: string | null): void {
 
 function rawAppSetting(key: string): { key: string; value: string | null } | undefined {
   return testDb.prepare('SELECT key, value FROM app_settings WHERE key = ?').get(key) as
-    | { key: string; value: string | null }
-    | undefined;
+    { key: string; value: string | null } | undefined;
 }
 
 beforeAll(async () => {
@@ -387,7 +404,13 @@ describe('AddonsService addon/feature flags', () => {
     setAppSetting('collab_chat_enabled', 'false');
     setAppSetting('collab_polls_enabled', 'true');
 
-    expect(await svc.getCollabFeatures()).toEqual({ chat: false, notes: true, links: true, polls: true, whatsnext: true });
+    expect(await svc.getCollabFeatures()).toEqual({
+      chat: false,
+      notes: true,
+      links: true,
+      polls: true,
+      whatsnext: true,
+    });
   });
 
   it('updateCollabFeatures writes only the provided flags and reports changed (#1414, ADMIN-SVC-070)', async () => {

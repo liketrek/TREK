@@ -1,11 +1,12 @@
+import { Public } from '../auth/public.decorator';
+import { pluginsEnabled } from './kill-switch';
+import { pluginCodeDir } from './paths';
+import { PluginRuntimeService } from './plugin-runtime.service';
 import { Controller, Get, Param, Req, Res } from '@nestjs/common';
+
 import type { Request, Response } from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
-import { pluginsEnabled } from './kill-switch';
-import { PluginRuntimeService } from './plugin-runtime.service';
-import { pluginCodeDir } from './paths';
-import { Public } from '../auth/public.decorator';
 
 /**
  * Serves a page/widget plugin's static client from /plugin-frame/:id/* (#plugins,
@@ -108,7 +109,10 @@ export class PluginFrameController {
     // admin writer's EGRESS_HOST_RE), but never interpolate anything that isn't a clean
     // host/wildcard into connect-src — a stray space or `*` would inject an extra CSP source.
     const outbound = [
-      ...new Set([...(await this.runtime.outboundHostsOf(pluginId)), ...(await this.runtime.operatorEgressHosts(pluginId))]),
+      ...new Set([
+        ...(await this.runtime.outboundHostsOf(pluginId)),
+        ...(await this.runtime.operatorEgressHosts(pluginId)),
+      ]),
     ].filter((h) => /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i.test(h));
     // The frame runs at an OPAQUE origin (sandbox without allow-same-origin), so
     // 'self' matches nothing and the plugin's own <script src>/<link> files would

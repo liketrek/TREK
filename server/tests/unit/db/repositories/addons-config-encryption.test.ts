@@ -7,14 +7,15 @@
  * not a no-op through a mock. `ENCRYPTION_KEY` comes from
  * `tests/global-setup.ts`.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { Addons } from '../../../../src/db/entities/Addons.entity';
+import type { AddonsRepository } from '../../../../src/db/repositories/Addons.repository';
+import { decrypt_api_key } from '../../../../src/nest/common/crypto/apiKeyCrypto';
+import { prepareLlmAddonConfigForWrite } from '../../../../src/nest/llm-parse/llm-config';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { Addons } from '../../../../src/db/entities/Addons.entity';
-import type { AddonsRepository } from '../../../../src/db/repositories/Addons.repository';
-import { prepareLlmAddonConfigForWrite } from '../../../../src/nest/llm-parse/llm-config';
-import { decrypt_api_key } from '../../../../src/nest/common/crypto/apiKeyCrypto';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -28,7 +29,9 @@ beforeEach(() => {
   resetTestDb(testDb);
   testDb.exec('DELETE FROM addons');
   testDb
-    .prepare(`INSERT INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES ('llm_parsing', 'AI Parsing', NULL, 'global', 'Sparkles', 0, 0)`)
+    .prepare(
+      `INSERT INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES ('llm_parsing', 'AI Parsing', NULL, 'global', 'Sparkles', 0, 0)`,
+    )
     .run();
   t.clear();
 });

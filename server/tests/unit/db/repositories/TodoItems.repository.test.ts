@@ -11,13 +11,14 @@
  * the legacy SQL statement (`sn-cycle`/`rj4` reviewer probe, ported per the
  * fix-wave brief rather than imported from the reviewer's scratchpad).
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser, createTrip } from '../../../helpers/factories';
 import { TodoItems } from '../../../../src/db/entities/TodoItems.entity';
 import type { TodoItemsRepository } from '../../../../src/db/repositories/TodoItems.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser, createTrip } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -62,7 +63,9 @@ describe('listDueForReminder', () => {
       '',
     ];
     for (const s of shapes) {
-      testDb.prepare('INSERT INTO todo_items (trip_id, name, due_date, checked) VALUES (?, ?, ?, 0)').run(trip.id, 'n:' + s, s);
+      testDb
+        .prepare('INSERT INTO todo_items (trip_id, name, due_date, checked) VALUES (?, ?, ?, 0)')
+        .run(trip.id, 'n:' + s, s);
     }
 
     const legacy = (
@@ -79,7 +82,8 @@ describe('listDueForReminder', () => {
     ).map((r) => r.id);
 
     const head = (await repo.listDueForReminder(iso(t0), iso(plus(LEAD)))).map((r) => r.id).sort((a, b) => a - b);
-    const names = (ids: number[]) => ids.map((i) => (testDb.prepare('SELECT name FROM todo_items WHERE id=?').get(i) as { name: string }).name);
+    const names = (ids: number[]) =>
+      ids.map((i) => (testDb.prepare('SELECT name FROM todo_items WHERE id=?').get(i) as { name: string }).name);
 
     expect(names(head)).toEqual(names(legacy));
     expect(head.length).toBeGreaterThan(0);

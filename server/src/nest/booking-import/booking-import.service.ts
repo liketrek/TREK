@@ -1,25 +1,32 @@
-import { Injectable, HttpException } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
-import { ReservationsService } from '../reservations/reservations.service';
-import { PlacesService } from '../places/places.service';
-import { BudgetService } from '../budget/budget.service';
-import { imageMimeType } from '../llm-parse/image-input';
-import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
-import { MapsService } from '../maps/maps.service';
 import { Days } from '../../db/entities/Days.entity';
-import { DaysRepository } from '../../db/repositories/Days.repository';
 import { Reservations } from '../../db/entities/Reservations.entity';
+import { DaysRepository } from '../../db/repositories/Days.repository';
 import { ReservationsRepository } from '../../db/repositories/Reservations.repository';
 import type { User } from '../../types';
-import { KitineraryExtractorService } from './kitinerary-extractor.service';
+import { AddonsService } from '../addons/addons.service';
+import { BudgetService } from '../budget/budget.service';
+import { imageMimeType } from '../llm-parse/image-input';
 import { LlmParseService } from '../llm-parse/llm-parse.service';
+import { MapsService } from '../maps/maps.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { PlacesService } from '../places/places.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { ReservationsService } from '../reservations/reservations.service';
+import { KitineraryExtractorService } from './kitinerary-extractor.service';
 import { mapReservations } from './kitinerary-mapper';
-import { normalizePlaceWebsite, typeToCostCategory } from '@trek/shared';
-import type { BookingImportPreviewItem, BookingImportPreviewResponse, BookingImportConfirmResponse, BookingImportMode, BookingImportFileReport, Reservation } from '@trek/shared';
 import type { ParsedBookingItem, KiReservation } from './kitinerary.types';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, HttpException } from '@nestjs/common';
+import { normalizePlaceWebsite, typeToCostCategory } from '@trek/shared';
+import type {
+  BookingImportPreviewItem,
+  BookingImportPreviewResponse,
+  BookingImportConfirmResponse,
+  BookingImportMode,
+  BookingImportFileReport,
+  Reservation,
+} from '@trek/shared';
 
 @Injectable()
 export class BookingImportService {
@@ -128,7 +135,12 @@ export class BookingImportService {
       const key = ep.name.toLowerCase();
       if (cache.has(key)) {
         const hit = cache.get(key);
-        if (hit) { ep.lat = hit.lat; ep.lng = hit.lng; } else { unresolved.push(ep.name); }
+        if (hit) {
+          ep.lat = hit.lat;
+          ep.lng = hit.lng;
+        } else {
+          unresolved.push(ep.name);
+        }
         continue;
       }
 
@@ -142,14 +154,22 @@ export class BookingImportService {
       try {
         for (const q of queries) {
           const hit = await this.maps.geocodeQuery(q);
-          if (hit) { found = hit; break; }
+          if (hit) {
+            found = hit;
+            break;
+          }
         }
       } catch {
         // geocoding failure is non-fatal — the endpoint stays, and is warned about
       }
 
       cache.set(key, found);
-      if (found) { ep.lat = found.lat; ep.lng = found.lng; } else { unresolved.push(ep.name); }
+      if (found) {
+        ep.lat = found.lat;
+        ep.lng = found.lng;
+      } else {
+        unresolved.push(ep.name);
+      }
     }
 
     return unresolved;
@@ -187,7 +207,9 @@ export class BookingImportService {
         try {
           kiItems = await this.extractor.extract(file.buffer, file.originalname);
         } catch (err) {
-          allWarnings.push(`${file.originalname}: extraction failed — ${err instanceof Error ? err.message : String(err)}`);
+          allWarnings.push(
+            `${file.originalname}: extraction failed — ${err instanceof Error ? err.message : String(err)}`,
+          );
         }
       }
 
@@ -214,7 +236,10 @@ export class BookingImportService {
         for (const it of items) {
           const missed = await this.geocodeEndpoints(
             (it as { endpoints?: { name?: string | null; lat?: number | null; lng?: number | null }[] }).endpoints,
-            { location: (it as { location?: string | null }).location, address: (it as { _venue?: { address?: string | null } })._venue?.address },
+            {
+              location: (it as { location?: string | null }).location,
+              address: (it as { _venue?: { address?: string | null } })._venue?.address,
+            },
             geoCache,
           );
           // Kept on the item rather than filtered, so it is still editable in the
@@ -311,16 +336,25 @@ export class BookingImportService {
         // Build create_accommodation for hotel reservations.
         // start_day_id / end_day_id are resolved from check-in/out ISO dates so
         // the accommodation row is actually inserted (createReservation gates on them).
-        let createAccommodation: { place_id?: number; start_day_id?: number; end_day_id?: number; check_in?: string; check_out?: string; confirmation?: string } | undefined;
+        let createAccommodation:
+          | {
+              place_id?: number;
+              start_day_id?: number;
+              end_day_id?: number;
+              check_in?: string;
+              check_out?: string;
+              confirmation?: string;
+            }
+          | undefined;
         if (item.type === 'hotel' && _accommodation) {
           const startDayId = await this.resolveDayId(tripId, _accommodation.check_in);
-          const endDayId   = await this.resolveDayId(tripId, _accommodation.check_out);
+          const endDayId = await this.resolveDayId(tripId, _accommodation.check_out);
           createAccommodation = {
             place_id: placeId,
             start_day_id: startDayId ?? undefined,
-            end_day_id:   endDayId   ?? undefined,
-            check_in:     _accommodation.check_in,
-            check_out:    _accommodation.check_out,
+            end_day_id: endDayId ?? undefined,
+            check_in: _accommodation.check_in,
+            check_out: _accommodation.check_out,
             confirmation: _accommodation.confirmation,
           };
         }
@@ -338,7 +372,7 @@ export class BookingImportService {
 
         // Turn an extracted price into a real linked cost (Costs addon), so the
         // booking shows up as an expense — not just a price in metadata.
-        if ((await this.addons.isAddonEnabled(ADDON_IDS.BUDGET))) {
+        if (await this.addons.isAddonEnabled(ADDON_IDS.BUDGET)) {
           const meta =
             reservationData.metadata && typeof reservationData.metadata === 'object'
               ? (reservationData.metadata as Record<string, unknown>)
@@ -369,7 +403,10 @@ export class BookingImportService {
 
         created.push(reservation);
       } catch (err) {
-        console.error(`[booking-import] Failed to create reservation "${item.title}":`, err instanceof Error ? err.message : err);
+        console.error(
+          `[booking-import] Failed to create reservation "${item.title}":`,
+          err instanceof Error ? err.message : err,
+        );
       }
     }
 

@@ -1,27 +1,41 @@
-import React from 'react'
-import { List as ListIcon, Map as MapIcon, Search, Bookmark, CheckCheck, X, Trash2, Copy, CopyPlus, FolderInput, Plus, Tags, DownloadCloud } from 'lucide-react'
-import Navbar from '../components/Layout/Navbar'
-import ConfirmDialog from '../components/shared/ConfirmDialog'
-import ListsRail from '../components/Collections/ListsRail'
-import ListEditorModal from '../components/Collections/ListEditorModal'
-import CollectionHero from '../components/Collections/CollectionHero'
-import CollectionList from '../components/Collections/CollectionList'
-import CollectionFilterBar from '../components/Collections/CollectionFilterBar'
-import CollectionMapPanel from '../components/Collections/CollectionMapPanel'
-import CopyToTripModal from '../components/Collections/CopyToTripModal'
-import MoveToListModal from '../components/Collections/MoveToListModal'
-import ShareCollectionModal from '../components/Collections/ShareCollectionModal'
-import AddPlaceToCollectionModal from '../components/Collections/AddPlaceToCollectionModal'
-import ImportFromTripModal from '../components/Collections/ImportFromTripModal'
-import ImportCollectionModal from '../components/Collections/ImportCollectionModal'
-import CollectionPlaceDetail from '../components/Collections/CollectionPlaceDetail'
-import LabelManager from '../components/Collections/LabelManager'
-import BulkAssignLabelModal from '../components/Collections/BulkAssignLabelModal'
-import { useCollections } from './collections/useCollections'
-import EmptyState from '../components/shared/EmptyState'
-import '../styles/dashboard.css'
-import HelpAnchor from '../components/Help/HelpAnchor'
-import '../styles/collections.css'
+import {
+  Bookmark,
+  CheckCheck,
+  Copy,
+  CopyPlus,
+  DownloadCloud,
+  FolderInput,
+  List as ListIcon,
+  Map as MapIcon,
+  Plus,
+  Search,
+  Tags,
+  Trash2,
+  X,
+} from 'lucide-react';
+import React from 'react';
+import AddPlaceToCollectionModal from '../components/Collections/AddPlaceToCollectionModal';
+import BulkAssignLabelModal from '../components/Collections/BulkAssignLabelModal';
+import CollectionFilterBar from '../components/Collections/CollectionFilterBar';
+import CollectionHero from '../components/Collections/CollectionHero';
+import CollectionList from '../components/Collections/CollectionList';
+import CollectionMapPanel from '../components/Collections/CollectionMapPanel';
+import CollectionPlaceDetail from '../components/Collections/CollectionPlaceDetail';
+import CopyToTripModal from '../components/Collections/CopyToTripModal';
+import ImportCollectionModal from '../components/Collections/ImportCollectionModal';
+import ImportFromTripModal from '../components/Collections/ImportFromTripModal';
+import LabelManager from '../components/Collections/LabelManager';
+import ListEditorModal from '../components/Collections/ListEditorModal';
+import ListsRail from '../components/Collections/ListsRail';
+import MoveToListModal from '../components/Collections/MoveToListModal';
+import ShareCollectionModal from '../components/Collections/ShareCollectionModal';
+import HelpAnchor from '../components/Help/HelpAnchor';
+import Navbar from '../components/Layout/Navbar';
+import ConfirmDialog from '../components/shared/ConfirmDialog';
+import EmptyState from '../components/shared/EmptyState';
+import '../styles/collections.css';
+import '../styles/dashboard.css';
+import { useCollections } from './collections/useCollections';
 
 export default function CollectionsPage(): React.ReactElement {
   // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
@@ -31,25 +45,29 @@ export default function CollectionsPage(): React.ReactElement {
       <HelpAnchor id="collections" />
       <CollectionsPageDesktop />
     </>
-  )
+  );
 }
 
 function CollectionsPageDesktop(): React.ReactElement {
-  const c = useCollections()
-  const { t } = c
+  const c = useCollections();
+  const { t } = c;
 
-  const title = c.isAllSaved ? t('collections.allSaved') : (c.activeCollection?.name ?? t('collections.title'))
-  const isShared = c.activeCollection?.is_owner === false
-  const eyebrow = c.isAllSaved ? t('collections.hero.all') : (isShared ? t('collections.hero.shared') : t('collections.hero.mine'))
-  const heroColor = c.activeCollection?.color || '#6366f1'
-  const heroCover = c.activeCollection?.cover_image ?? null
+  const title = c.isAllSaved ? t('collections.allSaved') : (c.activeCollection?.name ?? t('collections.title'));
+  const isShared = c.activeCollection?.is_owner === false;
+  const eyebrow = c.isAllSaved
+    ? t('collections.hero.all')
+    : isShared
+      ? t('collections.hero.shared')
+      : t('collections.hero.mine');
+  const heroColor = c.activeCollection?.color || '#6366f1';
+  const heroCover = c.activeCollection?.cover_image ?? null;
 
-  const hasPlaces = c.places.length > 0
-  const noLists = !c.loading && c.collections.length === 0
-  const showSelect = c.isAllSaved || c.activeCollection != null
+  const hasPlaces = c.places.length > 0;
+  const noLists = !c.loading && c.collections.length === 0;
+  const showSelect = c.isAllSaved || c.activeCollection != null;
   // Labels are per-collection, so only on a real (non "All saved") list.
-  const isRealList = !c.isAllSaved && typeof c.activeId === 'number'
-  const canManageLabels = isRealList && c.canEdit
+  const isRealList = !c.isAllSaved && typeof c.activeId === 'number';
+  const canManageLabels = isRealList && c.canEdit;
 
   // Selecting a place from the list toggles it, so clicking the row again clears
   // it, as does the map background. A marker click always shows the place: a second
@@ -58,23 +76,26 @@ function CollectionsPageDesktop(): React.ReactElement {
   // map are separate views; above it the list view is a split with a persistent map
   // that pans to the selection (the map stays mounted across the list↔map toggle so
   // it animates).
-  const mappable = c.mappable
-  const openPlace = (id: number) => c.setSelectedPlaceId(c.selectedPlaceId === id ? null : id)
-  const showPlace = (id: number) => c.setSelectedPlaceId(id)
-  const deselect = () => c.setSelectedPlaceId(null)
+  const mappable = c.mappable;
+  const openPlace = (id: number) => c.setSelectedPlaceId(c.selectedPlaceId === id ? null : id);
+  const showPlace = (id: number) => c.setSelectedPlaceId(id);
+  const deselect = () => c.setSelectedPlaceId(null);
   const toggleView = () => {
     // Going to the full-map view closes the (list-docked) detail sheet.
-    if (c.view !== 'map') c.setSelectedPlaceId(null)
-    c.setView(c.view === 'map' ? 'list' : 'map')
-  }
+    if (c.view !== 'map') c.setSelectedPlaceId(null);
+    c.setView(c.view === 'map' ? 'list' : 'map');
+  };
   // Clicking a marker in the full-map view drops back to the split so the list
   // + detail come into view alongside the map.
-  const onMapSelect = (id: number) => { showPlace(id); if (c.view === 'map') c.setView('list') }
+  const onMapSelect = (id: number) => {
+    showPlace(id);
+    if (c.view === 'map') c.setView('list');
+  };
 
-  const desktopSplit = c.isWide && c.hasMappable
-  const mapShown = c.hasMappable && (c.view === 'map' || c.isWide)
-  const mapOverlay = c.isWide && mapShown // the map carries the toggle + search
-  const canAddPlace = typeof c.activeId === 'number' && c.canEdit // a real list you can edit
+  const desktopSplit = c.isWide && c.hasMappable;
+  const mapShown = c.hasMappable && (c.view === 'map' || c.isWide);
+  const mapOverlay = c.isWide && mapShown; // the map carries the toggle + search
+  const canAddPlace = typeof c.activeId === 'number' && c.canEdit; // a real list you can edit
 
   const listEl = (
     <CollectionList
@@ -88,7 +109,7 @@ function CollectionsPageDesktop(): React.ReactElement {
       onToggleSelect={c.toggleSelect}
       t={t}
     />
-  )
+  );
   const mapPanel = (overlay: boolean) => (
     <CollectionMapPanel
       labelOptions={isRealList ? c.labelOptions : []}
@@ -108,7 +129,7 @@ function CollectionsPageDesktop(): React.ReactElement {
       onSearch={c.setSearch}
       t={t}
     />
-  )
+  );
 
   // Filter row + the list (or a "no match" note when a filter hides everything).
   // Kept together so the filters stay reachable even when nothing matches.
@@ -139,23 +160,29 @@ function CollectionsPageDesktop(): React.ReactElement {
       onToggleSelect={() => c.setSelectMode(!c.selectMode)}
       t={t}
     />
-  ) : null
+  ) : null;
   const listColumn = (
     <>
       {filterBar}
-      {c.visiblePlaces.length > 0
-        ? listEl
-        : <EmptyState scene="search" title={t('collections.empty.noMatchTitle')} />}
+      {c.visiblePlaces.length > 0 ? listEl : <EmptyState scene="search" title={t('collections.empty.noMatchTitle')} />}
     </>
-  )
+  );
 
-  let body: React.ReactElement
+  let body: React.ReactElement;
   if (c.placesLoading && !hasPlaces) {
-    body = <div className="col-loading"><div className="col-spinner" /></div>
+    body = (
+      <div className="col-loading">
+        <div className="col-spinner" />
+      </div>
+    );
   } else if (!hasPlaces) {
     body = (
       <div className="flex flex-col items-center">
-        <EmptyState scene="collections" title={t('collections.empty.title')} className={canAddPlace ? 'pb-4' : undefined} />
+        <EmptyState
+          scene="collections"
+          title={t('collections.empty.title')}
+          className={canAddPlace ? 'pb-4' : undefined}
+        />
         {canAddPlace && (
           <div className="flex flex-wrap items-center justify-center gap-2">
             <button type="button" onClick={() => c.setShowAddPlace(true)} className="col-cta">
@@ -169,18 +196,20 @@ function CollectionsPageDesktop(): React.ReactElement {
           </div>
         )}
       </div>
-    )
+    );
   } else if (desktopSplit) {
     body = (
-      <div className={`col-split${c.view === 'map' ? ' map-full' : ''}`}>
-        <div className="col-split-list" ref={c.listColRef}>{listColumn}</div>
+      <div className={`col-split${c.view === 'map' ? 'map-full' : ''}`}>
+        <div className="col-split-list" ref={c.listColRef}>
+          {listColumn}
+        </div>
         <div className="col-split-map">{mapPanel(true)}</div>
       </div>
-    )
+    );
   } else if (c.view === 'map' && c.hasMappable) {
-    body = <div className="col-mapwrap">{mapPanel(false)}</div>
+    body = <div className="col-mapwrap">{mapPanel(false)}</div>;
   } else {
-    body = listColumn
+    body = listColumn;
   }
 
   const rail = (
@@ -190,20 +219,28 @@ function CollectionsPageDesktop(): React.ReactElement {
       activeId={c.activeId}
       incomingInvites={c.incomingInvites}
       onSelect={c.handleSelectList}
-      onNewList={() => { c.setMobileRailOpen(false); c.setEditorTarget('new') }}
-      onImportList={() => { c.setMobileRailOpen(false); c.setShowImportFile(true) }}
+      onNewList={() => {
+        c.setMobileRailOpen(false);
+        c.setEditorTarget('new');
+      }}
+      onImportList={() => {
+        c.setMobileRailOpen(false);
+        c.setShowImportFile(true);
+      }}
       onAcceptInvite={c.handleAcceptInvite}
       onDeclineInvite={c.handleDeclineInvite}
       t={t}
     />
-  )
+  );
 
   return (
     <>
       <Navbar />
       <div className="trek-dash col-root">
         <div className="col-page">
-          <aside className="col-rail" style={{ minHeight: c.heroHeight || undefined }}>{rail}</aside>
+          <aside className="col-rail" style={{ minHeight: c.heroHeight || undefined }}>
+            {rail}
+          </aside>
 
           <div className="col-body">
             {noLists ? (
@@ -227,7 +264,9 @@ function CollectionsPageDesktop(): React.ReactElement {
                     canShare={c.canShare}
                     isOwner={c.isOwner}
                     canEdit={!c.isAllSaved && c.isOwner && c.activeCollection != null}
-                    onEdit={() => { if (c.activeCollection) c.setEditorTarget(c.activeCollection) }}
+                    onEdit={() => {
+                      if (c.activeCollection) c.setEditorTarget(c.activeCollection);
+                    }}
                     shareMemberCount={c.shareMemberCount}
                     onShare={() => c.setShowShare(true)}
                     onExport={c.isAllSaved || !c.activeCollection ? undefined : c.handleExportList}
@@ -243,10 +282,24 @@ function CollectionsPageDesktop(): React.ReactElement {
                     </button>
                     {!c.isWide && c.hasMappable && (
                       <div className="col-viewseg" role="group" aria-label={t('collections.title')}>
-                        <button type="button" aria-pressed={c.view === 'list'} onClick={() => c.setView('list')} aria-label={t('collections.view.list')} title={t('collections.view.list')} className={c.view === 'list' ? 'on' : ''}>
+                        <button
+                          type="button"
+                          aria-pressed={c.view === 'list'}
+                          onClick={() => c.setView('list')}
+                          aria-label={t('collections.view.list')}
+                          title={t('collections.view.list')}
+                          className={c.view === 'list' ? 'on' : ''}
+                        >
                           <ListIcon size={16} />
                         </button>
-                        <button type="button" aria-pressed={c.view === 'map'} onClick={() => c.setView('map')} aria-label={t('collections.view.map')} title={t('collections.view.map')} className={c.view === 'map' ? 'on' : ''}>
+                        <button
+                          type="button"
+                          aria-pressed={c.view === 'map'}
+                          onClick={() => c.setView('map')}
+                          aria-label={t('collections.view.map')}
+                          title={t('collections.view.map')}
+                          className={c.view === 'map' ? 'on' : ''}
+                        >
                           <MapIcon size={16} />
                         </button>
                       </div>
@@ -257,7 +310,7 @@ function CollectionsPageDesktop(): React.ReactElement {
                         <Search size={15} />
                         <input
                           value={c.search}
-                          onChange={e => c.setSearch(e.target.value)}
+                          onChange={(e) => c.setSearch(e.target.value)}
                           placeholder={t('collections.search')}
                         />
                       </div>
@@ -268,32 +321,63 @@ function CollectionsPageDesktop(): React.ReactElement {
                 {c.selectMode && (
                   <div className="col-selbar">
                     <button type="button" onClick={c.handleSelectAll} className="col-selbar-btn">
-                      <CheckCheck size={14} /> {c.allVisibleSelected ? t('collections.deselectAll') : t('collections.selectAll')}
+                      <CheckCheck size={14} />{' '}
+                      {c.allVisibleSelected ? t('collections.deselectAll') : t('collections.selectAll')}
                     </button>
                     <span className="lbl">{t('collections.selectedCount', { count: c.selectedIds.length })}</span>
                     <div className="col-toolbar-spacer" />
                     {c.canEdit && isRealList && (
-                      <button type="button" onClick={() => c.setLabelPickerOpen(true)} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
+                      <button
+                        type="button"
+                        onClick={() => c.setLabelPickerOpen(true)}
+                        disabled={c.selectedIds.length === 0}
+                        className="col-selbar-btn"
+                      >
                         <Tags size={14} /> {t('collections.labels.assign')}
                       </button>
                     )}
                     {c.canEdit && (
-                      <button type="button" onClick={() => c.setListPickerMode('move')} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
+                      <button
+                        type="button"
+                        onClick={() => c.setListPickerMode('move')}
+                        disabled={c.selectedIds.length === 0}
+                        className="col-selbar-btn"
+                      >
                         <FolderInput size={14} /> {t('collections.moveToList')}
                       </button>
                     )}
-                    <button type="button" onClick={() => c.setListPickerMode('copy')} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
+                    <button
+                      type="button"
+                      onClick={() => c.setListPickerMode('copy')}
+                      disabled={c.selectedIds.length === 0}
+                      className="col-selbar-btn"
+                    >
                       <CopyPlus size={14} /> {t('collections.duplicateToList')}
                     </button>
-                    <button type="button" onClick={c.openCopyForSelection} disabled={c.selectedIds.length === 0} className="col-selbar-btn">
+                    <button
+                      type="button"
+                      onClick={c.openCopyForSelection}
+                      disabled={c.selectedIds.length === 0}
+                      className="col-selbar-btn"
+                    >
                       <Copy size={14} /> {t('collections.copyToTrip')}
                     </button>
                     {c.canDelete && (
-                      <button type="button" onClick={c.handleDeleteSelected} disabled={c.selectedIds.length === 0} className="col-selbar-btn danger">
+                      <button
+                        type="button"
+                        onClick={c.handleDeleteSelected}
+                        disabled={c.selectedIds.length === 0}
+                        className="col-selbar-btn danger"
+                      >
                         <Trash2 size={14} /> {t('common.delete')}
                       </button>
                     )}
-                    <button type="button" onClick={() => c.setSelectMode(false)} className="col-selbar-btn" aria-label={t('common.cancel')}>
+                    <button
+                      type="button"
+                      onClick={() => c.setSelectMode(false)}
+                      className="col-selbar-btn"
+                      aria-label={t('common.cancel')}
+                    >
                       <X size={15} />
                     </button>
                   </div>
@@ -311,7 +395,9 @@ function CollectionsPageDesktop(): React.ReactElement {
             <div role="presentation" className="col-drawer-backdrop" onClick={() => c.setMobileRailOpen(false)} />
             <div className="col-drawer">
               <div className="col-drawer-head">
-                <button type="button" onClick={() => c.setMobileRailOpen(false)} aria-label={t('common.close')}><X size={18} /></button>
+                <button type="button" onClick={() => c.setMobileRailOpen(false)} aria-label={t('common.close')}>
+                  <X size={18} />
+                </button>
               </div>
               {rail}
             </div>
@@ -332,11 +418,11 @@ function CollectionsPageDesktop(): React.ReactElement {
             anchorRect={desktopSplit ? c.listColRect : null}
             onClose={c.handleCloseDetail}
             onSetStatus={c.handleDetailStatus}
-            onSave={patch => c.updatePlace(c.selectedPlace!.id, patch)}
-            onUploadImage={file => c.uploadPlaceImage(c.selectedPlace!.id, file)}
+            onSave={(patch) => c.updatePlace(c.selectedPlace!.id, patch)}
+            onUploadImage={(file) => c.uploadPlaceImage(c.selectedPlace!.id, file)}
             onCopyToTrip={c.openCopyForSelectedPlace}
             onRemove={c.handleDetailRemove}
-            onRate={r => c.handleRatePlace(c.selectedPlace!.id, r)}
+            onRate={(r) => c.handleRatePlace(c.selectedPlace!.id, r)}
             t={t}
           />
         )}
@@ -394,7 +480,7 @@ function CollectionsPageDesktop(): React.ReactElement {
       {c.listPickerMode && (
         <MoveToListModal
           mode={c.listPickerMode}
-          lists={c.ownedLists.filter(l => l.id !== c.activeId)}
+          lists={c.ownedLists.filter((l) => l.id !== c.activeId)}
           count={c.selectedIds.length}
           onPick={c.listPickerMode === 'move' ? c.handleMoveToList : c.handleDuplicateToList}
           onClose={() => c.setListPickerMode(null)}
@@ -417,7 +503,13 @@ function CollectionsPageDesktop(): React.ReactElement {
       )}
 
       {/* Create / edit a list — name, colour, cover, description, links */}
-      <ListEditorModal target={c.editorTarget} onClose={() => c.setEditorTarget(null)} onCreated={c.handleEditorCreated} onRequestDelete={c.setConfirmDeleteList} t={t} />
+      <ListEditorModal
+        target={c.editorTarget}
+        onClose={() => c.setEditorTarget(null)}
+        onCreated={c.handleEditorCreated}
+        onRequestDelete={c.setConfirmDeleteList}
+        t={t}
+      />
 
       {/* Manage the list's custom labels (editor+) */}
       {canManageLabels && (
@@ -439,7 +531,10 @@ function CollectionsPageDesktop(): React.ReactElement {
           labels={c.labels}
           count={c.selectedIds.length}
           onAssign={c.handleBulkAssignLabels}
-          onManage={() => { c.setLabelPickerOpen(false); c.setShowLabelManager(true) }}
+          onManage={() => {
+            c.setLabelPickerOpen(false);
+            c.setShowLabelManager(true);
+          }}
           onClose={() => c.setLabelPickerOpen(false)}
           t={t}
         />
@@ -456,5 +551,5 @@ function CollectionsPageDesktop(): React.ReactElement {
         cancelLabel={t('common.cancel')}
       />
     </>
-  )
+  );
 }

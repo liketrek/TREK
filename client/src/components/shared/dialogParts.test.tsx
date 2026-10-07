@@ -1,8 +1,8 @@
 // FE-PLANNER-EDITORPARTS-001 to FE-PLANNER-EDITORPARTS-011
-import { useState } from 'react';
-import { render, screen, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { PillSelect, Segmented, EditorField, AddRowButton } from './dialogParts';
+import { useState } from 'react';
+import { fireEvent, render, screen } from '../../../tests/helpers/render';
+import { AddRowButton, EditorField, PillSelect, Segmented } from './dialogParts';
 
 type Kind = 'flight' | 'train' | 'bus' | 'transit';
 
@@ -19,7 +19,10 @@ function Picker({ initial = 'train', onChange = vi.fn() }: { initial?: Kind; onC
       label="Booking Type"
       value={value}
       options={OPTIONS}
-      onChange={v => { setValue(v); onChange(v); }}
+      onChange={(v) => {
+        setValue(v);
+        onChange(v);
+      }}
       fallback={{ label: 'Transit', icon: <span data-testid="icon-fallback" /> }}
     />
   );
@@ -79,7 +82,12 @@ describe('PillSelect', () => {
   });
 
   it('FE-PLANNER-EDITORPARTS-005: a press outside closes the list, a press inside does not', async () => {
-    render(<><Picker /><p>elsewhere</p></>);
+    render(
+      <>
+        <Picker />
+        <p>elsewhere</p>
+      </>
+    );
     await userEvent.click(pill());
     fireEvent.mouseDown(option('Bus'));
     expect(list()).toBeInTheDocument();
@@ -134,7 +142,17 @@ describe('PillSelect', () => {
 describe('editor fields', () => {
   it('FE-PLANNER-EDITORPARTS-010: Segmented marks the chosen option and reports a new one', async () => {
     const onChange = vi.fn();
-    render(<Segmented label="Mode" value="manual" onChange={onChange} options={[{ value: 'manual', label: 'Manual' }, { value: 'automated', label: 'Automated' }]} />);
+    render(
+      <Segmented
+        label="Mode"
+        value="manual"
+        onChange={onChange}
+        options={[
+          { value: 'manual', label: 'Manual' },
+          { value: 'automated', label: 'Automated' },
+        ]}
+      />
+    );
     expect(screen.getByRole('group', { name: 'Mode' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Manual' })).toHaveAttribute('aria-pressed', 'true');
     await userEvent.click(screen.getByRole('button', { name: 'Automated' }));
@@ -143,10 +161,18 @@ describe('editor fields', () => {
 
   it('FE-PLANNER-EDITORPARTS-011: EditorField shows an error in place of its hint, and AddRowButton adds', async () => {
     const onAdd = vi.fn();
-    const { rerender } = render(<EditorField label="Seat" htmlFor="seat" hint="Optional"><input id="seat" /></EditorField>);
+    const { rerender } = render(
+      <EditorField label="Seat" htmlFor="seat" hint="Optional">
+        <input id="seat" />
+      </EditorField>
+    );
     expect(screen.getByLabelText('Seat')).toBeInTheDocument();
     expect(screen.getByText('Optional')).toBeInTheDocument();
-    rerender(<EditorField label="Seat" htmlFor="seat" hint="Optional" error="Taken"><input id="seat" /></EditorField>);
+    rerender(
+      <EditorField label="Seat" htmlFor="seat" hint="Optional" error="Taken">
+        <input id="seat" />
+      </EditorField>
+    );
     expect(screen.getByText('Taken')).toBeInTheDocument();
     expect(screen.queryByText('Optional')).toBeNull();
 

@@ -1,17 +1,25 @@
-import {
-  McpController, Tool, ResourceTemplate, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
-} from '../../nest-mcp';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { CollabService } from './collab.service';
+import {
+  McpController,
+  Tool,
+  ResourceTemplate,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  demoDenied,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
 import { collabFeatureGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { AuthService } from '../auth/auth.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { CollabService } from './collab.service';
+
+import { z } from 'zod';
 
 /**
  * Legacy registrar gates: the whole collab surface rides the collab addon
@@ -29,21 +37,25 @@ function parseId(value: string | string[]): number | null {
 
 function accessDenied(uri: string) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify({ error: 'Trip not found or access denied' }),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify({ error: 'Trip not found or access denied' }),
+      },
+    ],
   };
 }
 
 function jsonContent(uri: string, data: unknown) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify(data, null, 2),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify(data, null, 2),
+      },
+    ],
   };
 }
 
@@ -80,8 +92,17 @@ export class CollabMcp {
       title: z.string().min(1).max(200),
       content: z.string().max(10000).optional(),
       category: z.string().max(100).optional().describe('Note category (e.g. "Ideas", "To-do", "General")'),
-      color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().describe('Hex color for the note card'),
-      website: z.string().max(500).nullable().optional().describe('Link to attach to the note; the card renders it as a preview thumbnail. Pass null to remove it'),
+      color: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/)
+        .optional()
+        .describe('Hex color for the note card'),
+      website: z
+        .string()
+        .max(500)
+        .nullable()
+        .optional()
+        .describe('Link to attach to the note; the card renders it as a preview thumbnail. Pass null to remove it'),
       pinned: z.boolean().optional().default(false).describe('Pin the note to the top'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -89,8 +110,22 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'write' },
   })
   async createCollabNote(
-    { tripId, title, content, category, color, website, pinned }: {
-      tripId: number; title: string; content?: string; category?: string; color?: string; website?: string | null; pinned?: boolean;
+    {
+      tripId,
+      title,
+      content,
+      category,
+      color,
+      website,
+      pinned,
+    }: {
+      tripId: number;
+      title: string;
+      content?: string;
+      category?: string;
+      color?: string;
+      website?: string | null;
+      pinned?: boolean;
     },
     ctx: McpContext,
   ) {
@@ -111,8 +146,17 @@ export class CollabMcp {
       title: z.string().min(1).max(200).optional(),
       content: z.string().max(10000).optional(),
       category: z.string().max(100).optional(),
-      color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().describe('Hex color for the note card'),
-      website: z.string().max(500).nullable().optional().describe('Link to attach to the note, or null to remove the one it has'),
+      color: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/)
+        .optional()
+        .describe('Hex color for the note card'),
+      website: z
+        .string()
+        .max(500)
+        .nullable()
+        .optional()
+        .describe('Link to attach to the note, or null to remove the one it has'),
       pinned: z.boolean().optional().describe('Pin the note to the top'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -120,8 +164,24 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'write' },
   })
   async updateCollabNote(
-    { tripId, noteId, title, content, category, color, website, pinned }: {
-      tripId: number; noteId: number; title?: string; content?: string; category?: string; color?: string; website?: string | null; pinned?: boolean;
+    {
+      tripId,
+      noteId,
+      title,
+      content,
+      category,
+      color,
+      website,
+      pinned,
+    }: {
+      tripId: number;
+      noteId: number;
+      title?: string;
+      content?: string;
+      category?: string;
+      color?: string;
+      website?: string | null;
+      pinned?: boolean;
     },
     ctx: McpContext,
   ) {
@@ -188,8 +248,18 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'write' },
   })
   async createCollabPoll(
-    { tripId, question, options, multiple, deadline }: {
-      tripId: number; question: string; options: string[]; multiple?: boolean; deadline?: string;
+    {
+      tripId,
+      question,
+      options,
+      multiple,
+      deadline,
+    }: {
+      tripId: number;
+      question: string;
+      options: string[];
+      multiple?: boolean;
+      deadline?: string;
     },
     ctx: McpContext,
   ) {
@@ -213,7 +283,10 @@ export class CollabMcp {
     when: collabPollsOn,
     access: { group: 'collab', mode: 'write' },
   })
-  async voteCollabPoll({ tripId, pollId, optionIndex }: { tripId: number; pollId: number; optionIndex: number }, ctx: McpContext) {
+  async voteCollabPoll(
+    { tripId, pollId, optionIndex }: { tripId: number; pollId: number; optionIndex: number },
+    ctx: McpContext,
+  ) {
     if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
@@ -294,7 +367,10 @@ export class CollabMcp {
     when: collabChatOn,
     access: { group: 'collab', mode: 'write' },
   })
-  async sendCollabMessage({ tripId, text, replyTo }: { tripId: number; text: string; replyTo?: number }, ctx: McpContext) {
+  async sendCollabMessage(
+    { tripId, text, replyTo }: { tripId: number; text: string; replyTo?: number },
+    ctx: McpContext,
+  ) {
     if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
@@ -337,7 +413,10 @@ export class CollabMcp {
     when: collabChatOn,
     access: { group: 'collab', mode: 'write' },
   })
-  async reactCollabMessage({ tripId, messageId, emoji }: { tripId: number; messageId: number; emoji: string }, ctx: McpContext) {
+  async reactCollabMessage(
+    { tripId, messageId, emoji }: { tripId: number; messageId: number; emoji: string },
+    ctx: McpContext,
+  ) {
     if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();

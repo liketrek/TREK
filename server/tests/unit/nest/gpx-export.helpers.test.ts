@@ -4,17 +4,33 @@
  * parser the importer uses, which is the closest thing to "a real reader can open
  * this" that does not need a device.
  */
-import { describe, it, expect } from 'vitest';
+import {
+  buildGpx,
+  gpxFilename,
+  type GpxExportPlace,
+  type GpxExportDay,
+} from '../../../src/nest/places/gpx-export.helpers';
+
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
-import { buildGpx, gpxFilename, type GpxExportPlace, type GpxExportDay } from '../../../src/nest/places/gpx-export.helpers';
+import { describe, it, expect } from 'vitest';
 
 const place = (over: Partial<GpxExportPlace> = {}): GpxExportPlace => ({
-  name: 'Somewhere', description: null, address: null, lat: 48.8566, lng: 2.3522,
-  route_geometry: null, category: null, ...over,
+  name: 'Somewhere',
+  description: null,
+  address: null,
+  lat: 48.8566,
+  lng: 2.3522,
+  route_geometry: null,
+  category: null,
+  ...over,
 });
 
 const day = (over: Partial<GpxExportDay> = {}): GpxExportDay => ({
-  dayNumber: 1, date: '2026-05-01', title: null, points: [], ...over,
+  dayNumber: 1,
+  date: '2026-05-01',
+  title: null,
+  points: [],
+  ...over,
 });
 
 const parser = new XMLParser({
@@ -41,7 +57,15 @@ describe('buildGpx', () => {
   it('writes a place carrying geometry as a track, elevation included', () => {
     const gpx = buildGpx({
       tripTitle: 'Hike',
-      places: [place({ name: 'Ridge', route_geometry: JSON.stringify([[47.1, 11.2, 1830], [47.11, 11.21, 1902]]) })],
+      places: [
+        place({
+          name: 'Ridge',
+          route_geometry: JSON.stringify([
+            [47.1, 11.2, 1830],
+            [47.11, 11.21, 1902],
+          ]),
+        }),
+      ],
       days: [],
     })!;
 
@@ -53,7 +77,15 @@ describe('buildGpx', () => {
   it('does not also drop a waypoint on the start of a track', () => {
     const gpx = buildGpx({
       tripTitle: 'Hike',
-      places: [place({ name: 'Ridge', route_geometry: JSON.stringify([[47.1, 11.2], [47.11, 11.21]]) })],
+      places: [
+        place({
+          name: 'Ridge',
+          route_geometry: JSON.stringify([
+            [47.1, 11.2],
+            [47.11, 11.21],
+          ]),
+        }),
+      ],
       days: [],
     })!;
 
@@ -64,13 +96,17 @@ describe('buildGpx', () => {
     const gpx = buildGpx({
       tripTitle: 'Rome',
       places: [],
-      days: [day({
-        dayNumber: 2, date: '2026-05-02', title: 'Ancient city',
-        points: [
-          { name: 'Colosseum', lat: 41.89, lng: 12.49 },
-          { name: 'Forum', lat: 41.892, lng: 12.485 },
-        ],
-      })],
+      days: [
+        day({
+          dayNumber: 2,
+          date: '2026-05-02',
+          title: 'Ancient city',
+          points: [
+            { name: 'Colosseum', lat: 41.89, lng: 12.49 },
+            { name: 'Forum', lat: 41.892, lng: 12.485 },
+          ],
+        }),
+      ],
     })!;
 
     expect(gpx).toContain('<name>2. Ancient city</name>');
@@ -79,10 +115,35 @@ describe('buildGpx', () => {
   });
 
   it('falls back to the date, then the bare number, when a day has no title', () => {
-    const dated = buildGpx({ tripTitle: 'T', places: [], days: [day({ dayNumber: 3, points: [{ name: 'A', lat: 1, lng: 1 }, { name: 'B', lat: 2, lng: 2 }] })] })!;
+    const dated = buildGpx({
+      tripTitle: 'T',
+      places: [],
+      days: [
+        day({
+          dayNumber: 3,
+          points: [
+            { name: 'A', lat: 1, lng: 1 },
+            { name: 'B', lat: 2, lng: 2 },
+          ],
+        }),
+      ],
+    })!;
     expect(dated).toContain('<name>3. 2026-05-01</name>');
 
-    const bare = buildGpx({ tripTitle: 'T', places: [], days: [day({ dayNumber: 4, date: null, points: [{ name: 'A', lat: 1, lng: 1 }, { name: 'B', lat: 2, lng: 2 }] })] })!;
+    const bare = buildGpx({
+      tripTitle: 'T',
+      places: [],
+      days: [
+        day({
+          dayNumber: 4,
+          date: null,
+          points: [
+            { name: 'A', lat: 1, lng: 1 },
+            { name: 'B', lat: 2, lng: 2 },
+          ],
+        }),
+      ],
+    })!;
     expect(bare).toContain('<name>4</name>');
   });
 
@@ -99,8 +160,24 @@ describe('buildGpx', () => {
   it('honours each flag on its own', () => {
     const input = {
       tripTitle: 'T',
-      places: [place({ name: 'Point' }), place({ name: 'Line', route_geometry: JSON.stringify([[1, 1], [2, 2]]) })],
-      days: [day({ points: [{ name: 'A', lat: 1, lng: 1 }, { name: 'B', lat: 2, lng: 2 }] })],
+      places: [
+        place({ name: 'Point' }),
+        place({
+          name: 'Line',
+          route_geometry: JSON.stringify([
+            [1, 1],
+            [2, 2],
+          ]),
+        }),
+      ],
+      days: [
+        day({
+          points: [
+            { name: 'A', lat: 1, lng: 1 },
+            { name: 'B', lat: 2, lng: 2 },
+          ],
+        }),
+      ],
     };
 
     const noWpt = buildGpx(input, { waypoints: false })!;
@@ -137,9 +214,22 @@ describe('buildGpx', () => {
       tripTitle: 'Round trip',
       places: [
         place({ name: 'Waypoint', lat: 10.5, lng: -3.25 }),
-        place({ name: 'Track', route_geometry: JSON.stringify([[1.5, 2.5], [1.6, 2.6]]) }),
+        place({
+          name: 'Track',
+          route_geometry: JSON.stringify([
+            [1.5, 2.5],
+            [1.6, 2.6],
+          ]),
+        }),
       ],
-      days: [day({ points: [{ name: 'A', lat: 3, lng: 4 }, { name: 'B', lat: 5, lng: 6 }] })],
+      days: [
+        day({
+          points: [
+            { name: 'A', lat: 3, lng: 4 },
+            { name: 'B', lat: 5, lng: 6 },
+          ],
+        }),
+      ],
     })!;
 
     expect(XMLValidator.validate(gpx)).toBe(true);

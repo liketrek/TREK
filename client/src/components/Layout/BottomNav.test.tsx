@@ -16,14 +16,14 @@ vi.mock('react-router', async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-import { render, screen } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { useAuthStore } from '../../store/authStore';
-import { useSettingsStore } from '../../store/settingsStore';
-import { useAddonStore } from '../../store/addonStore';
-import { usePluginStore } from '../../store/pluginStore';
+import { buildSettings, buildUser } from '../../../tests/helpers/factories';
+import { render, screen } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildSettings } from '../../../tests/helpers/factories';
+import { useAddonStore } from '../../store/addonStore';
+import { useAuthStore } from '../../store/authStore';
+import { usePluginStore } from '../../store/pluginStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import BottomNav from './BottomNav';
 
 const currentUser = buildUser({ id: 1, username: 'testuser', email: 'test@example.com' });

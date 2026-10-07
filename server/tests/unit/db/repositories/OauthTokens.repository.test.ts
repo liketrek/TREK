@@ -1,12 +1,13 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
 import { OauthTokens } from '../../../../src/db/entities/OauthTokens.entity';
 import type { OauthTokensRepository } from '../../../../src/db/repositories/OauthTokens.repository';
-import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
+import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -25,35 +26,51 @@ beforeEach(() => {
   testDb.exec('DELETE FROM oauth_consents');
   testDb.exec('DELETE FROM oauth_clients');
 });
-afterAll(async () => { await t.close(); testDb.close(); });
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function seedClient(userId: number, clientId: string, name = 'Client'): void {
-  testDb.prepare(
-    `INSERT INTO oauth_clients (id, user_id, name, client_id, client_secret_hash, redirect_uris, allowed_scopes) VALUES (?, ?, ?, ?, ?, '[]', '[]')`,
-  ).run(`row-${clientId}`, userId, name, clientId, 'hash');
+  testDb
+    .prepare(
+      `INSERT INTO oauth_clients (id, user_id, name, client_id, client_secret_hash, redirect_uris, allowed_scopes) VALUES (?, ?, ?, ?, ?, '[]', '[]')`,
+    )
+    .run(`row-${clientId}`, userId, name, clientId, 'hash');
 }
 
 function seedToken(
   overrides: Partial<{
-    id: number; clientId: string; userId: number; accessHash: string; refreshHash: string; scopes: string;
-    audience: string | null; accessExpiresAt: string; refreshExpiresAt: string; revokedAt: string | null; parentId: number | null;
+    id: number;
+    clientId: string;
+    userId: number;
+    accessHash: string;
+    refreshHash: string;
+    scopes: string;
+    audience: string | null;
+    accessExpiresAt: string;
+    refreshExpiresAt: string;
+    revokedAt: string | null;
+    parentId: number | null;
   }> = {},
 ): number {
-  const info = testDb.prepare(
-    `INSERT INTO oauth_tokens (client_id, user_id, access_token_hash, refresh_token_hash, scopes, audience, access_token_expires_at, refresh_token_expires_at, revoked_at, parent_token_id)
+  const info = testDb
+    .prepare(
+      `INSERT INTO oauth_tokens (client_id, user_id, access_token_hash, refresh_token_hash, scopes, audience, access_token_expires_at, refresh_token_expires_at, revoked_at, parent_token_id)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    overrides.clientId,
-    overrides.userId,
-    overrides.accessHash ?? `acc-${Math.random().toString(36).slice(2)}`,
-    overrides.refreshHash ?? `ref-${Math.random().toString(36).slice(2)}`,
-    overrides.scopes ?? '["trips:read"]',
-    overrides.audience ?? null,
-    overrides.accessExpiresAt ?? new Date(Date.now() + 3600_000).toISOString(),
-    overrides.refreshExpiresAt ?? new Date(Date.now() + 30 * 24 * 3600_000).toISOString(),
-    overrides.revokedAt ?? null,
-    overrides.parentId ?? null,
-  );
+    )
+    .run(
+      overrides.clientId,
+      overrides.userId,
+      overrides.accessHash ?? `acc-${Math.random().toString(36).slice(2)}`,
+      overrides.refreshHash ?? `ref-${Math.random().toString(36).slice(2)}`,
+      overrides.scopes ?? '["trips:read"]',
+      overrides.audience ?? null,
+      overrides.accessExpiresAt ?? new Date(Date.now() + 3600_000).toISOString(),
+      overrides.refreshExpiresAt ?? new Date(Date.now() + 30 * 24 * 3600_000).toISOString(),
+      overrides.revokedAt ?? null,
+      overrides.parentId ?? null,
+    );
   const id = Number(info.lastInsertRowid);
   if (overrides.id !== undefined) {
     testDb.prepare('UPDATE oauth_tokens SET id = ? WHERE id = ?').run(overrides.id, id);
@@ -80,7 +97,10 @@ describe('OauthTokensRepository', () => {
         refresh_token_expires_at: refreshExpiry,
         parent_token_id: null,
       });
-      const row = testDb.prepare('SELECT * FROM oauth_tokens WHERE access_token_hash = ?').get('acchash') as Record<string, unknown>;
+      const row = testDb.prepare('SELECT * FROM oauth_tokens WHERE access_token_hash = ?').get('acchash') as Record<
+        string,
+        unknown
+      >;
       expect(row).toMatchObject({
         client_id: 'proto-1',
         user_id: user.id,
@@ -98,10 +118,19 @@ describe('OauthTokensRepository', () => {
       seedClient(user.id, 'proto-2');
       const parentId = seedToken({ clientId: 'proto-2', userId: user.id });
       await tokens.insertToken({
-        client_id: 'proto-2', user_id: user.id, access_token_hash: 'a2', refresh_token_hash: 'r2', scopes: '[]', audience: null,
-        access_token_expires_at: new Date().toISOString(), refresh_token_expires_at: new Date().toISOString(), parent_token_id: parentId,
+        client_id: 'proto-2',
+        user_id: user.id,
+        access_token_hash: 'a2',
+        refresh_token_hash: 'r2',
+        scopes: '[]',
+        audience: null,
+        access_token_expires_at: new Date().toISOString(),
+        refresh_token_expires_at: new Date().toISOString(),
+        parent_token_id: parentId,
       });
-      const row = testDb.prepare('SELECT parent_token_id FROM oauth_tokens WHERE access_token_hash = ?').get('a2') as { parent_token_id: number };
+      const row = testDb.prepare('SELECT parent_token_id FROM oauth_tokens WHERE access_token_hash = ?').get('a2') as {
+        parent_token_id: number;
+      };
       expect(row.parent_token_id).toBe(parentId);
     });
   });
@@ -114,10 +143,14 @@ describe('OauthTokensRepository', () => {
       const idB = seedToken({ clientId: 'proto-3', userId: user.id });
 
       await tokens.revokeAllForClient('proto-3'); // legacy: datetime('now')
-      await tokens.revokeById(idB);               // legacy: CURRENT_TIMESTAMP
+      await tokens.revokeById(idB); // legacy: CURRENT_TIMESTAMP
 
-      const rowA = testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idA) as { revoked_at: string };
-      const rowB = testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idB) as { revoked_at: string };
+      const rowA = testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idA) as {
+        revoked_at: string;
+      };
+      const rowB = testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idB) as {
+        revoked_at: string;
+      };
       expect(rowA.revoked_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
       expect(rowB.revoked_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
     });
@@ -132,22 +165,49 @@ describe('OauthTokensRepository', () => {
 
       await tokens.revokeAllForClient('proto-4');
 
-      expect((testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idOther) as { revoked_at: string | null }).revoked_at).toBeNull();
-      expect((testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idAlready) as { revoked_at: string }).revoked_at).toBe('2020-01-01 00:00:00');
-      expect((testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idLive) as { revoked_at: string | null }).revoked_at).not.toBeNull();
+      expect(
+        (
+          testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idOther) as {
+            revoked_at: string | null;
+          }
+        ).revoked_at,
+      ).toBeNull();
+      expect(
+        (testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idAlready) as { revoked_at: string })
+          .revoked_at,
+      ).toBe('2020-01-01 00:00:00');
+      expect(
+        (
+          testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idLive) as {
+            revoked_at: string | null;
+          }
+        ).revoked_at,
+      ).not.toBeNull();
     });
   });
 
   describe('findByAccessTokenHashWithUser (OA16)', () => {
-    it('OAUTHTOKREPO-005: joins the token owner\'s username/email/role', async () => {
+    it("OAUTHTOKREPO-005: joins the token owner's username/email/role", async () => {
       const { user } = createUser(testDb, { username: 'bearer-user', email: 'bearer@example.test' });
       seedClient(user.id, 'proto-5');
-      seedToken({ clientId: 'proto-5', userId: user.id, accessHash: 'bearer-hash', scopes: '["trips:read"]', audience: 'aud' });
+      seedToken({
+        clientId: 'proto-5',
+        userId: user.id,
+        accessHash: 'bearer-hash',
+        scopes: '["trips:read"]',
+        audience: 'aud',
+      });
 
       const row = await tokens.findByAccessTokenHashWithUser('bearer-hash');
       expect(row).toMatchObject({
-        scopes: '["trips:read"]', audience: 'aud', revoked_at: null, user_id: user.id, client_id: 'proto-5',
-        username: 'bearer-user', email: 'bearer@example.test', role: 'user',
+        scopes: '["trips:read"]',
+        audience: 'aud',
+        revoked_at: null,
+        user_id: user.id,
+        client_id: 'proto-5',
+        username: 'bearer-user',
+        email: 'bearer@example.test',
+        role: 'user',
       });
     });
 
@@ -183,14 +243,18 @@ describe('OauthTokensRepository', () => {
       const sibRoot = seedToken({ clientId: 'proto-8', userId: user.id });
       const sibChild = seedToken({ clientId: 'proto-8', userId: user.id, parentId: sibRoot });
 
-      const legacyRows = testDb.prepare(`
+      const legacyRows = testDb
+        .prepare(
+          `
         WITH RECURSIVE chain(id) AS (
           SELECT id FROM oauth_tokens WHERE id = ?
           UNION ALL
           SELECT t.id FROM oauth_tokens t JOIN chain c ON t.parent_token_id = c.id
         )
         SELECT id FROM chain
-      `).all(id1) as Array<{ id: number }>;
+      `,
+        )
+        .all(id1) as Array<{ id: number }>;
       const legacyIds = legacyRows.map((r) => r.id).sort((a, b) => a - b);
 
       const ids = (await tokens.collectChainIds(id1)).sort((a, b) => a - b);
@@ -220,10 +284,31 @@ describe('OauthTokensRepository', () => {
 
       await tokens.revokeByIds([idLive1, idLive2, idAlready]);
 
-      expect((testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idLive1) as { revoked_at: string | null }).revoked_at).not.toBeNull();
-      expect((testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idLive2) as { revoked_at: string | null }).revoked_at).not.toBeNull();
-      expect((testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idAlready) as { revoked_at: string }).revoked_at).toBe('2020-01-01 00:00:00'); // untouched, not re-stamped
-      expect((testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idUntouched) as { revoked_at: string | null }).revoked_at).toBeNull();
+      expect(
+        (
+          testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idLive1) as {
+            revoked_at: string | null;
+          }
+        ).revoked_at,
+      ).not.toBeNull();
+      expect(
+        (
+          testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idLive2) as {
+            revoked_at: string | null;
+          }
+        ).revoked_at,
+      ).not.toBeNull();
+      expect(
+        (testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idAlready) as { revoked_at: string })
+          .revoked_at,
+      ).toBe('2020-01-01 00:00:00'); // untouched, not re-stamped
+      expect(
+        (
+          testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idUntouched) as {
+            revoked_at: string | null;
+          }
+        ).revoked_at,
+      ).toBeNull();
     });
 
     it('OAUTHTOKREPO-011: an empty array is a no-op (matches the legacy `if (ids.length > 0)` guard)', async () => {
@@ -248,10 +333,14 @@ describe('OauthTokensRepository', () => {
             throw new Error('force rollback');
           });
         });
-      } catch (e) { caught = e; }
+      } catch (e) {
+        caught = e;
+      }
       expect((caught as Error).message).toBe('force rollback');
 
-      const rows = testDb.prepare('SELECT id, revoked_at FROM oauth_tokens WHERE id IN (?, ?)').all(rootId, childId) as Array<{ id: number; revoked_at: string | null }>;
+      const rows = testDb
+        .prepare('SELECT id, revoked_at FROM oauth_tokens WHERE id IN (?, ?)')
+        .all(rootId, childId) as Array<{ id: number; revoked_at: string | null }>;
       expect(rows.every((r) => r.revoked_at === null)).toBe(true);
     });
 
@@ -268,7 +357,9 @@ describe('OauthTokensRepository', () => {
         });
       });
 
-      const rows = testDb.prepare('SELECT id, revoked_at FROM oauth_tokens WHERE id IN (?, ?)').all(rootId, childId) as Array<{ id: number; revoked_at: string | null }>;
+      const rows = testDb
+        .prepare('SELECT id, revoked_at FROM oauth_tokens WHERE id IN (?, ?)')
+        .all(rootId, childId) as Array<{ id: number; revoked_at: string | null }>;
       expect(rows.every((r) => r.revoked_at !== null)).toBe(true);
     });
   });
@@ -296,12 +387,24 @@ describe('OauthTokensRepository', () => {
       const { user } = createUser(testDb);
       seedClient(user.id, 'proto-16');
       const parentId = seedToken({ clientId: 'proto-16', userId: user.id });
-      const id = seedToken({ clientId: 'proto-16', userId: user.id, refreshHash: 'refresh-16', parentId, audience: 'aud-16' });
+      const id = seedToken({
+        clientId: 'proto-16',
+        userId: user.id,
+        refreshHash: 'refresh-16',
+        parentId,
+        audience: 'aud-16',
+      });
 
       const row = await tokens.findByRefreshTokenHash('refresh-16');
       expect(row).toEqual({
-        id, client_id: 'proto-16', user_id: user.id, scopes: '["trips:read"]', audience: 'aud-16',
-        refresh_token_expires_at: expect.any(String), revoked_at: null, parent_token_id: parentId,
+        id,
+        client_id: 'proto-16',
+        user_id: user.id,
+        scopes: '["trips:read"]',
+        audience: 'aud-16',
+        refresh_token_expires_at: expect.any(String),
+        revoked_at: null,
+        parent_token_id: parentId,
       });
     });
 
@@ -317,8 +420,14 @@ describe('OauthTokensRepository', () => {
       const idA = seedToken({ clientId: 'proto-18', userId: user.id });
       const idB = seedToken({ clientId: 'proto-18', userId: user.id });
       await tokens.revokeById(idA);
-      expect((testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idA) as { revoked_at: string | null }).revoked_at).not.toBeNull();
-      expect((testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idB) as { revoked_at: string | null }).revoked_at).toBeNull();
+      expect(
+        (testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idA) as { revoked_at: string | null })
+          .revoked_at,
+      ).not.toBeNull();
+      expect(
+        (testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idB) as { revoked_at: string | null })
+          .revoked_at,
+      ).toBeNull();
     });
   });
 
@@ -344,12 +453,15 @@ describe('OauthTokensRepository', () => {
       seedClient(user.id, 'proto-21');
       const id = seedToken({ clientId: 'proto-21', userId: user.id, accessHash: 'acc-21', refreshHash: 'ref-21' });
       await tokens.revokeByAccessOrRefreshHashAndClient('acc-21', 'proto-21');
-      expect((testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(id) as { revoked_at: string | null }).revoked_at).not.toBeNull();
+      expect(
+        (testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(id) as { revoked_at: string | null })
+          .revoked_at,
+      ).not.toBeNull();
     });
   });
 
   describe('listActiveByUser (OA26) — QueryBuilder join on the real oauth_clients.client_id column', () => {
-    it('OAUTHTOKREPO-022: lists only this user\'s non-revoked, non-expired-refresh sessions, newest first, with the client name joined in', async () => {
+    it("OAUTHTOKREPO-022: lists only this user's non-revoked, non-expired-refresh sessions, newest first, with the client name joined in", async () => {
       const { user } = createUser(testDb);
       const { user: other } = createUser(testDb);
       seedClient(user.id, 'proto-22a', 'Client A');
@@ -389,7 +501,7 @@ describe('OauthTokensRepository', () => {
       expect(await tokens.findOwnedById(id, user.id)).toEqual({ id, client_id: 'proto-23' });
     });
 
-    it('OAUTHTOKREPO-024: 404-shape null for another user\'s session', async () => {
+    it("OAUTHTOKREPO-024: 404-shape null for another user's session", async () => {
       const { user } = createUser(testDb);
       const { user: other } = createUser(testDb);
       seedClient(other.id, 'proto-24');
@@ -449,10 +561,25 @@ describe('OauthTokensRepository', () => {
 
       await tokens.revokeAllForUser(user.id);
 
-      expect((testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idA) as { revoked_at: string | null }).revoked_at).not.toBeNull();
-      expect((testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idB) as { revoked_at: string | null }).revoked_at).not.toBeNull();
-      expect((testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idAlready) as { revoked_at: string }).revoked_at).toBe('2020-01-01 00:00:00');
-      expect((testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idOther) as { revoked_at: string | null }).revoked_at).toBeNull();
+      expect(
+        (testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idA) as { revoked_at: string | null })
+          .revoked_at,
+      ).not.toBeNull();
+      expect(
+        (testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idB) as { revoked_at: string | null })
+          .revoked_at,
+      ).not.toBeNull();
+      expect(
+        (testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idAlready) as { revoked_at: string })
+          .revoked_at,
+      ).toBe('2020-01-01 00:00:00');
+      expect(
+        (
+          testDb.prepare('SELECT revoked_at FROM oauth_tokens WHERE id = ?').get(idOther) as {
+            revoked_at: string | null;
+          }
+        ).revoked_at,
+      ).toBeNull();
     });
   });
 
@@ -464,13 +591,22 @@ describe('OauthTokensRepository', () => {
       // differ, so a future fixture change can't silently make the
       // distinction disappear and hide a regression.
       seedClient(user.id, 'proto-30', 'Client Thirty');
-      const clientRow = testDb.prepare('SELECT id, client_id FROM oauth_clients WHERE client_id = ?').get('proto-30') as { id: string; client_id: string };
+      const clientRow = testDb
+        .prepare('SELECT id, client_id FROM oauth_clients WHERE client_id = ?')
+        .get('proto-30') as { id: string; client_id: string };
       expect(clientRow.id).not.toBe(clientRow.client_id);
       const id = seedToken({ clientId: 'proto-30', userId: user.id });
 
       const em = t.orm.em.fork();
-      const qb = em.getRepository(OauthTokens).qb('ot').innerJoin('ot.client', 'oc').select(['ot.id', 'oc.name as client_name']).where({ 'ot.id': id });
-      expect(qb.getFormattedQuery()).toContain('inner join `oauth_clients` as `oc` on `ot`.`client_id` = `oc`.`client_id`');
+      const qb = em
+        .getRepository(OauthTokens)
+        .qb('ot')
+        .innerJoin('ot.client', 'oc')
+        .select(['ot.id', 'oc.name as client_name'])
+        .where({ 'ot.id': id });
+      expect(qb.getFormattedQuery()).toContain(
+        'inner join `oauth_clients` as `oc` on `ot`.`client_id` = `oc`.`client_id`',
+      );
       const row = await qb.execute<{ id: number; client_name: string }>('get', false);
       expect(row).toEqual({ id, client_name: 'Client Thirty' });
     });
@@ -487,14 +623,21 @@ describe('OauthTokensRepository', () => {
       // return the decoy's name, not silently return nothing. A regression
       // to the wrong column is caught by a WRONG answer, not just an absent
       // one — the strongest form of this proof.
-      testDb.prepare(
-        `INSERT INTO oauth_clients (id, user_id, name, client_id, client_secret_hash, redirect_uris, allowed_scopes) VALUES (?, ?, ?, ?, ?, '[]', '[]')`,
-      ).run(realClientRow.client_id, user.id, 'Decoy Client', 'proto-31-decoy', 'hash');
+      testDb
+        .prepare(
+          `INSERT INTO oauth_clients (id, user_id, name, client_id, client_secret_hash, redirect_uris, allowed_scopes) VALUES (?, ?, ?, ?, ?, '[]', '[]')`,
+        )
+        .run(realClientRow.client_id, user.id, 'Decoy Client', 'proto-31-decoy', 'hash');
 
       const id = seedToken({ clientId: 'proto-31-real', userId: user.id });
 
       const em = t.orm.em.fork();
-      const qb = em.getRepository(OauthTokens).qb('ot').innerJoin('ot.client', 'oc').select(['ot.id', 'oc.name as client_name']).where({ 'ot.id': id });
+      const qb = em
+        .getRepository(OauthTokens)
+        .qb('ot')
+        .innerJoin('ot.client', 'oc')
+        .select(['ot.id', 'oc.name as client_name'])
+        .where({ 'ot.id': id });
       const row = await qb.execute<{ id: number; client_name: string }>('get', false);
       expect(row).toEqual({ id, client_name: 'Real Client' });
 
@@ -511,7 +654,12 @@ describe('OauthTokensRepository', () => {
     it('OAUTHTOKREPO-029: findByRefreshTokenHash (projection A) then findParent (projection B) then revokeById inside uow.transactional — the write survives', async () => {
       const { user } = createUser(testDb);
       seedClient(user.id, 'proto-29');
-      const id = seedToken({ clientId: 'proto-29', userId: user.id, refreshHash: 'refresh-29', scopes: '["kept-scope"]' });
+      const id = seedToken({
+        clientId: 'proto-29',
+        userId: user.id,
+        refreshHash: 'refresh-29',
+        scopes: '["kept-scope"]',
+      });
 
       await withRequestContext(t.orm, async () => {
         // Projection A — a wide fields set (id, client, user, scopes, audience, refresh_token_expires_at, revoked_at, parentToken).
@@ -524,7 +672,10 @@ describe('OauthTokensRepository', () => {
         });
       });
 
-      const row = testDb.prepare('SELECT revoked_at, scopes FROM oauth_tokens WHERE id = ?').get(id) as { revoked_at: string | null; scopes: string };
+      const row = testDb.prepare('SELECT revoked_at, scopes FROM oauth_tokens WHERE id = ?').get(id) as {
+        revoked_at: string | null;
+        scopes: string;
+      };
       expect(row.revoked_at).not.toBeNull(); // the nativeUpdate must stick
       expect(row.scopes).toBe('["kept-scope"]'); // untouched by either read
     });

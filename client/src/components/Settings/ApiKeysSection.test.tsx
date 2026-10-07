@@ -1,12 +1,12 @@
 // FE-COMP-APIKEYS-001 to FE-COMP-APIKEYS-020
-import { render, screen, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { server } from '../../../tests/helpers/msw/server';
-import { useAuthStore } from '../../store/authStore';
-import { useAddonStore } from '../../store/addonStore';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser } from '../../../tests/helpers/factories';
+import { server } from '../../../tests/helpers/msw/server';
+import { render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { useAddonStore } from '../../store/addonStore';
+import { useAuthStore } from '../../store/authStore';
 import { ToastContainer } from '../shared/Toast';
 import ApiKeysSection from './ApiKeysSection';
 
@@ -35,7 +35,7 @@ function renderSection() {
     <>
       <ApiKeysSection />
       <ToastContainer />
-    </>,
+    </>
   );
 }
 
@@ -88,7 +88,7 @@ describe('ApiKeysSection', () => {
       http.get('/api/auth/mcp-tokens', ({ request }) => {
         seen.push(new URL(request.url).pathname);
         return HttpResponse.json({ tokens: [] });
-      }),
+      })
     );
     renderSection();
     await waitFor(() => expect(seen).toContain('/api/auth/api-tokens'));
@@ -150,7 +150,7 @@ describe('ApiKeysSection', () => {
       http.delete('/api/auth/api-tokens/7', () => {
         deleted += 1;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     const user = userEvent.setup();
     renderSection();
@@ -205,7 +205,7 @@ describe('ApiKeysSection', () => {
       http.post('/api/auth/api-tokens', async ({ request }) => {
         posts.push(await request.json());
         return createdResponse();
-      }),
+      })
     );
     const user = userEvent.setup();
     renderSection();
@@ -229,7 +229,7 @@ describe('ApiKeysSection', () => {
       http.post('/api/auth/api-tokens', async ({ request }) => {
         posts.push((await request.json()) as { name?: string; scopes?: string[] });
         return createdResponse({ scope_mode: 'limited', scopes: ['trips', 'days'] });
-      }),
+      })
     );
     const user = userEvent.setup();
     renderSection();
@@ -255,7 +255,7 @@ describe('ApiKeysSection', () => {
       http.post('/api/auth/api-tokens', async ({ request }) => {
         posts.push((await request.json()) as Record<string, unknown>);
         return createdResponse();
-      }),
+      })
     );
     const user = userEvent.setup();
     renderSection();
@@ -282,8 +282,8 @@ describe('ApiKeysSection', () => {
   it('FE-COMP-APIKEYS-015: shows what a narrowed key may read, and that it was never used', async () => {
     server.use(
       http.get('/api/auth/api-tokens', () =>
-        HttpResponse.json({ tokens: [keyRow({ scope_mode: 'limited', scopes: ['places', 'notes'] })] }),
-      ),
+        HttpResponse.json({ tokens: [keyRow({ scope_mode: 'limited', scopes: ['places', 'notes'] })] })
+      )
     );
     renderSection();
 
@@ -296,8 +296,8 @@ describe('ApiKeysSection', () => {
   it('FE-COMP-APIKEYS-016: labels a key minted before scopes existed as reading everything', async () => {
     server.use(
       http.get('/api/auth/api-tokens', () =>
-        HttpResponse.json({ tokens: [keyRow({ last_used_at: '2026-09-01 08:30:00' })] }),
-      ),
+        HttpResponse.json({ tokens: [keyRow({ last_used_at: '2026-09-01 08:30:00' })] })
+      )
     );
     renderSection();
 

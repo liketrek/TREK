@@ -1,12 +1,19 @@
 import {
-  McpController, Tool, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
+  McpController,
+  Tool,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  demoDenied,
+  errorResult,
+  ok,
 } from '../../nest-mcp';
-import { z } from 'zod';
 import { AuthService } from '../auth/auth.service';
 import { TagsService } from './tags.service';
+
+import { z } from 'zod';
 
 /**
  * Tags MCP tools — pilot for the decorator-driven registry. Ported 1:1 from
@@ -16,7 +23,10 @@ import { TagsService } from './tags.service';
  */
 @McpController()
 export class TagsMcp {
-  constructor(private readonly tags: TagsService, private readonly auth: AuthService) {}
+  constructor(
+    private readonly tags: TagsService,
+    private readonly auth: AuthService,
+  ) {}
 
   @Tool({
     name: 'list_tags',

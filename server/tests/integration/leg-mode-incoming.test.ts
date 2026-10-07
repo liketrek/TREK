@@ -3,10 +3,16 @@
  * read-path parity: the field must survive both the single-assignment
  * projection and the day-LIST projection.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb2 } from '../../src/db/database';
+import { authCookie } from '../helpers/auth';
+import { createUser, createTrip, createDay, createPlace } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Read-path parity (day-LIST endpoint) — mirrors the harness in
@@ -27,12 +33,6 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { db as testDb2 } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
 
 describe('incoming_leg_transport_mode read-path parity', () => {
   let nestApp: INestApplication;
@@ -66,11 +66,11 @@ describe('incoming_leg_transport_mode read-path parity', () => {
     expect(create.status).toBe(201);
     const assignmentId = create.body.assignment.id;
 
-    testDb2.prepare('UPDATE day_assignments SET incoming_leg_transport_mode = ? WHERE id = ?').run('transit', assignmentId);
+    testDb2
+      .prepare('UPDATE day_assignments SET incoming_leg_transport_mode = ? WHERE id = ?')
+      .run('transit', assignmentId);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/days`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     const foundDay = res.body.days.find((d: any) => d.id === day.id);
     const a = foundDay.assignments.find((x: any) => x.id === assignmentId);
@@ -100,7 +100,9 @@ describe('incoming_leg_transport_mode read-path parity', () => {
         .send({ transport_mode: 'cycling' });
       expect(res.status).toBe(200);
 
-      const row = testDb2.prepare('SELECT leg_transport_mode, incoming_leg_transport_mode FROM day_assignments WHERE id = ?').get(assignmentId) as { leg_transport_mode: string | null; incoming_leg_transport_mode: string | null };
+      const row = testDb2
+        .prepare('SELECT leg_transport_mode, incoming_leg_transport_mode FROM day_assignments WHERE id = ?')
+        .get(assignmentId) as { leg_transport_mode: string | null; incoming_leg_transport_mode: string | null };
       expect(row.leg_transport_mode).toBe('cycling');
       expect(row.incoming_leg_transport_mode).toBeNull();
     });
@@ -123,7 +125,9 @@ describe('incoming_leg_transport_mode read-path parity', () => {
         .send({ transport_mode: 'transit', direction: 'incoming' });
       expect(res.status).toBe(200);
 
-      const row = testDb2.prepare('SELECT incoming_leg_transport_mode FROM day_assignments WHERE id = ?').get(assignmentId) as { incoming_leg_transport_mode: string | null };
+      const row = testDb2
+        .prepare('SELECT incoming_leg_transport_mode FROM day_assignments WHERE id = ?')
+        .get(assignmentId) as { incoming_leg_transport_mode: string | null };
       expect(row.incoming_leg_transport_mode).toBe('transit');
     });
 
@@ -170,13 +174,13 @@ describe('incoming_leg_transport_mode read-path parity', () => {
         .send({ transport_mode: 'transit', direction: 'incoming' })
         .expect(200);
 
-      const row = testDb2.prepare('SELECT leg_transport_mode, incoming_leg_transport_mode FROM day_assignments WHERE id = ?').get(assignmentId) as { leg_transport_mode: string | null; incoming_leg_transport_mode: string | null };
+      const row = testDb2
+        .prepare('SELECT leg_transport_mode, incoming_leg_transport_mode FROM day_assignments WHERE id = ?')
+        .get(assignmentId) as { leg_transport_mode: string | null; incoming_leg_transport_mode: string | null };
       expect(row.leg_transport_mode).toBe('cycling');
       expect(row.incoming_leg_transport_mode).toBe('transit');
 
-      const res = await request(app)
-        .get(`/api/trips/${trip.id}/days`)
-        .set('Cookie', authCookie(user.id));
+      const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(user.id));
       expect(res.status).toBe(200);
       const foundDay = res.body.days.find((d: any) => d.id === day.id);
       const a = foundDay.assignments.find((x: any) => x.id === assignmentId);

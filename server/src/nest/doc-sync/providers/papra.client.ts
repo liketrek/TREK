@@ -1,5 +1,4 @@
 import { readCappedJson } from '../../../utils/cappedFetch';
-import type { DocsyncErrorCode } from '@trek/shared';
 import {
   guardDownload,
   providerFetch,
@@ -7,6 +6,7 @@ import {
   type TransportFailure,
   type TransportFailureCode,
 } from './provider-http';
+import type { DocsyncErrorCode } from '@trek/shared';
 
 import crypto from 'node:crypto';
 import { Readable } from 'node:stream';

@@ -1,11 +1,12 @@
-import { Body, Controller, Get, Headers, HttpCode, Param, Post, Put, Req, Res, UseGuards } from '@nestjs/common';
-import type { Request, Response } from 'express';
 import type { User } from '../../types';
-import { MemoriesService } from './memories.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ImmichSearchDto, ImmichSettingsDto, ImmichTestDto } from './memories.dto';
+import { MemoriesService } from './memories.service';
+import { Body, Controller, Get, Headers, HttpCode, Param, Post, Put, Req, Res, UseGuards } from '@nestjs/common';
+
+import type { Request, Response } from 'express';
 
 /**
  * /api/integrations/memories/immich — Immich connection, browse/search, asset
@@ -38,7 +39,13 @@ export class ImmichMemoriesController {
     const { immich_url, immich_api_key, auto_upload, allow_insecure_tls } = body;
     // Absent stays undefined and leaves the stored choice alone, so an older
     // client cannot clear it by saving.
-    const result = await this.memories.immichSaveSettings(user.id, immich_url, immich_api_key, getClientIp(req), allow_insecure_tls);
+    const result = await this.memories.immichSaveSettings(
+      user.id,
+      immich_url,
+      immich_api_key,
+      getClientIp(req),
+      allow_insecure_tls,
+    );
     if (!result.success) {
       res.status(400).json({ error: result.error });
       return;

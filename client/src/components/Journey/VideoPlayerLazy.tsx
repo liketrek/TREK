@@ -1,7 +1,7 @@
-import { Suspense } from 'react'
-import type React from 'react'
-import { lazyWithRetry } from '../../utils/lazyWithRetry'
-import ErrorBoundary from '../shared/ErrorBoundary'
+import type React from 'react';
+import { Suspense } from 'react';
+import { lazyWithRetry } from '../../utils/lazyWithRetry';
+import ErrorBoundary from '../shared/ErrorBoundary';
 
 /**
  * Plyr (112 kB raw / 33 kB gzip of JS plus 32 kB / 5 kB of CSS) hung statically off
@@ -12,7 +12,7 @@ import ErrorBoundary from '../shared/ErrorBoundary'
  * The lightboxes only render the player on their video branch anyway, so the split
  * costs one frame of placeholder and nothing else.
  */
-const VideoPlayer = lazyWithRetry(() => import('./VideoPlayer'))
+const VideoPlayer = lazyWithRetry(() => import('./VideoPlayer'));
 
 export default function VideoPlayerLazy(props: React.ComponentProps<typeof VideoPlayer>) {
   // A black rectangle in the target geometry rather than null, so the lightbox does
@@ -28,7 +28,7 @@ export default function VideoPlayerLazy(props: React.ComponentProps<typeof Video
         ...props.style,
       }}
     />
-  )
+  );
   return (
     // Boundary outside the Suspense, as in MapViewAuto: Suspense owns the pending
     // promise, a rejected one flies past it and would otherwise take the whole
@@ -38,5 +38,5 @@ export default function VideoPlayerLazy(props: React.ComponentProps<typeof Video
         <VideoPlayer {...props} />
       </Suspense>
     </ErrorBoundary>
-  )
+  );
 }

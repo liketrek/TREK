@@ -1,7 +1,3 @@
-import { describe, it, expect } from 'vitest';
-
-import { OVERPASS_TIMEOUT_DEFAULT_MS } from '../../../src/nest/maps/maps.helpers';
-
 import {
   deriveApp,
   deriveHttp,
@@ -20,6 +16,9 @@ import {
   derivePush,
   deriveAll,
 } from '../../../src/app-config/derive';
+import { OVERPASS_TIMEOUT_DEFAULT_MS } from '../../../src/nest/maps/maps.helpers';
+
+import { describe, it, expect } from 'vitest';
 
 // These tests PIN the exact legacy coercions each derived field replaced.
 // If one fails after an edit, the edit changed runtime behavior — fix the
@@ -277,7 +276,9 @@ describe('deriveNet', () => {
   });
 
   it('ALLOW_LINK_LOCAL_IPS keeps only the addresses that may be used', () => {
-    expect(deriveNet({ ALLOW_LINK_LOCAL_IPS: '169.254.1.2,169.254.169.254,bogus' }).allowLinkLocalIps).toEqual(['169.254.1.2']);
+    expect(deriveNet({ ALLOW_LINK_LOCAL_IPS: '169.254.1.2,169.254.169.254,bogus' }).allowLinkLocalIps).toEqual([
+      '169.254.1.2',
+    ]);
     expect(deriveNet({}).allowLinkLocalIps).toEqual([]);
   });
 });
@@ -297,8 +298,22 @@ describe('deriveAll', () => {
     expect(env.app.port).toBe(4000);
     expect(env.demo.enabled).toBe(true);
     for (const ns of [
-      'app', 'http', 'session', 'demo', 'adminBootstrap', 'oidc', 'smtp', 'mcp',
-      'plugins', 'webauthn', 'integrations', 'backup', 'db', 'paths', 'net', 'push',
+      'app',
+      'http',
+      'session',
+      'demo',
+      'adminBootstrap',
+      'oidc',
+      'smtp',
+      'mcp',
+      'plugins',
+      'webauthn',
+      'integrations',
+      'backup',
+      'db',
+      'paths',
+      'net',
+      'push',
     ] as const) {
       expect(env[ns]).toBeDefined();
     }

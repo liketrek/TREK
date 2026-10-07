@@ -1,6 +1,11 @@
-import crypto from 'node:crypto';
+import type {
+  PluginCapabilityAuditRepository,
+  AuditForPluginRow,
+  AuditForUserRow,
+} from '../../../db/repositories/PluginCapabilityAudit.repository';
 import { METHOD_PERMISSION } from '../protocol/envelope';
-import type { PluginCapabilityAuditRepository, AuditForPluginRow, AuditForUserRow } from '../../../db/repositories/PluginCapabilityAudit.repository';
+
+import crypto from 'node:crypto';
 
 /**
  * Host-side, hash-chained capability audit (#plugins, L1 hardening).
@@ -26,10 +31,12 @@ export function auditResource(method: string, params: Record<string, unknown>): 
   if (method === 'trips.create') return 'trips:new';
   if (method === 'trips.listMine') return 'trips:all';
   if (method === 'reservations.listMine') return 'reservations:all';
-  if (method.startsWith('trips.') || method.startsWith('reservations.') || method.startsWith('accommodations.')) return `trip:${params.tripId ?? '?'}`;
+  if (method.startsWith('trips.') || method.startsWith('reservations.') || method.startsWith('accommodations.'))
+    return `trip:${params.tripId ?? '?'}`;
   if (method === 'costs.listMine') return 'costs:all';
   if (method.startsWith('costs.')) return `trip:${params.tripId ?? '?'}`;
-  if (method.startsWith('places.') || method.startsWith('days.') || method.startsWith('itinerary.')) return `trip:${params.tripId ?? '?'}`;
+  if (method.startsWith('places.') || method.startsWith('days.') || method.startsWith('itinerary.'))
+    return `trip:${params.tripId ?? '?'}`;
   if (method.startsWith('packing.') || method.startsWith('files.')) return `trip:${params.tripId ?? '?'}`;
   if (method === 'journal.listMine') return 'journal:all';
   if (method.startsWith('journal.')) return `journal:entry:${params.entryId ?? params.journeyId ?? '?'}`;
@@ -50,7 +57,10 @@ export function auditResource(method: string, params: Record<string, unknown>): 
   if (method === 'users.getById') return `user:${params.id ?? '?'}`;
   if (method === 'ws.broadcastToTrip') return `trip:${params.tripId ?? '?'}`;
   if (method === 'ws.broadcastToUser') return `user:${params.userId ?? '?'}`;
-  if (method === 'notify.send') { const i = (params.input ?? {}) as Record<string, unknown>; return `notify:${i.scope ?? '?'}:${i.targetId ?? '?'}`; }
+  if (method === 'notify.send') {
+    const i = (params.input ?? {}) as Record<string, unknown>;
+    return `notify:${i.scope ?? '?'}:${i.targetId ?? '?'}`;
+  }
   if (method === 'ai.complete' || method === 'ai.extract') return 'ai:invoke';
   if (method === 'oauth.getToken') return 'oauth:token';
   if (method.startsWith('scheduler.')) return `scheduler:${params.name ?? '?'}`;
@@ -142,7 +152,11 @@ function envInt(name: string, def: number): number {
 
 /** Keep only the newest `MAX_AUDIT_ROWS` rows for a plugin. Called amortised from
  * appendAudit; exported for tests. No-op when disabled or under the cap. */
-export async function pruneAudit(audit: PluginCapabilityAuditRepository, pluginId: string, keep = MAX_AUDIT_ROWS): Promise<void> {
+export async function pruneAudit(
+  audit: PluginCapabilityAuditRepository,
+  pluginId: string,
+  keep = MAX_AUDIT_ROWS,
+): Promise<void> {
   if (keep <= 0) return;
   await audit.pruneKeepingNewest(pluginId, keep);
 }
@@ -167,7 +181,10 @@ export async function appendAudit(audit: PluginCapabilityAuditRepository, e: Aud
     const prev = (await audit.lastHash(e.pluginId)) ?? '';
     const ts = new Date().toISOString();
     const row = JSON.stringify([e.pluginId, e.actingUserId ?? null, e.method, e.resource ?? null, e.code, ts]);
-    const hash = crypto.createHash('sha256').update(prev + row).digest('hex');
+    const hash = crypto
+      .createHash('sha256')
+      .update(prev + row)
+      .digest('hex');
     await audit.insertRow({
       plugin_id: e.pluginId,
       acting_user_id: e.actingUserId ?? null,
@@ -181,20 +198,30 @@ export async function appendAudit(audit: PluginCapabilityAuditRepository, e: Aud
   });
   // Amortised retention: prune roughly every PRUNE_EVERY appends per plugin.
   const n = (appendsSincePrune.get(e.pluginId) ?? 0) + 1;
-  if (n >= PRUNE_EVERY) { appendsSincePrune.set(e.pluginId, 0); await pruneAudit(audit, e.pluginId); }
-  else appendsSincePrune.set(e.pluginId, n);
+  if (n >= PRUNE_EVERY) {
+    appendsSincePrune.set(e.pluginId, 0);
+    await pruneAudit(audit, e.pluginId);
+  } else appendsSincePrune.set(e.pluginId, n);
 }
 
 /** Read the most recent audit rows across ALL plugins for one acting user — the
  * "what have plugins done in my name?" view. This is what legitimizes the broad
  * read grants: the user, not just the admin, can see every plugin action bound to
  * them. Joined with the plugin name for display; capped. */
-export async function readAuditForUser(audit: PluginCapabilityAuditRepository, userId: number, limit = 200): Promise<AuditForUserRow[]> {
+export async function readAuditForUser(
+  audit: PluginCapabilityAuditRepository,
+  userId: number,
+  limit = 200,
+): Promise<AuditForUserRow[]> {
   return audit.forUser(userId, limit);
 }
 
 /** Read the most recent audit rows for a plugin (admin view). */
-export async function readAudit(audit: PluginCapabilityAuditRepository, pluginId: string, limit = 200): Promise<AuditForPluginRow[]> {
+export async function readAudit(
+  audit: PluginCapabilityAuditRepository,
+  pluginId: string,
+  limit = 200,
+): Promise<AuditForPluginRow[]> {
   return audit.forPlugin(pluginId, limit);
 }
 
@@ -214,13 +241,25 @@ export async function readAudit(audit: PluginCapabilityAuditRepository, pluginId
  * admin "verify audit integrity" surface would want exactly this.
  */
 export function verifyChain(
-  rows: Array<{ plugin_id: string; acting_user_id: number | null; method: string; resource: string | null; code: string; ts: string; prev_hash: string | null; hash: string }>,
+  rows: Array<{
+    plugin_id: string;
+    acting_user_id: number | null;
+    method: string;
+    resource: string | null;
+    code: string;
+    ts: string;
+    prev_hash: string | null;
+    hash: string;
+  }>,
 ): boolean {
   let prev = '';
   for (const r of rows) {
     if ((r.prev_hash ?? '') !== prev) return false;
     const row = JSON.stringify([r.plugin_id, r.acting_user_id ?? null, r.method, r.resource ?? null, r.code, r.ts]);
-    const hash = crypto.createHash('sha256').update(prev + row).digest('hex');
+    const hash = crypto
+      .createHash('sha256')
+      .update(prev + row)
+      .digest('hex');
     if (hash !== r.hash) return false;
     prev = r.hash;
   }

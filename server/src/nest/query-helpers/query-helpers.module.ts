@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { QueryHelpersService } from './query-helpers.service';
-import { Tags } from '../../db/entities/Tags.entity';
-import { PlaceRatings } from '../../db/entities/PlaceRatings.entity';
 import { AssignmentParticipants } from '../../db/entities/AssignmentParticipants.entity';
+import { PlaceRatings } from '../../db/entities/PlaceRatings.entity';
+import { Tags } from '../../db/entities/Tags.entity';
+import { QueryHelpersService } from './query-helpers.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /** Shared batch loaders for the list endpoints. No controller or MCP surface of
  *  its own — assignments, days, places and share import it for the loaders.

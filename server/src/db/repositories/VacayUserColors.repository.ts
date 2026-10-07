@@ -34,7 +34,10 @@ export class VacayUserColorsRepository extends TrekRepository<VacayUserColors> {
    * three identical-text call sites, one method).
    */
   async insertIgnore(userId: number, planId: number, color: string | null): Promise<void> {
-    await this.upsert({ user: userId, plan: planId, color }, { onConflictFields: ['user', 'plan'], onConflictAction: 'ignore' });
+    await this.upsert(
+      { user: userId, plan: planId, color },
+      { onConflictFields: ['user', 'plan'], onConflictAction: 'ignore' },
+    );
   }
 
   /**

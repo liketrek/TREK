@@ -1,6 +1,6 @@
+import { currentTimestamp } from '../dialect/sql-functions';
 import type { PasswordResetTokens } from '../entities/PasswordResetTokens.entity';
 import type { AssertRowKeys } from './_shared/rows';
-import { currentTimestamp } from '../dialect/sql-functions';
 import { TrekRepository } from './_shared/trek-repository';
 
 /** A `password_reset_tokens` row as the API emits it. */
@@ -101,7 +101,9 @@ export class PasswordResetTokensRepository extends TrekRepository<PasswordResetT
    */
   async findByTokenHash(hash: string): Promise<PasswordResetTokenLookup | null> {
     const row = await this.findOne({ token_hash: hash }, { fields: ['id', 'user', 'expires_at', 'consumed_at'] });
-    return row ? { id: row.id, user_id: row.user.id, expires_at: row.expires_at, consumed_at: row.consumed_at ?? null } : null;
+    return row
+      ? { id: row.id, user_id: row.user.id, expires_at: row.expires_at, consumed_at: row.consumed_at ?? null }
+      : null;
   }
 
   /**

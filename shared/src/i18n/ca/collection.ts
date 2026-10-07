@@ -96,7 +96,7 @@ const collection: TranslationStrings = {
   'collections.markVisited': 'Marca com a visitat',
   'collections.markVisitedAll': 'Visitat pertot',
   'collections.markVisitedSelection': 'Marca com a visitat a les teves llistes',
-  'collections.markVisitedNone': 'Cap d\'aquests llocs no és desat en cap llista',
+  'collections.markVisitedNone': "Cap d'aquests llocs no és desat en cap llista",
   'collections.markedVisited': 'Marcat com a visitat',
   'collections.markedVisitedTrip': '{count} llocs marcats com a visitats',
   'collections.copyToTrip': 'Copiar al viatge',
@@ -147,7 +147,8 @@ const collection: TranslationStrings = {
   'collections.file.targetExisting': 'Afegeix a una llista',
   'collections.file.targetExistingHint': 'A una que ja tens',
   'collections.file.searchLists': 'Cerca llistes',
-  'collections.file.intoHint': 'Els llocs que la llista ja té es queden com estan, igual que el nom i el color. Les etiquetes del fitxer s\'hi afegeixen.',
+  'collections.file.intoHint':
+    "Els llocs que la llista ja té es queden com estan, igual que el nom i el color. Les etiquetes del fitxer s'hi afegeixen.",
   'collections.file.confirmInto': 'Afegeix a la llista',
   'collections.file.doneInto': '{count} llocs afegits a {name}',
   'collections.file.doneIntoDuplicates': '{count} afegits a {name}, {duplicates} ja hi eren',

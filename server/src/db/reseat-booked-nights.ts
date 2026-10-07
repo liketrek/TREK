@@ -1,5 +1,13 @@
+import {
+  locatedIds,
+  planViaCarry,
+  sameOrder,
+  seatAmong,
+  type PinnedVia,
+  type SeatRow,
+} from '../nest/accommodations/night-seat';
+
 import Database from 'better-sqlite3';
-import { locatedIds, planViaCarry, sameOrder, seatAmong, type PinnedVia, type SeatRow } from '../nest/accommodations/night-seat';
 
 /**
  * Seat every booked night where its check-in says, the way a night booked today is
@@ -27,12 +35,16 @@ import { locatedIds, planViaCarry, sameOrder, seatAmong, type PinnedVia, type Se
  * how many nights moved.
  */
 export function reseatBookedNights(db: Database.Database): number {
-  const nights = db.prepare(`
+  const nights = db
+    .prepare(
+      `
     SELECT da.id, da.day_id, a.id AS accommodation_id, a.check_in
     FROM day_assignments da
     JOIN day_accommodations a ON a.id = da.accommodation_id
     ORDER BY da.day_id, a.check_in IS NOT NULL, a.check_in, a.id
-  `).all() as Array<{ id: number; day_id: number; accommodation_id: number; check_in: string | null }>;
+  `,
+    )
+    .all() as Array<{ id: number; day_id: number; accommodation_id: number; check_in: string | null }>;
   // A day's stops as the rule sees them (SeatRow): the same statement
   // DayAssignmentsRepository.listSeatRows (AC7) runs for the services.
   const dayStops = db.prepare(`
@@ -76,7 +88,9 @@ export function reseatBookedNights(db: Database.Database): number {
     roads.removed += plan.remove.length;
   }
   if (roads.moved || roads.removed) {
-    console.log(`[DB] Re-pinned ${roads.moved} drawn road(s) behind the reseated nights, dropped ${roads.removed} left without a leg`);
+    console.log(
+      `[DB] Re-pinned ${roads.moved} drawn road(s) behind the reseated nights, dropped ${roads.removed} left without a leg`,
+    );
   }
   return seated;
 }

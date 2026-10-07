@@ -1,10 +1,14 @@
-import { CallHandler, ExecutionContext, HttpException, Injectable, NestInterceptor } from '@nestjs/common';
+import { IdempotencyKeys } from '../../db/entities/IdempotencyKeys.entity';
+import type {
+  IdempotencyKeysRepository,
+  IdempotencyResponseRow,
+} from '../../db/repositories/IdempotencyKeys.repository';
 import { InjectRepository } from '@mikro-orm/nestjs';
+import { CallHandler, ExecutionContext, HttpException, Injectable, NestInterceptor } from '@nestjs/common';
+
 import type { Request, Response } from 'express';
 import { Observable, from, of } from 'rxjs';
 import { finalize, mergeAll, switchMap } from 'rxjs/operators';
-import { IdempotencyKeys } from '../../db/entities/IdempotencyKeys.entity';
-import type { IdempotencyKeysRepository, IdempotencyResponseRow } from '../../db/repositories/IdempotencyKeys.repository';
 
 /**
  * Replaces the `applyIdempotency` middleware the Express `authenticate` ran on
@@ -141,7 +145,12 @@ export class IdempotencyInterceptor implements NestInterceptor {
    */
   private claim(signature: string): () => void {
     let done!: () => void;
-    inFlight.set(signature, new Promise<void>((resolve) => { done = resolve; }));
+    inFlight.set(
+      signature,
+      new Promise<void>((resolve) => {
+        done = resolve;
+      }),
+    );
     let released = false;
     // Idempotent: whichever of the two paths below gets there first releases the
     // waiter, and the other one is a no-op.
@@ -189,11 +198,17 @@ export class IdempotencyInterceptor implements NestInterceptor {
             // `database.run` this replaces, just genuinely async underneath.
             void idempotencyKeys
               .insertIfAbsent({
-                key, user_id: userId, method: req.method, path: req.path,
-                status_code: res.statusCode, response_body: serialized,
+                key,
+                user_id: userId,
+                method: req.method,
+                path: req.path,
+                status_code: res.statusCode,
+                response_body: serialized,
                 created_at: Math.floor(Date.now() / 1000),
               })
-              .catch(() => { /* Non-fatal: if storage fails, the request still succeeds. */ })
+              .catch(() => {
+                /* Non-fatal: if storage fails, the request still succeeds. */
+              })
               .finally(release);
             return originalJson(body);
           }

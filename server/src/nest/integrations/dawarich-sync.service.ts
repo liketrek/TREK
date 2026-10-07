@@ -1,5 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { ADDON_IDS } from '../../addons';
+import { BucketList } from '../../db/entities/BucketList.entity';
+import { DawarichConnections } from '../../db/entities/DawarichConnections.entity';
+import { DawarichVisitSuggestions } from '../../db/entities/DawarichVisitSuggestions.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { BucketListRepository } from '../../db/repositories/BucketList.repository';
+import { DawarichConnectionsRepository } from '../../db/repositories/DawarichConnections.repository';
+import { DawarichVisitSuggestionsRepository } from '../../db/repositories/DawarichVisitSuggestions.repository';
+import { TripsRepository } from '../../db/repositories/Trips.repository';
+import { AddonsService } from '../addons/addons.service';
+import { getCountryFromCoords } from '../atlas/atlas-geo';
+import { logError, logInfo } from '../audit/audit-log.logger';
+import { UnitOfWork } from '../database/unit-of-work';
+import { DawarichClient, DawarichError, type DawarichCreds } from './dawarich.client';
+import { distanceMeters, localDateOf, normalizeVisit, syncWindow, visitHash } from './dawarich.helpers';
+import { DawarichService } from './dawarich.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 import {
   DAWARICH_SYNC_LOOKAHEAD_DAYS,
   DAWARICH_SYNC_LOOKBACK_DAYS,
@@ -7,22 +23,6 @@ import {
   DAWARICH_BUCKET_MATCH_MIN_MINUTES,
   type DawarichSyncState,
 } from '@trek/shared';
-import { ADDON_IDS } from '../../addons';
-import { UnitOfWork } from '../database/unit-of-work';
-import { AddonsService } from '../addons/addons.service';
-import { logError, logInfo } from '../audit/audit-log.logger';
-import { getCountryFromCoords } from '../atlas/atlas-geo';
-import { DawarichVisitSuggestions } from '../../db/entities/DawarichVisitSuggestions.entity';
-import { DawarichVisitSuggestionsRepository } from '../../db/repositories/DawarichVisitSuggestions.repository';
-import { Trips } from '../../db/entities/Trips.entity';
-import { TripsRepository } from '../../db/repositories/Trips.repository';
-import { BucketList } from '../../db/entities/BucketList.entity';
-import { BucketListRepository } from '../../db/repositories/BucketList.repository';
-import { DawarichConnections } from '../../db/entities/DawarichConnections.entity';
-import { DawarichConnectionsRepository } from '../../db/repositories/DawarichConnections.repository';
-import { DawarichClient, DawarichError, type DawarichCreds } from './dawarich.client';
-import { DawarichService } from './dawarich.service';
-import { distanceMeters, localDateOf, normalizeVisit, syncWindow, visitHash } from './dawarich.helpers';
 
 /** What one user's sync produced — plus whether it ran at all. */
 export interface DawarichSyncOutcome {
@@ -189,8 +189,7 @@ export class DawarichSyncService {
       }
     }
 
-    const state: DawarichSyncState =
-      failures === 0 ? 'ok' : failures === trips.length ? 'failed' : 'partial';
+    const state: DawarichSyncState = failures === 0 ? 'ok' : failures === trips.length ? 'failed' : 'partial';
     await this.dawarich.recordSyncResult(userId, state, state === 'ok' ? null : lastError);
 
     // The probe is cheap next to the windows just fetched, and re-running it is
@@ -404,7 +403,13 @@ export class DawarichSyncService {
     // degree of latitude is ~111 km, and longitude shrinks with latitude, so the
     // box is deliberately generous and the real test is the distance below.
     const degrees = (DAWARICH_BUCKET_MATCH_RADIUS_M / 111_000) * 2 + 0.01;
-    const nearby = await this.bucketList.listInBoundingBox(userId, lat - degrees, lat + degrees, lng - degrees, lng + degrees);
+    const nearby = await this.bucketList.listInBoundingBox(
+      userId,
+      lat - degrees,
+      lat + degrees,
+      lng - degrees,
+      lng + degrees,
+    );
 
     let best: { id: number; lat: number; lng: number; distance: number } | null = null;
     for (const item of nearby) {
@@ -446,8 +451,7 @@ export class DawarichSyncService {
       if (holder.lat === null || holder.lng === null) continue;
       const distance = distanceMeters(holder.lat, holder.lng, wish.lat, wish.lng);
       const holderWins =
-        distance < wish.distance ||
-        (distance === wish.distance && holder.duration_minutes > durationMinutes);
+        distance < wish.distance || (distance === wish.distance && holder.duration_minutes > durationMinutes);
       if (holderWins) return;
     }
 

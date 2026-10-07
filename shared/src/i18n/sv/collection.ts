@@ -155,7 +155,8 @@ const collection: TranslationStrings = {
   'collections.file.targetExisting': 'Lägg till i en lista',
   'collections.file.targetExistingHint': 'I en du redan har',
   'collections.file.searchLists': 'Sök listor',
-  'collections.file.intoHint': 'Platser som listan redan har lämnas som de är, liksom namn och färg. Etiketter från filen läggs till.',
+  'collections.file.intoHint':
+    'Platser som listan redan har lämnas som de är, liksom namn och färg. Etiketter från filen läggs till.',
   'collections.file.confirmInto': 'Lägg till i listan',
   'collections.file.doneInto': '{count} platser tillagda i {name}',
   'collections.file.doneIntoDuplicates': '{count} tillagda i {name}, {duplicates} fanns redan',

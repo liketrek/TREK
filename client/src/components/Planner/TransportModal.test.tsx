@@ -1,27 +1,27 @@
 // FE-PLANNER-TRANSMODAL-001 to FE-PLANNER-TRANSMODAL-082
-import { render, screen, waitFor, fireEvent, within, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { server } from '../../../tests/helpers/msw/server';
-import { useAuthStore } from '../../store/authStore';
-import { useTripStore } from '../../store/tripStore';
-import { useAddonStore } from '../../store/addonStore';
-import { useSettingsStore } from '../../store/settingsStore';
 import { isBlurred } from '../../../tests/helpers/bookingCodeBlur';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import {
-  buildUser,
-  buildTrip,
+  buildAssignment,
   buildDay,
   buildPlace,
-  buildAssignment,
   buildReservation,
+  buildTrip,
   buildTripFile,
+  buildUser,
 } from '../../../tests/helpers/factories';
-import { TransportModal } from './TransportModal';
+import { server } from '../../../tests/helpers/msw/server';
+import { act, fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { useAddonStore } from '../../store/addonStore';
+import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
+import { useTripStore } from '../../store/tripStore';
 import type { Day, Reservation } from '../../types';
-import type { BookingReviewDraft } from './parsedItemToDraft';
 import type { TripMember } from '../Budget/BudgetPanelMemberChips';
+import type { BookingReviewDraft } from './parsedItemToDraft';
+import { TransportModal } from './TransportModal';
 
 vi.mock('react-router', async (importActual) => {
   const actual = await importActual<typeof import('react-router')>();
@@ -30,13 +30,28 @@ vi.mock('react-router', async (importActual) => {
 
 vi.mock('../shared/CustomTimePicker', () => ({
   default: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
-    <input data-testid="time-picker" type="text" value={value} onChange={e => onChange(e.target.value)} />
+    <input data-testid="time-picker" type="text" value={value} onChange={(e) => onChange(e.target.value)} />
   ),
 }));
 
 vi.mock('./AirportSelect', () => ({
   default: ({ onChange }: { onChange: (a: any) => void }) => (
-    <input data-testid="airport-select" type="text" onChange={e => onChange({ iata: e.target.value, name: e.target.value, city: '', country: '', lat: 0, lng: 0, tz: 'UTC', icao: null })} />
+    <input
+      data-testid="airport-select"
+      type="text"
+      onChange={(e) =>
+        onChange({
+          iata: e.target.value,
+          name: e.target.value,
+          city: '',
+          country: '',
+          lat: 0,
+          lng: 0,
+          tz: 'UTC',
+          icao: null,
+        })
+      }
+    />
   ),
 }));
 
@@ -44,9 +59,9 @@ vi.mock('./LocationSelect', () => ({
   default: ({ onChange, places }: { onChange: (l: any) => void; places?: { name: string }[] }) => (
     <input
       data-testid="location-select"
-      data-picks={(places ?? []).map(p => p.name).join('|')}
+      data-picks={(places ?? []).map((p) => p.name).join('|')}
       type="text"
-      onChange={e => onChange({ name: e.target.value, lat: 0, lng: 0, address: null })}
+      onChange={(e) => onChange({ name: e.target.value, lat: 0, lng: 0, address: null })}
     />
   ),
 }));
@@ -305,7 +320,7 @@ describe('TransportModal', () => {
   it('FE-PLANNER-TRANSMODAL-021: clicking file in picker links it and closes picker', async () => {
     server.use(
       http.post('/api/trips/1/files/99/link', () => HttpResponse.json({ success: true })),
-      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] })),
+      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] }))
     );
 
     const res = buildReservation({ id: 5, type: 'flight' });
@@ -380,7 +395,7 @@ describe('TransportModal', () => {
       http.post('/api/trips/1/files/42/link', () => HttpResponse.json({ success: true })),
       http.get('/api/trips/1/files/42/links', () => HttpResponse.json({ links: [{ id: 1, reservation_id: 7 }] })),
       http.delete('/api/trips/1/files/42/link/1', () => HttpResponse.json({ success: true })),
-      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] })),
+      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] }))
     );
 
     const res = buildReservation({ id: 7, type: 'car' });
@@ -392,9 +407,7 @@ describe('TransportModal', () => {
     await waitFor(() => expect(screen.getByText('rental-agreement.pdf')).toBeInTheDocument());
     await userEvent.click(screen.getByText('rental-agreement.pdf'));
 
-    await waitFor(() =>
-      expect(screen.queryByRole('button', { name: /Link existing file/i })).not.toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Link existing file/i })).not.toBeInTheDocument());
 
     const fileRow = screen.getByText('rental-agreement.pdf').closest('div')!;
     // The row carries two buttons: [0] opens the file, [1] unlinks it.
@@ -434,9 +447,39 @@ describe('TransportModal', () => {
     const res = buildReservation({ title: 'Fernsehturm → Zoo', type: 'bus' }) as any;
     res.metadata = { transit: { provider: 'transitous', transfers: 1, legs: [{ mode: 'BUS', line: '100' }] } };
     res.endpoints = [
-      { role: 'from', sequence: 0, name: 'Fernsehturm', code: null, lat: 52.5208, lng: 13.4094, timezone: 'Europe/Berlin', local_date: '2025-06-01', local_time: '08:30' },
-      { role: 'stop', sequence: 1, name: 'Alexanderplatz', code: null, lat: 52.521, lng: 13.41, timezone: 'Europe/Berlin', local_date: '2025-06-01', local_time: '08:40' },
-      { role: 'to', sequence: 2, name: 'Zoologischer Garten', code: null, lat: 52.507, lng: 13.332, timezone: 'Europe/Berlin', local_date: '2025-06-01', local_time: '09:00' },
+      {
+        role: 'from',
+        sequence: 0,
+        name: 'Fernsehturm',
+        code: null,
+        lat: 52.5208,
+        lng: 13.4094,
+        timezone: 'Europe/Berlin',
+        local_date: '2025-06-01',
+        local_time: '08:30',
+      },
+      {
+        role: 'stop',
+        sequence: 1,
+        name: 'Alexanderplatz',
+        code: null,
+        lat: 52.521,
+        lng: 13.41,
+        timezone: 'Europe/Berlin',
+        local_date: '2025-06-01',
+        local_time: '08:40',
+      },
+      {
+        role: 'to',
+        sequence: 2,
+        name: 'Zoologischer Garten',
+        code: null,
+        lat: 52.507,
+        lng: 13.332,
+        timezone: 'Europe/Berlin',
+        local_date: '2025-06-01',
+        local_time: '09:00',
+      },
     ];
     render(<TransportModal {...defaultProps} reservation={res} onSave={onSave} />);
     // Save without touching the route — the itinerary must survive.
@@ -454,9 +497,39 @@ describe('TransportModal', () => {
     const res = buildReservation({ title: 'Fernsehturm → Zoo', type: 'bus' }) as any;
     res.metadata = { transit: { provider: 'transitous', legs: [{ mode: 'BUS' }] } };
     res.endpoints = [
-      { role: 'from', sequence: 0, name: 'Fernsehturm', code: null, lat: 52.5208, lng: 13.4094, timezone: 'Europe/Berlin', local_date: null, local_time: null },
-      { role: 'stop', sequence: 1, name: 'Alexanderplatz', code: null, lat: 52.521, lng: 13.41, timezone: 'Europe/Berlin', local_date: null, local_time: null },
-      { role: 'to', sequence: 2, name: 'Zoologischer Garten', code: null, lat: 52.507, lng: 13.332, timezone: 'Europe/Berlin', local_date: null, local_time: null },
+      {
+        role: 'from',
+        sequence: 0,
+        name: 'Fernsehturm',
+        code: null,
+        lat: 52.5208,
+        lng: 13.4094,
+        timezone: 'Europe/Berlin',
+        local_date: null,
+        local_time: null,
+      },
+      {
+        role: 'stop',
+        sequence: 1,
+        name: 'Alexanderplatz',
+        code: null,
+        lat: 52.521,
+        lng: 13.41,
+        timezone: 'Europe/Berlin',
+        local_date: null,
+        local_time: null,
+      },
+      {
+        role: 'to',
+        sequence: 2,
+        name: 'Zoologischer Garten',
+        code: null,
+        lat: 52.507,
+        lng: 13.332,
+        timezone: 'Europe/Berlin',
+        local_date: null,
+        local_time: null,
+      },
     ];
     render(<TransportModal {...defaultProps} reservation={res} onSave={onSave} />);
     // Pick a different destination (mocked LocationSelect emits lat/lng 0,0).
@@ -482,9 +555,39 @@ describe('TransportModal', () => {
       ],
     };
     res.endpoints = [
-      { role: 'from', sequence: 0, name: 'Brussels', code: 'BRU', lat: 50.9, lng: 4.48, timezone: 'Europe/Brussels', local_date: '2025-06-01', local_time: '08:00' },
-      { role: 'stop', sequence: 1, name: 'Helsinki-Vantaa', code: 'HEL', lat: 60.32, lng: 24.96, timezone: 'Europe/Helsinki', local_date: '2025-06-01', local_time: '14:00' },
-      { role: 'to', sequence: 2, name: 'JFK', code: 'JFK', lat: 40.64, lng: -73.78, timezone: 'America/New_York', local_date: '2025-06-01', local_time: '15:00' },
+      {
+        role: 'from',
+        sequence: 0,
+        name: 'Brussels',
+        code: 'BRU',
+        lat: 50.9,
+        lng: 4.48,
+        timezone: 'Europe/Brussels',
+        local_date: '2025-06-01',
+        local_time: '08:00',
+      },
+      {
+        role: 'stop',
+        sequence: 1,
+        name: 'Helsinki-Vantaa',
+        code: 'HEL',
+        lat: 60.32,
+        lng: 24.96,
+        timezone: 'Europe/Helsinki',
+        local_date: '2025-06-01',
+        local_time: '14:00',
+      },
+      {
+        role: 'to',
+        sequence: 2,
+        name: 'JFK',
+        code: 'JFK',
+        lat: 40.64,
+        lng: -73.78,
+        timezone: 'America/New_York',
+        local_date: '2025-06-01',
+        local_time: '15:00',
+      },
     ];
     render(<TransportModal {...defaultProps} reservation={res} onSave={onSave} />);
     // A routine edit (retitle + save) must not cost the booking its AirTrail
@@ -515,22 +618,38 @@ describe('TransportModal', () => {
 
   it('FE-PLANNER-TRANSMODAL-023: initialAutomated opens straight in the transit search with the day preset', () => {
     const days = [{ id: 10, trip_id: 1, day_number: 1, date: '2025-06-01', title: 'Day 1' }] as any;
-    render(<TransportModal {...defaultProps} days={days} selectedDayId={10} initialAutomated places={[]} accommodations={[]} />);
+    render(
+      <TransportModal
+        {...defaultProps}
+        days={days}
+        selectedDayId={10}
+        initialAutomated
+        places={[]}
+        accommodations={[]}
+      />
+    );
     expect(screen.getAllByPlaceholderText('Search stop or station…')).toHaveLength(2);
   });
 
-  it('FE-PLANNER-TRANSMODAL-028: automated quick picks only offer the chosen day\'s places (#1460)', async () => {
-    const days = [
-      buildDay({ id: 10, date: '2025-06-01' }),
-      buildDay({ id: 11, date: '2025-06-02' }),
-    ];
+  it("FE-PLANNER-TRANSMODAL-028: automated quick picks only offer the chosen day's places (#1460)", async () => {
+    const days = [buildDay({ id: 10, date: '2025-06-01' }), buildDay({ id: 11, date: '2025-06-02' })];
     const louvre = buildPlace({ id: 1, name: 'Louvre' });
     const eiffel = buildPlace({ id: 2, name: 'Eiffel Tower' });
     const assignments = {
       '10': [buildAssignment({ day_id: 10, place_id: louvre.id, place: louvre })],
       '11': [buildAssignment({ day_id: 11, place_id: eiffel.id, place: eiffel })],
     };
-    render(<TransportModal {...defaultProps} days={days} selectedDayId={10} initialAutomated places={[louvre, eiffel]} assignments={assignments} accommodations={[]} />);
+    render(
+      <TransportModal
+        {...defaultProps}
+        days={days}
+        selectedDayId={10}
+        initialAutomated
+        places={[louvre, eiffel]}
+        assignments={assignments}
+        accommodations={[]}
+      />
+    );
     // Focusing the "from" field opens the quick picks — day 1's place only.
     const [fromInput] = screen.getAllByPlaceholderText('Search stop or station…');
     await userEvent.click(fromInput);
@@ -566,9 +685,17 @@ describe('TransportModal', () => {
     const payload = onSave.mock.calls[0][0];
     expect(payload.type).toBe('train');
     expect(payload.endpoints.map((e: { role: string }) => e.role)).toEqual(['from', 'stop', 'to']);
-    expect(payload.endpoints.map((e: { name: string }) => e.name)).toEqual(['Berlin Hbf', 'Frankfurt Hbf', 'München Hbf']);
+    expect(payload.endpoints.map((e: { name: string }) => e.name)).toEqual([
+      'Berlin Hbf',
+      'Frankfurt Hbf',
+      'München Hbf',
+    ]);
     expect(payload.metadata.legs).toHaveLength(2);
-    expect(payload.metadata.legs[0]).toMatchObject({ from: 'Berlin Hbf', to: 'Frankfurt Hbf', train_number: 'ICE 100' });
+    expect(payload.metadata.legs[0]).toMatchObject({
+      from: 'Berlin Hbf',
+      to: 'Frankfurt Hbf',
+      train_number: 'ICE 100',
+    });
     expect(payload.metadata.train_number).toBe('ICE 100'); // flat mirror of leg 0
   });
 
@@ -590,7 +717,11 @@ describe('TransportModal', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     const payload = onSave.mock.calls[0][0];
     expect(payload.type).toBe('cruise');
-    expect(payload.endpoints.map((e: { role: string; name: string }) => `${e.role}:${e.name}`)).toEqual(['from:Kiel', 'stop:Tallinn', 'to:Kiel']);
+    expect(payload.endpoints.map((e: { role: string; name: string }) => `${e.role}:${e.name}`)).toEqual([
+      'from:Kiel',
+      'stop:Tallinn',
+      'to:Kiel',
+    ]);
     expect(payload.metadata.legs).toHaveLength(2);
     expect(payload.metadata.legs[1]).toMatchObject({ from: 'Tallinn', to: 'Kiel' });
     expect(payload.metadata.legs[0].train_number).toBeUndefined();
@@ -640,10 +771,34 @@ describe('TransportModal', () => {
     { id: 12, trip_id: 1, day_number: 3, date: '2026-08-03', title: 'Day 3' },
   ] as any;
 
-  const flightEndpoints = (fromDate: string, toDate: string) => ([
-    { id: 1, reservation_id: 1, role: 'from', sequence: 0, name: 'Frankfurt (FRA)', code: 'FRA', lat: 50.03, lng: 8.57, timezone: 'Europe/Berlin', local_date: fromDate, local_time: '10:00' },
-    { id: 2, reservation_id: 1, role: 'to', sequence: 1, name: 'New York (JFK)', code: 'JFK', lat: 40.64, lng: -73.78, timezone: 'America/New_York', local_date: toDate, local_time: '13:00' },
-  ]);
+  const flightEndpoints = (fromDate: string, toDate: string) => [
+    {
+      id: 1,
+      reservation_id: 1,
+      role: 'from',
+      sequence: 0,
+      name: 'Frankfurt (FRA)',
+      code: 'FRA',
+      lat: 50.03,
+      lng: 8.57,
+      timezone: 'Europe/Berlin',
+      local_date: fromDate,
+      local_time: '10:00',
+    },
+    {
+      id: 2,
+      reservation_id: 1,
+      role: 'to',
+      sequence: 1,
+      name: 'New York (JFK)',
+      code: 'JFK',
+      lat: 40.64,
+      lng: -73.78,
+      timezone: 'America/New_York',
+      local_date: toDate,
+      local_time: '13:00',
+    },
+  ];
 
   // #2076 — an import whose type could not be read used to arrive here as a flight.
   // A wrong flight looks right enough to be saved without a second look; an
@@ -660,7 +815,12 @@ describe('TransportModal', () => {
   it('FE-PLANNER-TRANSMODAL-030: an import prefill resolves each waypoint day from its endpoint local_date (#1684)', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     // A parsed import carries local_date per endpoint but no day_id at all.
-    const prefill = { title: 'LH 400', type: 'flight', status: 'pending', endpoints: flightEndpoints('2026-08-02', '2026-08-03') } as any;
+    const prefill = {
+      title: 'LH 400',
+      type: 'flight',
+      status: 'pending',
+      endpoints: flightEndpoints('2026-08-02', '2026-08-03'),
+    } as any;
     render(<TransportModal {...defaultProps} days={spanDays} prefill={prefill} onSave={onSave} />);
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
@@ -675,8 +835,13 @@ describe('TransportModal', () => {
     // endpoints untouched, so local_date lags behind. Re-saving must not move the
     // booking back to the day that stale date points at.
     const reservation = buildReservation({
-      id: 1, title: 'LH 400', type: 'flight', day_id: 10, end_day_id: 11,
-      reservation_time: '2026-08-01T10:00', reservation_end_time: '2026-08-02T13:00',
+      id: 1,
+      title: 'LH 400',
+      type: 'flight',
+      day_id: 10,
+      end_day_id: 11,
+      reservation_time: '2026-08-01T10:00',
+      reservation_end_time: '2026-08-02T13:00',
       endpoints: flightEndpoints('2026-08-03', '2026-08-03'),
     } as any) as any;
     render(<TransportModal {...defaultProps} days={spanDays} reservation={reservation} onSave={onSave} />);
@@ -739,15 +904,39 @@ describe('TransportModal', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     const payload = onSave.mock.calls[0][0];
 
-    expect(payload.endpoints.map((e: { role: string; code: string }) => `${e.role}:${e.code}`)).toEqual(['from:BRU', 'stop:HEL', 'to:JFK']);
+    expect(payload.endpoints.map((e: { role: string; code: string }) => `${e.role}:${e.code}`)).toEqual([
+      'from:BRU',
+      'stop:HEL',
+      'to:JFK',
+    ]);
     expect(payload.metadata.legs).toHaveLength(2);
     expect(payload.metadata.legs[0]).toMatchObject({
-      from: 'BRU', to: 'HEL', airline: 'Brussels Airlines', flight_number: 'SN 1234', seat: '4F',
-      dep_day_id: 10, dep_time: '08:00', arr_day_id: 10, arr_time: '12:30',
+      from: 'BRU',
+      to: 'HEL',
+      airline: 'Brussels Airlines',
+      flight_number: 'SN 1234',
+      seat: '4F',
+      dep_day_id: 10,
+      dep_time: '08:00',
+      arr_day_id: 10,
+      arr_time: '12:30',
     });
-    expect(payload.metadata.legs[1]).toMatchObject({ from: 'HEL', to: 'JFK', airline: 'Finnair', flight_number: 'AY 15', arr_day_id: 12, arr_time: '15:00' });
+    expect(payload.metadata.legs[1]).toMatchObject({
+      from: 'HEL',
+      to: 'JFK',
+      airline: 'Finnair',
+      flight_number: 'AY 15',
+      arr_day_id: 12,
+      arr_time: '15:00',
+    });
     // Flat mirrors of the first leg for legacy readers.
-    expect(payload.metadata).toMatchObject({ airline: 'Brussels Airlines', flight_number: 'SN 1234', seat: '4F', departure_airport: 'BRU', arrival_airport: 'JFK' });
+    expect(payload.metadata).toMatchObject({
+      airline: 'Brussels Airlines',
+      flight_number: 'SN 1234',
+      seat: '4F',
+      departure_airport: 'BRU',
+      arrival_airport: 'JFK',
+    });
     expect(payload.day_id).toBe(10);
     expect(payload.end_day_id).toBe(12);
     expect(payload.reservation_time).toBe('2026-08-01T08:00');
@@ -788,16 +977,75 @@ describe('TransportModal', () => {
       reservation_end_time: '2026-08-03T15:00',
       confirmation_number: 'BOOK1',
       metadata: {
-        airline: 'Brussels Airlines', flight_number: 'SN 1234', departure_airport: 'BRU', arrival_airport: 'JFK',
+        airline: 'Brussels Airlines',
+        flight_number: 'SN 1234',
+        departure_airport: 'BRU',
+        arrival_airport: 'JFK',
         legs: [
-          { from: 'BRU', to: 'HEL', airline: 'Brussels Airlines', flight_number: 'SN 1234', confirmation_number: 'ABC123', dep_day_id: 10, dep_time: '08:00', arr_day_id: 10, arr_time: '12:30' },
-          { from: 'HEL', to: 'JFK', airline: 'Finnair', flight_number: 'AY 15', confirmation_number: 'XYZ789', dep_day_id: 11, dep_time: '14:00', arr_day_id: 12, arr_time: '15:00' },
+          {
+            from: 'BRU',
+            to: 'HEL',
+            airline: 'Brussels Airlines',
+            flight_number: 'SN 1234',
+            confirmation_number: 'ABC123',
+            dep_day_id: 10,
+            dep_time: '08:00',
+            arr_day_id: 10,
+            arr_time: '12:30',
+          },
+          {
+            from: 'HEL',
+            to: 'JFK',
+            airline: 'Finnair',
+            flight_number: 'AY 15',
+            confirmation_number: 'XYZ789',
+            dep_day_id: 11,
+            dep_time: '14:00',
+            arr_day_id: 12,
+            arr_time: '15:00',
+          },
         ],
       },
       endpoints: [
-        { id: 1, reservation_id: 31, role: 'from', sequence: 0, name: 'Brussels (BRU)', code: 'BRU', lat: 50.9, lng: 4.48, timezone: 'Europe/Brussels', local_date: '2026-08-01', local_time: '08:00' },
-        { id: 2, reservation_id: 31, role: 'stop', sequence: 1, name: 'Helsinki (HEL)', code: 'HEL', lat: 60.31, lng: 24.96, timezone: 'Europe/Helsinki', local_date: '2026-08-02', local_time: '14:00' },
-        { id: 3, reservation_id: 31, role: 'to', sequence: 2, name: 'New York (JFK)', code: 'JFK', lat: 40.64, lng: -73.78, timezone: 'America/New_York', local_date: '2026-08-03', local_time: '15:00' },
+        {
+          id: 1,
+          reservation_id: 31,
+          role: 'from',
+          sequence: 0,
+          name: 'Brussels (BRU)',
+          code: 'BRU',
+          lat: 50.9,
+          lng: 4.48,
+          timezone: 'Europe/Brussels',
+          local_date: '2026-08-01',
+          local_time: '08:00',
+        },
+        {
+          id: 2,
+          reservation_id: 31,
+          role: 'stop',
+          sequence: 1,
+          name: 'Helsinki (HEL)',
+          code: 'HEL',
+          lat: 60.31,
+          lng: 24.96,
+          timezone: 'Europe/Helsinki',
+          local_date: '2026-08-02',
+          local_time: '14:00',
+        },
+        {
+          id: 3,
+          reservation_id: 31,
+          role: 'to',
+          sequence: 2,
+          name: 'New York (JFK)',
+          code: 'JFK',
+          lat: 40.64,
+          lng: -73.78,
+          timezone: 'America/New_York',
+          local_date: '2026-08-03',
+          local_time: '15:00',
+        },
       ],
     }) as unknown as Reservation;
   }
@@ -823,7 +1071,10 @@ describe('TransportModal', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     const payload = onSave.mock.calls[0][0];
-    expect(payload.metadata.legs.map((l: { confirmation_number?: string }) => l.confirmation_number)).toEqual(['ABC123', 'XYZ789']);
+    expect(payload.metadata.legs.map((l: { confirmation_number?: string }) => l.confirmation_number)).toEqual([
+      'ABC123',
+      'XYZ789',
+    ]);
     // The booking's own reference stays where it was and is never mirrored.
     expect(payload.confirmation_number).toBe('BOOK1');
     expect(payload.metadata.confirmation_number).toBeUndefined();
@@ -850,12 +1101,15 @@ describe('TransportModal', () => {
     render(<TransportModal {...defaultProps} days={routeDays} reservation={multiLegFlight()} onSave={onSave} />);
 
     const codes = screen.getAllByPlaceholderText('e.g. ABC12345') as HTMLInputElement[];
-    expect(codes.map(i => i.value)).toEqual(['ABC123', 'XYZ789', 'BOOK1']);
+    expect(codes.map((i) => i.value)).toEqual(['ABC123', 'XYZ789', 'BOOK1']);
 
     await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     const payload = onSave.mock.calls[0][0];
-    expect(payload.metadata.legs.map((l: { confirmation_number?: string }) => l.confirmation_number)).toEqual(['ABC123', 'XYZ789']);
+    expect(payload.metadata.legs.map((l: { confirmation_number?: string }) => l.confirmation_number)).toEqual([
+      'ABC123',
+      'XYZ789',
+    ]);
     expect(payload.confirmation_number).toBe('BOOK1');
   });
 
@@ -900,16 +1154,75 @@ describe('TransportModal', () => {
       reservation_time: '2026-08-01T08:00',
       reservation_end_time: '2026-08-03T18:00',
       metadata: {
-        train_number: 'ICE 100', platform: '5', seat: '11A',
+        train_number: 'ICE 100',
+        platform: '5',
+        seat: '11A',
         legs: [
-          { from: 'Berlin Hbf', to: 'Frankfurt Hbf', train_number: 'ICE 100', platform: '5', seat: '11A', dep_day_id: 10, dep_time: '08:00', arr_day_id: 11, arr_time: '12:00', day_positions: { '10': 2 } },
-          { from: 'Frankfurt Hbf', to: 'München Hbf', train_number: 'ICE 200', platform: '7', seat: '12B', dep_day_id: 11, dep_time: '13:00', arr_day_id: 12, arr_time: '18:00' },
+          {
+            from: 'Berlin Hbf',
+            to: 'Frankfurt Hbf',
+            train_number: 'ICE 100',
+            platform: '5',
+            seat: '11A',
+            dep_day_id: 10,
+            dep_time: '08:00',
+            arr_day_id: 11,
+            arr_time: '12:00',
+            day_positions: { '10': 2 },
+          },
+          {
+            from: 'Frankfurt Hbf',
+            to: 'München Hbf',
+            train_number: 'ICE 200',
+            platform: '7',
+            seat: '12B',
+            dep_day_id: 11,
+            dep_time: '13:00',
+            arr_day_id: 12,
+            arr_time: '18:00',
+          },
         ],
       },
       endpoints: [
-        { id: 1, reservation_id: 30, role: 'from', sequence: 0, name: 'Berlin Hbf', code: null, lat: 52.52, lng: 13.37, timezone: null, local_date: '2026-08-01', local_time: '08:00' },
-        { id: 2, reservation_id: 30, role: 'stop', sequence: 1, name: 'Frankfurt Hbf', code: null, lat: 50.107, lng: 8.663, timezone: null, local_date: '2026-08-02', local_time: '13:00' },
-        { id: 3, reservation_id: 30, role: 'to', sequence: 2, name: 'München Hbf', code: null, lat: 48.14, lng: 11.558, timezone: null, local_date: '2026-08-03', local_time: '18:00' },
+        {
+          id: 1,
+          reservation_id: 30,
+          role: 'from',
+          sequence: 0,
+          name: 'Berlin Hbf',
+          code: null,
+          lat: 52.52,
+          lng: 13.37,
+          timezone: null,
+          local_date: '2026-08-01',
+          local_time: '08:00',
+        },
+        {
+          id: 2,
+          reservation_id: 30,
+          role: 'stop',
+          sequence: 1,
+          name: 'Frankfurt Hbf',
+          code: null,
+          lat: 50.107,
+          lng: 8.663,
+          timezone: null,
+          local_date: '2026-08-02',
+          local_time: '13:00',
+        },
+        {
+          id: 3,
+          reservation_id: 30,
+          role: 'to',
+          sequence: 2,
+          name: 'München Hbf',
+          code: null,
+          lat: 48.14,
+          lng: 11.558,
+          timezone: null,
+          local_date: '2026-08-03',
+          local_time: '18:00',
+        },
       ],
     }) as unknown as Reservation;
   }
@@ -919,12 +1232,12 @@ describe('TransportModal', () => {
 
     expect(screen.getAllByTestId('location-select')).toHaveLength(3);
     const numbers = screen.getAllByPlaceholderText('ICE 123') as HTMLInputElement[];
-    expect(numbers.map(i => i.value)).toEqual(['ICE 100', 'ICE 200']);
+    expect(numbers.map((i) => i.value)).toEqual(['ICE 100', 'ICE 200']);
     const platforms = screen.getAllByPlaceholderText('12') as HTMLInputElement[];
-    expect(platforms.map(i => i.value)).toEqual(['5', '7']);
+    expect(platforms.map((i) => i.value)).toEqual(['5', '7']);
     const times = screen.getAllByTestId('time-picker') as HTMLInputElement[];
     // wp0 dep, wp1 arr, wp1 dep, wp2 arr
-    expect(times.map(i => i.value)).toEqual(['08:00', '12:00', '13:00', '18:00']);
+    expect(times.map((i) => i.value)).toEqual(['08:00', '12:00', '13:00', '18:00']);
   });
 
   it('FE-PLANNER-TRANSMODAL-036: re-saving a multi-leg train keeps its legs and day-plan positions', async () => {
@@ -935,7 +1248,9 @@ describe('TransportModal', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     const payload = onSave.mock.calls[0][0];
     expect(payload.endpoints.map((e: { role: string; name: string }) => `${e.role}:${e.name}`)).toEqual([
-      'from:Berlin Hbf', 'stop:Frankfurt Hbf', 'to:München Hbf',
+      'from:Berlin Hbf',
+      'stop:Frankfurt Hbf',
+      'to:München Hbf',
     ]);
     expect(payload.metadata.legs).toHaveLength(2);
     // The planner owns the per-leg positions — an edit must not drop them.
@@ -1011,9 +1326,13 @@ describe('TransportModal', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     const payload = onSave.mock.calls[0][0];
     expect(payload).toMatchObject({
-      type: 'car', day_id: 10, end_day_id: 12,
-      reservation_time: '2026-08-01T09:30', reservation_end_time: '2026-08-03T17:45',
-      confirmation_number: 'SIXT-42', notes: 'Full-to-full tank',
+      type: 'car',
+      day_id: 10,
+      end_day_id: 12,
+      reservation_time: '2026-08-01T09:30',
+      reservation_end_time: '2026-08-03T17:45',
+      confirmation_number: 'SIXT-42',
+      notes: 'Full-to-full tank',
     });
     expect(payload.endpoints.map((e: { name: string }) => e.name)).toEqual(['Berlin Airport', 'Munich Airport']);
   });
@@ -1075,7 +1394,7 @@ describe('TransportModal', () => {
       http.put('/api/trips/1/reservations/60/travelers', async ({ request }) => {
         body = (await request.json()) as { user_ids: number[] };
         return HttpResponse.json({ travelers: [] });
-      }),
+      })
     );
 
     render(<TransportModal {...defaultProps} onSave={onSave} tripMembers={tripMembers} />);
@@ -1092,7 +1411,7 @@ describe('TransportModal', () => {
     window.__addToast = addToast;
     const onSave = vi.fn().mockResolvedValue({ id: 61 });
     server.use(
-      http.put('/api/trips/1/reservations/61/travelers', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+      http.put('/api/trips/1/reservations/61/travelers', () => HttpResponse.json({ error: 'nope' }, { status: 500 }))
     );
 
     render(<TransportModal {...defaultProps} onSave={onSave} tripMembers={tripMembers} />);
@@ -1114,7 +1433,20 @@ describe('TransportModal', () => {
     seedStore(useTripStore, {
       trip: buildTrip({ id: 1 }),
       budgetItems: [
-        { id: 3, trip_id: 1, name: 'Flight ticket', total_price: 320, currency: 'EUR', category: 'transport', reservation_id: 50, members: [], payers: [], persons: 1, expense_date: null, paid_by_user_id: null },
+        {
+          id: 3,
+          trip_id: 1,
+          name: 'Flight ticket',
+          total_price: 320,
+          currency: 'EUR',
+          category: 'transport',
+          reservation_id: 50,
+          members: [],
+          payers: [],
+          persons: 1,
+          expense_date: null,
+          paid_by_user_id: null,
+        },
       ],
     });
   }
@@ -1129,7 +1461,7 @@ describe('TransportModal', () => {
         onSave={onSave}
         onOpenExpense={onOpenExpense}
         reservation={buildReservation({ id: 50, type: 'flight', title: 'LH 400' })}
-      />,
+      />
     );
 
     await userEvent.click(screen.getByRole('button', { name: /^Edit$/i }));
@@ -1143,7 +1475,9 @@ describe('TransportModal', () => {
     seedLinkedCost();
     server.use(http.delete('/api/trips/1/budget/3', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
 
-    render(<TransportModal {...defaultProps} reservation={buildReservation({ id: 50, type: 'flight', title: 'LH 400' })} />);
+    render(
+      <TransportModal {...defaultProps} reservation={buildReservation({ id: 50, type: 'flight', title: 'LH 400' })} />
+    );
     await userEvent.click(screen.getByRole('button', { name: /Remove expense/i }));
 
     await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.any(String), 'error', undefined));
@@ -1157,8 +1491,11 @@ describe('TransportModal', () => {
     });
     const onSave = vi.fn().mockResolvedValue({ id: 62 });
     const prefill = {
-      title: 'LH 400', type: 'flight', status: 'pending',
-      reservation_time: '2026-08-01T08:00', reservation_end_time: '2026-08-01T11:00',
+      title: 'LH 400',
+      type: 'flight',
+      status: 'pending',
+      reservation_time: '2026-08-01T08:00',
+      reservation_end_time: '2026-08-01T11:00',
       metadata: { airline: 'Lufthansa', flight_number: 'LH 400', price: 189.5, priceCurrency: 'EUR' },
       endpoints: [],
     } as unknown as BookingReviewDraft;
@@ -1171,7 +1508,11 @@ describe('TransportModal', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     // The parsed currency travels with the price (#2525), or the server would store
     // it in whatever the trip currency is.
-    expect(onSave.mock.calls[0][0].create_budget_entry).toEqual({ total_price: 189.5, category: 'flights', currency: 'EUR' });
+    expect(onSave.mock.calls[0][0].create_budget_entry).toEqual({
+      total_price: 189.5,
+      category: 'flights',
+      currency: 'EUR',
+    });
   });
 
   // ── File edge cases ─────────────────────────────────────────────────────────
@@ -1202,7 +1543,7 @@ describe('TransportModal', () => {
     window.__addToast = addToast;
     server.use(
       http.put('/api/trips/1/files/70', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
-      http.get('/api/trips/1/files/70/links', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+      http.get('/api/trips/1/files/70/links', () => HttpResponse.json({ error: 'nope' }, { status: 500 }))
     );
     const res = buildReservation({ id: 21, type: 'flight', title: 'LH 400' });
     const attached = buildTripFile({ id: 70, original_name: 'boarding.pdf' });
@@ -1245,10 +1586,50 @@ describe('TransportModal', () => {
       metadata: { transit: { provider: 'transitous', legs: [{ mode: 'BUS' }] } },
       // Stops arrive out of order — the form must restore their sequence.
       endpoints: [
-        { role: 'from', sequence: 0, name: 'A', code: null, lat: 0, lng: 0, timezone: null, local_date: null, local_time: null },
-        { role: 'stop', sequence: 2, name: 'Second stop', code: null, lat: 1, lng: 1, timezone: null, local_date: null, local_time: null },
-        { role: 'stop', sequence: 1, name: 'First stop', code: null, lat: 2, lng: 2, timezone: null, local_date: null, local_time: null },
-        { role: 'to', sequence: 3, name: 'C', code: null, lat: 3, lng: 3, timezone: null, local_date: null, local_time: null },
+        {
+          role: 'from',
+          sequence: 0,
+          name: 'A',
+          code: null,
+          lat: 0,
+          lng: 0,
+          timezone: null,
+          local_date: null,
+          local_time: null,
+        },
+        {
+          role: 'stop',
+          sequence: 2,
+          name: 'Second stop',
+          code: null,
+          lat: 1,
+          lng: 1,
+          timezone: null,
+          local_date: null,
+          local_time: null,
+        },
+        {
+          role: 'stop',
+          sequence: 1,
+          name: 'First stop',
+          code: null,
+          lat: 2,
+          lng: 2,
+          timezone: null,
+          local_date: null,
+          local_time: null,
+        },
+        {
+          role: 'to',
+          sequence: 3,
+          name: 'C',
+          code: null,
+          lat: 3,
+          lng: 3,
+          timezone: null,
+          local_date: null,
+          local_time: null,
+        },
       ],
     });
 
@@ -1268,7 +1649,7 @@ describe('TransportModal', () => {
       http.put('/api/trips/1/reservations/63/travelers', async ({ request }) => {
         body = (await request.json()) as { user_ids: number[] };
         return HttpResponse.json({ travelers: [] });
-      }),
+      })
     );
     const res = buildReservation({ id: 63, type: 'flight', title: 'LH 400' });
     (res as unknown as { travelers: { user_id: number; username: string }[] }).travelers = [
@@ -1416,7 +1797,7 @@ describe('TransportModal', () => {
     ];
     const louvre = buildPlace({ id: 1, name: 'Louvre' });
     const eiffel = buildPlace({ id: 2, name: 'Eiffel Tower' });
-    const orsay = buildPlace({ id: 3, name: 'Musée d\'Orsay' });
+    const orsay = buildPlace({ id: 3, name: "Musée d'Orsay" });
     const assignments = {
       '10': [buildAssignment({ day_id: 10, place_id: louvre.id, place: louvre })],
       // Two entries so the quick picks follow the day's own order.
@@ -1435,7 +1816,7 @@ describe('TransportModal', () => {
         places={[louvre, eiffel, orsay]}
         assignments={assignments}
         accommodations={[]}
-      />,
+      />
     );
 
     await userEvent.click(screen.getByText('Day one'));
@@ -1451,7 +1832,8 @@ describe('TransportModal', () => {
   // ── Blur booking codes in the edit form (#2457) ─────────────────────────────
 
   describe('blur booking codes (#2457)', () => {
-    const blurOn = (on: boolean) => seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: on } });
+    const blurOn = (on: boolean) =>
+      seedStore(useSettingsStore, { settings: { time_format: '24h', blur_booking_codes: on } });
     const codeFields = () => screen.getAllByPlaceholderText('e.g. ABC12345') as HTMLInputElement[];
 
     function multiLegTrain(): Reservation {
@@ -1462,14 +1844,68 @@ describe('TransportModal', () => {
         confirmation_number: 'RAIL-BOOK',
         metadata: {
           legs: [
-            { from: 'Osaka', to: 'Kyoto', train_number: 'JR 1', confirmation_number: 'RAIL-LEG1', dep_day_id: 10, dep_time: '08:00', arr_day_id: 10, arr_time: '08:30' },
-            { from: 'Kyoto', to: 'Nara', train_number: 'JR 2', confirmation_number: 'RAIL-LEG2', dep_day_id: 10, dep_time: '09:00', arr_day_id: 10, arr_time: '09:45' },
+            {
+              from: 'Osaka',
+              to: 'Kyoto',
+              train_number: 'JR 1',
+              confirmation_number: 'RAIL-LEG1',
+              dep_day_id: 10,
+              dep_time: '08:00',
+              arr_day_id: 10,
+              arr_time: '08:30',
+            },
+            {
+              from: 'Kyoto',
+              to: 'Nara',
+              train_number: 'JR 2',
+              confirmation_number: 'RAIL-LEG2',
+              dep_day_id: 10,
+              dep_time: '09:00',
+              arr_day_id: 10,
+              arr_time: '09:45',
+            },
           ],
         },
         endpoints: [
-          { id: 11, reservation_id: 32, role: 'from', sequence: 0, name: 'Osaka Station', code: null, lat: 34.7, lng: 135.5, timezone: 'Asia/Tokyo', local_date: '2026-08-01', local_time: '08:00' },
-          { id: 12, reservation_id: 32, role: 'stop', sequence: 1, name: 'Kyoto Station', code: null, lat: 34.98, lng: 135.75, timezone: 'Asia/Tokyo', local_date: '2026-08-01', local_time: '09:00' },
-          { id: 13, reservation_id: 32, role: 'to', sequence: 2, name: 'Nara Station', code: null, lat: 34.68, lng: 135.82, timezone: 'Asia/Tokyo', local_date: '2026-08-01', local_time: '09:45' },
+          {
+            id: 11,
+            reservation_id: 32,
+            role: 'from',
+            sequence: 0,
+            name: 'Osaka Station',
+            code: null,
+            lat: 34.7,
+            lng: 135.5,
+            timezone: 'Asia/Tokyo',
+            local_date: '2026-08-01',
+            local_time: '08:00',
+          },
+          {
+            id: 12,
+            reservation_id: 32,
+            role: 'stop',
+            sequence: 1,
+            name: 'Kyoto Station',
+            code: null,
+            lat: 34.98,
+            lng: 135.75,
+            timezone: 'Asia/Tokyo',
+            local_date: '2026-08-01',
+            local_time: '09:00',
+          },
+          {
+            id: 13,
+            reservation_id: 32,
+            role: 'to',
+            sequence: 2,
+            name: 'Nara Station',
+            code: null,
+            lat: 34.68,
+            lng: 135.82,
+            timezone: 'Asia/Tokyo',
+            local_date: '2026-08-01',
+            local_time: '09:45',
+          },
         ],
       }) as unknown as Reservation;
     }
@@ -1485,16 +1921,16 @@ describe('TransportModal', () => {
       blurOn(true);
       render(<TransportModal {...defaultProps} days={routeDays} reservation={multiLegFlight()} />);
       const codes = codeFields();
-      expect(codes.map(i => i.value)).toEqual(['ABC123', 'XYZ789', 'BOOK1']);
-      expect(codes.map(i => isBlurred(i))).toEqual([true, true, true]);
+      expect(codes.map((i) => i.value)).toEqual(['ABC123', 'XYZ789', 'BOOK1']);
+      expect(codes.map((i) => isBlurred(i))).toEqual([true, true, true]);
     });
 
     it('FE-PLANNER-TRANSMODAL-067: every per-segment code of a multi-leg train is blurred as well', () => {
       blurOn(true);
       render(<TransportModal {...defaultProps} days={routeDays} reservation={multiLegTrain()} />);
       const codes = codeFields();
-      expect(codes.map(i => i.value)).toEqual(['RAIL-LEG1', 'RAIL-LEG2', 'RAIL-BOOK']);
-      expect(codes.map(i => isBlurred(i))).toEqual([true, true, true]);
+      expect(codes.map((i) => i.value)).toEqual(['RAIL-LEG1', 'RAIL-LEG2', 'RAIL-BOOK']);
+      expect(codes.map((i) => isBlurred(i))).toEqual([true, true, true]);
     });
 
     it('FE-PLANNER-TRANSMODAL-068: focusing a code field reveals it for editing, leaving it hides it again', () => {
@@ -1512,7 +1948,7 @@ describe('TransportModal', () => {
     it('FE-PLANNER-TRANSMODAL-069: with the setting off every code field stays plain', () => {
       blurOn(false);
       render(<TransportModal {...defaultProps} days={routeDays} reservation={multiLegFlight()} />);
-      expect(codeFields().map(i => isBlurred(i))).toEqual([false, false, false]);
+      expect(codeFields().map((i) => isBlurred(i))).toEqual([false, false, false]);
     });
 
     it('FE-PLANNER-TRANSMODAL-070: blurred codes still save unchanged', async () => {
@@ -1522,7 +1958,10 @@ describe('TransportModal', () => {
       await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
       await waitFor(() => expect(onSave).toHaveBeenCalled());
       const payload = onSave.mock.calls[0][0];
-      expect(payload.metadata.legs.map((l: { confirmation_number?: string }) => l.confirmation_number)).toEqual(['ABC123', 'XYZ789']);
+      expect(payload.metadata.legs.map((l: { confirmation_number?: string }) => l.confirmation_number)).toEqual([
+        'ABC123',
+        'XYZ789',
+      ]);
       expect(payload.confirmation_number).toBe('BOOK1');
     });
   });
@@ -1682,6 +2121,6 @@ describe('TransportModal', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Update$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     const legs = onSave.mock.calls[0][0].metadata.legs as { confirmation_number?: string }[];
-    expect(legs.map(l => l.confirmation_number ?? null)).toEqual([null, 'SEG-TWO']);
+    expect(legs.map((l) => l.confirmation_number ?? null)).toEqual([null, 'SEG-TWO']);
   });
 });

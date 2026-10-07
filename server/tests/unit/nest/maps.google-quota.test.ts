@@ -3,6 +3,15 @@
  * ceiling is reached (#1582), so search and details fall back the way a keyless
  * install does, and every call through the Places client is counted.
  */
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
+import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import type { GoogleQuotaService } from '../../../src/nest/google-quota/google-quota.service';
+import { MapsService } from '../../../src/nest/maps/maps.service';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { GoogleTransitProvider } from '../../../src/nest/transit/google-transit.provider';
+
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 
 vi.mock('../../../src/db/database', () => ({
@@ -10,15 +19,6 @@ vi.mock('../../../src/db/database', () => ({
 }));
 
 vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
-import { MapsService } from '../../../src/nest/maps/maps.service';
-import { GoogleTransitProvider } from '../../../src/nest/transit/google-transit.provider';
-import type { GoogleQuotaService } from '../../../src/nest/google-quota/google-quota.service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
-import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
-import type { PlacesRepository } from '../../../src/db/repositories/Places.repository';
 
 function quota(exhausted: boolean) {
   return { exhausted: vi.fn(async () => exhausted), record: vi.fn(async () => {}) };
@@ -66,7 +66,10 @@ describe('Google daily ceiling in MapsService', () => {
   it('MAPS-QUOTA-003: every Places call is counted against the day', async () => {
     const q = quota(false);
     const svc = svcWith(q);
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ editorialSummary: { text: 'Hi' } }), { status: 200 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ editorialSummary: { text: 'Hi' } }), { status: 200 })),
+    );
     await svc.fetchEditorialSummary('ChIJ1', 'key');
     expect(q.record).toHaveBeenCalledTimes(1);
   });
@@ -75,7 +78,11 @@ describe('Google daily ceiling in MapsService', () => {
 describe('Google daily ceiling in the transit provider', () => {
   it('MAPS-QUOTA-004: past the ceiling the Google transit backend is inactive', async () => {
     const settings = appSettingsStub({ transit_provider: 'google' });
-    expect(await new GoogleTransitProvider(settings, usersStub, quota(false) as unknown as GoogleQuotaService).isActive(1)).toBe(true);
-    expect(await new GoogleTransitProvider(settings, usersStub, quota(true) as unknown as GoogleQuotaService).isActive(1)).toBe(false);
+    expect(
+      await new GoogleTransitProvider(settings, usersStub, quota(false) as unknown as GoogleQuotaService).isActive(1),
+    ).toBe(true);
+    expect(
+      await new GoogleTransitProvider(settings, usersStub, quota(true) as unknown as GoogleQuotaService).isActive(1),
+    ).toBe(false);
   });
 });

@@ -4,8 +4,28 @@
  * route, and all of them while the key pair cannot be used, stored or from
  * VAPID_*. Real NotificationsService and real SQL; safeFetchFollow is the edge.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
+import { db as testDb } from '../../../../src/db/database';
+import type { NotificationPreferencesService } from '../../../../src/nest/notifications/notification-preferences.service';
+import type { NotificationsService } from '../../../../src/nest/notifications/notifications.service';
+import { checkPushSubscription } from '../../../../src/nest/notifications/push/push-subscription.helpers';
+import type { PushSubscriptionsService } from '../../../../src/nest/notifications/push/push-subscriptions.service';
+import {
+  PUSH_UNAVAILABLE_ERROR,
+  VAPID_PRIVATE_KEY_SETTING,
+  type VapidKeysService,
+} from '../../../../src/nest/notifications/push/vapid-keys.service';
+import { generateVapidKeyPair } from '../../../../src/nest/notifications/push/web-push-crypto';
+import { createAdmin, createUser, disableNotificationPref, setNotificationChannels } from '../../../helpers/factories';
+import {
+  makeNotificationPreferencesService,
+  makeNotificationsService,
+  makePushSubscriptionsService,
+  makeVapidKeysService,
+} from '../../../helpers/notifications';
+import { resetTestDb } from '../../../helpers/test-db';
+
 import { createECDH } from 'node:crypto';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 
 // One snapshot connection per file, created inside the factory so nothing has
 // to be hoisted above the imports; the tests reach it through the mocked module.
@@ -39,26 +59,6 @@ vi.mock('../../../../src/utils/ssrfGuard', () => {
   class SsrfBlockedError extends Error {}
   return { SsrfBlockedError, safeFetchFollow };
 });
-
-import { db as testDb } from '../../../../src/db/database';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createAdmin, createUser, disableNotificationPref, setNotificationChannels } from '../../../helpers/factories';
-import {
-  makeNotificationPreferencesService,
-  makeNotificationsService,
-  makePushSubscriptionsService,
-  makeVapidKeysService,
-} from '../../../helpers/notifications';
-import type { NotificationsService } from '../../../../src/nest/notifications/notifications.service';
-import type { NotificationPreferencesService } from '../../../../src/nest/notifications/notification-preferences.service';
-import type { PushSubscriptionsService } from '../../../../src/nest/notifications/push/push-subscriptions.service';
-import {
-  PUSH_UNAVAILABLE_ERROR,
-  VAPID_PRIVATE_KEY_SETTING,
-  type VapidKeysService,
-} from '../../../../src/nest/notifications/push/vapid-keys.service';
-import { checkPushSubscription } from '../../../../src/nest/notifications/push/push-subscription.helpers';
-import { generateVapidKeyPair } from '../../../../src/nest/notifications/push/web-push-crypto';
 
 // Built in beforeAll: every provider takes repositories and a UnitOfWork,
 // which are async to resolve on this file's handle.
@@ -246,7 +246,9 @@ describe('Web Push while the stored key pair cannot be used', () => {
 
     expect(await pushColumn(user.id)).toMatchObject({ active: false, configured: true });
     // Only push: email keeps its column, SMTP or not, as it always has.
-    expect((await prefs.getPreferencesMatrix(user.id, 'user')).channels.find((c) => c.id === 'email')?.active).toBe(true);
+    expect((await prefs.getPreferencesMatrix(user.id, 'user')).channels.find((c) => c.id === 'email')?.active).toBe(
+      true,
+    );
 
     testDb.prepare('UPDATE app_settings SET value = ? WHERE key = ?').run(ciphertext, VAPID_PRIVATE_KEY_SETTING);
     expect(await pushColumn(user.id)).toMatchObject({ active: true, configured: true });

@@ -1,16 +1,16 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { CalendarModule } from '../calendar/calendar.module';
+import { DemoModule } from '../common/demo.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { RealtimeModule } from '../realtime/realtime.module';
-import { Trips } from '../../db/entities/Trips.entity';
-import { Users } from '../../db/entities/Users.entity';
-import { FeedsService } from './feeds.service';
-import { FeedsMcp } from './feeds.mcp';
 import { FeedsPublicController, TripFeedTokenController, UserFeedTokenController } from './feeds.controller';
-import { DemoModule } from '../common/demo.module';
+import { FeedsMcp } from './feeds.mcp';
+import { FeedsService } from './feeds.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 @Module({
   // Calendars, not the trip aggregate: feeds only ever needed an ICS string, and

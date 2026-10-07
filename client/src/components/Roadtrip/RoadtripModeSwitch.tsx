@@ -1,11 +1,11 @@
-import React from 'react'
-import { CalendarDays, Route } from 'lucide-react'
-import { useTranslation } from '../../i18n/TranslationContext'
-import { NEUTRAL_TINT } from '../shared/DialogShell'
+import { CalendarDays, Route } from 'lucide-react';
+import React from 'react';
+import { useTranslation } from '../../i18n/TranslationContext';
+import { NEUTRAL_TINT } from '../shared/DialogShell';
 
 interface RoadtripModeSwitchProps {
-  active: boolean
-  onChange: (roadtrip: boolean) => void
+  active: boolean;
+  onChange: (roadtrip: boolean) => void;
 }
 
 /**
@@ -15,42 +15,42 @@ interface RoadtripModeSwitchProps {
  * head band, so with the day plan's tools below it the two read as one band.
  */
 export default function RoadtripModeSwitch({ active, onChange }: RoadtripModeSwitchProps): React.ReactElement {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   const options: [boolean, string, typeof Route][] = [
     [false, t('roadtrip.mode.days'), CalendarDays],
     [true, t('roadtrip.mode.roadtrip'), Route],
-  ]
+  ];
   return (
     <div className="flex-none px-3 pb-1 pt-3" style={{ background: NEUTRAL_TINT }}>
-    <div
-      role="tablist"
-      aria-label={t('roadtrip.mode.label')}
-      className="flex gap-1 rounded-xl border border-edge-faint bg-surface-tertiary p-1"
-    >
-      {options.map(([value, label, Icon]) => {
-        const selected = active === value
-        return (
-          <button
-            key={label}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            onClick={() => onChange(value)}
-            // Sized off the day plan's own type, like the road trip rail below it: the
-            // switcher sits above both, so it cannot be the largest thing in the column.
-            style={{ fontSize: 'calc(11.5px * var(--fs-scale-body, 1))' }}
-            className={`flex h-[30px] flex-1 items-center justify-center gap-1.5 rounded-lg px-2 transition-colors ${
-              selected
-                ? 'bg-surface-card font-semibold text-content shadow-card'
-                : 'font-medium text-content-muted hover:bg-surface-hover hover:text-content'
-            }`}
-          >
-            <Icon size={13} strokeWidth={1.8} aria-hidden />
-            <span className="truncate">{label}</span>
-          </button>
-        )
-      })}
+      <div
+        role="tablist"
+        aria-label={t('roadtrip.mode.label')}
+        className="flex gap-1 rounded-xl border border-edge-faint bg-surface-tertiary p-1"
+      >
+        {options.map(([value, label, Icon]) => {
+          const selected = active === value;
+          return (
+            <button
+              key={label}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              onClick={() => onChange(value)}
+              // Sized off the day plan's own type, like the road trip rail below it: the
+              // switcher sits above both, so it cannot be the largest thing in the column.
+              style={{ fontSize: 'calc(11.5px * var(--fs-scale-body, 1))' }}
+              className={`flex h-[30px] flex-1 items-center justify-center gap-1.5 rounded-lg px-2 transition-colors ${
+                selected
+                  ? 'bg-surface-card font-semibold text-content shadow-card'
+                  : 'font-medium text-content-muted hover:bg-surface-hover hover:text-content'
+              }`}
+            >
+              <Icon size={13} strokeWidth={1.8} aria-hidden />
+              <span className="truncate">{label}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
-    </div>
-  )
+  );
 }

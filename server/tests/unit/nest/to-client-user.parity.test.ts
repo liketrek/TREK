@@ -23,9 +23,9 @@
  * three `toClientUser` functions are deleted in favour of passing the
  * repository row straight through.
  */
-import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { describe, it, expect } from 'vitest';
 
 const SRC = join(__dirname, '../../../src');
 

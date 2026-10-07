@@ -160,7 +160,10 @@ export abstract class TrekRepository<Entity extends object> extends EntityReposi
     return super.findAll({ ...options, disableIdentityMap });
   }
 
-  override async count<Hint extends string = never>(where?: FilterQuery<Entity>, options?: CountOptions<Entity, Hint>): Promise<number> {
+  override async count<Hint extends string = never>(
+    where?: FilterQuery<Entity>,
+    options?: CountOptions<Entity, Hint>,
+  ): Promise<number> {
     this.validateRequestContext();
     return super.count(where, options);
   }
@@ -176,7 +179,11 @@ export abstract class TrekRepository<Entity extends object> extends EntityReposi
    * `findAll` above: `Using` dropped for the same override-compatibility
    * reason documented on `findOne`.
    */
-  override async findOneOrFail<Hint extends string = never, Fields extends string = never, Excludes extends string = never>(
+  override async findOneOrFail<
+    Hint extends string = never,
+    Fields extends string = never,
+    Excludes extends string = never,
+  >(
     where: FilterQuery<Entity>,
     options?: FindOneOrFailOptions<Entity, Hint, Fields, Excludes>,
   ): Promise<Loaded<Entity, Hint, Fields, Excludes>> {
@@ -185,7 +192,11 @@ export abstract class TrekRepository<Entity extends object> extends EntityReposi
     return super.findOneOrFail(where, { ...options, disableIdentityMap });
   }
 
-  override async findAndCount<Hint extends string = never, Fields extends string = never, Excludes extends string = never>(
+  override async findAndCount<
+    Hint extends string = never,
+    Fields extends string = never,
+    Excludes extends string = never,
+  >(
     where: FilterQuery<Entity>,
     options?: FindOptions<Entity, Hint, Fields, Excludes>,
   ): Promise<[Loaded<Entity, Hint, Fields, Excludes>[], number]> {
@@ -209,12 +220,20 @@ export abstract class TrekRepository<Entity extends object> extends EntityReposi
   }
 
   /** Grouping counts don't hydrate an entity — no identity map to isolate — so this only needs the fail-closed guard, matching `count` above. */
-  override async countBy(groupBy: EntityKey<Entity> | readonly EntityKey<Entity>[], options?: CountByOptions<Entity>): Promise<Dictionary<number>> {
+  override async countBy(
+    groupBy: EntityKey<Entity> | readonly EntityKey<Entity>[],
+    options?: CountByOptions<Entity>,
+  ): Promise<Dictionary<number>> {
     this.validateRequestContext();
     return super.countBy(groupBy, options);
   }
 
-  override stream<Hint extends string = never, Fields extends string = never, Excludes extends string = never, Using extends string = never>(
+  override stream<
+    Hint extends string = never,
+    Fields extends string = never,
+    Excludes extends string = never,
+    Using extends string = never,
+  >(
     options?: WithUsingOptions<StreamOptions<Entity, Hint, Fields, Excludes>, Entity, Using>,
   ): AsyncIterableIterator<Loaded<Entity, Hint, Fields, Excludes>> {
     this.validateRequestContext();
@@ -222,7 +241,10 @@ export abstract class TrekRepository<Entity extends object> extends EntityReposi
     return super.stream({ ...options, disableIdentityMap });
   }
 
-  override async insertMany(data: Entity[] | RequiredEntityData<Entity>[], options?: NativeInsertUpdateOptions<Entity>): Promise<Primary<Entity>[]> {
+  override async insertMany(
+    data: Entity[] | RequiredEntityData<Entity>[],
+    options?: NativeInsertUpdateOptions<Entity>,
+  ): Promise<Primary<Entity>[]> {
     this.validateRequestContext();
     return super.insertMany(data, options);
   }
@@ -235,7 +257,11 @@ export abstract class TrekRepository<Entity extends object> extends EntityReposi
     return super.upsertMany(entitiesOrData, options);
   }
 
-  override async nativeUpdate(where: FilterQuery<Entity>, data: EntityData<Entity>, options?: UpdateOptions<Entity>): Promise<number> {
+  override async nativeUpdate(
+    where: FilterQuery<Entity>,
+    data: EntityData<Entity>,
+    options?: UpdateOptions<Entity>,
+  ): Promise<number> {
     this.validateRequestContext();
     return super.nativeUpdate(where, data, options);
   }
@@ -245,7 +271,10 @@ export abstract class TrekRepository<Entity extends object> extends EntityReposi
     return super.nativeDelete(where, options);
   }
 
-  override async insert(data: Entity | RequiredEntityData<Entity>, options?: NativeInsertUpdateOptions<Entity>): Promise<Primary<Entity>> {
+  override async insert(
+    data: Entity | RequiredEntityData<Entity>,
+    options?: NativeInsertUpdateOptions<Entity>,
+  ): Promise<Primary<Entity>> {
     this.validateRequestContext();
     return super.insert(data, options);
   }

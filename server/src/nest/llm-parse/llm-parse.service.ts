@@ -1,10 +1,13 @@
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import type { KiReservation } from '../booking-import/kitinerary.types';
-import { createLlmClient } from './llm-client.factory';
-import { LlmConfigResolver } from './llm-config.resolver';
-import type { ResolvedLlmConfig } from './llm-config';
-import { LlmLocalService } from './llm-local.service';
+import { toIsoCurrency } from './currency-code';
 import { capImage, imageMimeType, renderPdfPages } from './image-input';
-import { extractEnforced } from './router/ollama-format.client';
+import { createLlmClient } from './llm-client.factory';
+import type { ResolvedLlmConfig } from './llm-config';
+import { LlmConfigResolver } from './llm-config.resolver';
+import { LlmLocalService } from './llm-local.service';
+import { buildSystemPrompt, KI_RESERVATION_JSON_SCHEMA } from './llm-prompt';
+import type { LlmExtractionFile, LlmExtractionInput } from './llm-provider.interface';
 import {
   buildReceiptPrompt,
   RECEIPT_JSON_SCHEMA,
@@ -13,14 +16,16 @@ import {
   RECEIPT_USER_TEXT,
   toReceiptRead,
 } from './receipt-read';
-import { buildSystemPrompt, KI_RESERVATION_JSON_SCHEMA } from './llm-prompt';
-import type { LlmExtractionFile, LlmExtractionInput } from './llm-provider.interface';
+import {
+  routeExtraction,
+  routeImageExtraction,
+  detectFlightNumbers,
+  extractTotalPrice,
+} from './router/extraction-router';
+import { extractEnforced } from './router/ollama-format.client';
 import { isPdf, extractText } from './text-extract';
-import { routeExtraction, routeImageExtraction, detectFlightNumbers, extractTotalPrice } from './router/extraction-router';
-import { toIsoCurrency } from './currency-code';
 import { Injectable } from '@nestjs/common';
 import { kiReservationSchema, type ReceiptScanResult } from '@trek/shared';
-import { RuntimeEnvService } from '../app-config/runtime-env.service';
 
 const MIME_BY_EXT: Record<string, string> = {
   '.pdf': 'application/pdf',
@@ -113,12 +118,20 @@ export class LlmParseService {
         raw = list[0];
       }
     } catch (err) {
-      console.error(`[llm-parse] Receipt read failed for "${file.originalName}" (provider=${config.provider}):`, err instanceof Error ? err.message : err);
-      return { receipt: null, warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`] };
+      console.error(
+        `[llm-parse] Receipt read failed for "${file.originalName}" (provider=${config.provider}):`,
+        err instanceof Error ? err.message : err,
+      );
+      return {
+        receipt: null,
+        warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
+      };
     }
 
     const receipt = toReceiptRead(raw);
-    return receipt ? { receipt, warnings: [] } : { receipt: null, warnings: [`${file.originalName}: no receipt could be read`] };
+    return receipt
+      ? { receipt, warnings: [] }
+      : { receipt: null, warnings: [`${file.originalName}: no receipt could be read`] };
   }
 
   private async visionFor(config: ResolvedLlmConfig): Promise<boolean> {
@@ -182,17 +195,22 @@ export class LlmParseService {
         }
         if (!input.text.trim()) {
           // A scan has no text layer, but a model that reads images can read its pages.
-          const pages = isPdf(file.originalName) && (await this.visionFor(config)) ? await renderPdfPages(file.buffer) : [];
+          const pages =
+            isPdf(file.originalName) && (await this.visionFor(config)) ? await renderPdfPages(file.buffer) : [];
           if (pages.length === 0) {
             return {
               kiItems: [],
-              warnings: [`${file.originalName}: no readable text found (a scanned PDF needs a model that reads images)`],
+              warnings: [
+                `${file.originalName}: no readable text found (a scanned PDF needs a model that reads images)`,
+              ],
             };
           }
           input.text = undefined;
           input.file = pages[0];
           input.pageImages = pages.slice(1);
-          console.debug(`[DEBUG] Scanned PDF sent to ${config.provider} as ${pages.length} page image(s): ${file.originalName}`);
+          console.debug(
+            `[DEBUG] Scanned PDF sent to ${config.provider} as ${pages.length} page image(s): ${file.originalName}`,
+          );
         }
       }
     } catch (err) {
@@ -215,11 +233,17 @@ export class LlmParseService {
           apiKey: config.apiKey,
         };
         const routed = input.file
-          ? await routeImageExtraction([input.file, ...(input.pageImages ?? [])].map((f) => f.data), ctx)
+          ? await routeImageExtraction(
+              [input.file, ...(input.pageImages ?? [])].map((f) => f.data),
+              ctx,
+            )
           : await routeExtraction(input.text ?? '', ctx);
         return { kiItems: routed.kiItems, warnings: [...warnings, ...routed.warnings] };
       } catch (err) {
-        console.error(`[llm-parse] AI parsing failed for "${file.originalName}" (provider=${config.provider}):`, err instanceof Error ? err.message : err);
+        console.error(
+          `[llm-parse] AI parsing failed for "${file.originalName}" (provider=${config.provider}):`,
+          err instanceof Error ? err.message : err,
+        );
         return {
           kiItems: [],
           warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
@@ -237,7 +261,10 @@ export class LlmParseService {
       if (this.env.isManaged()) console.debug(`[DEBUG] LLM response: ${raw.length} item(s)`);
       else console.debug(`[DEBUG] Parsed LLM response (${raw.length} item(s)): `, raw);
     } catch (err) {
-      console.error(`[llm-parse] AI parsing failed for "${file.originalName}" (provider=${config.provider}):`, err instanceof Error ? err.message : err);
+      console.error(
+        `[llm-parse] AI parsing failed for "${file.originalName}" (provider=${config.provider}):`,
+        err instanceof Error ? err.message : err,
+      );
       return {
         kiItems: [],
         warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],

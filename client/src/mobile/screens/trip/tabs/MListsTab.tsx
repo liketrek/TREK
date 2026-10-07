@@ -1,6 +1,6 @@
-import type { MTabScreenProps } from './tabModel'
-import MPackingListTab from './MPackingListTab'
-import MTodoListTab from './MTodoListTab'
+import MPackingListTab from './MPackingListTab';
+import MTodoListTab from './MTodoListTab';
+import type { MTabScreenProps } from './tabModel';
 
 /**
  * Tab 4 — Listen (spec 03 §4). The header segmented switcher (Packing/To-do,
@@ -11,7 +11,5 @@ import MTodoListTab from './MTodoListTab'
  * see `MPackingListTab`/`MTodoListTab` for the sub-tab logic.
  */
 export default function MListsTab({ planner, shell }: MTabScreenProps) {
-  return shell.listsTab === 'todo'
-    ? <MTodoListTab planner={planner} />
-    : <MPackingListTab planner={planner} />
+  return shell.listsTab === 'todo' ? <MTodoListTab planner={planner} /> : <MPackingListTab planner={planner} />;
 }

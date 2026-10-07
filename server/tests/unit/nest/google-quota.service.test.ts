@@ -1,16 +1,16 @@
+import { db } from '../../../src/db/database';
+import { GoogleApiUsage } from '../../../src/db/entities/GoogleApiUsage.entity';
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { GoogleApiUsageRepository } from '../../../src/db/repositories/GoogleApiUsage.repository';
+import { GoogleQuotaService, GOOGLE_DAILY_LIMIT_SETTING } from '../../../src/nest/google-quota/google-quota.service';
+import { createTestAppSettingsRepo, sharedTestOrm } from '../../helpers/test-uow';
+
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-
-import { db } from '../../../src/db/database';
-import { GoogleQuotaService, GOOGLE_DAILY_LIMIT_SETTING } from '../../../src/nest/google-quota/google-quota.service';
-import { GoogleApiUsage } from '../../../src/db/entities/GoogleApiUsage.entity';
-import type { GoogleApiUsageRepository } from '../../../src/db/repositories/GoogleApiUsage.repository';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import { createTestAppSettingsRepo, sharedTestOrm } from '../../helpers/test-uow';
 
 /** GQUOTA-001..007 — the daily ceiling on Google API calls (#1582). */
 
@@ -64,7 +64,9 @@ describe('GoogleQuotaService', () => {
 
   it('GQUOTA-004: 0 and null remove the ceiling', async () => {
     await quota.setDailyLimit(10);
-    expect(db.prepare('SELECT value FROM app_settings WHERE key = ?').get(GOOGLE_DAILY_LIMIT_SETTING)).toEqual({ value: '10' });
+    expect(db.prepare('SELECT value FROM app_settings WHERE key = ?').get(GOOGLE_DAILY_LIMIT_SETTING)).toEqual({
+      value: '10',
+    });
     expect((await quota.setDailyLimit(0)).daily_limit).toBeNull();
     await quota.setDailyLimit(10);
     expect((await quota.setDailyLimit(null)).daily_limit).toBeNull();
@@ -77,7 +79,9 @@ describe('GoogleQuotaService', () => {
   });
 
   it('GQUOTA-006: the status prunes days past the retention window', async () => {
-    db.prepare("INSERT INTO google_api_usage (day, calls) VALUES (date('now', '-500 days'), 9), (date('now', '-10 days'), 4)").run();
+    db.prepare(
+      "INSERT INTO google_api_usage (day, calls) VALUES (date('now', '-500 days'), 9), (date('now', '-10 days'), 4)",
+    ).run();
     await quota.status();
     expect(db.prepare('SELECT COUNT(*) AS n FROM google_api_usage').get()).toEqual({ n: 1 });
   });

@@ -1,4 +1,4 @@
-import { useHelpContext } from '../../hooks/useHelpContext'
+import { useHelpContext } from '../../hooks/useHelpContext';
 
 /**
  * Renders nothing; registers the screen it sits in with the help center. A
@@ -6,6 +6,6 @@ import { useHelpContext } from '../../hooks/useHelpContext'
  * form a `*Page.tsx` uses.
  */
 export default function HelpAnchor({ id }: { id: string }): null {
-  useHelpContext(id)
-  return null
+  useHelpContext(id);
+  return null;
 }

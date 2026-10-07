@@ -1,4 +1,4 @@
-import { lazyWithRetry } from '../../utils/lazyWithRetry'
+import { lazyWithRetry } from '../../utils/lazyWithRetry';
 
 /**
  * The six ways into a GL map, one chunk per engine.
@@ -19,58 +19,46 @@ import { lazyWithRetry } from '../../utils/lazyWithRetry'
  */
 
 export const MapViewGLMapbox = lazyWithRetry(async () => {
-  const [component, engine] = await Promise.all([import('./MapViewGL'), import('./engines/mapbox')])
-  const MapViewGL = component.MapViewGL
+  const [component, engine] = await Promise.all([import('./MapViewGL'), import('./engines/mapbox')]);
+  const MapViewGL = component.MapViewGL;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { default: (props: any) => <MapViewGL {...props} gl={engine.default} /> }
-})
+  return { default: (props: any) => <MapViewGL {...props} gl={engine.default} /> };
+});
 
 export const MapViewGLMaplibre = lazyWithRetry(async () => {
-  const [component, engine] = await Promise.all([import('./MapViewGL'), import('./engines/maplibre')])
-  const MapViewGL = component.MapViewGL
+  const [component, engine] = await Promise.all([import('./MapViewGL'), import('./engines/maplibre')]);
+  const MapViewGL = component.MapViewGL;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { default: (props: any) => <MapViewGL {...props} gl={engine.default} /> }
-})
+  return { default: (props: any) => <MapViewGL {...props} gl={engine.default} /> };
+});
 
 export const JourneyMapGLMapbox = lazyWithRetry(async () => {
-  const [component, engine] = await Promise.all([
-    import('../Journey/JourneyMapGL'),
-    import('./engines/mapbox'),
-  ])
-  const JourneyMapGL = component.default
+  const [component, engine] = await Promise.all([import('../Journey/JourneyMapGL'), import('./engines/mapbox')]);
+  const JourneyMapGL = component.default;
   // The journey map exposes an imperative handle (highlightMarker / focusMarker /
   // invalidateSize). Since React 19 its ref is an ordinary prop, so it rides
   // through the spread and the binding needs no forwardRef wrapper.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { default: (props: any) => <JourneyMapGL {...props} gl={engine.default} /> }
-})
+  return { default: (props: any) => <JourneyMapGL {...props} gl={engine.default} /> };
+});
 
 export const JourneyMapGLMaplibre = lazyWithRetry(async () => {
-  const [component, engine] = await Promise.all([
-    import('../Journey/JourneyMapGL'),
-    import('./engines/maplibre'),
-  ])
-  const JourneyMapGL = component.default
+  const [component, engine] = await Promise.all([import('../Journey/JourneyMapGL'), import('./engines/maplibre')]);
+  const JourneyMapGL = component.default;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { default: (props: any) => <JourneyMapGL {...props} gl={engine.default} /> }
-})
+  return { default: (props: any) => <JourneyMapGL {...props} gl={engine.default} /> };
+});
 
 export const GlMapPreviewMapbox = lazyWithRetry(async () => {
-  const [component, engine] = await Promise.all([
-    import('../Settings/MapboxPreview'),
-    import('./engines/mapbox'),
-  ])
-  const GlMapPreview = component.default
+  const [component, engine] = await Promise.all([import('../Settings/MapboxPreview'), import('./engines/mapbox')]);
+  const GlMapPreview = component.default;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { default: (props: any) => <GlMapPreview {...props} gl={engine.default} /> }
-})
+  return { default: (props: any) => <GlMapPreview {...props} gl={engine.default} /> };
+});
 
 export const GlMapPreviewMaplibre = lazyWithRetry(async () => {
-  const [component, engine] = await Promise.all([
-    import('../Settings/MapboxPreview'),
-    import('./engines/maplibre'),
-  ])
-  const GlMapPreview = component.default
+  const [component, engine] = await Promise.all([import('../Settings/MapboxPreview'), import('./engines/maplibre')]);
+  const GlMapPreview = component.default;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { default: (props: any) => <GlMapPreview {...props} gl={engine.default} /> }
-})
+  return { default: (props: any) => <GlMapPreview {...props} gl={engine.default} /> };
+});

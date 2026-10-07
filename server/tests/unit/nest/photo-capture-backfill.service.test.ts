@@ -2,24 +2,34 @@
  * PhotoCaptureBackfillService (#1614) — asking the provider when and where a
  * photo was taken, after the add the user was waiting on has already answered.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// exifr reads real files; the local branch is about which tags are picked and what
-// is done with them, not about decoding a JPEG.
-vi.mock('exifr', () => ({ default: { parse: vi.fn() } }));
-import exifr from 'exifr';
 import { PhotoCaptureBackfillService } from '../../../src/nest/memories/photo-capture-backfill.service';
 import type { PhotoResolverService } from '../../../src/nest/memories/photo-resolver.service';
 import type { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
 
+import exifr from 'exifr';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// exifr reads real files; the local branch is about which tags are picked and what
+// is done with them, not about decoding a JPEG.
+vi.mock('exifr', () => ({ default: { parse: vi.fn() } }));
+
 // The storage layer's job here is only to hand the EXIF reader a real path;
 // materialization (local fast-path vs remote temp download) has its own tests.
 const storageStub = {
-  withLocalFile: vi.fn(async (_category: string, name: string, fn: (absPath: string) => Promise<unknown>) => fn(`/uploads/journey/${name}`)),
+  withLocalFile: vi.fn(async (_category: string, name: string, fn: (absPath: string) => Promise<unknown>) =>
+    fn(`/uploads/journey/${name}`),
+  ),
 } as unknown as StorageService;
 
-type Row = { id: number; provider?: string; file_path?: string | null; taken_at?: string | null; lat?: number | null; lng?: number | null };
+type Row = {
+  id: number;
+  provider?: string;
+  file_path?: string | null;
+  taken_at?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+};
 
 function build(rows: Row[], info: Record<number, unknown>) {
   const recordCaptureMetadata = vi.fn();
@@ -30,7 +40,7 @@ function build(rows: Row[], info: Record<number, unknown>) {
     info[id] ? { success: true, data: info[id] } : { success: false, error: 'nope', status: 404 },
   );
   const photos = {
-    resolve: (id: number) => rows.find(r => r.id === id) ?? null,
+    resolve: (id: number) => rows.find((r) => r.id === id) ?? null,
     recordCaptureMetadata,
   } as unknown as TrekPhotoRegistrationService;
   const resolver = { getPhotoInfo } as unknown as PhotoResolverService;
@@ -46,7 +56,7 @@ function buildHung(rows: Row[]) {
   const nas = { up: false, pending: [] as Array<() => void> };
   const getPhotoInfo = vi.fn(async (userId: number, _id: number) => {
     if (userId === 1 && !nas.up) {
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         nas.pending.push(resolve);
       });
     }
@@ -54,7 +64,7 @@ function buildHung(rows: Row[]) {
   });
   const recordCaptureMetadata = vi.fn(() => true);
   const photos = {
-    resolve: (id: number) => rows.find(r => r.id === id) ?? null,
+    resolve: (id: number) => rows.find((r) => r.id === id) ?? null,
     recordCaptureMetadata,
   } as unknown as TrekPhotoRegistrationService;
   const svc = new PhotoCaptureBackfillService({ getPhotoInfo } as unknown as PhotoResolverService, photos, storageStub);
@@ -72,23 +82,23 @@ function usersWithSlots(svc: PhotoCaptureBackfillService): number {
 
 describe('PhotoCaptureBackfillService', () => {
   it('CAPTURE-001: records what the provider knows', async () => {
-    const { svc, recordCaptureMetadata } = build(
-      [{ id: 7 }],
-      { 7: { takenAt: '2026-03-15T10:20:00Z', lat: 48.8584, lng: 2.2945 } },
-    );
+    const { svc, recordCaptureMetadata } = build([{ id: 7 }], {
+      7: { takenAt: '2026-03-15T10:20:00Z', lat: 48.8584, lng: 2.2945 },
+    });
 
     await svc.run([7], 1);
 
     expect(recordCaptureMetadata).toHaveBeenCalledWith(7, {
-      takenAt: '2026-03-15T10:20:00Z', lat: 48.8584, lng: 2.2945,
+      takenAt: '2026-03-15T10:20:00Z',
+      lat: 48.8584,
+      lng: 2.2945,
     });
   });
 
   it('CAPTURE-002: skips a row that already knows both, so an album import is not a provider call per photo', async () => {
-    const { svc, getPhotoInfo } = build(
-      [{ id: 7, taken_at: '2026-03-15T10:20:00Z', lat: 1, lng: 2 }],
-      { 7: { takenAt: 'x' } },
-    );
+    const { svc, getPhotoInfo } = build([{ id: 7, taken_at: '2026-03-15T10:20:00Z', lat: 1, lng: 2 }], {
+      7: { takenAt: 'x' },
+    });
 
     await svc.run([7], 1);
 
@@ -96,10 +106,9 @@ describe('PhotoCaptureBackfillService', () => {
   });
 
   it('CAPTURE-003: still asks when only half is known', async () => {
-    const { svc, getPhotoInfo } = build(
-      [{ id: 7, taken_at: '2026-03-15T10:20:00Z' }],
-      { 7: { takenAt: '2026-03-15T10:20:00Z', lat: 48.8, lng: 2.2 } },
-    );
+    const { svc, getPhotoInfo } = build([{ id: 7, taken_at: '2026-03-15T10:20:00Z' }], {
+      7: { takenAt: '2026-03-15T10:20:00Z', lat: 48.8, lng: 2.2 },
+    });
 
     await svc.run([7], 1);
 
@@ -114,17 +123,18 @@ describe('PhotoCaptureBackfillService', () => {
   });
 
   it('CAPTURE-005: one failing photo does not take down the rest of the batch', async () => {
-    const { svc, recordCaptureMetadata } = build(
-      [{ id: 7 }, { id: 8 }],
-      { 8: { takenAt: '2026-03-16T08:00:00Z', lat: null, lng: null } },
-    );
+    const { svc, recordCaptureMetadata } = build([{ id: 7 }, { id: 8 }], {
+      8: { takenAt: '2026-03-16T08:00:00Z', lat: null, lng: null },
+    });
     // 7 has no info entry, so getPhotoInfo answers unsuccessfully for it.
 
     await svc.run([7, 8], 1);
 
     expect(recordCaptureMetadata).toHaveBeenCalledTimes(1);
     expect(recordCaptureMetadata).toHaveBeenCalledWith(8, {
-      takenAt: '2026-03-16T08:00:00Z', lat: null, lng: null,
+      takenAt: '2026-03-16T08:00:00Z',
+      lat: null,
+      lng: null,
     });
   });
 
@@ -143,10 +153,10 @@ describe('PhotoCaptureBackfillService', () => {
   });
 
   it('CAPTURE-016: answers whether any row learned something, which is what the journey refresh hangs off', async () => {
-    const { svc, recordCaptureMetadata } = build(
-      [{ id: 7 }, { id: 8 }],
-      { 7: { takenAt: '2026-03-15T10:20:00Z' }, 8: { takenAt: '2026-03-16T08:00:00Z' } },
-    );
+    const { svc, recordCaptureMetadata } = build([{ id: 7 }, { id: 8 }], {
+      7: { takenAt: '2026-03-15T10:20:00Z' },
+      8: { takenAt: '2026-03-16T08:00:00Z' },
+    });
     // The repository reports no change for 7 (it already knew) and news for 8.
     recordCaptureMetadata.mockImplementation((id: number) => id === 8);
 
@@ -164,36 +174,50 @@ describe('PhotoCaptureBackfillService', () => {
     const getPhotoInfo = vi.fn(async (_userId: number, id: number) => {
       load.inFlight++;
       load.peak = Math.max(load.peak, load.inFlight);
-      await new Promise(resolve => setTimeout(resolve, 5));
+      await new Promise((resolve) => setTimeout(resolve, 5));
       load.inFlight--;
       return { success: true, data: { takenAt: `2026-03-${String((id % 28) + 1).padStart(2, '0')}T08:00:00Z` } };
     });
     const photos = {
-      resolve: (id: number) => rows.find(r => r.id === id) ?? null,
+      resolve: (id: number) => rows.find((r) => r.id === id) ?? null,
       recordCaptureMetadata,
     } as unknown as TrekPhotoRegistrationService;
-    const svc = new PhotoCaptureBackfillService({ getPhotoInfo } as unknown as PhotoResolverService, photos, storageStub);
+    const svc = new PhotoCaptureBackfillService(
+      { getPhotoInfo } as unknown as PhotoResolverService,
+      photos,
+      storageStub,
+    );
     return { svc, rows, recordCaptureMetadata, getPhotoInfo, load };
   }
 
   it('CAPTURE-017: one run asks about a few photos at a time instead of one after the other, never more than four', async () => {
     const { svc, rows, recordCaptureMetadata, getPhotoInfo, load } = buildSlow(10);
 
-    await expect(svc.run(rows.map(r => r.id), 1)).resolves.toBe(true);
+    await expect(
+      svc.run(
+        rows.map((r) => r.id),
+        1,
+      ),
+    ).resolves.toBe(true);
 
     expect(load.peak).toBe(4);
     expect(getPhotoInfo).toHaveBeenCalledTimes(10);
-    expect(recordCaptureMetadata.mock.calls.map(c => (c as unknown[])[0]).sort((a, b) => (a as number) - (b as number)))
-      .toEqual(rows.map(r => r.id));
+    expect(
+      recordCaptureMetadata.mock.calls.map((c) => (c as unknown[])[0]).sort((a, b) => (a as number) - (b as number)),
+    ).toEqual(rows.map((r) => r.id));
   });
 
   it('CAPTURE-018: the four slots are shared by every run of one user, so batches that start together still keep four in flight', async () => {
     // A 1,500-photo import arrives as three batches of 500, each its own detached
     // run; a cap per run would have let them open twelve lookups at once.
     const { svc, rows, getPhotoInfo, load } = buildSlow(15);
-    const ids = rows.map(r => r.id);
+    const ids = rows.map((r) => r.id);
 
-    const results = await Promise.all([svc.run(ids.slice(0, 5), 1), svc.run(ids.slice(5, 10), 1), svc.run(ids.slice(10), 1)]);
+    const results = await Promise.all([
+      svc.run(ids.slice(0, 5), 1),
+      svc.run(ids.slice(5, 10), 1),
+      svc.run(ids.slice(10), 1),
+    ]);
 
     expect(results).toEqual([true, true, true]);
     expect(load.peak).toBe(4);
@@ -209,7 +233,7 @@ describe('PhotoCaptureBackfillService', () => {
     // Say a gallery import and an entry import landing at the same moment: each
     // run starts four workers of its own, and only four of the eight may ask.
     const { svc, rows, getPhotoInfo, load } = buildSlow(12);
-    const ids = rows.map(r => r.id);
+    const ids = rows.map((r) => r.id);
 
     const first = svc.run(ids.slice(0, 6), 1);
     const second = svc.run(ids.slice(6), 1);
@@ -221,7 +245,7 @@ describe('PhotoCaptureBackfillService', () => {
 
   it('CAPTURE-020: a lookup that throws gives its slot back', async () => {
     const { svc, rows, getPhotoInfo, load } = buildSlow(8);
-    const ids = rows.map(r => r.id);
+    const ids = rows.map((r) => r.id);
     // The first four lookups take every slot and then throw. Had they kept their
     // slots, the other four photos would wait for ever and the run never end.
     const slowAnswer = getPhotoInfo.getMockImplementation()!;
@@ -229,7 +253,7 @@ describe('PhotoCaptureBackfillService', () => {
       if (id > 4) return slowAnswer(userId, id);
       load.inFlight++;
       load.peak = Math.max(load.peak, load.inFlight);
-      await new Promise(resolve => setTimeout(resolve, 5));
+      await new Promise((resolve) => setTimeout(resolve, 5));
       load.inFlight--;
       throw new Error('NAS gone');
     });
@@ -261,7 +285,9 @@ describe('PhotoCaptureBackfillService', () => {
 
   it('CAPTURE-022: a lookup that throws something other than an Error is logged as it is', async () => {
     const { svc, getPhotoInfo } = build([{ id: 7 }], {});
-    getPhotoInfo.mockImplementation(async () => { throw 'socket hang up'; });
+    getPhotoInfo.mockImplementation(async () => {
+      throw 'socket hang up';
+    });
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     try {
@@ -299,7 +325,7 @@ describe('PhotoCaptureBackfillService', () => {
 
   it('CAPTURE-024: every user has four slots of their own, so two importers may have eight lookups open', async () => {
     const { svc, rows, getPhotoInfo, load } = buildSlow(12);
-    const ids = rows.map(r => r.id);
+    const ids = rows.map((r) => r.id);
 
     await expect(Promise.all([svc.run(ids.slice(0, 6), 1), svc.run(ids.slice(6), 2)])).resolves.toEqual([true, true]);
 
@@ -322,7 +348,7 @@ describe('PhotoCaptureBackfillService — local files', () => {
     const recordCaptureMetadata = vi.fn();
     const getPhotoInfo = vi.fn();
     const photos = {
-      resolve: (id: number) => rows.find(r => r.id === id) ?? null,
+      resolve: (id: number) => rows.find((r) => r.id === id) ?? null,
       recordCaptureMetadata,
     } as unknown as TrekPhotoRegistrationService;
     const resolver = { getPhotoInfo } as unknown as PhotoResolverService;
@@ -345,46 +371,55 @@ describe('PhotoCaptureBackfillService — local files', () => {
 
     expect(getPhotoInfo).not.toHaveBeenCalled();
     expect(recordCaptureMetadata).toHaveBeenCalledWith(7, {
-      takenAt: '2026-03-15T10:20:00.000Z', lat: 48.8584, lng: 2.2945,
+      takenAt: '2026-03-15T10:20:00.000Z',
+      lat: 48.8584,
+      lng: 2.2945,
     });
   });
 
   it('CAPTURE-008: falls back to CreateDate when the original timestamp is missing', async () => {
     vi.mocked(exifr.parse).mockResolvedValue({ CreateDate: '2026:03:16 08:00:00', OffsetTimeDigitized: '+00:00' });
-    const { svc, recordCaptureMetadata } = localBuild([
-      { id: 7, provider: 'local', file_path: 'journey/a.jpg' },
-    ]);
+    const { svc, recordCaptureMetadata } = localBuild([{ id: 7, provider: 'local', file_path: 'journey/a.jpg' }]);
 
     await svc.run([7], 1);
 
     expect(recordCaptureMetadata).toHaveBeenCalledWith(7, {
-      takenAt: '2026-03-16T08:00:00.000Z', lat: null, lng: null,
+      takenAt: '2026-03-16T08:00:00.000Z',
+      lat: null,
+      lng: null,
     });
   });
 
   it('CAPTURE-016: a coordinate that is not a real one drops the pair, not the capture time', async () => {
     // 0,0 is what a receiver without a fix writes, not a place (#2512).
-    for (const [latitude, longitude] of [[Number.NaN, 2.2945], [48.8584, 200], [91, 2.2945], [48.8584, undefined], [0, 0]]) {
+    for (const [latitude, longitude] of [
+      [Number.NaN, 2.2945],
+      [48.8584, 200],
+      [91, 2.2945],
+      [48.8584, undefined],
+      [0, 0],
+    ]) {
       vi.mocked(exifr.parse).mockResolvedValue({
-        DateTimeOriginal: '2026:03:15 11:20:00', OffsetTimeOriginal: '+01:00', latitude, longitude,
+        DateTimeOriginal: '2026:03:15 11:20:00',
+        OffsetTimeOriginal: '+01:00',
+        latitude,
+        longitude,
       });
-      const { svc, recordCaptureMetadata } = localBuild([
-        { id: 7, provider: 'local', file_path: 'journey/a.jpg' },
-      ]);
+      const { svc, recordCaptureMetadata } = localBuild([{ id: 7, provider: 'local', file_path: 'journey/a.jpg' }]);
 
       await svc.run([7], 1);
 
       expect(recordCaptureMetadata).toHaveBeenCalledWith(7, {
-        takenAt: '2026-03-15T10:20:00.000Z', lat: null, lng: null,
+        takenAt: '2026-03-15T10:20:00.000Z',
+        lat: null,
+        lng: null,
       });
     }
   });
 
   it('CAPTURE-017: a bad coordinate with no usable date records nothing', async () => {
     vi.mocked(exifr.parse).mockResolvedValue({ DateTimeOriginal: 'garbage', latitude: 48.8584 });
-    const { svc, recordCaptureMetadata } = localBuild([
-      { id: 7, provider: 'local', file_path: 'journey/a.jpg' },
-    ]);
+    const { svc, recordCaptureMetadata } = localBuild([{ id: 7, provider: 'local', file_path: 'journey/a.jpg' }]);
 
     await svc.run([7], 1);
 
@@ -393,9 +428,7 @@ describe('PhotoCaptureBackfillService — local files', () => {
 
   it('CAPTURE-009: a file with nothing readable is left alone', async () => {
     vi.mocked(exifr.parse).mockResolvedValue({});
-    const { svc, recordCaptureMetadata } = localBuild([
-      { id: 7, provider: 'local', file_path: 'journey/a.jpg' },
-    ]);
+    const { svc, recordCaptureMetadata } = localBuild([{ id: 7, provider: 'local', file_path: 'journey/a.jpg' }]);
 
     await svc.run([7], 1);
 
@@ -406,19 +439,17 @@ describe('PhotoCaptureBackfillService — local files', () => {
     // Throws synchronously. A mock that *rejects* leaves vitest recording the
     // settlement of a promise nothing else owns, and the run fails on that even
     // though the code under test caught it. The catch is the same either way.
-    vi.mocked(exifr.parse).mockImplementation((() => { throw new Error('not an image'); }) as never);
-    const { svc, recordCaptureMetadata } = localBuild([
-      { id: 7, provider: 'local', file_path: 'journey/a.jpg' },
-    ]);
+    vi.mocked(exifr.parse).mockImplementation((() => {
+      throw new Error('not an image');
+    }) as never);
+    const { svc, recordCaptureMetadata } = localBuild([{ id: 7, provider: 'local', file_path: 'journey/a.jpg' }]);
 
     await expect(svc.run([7], 1)).resolves.toBe(false);
     expect(recordCaptureMetadata).not.toHaveBeenCalled();
   });
 
   it('CAPTURE-011: a stored path that climbs out of the uploads tree is refused', async () => {
-    const { svc, recordCaptureMetadata } = localBuild([
-      { id: 7, provider: 'local', file_path: '../../../etc/passwd' },
-    ]);
+    const { svc, recordCaptureMetadata } = localBuild([{ id: 7, provider: 'local', file_path: '../../../etc/passwd' }]);
 
     await svc.run([7], 1);
 
@@ -444,7 +475,9 @@ describe('PhotoCaptureBackfillService — local files', () => {
   it('CAPTURE-014: a throwing lookup is swallowed so the detached task survives', async () => {
     const recordCaptureMetadata = vi.fn();
     const photos = {
-      resolve: () => { throw new Error('db gone'); },
+      resolve: () => {
+        throw new Error('db gone');
+      },
       recordCaptureMetadata,
     } as unknown as TrekPhotoRegistrationService;
     const svc = new PhotoCaptureBackfillService({} as PhotoResolverService, photos, storageStub);
@@ -455,18 +488,19 @@ describe('PhotoCaptureBackfillService — local files', () => {
 
   it('CAPTURE-015: schedule kicks the run off for a non-empty batch', async () => {
     vi.mocked(exifr.parse).mockResolvedValue({ DateTimeOriginal: '2026:03:15 10:20:00', OffsetTimeOriginal: '+00:00' });
-    const { svc, recordCaptureMetadata } = localBuild([
-      { id: 7, provider: 'local', file_path: 'journey/a.jpg' },
-    ]);
+    const { svc, recordCaptureMetadata } = localBuild([{ id: 7, provider: 'local', file_path: 'journey/a.jpg' }]);
 
     svc.schedule([7], 1);
     await vi.waitFor(() => expect(recordCaptureMetadata).toHaveBeenCalled());
   });
 
-  it('CAPTURE-025: a device upload reads its EXIF while the same user\'s provider lookups hang', async () => {
+  it("CAPTURE-025: a device upload reads its EXIF while the same user's provider lookups hang", async () => {
     vi.mocked(exifr.parse).mockResolvedValue({ DateTimeOriginal: '2026:03:15 10:20:00', OffsetTimeOriginal: '+00:00' });
     const { svc, getPhotoInfo, recordCaptureMetadata, recover } = buildHung([
-      { id: 1 }, { id: 2 }, { id: 3 }, { id: 4 },
+      { id: 1 },
+      { id: 2 },
+      { id: 3 },
+      { id: 4 },
       { id: 5, provider: 'local', file_path: 'journey/upload.jpg' },
     ]);
 
@@ -477,7 +511,11 @@ describe('PhotoCaptureBackfillService — local files', () => {
     // A file on TREK's own storage needs no slot, so the upload is not queued.
     await expect(svc.run([5], 1)).resolves.toBe(true);
     expect(storageStub.withLocalFile).toHaveBeenCalledWith('journey', 'upload.jpg', expect.any(Function));
-    expect(recordCaptureMetadata).toHaveBeenCalledWith(5, { takenAt: '2026-03-15T10:20:00.000Z', lat: null, lng: null });
+    expect(recordCaptureMetadata).toHaveBeenCalledWith(5, {
+      takenAt: '2026-03-15T10:20:00.000Z',
+      lat: null,
+      lng: null,
+    });
     expect(getPhotoInfo).toHaveBeenCalledTimes(4);
 
     recover();

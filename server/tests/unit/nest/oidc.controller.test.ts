@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { Request, Response } from 'express';
-
+import type { AuditService } from '../../../src/nest/audit/audit.service';
 import { OidcController } from '../../../src/nest/oidc/oidc.controller';
 import { OIDC_STATE_TTL_MS } from '../../../src/nest/oidc/oidc.service';
 import type { OidcService } from '../../../src/nest/oidc/oidc.service';
-import type { AuditService } from '../../../src/nest/audit/audit.service';
+
+import type { Request, Response } from 'express';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // AuditService is constructor-injected since the OIDC role change started
 // auditing; the wrapper keeps the historical construction sites positional.
@@ -15,11 +15,25 @@ const ctl = (o: OidcService) => new OidcController(o, audit);
 function svc(o: Partial<OidcService> = {}): OidcService {
   return {
     oidcLoginEnabled: vi.fn().mockReturnValue(true),
-    getOidcConfig: vi.fn().mockReturnValue({ issuer: 'https://idp', clientId: 'c', clientSecret: 's', discoveryUrl: null }),
+    getOidcConfig: vi
+      .fn()
+      .mockReturnValue({ issuer: 'https://idp', clientId: 'c', clientSecret: 's', discoveryUrl: null }),
     getAppUrl: vi.fn().mockReturnValue('https://app'),
-    discover: vi.fn().mockResolvedValue({ authorization_endpoint: 'https://idp/auth', userinfo_endpoint: 'https://idp/ui', issuer: 'https://idp' }),
+    discover: vi
+      .fn()
+      .mockResolvedValue({
+        authorization_endpoint: 'https://idp/auth',
+        userinfo_endpoint: 'https://idp/ui',
+        issuer: 'https://idp',
+      }),
     createState: vi.fn().mockReturnValue({ state: 'st', codeChallenge: 'cc' }),
-    consumeState: vi.fn().mockReturnValue({ redirectUri: 'https://app/api/auth/oidc/callback', codeVerifier: 'cv', inviteToken: undefined }),
+    consumeState: vi
+      .fn()
+      .mockReturnValue({
+        redirectUri: 'https://app/api/auth/oidc/callback',
+        codeVerifier: 'cv',
+        inviteToken: undefined,
+      }),
     exchangeCodeForToken: vi.fn(),
     verifyIdToken: vi.fn(),
     getUserInfo: vi.fn(),
@@ -39,9 +53,17 @@ function makeRes() {
     statusCode: 200,
     redirectedTo: '' as string,
     body: undefined as unknown,
-    status: vi.fn((c: number) => { res.statusCode = c; return res; }),
-    json: vi.fn((b: unknown) => { res.body = b; return res; }),
-    redirect: vi.fn((u: string) => { res.redirectedTo = u; }),
+    status: vi.fn((c: number) => {
+      res.statusCode = c;
+      return res;
+    }),
+    json: vi.fn((b: unknown) => {
+      res.body = b;
+      return res;
+    }),
+    redirect: vi.fn((u: string) => {
+      res.redirectedTo = u;
+    }),
     cookie: vi.fn(),
     clearCookie: vi.fn(),
   };
@@ -50,13 +72,16 @@ function makeRes() {
 
 const req = { query: {}, headers: {} } as Request;
 // Exchange request carrying the binding cookie the callback handed this browser.
-const reqEx = (binding = 'bnd') => ({ query: {}, headers: {}, cookies: { trek_oidc_exchange: binding } } as unknown as Request);
+const reqEx = (binding = 'bnd') =>
+  ({ query: {}, headers: {}, cookies: { trek_oidc_exchange: binding } }) as unknown as Request;
 // Callback request carrying the state-binding cookie a real browser would send
 // after going through /login.
-const reqCb = (state = 's') => ({ query: {}, headers: {}, cookies: { trek_oidc_state: state } } as unknown as Request);
+const reqCb = (state = 's') => ({ query: {}, headers: {}, cookies: { trek_oidc_state: state } }) as unknown as Request;
 
 beforeEach(() => vi.clearAllMocks());
-afterEach(() => { delete process.env.NODE_ENV; });
+afterEach(() => {
+  delete process.env.NODE_ENV;
+});
 
 describe('OidcController /login', () => {
   it('403 when SSO is disabled', async () => {
@@ -85,13 +110,23 @@ describe('OidcController /login', () => {
   it('binds the state cookie with a maxAge matching the server-side state TTL', async () => {
     const res = makeRes();
     await ctl(svc()).login(req, res);
-    expect(res.cookie).toHaveBeenCalledWith('trek_oidc_state', 'st', expect.objectContaining({ maxAge: OIDC_STATE_TTL_MS }));
+    expect(res.cookie).toHaveBeenCalledWith(
+      'trek_oidc_state',
+      'st',
+      expect.objectContaining({ maxAge: OIDC_STATE_TTL_MS }),
+    );
   });
 
   it('400 when a non-HTTPS issuer is used in production', async () => {
     process.env.NODE_ENV = 'production';
     const res = makeRes();
-    await ctl(svc({ getOidcConfig: vi.fn().mockReturnValue({ issuer: 'http://idp', clientId: 'c', clientSecret: 's', discoveryUrl: null }) })).login(req, res);
+    await ctl(
+      svc({
+        getOidcConfig: vi
+          .fn()
+          .mockReturnValue({ issuer: 'http://idp', clientId: 'c', clientSecret: 's', discoveryUrl: null }),
+      }),
+    ).login(req, res);
     expect(res.statusCode).toBe(400);
     expect(res.body).toEqual({ error: 'OIDC issuer must use HTTPS in production' });
   });
@@ -99,7 +134,13 @@ describe('OidcController /login', () => {
   it('allows a non-HTTPS issuer outside production', async () => {
     process.env.NODE_ENV = 'development';
     const res = makeRes();
-    await ctl(svc({ getOidcConfig: vi.fn().mockReturnValue({ issuer: 'http://idp', clientId: 'c', clientSecret: 's', discoveryUrl: null }) })).login(req, res);
+    await ctl(
+      svc({
+        getOidcConfig: vi
+          .fn()
+          .mockReturnValue({ issuer: 'http://idp', clientId: 'c', clientSecret: 's', discoveryUrl: null }),
+      }),
+    ).login(req, res);
     expect(res.redirect).toHaveBeenCalled();
   });
 
@@ -189,65 +230,107 @@ describe('OidcController /callback', () => {
   it('rejects a missing id_token, then completes with an auth code on success', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const noId = makeRes();
-    await ctl(svc({ exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at' }) })).callback('c', 's', undefined, reqCb('s'), noId);
+    await ctl(svc({ exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at' }) })).callback(
+      'c',
+      's',
+      undefined,
+      reqCb('s'),
+      noId,
+    );
     expect(noId.redirectedTo).toBe('https://app/login?oidc_error=no_id_token');
 
     const ok = makeRes();
-    const c = ctl(svc({
-      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
-      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
-      findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
-    }));
+    const c = ctl(
+      svc({
+        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+        verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+        getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+        findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
+      }),
+    );
     await c.callback('c', 's', undefined, reqCb('s'), ok);
     expect(ok.redirectedTo).toBe('https://app/login?oidc_code=ac');
     // The code alone is not the credential: its other half goes out as a cookie
     // that only this browser holds, and expires with the code.
-    expect(ok.cookie).toHaveBeenCalledWith('trek_oidc_exchange', 'bnd', expect.objectContaining({ httpOnly: true, maxAge: 60000, sameSite: 'lax' }));
+    expect(ok.cookie).toHaveBeenCalledWith(
+      'trek_oidc_exchange',
+      'bnd',
+      expect.objectContaining({ httpOnly: true, maxAge: 60000, sameSite: 'lax' }),
+    );
   });
 
   it('OIDC-CB-LOGIN-001: a successful login writes the user.login row every other method writes (#2417)', async () => {
     const res = makeRes();
-    const reqIp = { query: {}, headers: {}, ip: '203.0.113.9', cookies: { trek_oidc_state: 's' } } as unknown as Request;
-    await ctl(svc({
-      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
-      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
-      findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 7 } }),
-    })).callback('c', 's', undefined, reqIp, res);
+    const reqIp = {
+      query: {},
+      headers: {},
+      ip: '203.0.113.9',
+      cookies: { trek_oidc_state: 's' },
+    } as unknown as Request;
+    await ctl(
+      svc({
+        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+        verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+        getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+        findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 7 } }),
+      }),
+    ).callback('c', 's', undefined, reqIp, res);
 
     expect(writeAudit).toHaveBeenCalledTimes(1);
-    expect(writeAudit).toHaveBeenCalledWith({ userId: 7, action: 'user.login', ip: '203.0.113.9', details: { method: 'oidc' } });
+    expect(writeAudit).toHaveBeenCalledWith({
+      userId: 7,
+      action: 'user.login',
+      ip: '203.0.113.9',
+      details: { method: 'oidc' },
+    });
     expect(res.redirectedTo).toBe('https://app/login?oidc_code=ac');
   });
 
   it('OIDC-CB-LOGIN-003: an account the callback creates writes the user.register row a password signup writes, then the login', async () => {
     const res = makeRes();
-    const reqIp = { query: {}, headers: {}, ip: '203.0.113.9', cookies: { trek_oidc_state: 's' } } as unknown as Request;
-    await ctl(svc({
-      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
-      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
-      findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 7, username: 'a', email: 'a@b.c', role: 'user' }, created: true }),
-    })).callback('c', 's', undefined, reqIp, res);
+    const reqIp = {
+      query: {},
+      headers: {},
+      ip: '203.0.113.9',
+      cookies: { trek_oidc_state: 's' },
+    } as unknown as Request;
+    await ctl(
+      svc({
+        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+        verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+        getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+        findOrCreateUser: vi
+          .fn()
+          .mockReturnValue({ user: { id: 7, username: 'a', email: 'a@b.c', role: 'user' }, created: true }),
+      }),
+    ).callback('c', 's', undefined, reqIp, res);
 
     expect(writeAudit).toHaveBeenCalledTimes(2);
     expect(writeAudit).toHaveBeenNthCalledWith(1, {
-      userId: 7, action: 'user.register', ip: '203.0.113.9',
+      userId: 7,
+      action: 'user.register',
+      ip: '203.0.113.9',
       details: { username: 'a', email: 'a@b.c', role: 'user', method: 'oidc' },
     });
-    expect(writeAudit).toHaveBeenNthCalledWith(2, { userId: 7, action: 'user.login', ip: '203.0.113.9', details: { method: 'oidc' } });
+    expect(writeAudit).toHaveBeenNthCalledWith(2, {
+      userId: 7,
+      action: 'user.login',
+      ip: '203.0.113.9',
+      details: { method: 'oidc' },
+    });
     expect(res.redirectedTo).toBe('https://app/login?oidc_code=ac');
   });
 
   it('OIDC-CB-LOGIN-002: a login refused by the user lookup writes no login row', async () => {
     const res = makeRes();
-    await ctl(svc({
-      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
-      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
-      findOrCreateUser: vi.fn().mockReturnValue({ error: 'registration_disabled' }),
-    })).callback('c', 's', undefined, reqCb('s'), res);
+    await ctl(
+      svc({
+        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+        verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+        getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+        findOrCreateUser: vi.fn().mockReturnValue({ error: 'registration_disabled' }),
+      }),
+    ).callback('c', 's', undefined, reqCb('s'), res);
 
     expect(writeAudit).not.toHaveBeenCalled();
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=registration_disabled');
@@ -255,13 +338,22 @@ describe('OidcController /callback', () => {
 
   it('audits a role change the claim mapping made, with the client IP and the claim name only', async () => {
     const res = makeRes();
-    const reqIp = { query: {}, headers: {}, ip: '203.0.113.9', cookies: { trek_oidc_state: 's' } } as unknown as Request;
-    await ctl(svc({
-      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
-      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
-      findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 7 }, roleChange: { from: 'admin', to: 'user', claim: 'entitlements' } }),
-    })).callback('c', 's', undefined, reqIp, res);
+    const reqIp = {
+      query: {},
+      headers: {},
+      ip: '203.0.113.9',
+      cookies: { trek_oidc_state: 's' },
+    } as unknown as Request;
+    await ctl(
+      svc({
+        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+        verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+        getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+        findOrCreateUser: vi
+          .fn()
+          .mockReturnValue({ user: { id: 7 }, roleChange: { from: 'admin', to: 'user', claim: 'entitlements' } }),
+      }),
+    ).callback('c', 's', undefined, reqIp, res);
 
     expect(writeAudit).toHaveBeenCalledWith({
       userId: 7,
@@ -277,12 +369,14 @@ describe('OidcController /callback', () => {
 
   it('writes no role-change row when the login left the role alone', async () => {
     const res = makeRes();
-    await ctl(svc({
-      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
-      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
-      findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 7 } }),
-    })).callback('c', 's', undefined, reqCb('s'), res);
+    await ctl(
+      svc({
+        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+        verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+        getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+        findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 7 } }),
+      }),
+    ).callback('c', 's', undefined, reqCb('s'), res);
 
     expect(writeAudit).not.toHaveBeenCalledWith(expect.objectContaining({ action: 'oidc.role_change' }));
     expect(res.redirectedTo).toBe('https://app/login?oidc_code=ac');
@@ -299,11 +393,13 @@ describe('OidcController /callback', () => {
   it('rejects a userinfo subject mismatch', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const res = makeRes();
-    const c = ctl(svc({
-      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
-      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'OTHER' }),
-    }));
+    const c = ctl(
+      svc({
+        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+        verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+        getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'OTHER' }),
+      }),
+    );
     await c.callback('c', 's', undefined, reqCb('s'), res);
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=subject_mismatch');
   });
@@ -331,54 +427,80 @@ describe('OidcController /callback', () => {
   it('redirects issuer_not_https when a non-HTTPS issuer is used in production', async () => {
     process.env.NODE_ENV = 'production';
     const res = makeRes();
-    await ctl(svc({ getOidcConfig: vi.fn().mockReturnValue({ issuer: 'http://idp', clientId: 'c', clientSecret: 's', discoveryUrl: null }) })).callback('c', 's', undefined, reqCb('s'), res);
+    await ctl(
+      svc({
+        getOidcConfig: vi
+          .fn()
+          .mockReturnValue({ issuer: 'http://idp', clientId: 'c', clientSecret: 's', discoveryUrl: null }),
+      }),
+    ).callback('c', 's', undefined, reqCb('s'), res);
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=issuer_not_https');
   });
 
   it('redirects token_failed when the token exchange is not ok', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const res = makeRes();
-    await ctl(svc({ exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: false, _status: 401 }) })).callback('c', 's', undefined, reqCb('s'), res);
+    await ctl(svc({ exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: false, _status: 401 }) })).callback(
+      'c',
+      's',
+      undefined,
+      reqCb('s'),
+      res,
+    );
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=token_failed');
   });
 
   it('redirects token_failed when the access token is missing', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const res = makeRes();
-    await ctl(svc({ exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true }) })).callback('c', 's', undefined, reqCb('s'), res);
+    await ctl(svc({ exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true }) })).callback(
+      'c',
+      's',
+      undefined,
+      reqCb('s'),
+      res,
+    );
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=token_failed');
   });
 
   it('redirects id_token_invalid when verification fails with a reason', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const res = makeRes();
-    await ctl(svc({
-      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-      verifyIdToken: vi.fn().mockResolvedValue({ ok: false, error: 'bad_signature' }),
-    })).callback('c', 's', undefined, reqCb('s'), res);
+    await ctl(
+      svc({
+        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+        verifyIdToken: vi.fn().mockResolvedValue({ ok: false, error: 'bad_signature' }),
+      }),
+    ).callback('c', 's', undefined, reqCb('s'), res);
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=id_token_invalid');
   });
 
   it('redirects id_token_invalid when verification fails without an error field', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const res = makeRes();
-    await ctl(svc({
-      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-      verifyIdToken: vi.fn().mockResolvedValue({ ok: false }),
-    })).callback('c', 's', undefined, reqCb('s'), res);
+    await ctl(
+      svc({
+        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+        verifyIdToken: vi.fn().mockResolvedValue({ ok: false }),
+      }),
+    ).callback('c', 's', undefined, reqCb('s'), res);
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=id_token_invalid');
   });
 
   it('falls back to config.issuer when the discovery doc has no issuer', async () => {
     const verifyIdToken = vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } });
     const res = makeRes();
-    await ctl(svc({
-      discover: vi.fn().mockResolvedValue({ authorization_endpoint: 'https://idp/auth', userinfo_endpoint: 'https://idp/ui' }),
-      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-      verifyIdToken,
-      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
-      findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
-    })).callback('c', 's', undefined, reqCb('s'), res);
+    await ctl(
+      svc({
+        discover: vi
+          .fn()
+          .mockResolvedValue({ authorization_endpoint: 'https://idp/auth', userinfo_endpoint: 'https://idp/ui' }),
+        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+        verifyIdToken,
+        getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+        findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
+      }),
+    ).callback('c', 's', undefined, reqCb('s'), res);
     // doc.issuer absent → (doc.issuer ?? '') is '' → falls back to config.issuer
     expect(verifyIdToken).toHaveBeenCalledWith('it', expect.anything(), 'c', 'https://idp');
     expect(res.redirectedTo).toBe('https://app/login?oidc_code=ac');
@@ -387,63 +509,85 @@ describe('OidcController /callback', () => {
   it('strips trailing slashes off the discovery doc issuer before verifying', async () => {
     const verifyIdToken = vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } });
     const res = makeRes();
-    await ctl(svc({
-      discover: vi.fn().mockResolvedValue({ authorization_endpoint: 'https://idp/auth', userinfo_endpoint: 'https://idp/ui', issuer: 'https://idp/' }),
-      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-      verifyIdToken,
-      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
-      findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
-    })).callback('c', 's', undefined, reqCb('s'), res);
+    await ctl(
+      svc({
+        discover: vi
+          .fn()
+          .mockResolvedValue({
+            authorization_endpoint: 'https://idp/auth',
+            userinfo_endpoint: 'https://idp/ui',
+            issuer: 'https://idp/',
+          }),
+        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+        verifyIdToken,
+        getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+        findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
+      }),
+    ).callback('c', 's', undefined, reqCb('s'), res);
     expect(verifyIdToken).toHaveBeenCalledWith('it', expect.anything(), 'c', 'https://idp');
   });
 
   it('redirects no_email when the userinfo has no email', async () => {
     const res = makeRes();
-    await ctl(svc({
-      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
-      getUserInfo: vi.fn().mockResolvedValue({ sub: 'u1' }),
-    })).callback('c', 's', undefined, reqCb('s'), res);
+    await ctl(
+      svc({
+        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+        verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+        getUserInfo: vi.fn().mockResolvedValue({ sub: 'u1' }),
+      }),
+    ).callback('c', 's', undefined, reqCb('s'), res);
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=no_email');
   });
 
   it('accepts when userinfo omits sub (no cross-check to run)', async () => {
     const res = makeRes();
-    await ctl(svc({
-      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
-      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c' }),
-      findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
-    })).callback('c', 's', undefined, reqCb('s'), res);
+    await ctl(
+      svc({
+        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+        verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+        getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c' }),
+        findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
+      }),
+    ).callback('c', 's', undefined, reqCb('s'), res);
     expect(res.redirectedTo).toBe('https://app/login?oidc_code=ac');
   });
 
   it('accepts when the id_token claims have a non-string sub (cross-check skipped)', async () => {
     const res = makeRes();
-    await ctl(svc({
-      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 12345 } }),
-      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'something-else' }),
-      findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
-    })).callback('c', 's', undefined, reqCb('s'), res);
+    await ctl(
+      svc({
+        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+        verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 12345 } }),
+        getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'something-else' }),
+        findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
+      }),
+    ).callback('c', 's', undefined, reqCb('s'), res);
     expect(res.redirectedTo).toBe('https://app/login?oidc_code=ac');
   });
 
   it('surfaces a findOrCreateUser provisioning error', async () => {
     const res = makeRes();
-    await ctl(svc({
-      exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-      verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
-      getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
-      findOrCreateUser: vi.fn().mockReturnValue({ error: 'registration_disabled' }),
-    })).callback('c', 's', undefined, reqCb('s'), res);
+    await ctl(
+      svc({
+        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+        verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+        getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+        findOrCreateUser: vi.fn().mockReturnValue({ error: 'registration_disabled' }),
+      }),
+    ).callback('c', 's', undefined, reqCb('s'), res);
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=registration_disabled');
   });
 
   it('redirects server_error when the flow throws', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const res = makeRes();
-    await ctl(svc({ discover: vi.fn().mockRejectedValue(new Error('network down')) })).callback('c', 's', undefined, reqCb('s'), res);
+    await ctl(svc({ discover: vi.fn().mockRejectedValue(new Error('network down')) })).callback(
+      'c',
+      's',
+      undefined,
+      reqCb('s'),
+      res,
+    );
     expect(res.redirectedTo).toBe('https://app/login?oidc_error=server_error');
   });
 
@@ -455,15 +599,24 @@ describe('OidcController /callback', () => {
       const generateToken = vi.fn().mockReturnValue('jwt');
       const createAuthCode = vi.fn().mockReturnValue({ code: 'ac', binding: 'bnd' });
       const res = makeRes();
-      await ctl(svc({
-        consumeState: vi.fn().mockReturnValue({ redirectUri: 'https://app/api/auth/oidc/callback', codeVerifier: 'cv', inviteToken: undefined, remember }),
-        exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
-        verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
-        getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
-        findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
-        generateToken,
-        createAuthCode,
-      })).callback('c', 's', undefined, reqCb('s'), res);
+      await ctl(
+        svc({
+          consumeState: vi
+            .fn()
+            .mockReturnValue({
+              redirectUri: 'https://app/api/auth/oidc/callback',
+              codeVerifier: 'cv',
+              inviteToken: undefined,
+              remember,
+            }),
+          exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+          verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1' } }),
+          getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+          findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
+          generateToken,
+          createAuthCode,
+        }),
+      ).callback('c', 's', undefined, reqCb('s'), res);
       expect(generateToken).toHaveBeenCalledWith({ id: 1 }, remember);
       expect(createAuthCode).toHaveBeenCalledWith('jwt', remember);
     }
@@ -495,7 +648,11 @@ describe('OidcController /exchange', () => {
       const res = makeRes();
       const setAuthCookie = vi.fn();
       const r = reqEx();
-      ctl(svc({ consumeAuthCode: vi.fn().mockReturnValue({ token: 'jwt', remember }), setAuthCookie })).exchange('x', r, res);
+      ctl(svc({ consumeAuthCode: vi.fn().mockReturnValue({ token: 'jwt', remember }), setAuthCookie })).exchange(
+        'x',
+        r,
+        res,
+      );
       expect(setAuthCookie).toHaveBeenCalledWith(res, 'jwt', r, remember);
       expect(res.body).toEqual({ token: 'jwt' });
     }
@@ -506,7 +663,10 @@ describe('OidcController /exchange', () => {
     const res = makeRes();
     ctl(svc({ consumeAuthCode })).exchange('x', reqEx('the-secret'), res);
     expect(consumeAuthCode).toHaveBeenCalledWith('x', 'the-secret');
-    expect(res.clearCookie).toHaveBeenCalledWith('trek_oidc_exchange', expect.objectContaining({ httpOnly: true, path: '/' }));
+    expect(res.clearCookie).toHaveBeenCalledWith(
+      'trek_oidc_exchange',
+      expect.objectContaining({ httpOnly: true, path: '/' }),
+    );
   });
 
   it('passes undefined when the browser has no binding cookie, and still clears it', () => {

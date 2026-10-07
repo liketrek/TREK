@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { AuditLog } from '../../db/entities/AuditLog.entity';
 import { Users } from '../../db/entities/Users.entity';
 import { AuditService } from './audit.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /** Cross-cutting audit domain (Wave 2). No controller/MCP surface of its own —
  *  the audit-log READ side stays with AdminModule (legacy adminService).

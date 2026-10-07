@@ -12,10 +12,24 @@
  * still pin the legacy status + body, but now against the real repository
  * path rather than a stand-in.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { closeMcpSessions } from '../../src/mcp/index';
+import { authCookie, generateToken } from '../helpers/auth';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  addTripMember,
+  createDayAssignment,
+} from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // task-0a-review F4: this mock no longer intercepts any of the four
 // primitives — `db/database.ts` holds none of their bodies any more, so
@@ -40,13 +54,6 @@ vi.mock('../../src/config', () => ({
   DEFAULT_LANGUAGE: 'en',
 }));
 vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, addTripMember, createDayAssignment } from '../helpers/factories';
-import { authCookie, generateToken } from '../helpers/auth';
-import { closeMcpSessions } from '../../src/mcp/index';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -119,7 +126,12 @@ describe('isOwner (async) — the delete_trip MCP tool', () => {
       .post('/mcp')
       .set('Authorization', `Bearer ${generateToken(userId)}`)
       .set('Accept', 'application/json, text/event-stream')
-      .send({ jsonrpc: '2.0', method: 'initialize', id: 1, params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'test', version: '1' } } });
+      .send({
+        jsonrpc: '2.0',
+        method: 'initialize',
+        id: 1,
+        params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'test', version: '1' } },
+      });
     expect(res.status).toBe(200);
     const sessionId = res.headers['mcp-session-id'];
     expect(sessionId).toBeTruthy();
@@ -134,7 +146,13 @@ describe('isOwner (async) — the delete_trip MCP tool', () => {
   function toolResult(text: string): { isError?: boolean; content?: { type: string; text: string }[] } {
     const line = text.split('\n').find((l) => l.startsWith('data:'));
     if (!line) throw new Error(`no SSE data frame in: ${text.slice(0, 200)}`);
-    return (JSON.parse(line.slice('data:'.length).trim()) as { result?: { isError?: boolean; content?: { type: string; text: string }[] } }).result ?? {};
+    return (
+      (
+        JSON.parse(line.slice('data:'.length).trim()) as {
+          result?: { isError?: boolean; content?: { type: string; text: string }[] };
+        }
+      ).result ?? {}
+    );
   }
 
   beforeEach(() => {
@@ -285,7 +303,9 @@ describe('rosterUserIds (async) — PUT .../assignments/:id/participants', () =>
       .send({ user_ids: [owner.id, member.id, outsider.id] });
 
     expect(res.status).toBe(200);
-    expect(res.body.participants.map((p: { user_id: number }) => p.user_id).sort((a: number, b: number) => a - b)).toEqual([owner.id, member.id].sort((a, b) => a - b));
+    expect(
+      res.body.participants.map((p: { user_id: number }) => p.user_id).sort((a: number, b: number) => a - b),
+    ).toEqual([owner.id, member.id].sort((a, b) => a - b));
   });
 
   it('PRIM-ROSTER-003 — non-member: 404 { error: "Trip not found" }, guard refuses before rosterUserIds runs', async () => {
@@ -376,7 +396,9 @@ describe('getPlaceWithTags (async) — GET /api/trips/:tripId/places/:id', () =>
     const trip = createTrip(testDb, owner.id);
     const place = createPlace(testDb, trip.id);
 
-    const res = await request(app).get(`/api/trips/${trip.id}/places/${place.id}`).set('Cookie', authCookie(stranger.id));
+    const res = await request(app)
+      .get(`/api/trips/${trip.id}/places/${place.id}`)
+      .set('Cookie', authCookie(stranger.id));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
   });

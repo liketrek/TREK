@@ -39,11 +39,11 @@
  * a duplicated string makes every `getByText` in this file ambiguous.
  */
 import userEvent from '@testing-library/user-event';
+import type { DawarichCapabilities } from '@trek/shared';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DawarichCapabilities } from '@trek/shared';
-import { render, screen, waitFor } from '../../../tests/helpers/render';
 import { server } from '../../../tests/helpers/msw/server';
+import { render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import DawarichConnectionSection from './DawarichConnectionSection';
 
@@ -121,7 +121,7 @@ function stubSettings(over: Record<string, unknown> = {}): void {
 /** A promise the test releases by hand, to observe an in-flight request. */
 function deferred(): { promise: Promise<void>; release: () => void } {
   let release!: () => void;
-  const promise = new Promise<void>(resolve => {
+  const promise = new Promise<void>((resolve) => {
     release = resolve;
   });
   return { promise, release };
@@ -171,7 +171,7 @@ describe('DawarichConnectionSection', () => {
       http.get(SETTINGS_URL, () => {
         read();
         return HttpResponse.json(stored);
-      }),
+      })
     );
     renderSection();
 
@@ -223,7 +223,7 @@ describe('DawarichConnectionSection', () => {
       http.get(SETTINGS_URL, () => {
         read();
         return HttpResponse.json({ error: 'boom' }, { status: 500 });
-      }),
+      })
     );
     renderSection();
 
@@ -243,7 +243,7 @@ describe('DawarichConnectionSection', () => {
       http.get(SETTINGS_URL, async () => {
         await gate.promise;
         return HttpResponse.json({ ...CONNECTED, connected: false });
-      }),
+      })
     );
     renderSection();
 
@@ -286,7 +286,7 @@ describe('DawarichConnectionSection', () => {
       http.put(SETTINGS_URL, async ({ request }) => {
         body = (await request.json()) as SavedBody;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     renderSection();
 
@@ -302,7 +302,7 @@ describe('DawarichConnectionSection', () => {
         url: 'https://dawarich.example.com',
         allowInsecureTls: false,
         syncEnabled: true,
-      }),
+      })
     );
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Dawarich connection saved'));
 
@@ -324,7 +324,7 @@ describe('DawarichConnectionSection', () => {
         // The card believes the re-read, not the write's own answer.
         stored = { ...stored, url: body.url, connected: true, capabilities: CAPS_ALL };
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     renderSection();
 
@@ -346,7 +346,7 @@ describe('DawarichConnectionSection', () => {
         allowInsecureTls: true,
         syncEnabled: true,
         apiKey: 'key-123',
-      }),
+      })
     );
     expect(toggle(SYNC_TOGGLE)).toHaveAttribute('aria-pressed', 'true');
     expect(toggle(TLS_TOGGLE)).toHaveAttribute('aria-pressed', 'true');
@@ -363,7 +363,7 @@ describe('DawarichConnectionSection', () => {
       http.put(SETTINGS_URL, async () => {
         await gate.promise;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     renderSection();
 
@@ -383,9 +383,7 @@ describe('DawarichConnectionSection', () => {
     const user = userEvent.setup();
     stubSettings(CONNECTED);
     server.use(
-      http.put(SETTINGS_URL, () =>
-        HttpResponse.json({ code: 'unauthorized', error: 'Unauthorized' }, { status: 400 }),
-      ),
+      http.put(SETTINGS_URL, () => HttpResponse.json({ code: 'unauthorized', error: 'Unauthorized' }, { status: 400 }))
     );
     renderSection();
 
@@ -409,7 +407,7 @@ describe('DawarichConnectionSection', () => {
         body = (await request.json()) as Partial<SavedBody>;
         await gate.promise;
         return HttpResponse.json({ connected: true, visitCount: 12, capabilities: CAPS_ALL });
-      }),
+      })
     );
     renderSection();
 
@@ -438,8 +436,8 @@ describe('DawarichConnectionSection', () => {
           connected: false,
           error: 'unreachable',
           errorDetail: 'self-signed certificate in chain',
-        }),
-      ),
+        })
+      )
     );
     renderSection();
 
@@ -450,7 +448,7 @@ describe('DawarichConnectionSection', () => {
     // The block gets the detail, the toast stays one line: a self-hoster needs
     // to know it was the certificate and not the host being down.
     expect(
-      await screen.findByText('TREK could not reach that address. (self-signed certificate in chain)'),
+      await screen.findByText('TREK could not reach that address. (self-signed certificate in chain)')
     ).toBeInTheDocument();
     expect(toast.error).toHaveBeenCalledWith('TREK could not reach that address.');
     expect(screen.getByText('Not connected')).toBeInTheDocument();
@@ -479,7 +477,7 @@ describe('DawarichConnectionSection', () => {
       http.post(SYNC_URL, async () => {
         await gate.promise;
         return HttpResponse.json({ state: 'ok', created: 3, updated: 0, missing: 0 });
-      }),
+      })
     );
     renderSection();
 
@@ -503,8 +501,8 @@ describe('DawarichConnectionSection', () => {
     stubSettings(CONNECTED);
     server.use(
       http.post(SYNC_URL, () =>
-        HttpResponse.json({ state: 'ok', created: 0, updated: 0, missing: 0, alreadyRunning: true }),
-      ),
+        HttpResponse.json({ state: 'ok', created: 0, updated: 0, missing: 0, alreadyRunning: true })
+      )
     );
     renderSection();
 
@@ -553,8 +551,8 @@ describe('DawarichConnectionSection', () => {
     expect(screen.getByText('Dawarich rejected the API key.')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'This Dawarich version does not offer: stays, recorded route, wishlist matching, countries and cities.',
-      ),
+        'This Dawarich version does not offer: stays, recorded route, wishlist matching, countries and cities.'
+      )
     ).toBeInTheDocument();
     // An instance that does not report its version gets no version line at all,
     // rather than a line with a blank in it. (The section heading is the bare

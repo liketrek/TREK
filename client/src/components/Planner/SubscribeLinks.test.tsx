@@ -1,5 +1,5 @@
 // FE-PLANNER-SUBLINKS-001 to FE-PLANNER-SUBLINKS-009
-import { render, screen, fireEvent, waitFor, within, act } from '../../../tests/helpers/render';
+import { act, fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
 import { SubscribeLinks } from './SubscribeLinks';
 
 const HTTPS = 'https://trek.example/api/trips/7/feed/abc.ics';
@@ -20,10 +20,7 @@ describe('SubscribeLinks', () => {
   it('FE-PLANNER-SUBLINKS-001: Google deep link carries the webcal URL url-encoded in cid', () => {
     render(<SubscribeLinks httpsUrl={HTTPS} webcalUrl={WEBCAL} />);
     const google = screen.getByRole('link', { name: /Add to Google Calendar/i });
-    expect(google).toHaveAttribute(
-      'href',
-      `https://www.google.com/calendar/render?cid=${encodeURIComponent(WEBCAL)}`,
-    );
+    expect(google).toHaveAttribute('href', `https://www.google.com/calendar/render?cid=${encodeURIComponent(WEBCAL)}`);
     expect(google).toHaveAttribute('target', '_blank');
     expect(google).toHaveAttribute('rel', 'noopener noreferrer');
   });
@@ -63,8 +60,12 @@ describe('SubscribeLinks', () => {
       // The component already scheduled its 2s reset with the real clock; drive a
       // fresh copy under fake timers so the reset is deterministic.
       fireEvent.click(httpsCopy);
-      await act(async () => { await Promise.resolve(); });
-      act(() => { vi.advanceTimersByTime(2100); });
+      await act(async () => {
+        await Promise.resolve();
+      });
+      act(() => {
+        vi.advanceTimersByTime(2100);
+      });
       expect(httpsCopy.querySelector('.lucide-check')).toBeNull();
     } finally {
       vi.useRealTimers();
@@ -95,11 +96,17 @@ describe('SubscribeLinks', () => {
   });
 
   it('FE-PLANNER-SUBLINKS-008: a rejected clipboard write leaves the row unmarked', async () => {
-    stubClipboard(vi.fn(async () => { throw new Error('denied'); }));
+    stubClipboard(
+      vi.fn(async () => {
+        throw new Error('denied');
+      })
+    );
     render(<SubscribeLinks httpsUrl={HTTPS} webcalUrl={WEBCAL} />);
     const httpsCopy = screen.getAllByTitle('Copy')[0];
     fireEvent.click(httpsCopy);
-    await act(async () => { await Promise.resolve(); });
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(httpsCopy.querySelector('.lucide-check')).toBeNull();
   });
 

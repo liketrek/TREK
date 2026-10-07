@@ -1,6 +1,6 @@
+import { columnIncrementedBy, columnRef } from '../dialect/sql-functions';
 import type { InviteTokens } from '../entities/InviteTokens.entity';
 import { toRow, type AssertRowKeys } from './_shared/rows';
-import { columnIncrementedBy, columnRef } from '../dialect/sql-functions';
 import { TrekRepository } from './_shared/trek-repository';
 
 /** An `invite_tokens` row as the API emits it. */

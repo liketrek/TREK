@@ -1,13 +1,13 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { PlacePhotoCacheService } from './place-photo-cache.service';
-import { PlacePhotoCacheJob } from './place-photo-cache.job';
+import { CollectionPlaces } from '../../db/entities/CollectionPlaces.entity';
+import { GooglePlacePhotoMeta } from '../../db/entities/GooglePlacePhotoMeta.entity';
+import { Places } from '../../db/entities/Places.entity';
 import { AppConfigModule } from '../app-config/app-config.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
 import { StorageModule } from '../storage/storage.module';
-import { GooglePlacePhotoMeta } from '../../db/entities/GooglePlacePhotoMeta.entity';
-import { Places } from '../../db/entities/Places.entity';
-import { CollectionPlaces } from '../../db/entities/CollectionPlaces.entity';
+import { PlacePhotoCacheJob } from './place-photo-cache.job';
+import { PlacePhotoCacheService } from './place-photo-cache.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /** The marker-photo cache. No controller of its own — maps serves the bytes,
  *  places and share read through it, and PlacePhotoCacheJob sweeps it nightly.
@@ -21,7 +21,12 @@ import { CollectionPlaces } from '../../db/entities/CollectionPlaces.entity';
  *  constructor (Plan 3c Task 1); Plan 3h Task 6 adds CollectionPlaces for
  *  SV-PP6's `isReferenced` second existence check. */
 @Module({
-  imports: [AppConfigModule, SchedulingModule, StorageModule, MikroOrmModule.forFeature([GooglePlacePhotoMeta, Places, CollectionPlaces])],
+  imports: [
+    AppConfigModule,
+    SchedulingModule,
+    StorageModule,
+    MikroOrmModule.forFeature([GooglePlacePhotoMeta, Places, CollectionPlaces]),
+  ],
   providers: [PlacePhotoCacheService, PlacePhotoCacheJob],
   exports: [PlacePhotoCacheService],
 })

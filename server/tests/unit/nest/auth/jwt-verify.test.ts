@@ -18,19 +18,21 @@
  * mocking `src/db/database`'s module-level `db` export, which this file no
  * longer imports at all.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import type { UsersRepository, UserWithPasswordVersion } from '../../../../src/db/repositories/Users.repository';
+import { extractToken, verifyJwtAndLoadUser } from '../../../../src/nest/auth/jwt-verify';
+
+import type { Request } from 'express';
 import jwt from 'jsonwebtoken';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('../../../../src/config', () => ({ JWT_SECRET: 'test-secret' }));
 
-import { extractToken, verifyJwtAndLoadUser } from '../../../../src/nest/auth/jwt-verify';
-import type { UsersRepository, UserWithPasswordVersion } from '../../../../src/db/repositories/Users.repository';
-import type { Request } from 'express';
-
-function makeReq(overrides: {
-  cookies?: Record<string, string>;
-  headers?: Record<string, string>;
-} = {}): Request {
+function makeReq(
+  overrides: {
+    cookies?: Record<string, string>;
+    headers?: Record<string, string>;
+  } = {},
+): Request {
   return {
     cookies: overrides.cookies || {},
     headers: overrides.headers || {},
@@ -51,7 +53,9 @@ function makeReq(overrides: {
  * loosen a production type for a test-only case), keeps that column's real
  * NOT-NULL guarantee intact everywhere else.
  */
-function usersRepo(row: (Omit<UserWithPasswordVersion, 'password_version'> & { password_version: number | null }) | null): UsersRepository {
+function usersRepo(
+  row: (Omit<UserWithPasswordVersion, 'password_version'> & { password_version: number | null }) | null,
+): UsersRepository {
   return { findByIdWithPasswordVersion: vi.fn(async () => row) } as unknown as UsersRepository;
 }
 
@@ -89,10 +93,21 @@ describe('extractToken', () => {
 
 describe('verifyJwtAndLoadUser', () => {
   it('AUTH-JWT-001: returns the user for a valid token, without password_version', async () => {
-    const users = usersRepo({ id: 1, username: 'alice', email: 'alice@example.com', role: 'user', password_version: 0 });
+    const users = usersRepo({
+      id: 1,
+      username: 'alice',
+      email: 'alice@example.com',
+      role: 'user',
+      password_version: 0,
+    });
     const token = jwt.sign({ id: 1 }, 'test-secret', { algorithm: 'HS256' });
 
-    expect(await verifyJwtAndLoadUser(token, users)).toEqual({ id: 1, username: 'alice', email: 'alice@example.com', role: 'user' });
+    expect(await verifyJwtAndLoadUser(token, users)).toEqual({
+      id: 1,
+      username: 'alice',
+      email: 'alice@example.com',
+      role: 'user',
+    });
     expect(users.findByIdWithPasswordVersion).toHaveBeenCalledWith(1);
   });
 
@@ -102,22 +117,34 @@ describe('verifyJwtAndLoadUser', () => {
 
   it('AUTH-JWT-003: returns null when the user no longer exists', async () => {
     const users = usersRepo(null);
-    expect(await verifyJwtAndLoadUser(jwt.sign({ id: 99999 }, 'test-secret', { algorithm: 'HS256' }), users)).toBeNull();
+    expect(
+      await verifyJwtAndLoadUser(jwt.sign({ id: 99999 }, 'test-secret', { algorithm: 'HS256' }), users),
+    ).toBeNull();
   });
 
   it('AUTH-JWT-004: returns null for an expired token', async () => {
-    const expired = jwt.sign({ id: 1, exp: Math.floor(Date.now() / 1000) - 3600 }, 'test-secret', { algorithm: 'HS256' });
+    const expired = jwt.sign({ id: 1, exp: Math.floor(Date.now() / 1000) - 3600 }, 'test-secret', {
+      algorithm: 'HS256',
+    });
     expect(await verifyJwtAndLoadUser(expired, usersRepo(null))).toBeNull();
   });
 
   it('AUTH-JWT-005: returns null for a token signed with the wrong secret', async () => {
-    expect(await verifyJwtAndLoadUser(jwt.sign({ id: 1 }, 'wrong-secret', { algorithm: 'HS256' }), usersRepo(null))).toBeNull();
+    expect(
+      await verifyJwtAndLoadUser(jwt.sign({ id: 1 }, 'wrong-secret', { algorithm: 'HS256' }), usersRepo(null)),
+    ).toBeNull();
   });
 
   it('AUTH-JWT-006: rejects a purpose-scoped mfa_login token even when the user is valid', async () => {
     // Issued after the password check but before TOTP, signed with the same
     // secret. It must never authenticate an ordinary request.
-    const users = usersRepo({ id: 1, username: 'alice', email: 'alice@example.com', role: 'user', password_version: 0 });
+    const users = usersRepo({
+      id: 1,
+      username: 'alice',
+      email: 'alice@example.com',
+      role: 'user',
+      password_version: 0,
+    });
     const mfaToken = jwt.sign({ id: 1, purpose: 'mfa_login' }, 'test-secret', { algorithm: 'HS256' });
 
     expect(await verifyJwtAndLoadUser(mfaToken, users)).toBeNull();
@@ -125,14 +152,26 @@ describe('verifyJwtAndLoadUser', () => {
   });
 
   it('AUTH-JWT-007: rejects a token whose password_version predates the user row', async () => {
-    const users = usersRepo({ id: 1, username: 'alice', email: 'alice@example.com', role: 'user', password_version: 2 });
+    const users = usersRepo({
+      id: 1,
+      username: 'alice',
+      email: 'alice@example.com',
+      role: 'user',
+      password_version: 2,
+    });
     const stale = jwt.sign({ id: 1, pv: 1 }, 'test-secret', { algorithm: 'HS256' });
 
     expect(await verifyJwtAndLoadUser(stale, users)).toBeNull();
   });
 
   it('AUTH-JWT-008: accepts a token whose password_version matches', async () => {
-    const users = usersRepo({ id: 1, username: 'alice', email: 'alice@example.com', role: 'user', password_version: 2 });
+    const users = usersRepo({
+      id: 1,
+      username: 'alice',
+      email: 'alice@example.com',
+      role: 'user',
+      password_version: 2,
+    });
     const current = jwt.sign({ id: 1, pv: 2 }, 'test-secret', { algorithm: 'HS256' });
 
     expect(await verifyJwtAndLoadUser(current, users)).not.toBeNull();
@@ -143,14 +182,26 @@ describe('verifyJwtAndLoadUser', () => {
     // fallback branch directly (task-1-review.md F5) — unreachable through
     // the real UsersRepository, whose column is NOT NULL DEFAULT 0, but
     // worth keeping covered rather than deleting the branch it guards.
-    const users = usersRepo({ id: 1, username: 'alice', email: 'alice@example.com', role: 'user', password_version: null });
+    const users = usersRepo({
+      id: 1,
+      username: 'alice',
+      email: 'alice@example.com',
+      role: 'user',
+      password_version: null,
+    });
     const legacy = jwt.sign({ id: 1 }, 'test-secret', { algorithm: 'HS256' });
 
     expect(await verifyJwtAndLoadUser(legacy, users)).not.toBeNull();
   });
 
   it('AUTH-JWT-010: but a pre-pv token stops working once the user has reset', async () => {
-    const users = usersRepo({ id: 1, username: 'alice', email: 'alice@example.com', role: 'user', password_version: 1 });
+    const users = usersRepo({
+      id: 1,
+      username: 'alice',
+      email: 'alice@example.com',
+      role: 'user',
+      password_version: 1,
+    });
     const legacy = jwt.sign({ id: 1 }, 'test-secret', { algorithm: 'HS256' });
 
     expect(await verifyJwtAndLoadUser(legacy, users)).toBeNull();

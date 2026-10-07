@@ -1,18 +1,18 @@
-import { Check, MapPin } from 'lucide-react'
-import type { CollectionPlace, CollectionStatus } from '@trek/shared'
-import type { TranslationFn } from '../../../types'
-import { nextStatus } from '../../../pages/collections/collectionsModel'
-import { categoryMeta, STATUS_SPEC, tint, UNCATEGORIZED_META } from './collectionsMobileModel'
+import type { CollectionPlace, CollectionStatus } from '@trek/shared';
+import { Check, MapPin } from 'lucide-react';
+import { nextStatus } from '../../../pages/collections/collectionsModel';
+import type { TranslationFn } from '../../../types';
+import { categoryMeta, STATUS_SPEC, tint, UNCATEGORIZED_META } from './collectionsMobileModel';
 
 interface MCollPlaceRowProps {
-  place: CollectionPlace
-  selectMode: boolean
-  selected: boolean
-  canEdit: boolean
-  onOpen: (id: number) => void
-  onToggleSelect: (id: number) => void
-  onSetStatus: (id: number, status: CollectionStatus) => void
-  t: TranslationFn
+  place: CollectionPlace;
+  selectMode: boolean;
+  selected: boolean;
+  canEdit: boolean;
+  onOpen: (id: number) => void;
+  onToggleSelect: (id: number) => void;
+  onSetStatus: (id: number, status: CollectionStatus) => void;
+  t: TranslationFn;
 }
 
 /**
@@ -21,16 +21,23 @@ interface MCollPlaceRowProps {
  * Visited) and the category pill. In select mode a tap toggles the selection.
  */
 export default function MCollPlaceRow({
-  place, selectMode, selected, canEdit, onOpen, onToggleSelect, onSetStatus, t,
+  place,
+  selectMode,
+  selected,
+  canEdit,
+  onOpen,
+  onToggleSelect,
+  onSetStatus,
+  t,
 }: MCollPlaceRowProps) {
-  const cat = categoryMeta(place.category)
-  const meta = cat ?? UNCATEGORIZED_META
-  const TileIcon = meta.icon
-  const status = STATUS_SPEC[place.status]
-  const StatusIcon = status.icon
+  const cat = categoryMeta(place.category);
+  const meta = cat ?? UNCATEGORIZED_META;
+  const TileIcon = meta.icon;
+  const status = STATUS_SPEC[place.status];
+  const StatusIcon = status.icon;
 
   const pill =
-    'inline-flex w-[78px] box-border items-center justify-center gap-1 truncate rounded-full py-[5px] font-geist text-[0.5625rem] font-extrabold'
+    'inline-flex w-[78px] box-border items-center justify-center gap-1 truncate rounded-full py-[5px] font-geist text-[0.5625rem] font-extrabold';
 
   return (
     <div className="mt-2 flex items-stretch gap-2">
@@ -78,5 +85,5 @@ export default function MCollPlaceRow({
         )}
       </div>
     </div>
-  )
+  );
 }

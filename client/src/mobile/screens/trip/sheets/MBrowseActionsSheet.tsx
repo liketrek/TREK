@@ -1,17 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
-import { Bookmark, Calendar, ChevronDown, ChevronUp, Eye, Pencil, Trash2 } from 'lucide-react'
-import MSheet from '../../../components/MSheet'
-import type { MTripSheetsProps } from '../MTripShell'
-import { useTranslation } from '../../../../i18n'
-import { useAddonStore } from '../../../../store/addonStore'
-import { useSaveToCollectionStore } from '../../../../store/saveToCollectionStore'
-import { collectionTargetFromPlace } from '../lib/collectionTarget'
-import type { Place } from '../../../../types'
+import { Bookmark, Calendar, ChevronDown, ChevronUp, Eye, Pencil, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from '../../../../i18n';
+import { useAddonStore } from '../../../../store/addonStore';
+import { useSaveToCollectionStore } from '../../../../store/saveToCollectionStore';
+import type { Place } from '../../../../types';
+import MSheet from '../../../components/MSheet';
+import { collectionTargetFromPlace } from '../lib/collectionTarget';
+import type { MTripSheetsProps } from '../MTripShell';
 
 interface BrowseActionsPayload {
-  placeId?: number
+  placeId?: number;
   /** True opens the sheet with the day list already expanded (quick-add "+"). */
-  dayPicker?: boolean
+  dayPicker?: boolean;
 }
 
 /**
@@ -19,70 +19,79 @@ interface BrowseActionsPayload {
  * details, edit, save to collection, assign to a day (full day list) and delete.
  */
 export default function MBrowseActionsSheet({ planner, shell }: MTripSheetsProps) {
-  const { t, locale } = useTranslation()
-  const open = shell.sheet?.id === 'bract'
-  const payload = (shell.sheet?.payload ?? {}) as BrowseActionsPayload
-  const livePlace = planner.places.find(p => p.id === payload.placeId) ?? null
+  const { t, locale } = useTranslation();
+  const open = shell.sheet?.id === 'bract';
+  const payload = (shell.sheet?.payload ?? {}) as BrowseActionsPayload;
+  const livePlace = planner.places.find((p) => p.id === payload.placeId) ?? null;
 
-  const canEditPlaces = planner.can('place_edit', planner.trip)
-  const canEditDays = planner.can('day_edit', planner.trip)
-  const isTourPlace = (placeId: number) => planner.isTourPlace(placeId)
-  const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
-  const openSavePicker = useSaveToCollectionStore(s => s.open)
+  const canEditPlaces = planner.can('place_edit', planner.trip);
+  const canEditDays = planner.can('day_edit', planner.trip);
+  const isTourPlace = (placeId: number) => planner.isTourPlace(placeId);
+  const collectionsEnabled = useAddonStore((s) => s.isEnabled('collections'));
+  const openSavePicker = useSaveToCollectionStore((s) => s.open);
 
-  const [daysOpen, setDaysOpen] = useState(false)
-  const pendingTourDayIds = useRef(new Set<string>())
-  useEffect(() => { setDaysOpen(open && Boolean(payload.dayPicker)) }, [open, payload.dayPicker])
+  const [daysOpen, setDaysOpen] = useState(false);
+  const pendingTourDayIds = useRef(new Set<string>());
+  useEffect(() => {
+    setDaysOpen(open && Boolean(payload.dayPicker));
+  }, [open, payload.dayPicker]);
 
   // Hold the last place so the card content survives the exit animation.
-  const heldRef = useRef<Place | null>(null)
-  if (livePlace) heldRef.current = livePlace
-  const place = livePlace ?? heldRef.current
+  const heldRef = useRef<Place | null>(null);
+  if (livePlace) heldRef.current = livePlace;
+  const place = livePlace ?? heldRef.current;
 
   if (!place) {
-    return <MSheet open={false} onClose={shell.closeSheet} variant="card" material="glass" />
+    return <MSheet open={false} onClose={shell.closeSheet} variant="card" material="glass" />;
   }
 
   const viewDetails = () => {
-    shell.closeSheet()
-    planner.handlePlaceClick(place.id)
-  }
+    shell.closeSheet();
+    planner.handlePlaceClick(place.id);
+  };
 
   const editPlace = () => {
-    shell.closeSheet()
-    planner.openPlaceEditor(place)
-  }
+    shell.closeSheet();
+    planner.openPlaceEditor(place);
+  };
 
   const saveToCollection = () => {
-    shell.closeSheet()
-    openSavePicker(collectionTargetFromPlace(place))
-  }
+    shell.closeSheet();
+    openSavePicker(collectionTargetFromPlace(place));
+  };
 
-  const tourAlreadyAssignedToDay = (dayId: number) => isTourPlace(place.id)
-    && (planner.assignments[String(dayId)] ?? []).some(assignment => assignment.place_id === place.id)
+  const tourAlreadyAssignedToDay = (dayId: number) =>
+    isTourPlace(place.id) &&
+    (planner.assignments[String(dayId)] ?? []).some((assignment) => assignment.place_id === place.id);
 
   const assignToDay = async (dayId: number) => {
-    const isTour = isTourPlace(place.id)
-    const pendingKey = `${place.id}:${dayId}`
-    if (isTour && (tourAlreadyAssignedToDay(dayId) || pendingTourDayIds.current.has(pendingKey))) return
-    if (isTour) pendingTourDayIds.current.add(pendingKey)
+    const isTour = isTourPlace(place.id);
+    const pendingKey = `${place.id}:${dayId}`;
+    if (isTour && (tourAlreadyAssignedToDay(dayId) || pendingTourDayIds.current.has(pendingKey))) return;
+    if (isTour) pendingTourDayIds.current.add(pendingKey);
     try {
-      const assigned = await planner.handleAssignToDay(place.id, dayId)
-      if (assigned !== false) shell.closeSheet()
+      const assigned = await planner.handleAssignToDay(place.id, dayId);
+      if (assigned !== false) shell.closeSheet();
     } finally {
-      if (isTour) pendingTourDayIds.current.delete(pendingKey)
+      if (isTour) pendingTourDayIds.current.delete(pendingKey);
     }
-  }
+  };
 
   const deletePlace = () => {
-    shell.closeSheet()
-    planner.handleDeletePlace(place.id)
-  }
+    shell.closeSheet();
+    planner.handleDeletePlace(place.id);
+  };
 
-  const rowCls = 'flex w-full items-center gap-3 px-2 py-[11px] text-left text-[0.84375rem] font-medium'
+  const rowCls = 'flex w-full items-center gap-3 px-2 py-[11px] text-left text-[0.84375rem] font-medium';
 
   return (
-    <MSheet open={open && !!livePlace} onClose={shell.closeSheet} variant="card" material="glass" ariaLabel={place.name}>
+    <MSheet
+      open={open && !!livePlace}
+      onClose={shell.closeSheet}
+      variant="card"
+      material="glass"
+      ariaLabel={place.name}
+    >
       <div className="flex-none border-b border-[color:var(--m-rowbr)] px-[18px] pb-[11px] pt-4">
         <div className="truncate text-[1.03125rem] font-bold">{place.name}</div>
         {(place.address || place.description) && (
@@ -111,12 +120,14 @@ export default function MBrowseActionsSheet({ planner, shell }: MTripSheetsProps
         )}
         {canEditDays && planner.days.length > 0 && (
           <>
-            <button type="button" onClick={() => setDaysOpen(v => !v)} aria-expanded={daysOpen} className={rowCls}>
+            <button type="button" onClick={() => setDaysOpen((v) => !v)} aria-expanded={daysOpen} className={rowCls}>
               <Calendar size={16} strokeWidth={2} className="flex-none text-m-muted" />
               <span className="flex-1">{t('mobileTrip.addToDayQuestion')}</span>
-              {daysOpen
-                ? <ChevronUp size={14} strokeWidth={2} className="flex-none text-m-faint" />
-                : <ChevronDown size={14} strokeWidth={2} className="flex-none text-m-faint" />}
+              {daysOpen ? (
+                <ChevronUp size={14} strokeWidth={2} className="flex-none text-m-faint" />
+              ) : (
+                <ChevronDown size={14} strokeWidth={2} className="flex-none text-m-faint" />
+              )}
             </button>
             {daysOpen && (
               <div className="mx-2 mb-1 max-h-[200px] overflow-y-auto rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]">
@@ -124,8 +135,13 @@ export default function MBrowseActionsSheet({ planner, shell }: MTripSheetsProps
                   <button
                     key={d.id}
                     type="button"
-                    disabled={tourAlreadyAssignedToDay(d.id) || (isTourPlace(place.id) && pendingTourDayIds.current.has(`${place.id}:${d.id}`))}
-                    onClick={() => { void assignToDay(d.id) }}
+                    disabled={
+                      tourAlreadyAssignedToDay(d.id) ||
+                      (isTourPlace(place.id) && pendingTourDayIds.current.has(`${place.id}:${d.id}`))
+                    }
+                    onClick={() => {
+                      void assignToDay(d.id);
+                    }}
                     className={`flex w-full items-center gap-2 px-3 py-[10px] text-left disabled:cursor-default disabled:opacity-40 ${i > 0 ? 'border-t border-[color:var(--m-rowbr)]' : ''}`}
                   >
                     <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold">
@@ -135,7 +151,10 @@ export default function MBrowseActionsSheet({ planner, shell }: MTripSheetsProps
                     {d.date && (
                       <span className="flex-none font-geist text-[0.65625rem] font-medium text-m-muted">
                         {new Date(`${d.date.slice(0, 10)}T00:00:00Z`).toLocaleDateString(locale, {
-                          weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC',
+                          weekday: 'short',
+                          day: 'numeric',
+                          month: 'short',
+                          timeZone: 'UTC',
                         })}
                       </span>
                     )}
@@ -153,5 +172,5 @@ export default function MBrowseActionsSheet({ planner, shell }: MTripSheetsProps
         )}
       </div>
     </MSheet>
-  )
+  );
 }

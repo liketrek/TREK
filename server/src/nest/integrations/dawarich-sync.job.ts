@@ -1,10 +1,10 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { logInfo, logError } from '../audit/audit-log.logger';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { logInfo, logError } from '../audit/audit-log.logger';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 import { DawarichSyncService } from './dawarich-sync.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
  * Polls every connected Dawarich instance for new visits (#2279).

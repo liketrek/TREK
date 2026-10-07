@@ -26,13 +26,15 @@
  * this file's own assertions are about the FILE path, not the row data,
  * which DEMORESET-CRED below covers separately.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
-import type Database from 'better-sqlite3';
+import { resetDemoUser, saveBaseline } from '../../../src/demo/demo-reset';
+import { withRequestContext } from '../../../src/nest/database/request-context';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
 import { createTestOrm } from '../../helpers/test-orm';
-import { withRequestContext } from '../../../src/nest/database/request-context';
+
+import type Database from 'better-sqlite3';
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const LIVE_DB = path.join(path.sep, 'srv', 'trek', 'custom-name.db');
 
@@ -46,8 +48,6 @@ const { handleStub, databaseModule } = vi.hoisted(() => {
 vi.mock('../../../src/db/database', () => databaseModule);
 
 const BASELINE = path.resolve(__dirname, '..', '..', '..', 'data', 'travel-baseline.db');
-
-import { resetDemoUser, saveBaseline } from '../../../src/demo/demo-reset';
 
 describe('demo-reset DB path', () => {
   let copyFileSync: ReturnType<typeof vi.spyOn>;

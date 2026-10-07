@@ -7,10 +7,10 @@
  * WeatherService's onModuleInit/onModuleDestroy — so it needs tests that the
  * old shape could not have had.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
 import { startCacheCleanup, stopCacheCleanup, getWeather } from '../../../../src/nest/weather/weather.impl';
 import { WeatherService } from '../../../../src/nest/weather/weather.service';
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -76,7 +76,9 @@ describe('what the sweep actually does', () => {
       daily: { time: [date], temperature_2m_max: [20], temperature_2m_min: [10], weathercode: [0] },
     };
     const fetchMock = vi.fn().mockResolvedValue({
-      ok: true, status: 200, json: vi.fn().mockResolvedValue(body),
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue(body),
     } as unknown as Response);
     vi.stubGlobal('fetch', fetchMock);
 

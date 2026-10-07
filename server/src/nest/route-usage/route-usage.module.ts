@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { RouteUsageDaily } from '../../db/entities/RouteUsageDaily.entity';
 import { SchedulingModule } from '../scheduling/scheduling.module';
 import { RouteUsageController } from './route-usage.controller';
 import { RouteUsageRetentionJob } from './route-usage.job';
 import { RouteUsageService } from './route-usage.service';
-import { RouteUsageDaily } from '../../db/entities/RouteUsageDaily.entity';
-import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Routing usage counters. Registered in AppModule; exports the service so an admin

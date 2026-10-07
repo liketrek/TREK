@@ -1,18 +1,23 @@
 // FE-PLANNER-LINKFILES-001 to FE-PLANNER-LINKFILES-014
-import { createRef, type ComponentProps } from 'react';
-import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { server } from '../../../tests/helpers/msw/server';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { createRef, type ComponentProps } from 'react';
 import { buildTrip, buildTripFile } from '../../../tests/helpers/factories';
+import { server } from '../../../tests/helpers/msw/server';
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useTripStore } from '../../store/tripStore';
 import { openFile } from '../../utils/fileDownload';
 import { BookingLinkAndFiles } from './BookingLinkAndFiles';
 
 vi.mock('../../utils/fileDownload', () => ({ openFile: vi.fn(async () => undefined) }));
 
-const onBooking = buildTripFile({ id: 1, original_name: 'voucher.pdf', url: '/uploads/files/voucher.pdf', reservation_id: 9 });
+const onBooking = buildTripFile({
+  id: 1,
+  original_name: 'voucher.pdf',
+  url: '/uploads/files/voucher.pdf',
+  reservation_id: 9,
+});
 const viaLink = buildTripFile({ id: 2, original_name: 'terms.pdf', linked_reservation_ids: [9] });
 const loose = buildTripFile({ id: 3, original_name: 'map.pdf' });
 const trashed = buildTripFile({ id: 4, original_name: 'old.pdf', deleted_at: '2025-02-01T00:00:00.000Z' });
@@ -125,7 +130,7 @@ describe('BookingLinkAndFiles', () => {
         body = await request.json();
         return HttpResponse.json({ success: true });
       }),
-      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] })),
+      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] }))
     );
     const { props } = setup();
     await user.click(screen.getByRole('button', { name: /Link existing file/ }));
@@ -178,7 +183,11 @@ describe('BookingLinkAndFiles', () => {
 
   it('FE-PLANNER-LINKFILES-011: a failed removal is reported, and the dialog still lets the file go', async () => {
     const user = userEvent.setup();
-    seedStore(useTripStore, { unlinkFileFromReservation: vi.fn(async () => { throw new Error('nope'); }) });
+    seedStore(useTripStore, {
+      unlinkFileFromReservation: vi.fn(async () => {
+        throw new Error('nope');
+      }),
+    });
     const { props } = setup();
     await user.click(within(rowOf('voucher.pdf')).getByRole('button', { name: 'Remove link' }));
 
@@ -215,7 +224,7 @@ describe('BookingLinkAndFiles', () => {
         calls.push('DELETE link 5');
         return HttpResponse.json({ success: true });
       }),
-      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] })),
+      http.get('/api/trips/1/files', () => HttpResponse.json({ files: [] }))
     );
     const { props } = setup();
     await user.click(within(rowOf('voucher.pdf')).getByRole('button', { name: 'Remove link' }));
@@ -229,7 +238,7 @@ describe('BookingLinkAndFiles', () => {
   it('FE-PLANNER-LINKFILES-014: pending files are listed after the attached ones and each X drops its own', async () => {
     const user = userEvent.setup();
     const { props } = setup({ pendingFiles: [new File(['a'], 'a.pdf'), new File(['b'], 'b.pdf')] });
-    const names = screen.getAllByText(/^(voucher|terms|a|b)\.pdf$/).map(n => n.textContent);
+    const names = screen.getAllByText(/^(voucher|terms|a|b)\.pdf$/).map((n) => n.textContent);
     expect(names).toEqual(['voucher.pdf', 'terms.pdf', 'a.pdf', 'b.pdf']);
     await user.click(within(rowOf('b.pdf')).getByRole('button', { name: 'Delete' }));
     expect(props.onRemovePending).toHaveBeenCalledWith(1);

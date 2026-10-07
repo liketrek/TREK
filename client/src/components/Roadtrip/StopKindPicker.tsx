@@ -1,10 +1,10 @@
-import React from 'react'
-import { MapPin } from 'lucide-react'
-import { useTranslation } from '../../i18n/TranslationContext'
-import { Tooltip } from '../shared/Tooltip'
-import AnchoredPopover from './AnchoredPopover'
-import { STOP_KINDS } from './stopKinds'
-import type { RoadtripStopType } from '@trek/shared'
+import type { RoadtripStopType } from '@trek/shared';
+import { MapPin } from 'lucide-react';
+import React from 'react';
+import { useTranslation } from '../../i18n/TranslationContext';
+import { Tooltip } from '../shared/Tooltip';
+import AnchoredPopover from './AnchoredPopover';
+import { STOP_KINDS } from './stopKinds';
 
 /**
  * Turning a place on the drive into a pause, and back.
@@ -23,43 +23,48 @@ import type { RoadtripStopType } from '@trek/shared'
  * driving — that path goes through the accommodation it books.
  */
 
-const DISC = 'grid place-items-center rounded-full transition-transform'
+const DISC = 'grid place-items-center rounded-full transition-transform';
 
-export default function StopKindPicker({ anchor, current, onPick, onClose }: {
+export default function StopKindPicker({
+  anchor,
+  current,
+  onPick,
+  onClose,
+}: {
   /** The element the popover hangs under, usually the stop's number. */
-  anchor: HTMLElement | null
-  current: string | null
-  onPick: (kind: RoadtripStopType | null) => void
-  onClose: () => void
+  anchor: HTMLElement | null;
+  current: string | null;
+  onPick: (kind: RoadtripStopType | null) => void;
+  onClose: () => void;
 }): React.ReactElement | null {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   return (
     <AnchoredPopover anchor={anchor} label={t('roadtrip.stop.kind')} onClose={onClose}>
       <div className="flex gap-1">
         {STOP_KINDS.map(({ key, labelKey, Icon, color }) => {
-          const on = current === key
+          const on = current === key;
           return (
             <Tooltip key={key} label={t(labelKey)}>
-            <button
-              type="button"
-              aria-pressed={on}
-              aria-label={t(labelKey)}
-              onClick={() => onPick(on ? null : key)}
-              className="group grid h-11 w-11 place-items-center rounded-xl transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            >
-              <span
-                className={`${DISC} h-7 w-7 group-hover:scale-110 ${on ? 'ring-2 ring-offset-2 ring-offset-surface-card' : ''}`}
-                // theme-lint-disable — the road-signage palette from `roadtripModel`, the
-                // same one the rail disc and the map pin use, so the choice looks like
-                // what it will become.
-                style={{ background: color, color: '#fff', ...(on ? { boxShadow: `0 0 0 2px ${color}` } : {}) }} // theme-lint-disable — road-signage palette
+              <button
+                type="button"
+                aria-pressed={on}
+                aria-label={t(labelKey)}
+                onClick={() => onPick(on ? null : key)}
+                className="group grid h-11 w-11 place-items-center rounded-xl transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
-                <Icon size={14} strokeWidth={2.2} aria-hidden />
-              </span>
-            </button>
+                <span
+                  className={`${DISC} h-7 w-7 group-hover:scale-110 ${on ? 'ring-2 ring-offset-2 ring-offset-surface-card' : ''}`}
+                  // theme-lint-disable — the road-signage palette from `roadtripModel`, the
+                  // same one the rail disc and the map pin use, so the choice looks like
+                  // what it will become.
+                  style={{ background: color, color: '#fff', ...(on ? { boxShadow: `0 0 0 2px ${color}` } : {}) }} // theme-lint-disable — road-signage palette
+                >
+                  <Icon size={14} strokeWidth={2.2} aria-hidden />
+                </span>
+              </button>
             </Tooltip>
-          )
+          );
         })}
       </div>
 
@@ -76,5 +81,5 @@ export default function StopKindPicker({ anchor, current, onPick, onClose }: {
         </button>
       ) : null}
     </AnchoredPopover>
-  )
+  );
 }

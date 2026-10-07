@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import type { BookRecord, BookSummary } from '@trek/shared';
-import { normalizeBookDocument } from '@trek/shared';
-import { JourneyDomainService } from './journey-domain.service';
-import { UnitOfWork } from '../database/unit-of-work';
 import { JourneyBooks } from '../../db/entities/JourneyBooks.entity';
 import type { JourneyBookRow, JourneyBooksRepository } from '../../db/repositories/JourneyBooks.repository';
+import { UnitOfWork } from '../database/unit-of-work';
+import { JourneyDomainService } from './journey-domain.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type { BookRecord, BookSummary } from '@trek/shared';
+import { normalizeBookDocument } from '@trek/shared';
 
 /**
  * Storing TREK Studio books.
@@ -82,7 +82,7 @@ export class JourneyBookService {
     if (!(await this.canAccess(journeyId, userId))) return null;
     // JB1.
     const rows = await this.booksRepo.listForJourney(journeyId);
-    return rows.map(r => ({
+    return rows.map((r) => ({
       id: r.id,
       journeyId: r.journey_id,
       title: r.title,

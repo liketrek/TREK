@@ -1,6 +1,7 @@
-import type Database from 'better-sqlite3';
 import { readEnv } from '../app-config';
 import { synchronousName } from '../app-config/parsers';
+
+import type Database from 'better-sqlite3';
 
 export interface ActiveDurability {
   journalMode: string;
@@ -24,7 +25,7 @@ export interface ActiveDurability {
  */
 export function applyDurabilityPragmas(db: Database.Database): ActiveDurability {
   const { journalMode, synchronous, durabilityWarnings } = readEnv().db;
-  durabilityWarnings.forEach(warning => console.warn(`[DB] ${warning}`));
+  durabilityWarnings.forEach((warning) => console.warn(`[DB] ${warning}`));
 
   db.exec(`PRAGMA journal_mode = ${journalMode}`);
   db.exec(`PRAGMA synchronous = ${synchronous}`);

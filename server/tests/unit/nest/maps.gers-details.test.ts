@@ -5,6 +5,12 @@
  * it was being added and none on its card afterwards. The index is not the only
  * source for a place it holds, and this is where the rest gets filled in.
  */
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { MapsService } from '../../../src/nest/maps/maps.service';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { mockById } = vi.hoisted(() => ({
@@ -16,12 +22,6 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
 }));
 
 vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
-import { MapsService } from '../../../src/nest/maps/maps.service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import { noGoogleQuota } from '../../helpers/google-quota';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 
 // keyedProvider/resolveMapsKey (maps.service.ts) go through instance-api-keys.ts
 // on every call now — none of these cases configure a key, so the stubs just
@@ -45,7 +45,14 @@ const PLACE = {
 };
 
 function make(osmTags: Record<string, string> | null) {
-  const svc = new MapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
+  const svc = new MapsService(
+    {} as PlacePhotoCacheService,
+    noAppSettings,
+    noUsers,
+    {} as never,
+    {} as never,
+    noGoogleQuota,
+  );
   vi.spyOn(svc, 'resolveOsmIdentity').mockResolvedValue(
     osmTags ? { tags: osmTags, osmUrl: 'https://www.openstreetmap.org/node/1', matchedName: "L'Osteria" } : null,
   );
@@ -90,8 +97,10 @@ describe('MapsService.getPlaceDetails for a gers: id', () => {
   });
 
   it('MAPS-GERS-005: the index wins on the fields the user actually picked', async () => {
-    const out = await make({ name: 'Etwas anderes', opening_hours: 'Mo-Fr 09:00-17:00' })
-      .getPlaceDetails(1, 'gers:abc-123');
+    const out = await make({ name: 'Etwas anderes', opening_hours: 'Mo-Fr 09:00-17:00' }).getPlaceDetails(
+      1,
+      'gers:abc-123',
+    );
     expect(out.place).toMatchObject({ name: "L'Osteria", osm_id: 'gers:abc-123', source: 'trek-places' });
   });
 
@@ -110,7 +119,14 @@ describe('MapsService.getPlaceDetails for a gers: id', () => {
     // only adds what OSM knows about the same building. Letting its failure
     // through would turn a working answer into an error for the one user whose
     // details request happened to land while Overpass was unreachable.
-    const svc = new MapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
+    const svc = new MapsService(
+      {} as PlacePhotoCacheService,
+      noAppSettings,
+      noUsers,
+      {} as never,
+      {} as never,
+      noGoogleQuota,
+    );
     vi.spyOn(svc, 'resolveOsmIdentity').mockRejectedValue(new Error('overpass down'));
     mockById.mockResolvedValue({ ...PLACE, hours: { osm: 'Mo-Su 12:00-22:00' } });
 
@@ -130,12 +146,23 @@ describe('MapsService.getPlaceDetails for a gers: id', () => {
   // without a scheme. Both halves of the merge hand it over completed.
   it('MAPS-GERS-010: the merged website has its scheme, from the index or else from OSM', async () => {
     const site = 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët';
-    mockById.mockResolvedValue({ ...PLACE, gers: 'ceba0e62-172b-4343-bb3b-78b915a18383', contact: { ...PLACE.contact, website: site } });
-    expect((await make(null).getPlaceDetails(1, 'gers:ceba0e62-172b-4343-bb3b-78b915a18383')).place?.website).toBe(`https://${site}`);
-    expect((await make({ website: 'www.example.fr' }).getPlaceDetails(1, 'gers:ceba0e62-172b-4343-bb3b-78b915a18383')).place?.website).toBe(`https://${site}`);
+    mockById.mockResolvedValue({
+      ...PLACE,
+      gers: 'ceba0e62-172b-4343-bb3b-78b915a18383',
+      contact: { ...PLACE.contact, website: site },
+    });
+    expect((await make(null).getPlaceDetails(1, 'gers:ceba0e62-172b-4343-bb3b-78b915a18383')).place?.website).toBe(
+      `https://${site}`,
+    );
+    expect(
+      (await make({ website: 'www.example.fr' }).getPlaceDetails(1, 'gers:ceba0e62-172b-4343-bb3b-78b915a18383')).place
+        ?.website,
+    ).toBe(`https://${site}`);
 
     mockById.mockResolvedValue({ ...PLACE, contact: { ...PLACE.contact, website: 'javascript:alert(1)' } });
-    expect((await make({ website: 'www.example.fr' }).getPlaceDetails(1, 'gers:abc-123')).place?.website).toBe('https://www.example.fr');
+    expect((await make({ website: 'www.example.fr' }).getPlaceDetails(1, 'gers:abc-123')).place?.website).toBe(
+      'https://www.example.fr',
+    );
     expect((await make(null).getPlaceDetails(1, 'gers:abc-123')).place?.website).toBeNull();
   });
 

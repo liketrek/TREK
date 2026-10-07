@@ -1,30 +1,39 @@
-import { Plus, NotebookPen, Image, MapPin } from 'lucide-react'
-import { useTranslation } from '../../../i18n'
-import { useJourney } from '../../../pages/journey/useJourney'
-import type { Journey } from '../../../store/journeyStore'
-import MJourneyCreateSheet from './MJourneyCreateSheet'
-import MDancingTrek from '../../components/MDancingTrek'
-import { journeyCoverSrc, journeyCoverStyle } from './mobileJourneyMeta'
+import { Image, MapPin, NotebookPen, Plus } from 'lucide-react';
+import { useTranslation } from '../../../i18n';
+import { useJourney } from '../../../pages/journey/useJourney';
+import type { Journey } from '../../../store/journeyStore';
+import MDancingTrek from '../../components/MDancingTrek';
+import MJourneyCreateSheet from './MJourneyCreateSheet';
+import { journeyCoverSrc, journeyCoverStyle } from './mobileJourneyMeta';
 
 type JourneyListItem = Journey & {
-  entry_count?: number
-  photo_count?: number
-  place_count?: number
-}
+  entry_count?: number;
+  photo_count?: number;
+  place_count?: number;
+};
 
 /** Journey list — hero card for the latest journey plus a 2-column grid with counters. */
 export default function MJourney() {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   const {
-    navigate, journeys, loading,
-    showCreate, setShowCreate, newTitle, setNewTitle,
-    availableTrips, selectedTripIds, setSelectedTripIds,
-    openCreateModal, handleCreate, activeJourney,
-  } = useJourney()
+    navigate,
+    journeys,
+    loading,
+    showCreate,
+    setShowCreate,
+    newTitle,
+    setNewTitle,
+    availableTrips,
+    selectedTripIds,
+    setSelectedTripIds,
+    openCreateModal,
+    handleCreate,
+    activeJourney,
+  } = useJourney();
 
-  const list = journeys as JourneyListItem[]
-  const hero = (activeJourney as JourneyListItem | null) ?? list[0] ?? null
-  const rest = list.filter(j => j.id !== hero?.id)
+  const list = journeys as JourneyListItem[];
+  const hero = (activeJourney as JourneyListItem | null) ?? list[0] ?? null;
+  const rest = list.filter((j) => j.id !== hero?.id);
 
   return (
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809).
@@ -43,7 +52,7 @@ export default function MJourney() {
         </button>
       </div>
 
-      <div className="h-full overflow-y-auto px-4 pt-[calc(var(--m-safe-top,12px)+52px)] pb-[calc(var(--bottom-nav-h,84px)+16px)]">
+      <div className="h-full overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+16px)] pt-[calc(var(--m-safe-top,12px)+52px)]">
         {loading && list.length === 0 ? (
           <div className="flex justify-center py-16">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-ink" />
@@ -67,7 +76,7 @@ export default function MJourney() {
                   <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  {rest.map(j => (
+                  {rest.map((j) => (
                     <GridCard key={j.id} journey={j} onOpen={() => navigate(`/journey/${j.id}`)} />
                   ))}
                 </div>
@@ -83,24 +92,24 @@ export default function MJourney() {
         onTitleChange={setNewTitle}
         trips={availableTrips}
         selectedTripIds={selectedTripIds}
-        onToggleTrip={id =>
-          setSelectedTripIds(prev => {
-            const next = new Set(prev)
-            if (next.has(id)) next.delete(id)
-            else next.add(id)
-            return next
+        onToggleTrip={(id) =>
+          setSelectedTripIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
           })
         }
         onCreate={handleCreate}
         onClose={() => setShowCreate(false)}
       />
     </div>
-  )
+  );
 }
 
 function HeroCard({ journey, onOpen }: { journey: JourneyListItem; onOpen: () => void }) {
-  const { t } = useTranslation()
-  const src = journeyCoverSrc(journey.cover_image)
+  const { t } = useTranslation();
+  const src = journeyCoverSrc(journey.cover_image);
 
   return (
     // Built like the dashboard's spotlight trip: the photo carries the card and
@@ -117,38 +126,49 @@ function HeroCard({ journey, onOpen }: { journey: JourneyListItem; onOpen: () =>
       ) : (
         <div className="absolute inset-0" style={journeyCoverStyle(journey)} />
       )}
-      <div className="absolute right-[10px] bottom-[10px] left-[10px] rounded-[18px] border border-white/[.16] bg-[rgba(14,14,17,.52)] p-[12px_14px] text-white backdrop-blur-[22px] backdrop-saturate-[1.6]">{/* theme-lint-disable — fixed dark glass on the cover photo */}
+      <div className="absolute bottom-[10px] left-[10px] right-[10px] rounded-[18px] border border-white/[.16] bg-[rgba(14,14,17,.52)] p-[12px_14px] text-white backdrop-blur-[22px] backdrop-saturate-[1.6]">
+        {/* theme-lint-disable — fixed dark glass on the cover photo */}
         <span className="flex gap-[6px]">
-          <span className="rounded-full bg-white/[.92] px-2 py-[3px] text-[0.625rem] font-bold tracking-[.07em] text-[#101013] uppercase">{/* theme-lint-disable — fixed on-photo badge */}
+          <span className="rounded-full bg-white/[.92] px-2 py-[3px] text-[0.625rem] font-bold uppercase tracking-[.07em] text-[#101013]">
+            {/* theme-lint-disable — fixed on-photo badge */}
             {t('mobileJourney.latestJourney')}
           </span>
         </span>
         <div className="mt-[7px] truncate text-[1.4375rem] font-bold">{journey.title}</div>
         <div className="mt-[9px] flex gap-[6px]">
-          <HeroPill icon={<NotebookPen size={10} strokeWidth={2.2} />} label={t('mobileJourney.entriesCount', { count: journey.entry_count ?? 0 })} />
-          <HeroPill icon={<Image size={10} strokeWidth={2.2} />} label={t('mobileJourney.photosCount', { count: journey.photo_count ?? 0 })} />
-          <HeroPill icon={<MapPin size={10} strokeWidth={2.2} />} label={t('mobileJourney.placesCount', { count: journey.place_count ?? 0 })} />
+          <HeroPill
+            icon={<NotebookPen size={10} strokeWidth={2.2} />}
+            label={t('mobileJourney.entriesCount', { count: journey.entry_count ?? 0 })}
+          />
+          <HeroPill
+            icon={<Image size={10} strokeWidth={2.2} />}
+            label={t('mobileJourney.photosCount', { count: journey.photo_count ?? 0 })}
+          />
+          <HeroPill
+            icon={<MapPin size={10} strokeWidth={2.2} />}
+            label={t('mobileJourney.placesCount', { count: journey.place_count ?? 0 })}
+          />
         </div>
       </div>
     </button>
-  )
+  );
 }
 
 /** One fact about the journey, set like the spotlight trip's pills on the dashboard. */
 function HeroPill({ icon, label }: { icon: React.ReactElement; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-white/[.28] px-[9px] py-[3px] font-geist text-[0.5625rem] font-bold tracking-[.07em] uppercase">
+    <span className="inline-flex items-center gap-1 rounded-full bg-white/[.28] px-[9px] py-[3px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.07em]">
       {icon}
       {label}
     </span>
-  )
+  );
 }
 
 function GridCard({ journey, onOpen }: { journey: JourneyListItem; onOpen: () => void }) {
-  const entries = journey.entry_count ?? 0
-  const photos = journey.photo_count ?? 0
-  const places = journey.place_count ?? 0
-  const hasStats = entries + photos + places > 0
+  const entries = journey.entry_count ?? 0;
+  const photos = journey.photo_count ?? 0;
+  const places = journey.place_count ?? 0;
+  const hasStats = entries + photos + places > 0;
 
   return (
     <button
@@ -177,5 +197,5 @@ function GridCard({ journey, onOpen }: { journey: JourneyListItem; onOpen: () =>
         )}
       </div>
     </button>
-  )
+  );
 }

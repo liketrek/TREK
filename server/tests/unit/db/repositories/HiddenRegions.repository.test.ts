@@ -3,13 +3,14 @@
  * carry): AT22 (`getHiddenRegions`) had no repository-level
  * `toEqual(<legacy raw>)` parity test.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser } from '../../../helpers/factories';
 import { HiddenRegions } from '../../../../src/db/entities/HiddenRegions.entity';
 import type { HiddenRegionsRepository } from '../../../../src/db/repositories/HiddenRegions.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser } from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -19,16 +20,28 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   repo = t.repo(HiddenRegions);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 describe('HiddenRegionsRepository.listForUser (AT22)', () => {
   it('HIDDENREGREPO-001: matches SELECT region_code FROM hidden_regions WHERE user_id = ? run raw, scoped to the user', async () => {
     const { user } = createUser(testDb);
     const { user: other } = createUser(testDb, { username: 'other' });
-    testDb.prepare('INSERT INTO hidden_regions (user_id, region_code, country_code) VALUES (?, ?, ?)').run(user.id, 'DE-BY', 'DE');
-    testDb.prepare('INSERT INTO hidden_regions (user_id, region_code, country_code) VALUES (?, ?, ?)').run(user.id, 'DE-BE', 'DE');
-    testDb.prepare('INSERT INTO hidden_regions (user_id, region_code, country_code) VALUES (?, ?, ?)').run(other.id, 'FR-IDF', 'FR');
+    testDb
+      .prepare('INSERT INTO hidden_regions (user_id, region_code, country_code) VALUES (?, ?, ?)')
+      .run(user.id, 'DE-BY', 'DE');
+    testDb
+      .prepare('INSERT INTO hidden_regions (user_id, region_code, country_code) VALUES (?, ?, ?)')
+      .run(user.id, 'DE-BE', 'DE');
+    testDb
+      .prepare('INSERT INTO hidden_regions (user_id, region_code, country_code) VALUES (?, ?, ?)')
+      .run(other.id, 'FR-IDF', 'FR');
 
     const legacy = testDb.prepare('SELECT region_code FROM hidden_regions WHERE user_id = ?').all(user.id);
     const codes = await repo.listForUser(user.id);

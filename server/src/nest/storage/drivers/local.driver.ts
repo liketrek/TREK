@@ -1,8 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { randomUUID } from 'node:crypto';
-import { pipeline } from 'node:stream/promises';
-import type { Readable } from 'node:stream';
 import { assertValidKey, assertValidPrefix } from '../storage-keys';
 import {
   isLocalTempFile,
@@ -14,6 +9,12 @@ import {
   type ObjectStat,
   type StorageDriver,
 } from '../storage.types';
+
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import type { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
 const SPOOL_DIR_NAME = '.tmp';
 /** Boot spool-reap age gate: entries younger than this survive the sweep. */
@@ -148,10 +149,7 @@ export class LocalDriver implements StorageDriver {
     const resolved = this.resolvePath(key);
     const stat = await this.stat(key);
     if (!stat) throw new StorageNotFoundError(key);
-    const stream = fs.createReadStream(
-      resolved,
-      range ? { start: range.start, end: range.end } : undefined,
-    );
+    const stream = fs.createReadStream(resolved, range ? { start: range.start, end: range.end } : undefined);
     return { stream, stat };
   }
 

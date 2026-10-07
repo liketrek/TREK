@@ -1,10 +1,10 @@
-import { Module } from '@nestjs/common';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { GoogleApiUsage } from '../../db/entities/GoogleApiUsage.entity';
 import { AuditModule } from '../audit/audit.module';
 import { GoogleQuotaController } from './google-quota.controller';
 import { GoogleQuotaService } from './google-quota.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * The daily ceiling on Google API calls (#1582). A leaf: MapsModule and

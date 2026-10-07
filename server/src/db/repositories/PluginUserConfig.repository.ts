@@ -1,5 +1,5 @@
-import type { PluginUserConfig } from '../entities/PluginUserConfig.entity';
 import { currentTimestamp } from '../dialect/sql-functions';
+import type { PluginUserConfig } from '../entities/PluginUserConfig.entity';
 import { TrekRepository } from './_shared/trek-repository';
 
 /** `exportUserData`'s own per-user config scan. */
@@ -40,7 +40,11 @@ export class PluginUserConfigRepository extends TrekRepository<PluginUserConfig>
     const platform = this.getEntityManager().getPlatform();
     await this.upsert(
       { plugin_id: pluginId, user_id: userId, config, updated_at: currentTimestamp(platform) },
-      { onConflictFields: ['plugin_id', 'user_id'], onConflictAction: 'merge', onConflictMergeFields: ['config', 'updated_at'] },
+      {
+        onConflictFields: ['plugin_id', 'user_id'],
+        onConflictAction: 'merge',
+        onConflictMergeFields: ['config', 'updated_at'],
+      },
     );
   }
 

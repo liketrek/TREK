@@ -1,31 +1,55 @@
-import React, { useId, useMemo, useRef, useState } from 'react'
-import { Upload, FileDown, FileJson, Loader2, MapPin, Tag, AlertCircle, Route, Info, Plus, FolderInput, Check, Search, Bookmark } from 'lucide-react'
-import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
-import { EditorField, INPUT } from '../shared/dialogParts'
-import { MAX_COLLECTION_FILE_PLACES, type Collection, type CollectionFile } from '@trek/shared'
-import type { TranslationFn } from '../../types'
-import { getApiErrorMessage } from '../../types'
+import { MAX_COLLECTION_FILE_PLACES, type Collection, type CollectionFile } from '@trek/shared';
 import {
+  AlertCircle,
+  Bookmark,
+  Check,
+  FileDown,
+  FileJson,
+  FolderInput,
+  Info,
+  Loader2,
+  MapPin,
+  Plus,
+  Route,
+  Search,
+  Tag,
+  Upload,
+} from 'lucide-react';
+import React, { useId, useMemo, useRef, useState } from 'react';
+import type { TranslationFn } from '../../types';
+import { getApiErrorMessage } from '../../types';
+import {
+  DialogButton,
+  DialogFooter,
+  DialogHeader,
+  DialogShell,
+  DialogTile,
+  FooterSpacer,
+  NEUTRAL_TINT,
+  fs,
+} from '../shared/DialogShell';
+import { EditorField, INPUT } from '../shared/dialogParts';
+import {
+  COLLECTION_FILE_EXTENSION,
+  COLLECTION_GPX_EXTENSION,
   readCollectionFile,
   type CollectionFileError,
   type GpxLeftovers,
   type GpxReader,
-  COLLECTION_FILE_EXTENSION,
-  COLLECTION_GPX_EXTENSION,
-} from './collectionFile'
+} from './collectionFile';
 
 interface ImportCollectionModalProps {
-  onImport: (file: CollectionFile, name?: string) => Promise<void>
+  onImport: (file: CollectionFile, name?: string) => Promise<void>;
   /** Adds the file to a list that is already there. Without it the dialog only makes new ones. */
-  onImportInto?: (file: CollectionFile, collectionId: number) => Promise<void>
+  onImportInto?: (file: CollectionFile, collectionId: number) => Promise<void>;
   /** The lists this person may add to; the server applies the same rule again. */
-  lists?: Collection[]
+  lists?: Collection[];
   /** The list that is open, so the obvious target is the one already selected. */
-  defaultListId?: number | null
+  defaultListId?: number | null;
   /** Reads a GPX into a list file (#2301); the server does the parsing. */
-  onReadGpx: GpxReader
-  onClose: () => void
-  t: TranslationFn
+  onReadGpx: GpxReader;
+  onClose: () => void;
+  t: TranslationFn;
 }
 
 /** Keyed by the error type, so a new way for a file to fail does not build without its words. */
@@ -35,19 +59,19 @@ const ERROR_KEYS: Record<CollectionFileError, string> = {
   'not-a-collection': 'collections.file.errorNotACollection',
   'not-gpx': 'collections.file.errorNotGpx',
   'too-many-places': 'collections.file.errorTooManyPlaces',
-}
+};
 
 /**
  * The square that stands for a list: its colour as a wash, the icon in the
  * colour itself. A list without one is drawn in the default the lists rail uses.
  */
 function swatch(color?: string | null): React.CSSProperties {
-  const tone = color || '#6366f1' // theme-lint-disable: a list's own colour, and the default one without a colour is drawn in
-  return { background: `color-mix(in srgb, ${tone} 14%, transparent)`, color: tone }
+  const tone = color || '#6366f1'; // theme-lint-disable: a list's own colour, and the default one without a colour is drawn in
+  return { background: `color-mix(in srgb, ${tone} 14%, transparent)`, color: tone };
 }
 
-const ROWS = 'flex flex-col gap-0.5 rounded-[14px] border border-edge-faint bg-surface-secondary p-1.5'
-const HINT = 'm-0 leading-normal text-content-faint'
+const ROWS = 'flex flex-col gap-0.5 rounded-[14px] border border-edge-faint bg-surface-secondary p-1.5';
+const HINT = 'm-0 leading-normal text-content-faint';
 
 /** What a GPX held besides its places, said before anything is imported. */
 function GpxNotes({ leftovers, placeCount, t }: { leftovers: GpxLeftovers; placeCount: number; t: TranslationFn }) {
@@ -55,27 +79,33 @@ function GpxNotes({ leftovers, placeCount, t }: { leftovers: GpxLeftovers; place
     placeCount === 0 && t('collections.file.gpxEmpty'),
     leftovers.skipped > 0 && t('collections.file.gpxSkipped', { count: leftovers.skipped }),
     leftovers.trackPoints > 0 && t('collections.file.gpxTrack', { count: leftovers.trackPoints }),
-  ].filter(Boolean)
-  if (notes.length === 0) return null
+  ].filter(Boolean);
+  if (notes.length === 0) return null;
   return (
     <ul className="m-0 flex list-none flex-col gap-1 p-0">
-      {notes.map(note => (
+      {notes.map((note) => (
         <li key={note as string} className="flex items-start gap-2 text-content-muted" style={fs(12, 'body')}>
           <Info size={13} className="mt-0.5 flex-none text-content-faint" />
           <span>{note}</span>
         </li>
       ))}
     </ul>
-  )
+  );
 }
 
 /** One of the two answers to "where do these places go", as a card you can tap. */
-function TargetCard({ active, icon: Icon, title, hint, onClick }: {
-  active: boolean
-  icon: typeof Plus
-  title: string
-  hint: string
-  onClick: () => void
+function TargetCard({
+  active,
+  icon: Icon,
+  title,
+  hint,
+  onClick,
+}: {
+  active: boolean;
+  icon: typeof Plus;
+  title: string;
+  hint: string;
+  onClick: () => void;
 }) {
   return (
     <button
@@ -83,44 +113,61 @@ function TargetCard({ active, icon: Icon, title, hint, onClick }: {
       onClick={onClick}
       aria-pressed={active}
       className={`relative flex flex-col items-start gap-1.5 rounded-[14px] border p-3 text-left transition-colors ${
-        active ? 'border-accent bg-surface-card shadow-sm' : 'border-edge-faint bg-surface-secondary hover:bg-surface-card'
+        active
+          ? 'border-accent bg-surface-card shadow-sm'
+          : 'border-edge-faint bg-surface-secondary hover:bg-surface-card'
       }`}
     >
-      <span className={`grid h-8 w-8 place-items-center rounded-[10px] ${active ? 'bg-accent text-accent-text' : 'bg-surface-card text-content-muted shadow-sm'}`}>
+      <span
+        className={`grid h-8 w-8 place-items-center rounded-[10px] ${active ? 'bg-accent text-accent-text' : 'bg-surface-card text-content-muted shadow-sm'}`}
+      >
         <Icon size={15} />
       </span>
-      <span className="font-semibold text-content" style={fs(13, 'body')}>{title}</span>
-      <span className="leading-snug text-content-faint" style={fs(11.5)}>{hint}</span>
+      <span className="font-semibold text-content" style={fs(13, 'body')}>
+        {title}
+      </span>
+      <span className="leading-snug text-content-faint" style={fs(11.5)}>
+        {hint}
+      </span>
       {active && (
         <span className="absolute right-2 top-2 grid h-4 w-4 place-items-center rounded-full bg-accent text-accent-text">
           <Check size={11} strokeWidth={3} />
         </span>
       )}
     </button>
-  )
+  );
 }
 
 /** The lists the file may be added to, the open one first. */
-function ListChoice({ lists, selectedId, onSelect, t }: {
-  lists: Collection[]
-  selectedId: number | null
-  onSelect: (id: number) => void
-  t: TranslationFn
+function ListChoice({
+  lists,
+  selectedId,
+  onSelect,
+  t,
+}: {
+  lists: Collection[];
+  selectedId: number | null;
+  onSelect: (id: number) => void;
+  t: TranslationFn;
 }) {
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState('');
   const shown = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return q ? lists.filter(l => l.name.toLowerCase().includes(q)) : lists
-  }, [lists, search])
+    const q = search.trim().toLowerCase();
+    return q ? lists.filter((l) => l.name.toLowerCase().includes(q)) : lists;
+  }, [lists, search]);
 
   return (
     <div className="flex flex-col gap-2">
       {lists.length > 5 && (
         <div className="relative">
-          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-content-faint" aria-hidden="true" />
+          <Search
+            size={14}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-content-faint"
+            aria-hidden="true"
+          />
           <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             aria-label={t('collections.file.searchLists')}
             placeholder={t('collections.file.searchLists')}
             className={`${INPUT} pl-8`}
@@ -128,8 +175,8 @@ function ListChoice({ lists, selectedId, onSelect, t }: {
         </div>
       )}
       <div className={`${ROWS} max-h-[34vh] overflow-y-auto`}>
-        {shown.map(list => {
-          const active = list.id === selectedId
+        {shown.map((list) => {
+          const active = list.id === selectedId;
           return (
             <button
               key={list.id}
@@ -142,19 +189,25 @@ function ListChoice({ lists, selectedId, onSelect, t }: {
                 <Bookmark size={15} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold text-content" style={fs(13, 'body')}>{list.name}</span>
-                <span className="block text-content-faint" style={fs(11.5)}>{t('collections.placeCount', { count: list.place_count ?? 0 })}</span>
+                <span className="block truncate font-semibold text-content" style={fs(13, 'body')}>
+                  {list.name}
+                </span>
+                <span className="block text-content-faint" style={fs(11.5)}>
+                  {t('collections.placeCount', { count: list.place_count ?? 0 })}
+                </span>
               </span>
               {active && <Check size={16} className="flex-none text-accent-on" />}
             </button>
-          )
+          );
         })}
         {shown.length === 0 && (
-          <p className="m-0 py-6 text-center text-content-faint" style={fs(13, 'body')}>{t('collections.noOtherLists')}</p>
+          <p className="m-0 py-6 text-center text-content-faint" style={fs(13, 'body')}>
+            {t('collections.noOtherLists')}
+          </p>
         )}
       </div>
     </div>
-  )
+  );
 }
 
 /**
@@ -178,83 +231,92 @@ function ListChoice({ lists, selectedId, onSelect, t }: {
  * in it alone and skips the places it already has.
  */
 export default function ImportCollectionModal({
-  onImport, onImportInto, lists, defaultListId, onReadGpx, onClose, t,
+  onImport,
+  onImportInto,
+  lists,
+  defaultListId,
+  onReadGpx,
+  onClose,
+  t,
 }: ImportCollectionModalProps): React.ReactElement {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const titleId = useId()
-  const nameId = useId()
-  const [file, setFile] = useState<CollectionFile | null>(null)
-  const [leftovers, setLeftovers] = useState<GpxLeftovers | null>(null)
-  const [name, setName] = useState('')
-  const [error, setError] = useState<CollectionFileError | 'failed' | null>(null)
-  const [failedMessage, setFailedMessage] = useState<string | null>(null)
-  const [reading, setReading] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [dragging, setDragging] = useState(false)
-  const [target, setTarget] = useState<'new' | 'existing'>('new')
+  const inputRef = useRef<HTMLInputElement>(null);
+  const titleId = useId();
+  const nameId = useId();
+  const [file, setFile] = useState<CollectionFile | null>(null);
+  const [leftovers, setLeftovers] = useState<GpxLeftovers | null>(null);
+  const [name, setName] = useState('');
+  const [error, setError] = useState<CollectionFileError | 'failed' | null>(null);
+  const [failedMessage, setFailedMessage] = useState<string | null>(null);
+  const [reading, setReading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [target, setTarget] = useState<'new' | 'existing'>('new');
   // The open list first: it is the one somebody importing from inside a list means.
   const targets = useMemo(() => {
-    const all = lists ?? []
-    const open = all.find(l => l.id === defaultListId)
-    return open ? [open, ...all.filter(l => l.id !== open.id)] : all
-  }, [lists, defaultListId])
-  const [listId, setListId] = useState<number | null>(() => targets[0]?.id ?? null)
-  const canChoose = !!onImportInto && targets.length > 0
-  const intoExisting = canChoose && target === 'existing'
+    const all = lists ?? [];
+    const open = all.find((l) => l.id === defaultListId);
+    return open ? [open, ...all.filter((l) => l.id !== open.id)] : all;
+  }, [lists, defaultListId]);
+  const [listId, setListId] = useState<number | null>(() => targets[0]?.id ?? null);
+  const canChoose = !!onImportInto && targets.length > 0;
+  const intoExisting = canChoose && target === 'existing';
 
   const take = async (chosen: File | undefined) => {
-    if (!chosen || reading) return
-    setError(null)
-    setFailedMessage(null)
-    setReading(true)
+    if (!chosen || reading) return;
+    setError(null);
+    setFailedMessage(null);
+    setReading(true);
     try {
-      const result = await readCollectionFile(chosen, onReadGpx)
-      setFile(result.file)
-      setLeftovers(result.gpx ?? null)
-      setError(result.error)
-      if (result.file) setName(result.file.name)
+      const result = await readCollectionFile(chosen, onReadGpx);
+      setFile(result.file);
+      setLeftovers(result.gpx ?? null);
+      setError(result.error);
+      if (result.file) setName(result.file.name);
     } catch (err) {
-      setFile(null)
-      setLeftovers(null)
-      setError('failed')
-      setFailedMessage(getApiErrorMessage(err, t('common.error')))
+      setFile(null);
+      setLeftovers(null);
+      setError('failed');
+      setFailedMessage(getApiErrorMessage(err, t('common.error')));
     } finally {
-      setReading(false)
+      setReading(false);
     }
-  }
+  };
 
   const onDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setDragging(false)
-    void take(e.dataTransfer.files?.[0])
-  }
+    e.preventDefault();
+    setDragging(false);
+    void take(e.dataTransfer.files?.[0]);
+  };
 
   const submit = async () => {
-    if (!file || busy) return
-    setBusy(true)
-    setError(null)
-    setFailedMessage(null)
+    if (!file || busy) return;
+    setBusy(true);
+    setError(null);
+    setFailedMessage(null);
     try {
       if (intoExisting && listId != null) {
-        await onImportInto!(file, listId)
+        await onImportInto!(file, listId);
       } else {
-        const trimmed = name.trim()
-        await onImport(file, trimmed && trimmed !== file.name ? trimmed : undefined)
+        const trimmed = name.trim();
+        await onImport(file, trimmed && trimmed !== file.name ? trimmed : undefined);
       }
     } catch (err) {
-      setError('failed')
-      setFailedMessage(getApiErrorMessage(err, t('common.error')))
+      setError('failed');
+      setFailedMessage(getApiErrorMessage(err, t('common.error')));
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
-  }
+  };
 
-  const errorText = error === 'failed'
-    ? (failedMessage ?? t('common.error'))
-    : error ? t(ERROR_KEYS[error], { count: MAX_COLLECTION_FILE_PLACES }) : null
+  const errorText =
+    error === 'failed'
+      ? (failedMessage ?? t('common.error'))
+      : error
+        ? t(ERROR_KEYS[error], { count: MAX_COLLECTION_FILE_PLACES })
+        : null;
 
   // A GPX of nothing but a track would make an empty list, which is never what was meant.
-  const nothingToImport = !!leftovers && !!file && file.places.length === 0
+  const nothingToImport = !!leftovers && !!file && file.places.length === 0;
 
   return (
     <DialogShell
@@ -263,16 +325,20 @@ export default function ImportCollectionModal({
       width="narrow"
       // The body grows once a file is read; the top edge stays where it was.
       align="top"
-      header={(
+      header={
         <DialogHeader
-          tile={<DialogTile><FileDown size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+          tile={
+            <DialogTile>
+              <FileDown size={20} strokeWidth={1.9} className="text-content-muted" />
+            </DialogTile>
+          }
           tint={NEUTRAL_TINT}
           labelId={titleId}
           onClose={onClose}
           title={t('collections.file.importTitle')}
         />
-      )}
-      footer={(
+      }
+      footer={
         <DialogFooter>
           <FooterSpacer />
           <DialogButton onClick={onClose}>{t('common.cancel')}</DialogButton>
@@ -285,36 +351,49 @@ export default function ImportCollectionModal({
             {intoExisting ? t('collections.file.confirmInto') : t('collections.file.confirm')}
           </DialogButton>
         </DialogFooter>
-      )}
+      }
     >
       <input
         ref={inputRef}
         type="file"
         accept=".json,application/json,.gpx,application/gpx+xml"
         className="hidden"
-        onChange={e => { void take(e.target.files?.[0]); e.target.value = '' }}
+        onChange={(e) => {
+          void take(e.target.files?.[0]);
+          e.target.value = '';
+        }}
       />
 
       {!file ? (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          onDragOver={e => { e.preventDefault(); setDragging(true) }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
           disabled={reading}
           aria-busy={reading}
           className={`flex min-h-[132px] w-full flex-col items-center justify-center gap-1.5 rounded-[14px] border-2 border-dashed p-4 transition-colors ${
-            dragging ? 'border-accent bg-surface-tertiary' : 'border-edge bg-surface-secondary hover:border-content-faint'
+            dragging
+              ? 'border-accent bg-surface-tertiary'
+              : 'border-edge bg-surface-secondary hover:border-content-faint'
           }`}
         >
-          {reading
-            ? <Loader2 size={20} className="animate-spin text-content-faint" />
-            : <Upload size={20} strokeWidth={1.8} className="text-content-faint" />}
+          {reading ? (
+            <Loader2 size={20} className="animate-spin text-content-faint" />
+          ) : (
+            <Upload size={20} strokeWidth={1.8} className="text-content-faint" />
+          )}
           <span className="font-semibold text-content" style={fs(13, 'body')}>
             {reading ? t('collections.file.reading') : t('collections.file.choose')}
           </span>
-          <span className="flex items-center gap-1.5 text-content-faint" style={fs(11.5)}><span>{COLLECTION_FILE_EXTENSION}</span><span>{COLLECTION_GPX_EXTENSION}</span></span>
+          <span className="flex items-center gap-1.5 text-content-faint" style={fs(11.5)}>
+            <span>{COLLECTION_FILE_EXTENSION}</span>
+            <span>{COLLECTION_GPX_EXTENSION}</span>
+          </span>
         </button>
       ) : (
         <>
@@ -325,11 +404,19 @@ export default function ImportCollectionModal({
                 {leftovers ? <Route size={16} /> : <FileJson size={16} />}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold text-content" style={fs(13, 'body')}>{file.name}</span>
+                <span className="block truncate font-semibold text-content" style={fs(13, 'body')}>
+                  {file.name}
+                </span>
                 <span className="flex items-center gap-3 text-content-faint" style={fs(11.5)}>
-                  <span className="inline-flex items-center gap-1"><MapPin size={11} />{t('collections.placeCount', { count: file.places.length })}</span>
+                  <span className="inline-flex items-center gap-1">
+                    <MapPin size={11} />
+                    {t('collections.placeCount', { count: file.places.length })}
+                  </span>
                   {file.labels && file.labels.length > 0 && (
-                    <span className="inline-flex items-center gap-1"><Tag size={11} />{t('collections.file.labelCount', { count: file.labels.length })}</span>
+                    <span className="inline-flex items-center gap-1">
+                      <Tag size={11} />
+                      {t('collections.file.labelCount', { count: file.labels.length })}
+                    </span>
                   )}
                 </span>
               </span>
@@ -344,7 +431,9 @@ export default function ImportCollectionModal({
             </div>
 
             {file.description && (
-              <p className="m-0 whitespace-pre-wrap text-content-muted" style={fs(12, 'body')}>{file.description}</p>
+              <p className="m-0 whitespace-pre-wrap text-content-muted" style={fs(12, 'body')}>
+                {file.description}
+              </p>
             )}
 
             {leftovers && <GpxNotes leftovers={leftovers} placeCount={file.places.length} t={t} />}
@@ -372,7 +461,9 @@ export default function ImportCollectionModal({
           {intoExisting ? (
             <div className="flex flex-col gap-2">
               <ListChoice lists={targets} selectedId={listId} onSelect={setListId} t={t} />
-              <p className={HINT} style={fs(11.5)}>{t('collections.file.intoHint')}</p>
+              <p className={HINT} style={fs(11.5)}>
+                {t('collections.file.intoHint')}
+              </p>
             </div>
           ) : (
             <EditorField
@@ -384,7 +475,7 @@ export default function ImportCollectionModal({
               <input
                 id={nameId}
                 value={name}
-                onChange={e => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value)}
                 maxLength={120}
                 className={INPUT}
               />
@@ -394,11 +485,15 @@ export default function ImportCollectionModal({
       )}
 
       {errorText && (
-        <div role="alert" className="flex items-start gap-2 rounded-[12px] bg-danger-soft px-3 py-2 text-danger" style={fs(12, 'body')}>
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-[12px] bg-danger-soft px-3 py-2 text-danger"
+          style={fs(12, 'body')}
+        >
           <AlertCircle size={13} className="mt-0.5 flex-none" />
           <span>{errorText}</span>
         </div>
       )}
     </DialogShell>
-  )
+  );
 }

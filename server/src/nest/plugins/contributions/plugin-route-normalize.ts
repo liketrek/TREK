@@ -1,5 +1,5 @@
-import { stripEmoji } from '../text-sanitize';
 import type { PluginsRepository } from '../../../db/repositories/Plugins.repository';
+import { stripEmoji } from '../text-sanitize';
 
 type Tone = 'default' | 'success' | 'warn' | 'danger';
 

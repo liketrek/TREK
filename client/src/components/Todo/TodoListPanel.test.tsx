@@ -1,13 +1,13 @@
 // FE-COMP-TODO-001 to FE-COMP-TODO-079
-import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { buildTodoItem, buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
-import { useAuthStore } from '../../store/authStore';
-import { useTripStore } from '../../store/tripStore';
-import { usePermissionsStore } from '../../store/permissionsStore';
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip, buildTodoItem } from '../../../tests/helpers/factories';
+import { useAuthStore } from '../../store/authStore';
+import { usePermissionsStore } from '../../store/permissionsStore';
+import { useTripStore } from '../../store/tripStore';
 import TodoListPanel from './TodoListPanel';
 
 beforeEach(() => {
@@ -15,9 +15,7 @@ beforeEach(() => {
   // Simulate desktop width so sidebar labels are rendered (not mobile icon-only mode)
   Object.defineProperty(window, 'innerWidth', { value: 1024, writable: true, configurable: true });
   server.use(
-    http.get('/api/trips/:id/members', () =>
-      HttpResponse.json({ owner: null, members: [], current_user_id: 1 })
-    ),
+    http.get('/api/trips/:id/members', () => HttpResponse.json({ owner: null, members: [], current_user_id: 1 }))
   );
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
@@ -49,11 +47,11 @@ describe('TodoListPanel', () => {
     render(<TodoListPanel tripId={1} items={[]} />);
     // Filter buttons exist — match by title (mobile mode, jsdom innerWidth=0) or text (desktop)
     const allButtons = screen.getAllByRole('button');
-    const buttonTitlesAndTexts = allButtons.map(b => (b.textContent || '') + (b.getAttribute('title') || ''));
-    expect(buttonTitlesAndTexts.some(t => t.includes('All'))).toBe(true);
-    expect(buttonTitlesAndTexts.some(t => t.includes('My Tasks'))).toBe(true);
-    expect(buttonTitlesAndTexts.some(t => t.includes('Done'))).toBe(true);
-    expect(buttonTitlesAndTexts.some(t => t.includes('Overdue'))).toBe(true);
+    const buttonTitlesAndTexts = allButtons.map((b) => (b.textContent || '') + (b.getAttribute('title') || ''));
+    expect(buttonTitlesAndTexts.some((t) => t.includes('All'))).toBe(true);
+    expect(buttonTitlesAndTexts.some((t) => t.includes('My Tasks'))).toBe(true);
+    expect(buttonTitlesAndTexts.some((t) => t.includes('Done'))).toBe(true);
+    expect(buttonTitlesAndTexts.some((t) => t.includes('Overdue'))).toBe(true);
   });
 
   it('FE-COMP-TODO-004: unchecked items are shown in All filter', () => {
@@ -63,10 +61,7 @@ describe('TodoListPanel', () => {
   });
 
   it('FE-COMP-TODO-005: checked items are hidden in All filter (All shows unchecked)', () => {
-    const items = [
-      buildTodoItem({ name: 'Done Task', checked: 1 }),
-      buildTodoItem({ name: 'Open Task', checked: 0 }),
-    ];
+    const items = [buildTodoItem({ name: 'Done Task', checked: 1 }), buildTodoItem({ name: 'Open Task', checked: 0 })];
     render(<TodoListPanel tripId={1} items={items} />);
     // All filter by default shows only unchecked
     expect(screen.queryByText('Done Task')).not.toBeInTheDocument();
@@ -81,9 +76,8 @@ describe('TodoListPanel', () => {
     ];
     render(<TodoListPanel tripId={1} items={items} />);
     // Find the Done filter button by title (mobile mode) or text (desktop)
-    const doneBtn = screen.queryByTitle('Done') || screen.getAllByRole('button').find(
-      b => b.textContent?.trim() === 'Done'
-    );
+    const doneBtn =
+      screen.queryByTitle('Done') || screen.getAllByRole('button').find((b) => b.textContent?.trim() === 'Done');
     if (doneBtn) {
       await user.click(doneBtn);
       await screen.findByText('Completed Task');
@@ -112,10 +106,7 @@ describe('TodoListPanel', () => {
   });
 
   it('FE-COMP-TODO-010: progress bar shows completion percentage', () => {
-    const items = [
-      buildTodoItem({ name: 'Done Task', checked: 1 }),
-      buildTodoItem({ name: 'Open Task', checked: 0 }),
-    ];
+    const items = [buildTodoItem({ name: 'Done Task', checked: 1 }), buildTodoItem({ name: 'Open Task', checked: 0 })];
     render(<TodoListPanel tripId={1} items={items} />);
     // 1/2 = 50% completed
     expect(screen.getByText(/50%/)).toBeInTheDocument();
@@ -190,9 +181,9 @@ describe('TodoListPanel', () => {
       buildTodoItem({ name: 'Future Task', checked: 0, due_date: '2099-12-31' }),
     ];
     render(<TodoListPanel tripId={1} items={items} />);
-    const overdueBtn = screen.getAllByRole('button').find(
-      b => b.textContent?.includes('Overdue') || b.getAttribute('title') === 'Overdue'
-    );
+    const overdueBtn = screen
+      .getAllByRole('button')
+      .find((b) => b.textContent?.includes('Overdue') || b.getAttribute('title') === 'Overdue');
     expect(overdueBtn).toBeTruthy();
     fireEvent.click(overdueBtn!);
     expect(screen.getByText('Overdue Task')).toBeInTheDocument();
@@ -210,9 +201,9 @@ describe('TodoListPanel', () => {
       buildTodoItem({ id: 2, name: 'Due Yesterday', checked: 0, due_date: '2026-05-14' }),
     ];
     render(<TodoListPanel tripId={1} items={items} />);
-    const overdueBtn = screen.getAllByRole('button').find(
-      b => b.textContent?.includes('Overdue') || b.getAttribute('title') === 'Overdue'
-    );
+    const overdueBtn = screen
+      .getAllByRole('button')
+      .find((b) => b.textContent?.includes('Overdue') || b.getAttribute('title') === 'Overdue');
     fireEvent.click(overdueBtn!);
     expect(screen.getByText('Due Yesterday')).toBeInTheDocument();
     expect(screen.queryByText('Due Today')).not.toBeInTheDocument();
@@ -226,14 +217,17 @@ describe('TodoListPanel', () => {
     ];
     render(<TodoListPanel tripId={1} items={items} />);
     // Wait for members API to resolve and set currentUserId=1 (My Tasks count badge shows 1)
-    await waitFor(() => {
-      const btns = screen.getAllByRole('button');
-      const btn = btns.find(b => b.textContent?.includes('My Tasks'));
-      expect(btn?.textContent).toMatch(/1/);
-    }, { timeout: 3000 });
-    const myBtn = screen.getAllByRole('button').find(
-      b => b.textContent?.includes('My Tasks') || b.getAttribute('title') === 'My Tasks'
+    await waitFor(
+      () => {
+        const btns = screen.getAllByRole('button');
+        const btn = btns.find((b) => b.textContent?.includes('My Tasks'));
+        expect(btn?.textContent).toMatch(/1/);
+      },
+      { timeout: 3000 }
     );
+    const myBtn = screen
+      .getAllByRole('button')
+      .find((b) => b.textContent?.includes('My Tasks') || b.getAttribute('title') === 'My Tasks');
     expect(myBtn).toBeTruthy();
     fireEvent.click(myBtn!);
     expect(screen.getByText('Mine')).toBeInTheDocument();
@@ -247,9 +241,9 @@ describe('TodoListPanel', () => {
       buildTodoItem({ name: 'High Prio', priority: 1, checked: 0 }),
     ];
     render(<TodoListPanel tripId={1} items={items} />);
-    const sortBtn = screen.getAllByRole('button').find(
-      b => b.textContent?.includes('Priority') || b.getAttribute('title') === 'Priority'
-    );
+    const sortBtn = screen
+      .getAllByRole('button')
+      .find((b) => b.textContent?.includes('Priority') || b.getAttribute('title') === 'Priority');
     expect(sortBtn).toBeTruthy();
     await user.click(sortBtn!);
     const html = document.body.innerHTML;
@@ -264,9 +258,9 @@ describe('TodoListPanel', () => {
       buildTodoItem({ name: 'No Due Date', checked: 0 }),
     ];
     render(<TodoListPanel tripId={1} items={items} />);
-    const sortBtn = screen.getAllByRole('button').find(
-      b => b.textContent?.includes('Due date') || b.getAttribute('title') === 'Due date'
-    );
+    const sortBtn = screen
+      .getAllByRole('button')
+      .find((b) => b.textContent?.includes('Due date') || b.getAttribute('title') === 'Due date');
     expect(sortBtn).toBeTruthy();
     await user.click(sortBtn!);
     const html = document.body.innerHTML;
@@ -293,7 +287,7 @@ describe('TodoListPanel', () => {
       http.put('/api/trips/1/todo/11', () => {
         putCalled = true;
         return HttpResponse.json({ item: buildTodoItem({ id: 11, name: 'Renamed' }) });
-      }),
+      })
     );
     const items = [buildTodoItem({ id: 11, name: 'Edit Me', checked: 0 })];
     render(<TodoListPanel tripId={1} items={items} />);
@@ -303,9 +297,9 @@ describe('TodoListPanel', () => {
     await user.clear(nameInput);
     await user.type(nameInput, 'Renamed');
     // Click Save changes button
-    const saveBtn = screen.getAllByRole('button').find(
-      b => b.textContent?.includes('Save changes') || b.textContent?.includes('Save')
-    );
+    const saveBtn = screen
+      .getAllByRole('button')
+      .find((b) => b.textContent?.includes('Save changes') || b.textContent?.includes('Save'));
     if (saveBtn) {
       await user.click(saveBtn);
       await waitFor(() => expect(putCalled).toBe(true));
@@ -325,7 +319,7 @@ describe('TodoListPanel', () => {
       http.delete('/api/trips/1/todo/20', () => {
         deleteCalled = true;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     const items = [buildTodoItem({ id: 20, name: 'Delete Me', checked: 0 })];
     render(<TodoListPanel tripId={1} items={items} />);
@@ -363,7 +357,7 @@ describe('TodoListPanel', () => {
     // It appears after the task row, so find buttons near the detail pane header
     // The detail pane has a header with title "Task" and an X button
     // We look for a button that closes the pane by finding ones with no text
-    const closeBtn = allButtons.find(b => {
+    const closeBtn = allButtons.find((b) => {
       const text = b.textContent?.trim();
       return text === '' && b.closest('[style*="border-left"]');
     });
@@ -377,9 +371,9 @@ describe('TodoListPanel', () => {
     const user = userEvent.setup();
     render(<TodoListPanel tripId={1} items={[]} />);
     // Find and click the "Add list" button
-    const addCatBtn = screen.getAllByRole('button').find(
-      b => b.textContent?.includes('Add list') || b.getAttribute('title') === 'Add list'
-    );
+    const addCatBtn = screen
+      .getAllByRole('button')
+      .find((b) => b.textContent?.includes('Add list') || b.getAttribute('title') === 'Add list');
     expect(addCatBtn).toBeTruthy();
     await user.click(addCatBtn!);
     // A text input for category name should appear
@@ -394,12 +388,12 @@ describe('TodoListPanel', () => {
     server.use(
       http.post('/api/trips/1/todo', () =>
         HttpResponse.json({ item: buildTodoItem({ category: 'Errands', name: 'New Item' }) })
-      ),
+      )
     );
     render(<TodoListPanel tripId={1} items={[]} />);
-    const addCatBtn = screen.getAllByRole('button').find(
-      b => b.textContent?.includes('Add list') || b.getAttribute('title') === 'Add list'
-    );
+    const addCatBtn = screen
+      .getAllByRole('button')
+      .find((b) => b.textContent?.includes('Add list') || b.getAttribute('title') === 'Add list');
     await user.click(addCatBtn!);
     const categoryInput = await screen.findByPlaceholderText('List name');
     await user.type(categoryInput, 'Errands');
@@ -415,9 +409,9 @@ describe('TodoListPanel', () => {
     const items = [buildTodoItem({ name: 'Old Task', checked: 0, due_date: '2020-01-01' })];
     render(<TodoListPanel tripId={1} items={items} />);
     // The overdue count badge '1' should appear near the Overdue filter button
-    const overdueArea = screen.getAllByRole('button').find(
-      b => b.textContent?.includes('Overdue') || b.getAttribute('title') === 'Overdue'
-    );
+    const overdueArea = screen
+      .getAllByRole('button')
+      .find((b) => b.textContent?.includes('Overdue') || b.getAttribute('title') === 'Overdue');
     expect(overdueArea).toBeTruthy();
     // The count badge with '1' should be in the DOM (rendered inside the sidebar button)
     expect(overdueArea!.textContent).toMatch(/1/);
@@ -430,7 +424,7 @@ describe('TodoListPanel', () => {
       http.post('/api/trips/1/todo', () => {
         postCalled = true;
         return HttpResponse.json({ item: buildTodoItem({ id: 99, name: 'Brand New Task' }) });
-      }),
+      })
     );
     const { rerender } = render(<TodoListPanel tripId={1} items={[]} addItemSignal={0} />);
     // Raising the signal opens the new task pane (simulates the toolbar button click)
@@ -443,11 +437,13 @@ describe('TodoListPanel', () => {
   });
 
   it('FE-COMP-TODO-029: Task with description shows description preview in list', () => {
-    const items = [buildTodoItem({
-      name: 'Described Task',
-      description: 'This is a task description',
-      checked: 0,
-    })];
+    const items = [
+      buildTodoItem({
+        name: 'Described Task',
+        description: 'This is a task description',
+        checked: 0,
+      }),
+    ];
     render(<TodoListPanel tripId={1} items={items} />);
     expect(screen.getByText('This is a task description')).toBeInTheDocument();
   });
@@ -487,7 +483,7 @@ function pickOption(label: string | RegExp) {
  * by being an actual <button>.
  */
 function sidebarButton(name: RegExp | string): HTMLElement {
-  const [button] = screen.getAllByRole('button', { name }).filter(el => el.tagName === 'BUTTON');
+  const [button] = screen.getAllByRole('button', { name }).filter((el) => el.tagName === 'BUTTON');
   expect(button).toBeDefined();
   return button;
 }
@@ -552,7 +548,12 @@ describe('TodoListPanel — sidebar', () => {
   it('FE-COMP-TODO-034: confirming a list that already exists just closes the input', async () => {
     const user = userEvent.setup();
     let posted = false;
-    server.use(http.post('/api/trips/1/todo', () => { posted = true; return HttpResponse.json({ item: buildTodoItem() }); }));
+    server.use(
+      http.post('/api/trips/1/todo', () => {
+        posted = true;
+        return HttpResponse.json({ item: buildTodoItem() });
+      })
+    );
     render(<TodoListPanel tripId={1} items={[buildTodoItem({ name: 'Task', category: 'Errands', checked: 0 })]} />);
 
     await user.click(screen.getByRole('button', { name: 'Add list' }));
@@ -581,7 +582,7 @@ describe('TodoListPanel — sidebar', () => {
 });
 
 describe('TodoListPanel — drag to reorder', () => {
-  const rows = () => Array.from(document.querySelectorAll('[draggable="true"]')).map(h => h.parentElement!);
+  const rows = () => Array.from(document.querySelectorAll('[draggable="true"]')).map((h) => h.parentElement!);
 
   it('FE-COMP-TODO-037: dropping a task onto another persists the new global order', async () => {
     let ordered: number[] | null = null;
@@ -589,7 +590,7 @@ describe('TodoListPanel — drag to reorder', () => {
       http.put('/api/trips/1/todo/reorder', async ({ request }) => {
         ordered = ((await request.json()) as { orderedIds: number[] }).orderedIds;
         return HttpResponse.json({ success: true });
-      }),
+      })
     );
     const items = [
       buildTodoItem({ id: 1, name: 'First', checked: 0 }),
@@ -611,8 +612,16 @@ describe('TodoListPanel — drag to reorder', () => {
 
   it('FE-COMP-TODO-038: dropping a task on itself changes nothing', async () => {
     let called = false;
-    server.use(http.put('/api/trips/1/todo/reorder', () => { called = true; return HttpResponse.json({ success: true }); }));
-    const items = [buildTodoItem({ id: 1, name: 'First', checked: 0 }), buildTodoItem({ id: 2, name: 'Second', checked: 0 })];
+    server.use(
+      http.put('/api/trips/1/todo/reorder', () => {
+        called = true;
+        return HttpResponse.json({ success: true });
+      })
+    );
+    const items = [
+      buildTodoItem({ id: 1, name: 'First', checked: 0 }),
+      buildTodoItem({ id: 2, name: 'Second', checked: 0 }),
+    ];
     render(<TodoListPanel tripId={1} items={items} />);
 
     const handles = document.querySelectorAll('[draggable="true"]');
@@ -623,7 +632,10 @@ describe('TodoListPanel — drag to reorder', () => {
   });
 
   it('FE-COMP-TODO-039: ending a drag without a drop clears the drag state', () => {
-    const items = [buildTodoItem({ id: 1, name: 'First', checked: 0 }), buildTodoItem({ id: 2, name: 'Second', checked: 0 })];
+    const items = [
+      buildTodoItem({ id: 1, name: 'First', checked: 0 }),
+      buildTodoItem({ id: 2, name: 'Second', checked: 0 }),
+    ];
     render(<TodoListPanel tripId={1} items={items} />);
 
     const handles = document.querySelectorAll('[draggable="true"]');
@@ -649,7 +661,10 @@ describe('TodoListPanel — drag to reorder', () => {
 });
 
 describe('TodoListPanel — detail pane', () => {
-  const openDetail = async (user: ReturnType<typeof userEvent.setup>, item = buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })) => {
+  const openDetail = async (
+    user: ReturnType<typeof userEvent.setup>,
+    item = buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })
+  ) => {
     render(<TodoListPanel tripId={1} items={[item]} />);
     await user.click(screen.getByText(item.name));
     await screen.findByText('Task');
@@ -663,14 +678,14 @@ describe('TodoListPanel — detail pane', () => {
       http.put('/api/trips/1/todo/40', async ({ request }) => {
         put = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ item: buildTodoItem({ id: 40, name: 'Plan route' }) });
-      }),
+      })
     );
     await openDetail(user);
 
     await user.type(screen.getByPlaceholderText('Description (optional)'), 'via the coast');
     await user.click(screen.getByRole('button', { name: 'P2' }));
     await user.click(screen.getByRole('button', { name: 'Date' }));
-    await user.click(screen.getAllByRole('button').find(b => b.textContent?.trim() === '12')!);
+    await user.click(screen.getAllByRole('button').find((b) => b.textContent?.trim() === '12')!);
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(put).toBeTruthy());
@@ -687,7 +702,7 @@ describe('TodoListPanel — detail pane', () => {
       http.put('/api/trips/1/todo/40', async ({ request }) => {
         put = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ item: buildTodoItem({ id: 40, name: 'Plan route' }) });
-      }),
+      })
     );
     await openDetail(user);
 
@@ -722,10 +737,15 @@ describe('TodoListPanel — detail pane', () => {
   it('FE-COMP-TODO-044: picking an existing list from the dropdown marks the task changed', async () => {
     const user = userEvent.setup();
     withMembers();
-    render(<TodoListPanel tripId={1} items={[
-      buildTodoItem({ id: 40, name: 'Plan route', checked: 0 }),
-      buildTodoItem({ id: 41, name: 'Other', category: 'Errands', checked: 0 }),
-    ]} />);
+    render(
+      <TodoListPanel
+        tripId={1}
+        items={[
+          buildTodoItem({ id: 40, name: 'Plan route', checked: 0 }),
+          buildTodoItem({ id: 41, name: 'Other', category: 'Errands', checked: 0 }),
+        ]}
+      />
+    );
     await user.click(screen.getByText('Plan route'));
     await screen.findByText('Task');
 
@@ -744,7 +764,7 @@ describe('TodoListPanel — detail pane', () => {
       http.put('/api/trips/1/todo/40', async ({ request }) => {
         put = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ item: buildTodoItem({ id: 40, name: 'Plan route' }) });
-      }),
+      })
     );
     await openDetail(user);
     await screen.findByRole('button', { name: 'Unassigned' });
@@ -800,10 +820,15 @@ describe('TodoListPanel — detail pane', () => {
   it('FE-COMP-TODO-049: switching the selected task reloads the pane fields', async () => {
     const user = userEvent.setup();
     withMembers();
-    render(<TodoListPanel tripId={1} items={[
-      buildTodoItem({ id: 40, name: 'Plan route', description: 'coast', checked: 0 }),
-      buildTodoItem({ id: 41, name: 'Book ferry', description: null, checked: 0 }),
-    ]} />);
+    render(
+      <TodoListPanel
+        tripId={1}
+        items={[
+          buildTodoItem({ id: 40, name: 'Plan route', description: 'coast', checked: 0 }),
+          buildTodoItem({ id: 41, name: 'Book ferry', description: null, checked: 0 }),
+        ]}
+      />
+    );
 
     await user.click(screen.getByText('Plan route'));
     expect((await screen.findAllByText('coast')).length).toBeGreaterThan(0);
@@ -829,7 +854,7 @@ describe('TodoListPanel — new task pane', () => {
       http.post('/api/trips/1/todo', async ({ request }) => {
         posted = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ item: buildTodoItem({ id: 77, name: 'Pack bags' }) });
-      }),
+      })
     );
     await openNew();
 
@@ -844,7 +869,12 @@ describe('TodoListPanel — new task pane', () => {
   it('FE-COMP-TODO-051: an empty name neither posts nor enables the button', async () => {
     const user = userEvent.setup();
     let posted = false;
-    server.use(http.post('/api/trips/1/todo', () => { posted = true; return HttpResponse.json({ item: buildTodoItem() }); }));
+    server.use(
+      http.post('/api/trips/1/todo', () => {
+        posted = true;
+        return HttpResponse.json({ item: buildTodoItem() });
+      })
+    );
     await openNew();
 
     await user.type(screen.getByPlaceholderText('Task name'), '{Enter}');
@@ -861,19 +891,21 @@ describe('TodoListPanel — new task pane', () => {
       http.post('/api/trips/1/todo', async ({ request }) => {
         posted = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ item: buildTodoItem({ id: 78, name: 'Pack bags' }) });
-      }),
+      })
     );
     await openNew();
     await screen.findByRole('button', { name: 'Unassigned' });
 
     await user.type(screen.getByPlaceholderText('Task name'), 'Pack bags');
     await user.type(screen.getByPlaceholderText('Description (optional)'), 'rain gear');
-    await user.click(within(screen.getByRole('dialog', { name: 'New task' })).getByRole('button', { name: 'Add list' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'New task' })).getByRole('button', { name: 'Add list' })
+    );
     await user.type(await screen.findByPlaceholderText('List name'), 'Prep ');
     await user.keyboard('{Enter}');
     await user.click(screen.getByRole('button', { name: 'P1' }));
     await user.click(screen.getByRole('button', { name: 'Date' }));
-    await user.click(screen.getAllByRole('button').find(b => b.textContent?.trim() === '9')!);
+    await user.click(screen.getAllByRole('button').find((b) => b.textContent?.trim() === '9')!);
     await user.click(screen.getByRole('button', { name: 'Unassigned' }));
     pickOption('bob');
     await user.click(screen.getByRole('button', { name: 'Create task' }));
@@ -890,7 +922,9 @@ describe('TodoListPanel — new task pane', () => {
     const user = userEvent.setup();
     await openNew();
 
-    await user.click(within(screen.getByRole('dialog', { name: 'New task' })).getByRole('button', { name: 'Add list' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'New task' })).getByRole('button', { name: 'Add list' })
+    );
     await user.type(await screen.findByPlaceholderText('List name'), 'Prep');
     await user.keyboard('{Escape}');
 
@@ -987,7 +1021,7 @@ describe('TodoListPanel — mobile layout', () => {
     render(<TodoListPanel tripId={1} items={[buildTodoItem({ name: 'Task', category: 'Errands', checked: 0 })]} />);
 
     const filters = screen.getAllByRole('button');
-    const listFilter = filters.find(b => b.getAttribute('title') === 'Errands')!;
+    const listFilter = filters.find((b) => b.getAttribute('title') === 'Errands')!;
     expect(listFilter).toBeInTheDocument();
     expect(listFilter.textContent).toBe('1');
     expect((listFilter.firstElementChild as HTMLElement).style.background).toBe('rgb(59, 130, 246)');
@@ -1009,7 +1043,9 @@ describe('TodoListPanel — mobile layout', () => {
 
   it('FE-COMP-TODO-076: creating from the mobile sheet closes it and selects the new task', async () => {
     const user = userEvent.setup();
-    server.use(http.post('/api/trips/1/todo', () => HttpResponse.json({ item: buildTodoItem({ id: 90, name: 'Pack bags' }) })));
+    server.use(
+      http.post('/api/trips/1/todo', () => HttpResponse.json({ item: buildTodoItem({ id: 90, name: 'Pack bags' }) }))
+    );
     const items = [buildTodoItem({ id: 90, name: 'Pack bags', checked: 0 })];
     const { rerender } = render(<TodoListPanel tripId={1} items={items} addItemSignal={0} />);
     rerender(<TodoListPanel tripId={1} items={items} addItemSignal={1} />);
@@ -1056,7 +1092,7 @@ describe('TodoListPanel — remaining paths', () => {
       http.put('/api/trips/1/todo/5', async ({ request }) => {
         put = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ item: buildTodoItem({ id: 5, name: 'Toggle', checked: 1 }) });
-      }),
+      })
     );
     render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 5, name: 'Toggle', checked: 0 })]} />);
 
@@ -1068,11 +1104,21 @@ describe('TodoListPanel — remaining paths', () => {
 
   it('FE-COMP-TODO-063: a task dragged out of the current view is not reordered', () => {
     let called = false;
-    server.use(http.put('/api/trips/1/todo/reorder', () => { called = true; return HttpResponse.json({ success: true }); }));
-    render(<TodoListPanel tripId={1} items={[
-      buildTodoItem({ id: 1, name: 'Loose', checked: 0 }),
-      buildTodoItem({ id: 2, name: 'Filed', category: 'Errands', checked: 0 }),
-    ]} />);
+    server.use(
+      http.put('/api/trips/1/todo/reorder', () => {
+        called = true;
+        return HttpResponse.json({ success: true });
+      })
+    );
+    render(
+      <TodoListPanel
+        tripId={1}
+        items={[
+          buildTodoItem({ id: 1, name: 'Loose', checked: 0 }),
+          buildTodoItem({ id: 2, name: 'Filed', category: 'Errands', checked: 0 }),
+        ]}
+      />
+    );
 
     fireEvent.dragStart(document.querySelectorAll('[draggable="true"]')[0], { dataTransfer: { effectAllowed: '' } });
     clickFilter(/Errands/);
@@ -1098,7 +1144,12 @@ describe('TodoListPanel — remaining paths', () => {
   it('FE-COMP-TODO-065: clearing the task name blocks the save', async () => {
     const user = userEvent.setup();
     let put = false;
-    server.use(http.put('/api/trips/1/todo/40', () => { put = true; return HttpResponse.json({ item: buildTodoItem({ id: 40 }) }); }));
+    server.use(
+      http.put('/api/trips/1/todo/40', () => {
+        put = true;
+        return HttpResponse.json({ item: buildTodoItem({ id: 40 }) });
+      })
+    );
     render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })]} />);
     await user.click(screen.getByText('Plan route'));
 
@@ -1110,19 +1161,27 @@ describe('TodoListPanel — remaining paths', () => {
 
   it('FE-COMP-TODO-066: the name dialog adds a new list in both panes', async () => {
     const user = userEvent.setup();
-    const { rerender } = render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })]} addItemSignal={0} />);
+    const { rerender } = render(
+      <TodoListPanel tripId={1} items={[buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })]} addItemSignal={0} />
+    );
 
     await user.click(screen.getByText('Plan route'));
-    await user.click(within(await screen.findByRole('region', { name: 'Task' })).getByRole('button', { name: 'Add list' }));
+    await user.click(
+      within(await screen.findByRole('region', { name: 'Task' })).getByRole('button', { name: 'Add list' })
+    );
     let input = await screen.findByPlaceholderText('List name');
     await user.type(input, 'Logistics');
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     expect(screen.queryByPlaceholderText('List name')).not.toBeInTheDocument();
     expect(screen.getByText(/^Logistics/)).toBeInTheDocument();
 
-    rerender(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })]} addItemSignal={1} />);
+    rerender(
+      <TodoListPanel tripId={1} items={[buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })]} addItemSignal={1} />
+    );
     await screen.findByText('Create task');
-    await user.click(within(screen.getByRole('dialog', { name: 'New task' })).getByRole('button', { name: 'Add list' }));
+    await user.click(
+      within(screen.getByRole('dialog', { name: 'New task' })).getByRole('button', { name: 'Add list' })
+    );
     input = await screen.findByPlaceholderText('List name');
     await user.type(input, 'Prep');
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
@@ -1137,7 +1196,7 @@ describe('TodoListPanel — remaining paths', () => {
       http.post('/api/trips/1/todo', async ({ request }) => {
         posted = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ item: buildTodoItem({ id: 80 }) });
-      }),
+      })
     );
     const items = [buildTodoItem({ id: 60, name: 'Task', category: 'Errands', checked: 0 })];
     const { rerender } = render(<TodoListPanel tripId={1} items={items} addItemSignal={0} />);
@@ -1167,7 +1226,7 @@ describe('TodoListPanel — remaining paths', () => {
       http.post('/api/trips/1/todo', async ({ request }) => {
         posted = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ item: buildTodoItem({ id: 81 }) });
-      }),
+      })
     );
     const items = [buildTodoItem({ id: 40, name: 'Plan route', assigned_user_id: 2, checked: 0 })];
     const { rerender } = render(<TodoListPanel tripId={1} items={items} addItemSignal={0} />);
@@ -1199,7 +1258,9 @@ describe('TodoListPanel — remaining paths', () => {
     window.__addToast = addToast as unknown as typeof window.__addToast;
     // The store always wraps failures in an Error; a bare throw is the only way
     // into the fallback message.
-    const reject = async () => { throw 'boom' };
+    const reject = async () => {
+      throw 'boom';
+    };
     useTripStore.setState({ updateTodoItem: reject, deleteTodoItem: reject });
     render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 40, name: 'Plan route', checked: 0 })]} />);
     await user.click(screen.getByText('Plan route'));
@@ -1220,7 +1281,9 @@ describe('TodoListPanel — remaining paths', () => {
     const user = userEvent.setup();
     const addToast = vi.fn();
     window.__addToast = addToast as unknown as typeof window.__addToast;
-    const reject = async () => { throw 'boom' };
+    const reject = async () => {
+      throw 'boom';
+    };
     useTripStore.setState({ addTodoItem: reject });
     const { rerender } = render(<TodoListPanel tripId={1} items={[]} addItemSignal={0} />);
     rerender(<TodoListPanel tripId={1} items={[]} addItemSignal={1} />);
@@ -1256,7 +1319,11 @@ describe('TodoListPanel — remaining paths', () => {
 
     const pane = document.querySelector('.trek-modal-backdrop') as HTMLElement;
     // The header X is the only button without an accessible name.
-    await user.click(within(pane).getAllByRole('button').find(b => !b.textContent?.trim())!);
+    await user.click(
+      within(pane)
+        .getAllByRole('button')
+        .find((b) => !b.textContent?.trim())!
+    );
 
     expect(screen.queryByText('Create task')).not.toBeInTheDocument();
   });
@@ -1279,15 +1346,28 @@ describe('TodoListPanel — plugin contributions', () => {
       http.get('/api/view-contributions/todos/1', () =>
         HttpResponse.json({
           contributions: [
-            { kind: 'column', pluginId: 'p1', id: 'c1', entityId: 12, label: 'Weather', value: 'Rainy', tone: 'default' },
+            {
+              kind: 'column',
+              pluginId: 'p1',
+              id: 'c1',
+              entityId: 12,
+              label: 'Weather',
+              value: 'Rainy',
+              tone: 'default',
+            },
           ],
         })
-      ),
+      )
     );
-    render(<TodoListPanel tripId={1} items={[
-      buildTodoItem({ id: 12, name: 'Hike', checked: 0 }),
-      buildTodoItem({ id: 13, name: 'Swim', checked: 0 }),
-    ]} />);
+    render(
+      <TodoListPanel
+        tripId={1}
+        items={[
+          buildTodoItem({ id: 12, name: 'Hike', checked: 0 }),
+          buildTodoItem({ id: 13, name: 'Swim', checked: 0 }),
+        ]}
+      />
+    );
 
     expect(await screen.findByText('Weather')).toBeInTheDocument();
     expect(screen.getByText('Rainy')).toBeInTheDocument();
@@ -1298,10 +1378,12 @@ describe('TodoListPanel — detail pane head', () => {
   it('FE-COMP-TODO-090: the box in the pane head ticks the task off', async () => {
     const user = userEvent.setup();
     let body: Record<string, unknown> | null = null;
-    server.use(http.put('/api/trips/1/todo/60', async ({ request }) => {
-      body = (await request.json()) as Record<string, unknown>;
-      return HttpResponse.json({ item: buildTodoItem({ id: 60, name: 'Buy SIM', checked: 1 }) });
-    }));
+    server.use(
+      http.put('/api/trips/1/todo/60', async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ item: buildTodoItem({ id: 60, name: 'Buy SIM', checked: 1 }) });
+      })
+    );
     render(<TodoListPanel tripId={1} items={[buildTodoItem({ id: 60, name: 'Buy SIM', checked: 0 })]} />);
 
     await user.click(screen.getByText('Buy SIM'));
@@ -1312,4 +1394,3 @@ describe('TodoListPanel — detail pane head', () => {
     await waitFor(() => expect(body).toMatchObject({ checked: true }));
   });
 });
-

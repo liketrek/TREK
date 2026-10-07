@@ -25,9 +25,9 @@
  * (node builtins only) — nothing that could transitively import
  * `src/db/database.ts` again. Keep it that way.
  */
+import { readSchemaSnapshot } from '../../src/db/schema-snapshot';
 
 import Database from 'better-sqlite3';
-import { readSchemaSnapshot } from '../../src/db/schema-snapshot';
 
 /**
  * A copy of the migrated-and-seeded database the vitest global setup wrote
@@ -102,29 +102,39 @@ export function buildDbMock(testDb: Database.Database) {
         category_icon: string | null;
         [key: string]: unknown;
       }
-      const place = testDb.prepare(`
+      const place = testDb
+        .prepare(
+          `
         SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon
         FROM places p
         LEFT JOIN categories c ON p.category_id = c.id
         WHERE p.id = ?
-      `).get(placeId) as PlaceRow | undefined;
+      `,
+        )
+        .get(placeId) as PlaceRow | undefined;
 
       if (!place) return null;
 
-      const tags = testDb.prepare(`
+      const tags = testDb
+        .prepare(
+          `
         SELECT t.* FROM tags t
         JOIN place_tags pt ON t.id = pt.tag_id
         WHERE pt.place_id = ?
-      `).all(placeId);
+      `,
+        )
+        .all(placeId);
 
       return {
         ...place,
-        category: place.category_id ? {
-          id: place.category_id,
-          name: place.category_name,
-          color: place.category_color,
-          icon: place.category_icon,
-        } : null,
+        category: place.category_id
+          ? {
+              id: place.category_id,
+              name: place.category_name,
+              color: place.category_color,
+              icon: place.category_icon,
+            }
+          : null,
         tags,
       };
     },

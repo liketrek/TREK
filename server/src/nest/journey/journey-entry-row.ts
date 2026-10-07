@@ -26,7 +26,10 @@ import type { JourneyEntry } from '../../types';
  * the reason the JSON does, so that a client comparing it with `=== true` is
  * comparing against something that can be true on every path.
  */
-export interface JourneyEntryWire extends Omit<JourneyEntry, 'tags' | 'pros_cons' | 'stats_excluded' | 'dismissed' | 'is_draft'> {
+export interface JourneyEntryWire extends Omit<
+  JourneyEntry,
+  'tags' | 'pros_cons' | 'stats_excluded' | 'dismissed' | 'is_draft'
+> {
   tags: string[];
   pros_cons: { pros: string[]; cons: string[] } | null;
   stats_excluded: boolean;

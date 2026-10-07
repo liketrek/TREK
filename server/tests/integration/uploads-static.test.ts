@@ -13,12 +13,15 @@
  * UUIDv4 filenames; gating them would break share-link trip cards, journey
  * public pages, and email-embedded avatars. No auth setup here is deliberate.
  */
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
 import type { INestApplication } from '@nestjs/common';
-import path from 'path';
+
+import type { Application } from 'express';
 import fs from 'fs';
+import path from 'path';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -33,10 +36,11 @@ vi.mock('../../src/config', () => ({
   SESSION_DURATION_SECONDS: 86400,
   DEFAULT_LANGUAGE: 'en',
 }));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn(), getOnlineUserIds: vi.fn(() => []) }));
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
+vi.mock('../../src/websocket', () => ({
+  broadcast: vi.fn(),
+  broadcastToUser: vi.fn(),
+  getOnlineUserIds: vi.fn(() => []),
+}));
 
 let nestApp: INestApplication;
 let app: Application;
@@ -171,10 +175,7 @@ describe('/uploads static parity — Range', () => {
   });
 
   it('UPLOADS-P11 — stale If-Range drops the range → 200 full', async () => {
-    const res = await request(app)
-      .get(`/uploads/avatars/${NAME}`)
-      .set('Range', 'bytes=0-3')
-      .set('If-Range', 'W/"0-0"');
+    const res = await request(app).get(`/uploads/avatars/${NAME}`).set('Range', 'bytes=0-3').set('If-Range', 'W/"0-0"');
     expect(res.status).toBe(200);
     expect(res.headers['content-length']).toBe('8');
   });

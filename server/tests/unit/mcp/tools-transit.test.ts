@@ -1,12 +1,15 @@
+import { db as testDb } from '../../../src/db/database';
 import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
+import type { TransitPlace } from '../../../src/nest/transit/transit.helpers';
+import { TransitService } from '../../../src/nest/transit/transit.service';
 import { addTripMember, createDay, createTrip, createUser } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
 import { resetTestDb } from '../../helpers/test-db';
+import { createTestUnitOfWork, createTestAppSettingsRepo } from '../../helpers/test-uow';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { db as testDb } from '../../../src/db/database';
-
 
 const { broadcastMock } = vi.hoisted(() => ({
   broadcastMock: vi.fn(),
@@ -23,11 +26,6 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 
-import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
-import type { TransitPlace } from '../../../src/nest/transit/transit.helpers';
-import { TransitService } from '../../../src/nest/transit/transit.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo } from '../../helpers/test-uow';
-
 // savePermissions is no longer bridged; write through a service instance — the
 // permissions cache is module-scoped, so the MCP _shared checkPermission path
 // sees the write immediately.
@@ -35,7 +33,10 @@ import { createTestUnitOfWork, createTestAppSettingsRepo } from '../../helpers/t
 let permissionsService: PermissionsService;
 let savePermissions: typeof permissionsService.savePermissions;
 beforeAll(async () => {
-  permissionsService = new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb));
+  permissionsService = new PermissionsService(
+    await createTestAppSettingsRepo(testDb),
+    await createTestUnitOfWork(testDb),
+  );
   savePermissions = permissionsService.savePermissions.bind(permissionsService);
 });
 

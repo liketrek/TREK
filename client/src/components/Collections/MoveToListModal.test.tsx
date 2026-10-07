@@ -1,7 +1,7 @@
 // FE-COMP-MOVETOLIST-001 to FE-COMP-MOVETOLIST-009
-import { render, screen, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import type { Collection } from '@trek/shared';
+import { render, screen, within } from '../../../tests/helpers/render';
 import { useTranslation } from '../../i18n/TranslationContext';
 import MoveToListModal from './MoveToListModal';
 

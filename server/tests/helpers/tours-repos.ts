@@ -1,9 +1,10 @@
-import type Database from 'better-sqlite3';
-import { sharedTestOrm } from './test-uow';
-import { Tours } from '../../src/db/entities/Tours.entity';
-import type { ToursRepository } from '../../src/db/repositories/Tours.repository';
 import { TourWaypoints } from '../../src/db/entities/TourWaypoints.entity';
+import { Tours } from '../../src/db/entities/Tours.entity';
 import type { TourWaypointsRepository } from '../../src/db/repositories/TourWaypoints.repository';
+import type { ToursRepository } from '../../src/db/repositories/Tours.repository';
+import { sharedTestOrm } from './test-uow';
+
+import type Database from 'better-sqlite3';
 
 /**
  * Tours test-only repository factories, bound to a suite's own better-sqlite3
@@ -23,7 +24,12 @@ export function createTestTourWaypointsRepo(db: Database.Database): Promise<Tour
 export function createTour(
   db: Database.Database,
   placeId: number,
-  overrides: Partial<{ distance: number | null; match_confidence: number | null; max_hiking_difficulty: number; created_at: string }> = {},
+  overrides: Partial<{
+    distance: number | null;
+    match_confidence: number | null;
+    max_hiking_difficulty: number;
+    created_at: string;
+  }> = {},
 ): void {
   db.prepare(
     `INSERT INTO tours (place_id, tour_type, distance, match_confidence, max_hiking_difficulty, created_at)

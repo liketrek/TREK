@@ -110,10 +110,7 @@ import type { Expression, ExpressionBuilder, ExpressionWrapper, SqlBool } from '
 
 export function packingVisibleToActorCondition(actorId: number | undefined) {
   return {
-    $or: [
-      { is_private: 0 },
-      ...(actorId != null ? [{ owner_id: actorId }, { packing_item_recipients: actorId }] : []),
-    ],
+    $or: [{ is_private: 0 }, ...(actorId != null ? [{ owner_id: actorId }, { packing_item_recipients: actorId }] : [])],
   };
 }
 

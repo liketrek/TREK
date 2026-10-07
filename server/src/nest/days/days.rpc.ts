@@ -1,13 +1,13 @@
-import { dayCreateRequestSchema, dayUpdateRequestSchema } from '@trek/shared';
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
+import type { MirrorSender } from '../accommodations/accommodations.service';
 import { PluginGuards } from '../plugins/host/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { num, schemaMessage } from '../plugins/host/rpc-params';
+import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
 import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { num, schemaMessage } from '../plugins/host/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
-import { DaysService, DayAppendError, type DatedDayAppend, type DaySender } from './days.service';
 import { DayRemovalService, DayDeleteError, type DayRemoval } from './day-removal.service';
-import type { MirrorSender } from '../accommodations/accommodations.service';
+import { DaysService, DayAppendError, type DatedDayAppend, type DaySender } from './days.service';
+import { dayCreateRequestSchema, dayUpdateRequestSchema } from '@trek/shared';
 
 const DAY_EDIT_ACTION = 'day_edit';
 

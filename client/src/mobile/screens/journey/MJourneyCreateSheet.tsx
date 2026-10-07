@@ -1,44 +1,57 @@
-import { Feather, Calendar, MapPin, Check, X } from 'lucide-react'
-import MSheet from '../../components/MSheet'
-import MIconBtn from '../../components/MIconBtn'
-import { useTranslation } from '../../../i18n'
-import { pickGradient } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
+import { Calendar, Check, Feather, MapPin, X } from 'lucide-react';
+import { useTranslation } from '../../../i18n';
+import { pickGradient } from '../../../pages/journeyDetail/JourneyDetailPage.helpers';
+import MIconBtn from '../../components/MIconBtn';
+import MSheet from '../../components/MSheet';
 
 export interface CreateSheetTrip {
-  id: number
-  title: string
-  start_date?: string | null
-  end_date?: string | null
-  place_count?: number
-  cover_image?: string | null
+  id: number;
+  title: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  place_count?: number;
+  cover_image?: string | null;
 }
 
 interface MJourneyCreateSheetProps {
-  open: boolean
-  title: string
-  onTitleChange: (value: string) => void
-  trips: CreateSheetTrip[]
-  selectedTripIds: Set<number>
-  onToggleTrip: (id: number) => void
-  onCreate: () => void
-  onClose: () => void
+  open: boolean;
+  title: string;
+  onTitleChange: (value: string) => void;
+  trips: CreateSheetTrip[];
+  selectedTripIds: Set<number>;
+  onToggleTrip: (id: number) => void;
+  onCreate: () => void;
+  onClose: () => void;
 }
 
 function tripDays(trip: CreateSheetTrip): number | null {
-  if (!trip.start_date) return null
-  const end = new Date(trip.end_date || trip.start_date).getTime()
-  const start = new Date(trip.start_date).getTime()
-  return Math.ceil((end - start) / 86400000) + 1
+  if (!trip.start_date) return null;
+  const end = new Date(trip.end_date || trip.start_date).getTime();
+  const start = new Date(trip.start_date).getTime();
+  return Math.ceil((end - start) / 86400000) + 1;
 }
 
 /** shJCreate — journey name + multi-select trip cards with a bouncing check circle. */
 export default function MJourneyCreateSheet({
-  open, title, onTitleChange, trips, selectedTripIds, onToggleTrip, onCreate, onClose,
+  open,
+  title,
+  onTitleChange,
+  trips,
+  selectedTripIds,
+  onToggleTrip,
+  onCreate,
+  onClose,
 }: MJourneyCreateSheetProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   return (
-    <MSheet open={open} onClose={onClose} variant="card" material="opaque" ariaLabel={t('journey.frontpage.createJourney')}>
+    <MSheet
+      open={open}
+      onClose={onClose}
+      variant="card"
+      material="opaque"
+      ariaLabel={t('journey.frontpage.createJourney')}
+    >
       <div className="flex flex-none items-center border-b border-[color:var(--m-rowbr)] px-[18px] pb-[10px] pt-4">
         <div className="flex-1 text-[1.0625rem] font-bold">{t('journey.frontpage.createJourney')}</div>
         <MIconBtn variant="neutral" size={34} onClick={onClose} ariaLabel={t('common.cancel')}>
@@ -54,7 +67,7 @@ export default function MJourneyCreateSheet({
           <Feather size={16} strokeWidth={2} className="flex-none text-m-muted" />
           <input
             value={title}
-            onChange={e => onTitleChange(e.target.value)}
+            onChange={(e) => onTitleChange(e.target.value)}
             placeholder={t('journey.frontpage.namePlaceholder')}
             className="min-w-0 flex-1 bg-transparent text-[0.875rem] font-semibold text-m-ink outline-none placeholder:text-m-faint"
           />
@@ -64,11 +77,13 @@ export default function MJourneyCreateSheet({
           {t('journey.frontpage.selectTrips')}
         </div>
         {trips.length === 0 && (
-          <p className="py-3 text-center font-geist text-[0.71875rem] text-m-faint">{t('journey.trips.noTripsAvailable')}</p>
+          <p className="py-3 text-center font-geist text-[0.71875rem] text-m-faint">
+            {t('journey.trips.noTripsAvailable')}
+          </p>
         )}
-        {trips.map(trip => {
-          const selected = selectedTripIds.has(trip.id)
-          const days = tripDays(trip)
+        {trips.map((trip) => {
+          const selected = selectedTripIds.has(trip.id);
+          const days = tripDays(trip);
           return (
             <button
               key={trip.id}
@@ -84,7 +99,11 @@ export default function MJourneyCreateSheet({
                 className="relative h-[52px] w-[52px] flex-none overflow-hidden rounded-[13px] shadow-[inset_0_0_0_1px_rgba(255,255,255,.25)]"
                 style={
                   trip.cover_image
-                    ? { backgroundImage: `url('${trip.cover_image}')`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                    ? {
+                        backgroundImage: `url('${trip.cover_image}')`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }
                     : { background: pickGradient(trip.id) }
                 }
               >
@@ -115,7 +134,7 @@ export default function MJourneyCreateSheet({
                 <Check size={13} strokeWidth={3} />
               </span>
             </button>
-          )
+          );
         })}
       </div>
 
@@ -137,5 +156,5 @@ export default function MJourneyCreateSheet({
         </button>
       </div>
     </MSheet>
-  )
+  );
 }

@@ -1,17 +1,17 @@
-import { useRef, useState } from 'react'
-import { FileDown } from 'lucide-react'
-import MSheet from '../../../components/MSheet'
-import { Eyebrow, FIELD_AREA_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
-import { packingApi } from '../../../../api/client'
-import { useTripStore } from '../../../../store/tripStore'
-import { parseImportLines } from '../../../../components/Packing/packingListPanel.helpers'
-import { PACKING_IMPORT_ACCEPT } from '../../../../components/Packing/packingListPanel.constants'
-import type { TripPlanner } from '../MTripShell'
+import { FileDown } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { packingApi } from '../../../../api/client';
+import { PACKING_IMPORT_ACCEPT } from '../../../../components/Packing/packingListPanel.constants';
+import { parseImportLines } from '../../../../components/Packing/packingListPanel.helpers';
+import { useTripStore } from '../../../../store/tripStore';
+import MSheet from '../../../components/MSheet';
+import type { TripPlanner } from '../MTripShell';
+import { Eyebrow, FIELD_AREA_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome';
 
 export interface MPackingImportSheetProps {
-  planner: TripPlanner
-  open: boolean
-  onClose: () => void
+  planner: TripPlanner;
+  open: boolean;
+  onClose: () => void;
 }
 
 /**
@@ -22,37 +22,39 @@ export interface MPackingImportSheetProps {
  * surfaces stay consistent.
  */
 export default function MPackingImportSheet({ planner, open, onClose }: MPackingImportSheetProps) {
-  const { t, toast, tripId } = planner
-  const [text, setText] = useState('')
-  const [importing, setImporting] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const { t, toast, tripId } = planner;
+  const [text, setText] = useState('');
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const parsed = parseImportLines(text)
+  const parsed = parseImportLines(text);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
-    const reader = new FileReader()
-    reader.onload = () => { if (typeof reader.result === 'string') setText(reader.result) }
-    reader.readAsText(file)
-  }
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') setText(reader.result);
+    };
+    reader.readAsText(file);
+  };
 
   const handleImport = async () => {
-    if (parsed.length === 0 || importing) return
-    setImporting(true)
+    if (parsed.length === 0 || importing) return;
+    setImporting(true);
     try {
-      const result = await packingApi.bulkImport(tripId, parsed)
-      useTripStore.setState(s => ({ packingItems: [...s.packingItems, ...(result.items || [])] }))
-      toast.success(t('packing.importSuccess', { count: result.count }))
-      setText('')
-      onClose()
+      const result = await packingApi.bulkImport(tripId, parsed);
+      useTripStore.setState((s) => ({ packingItems: [...s.packingItems, ...(result.items || [])] }));
+      toast.success(t('packing.importSuccess', { count: result.count }));
+      setText('');
+      onClose();
     } catch {
-      toast.error(t('packing.importError'))
+      toast.error(t('packing.importError'));
     } finally {
-      setImporting(false)
+      setImporting(false);
     }
-  }
+  };
 
   return (
     <MSheet open={open} onClose={onClose} ariaLabel={t('packing.importTitle')}>
@@ -60,11 +62,13 @@ export default function MPackingImportSheet({ planner, open, onClose }: MPacking
 
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
         <p className="mb-1 font-geist text-[0.71875rem] leading-[1.5] text-m-muted">{t('packing.importHint')}</p>
-        <p className="mb-3 font-geist text-[0.71875rem] leading-[1.5] text-m-muted">{t('packing.importHintMarkdown')}</p>
+        <p className="mb-3 font-geist text-[0.71875rem] leading-[1.5] text-m-muted">
+          {t('packing.importHintMarkdown')}
+        </p>
 
         <textarea
           value={text}
-          onChange={e => setText(e.target.value)}
+          onChange={(e) => setText(e.target.value)}
           rows={7}
           placeholder={t('packing.importPlaceholder')}
           className={`${FIELD_AREA_CLS} font-geist`}
@@ -80,9 +84,7 @@ export default function MPackingImportSheet({ planner, open, onClose }: MPacking
           {t('packing.importCsv')}
         </button>
 
-        {parsed.length === 0 && text.trim() !== '' && (
-          <Eyebrow className="mt-3">{t('packing.importEmpty')}</Eyebrow>
-        )}
+        {parsed.length === 0 && text.trim() !== '' && <Eyebrow className="mt-3">{t('packing.importEmpty')}</Eyebrow>}
       </div>
 
       <FormSheetFooter
@@ -93,5 +95,5 @@ export default function MPackingImportSheet({ planner, open, onClose }: MPacking
         submitDisabled={parsed.length === 0 || importing}
       />
     </MSheet>
-  )
+  );
 }

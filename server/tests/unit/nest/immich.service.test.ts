@@ -7,13 +7,29 @@
  * HTTP and never reach most of the failure paths. These cases go at the service
  * directly with safeFetch stubbed, so every "upstream said no" branch is pinned.
  */
+import { db as testDb } from '../../../src/db/database';
+import type { AuditService } from '../../../src/nest/audit/audit.service';
+import { ImmichService } from '../../../src/nest/memories/immich.service';
+import type { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
+import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { createTestUsersRepo } from '../../helpers/test-uow';
+import { PROVIDER_SELECT_ALL_MAX_PAGES } from '@trek/shared';
+
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
-
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
-    return { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: () => null, isOwner: () => false, getPlaceWithTags: () => null };
+  return {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    canAccessTrip: () => null,
+    isOwner: () => false,
+    getPlaceWithTags: () => null,
+  };
 });
 
 vi.mock('../../../src/config', () => ({
@@ -40,16 +56,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   SsrfBlockedError: class extends Error {},
 }));
 
-import { db as testDb } from '../../../src/db/database';
-import { ImmichService } from '../../../src/nest/memories/immich.service';
-import type { AuditService } from '../../../src/nest/audit/audit.service';
-import type { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
-import fs from 'node:fs';
-import path from 'node:path';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
-import { createTestUsersRepo } from '../../helpers/test-uow';
-import { PROVIDER_SELECT_ALL_MAX_PAGES } from '@trek/shared';
-
 const audit = { writeAudit: vi.fn() };
 const access = { getAlbumIdFromLink: vi.fn() };
 const journeyFx = makeStorageFixture('journey/');
@@ -58,12 +64,22 @@ let svc: ImmichService;
 const USER = 1;
 
 function seedUser(id: number, url: string | null, key: string | null, autoUpload = 0, allowInsecureTls = 0): void {
-  testDb.prepare("INSERT OR REPLACE INTO users (id, username, email, password_hash, immich_url, immich_api_key, immich_auto_upload, immich_allow_insecure_tls) VALUES (?, ?, ?, 'x', ?, ?, ?, ?)")
+  testDb
+    .prepare(
+      "INSERT OR REPLACE INTO users (id, username, email, password_hash, immich_url, immich_api_key, immich_auto_upload, immich_allow_insecure_tls) VALUES (?, ?, ?, 'x', ?, ?, ?, ?)",
+    )
     .run(id, `u${id}`, `u${id}@example.test`, url, key, autoUpload, allowInsecureTls);
 }
 
 /** A Response-ish object with only what the service reads. */
-function upstream(opts: { ok?: boolean; status?: number; json?: unknown; url?: string; contentType?: string | null; body?: string }) {
+function upstream(opts: {
+  ok?: boolean;
+  status?: number;
+  json?: unknown;
+  url?: string;
+  contentType?: string | null;
+  body?: string;
+}) {
   return {
     ok: opts.ok ?? true,
     status: opts.status ?? 200,
@@ -76,7 +92,12 @@ function upstream(opts: { ok?: boolean; status?: number; json?: unknown; url?: s
 
 beforeAll(async () => {
   const users = await createTestUsersRepo(testDb);
-  svc = new ImmichService(audit as unknown as AuditService, access as unknown as MemoriesAccessService, journeyFx.storage, users);
+  svc = new ImmichService(
+    audit as unknown as AuditService,
+    access as unknown as MemoriesAccessService,
+    journeyFx.storage,
+    users,
+  );
 });
 
 beforeEach(() => {
@@ -111,7 +132,11 @@ describe('getImmichCredentials', () => {
   });
 
   it('IMMICH-005: returns the decrypted pair otherwise', async () => {
-    expect(await svc.getImmichCredentials(USER)).toEqual({ immich_url: 'https://immich.test', immich_api_key: 'key-1', allow_insecure_tls: false });
+    expect(await svc.getImmichCredentials(USER)).toEqual({
+      immich_url: 'https://immich.test',
+      immich_api_key: 'key-1',
+      allow_insecure_tls: false,
+    });
   });
 });
 
@@ -125,12 +150,22 @@ describe('isValidAssetId', () => {
 
 describe('getConnectionSettings / setImmichAutoUpload', () => {
   it('IMMICH-007: reports connected with the URL when configured', async () => {
-    expect(await svc.getConnectionSettings(USER)).toEqual({ immich_url: 'https://immich.test', connected: true, auto_upload: false, allow_insecure_tls: false });
+    expect(await svc.getConnectionSettings(USER)).toEqual({
+      immich_url: 'https://immich.test',
+      connected: true,
+      auto_upload: false,
+      allow_insecure_tls: false,
+    });
   });
 
   it('IMMICH-008: reports an empty URL and not connected when it is not', async () => {
     seedUser(4, null, null);
-    expect(await svc.getConnectionSettings(4)).toEqual({ immich_url: '', connected: false, auto_upload: false, allow_insecure_tls: false });
+    expect(await svc.getConnectionSettings(4)).toEqual({
+      immich_url: '',
+      connected: false,
+      auto_upload: false,
+      allow_insecure_tls: false,
+    });
   });
 
   it('IMMICH-009: surfaces the auto-upload flag both ways', async () => {
@@ -155,7 +190,11 @@ describe('saveImmichSettings', () => {
     const result = await svc.saveImmichSettings(USER, '  https://new.test  ', 'k2', null);
 
     expect(result).toEqual({ success: true });
-    expect(await svc.getImmichCredentials(USER)).toEqual({ immich_url: 'https://new.test', immich_api_key: 'k2', allow_insecure_tls: false });
+    expect(await svc.getImmichCredentials(USER)).toEqual({
+      immich_url: 'https://new.test',
+      immich_api_key: 'k2',
+      allow_insecure_tls: false,
+    });
   });
 
   it('IMMICH-012: warns and audits when the URL resolves to a private IP', async () => {
@@ -165,7 +204,9 @@ describe('saveImmichSettings', () => {
 
     expect(result.success).toBe(true);
     expect(result.warning).toContain('192.168.1.9');
-    expect(audit.writeAudit).toHaveBeenCalledWith(expect.objectContaining({ action: 'immich.private_ip_configured', ip: '5.6.7.8' }));
+    expect(audit.writeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'immich.private_ip_configured', ip: '5.6.7.8' }),
+    );
   });
 
   it('IMMICH-013: an empty URL clears the connection without an SSRF check', async () => {
@@ -240,7 +281,10 @@ describe('testConnection', () => {
 
   it('IMMICH-021: falls back to "Connection failed" for a non-Error rejection', async () => {
     safeFetch.mockRejectedValue('boom');
-    expect(await svc.testConnection('https://immich.test', 'k')).toEqual({ connected: false, error: 'Connection failed' });
+    expect(await svc.testConnection('https://immich.test', 'k')).toEqual({
+      connected: false,
+      error: 'Connection failed',
+    });
   });
 });
 
@@ -315,42 +359,82 @@ describe('searchPhotos', () => {
   });
 
   it('IMMICH-029: drops hidden assets an older server still returns (#1474)', async () => {
-    safeFetch.mockResolvedValue(upstream({
-      json: { assets: { items: [
-        { id: 'ok', fileCreatedAt: '2026-01-01' },
-        { id: 'hidden-flag', visibility: 'hidden' },
-        { id: 'legacy-flag', isVisible: false },
-      ] } },
-    }));
+    safeFetch.mockResolvedValue(
+      upstream({
+        json: {
+          assets: {
+            items: [
+              { id: 'ok', fileCreatedAt: '2026-01-01' },
+              { id: 'hidden-flag', visibility: 'hidden' },
+              { id: 'legacy-flag', isVisible: false },
+            ],
+          },
+        },
+      }),
+    );
 
     const result = await svc.searchPhotos(USER);
 
-    expect(result.assets!.map(a => a.id)).toEqual(['ok']);
+    expect(result.assets!.map((a) => a.id)).toEqual(['ok']);
   });
 
   it('IMMICH-030: maps exif fields, falls back to createdAt, and marks videos', async () => {
-    safeFetch.mockResolvedValue(upstream({
-      json: { assets: { items: [
-        { id: 'a', createdAt: '2026-02-02', type: 'VIDEO', exifInfo: { city: 'Kyoto', country: 'JP', latitude: 35.0, longitude: 135.7 } },
-        { id: 'b', fileCreatedAt: '2026-03-03', type: 'IMAGE', exifInfo: { latitude: 'nope' } },
-      ] } },
-    }));
+    safeFetch.mockResolvedValue(
+      upstream({
+        json: {
+          assets: {
+            items: [
+              {
+                id: 'a',
+                createdAt: '2026-02-02',
+                type: 'VIDEO',
+                exifInfo: { city: 'Kyoto', country: 'JP', latitude: 35.0, longitude: 135.7 },
+              },
+              { id: 'b', fileCreatedAt: '2026-03-03', type: 'IMAGE', exifInfo: { latitude: 'nope' } },
+            ],
+          },
+        },
+      }),
+    );
 
     // By id, not by position: the result is ordered newest first, so 'b' leads.
     const assets = (await svc.searchPhotos(USER)).assets!;
-    const a = assets.find(x => x.id === 'a');
-    const b = assets.find(x => x.id === 'b');
+    const a = assets.find((x) => x.id === 'a');
+    const b = assets.find((x) => x.id === 'b');
 
-    expect(a).toMatchObject({ takenAt: '2026-02-02', city: 'Kyoto', country: 'JP', lat: 35.0, lng: 135.7, mediaType: 'video' });
+    expect(a).toMatchObject({
+      takenAt: '2026-02-02',
+      city: 'Kyoto',
+      country: 'JP',
+      lat: 35.0,
+      lng: 135.7,
+      mediaType: 'video',
+    });
     // A non-numeric coordinate becomes null rather than reaching the client as a string.
-    expect(b).toMatchObject({ takenAt: '2026-03-03', city: null, country: null, lat: null, lng: null, mediaType: 'image' });
+    expect(b).toMatchObject({
+      takenAt: '2026-03-03',
+      city: null,
+      country: null,
+      lat: null,
+      lng: null,
+      mediaType: 'image',
+    });
   });
 
   it('IMMICH-031: hasMore counts the raw page, not the filtered one', async () => {
     // Otherwise a page that is entirely hidden assets would stop pagination dead.
-    safeFetch.mockResolvedValue(upstream({
-      json: { assets: { items: [{ id: 'x', visibility: 'hidden' }, { id: 'y', visibility: 'hidden' }] } },
-    }));
+    safeFetch.mockResolvedValue(
+      upstream({
+        json: {
+          assets: {
+            items: [
+              { id: 'x', visibility: 'hidden' },
+              { id: 'y', visibility: 'hidden' },
+            ],
+          },
+        },
+      }),
+    );
 
     const result = await svc.searchPhotos(USER, undefined, undefined, 1, 2);
 
@@ -392,35 +476,54 @@ describe('searchPhotos', () => {
   it('IMMICH-032d: keeps the photos whose OWN local capture date is the day asked for', async () => {
     // A Sydney reader asking for the 15th: the 07:32 shot is 20:32Z on the 14th
     // and the UTC window used to miss it, while the next morning leaked in.
-    safeFetch.mockResolvedValue(upstream({
-      json: { assets: { items: [
-        { id: 'morning', fileCreatedAt: '2026-03-14T20:32:00.000Z', localDateTime: '2026-03-15T07:32:00.000Z' },
-        { id: 'evening', fileCreatedAt: '2026-03-15T09:00:00.000Z', localDateTime: '2026-03-15T20:00:00.000Z' },
-        { id: 'next-morning', fileCreatedAt: '2026-03-15T21:00:00.000Z', localDateTime: '2026-03-16T08:00:00.000Z' },
-      ] } },
-    }));
+    safeFetch.mockResolvedValue(
+      upstream({
+        json: {
+          assets: {
+            items: [
+              { id: 'morning', fileCreatedAt: '2026-03-14T20:32:00.000Z', localDateTime: '2026-03-15T07:32:00.000Z' },
+              { id: 'evening', fileCreatedAt: '2026-03-15T09:00:00.000Z', localDateTime: '2026-03-15T20:00:00.000Z' },
+              {
+                id: 'next-morning',
+                fileCreatedAt: '2026-03-15T21:00:00.000Z',
+                localDateTime: '2026-03-16T08:00:00.000Z',
+              },
+            ],
+          },
+        },
+      }),
+    );
 
     const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15');
 
-    expect(result.assets!.map(a => a.id)).toEqual(['evening', 'morning']);
-    expect(result.assets![1]).toMatchObject({ takenAt: '2026-03-14T20:32:00.000Z', localTakenAt: '2026-03-15T07:32:00.000Z' });
+    expect(result.assets!.map((a) => a.id)).toEqual(['evening', 'morning']);
+    expect(result.assets![1]).toMatchObject({
+      takenAt: '2026-03-14T20:32:00.000Z',
+      localTakenAt: '2026-03-15T07:32:00.000Z',
+    });
   });
 
   it('IMMICH-049: a server without localDateTime answers exactly as it did before', async () => {
     // An old or forked Immich: the fallback is the capture instant, so the day
     // is the UTC day the window has always searched, and the padding buys the
     // neighbouring days nothing.
-    safeFetch.mockResolvedValue(upstream({
-      json: { assets: { items: [
-        { id: 'day-before', fileCreatedAt: '2026-03-14T23:00:00.000Z' },
-        { id: 'in-day', fileCreatedAt: '2026-03-15T09:00:00.000Z' },
-        { id: 'day-after', fileCreatedAt: '2026-03-16T01:00:00.000Z' },
-      ] } },
-    }));
+    safeFetch.mockResolvedValue(
+      upstream({
+        json: {
+          assets: {
+            items: [
+              { id: 'day-before', fileCreatedAt: '2026-03-14T23:00:00.000Z' },
+              { id: 'in-day', fileCreatedAt: '2026-03-15T09:00:00.000Z' },
+              { id: 'day-after', fileCreatedAt: '2026-03-16T01:00:00.000Z' },
+            ],
+          },
+        },
+      }),
+    );
 
     const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15');
 
-    expect(result.assets!.map(a => a.id)).toEqual(['in-day']);
+    expect(result.assets!.map((a) => a.id)).toEqual(['in-day']);
     expect(result.assets![0].localTakenAt).toBeNull();
   });
 
@@ -435,7 +538,7 @@ describe('searchPhotos', () => {
 
     const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 1, 2);
 
-    expect(result.assets!.map(a => a.id)).toEqual(['day-1', 'day-2']);
+    expect(result.assets!.map((a) => a.id)).toEqual(['day-1', 'day-2']);
     expect(result.hasMore).toBe(true);
     expect(safeFetch).toHaveBeenCalledTimes(2);
     expect(JSON.parse((safeFetch.mock.calls[1][1] as { body: string }).body).page).toBe(2);
@@ -455,8 +558,8 @@ describe('searchPhotos', () => {
     const first = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 1, 2);
     const second = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 2, 2);
 
-    expect(first.assets!.map(a => a.id)).toEqual(['day-1', 'day-2']);
-    expect(second.assets!.map(a => a.id)).toEqual(['day-3', 'day-4']);
+    expect(first.assets!.map((a) => a.id)).toEqual(['day-1', 'day-2']);
+    expect(second.assets!.map((a) => a.id)).toEqual(['day-3', 'day-4']);
   });
 
   it('IMMICH-050c: gives up after the page budget instead of scanning a library forever', async () => {
@@ -479,15 +582,29 @@ describe('searchPhotos', () => {
     // with hasMore false: a trip stopped at 1,000 photos without a word (#1587).
     safeFetch.mockImplementation(async (_url: string, init: { body: string }) => {
       const rawPage = JSON.parse(init.body).page as number;
-      return upstream({ json: { assets: { items: [
-        { id: `d-${rawPage}-1`, fileCreatedAt: '2026-03-15T09:00:00.000Z', localDateTime: '2026-03-15T20:00:00.000Z' },
-        { id: `d-${rawPage}-2`, fileCreatedAt: '2026-03-15T08:00:00.000Z', localDateTime: '2026-03-15T19:00:00.000Z' },
-      ] } } });
+      return upstream({
+        json: {
+          assets: {
+            items: [
+              {
+                id: `d-${rawPage}-1`,
+                fileCreatedAt: '2026-03-15T09:00:00.000Z',
+                localDateTime: '2026-03-15T20:00:00.000Z',
+              },
+              {
+                id: `d-${rawPage}-2`,
+                fileCreatedAt: '2026-03-15T08:00:00.000Z',
+                localDateTime: '2026-03-15T19:00:00.000Z',
+              },
+            ],
+          },
+        },
+      });
     });
 
     const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 25, 2);
 
-    expect(result.assets!.map(a => a.id)).toEqual(['d-25-1', 'd-25-2']);
+    expect(result.assets!.map((a) => a.id)).toEqual(['d-25-1', 'd-25-2']);
     expect(result.hasMore).toBe(true);
     expect(safeFetch).toHaveBeenCalledTimes(25);
   });
@@ -509,10 +626,24 @@ describe('searchPhotos', () => {
     // have read a million raw pages here before answering.
     safeFetch.mockImplementation(async (_url: string, init: { body: string }) => {
       const rawPage = JSON.parse(init.body).page as number;
-      return upstream({ json: { assets: { items: [
-        { id: `h-${rawPage}-1`, fileCreatedAt: '2026-03-15T09:00:00.000Z', localDateTime: '2026-03-15T20:00:00.000Z' },
-        { id: `h-${rawPage}-2`, fileCreatedAt: '2026-03-15T08:00:00.000Z', localDateTime: '2026-03-15T19:00:00.000Z' },
-      ] } } });
+      return upstream({
+        json: {
+          assets: {
+            items: [
+              {
+                id: `h-${rawPage}-1`,
+                fileCreatedAt: '2026-03-15T09:00:00.000Z',
+                localDateTime: '2026-03-15T20:00:00.000Z',
+              },
+              {
+                id: `h-${rawPage}-2`,
+                fileCreatedAt: '2026-03-15T08:00:00.000Z',
+                localDateTime: '2026-03-15T19:00:00.000Z',
+              },
+            ],
+          },
+        },
+      });
     });
 
     const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', 1_000_000, 2);
@@ -545,15 +676,23 @@ describe('searchPhotos', () => {
     // day: page 251 is photos 50,001 to 50,200, read off raw page 251.
     safeFetch.mockImplementation(async (_url: string, init: { body: string }) => {
       const { page, size } = JSON.parse(init.body) as { page: number; size: number };
-      return upstream({ json: { assets: { items: Array.from({ length: size }, (_, i) => ({
-        id: `p-${page}-${i}`, fileCreatedAt: '2026-03-15T09:00:00.000Z', localDateTime: '2026-03-15T20:00:00.000Z',
-      })) } } });
+      return upstream({
+        json: {
+          assets: {
+            items: Array.from({ length: size }, (_, i) => ({
+              id: `p-${page}-${i}`,
+              fileCreatedAt: '2026-03-15T09:00:00.000Z',
+              localDateTime: '2026-03-15T20:00:00.000Z',
+            })),
+          },
+        },
+      });
     });
 
     const result = await svc.searchPhotos(USER, '2026-03-15', '2026-03-15', PROVIDER_SELECT_ALL_MAX_PAGES + 1, 200);
 
     expect(result.assets).toHaveLength(200);
-    expect(result.assets!.every(a => a.id.startsWith('p-251-'))).toBe(true);
+    expect(result.assets!.every((a) => a.id.startsWith('p-251-'))).toBe(true);
     expect(result.hasMore).toBe(true);
     expect(safeFetch).toHaveBeenCalledTimes(251);
   });
@@ -561,9 +700,18 @@ describe('searchPhotos', () => {
   it('IMMICH-050d: an unfiltered browse still costs one round trip, at the page it was asked for', async () => {
     // Nothing narrows those pages, so a raw page and an answered page are the
     // same page and the scan must not start over at page 1.
-    safeFetch.mockResolvedValue(upstream({
-      json: { assets: { items: [{ id: 'x', visibility: 'hidden' }, { id: 'y', visibility: 'hidden' }] } },
-    }));
+    safeFetch.mockResolvedValue(
+      upstream({
+        json: {
+          assets: {
+            items: [
+              { id: 'x', visibility: 'hidden' },
+              { id: 'y', visibility: 'hidden' },
+            ],
+          },
+        },
+      }),
+    );
 
     const result = await svc.searchPhotos(USER, undefined, undefined, 3, 2);
 
@@ -577,17 +725,23 @@ describe('searchPhotos', () => {
   it('IMMICH-032b: orders each page itself, so an unsorted page still lands chronological within itself', async () => {
     // Older builds drop the unknown property silently (whitelist: true without
     // forbidNonWhitelisted), which is exactly why the request cannot be trusted.
-    safeFetch.mockResolvedValue(upstream({
-      json: { assets: { items: [
-        { id: 'older', fileCreatedAt: '2026-03-01T09:00:00Z' },
-        { id: 'newest', fileCreatedAt: '2026-03-31T09:00:00Z' },
-        { id: 'middle', fileCreatedAt: '2026-03-15T09:00:00Z' },
-      ] } },
-    }));
+    safeFetch.mockResolvedValue(
+      upstream({
+        json: {
+          assets: {
+            items: [
+              { id: 'older', fileCreatedAt: '2026-03-01T09:00:00Z' },
+              { id: 'newest', fileCreatedAt: '2026-03-31T09:00:00Z' },
+              { id: 'middle', fileCreatedAt: '2026-03-15T09:00:00Z' },
+            ],
+          },
+        },
+      }),
+    );
 
     const result = await svc.searchPhotos(USER);
 
-    expect(result.assets!.map(a => a.id)).toEqual(['newest', 'middle', 'older']);
+    expect(result.assets!.map((a) => a.id)).toEqual(['newest', 'middle', 'older']);
   });
 });
 
@@ -597,7 +751,7 @@ describe('getAssetInfo', () => {
     expect(await svc.getAssetInfo(USER, 'a1', 8)).toEqual({ error: 'Not found', status: 404 });
   });
 
-  it('IMMICH-034: reads the OWNER\'s credentials, not the requester\'s', async () => {
+  it("IMMICH-034: reads the OWNER's credentials, not the requester's", async () => {
     seedUser(9, 'https://owner.test', 'owner-key');
     safeFetch.mockResolvedValue(upstream({ json: { id: 'a1' } }));
 
@@ -616,11 +770,24 @@ describe('getAssetInfo', () => {
   });
 
   it('IMMICH-036: composes camera/focal/aperture only when both halves are present', async () => {
-    safeFetch.mockResolvedValueOnce(upstream({
-      json: { id: 'a1', fileCreatedAt: 'x', originalFileName: 'IMG.jpg', exifInfo: { make: 'Fuji', model: 'X100V', focalLength: 23, fNumber: 2, iso: 200 } },
-    }));
+    safeFetch.mockResolvedValueOnce(
+      upstream({
+        json: {
+          id: 'a1',
+          fileCreatedAt: 'x',
+          originalFileName: 'IMG.jpg',
+          exifInfo: { make: 'Fuji', model: 'X100V', focalLength: 23, fNumber: 2, iso: 200 },
+        },
+      }),
+    );
     const full = (await svc.getAssetInfo(USER, 'a1')).data;
-    expect(full).toMatchObject({ camera: 'Fuji X100V', focalLength: '23mm', aperture: 'f/2', iso: 200, fileName: 'IMG.jpg' });
+    expect(full).toMatchObject({
+      camera: 'Fuji X100V',
+      focalLength: '23mm',
+      aperture: 'f/2',
+      iso: 200,
+      fileName: 'IMG.jpg',
+    });
 
     safeFetch.mockResolvedValueOnce(upstream({ json: { id: 'a2', exifInfo: { make: 'Fuji' } } }));
     const partial = (await svc.getAssetInfo(USER, 'a2')).data;
@@ -655,16 +822,26 @@ describe('getAlbumPhotos', () => {
   it('IMMICH-037d: orders an album newest first and keeps its coordinates and media type', async () => {
     // The v2 branch reads /api/albums/{id} directly and never passes a search,
     // so this ordering is the only one an album on that version ever gets.
-    safeFetch.mockResolvedValue(upstream({
-      json: { assets: [
-        { id: 'older', fileCreatedAt: '2026-03-01T09:00:00Z', localDateTime: '2026-03-01T18:00:00.000Z', type: 'IMAGE', exifInfo: { latitude: 35.0, longitude: 135.7 } },
-        { id: 'clip', fileCreatedAt: '2026-03-31T09:00:00Z', type: 'VIDEO' },
-      ] },
-    }));
+    safeFetch.mockResolvedValue(
+      upstream({
+        json: {
+          assets: [
+            {
+              id: 'older',
+              fileCreatedAt: '2026-03-01T09:00:00Z',
+              localDateTime: '2026-03-01T18:00:00.000Z',
+              type: 'IMAGE',
+              exifInfo: { latitude: 35.0, longitude: 135.7 },
+            },
+            { id: 'clip', fileCreatedAt: '2026-03-31T09:00:00Z', type: 'VIDEO' },
+          ],
+        },
+      }),
+    );
 
     const assets = (await svc.getAlbumPhotos(USER, 'alb-1')).assets!;
 
-    expect(assets.map(a => a.id)).toEqual(['clip', 'older']);
+    expect(assets.map((a) => a.id)).toEqual(['clip', 'older']);
     expect(assets[0].mediaType).toBe('video');
     expect(assets[1]).toMatchObject({ lat: 35.0, lng: 135.7 });
     // The album path carries the same local capture stamp the search path does,
@@ -690,7 +867,7 @@ describe('fetchImmichThumbnailBytes', () => {
 
   it('IMMICH-040: defaults the content type when the server omits it', async () => {
     safeFetch.mockResolvedValue(upstream({ contentType: null, body: 'thumb' }));
-    const result = await svc.fetchImmichThumbnailBytes(USER, 'a1') as { contentType: string };
+    const result = (await svc.fetchImmichThumbnailBytes(USER, 'a1')) as { contentType: string };
     expect(result.contentType).toBe('image/jpeg');
   });
 
@@ -764,15 +941,22 @@ describe('collectAlbumSelection', () => {
 
   it('IMMICH-044: returns only visible image assets, with the raw total', async () => {
     access.getAlbumIdFromLink.mockReturnValue({ success: true, data: 'album-1' });
-    safeFetch.mockResolvedValue(upstream({
-      json: { assets: [
-        { id: 'img', type: 'IMAGE' },
-        { id: 'vid', type: 'VIDEO' },
-        { id: 'hidden', type: 'IMAGE', visibility: 'hidden' },
-      ] },
-    }));
+    safeFetch.mockResolvedValue(
+      upstream({
+        json: {
+          assets: [
+            { id: 'img', type: 'IMAGE' },
+            { id: 'vid', type: 'VIDEO' },
+            { id: 'hidden', type: 'IMAGE', visibility: 'hidden' },
+          ],
+        },
+      }),
+    );
 
-    const result = await svc.collectAlbumSelection('1', 'l1', USER) as { selection: { asset_ids: string[] }; total: number };
+    const result = (await svc.collectAlbumSelection('1', 'l1', USER)) as {
+      selection: { asset_ids: string[] };
+      total: number;
+    };
 
     expect(result.selection.asset_ids).toEqual(['img']);
     expect(result.total).toBe(1);
@@ -816,7 +1000,10 @@ describe('uploadToImmich', () => {
 
     expect(await svc.uploadToImmich(USER, 'journey/up.jpg', 'up.jpg')).toBe('immich-42');
 
-    const [url, init] = safeFetch.mock.calls[0] as [string, { method: string; body: Buffer; headers: Record<string, string> }];
+    const [url, init] = safeFetch.mock.calls[0] as [
+      string,
+      { method: string; body: Buffer; headers: Record<string, string> },
+    ];
     expect(url).toBe('https://immich.test/api/assets');
     expect(init.method).toBe('POST');
     expect(init.headers['x-api-key']).toBe('key-1');
@@ -958,7 +1145,8 @@ describe('self-signed certificates', () => {
 
     await svc.saveImmichSettings(USER, 'https://photos.example.com', 'key-2', null);
     expect(testDb.prepare('SELECT immich_url, immich_allow_insecure_tls FROM users WHERE id = ?').get(USER)).toEqual({
-      immich_url: 'https://photos.example.com', immich_allow_insecure_tls: 0,
+      immich_url: 'https://photos.example.com',
+      immich_allow_insecure_tls: 0,
     });
 
     // Sent along with the new URL, it holds for that server.
@@ -982,7 +1170,7 @@ describe('self-signed certificates', () => {
     await svc.testConnection('https://immich.test', 'k', false);
     await svc.testConnection('https://immich.test', 'k');
 
-    expect(safeFetch.mock.calls.map(call => call[2])).toEqual([LAX, STRICT, STRICT]);
+    expect(safeFetch.mock.calls.map((call) => call[2])).toEqual([LAX, STRICT, STRICT]);
   });
 
   it('IMMICH-TLS-008: a refused certificate names itself instead of a bare "fetch failed"', async () => {
@@ -996,7 +1184,10 @@ describe('self-signed certificates', () => {
     });
 
     safeFetch.mockRejectedValueOnce(refused());
-    expect(await svc.getConnectionStatus(USER)).toEqual({ connected: false, error: 'fetch failed (self-signed certificate)' });
+    expect(await svc.getConnectionStatus(USER)).toEqual({
+      connected: false,
+      error: 'fetch failed (self-signed certificate)',
+    });
   });
 
   it('IMMICH-TLS-009: the upload mirror gives up on a server that never answers', async () => {

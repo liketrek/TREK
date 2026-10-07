@@ -10,16 +10,17 @@
  * `createTestOrm()`, the same harness every other converted repository test
  * uses.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { TripMembers } from '../../../../src/db/entities/TripMembers.entity';
+import { Trips } from '../../../../src/db/entities/Trips.entity';
+import type { TripMembersRepository } from '../../../../src/db/repositories/TripMembers.repository';
+import type { TripsRepository } from '../../../../src/db/repositories/Trips.repository';
+import { TripMembershipService } from '../../../../src/nest/trip-membership/trip-membership.service';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import { createUser, createTrip } from '../../../helpers/factories';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { createUser, createTrip } from '../../../helpers/factories';
-import { Trips } from '../../../../src/db/entities/Trips.entity';
-import type { TripsRepository } from '../../../../src/db/repositories/Trips.repository';
-import { TripMembers } from '../../../../src/db/entities/TripMembers.entity';
-import type { TripMembersRepository } from '../../../../src/db/repositories/TripMembers.repository';
-import { TripMembershipService } from '../../../../src/nest/trip-membership/trip-membership.service';
+
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -33,8 +34,14 @@ beforeAll(async () => {
   tripMembers = t.repo(TripMembers);
   svc = new TripMembershipService(trips, tripMembers);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function memberRow(tripId: number, userId: number) {
   return testDb.prepare('SELECT * FROM trip_members WHERE trip_id = ? AND user_id = ?').get(tripId, userId);
@@ -67,7 +74,9 @@ describe('joinTripAsMember', () => {
 
     expect((await svc.joinTripAsMember(trip.id, joiner.id, owner.id)).joined).toBe(true);
     expect((await svc.joinTripAsMember(trip.id, joiner.id, owner.id)).joined).toBe(false);
-    const count = testDb.prepare('SELECT COUNT(*) as n FROM trip_members WHERE trip_id = ? AND user_id = ?').get(trip.id, joiner.id) as { n: number };
+    const count = testDb
+      .prepare('SELECT COUNT(*) as n FROM trip_members WHERE trip_id = ? AND user_id = ?')
+      .get(trip.id, joiner.id) as { n: number };
     expect(count.n).toBe(1);
   });
 
@@ -104,7 +113,9 @@ describe('joinTripAsMember', () => {
     // precisely the bug this test exists to catch (order-insensitive:
     // `Promise.allSettled` does not guarantee which of the two promises is
     // the winner).
-    const fulfilled = results.filter((r): r is PromiseFulfilledResult<{ joined: boolean; tripId: number }> => r.status === 'fulfilled');
+    const fulfilled = results.filter(
+      (r): r is PromiseFulfilledResult<{ joined: boolean; tripId: number }> => r.status === 'fulfilled',
+    );
     const rejected = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
     expect(fulfilled.length).toBe(1);
     expect(fulfilled[0].value).toEqual({ joined: true, tripId: trip.id });
@@ -113,7 +124,9 @@ describe('joinTripAsMember', () => {
     // Exactly one membership row exists afterwards either way — the UNIQUE
     // constraint on (trip_id, user_id) is the actual safety net today, not
     // application-level locking.
-    const count = testDb.prepare('SELECT COUNT(*) as n FROM trip_members WHERE trip_id = ? AND user_id = ?').get(trip.id, joiner.id) as { n: number };
+    const count = testDb
+      .prepare('SELECT COUNT(*) as n FROM trip_members WHERE trip_id = ? AND user_id = ?')
+      .get(trip.id, joiner.id) as { n: number };
     expect(count.n).toBe(1);
   });
 });
@@ -133,8 +146,12 @@ describe('leaf membership reads', () => {
     const { user: m1 } = createUser(testDb);
     const { user: m2 } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
-    testDb.prepare("INSERT INTO trip_members (trip_id, user_id, added_at) VALUES (?, ?, '2026-01-02')").run(trip.id, m2.id);
-    testDb.prepare("INSERT INTO trip_members (trip_id, user_id, added_at) VALUES (?, ?, '2026-01-01')").run(trip.id, m1.id);
+    testDb
+      .prepare("INSERT INTO trip_members (trip_id, user_id, added_at) VALUES (?, ?, '2026-01-02')")
+      .run(trip.id, m2.id);
+    testDb
+      .prepare("INSERT INTO trip_members (trip_id, user_id, added_at) VALUES (?, ?, '2026-01-01')")
+      .run(trip.id, m1.id);
     expect(await svc.listMemberUserIds(trip.id)).toEqual([m1.id, m2.id]);
     expect(await svc.listMemberUserIds(999999)).toEqual([]);
   });

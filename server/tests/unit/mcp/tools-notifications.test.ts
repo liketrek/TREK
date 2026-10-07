@@ -9,9 +9,12 @@
  * harness here keeps withTools on (the resource is NOT registered by the
  * legacy registerResources fan-out anymore).
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
+import { createUser } from '../../helpers/factories';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
 
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
@@ -24,10 +27,6 @@ vi.mock('../../../src/config', () => ({
 }));
 
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
-
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 
 beforeEach(() => {
   resetTestDb(testDb);
@@ -43,30 +42,40 @@ afterAll(() => {
 // ---------------------------------------------------------------------------
 
 function createNotification(db: any, userId: number, overrides: any = {}) {
-  const r = db.prepare(
-    `INSERT INTO notifications (type, scope, target, recipient_id, title_key, text_key, is_read)
-     VALUES (?, ?, ?, ?, ?, ?, 0)`
-  ).run(
-    overrides.type ?? 'simple',
-    overrides.scope ?? 'user',
-    overrides.target ?? 0,
-    userId,
-    overrides.title_key ?? 'notification.test.title',
-    overrides.text_key ?? 'notification.test.body'
-  );
+  const r = db
+    .prepare(
+      `INSERT INTO notifications (type, scope, target, recipient_id, title_key, text_key, is_read)
+     VALUES (?, ?, ?, ?, ?, ?, 0)`,
+    )
+    .run(
+      overrides.type ?? 'simple',
+      overrides.scope ?? 'user',
+      overrides.target ?? 0,
+      userId,
+      overrides.title_key ?? 'notification.test.title',
+      overrides.text_key ?? 'notification.test.body',
+    );
   return db.prepare('SELECT * FROM notifications WHERE id = ?').get(r.lastInsertRowid);
 }
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 async function withResourceHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   // The in-app resource attaches via the nest-mcp registry (withTools), not
   // the legacy registerResources fan-out.
   const h = await createMcpHarness({ userId, withTools: true, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -225,7 +234,11 @@ describe('Tool: mark_all_notifications_read', () => {
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
       expect(data.count).toBe(3);
-      const unread = (testDb.prepare('SELECT COUNT(*) as c FROM notifications WHERE recipient_id = ? AND is_read = 0').get(user.id) as any).c;
+      const unread = (
+        testDb
+          .prepare('SELECT COUNT(*) as c FROM notifications WHERE recipient_id = ? AND is_read = 0')
+          .get(user.id) as any
+      ).c;
       expect(unread).toBe(0);
     });
   });

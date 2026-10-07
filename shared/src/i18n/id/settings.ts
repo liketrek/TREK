@@ -25,7 +25,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Pilih template...',
   'settings.mapDefaultHint': 'Kosongkan untuk OpenStreetMap (default)',
   'settings.routingBase': 'Mesin rute sendiri',
-  'settings.routingBaseHint': 'Instans OSRM milik sendiri. Kosong berarti server publik, yang mengizinkan sekitar satu permintaan per detik — cukup untuk sehari, mepet untuk perjalanan darat. Berlaku setelah server dimulai ulang.',
+  'settings.routingBaseHint':
+    'Instans OSRM milik sendiri. Kosong berarti server publik, yang mengizinkan sekitar satu permintaan per detik — cukup untuk sehari, mepet untuk perjalanan darat. Berlaku setelah server dimulai ulang.',
   'settings.valhallaBase': 'Instans Valhalla sendiri',
   'settings.valhallaBaseHint':
     'Secara bawaan, TREK menggunakan Valhalla publik FOSSGIS untuk menghindari tol, jalan bebas hambatan, dan feri. Masukkan URL Valhalla Anda sendiri di sini untuk menggunakannya sebagai pengganti. Jika hanya instans perutean sendiri yang dikonfigurasi, Valhalla publik tidak digunakan. Setelah memasukkan URL sendiri, mulai ulang server dan muat ulang halaman.',
@@ -80,7 +81,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'Hari pertama dalam seminggu di setiap pemilih tanggal. Vacay punya pengaturannya sendiri.',
   'settings.preferredNavApp': 'Buka tempat di',
   'settings.preferredNavAppAsk': 'Tanya setiap kali',
-  'settings.preferredNavAppHint': 'Jika aplikasi dipilih, tombol navigasi langsung membukanya alih-alih menawarkan semua aplikasi peta.',
+  'settings.preferredNavAppHint':
+    'Jika aplikasi dipilih, tombol navigasi langsung membukanya alih-alih menawarkan semua aplikasi peta.',
   'settings.blurBookingCodes': 'Sembunyikan Kode Pemesanan',
   'settings.aiAlwaysRetry': 'Always retry booking imports with AI',
   'settings.aiAlwaysRetryHint': 'When a file cannot be read by the standard parser, automatically retry it with AI.',
@@ -351,7 +353,8 @@ const settings: TranslationStrings = {
   'settings.currencyTrip': 'Mata uang perjalanan',
   'settings.placeLanguage': 'Nama tempat',
   'settings.placeLanguageApp': 'Sama dengan aplikasi',
-  'settings.placeLanguageHint': 'Bahasa yang dipakai untuk pencarian tempat, saran, dan alamat. Jika suatu tempat tidak punya nama dalam bahasa itu, nama lokalnya yang ditampilkan.',
+  'settings.placeLanguageHint':
+    'Bahasa yang dipakai untuk pencarian tempat, saran, dan alamat. Jika suatu tempat tidak punya nama dalam bahasa itu, nama lokalnya yang ditampilkan.',
   'settings.passkey.title': 'Passkey',
   'settings.passkey.description':
     'Masuk lebih cepat dan tahan terhadap phishing dengan passkey — sidik jari, wajah, PIN, atau kunci keamanan fisik kamu. Kata sandimu tetap tersedia sebagai cadangan.',
@@ -499,8 +502,10 @@ const settings: TranslationStrings = {
   'settings.general.startup': 'Mulai',
   'settings.dayDateFirst': 'Tanggal di depan pada judul hari',
   'settings.compactUnplanned': 'Penanda ringkas untuk tempat yang belum direncanakan',
-  'settings.compactUnplannedHint': 'Tempat yang belum dimasukkan ke hari mana pun tampil sebagai penanda kecil tanpa foto, sehingga perhentian yang direncanakan lebih menonjol.',
-  'settings.dayDateFirstHint': 'Awali setiap hari dengan tanggal kalendernya dan tampilkan "Hari 1" atau judul hari itu di sebelahnya.',
+  'settings.compactUnplannedHint':
+    'Tempat yang belum dimasukkan ke hari mana pun tampil sebagai penanda kecil tanpa foto, sehingga perhentian yang direncanakan lebih menonjol.',
+  'settings.dayDateFirstHint':
+    'Awali setiap hari dengan tanggal kalendernya dan tampilkan "Hari 1" atau judul hari itu di sebelahnya.',
   'settings.startPage': 'Halaman awal',
   'settings.startPageDashboard': 'Dasbor',
   'settings.startPageActiveTrip': 'Perjalanan aktif',
@@ -543,7 +548,8 @@ const settings: TranslationStrings = {
   'settings.offline.notice.offline': 'Tidak ada koneksi. Hubungkan untuk menyimpan perjalanan secara offline.',
   'settings.offline.notice.signedOut': 'Sesimu telah berakhir. Masuk lagi untuk menyinkronkan.',
   'settings.offline.notice.failed': 'Unduhan tidak dapat diselesaikan. Periksa koneksimu dan coba lagi.',
-  'settings.offline.notice.loadFailed': 'Tidak dapat membaca penyimpanan offline perangkat ini. Membersihkan cache biasanya memperbaikinya.',
+  'settings.offline.notice.loadFailed':
+    'Tidak dapat membaca penyimpanan offline perangkat ini. Membersihkan cache biasanya memperbaikinya.',
   'settings.offline.clear': 'Hapus cache',
   'settings.offline.clearConfirm':
     'Hapus semua data perjalanan offline? Kamu bisa menyinkronkan ulang kapan saja saat online.',
@@ -602,13 +608,15 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Daftar keinginan',
   'settings.apiScopes.stats': 'Total',
   'settings.apiKeys.title': 'Kunci API',
-  'settings.apiKeys.description': 'Kunci untuk API publik, agar perangkat lunak lain dapat membaca perjalananmu. Hanya baca: kunci tidak dapat mengubah atau menghapus apa pun.',
+  'settings.apiKeys.description':
+    'Kunci untuk API publik, agar perangkat lunak lain dapat membaca perjalananmu. Hanya baca: kunci tidak dapat mengubah atau menghapus apa pun.',
   'settings.apiKeys.create': 'Buat kunci',
   'settings.apiKeys.empty': 'Belum ada kunci. Buat satu untuk menghubungkan perangkat lunak lain.',
   'settings.apiKeys.createdAt': 'dibuat',
   'settings.apiKeys.usedAt': 'terakhir dipakai',
   'settings.apiKeys.deleteTitle': 'Hapus kunci',
-  'settings.apiKeys.deleteMessage': 'Semua yang memakai kunci ini langsung berhenti bekerja. Tindakan ini tidak bisa dibatalkan.',
+  'settings.apiKeys.deleteMessage':
+    'Semua yang memakai kunci ini langsung berhenti bekerja. Tindakan ini tidak bisa dibatalkan.',
   'settings.apiKeys.deleted': 'Kunci dihapus',
   'settings.apiKeys.deleteFailed': 'Kunci tidak dapat dihapus',
   'settings.apiKeys.createFailed': 'Kunci tidak dapat dibuat',
@@ -617,7 +625,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.endpoint': 'Endpoint',
   'settings.apiKeys.neverUsed': 'belum pernah dipakai',
   'settings.apiKeys.loadFailed': 'Kunci tidak dapat dimuat. Muat ulang halaman untuk mencoba lagi.',
-  'settings.apiKeys.limitReached': 'Kamu punya {max} kunci, batas maksimum per akun. Hapus kunci yang tidak lagi dipakai untuk membuat yang baru.',
+  'settings.apiKeys.limitReached':
+    'Kamu punya {max} kunci, batas maksimum per akun. Hapus kunci yang tidak lagi dipakai untuk membuat yang baru.',
   'settings.apiKeys.copyFailed': 'Gagal menyalin. Pilih teksnya dan salin secara manual.',
   'settings.apiKeys.modal.createTitle': 'Buat kunci API',
   'settings.apiKeys.modal.name': 'Nama',
@@ -626,7 +635,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.creating': 'Membuat...',
   'settings.apiKeys.modal.create': 'Buat',
   'settings.apiKeys.modal.createdTitle': 'Kunci API dibuat',
-  'settings.apiKeys.modal.createdWarning': 'Salin kunci sekarang. Kunci hanya ditampilkan sekali dan tidak bisa diambil lagi.',
+  'settings.apiKeys.modal.createdWarning':
+    'Salin kunci sekarang. Kunci hanya ditampilkan sekali dan tidak bisa diambil lagi.',
   'settings.apiKeys.modal.done': 'Selesai',
 };
 

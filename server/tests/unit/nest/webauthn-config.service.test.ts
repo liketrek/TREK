@@ -1,3 +1,8 @@
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import { WebauthnConfigService, originWithinRpScope } from '../../../src/nest/auth/webauthn-config.service';
+
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 /**
  * webauthn-config.service.test.ts
  *
@@ -20,10 +25,6 @@ vi.mock('../../../src/app-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../src/app-config')>();
   return { ...actual, getAppUrl: () => appUrlRef.value };
 });
-
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import { WebauthnConfigService, originWithinRpScope } from '../../../src/nest/auth/webauthn-config.service';
 
 // Injected instead of vi.mocking src/db/database (Plan 3b Task 1: the service
 // now takes an AppSettingsRepository, not DatabaseService): the service reads

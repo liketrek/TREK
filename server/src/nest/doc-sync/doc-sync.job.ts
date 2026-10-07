@@ -1,13 +1,10 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { logError, logInfo } from '../audit/audit-log.logger';
 import { ADDON_IDS } from '../../addons';
-import { AddonsService } from '../addons/addons.service';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { AddonsService } from '../addons/addons.service';
+import { logError, logInfo } from '../audit/audit-log.logger';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 import { DocSyncConfigService } from './doc-sync-config.service';
-import { DocSyncService } from './doc-sync.service';
 import {
   DEFAULT_POLL_INTERVAL_SECONDS,
   MAX_POLL_INTERVAL_SECONDS,
@@ -15,6 +12,9 @@ import {
   SETTING_POLL_INTERVAL,
   SETTING_SYNC_ENABLED,
 } from './doc-sync.constants';
+import { DocSyncService } from './doc-sync.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
  * The poll that carries document sync.

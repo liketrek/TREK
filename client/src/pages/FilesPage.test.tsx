@@ -1,11 +1,11 @@
-import React from 'react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor, act } from '../../tests/helpers/render';
-import { Route, Routes } from 'react-router';
 import { http, HttpResponse } from 'msw';
+import React from 'react';
+import { Route, Routes } from 'react-router';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildTrip, buildTripFile, buildUser } from '../../tests/helpers/factories';
 import { server } from '../../tests/helpers/msw/server';
+import { act, render, screen, waitFor } from '../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
-import { buildUser, buildTrip, buildTripFile } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { useTripStore } from '../store/tripStore';
 import FilesPage from './FilesPage';
@@ -25,7 +25,7 @@ function renderFilesPage(tripId: number | string = 1) {
     <Routes>
       <Route path="/trips/:id/files" element={<FilesPage />} />
     </Routes>,
-    { initialEntries: [`/trips/${tripId}/files`] },
+    { initialEntries: [`/trips/${tripId}/files`] }
   );
 }
 
@@ -46,10 +46,10 @@ describe('FilesPage', () => {
     it('shows a spinner while data is loading', async () => {
       server.use(
         http.get('/api/trips/:id', async () => {
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 200));
           const trip = buildTrip({ id: 1 });
           return HttpResponse.json({ trip });
-        }),
+        })
       );
 
       renderFilesPage(1);
@@ -61,9 +61,7 @@ describe('FilesPage', () => {
   describe('FE-PAGE-FILES-002: Trip name displayed in Navbar after load', () => {
     it('passes the trip name to Navbar after data loads', async () => {
       const trip = buildTrip({ id: 1, title: 'Rome Trip' });
-      server.use(
-        http.get('/api/trips/:id', () => HttpResponse.json({ trip })),
-      );
+      server.use(http.get('/api/trips/:id', () => HttpResponse.json({ trip })));
 
       renderFilesPage(1);
 
@@ -137,18 +135,14 @@ describe('FilesPage', () => {
 
   describe('FE-PAGE-FILES-007: Navigation to /dashboard on fetch error', () => {
     it('navigates to /dashboard when trip fetch fails', async () => {
-      server.use(
-        http.get('/api/trips/:id', () =>
-          HttpResponse.json({ error: 'Not found' }, { status: 404 }),
-        ),
-      );
+      server.use(http.get('/api/trips/:id', () => HttpResponse.json({ error: 'Not found' }, { status: 404 })));
 
       render(
         <Routes>
           <Route path="/trips/:id/files" element={<FilesPage />} />
           <Route path="/dashboard" element={<div data-testid="dashboard">Dashboard</div>} />
         </Routes>,
-        { initialEntries: ['/trips/1/files'] },
+        { initialEntries: ['/trips/1/files'] }
       );
 
       await waitFor(() => {

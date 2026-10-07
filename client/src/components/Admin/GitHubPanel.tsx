@@ -16,8 +16,8 @@ import {
 import { useEffect, useState, type ComponentType, type CSSProperties, type ReactNode } from 'react';
 import apiClient from '../../api/client';
 import { getLocaleForLanguage, useTranslation } from '../../i18n';
-import { fs } from '../shared/DialogShell';
 import { SETTINGS_BUTTON, SettingsCard, StatusPill } from '../Settings/settingsKit';
+import { fs } from '../shared/DialogShell';
 
 const REPO = 'liketrek/TREK';
 const PER_PAGE = 10;
@@ -70,10 +70,17 @@ function SupportCard({ link }: { link: SupportLink }) {
         <Icon size={18} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate font-semibold text-content" style={fs(13.5, 'body')}>{link.title}</span>
-        <span className="block truncate text-content-faint" style={fs(11.5)}>{link.hint}</span>
+        <span className="block truncate font-semibold text-content" style={fs(13.5, 'body')}>
+          {link.title}
+        </span>
+        <span className="block truncate text-content-faint" style={fs(11.5)}>
+          {link.hint}
+        </span>
       </span>
-      <ExternalLink size={14} className="flex-none text-content-faint transition-colors group-hover:text-content-muted" />
+      <ExternalLink
+        size={14}
+        className="flex-none text-content-faint transition-colors group-hover:text-content-muted"
+      />
     </a>
   );
 }
@@ -169,7 +176,11 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
       if (trimmed.startsWith('### ')) {
         flushList();
         elements.push(
-          <h4 key={elements.length} className="mb-1 mt-3 font-geist font-bold uppercase tracking-[.08em] text-content-faint first:mt-0" style={fs(10)}>
+          <h4
+            key={elements.length}
+            className="mb-1 mt-3 font-geist font-bold uppercase tracking-[.08em] text-content-faint first:mt-0"
+            style={fs(10)}
+          >
             {trimmed.slice(4)}
           </h4>
         );
@@ -291,7 +302,9 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
                   {/* Timeline dot */}
                   <span
                     className={`relative grid h-8 w-8 flex-none place-items-center rounded-[10px] ${
-                      isLatest ? 'bg-accent text-accent-text' : 'bg-surface-card text-content-faint shadow-sm ring-1 ring-edge-faint'
+                      isLatest
+                        ? 'bg-accent text-accent-text'
+                        : 'bg-surface-card text-content-faint shadow-sm ring-1 ring-edge-faint'
                     }`}
                   >
                     <Tag size={13} strokeWidth={2.2} />
@@ -300,16 +313,23 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
                   {/* Release content */}
                   <div className="min-w-0 flex-1 pt-0.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-geist font-bold tabular-nums text-content" style={fs(14, 'body')}>{release.tag_name}</span>
+                      <span className="font-geist font-bold tabular-nums text-content" style={fs(14, 'body')}>
+                        {release.tag_name}
+                      </span>
                       {isLatest && <StatusPill tone="success">{t('admin.github.latest')}</StatusPill>}
                       {release.prerelease && <StatusPill tone="warning">{t('admin.github.prerelease')}</StatusPill>}
                     </div>
 
                     {release.name && release.name !== release.tag_name && (
-                      <p className="m-0 mt-0.5 truncate font-medium text-content-secondary" style={fs(12.5, 'body')}>{release.name}</p>
+                      <p className="m-0 mt-0.5 truncate font-medium text-content-secondary" style={fs(12.5, 'body')}>
+                        {release.name}
+                      </p>
                     )}
 
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-content-faint" style={fs(11.5)}>
+                    <div
+                      className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-content-faint"
+                      style={fs(11.5)}
+                    >
                       <span className="inline-flex items-center gap-1 font-geist tabular-nums text-content-faint">
                         <Calendar size={11} />
                         {formatDate(release.published_at || release.created_at)}
@@ -324,13 +344,18 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
                     {/* Expandable body */}
                     {release.body && (
                       <div className="mt-2">
-                        <button type="button"
+                        <button
+                          type="button"
                           onClick={() => toggleExpand(release.id)}
                           aria-expanded={!!isExpanded}
                           className="inline-flex items-center gap-1 rounded-full bg-surface-tertiary px-2.5 py-1 font-semibold text-content-muted transition-colors hover:text-content"
                           style={fs(11.5, 'body')}
                         >
-                          {isExpanded ? <ChevronUp size={12} strokeWidth={2.4} /> : <ChevronDown size={12} strokeWidth={2.4} />}
+                          {isExpanded ? (
+                            <ChevronUp size={12} strokeWidth={2.4} />
+                          ) : (
+                            <ChevronDown size={12} strokeWidth={2.4} />
+                          )}
                           {isExpanded ? t('admin.github.hideDetails') : t('admin.github.showDetails')}
                         </button>
 
@@ -351,13 +376,18 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
         {/* Load more */}
         {hasMore && (
           <div className="flex justify-center">
-            <button type="button"
+            <button
+              type="button"
               onClick={handleLoadMore}
               disabled={loadingMore}
               className={SETTINGS_BUTTON}
               style={fs(12.5, 'body')}
             >
-              {loadingMore ? <Loader2 size={13} className="animate-spin" /> : <ChevronDown size={13} strokeWidth={2.2} />}
+              {loadingMore ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <ChevronDown size={13} strokeWidth={2.2} />
+              )}
               {loadingMore ? t('admin.github.loading') : t('admin.github.loadMore')}
             </button>
           </div>
@@ -371,7 +401,9 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
       {/* Support links: one card, the six places as tiles inside it */}
       <SettingsCard icon={Heart} title={t('settings.about')}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {supportLinks.map((link) => <SupportCard key={link.href} link={link} />)}
+          {supportLinks.map((link) => (
+            <SupportCard key={link.href} link={link} />
+          ))}
         </div>
       </SettingsCard>
 

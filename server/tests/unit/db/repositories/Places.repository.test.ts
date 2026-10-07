@@ -5,15 +5,25 @@
  * non-empty tags/ratings shape neither `trip-access-primitives.test.ts`'s
  * PRIM-GPWT-00x (empty tags/ratings only) nor any other suite exercises.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { TRACK_COLORS } from '@trek/shared';
-import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { resetTestDb } from '../../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { addTripMember, createCategory, createDay, createDayAssignment, createPlace, createTag, createTrip, createUser } from '../../../helpers/factories';
-import { createTour } from '../../../helpers/tours-repos';
 import { Places } from '../../../../src/db/entities/Places.entity';
 import type { PlacesRepository } from '../../../../src/db/repositories/Places.repository';
+import { createSnapshotTestDb } from '../../../helpers/db-mock';
+import {
+  addTripMember,
+  createCategory,
+  createDay,
+  createDayAssignment,
+  createPlace,
+  createTag,
+  createTrip,
+  createUser,
+} from '../../../helpers/factories';
+import { resetTestDb } from '../../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+import { createTour } from '../../../helpers/tours-repos';
+import { TRACK_COLORS } from '@trek/shared';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -23,8 +33,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   places = t.repo(Places);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 /**
  * The legacy `getPlaceWithTags` (`db/database.ts:146-197` at base), run raw
@@ -36,12 +52,25 @@ afterAll(async () => { await t.close(); testDb.close(); });
  */
 function legacyGetPlaceWithTags(placeId: number): unknown {
   const place = testDb
-    .prepare('SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?')
-    .get(placeId) as (Record<string, unknown> & { category_id: number | null; category_name: string | null; category_color: string | null; category_icon: string | null }) | undefined;
+    .prepare(
+      'SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?',
+    )
+    .get(placeId) as
+    | (Record<string, unknown> & {
+        category_id: number | null;
+        category_name: string | null;
+        category_color: string | null;
+        category_icon: string | null;
+      })
+    | undefined;
   if (!place) return null;
-  const tags = testDb.prepare('SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?').all(placeId);
+  const tags = testDb
+    .prepare('SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?')
+    .all(placeId);
   const ratings = testDb
-    .prepare('SELECT pr.user_id, u.username, u.avatar, pr.rating FROM place_ratings pr JOIN users u ON pr.user_id = u.id WHERE pr.place_id = ? ORDER BY pr.created_at')
+    .prepare(
+      'SELECT pr.user_id, u.username, u.avatar, pr.rating FROM place_ratings pr JOIN users u ON pr.user_id = u.id WHERE pr.place_id = ? ORDER BY pr.created_at',
+    )
     .all(placeId) as { user_id: number; username: string; avatar: string | null; rating: number }[];
   return {
     ...place,
@@ -67,8 +96,16 @@ describe('PlacesRepository.findWithTagsAndRatings — parity with the legacy get
     const tagB = createTag(testDb, owner.id, { name: 'Quiet' });
     testDb.prepare('INSERT INTO place_tags (place_id, tag_id) VALUES (?, ?)').run(place.id, tagA.id);
     testDb.prepare('INSERT INTO place_tags (place_id, tag_id) VALUES (?, ?)').run(place.id, tagB.id);
-    testDb.prepare("INSERT INTO place_ratings (place_id, user_id, rating, created_at) VALUES (?, ?, ?, datetime('now', '-2 minutes'))").run(place.id, voterA.id, 5);
-    testDb.prepare("INSERT INTO place_ratings (place_id, user_id, rating, created_at) VALUES (?, ?, ?, datetime('now', '-1 minutes'))").run(place.id, voterB.id, 3);
+    testDb
+      .prepare(
+        "INSERT INTO place_ratings (place_id, user_id, rating, created_at) VALUES (?, ?, ?, datetime('now', '-2 minutes'))",
+      )
+      .run(place.id, voterA.id, 5);
+    testDb
+      .prepare(
+        "INSERT INTO place_ratings (place_id, user_id, rating, created_at) VALUES (?, ?, ?, datetime('now', '-1 minutes'))",
+      )
+      .run(place.id, voterB.id, 3);
 
     const result = await places.findWithTagsAndRatings(place.id);
     const legacy = legacyGetPlaceWithTags(place.id) as Record<string, unknown>;
@@ -132,21 +169,25 @@ describe('PlacesRepository.findWithTagsAndRatings — parity with the legacy get
     expect(result?.tags.map((tg) => tg.name).sort()).toEqual(['Must see', 'Rainy day']);
   });
 
-  it('PLACEREPO-004: ratings hydrate with the voter\'s username/avatar, in created_at order, and average correctly', async () => {
+  it("PLACEREPO-004: ratings hydrate with the voter's username/avatar, in created_at order, and average correctly", async () => {
     const { user: owner } = createUser(testDb);
     const { user: voterA } = createUser(testDb, { username: 'voter_a' });
     const { user: voterB } = createUser(testDb, { username: 'voter_b' });
     const trip = createTrip(testDb, owner.id);
     const place = createPlace(testDb, trip.id);
     testDb
-      .prepare("INSERT INTO place_ratings (place_id, user_id, rating, created_at) VALUES (?, ?, ?, datetime('now', '-2 minutes'))")
+      .prepare(
+        "INSERT INTO place_ratings (place_id, user_id, rating, created_at) VALUES (?, ?, ?, datetime('now', '-2 minutes'))",
+      )
       .run(place.id, voterA.id, 4);
     // Task 0b review M1: 4-and-2 averages to 3, which `Math.round(3)` also
     // equals — the brief's own named mutation (wrapping the average in
     // `Math.round(...)`) survived undetected. 4-and-3 averages to 3.5,
     // which `Math.round` would corrupt to 3 or 4 — mutation-proved.
     testDb
-      .prepare("INSERT INTO place_ratings (place_id, user_id, rating, created_at) VALUES (?, ?, ?, datetime('now', '-1 minutes'))")
+      .prepare(
+        "INSERT INTO place_ratings (place_id, user_id, rating, created_at) VALUES (?, ?, ?, datetime('now', '-1 minutes'))",
+      )
       .run(place.id, voterB.id, 3);
 
     const result = await places.findWithTagsAndRatings(place.id);
@@ -191,7 +232,7 @@ describe('PlacesRepository.findWithTagsAndRatings — parity with the legacy get
     const category = createCategory(testDb, { name: 'Cafes', color: '#654321', icon: '☕' });
     const place = createPlace(testDb, trip.id, { category_id: category.id });
 
-    const result = await places.findWithTagsAndRatings(place.id) as unknown as Record<string, unknown>;
+    const result = (await places.findWithTagsAndRatings(place.id)) as unknown as Record<string, unknown>;
     expect(result.category_name).toBe('Cafes');
     expect(result.category_color).toBe('#654321');
     expect(result.category_icon).toBe('☕');
@@ -253,7 +294,7 @@ describe('PlacesRepository.existsInTrip / findInTrip / reclaimInputs / deleteByI
   // identity map disabled for every read anyway — there is no live
   // identity-map entry here to bypass. This proves a DB round-trip, not an
   // identity-map bypass.
-  it('PLACEREPO-013 (fresh after a raw UPDATE, not D-shape): a name write after an unrelated identity-map read is visible in findInTrip\'s FIRST wider read', async () => {
+  it("PLACEREPO-013 (fresh after a raw UPDATE, not D-shape): a name write after an unrelated identity-map read is visible in findInTrip's FIRST wider read", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id, { name: 'Before' });
@@ -270,27 +311,53 @@ describe('PlacesRepository.existsInTrip / findInTrip / reclaimInputs / deleteByI
   // `toEqual(legacy SELECT p.* ... WHERE p.id = ? AND p.trip_id = ? run raw)`
   // on the full key set, plus a fully NULL-nullable-column row, so a
   // renamed or dropped column would fail this test.
-  it('PLACEREPO-014: findInTrip returns every scalar column (PL9/PL48\'s SELECT *), full toEqual(legacy) parity, undefined cross-trip', async () => {
+  it("PLACEREPO-014: findInTrip returns every scalar column (PL9/PL48's SELECT *), full toEqual(legacy) parity, undefined cross-trip", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const otherTrip = createTrip(testDb, user.id);
     const category = createCategory(testDb);
     const place = createPlace(testDb, trip.id, { name: 'Full Row' });
-    testDb.prepare(`
+    testDb
+      .prepare(
+        `
       UPDATE places SET description = ?, lat = ?, lng = ?, address = ?, category_id = ?, price = ?, currency = ?,
         reservation_status = ?, reservation_notes = ?, reservation_datetime = ?, place_time = ?, end_time = ?,
         duration_minutes = ?, notes = ?, image_url = ?, google_place_id = ?, google_ftid = ?, website = ?, phone = ?,
         transport_mode = ?, osm_id = ?, route_geometry = ?, route_color = ?, stop_type = ?, fill_percent = ?,
         amap_poi_id = ?, source = ?
       WHERE id = ?
-    `).run(
-      'A description with 007-style digits', 48.1, 2.2, '007 Rue de Paris', category.id, 12.5, 'EUR',
-      'confirmed', 'notes-a', '2026-01-01T10:00:00Z', '10:00', '11:00',
-      45, 'place notes', '/img/a.png', 'gpid-007', 'gftid-a', 'https://a.example', '+33 1 23 45 67 89',
-      'driving', 'osm-a', '{"type":"LineString"}', '#ff0000', 'hotel', 50,
-      'amap-a', 'manual',
-      place.id,
-    );
+    `,
+      )
+      .run(
+        'A description with 007-style digits',
+        48.1,
+        2.2,
+        '007 Rue de Paris',
+        category.id,
+        12.5,
+        'EUR',
+        'confirmed',
+        'notes-a',
+        '2026-01-01T10:00:00Z',
+        '10:00',
+        '11:00',
+        45,
+        'place notes',
+        '/img/a.png',
+        'gpid-007',
+        'gftid-a',
+        'https://a.example',
+        '+33 1 23 45 67 89',
+        'driving',
+        'osm-a',
+        '{"type":"LineString"}',
+        '#ff0000',
+        'hotel',
+        50,
+        'amap-a',
+        'manual',
+        place.id,
+      );
 
     const row = await places.findInTrip(place.id, trip.id);
     const legacy = testDb.prepare('SELECT * FROM places WHERE id = ? AND trip_id = ?').get(place.id, trip.id);
@@ -314,8 +381,13 @@ describe('PlacesRepository.existsInTrip / findInTrip / reclaimInputs / deleteByI
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id);
-    testDb.prepare('UPDATE places SET google_place_id = ?, image_url = ? WHERE id = ?').run('gpid-1', '/uploads/places/x.jpg', place.id);
-    expect(await places.reclaimInputs(place.id, trip.id)).toEqual({ google_place_id: 'gpid-1', image_url: '/uploads/places/x.jpg' });
+    testDb
+      .prepare('UPDATE places SET google_place_id = ?, image_url = ? WHERE id = ?')
+      .run('gpid-1', '/uploads/places/x.jpg', place.id);
+    expect(await places.reclaimInputs(place.id, trip.id)).toEqual({
+      google_place_id: 'gpid-1',
+      image_url: '/uploads/places/x.jpg',
+    });
     expect(await places.reclaimInputs(999999, trip.id)).toBeUndefined();
   });
 
@@ -331,7 +403,7 @@ describe('PlacesRepository.existsInTrip / findInTrip / reclaimInputs / deleteByI
 });
 
 describe('PlacesRepository.scopedIds (PL23) — input-order preservation', () => {
-  it('PLACEREPO-017: returns only the trip\'s own ids, in the CALLER\'s input order, not row/id order', async () => {
+  it("PLACEREPO-017: returns only the trip's own ids, in the CALLER's input order, not row/id order", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const other = createTrip(testDb, user.id);
@@ -356,20 +428,62 @@ describe('PlacesRepository.insertPlace (PL4) / updatePlace (PL11)', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const id = await places.insertPlace({
-      trip_id: trip.id, name: 'Full Insert', description: 'd', lat: 0, lng: 0, address: 'a',
-      category_id: null, price: 0, currency: 'USD', place_time: '09:00', end_time: '10:00',
-      duration_minutes: 60, notes: 'n', image_url: '/uploads/places/x.jpg', google_place_id: 'g',
-      google_ftid: 'f', osm_id: 'o', amap_poi_id: 'am', website: 'w', phone: 'p', email: 'e@x.test', opening_hours: 'Mo-Fr 09:00-17:00',
-      transport_mode: 'walking', route_geometry: '[[1,2]]', route_color: '#fff', stop_type: 'fuel',
+      trip_id: trip.id,
+      name: 'Full Insert',
+      description: 'd',
+      lat: 0,
+      lng: 0,
+      address: 'a',
+      category_id: null,
+      price: 0,
+      currency: 'USD',
+      place_time: '09:00',
+      end_time: '10:00',
+      duration_minutes: 60,
+      notes: 'n',
+      image_url: '/uploads/places/x.jpg',
+      google_place_id: 'g',
+      google_ftid: 'f',
+      osm_id: 'o',
+      amap_poi_id: 'am',
+      website: 'w',
+      phone: 'p',
+      email: 'e@x.test',
+      opening_hours: 'Mo-Fr 09:00-17:00',
+      transport_mode: 'walking',
+      route_geometry: '[[1,2]]',
+      route_color: '#fff',
+      stop_type: 'fuel',
       fill_percent: 50,
     });
     const row = await places.findInTrip(id, trip.id);
     expect(row).toMatchObject({
-      trip_id: trip.id, name: 'Full Insert', description: 'd', lat: 0, lng: 0, address: 'a',
-      category_id: null, price: 0, currency: 'USD', place_time: '09:00', end_time: '10:00',
-      duration_minutes: 60, notes: 'n', image_url: '/uploads/places/x.jpg', google_place_id: 'g',
-      google_ftid: 'f', osm_id: 'o', amap_poi_id: 'am', website: 'w', phone: 'p', email: 'e@x.test', opening_hours: 'Mo-Fr 09:00-17:00',
-      transport_mode: 'walking', route_geometry: '[[1,2]]', route_color: '#fff', stop_type: 'fuel',
+      trip_id: trip.id,
+      name: 'Full Insert',
+      description: 'd',
+      lat: 0,
+      lng: 0,
+      address: 'a',
+      category_id: null,
+      price: 0,
+      currency: 'USD',
+      place_time: '09:00',
+      end_time: '10:00',
+      duration_minutes: 60,
+      notes: 'n',
+      image_url: '/uploads/places/x.jpg',
+      google_place_id: 'g',
+      google_ftid: 'f',
+      osm_id: 'o',
+      amap_poi_id: 'am',
+      website: 'w',
+      phone: 'p',
+      email: 'e@x.test',
+      opening_hours: 'Mo-Fr 09:00-17:00',
+      transport_mode: 'walking',
+      route_geometry: '[[1,2]]',
+      route_color: '#fff',
+      stop_type: 'fuel',
       fill_percent: 50,
     });
   });
@@ -379,11 +493,31 @@ describe('PlacesRepository.insertPlace (PL4) / updatePlace (PL11)', () => {
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id, { name: 'Original' });
     const base = {
-      name: 'Original', description: null, lat: null, lng: null, address: null, category_id: null,
-      price: null, currency: null, place_time: null, end_time: null, duration_minutes: null,
-      notes: null, image_url: null, google_place_id: null, google_ftid: null, osm_id: null,
-      amap_poi_id: null, website: null, phone: null, email: null, opening_hours: null, transport_mode: null, route_color: null,
-      stop_type: null, fill_percent: null,
+      name: 'Original',
+      description: null,
+      lat: null,
+      lng: null,
+      address: null,
+      category_id: null,
+      price: null,
+      currency: null,
+      place_time: null,
+      end_time: null,
+      duration_minutes: null,
+      notes: null,
+      image_url: null,
+      google_place_id: null,
+      google_ftid: null,
+      osm_id: null,
+      amap_poi_id: null,
+      website: null,
+      phone: null,
+      email: null,
+      opening_hours: null,
+      transport_mode: null,
+      route_color: null,
+      stop_type: null,
+      fill_percent: null,
     };
     // A non-COALESCE column (description) written explicitly null clears it.
     await places.updatePlace(place.id, { ...base, description: 'first' });
@@ -411,11 +545,31 @@ describe('PlacesRepository.insertPlace (PL4) / updatePlace (PL11)', () => {
     testDb.prepare("UPDATE places SET updated_at = datetime('now', '-1 hour') WHERE id = ?").run(place.id);
     const before = (await places.findInTrip(place.id, trip.id))?.updated_at;
     await places.updatePlace(place.id, {
-      name: 'Stamped', description: null, lat: null, lng: null, address: null, category_id: null,
-      price: null, currency: null, place_time: null, end_time: null, duration_minutes: null,
-      notes: null, image_url: null, google_place_id: null, google_ftid: null, osm_id: null,
-      amap_poi_id: null, website: null, phone: null, email: null, opening_hours: null, transport_mode: null, route_color: null,
-      stop_type: null, fill_percent: null,
+      name: 'Stamped',
+      description: null,
+      lat: null,
+      lng: null,
+      address: null,
+      category_id: null,
+      price: null,
+      currency: null,
+      place_time: null,
+      end_time: null,
+      duration_minutes: null,
+      notes: null,
+      image_url: null,
+      google_place_id: null,
+      google_ftid: null,
+      osm_id: null,
+      amap_poi_id: null,
+      website: null,
+      phone: null,
+      email: null,
+      opening_hours: null,
+      transport_mode: null,
+      route_color: null,
+      stop_type: null,
+      fill_percent: null,
     });
     const after = await places.findInTrip(place.id, trip.id);
     expect(after?.name).toBe('Stamped');
@@ -502,13 +656,16 @@ describe('PlacesRepository.listForGpx (PL29) and existsByImageUrl (PI1)', () => 
     // through the same way), and deleting the categories table would also
     // break p1's own join. Insert place B directly instead, to genuinely
     // pin `category_id = NULL` while `category` (p1's) still exists.
-    const p2Id = testDb.prepare('INSERT INTO places (trip_id, name, category_id) VALUES (?, ?, NULL)').run(trip.id, 'B').lastInsertRowid;
+    const p2Id = testDb
+      .prepare('INSERT INTO places (trip_id, name, category_id) VALUES (?, ?, NULL)')
+      .run(trip.id, 'B').lastInsertRowid;
     const p2 = { id: p2Id as number };
     const rows = await places.listForGpx(String(trip.id));
     expect(rows.map((r) => r.name)).toEqual(['A', 'B']);
     expect(rows[0]).toMatchObject({ name: 'A', category: 'Trails' });
     expect(rows[1]).toMatchObject({ name: 'B', category: null });
-    void p1; void p2;
+    void p1;
+    void p2;
   });
 
   it('PLACEREPO-026 (PI1): existsByImageUrl is trip-agnostic — true for any place carrying the url', async () => {
@@ -533,18 +690,26 @@ describe('PlacesRepository.listDedupInputs (PL24)', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const other = createTrip(testDb, user.id);
-    testDb.prepare(
-      `INSERT INTO places (trip_id, name, lat, lng, google_place_id, google_ftid, osm_id, amap_poi_id)
+    testDb
+      .prepare(
+        `INSERT INTO places (trip_id, name, lat, lng, google_place_id, google_ftid, osm_id, amap_poi_id)
        VALUES (?, 'Louvre', 48.86, 2.34, 'gp1', 'ft1', 'osm1', 'amap1')`,
-    ).run(trip.id);
-    testDb.prepare(
-      `INSERT INTO places (trip_id, name, lat, lng) VALUES (?, '', 1.1, 2.2)`,
-    ).run(trip.id);
+      )
+      .run(trip.id);
+    testDb.prepare(`INSERT INTO places (trip_id, name, lat, lng) VALUES (?, '', 1.1, 2.2)`).run(trip.id);
     createPlace(testDb, other.id, { name: 'Not this trip' });
 
     const rows = await places.listDedupInputs(String(trip.id));
     expect(rows).toEqual([
-      { name: 'Louvre', lat: 48.86, lng: 2.34, google_place_id: 'gp1', google_ftid: 'ft1', osm_id: 'osm1', amap_poi_id: 'amap1' },
+      {
+        name: 'Louvre',
+        lat: 48.86,
+        lng: 2.34,
+        google_place_id: 'gp1',
+        google_ftid: 'ft1',
+        osm_id: 'osm1',
+        amap_poi_id: 'amap1',
+      },
       { name: '', lat: 1.1, lng: 2.2, google_place_id: null, google_ftid: null, osm_id: null, amap_poi_id: null },
     ]);
   });
@@ -567,7 +732,7 @@ describe('PlacesRepository.listForTrip (PL3) — filter fragments', () => {
     expect(rows.map((r) => r.id)).toEqual([newer.id, older.id]);
   });
 
-  it('PLACEREPO-028: searchPattern matches name/address/description (already-escaped, wrapped by the caller — NOT a test of the ESCAPE clause itself: `%Eiffel%` has no literal `%`/`_` to escape. `ESCAPE \'\\\'` is proven by `PLACE-SVC-068`/PLACEREPO-028b below, which do carry a literal wildcard character)', async () => {
+  it("PLACEREPO-028: searchPattern matches name/address/description (already-escaped, wrapped by the caller — NOT a test of the ESCAPE clause itself: `%Eiffel%` has no literal `%`/`_` to escape. `ESCAPE '\\'` is proven by `PLACE-SVC-068`/PLACEREPO-028b below, which do carry a literal wildcard character)", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const hit = createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
@@ -614,7 +779,7 @@ describe('PlacesRepository.listForTrip (PL3) — filter fragments', () => {
     void untagged;
   });
 
-  it('PLACEREPO-031: assignment=unassigned / assigned split the trip\'s places by day_assignments membership', async () => {
+  it("PLACEREPO-031: assignment=unassigned / assigned split the trip's places by day_assignments membership", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const day = createDay(testDb, trip.id);
@@ -641,7 +806,10 @@ describe('PlacesRepository.listForTrip (PL3) — filter fragments', () => {
     testDb.prepare('INSERT INTO place_tags (place_id, tag_id) VALUES (?, ?)').run(other.id, tag.id);
     // `other` is left unassigned, so `assignment: 'assigned'` alone should exclude it.
     const rows = await places.listForTrip(String(trip.id), {
-      searchPattern: '%Central Park%', category: String(cat.id), tag: String(tag.id), assignment: 'assigned',
+      searchPattern: '%Central Park%',
+      category: String(cat.id),
+      tag: String(tag.id),
+      assignment: 'assigned',
     });
     expect(rows.map((r) => r.id)).toEqual([winner.id]);
   });
@@ -660,7 +828,12 @@ describe('PlacesRepository.listForTrip (PL3) — filter fragments', () => {
 describe('PlacesRepository.listForTrip (PL3) — toEqual(legacy) over all 32 filter combinations', () => {
   function legacyListForTrip(
     tripId: string,
-    filters: { searchPattern?: string; category?: string; tag?: string; assignment?: 'all' | 'unassigned' | 'assigned' },
+    filters: {
+      searchPattern?: string;
+      category?: string;
+      tag?: string;
+      assignment?: 'all' | 'unassigned' | 'assigned';
+    },
   ): unknown[] {
     let query = `
       SELECT DISTINCT p.*, t.place_id AS tour_place_id, c.name as category_name, c.color as category_color, c.icon as category_icon,
@@ -686,10 +859,12 @@ describe('PlacesRepository.listForTrip (PL3) — toEqual(legacy) over all 32 fil
       params.push(filters.tag);
     }
     if (filters.assignment === 'unassigned') {
-      query += ' AND p.id NOT IN (SELECT da.place_id FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE d.trip_id = ?)';
+      query +=
+        ' AND p.id NOT IN (SELECT da.place_id FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE d.trip_id = ?)';
       params.push(tripId);
     } else if (filters.assignment === 'assigned') {
-      query += ' AND p.id IN (SELECT da.place_id FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE d.trip_id = ?)';
+      query +=
+        ' AND p.id IN (SELECT da.place_id FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE d.trip_id = ?)';
       params.push(tripId);
     }
     query += ' ORDER BY p.created_at DESC';
@@ -725,7 +900,12 @@ describe('PlacesRepository.listForTrip (PL3) — toEqual(legacy) over all 32 fil
     const searchOptions: (string | undefined)[] = [undefined, '%Central%'];
     const categoryOptions: (string | undefined)[] = [undefined, String(cat.id)];
     const tagOptions: (string | undefined)[] = [undefined, String(tag.id)];
-    const assignmentOptions: (('all' | 'unassigned' | 'assigned') | undefined)[] = [undefined, 'all', 'assigned', 'unassigned'];
+    const assignmentOptions: (('all' | 'unassigned' | 'assigned') | undefined)[] = [
+      undefined,
+      'all',
+      'assigned',
+      'unassigned',
+    ];
 
     let combinations = 0;
     for (const searchPattern of searchOptions) {
@@ -751,13 +931,30 @@ describe('PlacesRepository.listForTrip (PL3) — toEqual(legacy) over all 32 fil
 // enrichment/backfill `fillIfEmpty` matrix.
 // ---------------------------------------------------------------------------
 
-describe('PlacesRepository.insertPlace — the four importers\' narrower column sets (PL31/34/38/41), read back inside the same transaction (PL32/35/40/42)', () => {
+describe("PlacesRepository.insertPlace — the four importers' narrower column sets (PL31/34/38/41), read back inside the same transaction (PL32/35/40/42)", () => {
   const base = {
-    address: null, category_id: null, price: null, currency: null,
-    place_time: null, end_time: null, duration_minutes: 60, notes: null, image_url: null,
-    google_place_id: null, google_ftid: null, osm_id: null, amap_poi_id: null, website: null,
-    phone: null, email: null, opening_hours: null, transport_mode: 'walking', route_geometry: null, route_color: null,
-    stop_type: null, fill_percent: null,
+    address: null,
+    category_id: null,
+    price: null,
+    currency: null,
+    place_time: null,
+    end_time: null,
+    duration_minutes: 60,
+    notes: null,
+    image_url: null,
+    google_place_id: null,
+    google_ftid: null,
+    osm_id: null,
+    amap_poi_id: null,
+    website: null,
+    phone: null,
+    email: null,
+    opening_hours: null,
+    transport_mode: 'walking',
+    route_geometry: null,
+    route_color: null,
+    stop_type: null,
+    fill_percent: null,
   };
 
   it('PLACEREPO-033 (PL31/PL32, GPX): the 7-column GPX shape is stored, and the read inside the same transaction sees the uncommitted row', async () => {
@@ -767,34 +964,59 @@ describe('PlacesRepository.insertPlace — the four importers\' narrower column 
     const row = await t.em.transactional(async () => {
       const id = await places.insertPlace({
         ...base,
-        trip_id: trip.id, name: 'GPX Waypoint', description: 'from a gpx file',
-        lat: 48.85, lng: 2.35, route_geometry: '[[48.85,2.35],[48.86,2.36]]',
+        trip_id: trip.id,
+        name: 'GPX Waypoint',
+        description: 'from a gpx file',
+        lat: 48.85,
+        lng: 2.35,
+        route_geometry: '[[48.85,2.35],[48.86,2.36]]',
       });
       // Same transaction, no commit yet — this read must still see it.
       return places.findWithTagsAndRatings(id);
     });
 
     expect(row).toMatchObject({
-      trip_id: trip.id, name: 'GPX Waypoint', description: 'from a gpx file',
-      lat: 48.85, lng: 2.35, address: null, category_id: null, notes: null,
-      transport_mode: 'walking', route_geometry: '[[48.85,2.35],[48.86,2.36]]',
-      duration_minutes: 60, category: null, tags: [], ratings: [],
+      trip_id: trip.id,
+      name: 'GPX Waypoint',
+      description: 'from a gpx file',
+      lat: 48.85,
+      lng: 2.35,
+      address: null,
+      category_id: null,
+      notes: null,
+      transport_mode: 'walking',
+      route_geometry: '[[48.85,2.35],[48.86,2.36]]',
+      duration_minutes: 60,
+      category: null,
+      tags: [],
+      ratings: [],
     });
     // Committed for real, not just visible mid-transaction.
-    expect(testDb.prepare('SELECT name FROM places WHERE trip_id = ?').get(trip.id)).toMatchObject({ name: 'GPX Waypoint' });
+    expect(testDb.prepare('SELECT name FROM places WHERE trip_id = ?').get(trip.id)).toMatchObject({
+      name: 'GPX Waypoint',
+    });
   });
 
   it('PLACEREPO-033b: a transaction that throws after the insert leaves no row behind — the insert really was uncommitted, not autocommitted ahead of the wrapper', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    await expect(t.em.transactional(async () => {
-      const id = await places.insertPlace({ ...base, trip_id: trip.id, name: 'Rolled back', description: null, lat: 1, lng: 1 });
-      // The uncommitted row is visible to a read inside the same transaction...
-      const seen = await places.findWithTagsAndRatings(id);
-      expect(seen?.name).toBe('Rolled back');
-      throw new Error('force rollback');
-    })).rejects.toThrow('force rollback');
+    await expect(
+      t.em.transactional(async () => {
+        const id = await places.insertPlace({
+          ...base,
+          trip_id: trip.id,
+          name: 'Rolled back',
+          description: null,
+          lat: 1,
+          lng: 1,
+        });
+        // The uncommitted row is visible to a read inside the same transaction...
+        const seen = await places.findWithTagsAndRatings(id);
+        expect(seen?.name).toBe('Rolled back');
+        throw new Error('force rollback');
+      }),
+    ).rejects.toThrow('force rollback');
 
     // ...but never lands once the wrapping transaction rolls back.
     expect(testDb.prepare('SELECT COUNT(*) as c FROM places WHERE trip_id = ?').get(trip.id)).toMatchObject({ c: 0 });
@@ -808,16 +1030,28 @@ describe('PlacesRepository.insertPlace — the four importers\' narrower column 
     const row = await t.em.transactional(async () => {
       const id = await places.insertPlace({
         ...base,
-        trip_id: trip.id, name: 'Placemark 1', description: 'a kml placemark',
-        lat: 35.0, lng: 139.0, category_id: cat.id, route_geometry: null,
+        trip_id: trip.id,
+        name: 'Placemark 1',
+        description: 'a kml placemark',
+        lat: 35.0,
+        lng: 139.0,
+        category_id: cat.id,
+        route_geometry: null,
       });
       return places.findWithTagsAndRatings(id);
     });
 
     expect(row).toMatchObject({
-      trip_id: trip.id, name: 'Placemark 1', description: 'a kml placemark',
-      lat: 35.0, lng: 139.0, category_id: cat.id, duration_minutes: 60,
-      transport_mode: 'walking', address: null, notes: null,
+      trip_id: trip.id,
+      name: 'Placemark 1',
+      description: 'a kml placemark',
+      lat: 35.0,
+      lng: 139.0,
+      category_id: cat.id,
+      duration_minutes: 60,
+      transport_mode: 'walking',
+      address: null,
+      notes: null,
       category: { id: cat.id, name: 'Hiking' },
     });
   });
@@ -829,15 +1063,27 @@ describe('PlacesRepository.insertPlace — the four importers\' narrower column 
     const row = await t.em.transactional(async () => {
       const id = await places.insertPlace({
         ...base,
-        trip_id: trip.id, name: 'Google Place', description: null,
-        lat: 40.7, lng: -74.0, notes: 'a note', google_ftid: '0x1:0x2',
+        trip_id: trip.id,
+        name: 'Google Place',
+        description: null,
+        lat: 40.7,
+        lng: -74.0,
+        notes: 'a note',
+        google_ftid: '0x1:0x2',
       });
       return places.findWithTagsAndRatings(id);
     });
 
     expect(row).toMatchObject({
-      trip_id: trip.id, name: 'Google Place', notes: 'a note', google_ftid: '0x1:0x2',
-      lat: 40.7, lng: -74.0, address: null, category_id: null, duration_minutes: 60,
+      trip_id: trip.id,
+      name: 'Google Place',
+      notes: 'a note',
+      google_ftid: '0x1:0x2',
+      lat: 40.7,
+      lng: -74.0,
+      address: null,
+      category_id: null,
+      duration_minutes: 60,
       transport_mode: 'walking',
     });
   });
@@ -849,28 +1095,54 @@ describe('PlacesRepository.insertPlace — the four importers\' narrower column 
     const row = await t.em.transactional(async () => {
       const id = await places.insertPlace({
         ...base,
-        trip_id: trip.id, name: 'Naver Spot', description: null,
-        lat: 37.5, lng: 127.0, address: '123 Some Street', notes: 'a naver note',
+        trip_id: trip.id,
+        name: 'Naver Spot',
+        description: null,
+        lat: 37.5,
+        lng: 127.0,
+        address: '123 Some Street',
+        notes: 'a naver note',
       });
       return places.findWithTagsAndRatings(id);
     });
 
     expect(row).toMatchObject({
-      trip_id: trip.id, name: 'Naver Spot', address: '123 Some Street', notes: 'a naver note',
-      lat: 37.5, lng: 127.0, category_id: null, duration_minutes: 60, transport_mode: 'walking',
+      trip_id: trip.id,
+      name: 'Naver Spot',
+      address: '123 Some Street',
+      notes: 'a naver note',
+      lat: 37.5,
+      lng: 127.0,
+      category_id: null,
+      duration_minutes: 60,
+      transport_mode: 'walking',
     });
   });
 });
 
 describe('PlacesRepository.distinctRouteColors / setRouteColor (PL36/PL37)', () => {
-  it('PLACEREPO-037: distinctRouteColors returns only this trip\'s non-null colours, scoped by trip_id', async () => {
+  it("PLACEREPO-037: distinctRouteColors returns only this trip's non-null colours, scoped by trip_id", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const other = createTrip(testDb, user.id);
-    testDb.prepare("INSERT INTO places (trip_id, name, lat, lng, route_geometry, route_color) VALUES (?, 'A', 1, 1, '[[1,1]]', ?)").run(trip.id, TRACK_COLORS[0]);
-    testDb.prepare("INSERT INTO places (trip_id, name, lat, lng, route_geometry, route_color) VALUES (?, 'B', 1, 1, '[[1,1]]', ?)").run(trip.id, TRACK_COLORS[1]);
-    testDb.prepare("INSERT INTO places (trip_id, name, lat, lng, route_geometry) VALUES (?, 'C', 1, 1, '[[1,1]]')").run(trip.id);
-    testDb.prepare("INSERT INTO places (trip_id, name, lat, lng, route_geometry, route_color) VALUES (?, 'D', 1, 1, '[[1,1]]', ?)").run(other.id, TRACK_COLORS[2]);
+    testDb
+      .prepare(
+        "INSERT INTO places (trip_id, name, lat, lng, route_geometry, route_color) VALUES (?, 'A', 1, 1, '[[1,1]]', ?)",
+      )
+      .run(trip.id, TRACK_COLORS[0]);
+    testDb
+      .prepare(
+        "INSERT INTO places (trip_id, name, lat, lng, route_geometry, route_color) VALUES (?, 'B', 1, 1, '[[1,1]]', ?)",
+      )
+      .run(trip.id, TRACK_COLORS[1]);
+    testDb
+      .prepare("INSERT INTO places (trip_id, name, lat, lng, route_geometry) VALUES (?, 'C', 1, 1, '[[1,1]]')")
+      .run(trip.id);
+    testDb
+      .prepare(
+        "INSERT INTO places (trip_id, name, lat, lng, route_geometry, route_color) VALUES (?, 'D', 1, 1, '[[1,1]]', ?)",
+      )
+      .run(other.id, TRACK_COLORS[2]);
 
     const colors = await places.distinctRouteColors(trip.id);
     expect(new Set(colors)).toEqual(new Set([TRACK_COLORS[0], TRACK_COLORS[1]]));
@@ -884,7 +1156,10 @@ describe('PlacesRepository.distinctRouteColors / setRouteColor (PL36/PL37)', () 
 
     await places.setRouteColor(place.id, TRACK_COLORS[3]);
 
-    const row = testDb.prepare('SELECT route_color, updated_at FROM places WHERE id = ?').get(place.id) as { route_color: string; updated_at: string };
+    const row = testDb.prepare('SELECT route_color, updated_at FROM places WHERE id = ?').get(place.id) as {
+      route_color: string;
+      updated_at: string;
+    };
     expect(row.route_color).toBe(TRACK_COLORS[3]);
     expect(row.updated_at).toBe('2020-01-01 00:00:00');
   });
@@ -901,21 +1176,21 @@ describe('PlacesRepository.distinctRouteColors / setRouteColor (PL36/PL37)', () 
     // splitting them (read in one transaction, write in a second, separate
     // one) is precisely the bug this pairing exists to prevent, and doing
     // that here would make the test pass for the wrong reason.
-    const claimAndWrite = (placeId: number) => t.em.transactional(async () => {
-      const taken = new Set(await places.distinctRouteColors(trip.id));
-      const free = TRACK_COLORS.find((c) => !taken.has(c));
-      if (!free) throw new Error('palette exhausted');
-      await places.setRouteColor(placeId, free);
-      return free;
-    });
+    const claimAndWrite = (placeId: number) =>
+      t.em.transactional(async () => {
+        const taken = new Set(await places.distinctRouteColors(trip.id));
+        const free = TRACK_COLORS.find((c) => !taken.has(c));
+        if (!free) throw new Error('palette exhausted');
+        await places.setRouteColor(placeId, free);
+        return free;
+      });
 
-    const [colorA, colorB] = await Promise.all([
-      claimAndWrite(placeA.id),
-      claimAndWrite(placeB.id),
-    ]);
+    const [colorA, colorB] = await Promise.all([claimAndWrite(placeA.id), claimAndWrite(placeB.id)]);
 
     expect(colorA).not.toBe(colorB);
-    const rows = testDb.prepare('SELECT route_color FROM places WHERE id IN (?, ?)').all(placeA.id, placeB.id) as { route_color: string }[];
+    const rows = testDb.prepare('SELECT route_color FROM places WHERE id IN (?, ?)').all(placeA.id, placeB.id) as {
+      route_color: string;
+    }[];
     expect(new Set(rows.map((r) => r.route_color)).size).toBe(2);
   });
 });
@@ -929,7 +1204,10 @@ describe('PlacesRepository.backfillFtid (PL39)', () => {
 
     await places.backfillFtid(place.id, '0x9:0x9');
 
-    const row = testDb.prepare('SELECT google_ftid, updated_at FROM places WHERE id = ?').get(place.id) as { google_ftid: string; updated_at: string };
+    const row = testDb.prepare('SELECT google_ftid, updated_at FROM places WHERE id = ?').get(place.id) as {
+      google_ftid: string;
+      updated_at: string;
+    };
     expect(row.google_ftid).toBe('0x9:0x9');
     expect(row.updated_at).not.toBe('2020-01-01 00:00:00');
   });
@@ -940,13 +1218,21 @@ describe('PlacesRepository.fillIfEmpty (PL43/PL44/PL46) — three call shapes ov
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id);
-    testDb.prepare('UPDATE places SET phone = ?, updated_at = ? WHERE id = ?').run('+1 555', '2020-01-01 00:00:00', place.id);
+    testDb
+      .prepare('UPDATE places SET phone = ?, updated_at = ? WHERE id = ?')
+      .run('+1 555', '2020-01-01 00:00:00', place.id);
 
     await places.fillIfEmpty(place.id, trip.id, {
-      google_place_id: 'gp1', google_ftid: 'gf1', address: 'addr1', website: 'https://x', phone: 'ignored',
+      google_place_id: 'gp1',
+      google_ftid: 'gf1',
+      address: 'addr1',
+      website: 'https://x',
+      phone: 'ignored',
     });
 
-    const row = testDb.prepare('SELECT google_place_id, google_ftid, address, website, phone, updated_at FROM places WHERE id = ?').get(place.id) as Record<string, string>;
+    const row = testDb
+      .prepare('SELECT google_place_id, google_ftid, address, website, phone, updated_at FROM places WHERE id = ?')
+      .get(place.id) as Record<string, string>;
     expect(row.google_place_id).toBe('gp1');
     expect(row.google_ftid).toBe('gf1');
     expect(row.address).toBe('addr1');
@@ -964,11 +1250,15 @@ describe('PlacesRepository.fillIfEmpty (PL43/PL44/PL46) — three call shapes ov
 
     await places.fillIfEmpty(place.id, trip.id, { address: 'New address' });
 
-    expect((testDb.prepare('SELECT address FROM places WHERE id = ?').get(place.id) as { address: string }).address).toBe('Existing address');
+    expect(
+      (testDb.prepare('SELECT address FROM places WHERE id = ?').get(place.id) as { address: string }).address,
+    ).toBe('Existing address');
 
     const empty = createPlace(testDb, trip.id, { name: 'No address yet' });
     await places.fillIfEmpty(empty.id, trip.id, { address: 'First address' });
-    expect((testDb.prepare('SELECT address FROM places WHERE id = ?').get(empty.id) as { address: string }).address).toBe('First address');
+    expect(
+      (testDb.prepare('SELECT address FROM places WHERE id = ?').get(empty.id) as { address: string }).address,
+    ).toBe('First address');
   });
 
   it('PLACEREPO-043 (PL44 shape): image_url-only', async () => {
@@ -978,7 +1268,10 @@ describe('PlacesRepository.fillIfEmpty (PL43/PL44/PL46) — three call shapes ov
 
     await places.fillIfEmpty(place.id, trip.id, { image_url: '/api/maps/place-photo/x/bytes' });
 
-    const row = testDb.prepare('SELECT image_url, google_place_id FROM places WHERE id = ?').get(place.id) as { image_url: string; google_place_id: string | null };
+    const row = testDb.prepare('SELECT image_url, google_place_id FROM places WHERE id = ?').get(place.id) as {
+      image_url: string;
+      google_place_id: string | null;
+    };
     expect(row.image_url).toBe('/api/maps/place-photo/x/bytes');
     // Not touched — the key was never in `fields`, not even COALESCE'd against itself.
     expect(row.google_place_id).toBeNull();
@@ -991,7 +1284,9 @@ describe('PlacesRepository.fillIfEmpty (PL43/PL44/PL46) — three call shapes ov
 
     await places.fillIfEmpty(place.id, trip.id, { address: '1 Rue de Rivoli' });
 
-    expect((testDb.prepare('SELECT address FROM places WHERE id = ?').get(place.id) as { address: string }).address).toBe('1 Rue de Rivoli');
+    expect(
+      (testDb.prepare('SELECT address FROM places WHERE id = ?').get(place.id) as { address: string }).address,
+    ).toBe('1 Rue de Rivoli');
   });
 
   it('PLACEREPO-045: WHERE id = ? AND trip_id = ? scoping — a mismatched trip_id writes nothing', async () => {
@@ -1002,7 +1297,9 @@ describe('PlacesRepository.fillIfEmpty (PL43/PL44/PL46) — three call shapes ov
 
     await places.fillIfEmpty(place.id, otherTrip.id, { address: 'Should not land' });
 
-    expect((testDb.prepare('SELECT address FROM places WHERE id = ?').get(place.id) as { address: string | null }).address).toBeNull();
+    expect(
+      (testDb.prepare('SELECT address FROM places WHERE id = ?').get(place.id) as { address: string | null }).address,
+    ).toBeNull();
   });
 });
 
@@ -1058,20 +1355,72 @@ describe('PlacesRepository.listAllForTrip (TP40)', () => {
     // Row A: every nullable column non-null — a unicode string and a
     // '007'-style digit string among the values (rule 19's fixture bar).
     const rowA = insert.run(
-      trip.id, 'Café — 日本 ☕️', 'A description with 007-style digits', 48.1, 2.2, '007 Rue de Paris', category.id, 12.5, 'EUR',
-      'confirmed', 'notes-a', '2026-01-01T10:00:00Z', '10:00', '11:00',
-      45, 'place notes', '/img/a.png', 'gpid-007', 'gftid-a', 'https://a.example', '+33 1 23 45 67 89',
-      'driving', '2026-01-01 09:00:00', '2026-01-01 09:30:00', 'osm-a', '{"type":"LineString"}', '#ff0000', 'hotel',
-      50, 'amap-a', 'manual',
+      trip.id,
+      'Café — 日本 ☕️',
+      'A description with 007-style digits',
+      48.1,
+      2.2,
+      '007 Rue de Paris',
+      category.id,
+      12.5,
+      'EUR',
+      'confirmed',
+      'notes-a',
+      '2026-01-01T10:00:00Z',
+      '10:00',
+      '11:00',
+      45,
+      'place notes',
+      '/img/a.png',
+      'gpid-007',
+      'gftid-a',
+      'https://a.example',
+      '+33 1 23 45 67 89',
+      'driving',
+      '2026-01-01 09:00:00',
+      '2026-01-01 09:30:00',
+      'osm-a',
+      '{"type":"LineString"}',
+      '#ff0000',
+      'hotel',
+      50,
+      'amap-a',
+      'manual',
     ).lastInsertRowid as number;
 
     // Row B: every nullable column NULL.
     const rowB = insert.run(
-      trip.id, 'Bare Place', null, null, null, null, null, null, null,
-      null, null, null, null, null,
-      null, null, null, null, null, null, null,
-      null, null, null, null, null, null, null,
-      null, null, null,
+      trip.id,
+      'Bare Place',
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
     ).lastInsertRowid as number;
 
     // A place on another trip — must not leak into this trip's listAllForTrip.
@@ -1148,15 +1497,20 @@ describe('PlacesRepository.findChargingProbe (CH1)', () => {
 // ---------------------------------------------------------------------------
 
 describe('PlacesRepository.setSource (DWS7)', () => {
-  it('DWS7-001: stamps source without touching updated_at, matching the legacy statement\'s own column list', async () => {
+  it("DWS7-001: stamps source without touching updated_at, matching the legacy statement's own column list", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id, { name: 'Imported stay' });
-    const before = testDb.prepare('SELECT updated_at FROM places WHERE id = ?').get(place.id) as { updated_at: string | null };
+    const before = testDb.prepare('SELECT updated_at FROM places WHERE id = ?').get(place.id) as {
+      updated_at: string | null;
+    };
 
     await places.setSource(place.id, 'dawarich');
 
-    const row = testDb.prepare('SELECT source, updated_at FROM places WHERE id = ?').get(place.id) as { source: string | null; updated_at: string | null };
+    const row = testDb.prepare('SELECT source, updated_at FROM places WHERE id = ?').get(place.id) as {
+      source: string | null;
+      updated_at: string | null;
+    };
     expect(row.source).toBe('dawarich');
     expect(row.updated_at).toBe(before.updated_at);
   });
@@ -1178,7 +1532,9 @@ describe('PlacesRepository.setImageUrlIfUnset (MAP9)', () => {
     const n = await places.setImageUrlIfUnset('ChIJ_shared', '/uploads/photo-cache/new.jpg');
 
     expect(n).toBe(1);
-    const row = testDb.prepare('SELECT image_url FROM places WHERE id = ?').get(place.id) as { image_url: string | null };
+    const row = testDb.prepare('SELECT image_url FROM places WHERE id = ?').get(place.id) as {
+      image_url: string | null;
+    };
     expect(row.image_url).toBe('/uploads/photo-cache/new.jpg');
   });
 
@@ -1191,7 +1547,9 @@ describe('PlacesRepository.setImageUrlIfUnset (MAP9)', () => {
     const n = await places.setImageUrlIfUnset('ChIJ_blank', '/uploads/photo-cache/filled.jpg');
 
     expect(n).toBe(1);
-    const row = testDb.prepare('SELECT image_url FROM places WHERE id = ?').get(place.id) as { image_url: string | null };
+    const row = testDb.prepare('SELECT image_url FROM places WHERE id = ?').get(place.id) as {
+      image_url: string | null;
+    };
     expect(row.image_url).toBe('/uploads/photo-cache/filled.jpg');
   });
 
@@ -1199,12 +1557,16 @@ describe('PlacesRepository.setImageUrlIfUnset (MAP9)', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id, { name: 'Custom photo' });
-    testDb.prepare("UPDATE places SET google_place_id = 'ChIJ_custom', image_url = '/uploads/custom.jpg' WHERE id = ?").run(place.id);
+    testDb
+      .prepare("UPDATE places SET google_place_id = 'ChIJ_custom', image_url = '/uploads/custom.jpg' WHERE id = ?")
+      .run(place.id);
 
     const n = await places.setImageUrlIfUnset('ChIJ_custom', '/uploads/photo-cache/should-not-land.jpg');
 
     expect(n).toBe(0);
-    const row = testDb.prepare('SELECT image_url FROM places WHERE id = ?').get(place.id) as { image_url: string | null };
+    const row = testDb.prepare('SELECT image_url FROM places WHERE id = ?').get(place.id) as {
+      image_url: string | null;
+    };
     expect(row.image_url).toBe('/uploads/custom.jpg');
   });
 
@@ -1219,8 +1581,12 @@ describe('PlacesRepository.setImageUrlIfUnset (MAP9)', () => {
     const n = await places.setImageUrlIfUnset('ChIJ_shared2', '/uploads/photo-cache/both.jpg');
 
     expect(n).toBe(2);
-    expect((testDb.prepare('SELECT image_url FROM places WHERE id = ?').get(placeA.id) as { image_url: string }).image_url).toBe('/uploads/photo-cache/both.jpg');
-    expect((testDb.prepare('SELECT image_url FROM places WHERE id = ?').get(placeB.id) as { image_url: string }).image_url).toBe('/uploads/photo-cache/both.jpg');
+    expect(
+      (testDb.prepare('SELECT image_url FROM places WHERE id = ?').get(placeA.id) as { image_url: string }).image_url,
+    ).toBe('/uploads/photo-cache/both.jpg');
+    expect(
+      (testDb.prepare('SELECT image_url FROM places WHERE id = ?').get(placeB.id) as { image_url: string }).image_url,
+    ).toBe('/uploads/photo-cache/both.jpg');
   });
 });
 
@@ -1241,7 +1607,9 @@ describe('PlacesRepository.listAssignedForPublicApi (Plan 4 Task 1, public-api.s
     createDayAssignment(testDb, dayA.id, placeA1.id, { order_index: 1 });
     createDayAssignment(testDb, dayB.id, placeB1.id, { order_index: 0 });
     // A booked-night stop: da.accommodation_id IS NOT NULL, must be excluded.
-    testDb.prepare('INSERT INTO day_assignments (day_id, place_id, order_index, accommodation_id) VALUES (?, ?, 0, 999)').run(dayA.id, hotelPlace.id);
+    testDb
+      .prepare('INSERT INTO day_assignments (day_id, place_id, order_index, accommodation_id) VALUES (?, ?, 0, 999)')
+      .run(dayA.id, hotelPlace.id);
     // Unassigned place in the same trip — never a candidate at all.
     createPlace(testDb, trip.id, { name: 'Unassigned' });
     // A place assigned on a DIFFERENT trip — must not leak in.
@@ -1273,9 +1641,11 @@ describe('PlacesRepository.listAssignedForPublicApi (Plan 4 Task 1, public-api.s
 
 describe('PlacesRepository.isTrackInTrip (RT13, RoadtripService.trackExists)', () => {
   const legacyIsTrackInTrip = (id: number, tripId: number): boolean =>
-    !!testDb.prepare(
-      "SELECT id FROM places WHERE id = ? AND trip_id = ? AND route_geometry IS NOT NULL AND route_geometry != ''",
-    ).get(id, tripId);
+    !!testDb
+      .prepare(
+        "SELECT id FROM places WHERE id = ? AND trip_id = ? AND route_geometry IS NOT NULL AND route_geometry != ''",
+      )
+      .get(id, tripId);
 
   it('PLACEREPO-055: a place with route_geometry set matches the legacy predicate — true', async () => {
     const { user } = createUser(testDb);
@@ -1297,7 +1667,7 @@ describe('PlacesRepository.isTrackInTrip (RT13, RoadtripService.trackExists)', (
     expect(await places.isTrackInTrip(place.id, trip.id)).toBe(false);
   });
 
-  it('PLACEREPO-057: route_geometry \'\' (empty string) matches the legacy predicate — false', async () => {
+  it("PLACEREPO-057: route_geometry '' (empty string) matches the legacy predicate — false", async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id);
@@ -1355,17 +1725,22 @@ describe('PlacesRepository.listAddressesForUser (AT41, AtlasService#getTravelSta
     addTripMember(testDb, trip.id, member.id);
     const place = createPlace(testDb, trip.id, { name: 'Tower', lat: 48.85, lng: 2.35 });
     testDb.prepare('UPDATE places SET address = ? WHERE id = ?').run('5 Avenue Anatole France', place.id);
-    testDb.prepare('INSERT INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)')
+    testDb
+      .prepare('INSERT INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)')
       .run(place.id, 'FR', 'FR-IDF', 'Île-de-France');
     const noAddress = createPlace(testDb, trip.id, { name: 'No address' });
     testDb.prepare('UPDATE places SET address = NULL, lat = NULL, lng = NULL WHERE id = ?').run(noAddress.id);
 
-    const legacy = testDb.prepare(`
+    const legacy = testDb
+      .prepare(
+        `
       SELECT DISTINCT p.address, p.lat, p.lng, pr.region_name
       FROM places p JOIN trips t ON p.trip_id = t.id
       LEFT JOIN trip_members tm ON t.id = tm.trip_id
       LEFT JOIN place_regions pr ON pr.place_id = p.id
-      WHERE t.user_id = ? OR tm.user_id = ?`).all(owner.id, owner.id);
+      WHERE t.user_id = ? OR tm.user_id = ?`,
+      )
+      .all(owner.id, owner.id);
 
     const typedOwner = await places.listAddressesForUser(owner.id);
     expect(typedOwner).toEqual(legacy);
@@ -1394,7 +1769,9 @@ describe('PlacesRepository.listAddressesForUser (AT41, AtlasService#getTravelSta
  */
 describe('PlacesRepository — share.service.ts SH12 read', () => {
   function legacyPublicForShare(tripId: number): unknown {
-    return testDb.prepare(`
+    return testDb
+      .prepare(
+        `
       SELECT p.id, p.trip_id, p.name, p.description, p.lat, p.lng, p.address, p.category_id,
         p.price, p.currency, p.place_time, p.end_time, p.duration_minutes, p.notes,
         p.image_url, p.website, p.phone, p.transport_mode, p.created_at, p.updated_at,
@@ -1402,7 +1779,9 @@ describe('PlacesRepository — share.service.ts SH12 read', () => {
       FROM places p
       LEFT JOIN categories c ON c.id = p.category_id
       WHERE p.trip_id = ?
-      ORDER BY p.created_at DESC`).all(tripId);
+      ORDER BY p.created_at DESC`,
+      )
+      .all(tripId);
   }
 
   it('listPublicForShare — matches the legacy statement, categorised and uncategorised, every nullable column both null and set', async () => {
@@ -1411,24 +1790,49 @@ describe('PlacesRepository — share.service.ts SH12 read', () => {
     const other = createTrip(testDb, user.id);
     const category = createCategory(testDb, { name: 'Museum', color: '#111111', icon: '🏛️' });
 
-    const withCategory = createPlace(testDb, trip.id, { name: 'Louvre', lat: 48.86, lng: 2.34, category_id: category.id, description: 'Art museum' });
-    testDb.prepare(`
+    const withCategory = createPlace(testDb, trip.id, {
+      name: 'Louvre',
+      lat: 48.86,
+      lng: 2.34,
+      category_id: category.id,
+      description: 'Art museum',
+    });
+    testDb
+      .prepare(
+        `
       UPDATE places SET address = ?, price = ?, currency = ?, place_time = ?, end_time = ?,
         duration_minutes = ?, notes = ?, image_url = ?, website = ?, phone = ?, transport_mode = ?,
         updated_at = ?, created_at = ?, reservation_status = 'confirmed', google_place_id = 'ChIJ123'
-      WHERE id = ?`).run(
-      'Rue de Rivoli', 17.5, 'EUR', '10:00', '12:00', 120, 'bring ID', 'https://img/louvre.jpg',
-      'https://louvre.fr', '+33140205050', 'walking', '2026-09-01T09:00:00.000Z', '2026-09-01T08:00:00.000Z',
-      withCategory.id,
-    );
+      WHERE id = ?`,
+      )
+      .run(
+        'Rue de Rivoli',
+        17.5,
+        'EUR',
+        '10:00',
+        '12:00',
+        120,
+        'bring ID',
+        'https://img/louvre.jpg',
+        'https://louvre.fr',
+        '+33140205050',
+        'walking',
+        '2026-09-01T09:00:00.000Z',
+        '2026-09-01T08:00:00.000Z',
+        withCategory.id,
+      );
 
     const bare = createPlace(testDb, trip.id, { name: 'Unnamed spot' });
-    testDb.prepare(`
+    testDb
+      .prepare(
+        `
       UPDATE places SET category_id = NULL, lat = NULL, lng = NULL, address = NULL, price = NULL,
         currency = NULL, place_time = NULL, end_time = NULL, duration_minutes = NULL, notes = NULL,
         image_url = NULL, website = NULL, phone = NULL, transport_mode = NULL, updated_at = NULL,
         created_at = '2026-09-02T08:00:00.000Z', description = NULL
-      WHERE id = ?`).run(bare.id);
+      WHERE id = ?`,
+      )
+      .run(bare.id);
 
     // A place on a different trip must never leak in.
     createPlace(testDb, other.id, { name: 'Foreign place' });
@@ -1439,10 +1843,15 @@ describe('PlacesRepository — share.service.ts SH12 read', () => {
     // ORDER BY p.created_at DESC: bare (2026-09-02) before withCategory (2026-09-01).
     expect(typed.map((r) => r.id)).toEqual([bare.id, withCategory.id]);
     expect(typed.find((r) => r.id === withCategory.id)).toMatchObject({
-      category_name: 'Museum', category_color: '#111111', category_icon: '🏛️',
+      category_name: 'Museum',
+      category_color: '#111111',
+      category_icon: '🏛️',
     });
     expect(typed.find((r) => r.id === bare.id)).toMatchObject({
-      category_id: null, category_name: null, category_color: null, category_icon: null,
+      category_id: null,
+      category_name: null,
+      category_color: null,
+      category_icon: null,
     });
     // Owner-only columns are withheld by omission — never present on the row at all.
     expect(typed[1]).not.toHaveProperty('reservation_status');
@@ -1460,11 +1869,24 @@ describe('PlacesRepository.insertTourPlace (TO10) / updateTourRoute (TO11)', () 
   it('PLACEREPO-TOUR-001: insertTourPlace writes the route place as a walking place and leaves the rest at its defaults', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const id = await places.insertTourPlace({ trip_id: trip.id, name: 'Ridge walk', lat: 47, lng: 11, route_geometry: '[[47,11],[47.1,11.1]]' });
+    const id = await places.insertTourPlace({
+      trip_id: trip.id,
+      name: 'Ridge walk',
+      lat: 47,
+      lng: 11,
+      route_geometry: '[[47,11],[47.1,11.1]]',
+    });
 
     expect(await places.findInTrip(id, trip.id)).toMatchObject({
-      trip_id: trip.id, name: 'Ridge walk', lat: 47, lng: 11, transport_mode: 'walking',
-      route_geometry: '[[47,11],[47.1,11.1]]', duration_minutes: 60, reservation_status: 'none', category_id: null,
+      trip_id: trip.id,
+      name: 'Ridge walk',
+      lat: 47,
+      lng: 11,
+      transport_mode: 'walking',
+      route_geometry: '[[47,11],[47.1,11.1]]',
+      duration_minutes: 60,
+      reservation_status: 'none',
+      category_id: null,
     });
   });
 
@@ -1477,7 +1899,11 @@ describe('PlacesRepository.insertTourPlace (TO10) / updateTourRoute (TO11)', () 
     const route = { name: 'New', lat: 47, lng: 11, route_geometry: '[[47,11],[47.2,11.2]]' };
 
     expect(await places.updateTourRoute(place.id, other.id, route)).toBe(false);
-    expect(await places.findInTrip(place.id, trip.id)).toMatchObject({ name: 'Old', transport_mode: 'driving', updated_at: null });
+    expect(await places.findInTrip(place.id, trip.id)).toMatchObject({
+      name: 'Old',
+      transport_mode: 'driving',
+      updated_at: null,
+    });
 
     expect(await places.updateTourRoute(place.id, trip.id, route)).toBe(true);
     const row = await places.findInTrip(place.id, trip.id);

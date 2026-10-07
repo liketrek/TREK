@@ -59,7 +59,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'O complemento Dawarich está desativado nesta instância.',
   'dawarich.error.offline': 'Isso precisa de conexão — o TREK está offline agora.',
   'dawarich.error.invalid_url': 'O TREK não pode usar esse endereço.',
-  'dawarich.warning.private_ip': 'Esse endereço aponta para um IP privado ({ip}). Confirme se é isso mesmo — o servidor pode precisar de ALLOW_INTERNAL_NETWORK=true para alcançá-lo.',
+  'dawarich.warning.private_ip':
+    'Esse endereço aponta para um IP privado ({ip}). Confirme se é isso mesmo — o servidor pode precisar de ALLOW_INTERNAL_NETWORK=true para alcançá-lo.',
   'dawarich.error.unknown': 'Algo deu errado na conversa com o Dawarich.',
 
   // ── The recorded route on the map ──────────────────────────────────────────

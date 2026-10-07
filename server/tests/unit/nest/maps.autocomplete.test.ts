@@ -9,6 +9,12 @@
  * (`gers:` ids), and that nothing about a slow or missing index leaves somebody
  * typing into a box that never answers.
  */
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { MapsService } from '../../../src/nest/maps/maps.service';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { mockSearch } = vi.hoisted(() => ({
@@ -22,12 +28,6 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
 }));
 
 vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
-import { MapsService } from '../../../src/nest/maps/maps.service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import { noGoogleQuota } from '../../helpers/google-quota';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 
 // keyedProvider/resolveMapsKey (maps.service.ts) go through instance-api-keys.ts
 // on every call now. No per-user key is configured anywhere here; the instance
@@ -48,7 +48,6 @@ vi.mock('../../../src/app-config', async (importOriginal) => {
     },
   };
 });
-
 
 const INPUT = 'Café Kröpel';
 
@@ -101,7 +100,14 @@ function make(enabled = true, rows: Record<string, string> = {}) {
 const googleSuggestions = (name: string) => ({
   ok: true,
   json: async () => ({
-    suggestions: [{ placePrediction: { placeId: 'g1', structuredFormat: { mainText: { text: name }, secondaryText: { text: 'Chiyoda' } } } }],
+    suggestions: [
+      {
+        placePrediction: {
+          placeId: 'g1',
+          structuredFormat: { mainText: { text: name }, secondaryText: { text: 'Chiyoda' } },
+        },
+      },
+    ],
   }),
 });
 
@@ -148,8 +154,7 @@ describe('MapsService.autocompletePlaces', () => {
     });
 
     // Eight, not ten: the suggestion list is what a person reads while typing.
-    expect(mockSearch).toHaveBeenCalledWith(INPUT,
-      { lat: 54.1, lng: 12.2, limit: 8, sources: 'index,osm' });
+    expect(mockSearch).toHaveBeenCalledWith(INPUT, { lat: 54.1, lng: 12.2, limit: 8, sources: 'index,osm' });
   });
 
   it('MAPS-AUTO-004: without a bias the index is asked without coordinates rather than with zeroes', async () => {
@@ -160,8 +165,7 @@ describe('MapsService.autocompletePlaces', () => {
     // A 0/0 bias is a point in the Atlantic, and the index treats a bias as
     // permission to relax the match — which is how the shops around a landmark
     // start outranking the landmark.
-    expect(mockSearch).toHaveBeenCalledWith(INPUT,
-      { lat: undefined, lng: undefined, limit: 8, sources: 'index,osm' });
+    expect(mockSearch).toHaveBeenCalledWith(INPUT, { lat: undefined, lng: undefined, limit: 8, sources: 'index,osm' });
   });
 
   it('MAPS-AUTO-005: an index that found nothing falls through instead of answering empty', async () => {
@@ -203,11 +207,7 @@ describe('MapsService.autocompletePlaces', () => {
 
     const { suggestions } = await make().autocompletePlaces(1, INPUT);
 
-    expect(suggestions.map(s => s.placeId)).toEqual([
-      'gers:abc-123',
-      'node:9712313',
-      'gers:def-456',
-    ]);
+    expect(suggestions.map((s) => s.placeId)).toEqual(['gers:abc-123', 'node:9712313', 'gers:def-456']);
     // A local name equal to the label would be a repeated line, not a hint.
     const same = osmHit({ local_name: 'Tokio Hauptbahnhof' });
     mockSearch.mockResolvedValue([same]);
@@ -225,7 +225,7 @@ describe('MapsService.autocompletePlaces', () => {
     // told a place from OpenStreetMap came out of the TREK index, which is the
     // one thing the mark beside a suggestion exists to answer.
     expect(source).toBe('trek-places');
-    expect(suggestions.map(s => s.source)).toEqual(['trek-places', 'openstreetmap']);
+    expect(suggestions.map((s) => s.source)).toEqual(['trek-places', 'openstreetmap']);
   });
 
   it('MAPS-AUTO-011: a suggestion carries the coordinates the index already gave, so the pick needs no second hop', async () => {
@@ -276,8 +276,11 @@ describe('MapsService.autocompletePlaces', () => {
     // A key, but the admin picked OpenStreetMap: Google holds no slot, so
     // there is nothing for the switch to hand the keystroke to.
     mockSearch.mockClear();
-    const osmOnly = await make(true, { maps_api_key: 'key', places_google_only: 'true', places_provider: 'openstreetmap' })
-      .autocompletePlaces(1, INPUT);
+    const osmOnly = await make(true, {
+      maps_api_key: 'key',
+      places_google_only: 'true',
+      places_provider: 'openstreetmap',
+    }).autocompletePlaces(1, INPUT);
     expect(mockSearch).toHaveBeenCalledTimes(1);
     expect(osmOnly.source).toBe('trek-places');
 

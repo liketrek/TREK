@@ -1,10 +1,11 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import type { PublicApiStats } from '@trek/shared';
-import { AtlasService } from './atlas.service';
+import { RateLimitService } from '../common/rate-limit.service';
 import { ApiTokenGuard } from '../public-api/api-token.guard';
 import { enforcePublicApiRateLimit, requireScope, requireUserId } from '../public-api/public-api-request';
-import { RateLimitService } from '../common/rate-limit.service';
+import { AtlasService } from './atlas.service';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import type { PublicApiStats } from '@trek/shared';
+
+import type { Request } from 'express';
 
 /**
  * GET /api/v1/stats — aggregate counts for a dashboard widget (#1367).

@@ -1,5 +1,5 @@
-import React from 'react'
-import { Tooltip } from '../shared/Tooltip'
+import React from 'react';
+import { Tooltip } from '../shared/Tooltip';
 
 /**
  * One badge shape for everything Dawarich shows.
@@ -21,22 +21,22 @@ export default function DawarichBadge({
   label,
   children,
 }: {
-  icon?: React.ComponentType<{ className?: string }>
-  tone?: 'neutral' | 'quiet' | 'accent' | 'success' | 'warning'
+  icon?: React.ComponentType<{ className?: string }>;
+  tone?: 'neutral' | 'quiet' | 'accent' | 'success' | 'warning';
   /**
    * `xs` matches the places rail, where the panel sits beside rows of that size;
    * `sm` is for the dialogs, which are read at arm's length rather than scanned.
    */
-  size?: 'xs' | 'sm'
+  size?: 'xs' | 'sm';
   /** Hover text. Defaults to `label` when the badge is icon-only. */
-  title?: string
+  title?: string;
   /**
    * The accessible name for an icon-only badge. Passing it instead of children
    * is what makes a flag a round dot of colour without turning a screen reader
    * into someone staring at an unlabelled icon.
    */
-  label?: string
-  children?: React.ReactNode
+  label?: string;
+  children?: React.ReactNode;
 }): React.ReactElement {
   const tones: Record<string, string> = {
     neutral: 'bg-surface-secondary text-content-secondary',
@@ -44,13 +44,13 @@ export default function DawarichBadge({
     accent: 'bg-accent-subtle text-accent-on',
     success: 'bg-success-soft text-success',
     warning: 'bg-warning-soft text-warning',
-  }
+  };
   const metrics =
     size === 'sm'
       ? { style: { fontSize: 'calc(11px * var(--fs-scale-caption, 1))' }, box: 'h-[20px]', icon: 'w-3 h-3' }
-      : { style: { fontSize: 'calc(10px * var(--fs-scale-caption, 1))' }, box: 'h-[18px]', icon: 'w-2.5 h-2.5' }
-  const iconOnly = children === undefined
-  const hint = title ?? label
+      : { style: { fontSize: 'calc(10px * var(--fs-scale-caption, 1))' }, box: 'h-[18px]', icon: 'w-2.5 h-2.5' };
+  const iconOnly = children === undefined;
+  const hint = title ?? label;
   const badge = (
     <span
       aria-label={iconOnly ? label : undefined}
@@ -63,9 +63,15 @@ export default function DawarichBadge({
       {Icon && <Icon className={`${metrics.icon} flex-shrink-0`} />}
       {!iconOnly && <span className="truncate">{children}</span>}
     </span>
-  )
+  );
   // TREK's own tooltip rather than the browser's: the native one ignores the
   // colour scheme, waits a second and a half, and cannot be read on a touch
   // device at all. A badge with nothing to add gets none.
-  return hint ? <Tooltip label={hint} placement="top">{badge}</Tooltip> : badge
+  return hint ? (
+    <Tooltip label={hint} placement="top">
+      {badge}
+    </Tooltip>
+  ) : (
+    badge
+  );
 }

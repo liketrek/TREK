@@ -1,6 +1,6 @@
-import type { BookDocument } from '@trek/shared'
-import { SpreadView } from './SpreadView'
-import { MARK_LENGTH, MARK_WEIGHT, sheetBox, sheetsFor, type Sheet, type SheetMode, foliosOf } from './bookSheets'
+import type { BookDocument } from '@trek/shared';
+import { SpreadView } from './SpreadView';
+import { foliosOf, MARK_LENGTH, MARK_WEIGHT, sheetBox, sheetsFor, type Sheet, type SheetMode } from './bookSheets';
 
 /**
  * The book laid out for a press.
@@ -19,14 +19,16 @@ import { MARK_LENGTH, MARK_WEIGHT, sheetBox, sheetsFor, type Sheet, type SheetMo
  * Nothing here changes where anything sits on the page.
  */
 export function BookSheetsView({
-  doc, mode, marks,
+  doc,
+  mode,
+  marks,
 }: {
-  doc: BookDocument
-  mode: SheetMode
+  doc: BookDocument;
+  mode: SheetMode;
   /** Crop marks, and the room around the bleed they need. */
-  marks: boolean
+  marks: boolean;
 }) {
-  const sheets = sheetsFor(doc, mode)
+  const sheets = sheetsFor(doc, mode);
 
   return (
     <div className="bx-book">
@@ -40,17 +42,10 @@ export function BookSheetsView({
         />
       ))}
     </div>
-  )
+  );
 }
 
-function SheetView({
-  sheet, doc, marks, last,
-}: {
-  sheet: Sheet
-  doc: BookDocument
-  marks: boolean
-  last: boolean
-}) {
+function SheetView({ sheet, doc, marks, last }: { sheet: Sheet; doc: BookDocument; marks: boolean; last: boolean }) {
   /*
    * Each sheet is sized to what is on it, not to the widest in the book.
    *
@@ -60,11 +55,11 @@ function SheetView({
    * spread-sized page with white either side, which is not a cover. The print
    * CSS carries a named page rule for the narrow ones instead.
    */
-  const box = sheetBox(sheet.width, sheet.height, doc.page.bleed, marks)
+  const box = sheetBox(sheet.width, sheet.height, doc.page.bleed, marks);
 
   return (
     <div
-      className={`bx-sheet${sheet.single ? ' is-single' : ''}`}
+      className={`bx-sheet${sheet.single ? 'is-single' : ''}`}
       data-label={sheet.label}
       style={{
         position: 'relative',
@@ -116,7 +111,7 @@ function SheetView({
 
       {marks && <CropMarks box={box} width={sheet.width} height={sheet.height} />}
     </div>
-  )
+  );
 }
 
 /**
@@ -126,18 +121,12 @@ function SheetView({
  * outward — never crossing the trim, because a mark printed inside the trim is
  * a mark that stays in the finished book.
  */
-function CropMarks({
-  box, width, height,
-}: {
-  box: ReturnType<typeof sheetBox>
-  width: number
-  height: number
-}) {
-  const left = box.margin
-  const top = box.margin
-  const right = left + width
-  const bottom = top + height
-  const gap = box.bleed
+function CropMarks({ box, width, height }: { box: ReturnType<typeof sheetBox>; width: number; height: number }) {
+  const left = box.margin;
+  const top = box.margin;
+  const right = left + width;
+  const bottom = top + height;
+  const gap = box.bleed;
 
   const line = (x: number, y: number, w: number, h: number, key: string) => (
     <div
@@ -151,26 +140,26 @@ function CropMarks({
         background: '#000000',
       }}
     />
-  )
+  );
 
-  const marks = []
-  for (const [x, dx] of [[left, -1], [right, 1]] as const) {
-    for (const [y, dy] of [[top, -1], [bottom, 1]] as const) {
+  const marks = [];
+  for (const [x, dx] of [
+    [left, -1],
+    [right, 1],
+  ] as const) {
+    for (const [y, dy] of [
+      [top, -1],
+      [bottom, 1],
+    ] as const) {
       // Horizontal arm, reaching out from the corner past the bleed.
-      marks.push(line(
-        dx < 0 ? x - gap - MARK_LENGTH : x + gap,
-        y - MARK_WEIGHT / 2,
-        MARK_LENGTH, MARK_WEIGHT,
-        `h${x}-${y}`,
-      ))
+      marks.push(
+        line(dx < 0 ? x - gap - MARK_LENGTH : x + gap, y - MARK_WEIGHT / 2, MARK_LENGTH, MARK_WEIGHT, `h${x}-${y}`)
+      );
       // Vertical arm.
-      marks.push(line(
-        x - MARK_WEIGHT / 2,
-        dy < 0 ? y - gap - MARK_LENGTH : y + gap,
-        MARK_WEIGHT, MARK_LENGTH,
-        `v${x}-${y}`,
-      ))
+      marks.push(
+        line(x - MARK_WEIGHT / 2, dy < 0 ? y - gap - MARK_LENGTH : y + gap, MARK_WEIGHT, MARK_LENGTH, `v${x}-${y}`)
+      );
     }
   }
-  return <>{marks}</>
+  return <>{marks}</>;
 }

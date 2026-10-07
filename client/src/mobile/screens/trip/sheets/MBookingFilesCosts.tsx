@@ -1,22 +1,22 @@
-import type { Dispatch, SetStateAction } from 'react'
-import PlFileAttach from './PlFileAttach'
-import MLinkedCosts from './MLinkedCosts'
-import { useReservationFiles } from '../../../../components/Planner/useRecordLinks'
-import type { BudgetItem } from '../../../../types'
-import type { TripPlanner } from '../MTripShell'
+import type { Dispatch, SetStateAction } from 'react';
+import { useReservationFiles } from '../../../../components/Planner/useRecordLinks';
+import type { BudgetItem } from '../../../../types';
+import type { TripPlanner } from '../MTripShell';
+import MLinkedCosts from './MLinkedCosts';
+import PlFileAttach from './PlFileAttach';
 
 interface MBookingFilesCostsProps {
-  planner: TripPlanner
+  planner: TripPlanner;
   /** The saved booking or transport; linking waits for it. */
-  reservationId: number | null | undefined
-  pendingFiles: File[]
-  setPendingFiles: Dispatch<SetStateAction<File[]>>
-  canUploadFiles: boolean
+  reservationId: number | null | undefined;
+  pendingFiles: File[];
+  setPendingFiles: Dispatch<SetStateAction<File[]>>;
+  canUploadFiles: boolean;
   /** The Costs addon is on. */
-  showCosts: boolean
-  createDisabled: boolean
-  onCreate: () => void
-  onEdit: (item: BudgetItem) => void
+  showCosts: boolean;
+  createDisabled: boolean;
+  onCreate: () => void;
+  onEdit: (item: BudgetItem) => void;
 }
 
 /**
@@ -27,10 +27,18 @@ interface MBookingFilesCostsProps {
  * sheets carry exactly this, so it lives here once.
  */
 export default function MBookingFilesCosts({
-  planner, reservationId, pendingFiles, setPendingFiles, canUploadFiles, showCosts, createDisabled, onCreate, onEdit,
+  planner,
+  reservationId,
+  pendingFiles,
+  setPendingFiles,
+  canUploadFiles,
+  showCosts,
+  createDisabled,
+  onCreate,
+  onEdit,
 }: MBookingFilesCostsProps) {
-  const bookingFiles = useReservationFiles(reservationId)
-  const showFiles = canUploadFiles || bookingFiles.attached.length > 0 || bookingFiles.linkable.length > 0
+  const bookingFiles = useReservationFiles(reservationId);
+  const showFiles = canUploadFiles || bookingFiles.attached.length > 0 || bookingFiles.linkable.length > 0;
 
   return (
     <>
@@ -38,8 +46,8 @@ export default function MBookingFilesCosts({
         <PlFileAttach
           planner={planner}
           files={pendingFiles}
-          onAdd={files => setPendingFiles(prev => [...prev, ...files])}
-          onRemove={idx => setPendingFiles(prev => prev.filter((_, i) => i !== idx))}
+          onAdd={(files) => setPendingFiles((prev) => [...prev, ...files])}
+          onRemove={(idx) => setPendingFiles((prev) => prev.filter((_, i) => i !== idx))}
           hideHint
           canAttach={canUploadFiles}
           attached={bookingFiles.attached}
@@ -57,5 +65,5 @@ export default function MBookingFilesCosts({
         />
       )}
     </>
-  )
+  );
 }

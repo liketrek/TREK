@@ -1,6 +1,6 @@
 // FE-COMP-JOURNALBODY-001 to FE-COMP-JOURNALBODY-013
 
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen } from '../../../tests/helpers/render';
 import JournalBody from './JournalBody';
 

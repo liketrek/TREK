@@ -245,10 +245,7 @@ export class TagsRepository extends TrekRepository<Tags> {
 
   /** PL12 — `DELETE FROM place_tags WHERE place_id = ?` (the replace-all half of an update). */
   async deleteForPlace(place_id: number): Promise<void> {
-    await this.kysely<PlaceTagsKyselyDB>()
-      .deleteFrom('place_tags')
-      .where('place_id', '=', place_id)
-      .execute();
+    await this.kysely<PlaceTagsKyselyDB>().deleteFrom('place_tags').where('place_id', '=', place_id).execute();
   }
 
   // ---------------------------------------------------------------------------

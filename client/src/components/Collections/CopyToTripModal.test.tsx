@@ -1,8 +1,8 @@
 // FE-COMP-COPYTRIP-001 to FE-COMP-COPYTRIP-016
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '../../../tests/helpers/render';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
 import { tripsApi } from '../../api/client';
 import { useTranslation } from '../../i18n/TranslationContext';
 import CopyToTripModal from './CopyToTripModal';
@@ -16,7 +16,13 @@ function Harness(props: ModalProps): React.ReactElement {
 }
 
 const TRIPS = [
-  { id: 1, title: 'Rome 2026', start_date: '2026-04-02', end_date: '2026-04-09', cover_image: '/uploads/covers/rome.jpg' },
+  {
+    id: 1,
+    title: 'Rome 2026',
+    start_date: '2026-04-02',
+    end_date: '2026-04-09',
+    cover_image: '/uploads/covers/rome.jpg',
+  },
   { id: 2, title: 'Tokyo', start_date: null, end_date: null, cover_image: null },
 ];
 
@@ -57,10 +63,16 @@ describe('CopyToTripModal', () => {
   });
 
   it('FE-COMP-COPYTRIP-015: a trips response landing after the modal closed is dropped', async () => {
-    const closed = <Harness isOpen onClose={vi.fn()} placeIds={[7]} onCopy={vi.fn(async () => ({ copied: 0, skipped: [] }))} />;
+    const closed = (
+      <Harness isOpen onClose={vi.fn()} placeIds={[7]} onCopy={vi.fn(async () => ({ copied: 0, skipped: [] }))} />
+    );
 
     let resolve!: (v: { trips: typeof TRIPS }) => void;
-    const spy = vi.spyOn(tripsApi, 'list').mockReturnValue(new Promise(r => { resolve = r; }));
+    const spy = vi.spyOn(tripsApi, 'list').mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
+      })
+    );
     render(closed).unmount();
     resolve({ trips: TRIPS });
     await Promise.resolve();
@@ -68,7 +80,11 @@ describe('CopyToTripModal', () => {
 
     // Same for a rejection — no "no trips" state is written into an unmounted tree.
     let reject!: (e: Error) => void;
-    spy.mockReturnValue(new Promise((_, r) => { reject = r; }));
+    spy.mockReturnValue(
+      new Promise((_, r) => {
+        reject = r;
+      })
+    );
     render(closed).unmount();
     reject(new Error('offline'));
     await Promise.resolve();
@@ -107,7 +123,11 @@ describe('CopyToTripModal', () => {
   });
 
   it('FE-COMP-COPYTRIP-003: the title is singular for one place and counted for a bulk copy', async () => {
-    const { unmount } = render(<Harness {...{ isOpen: true, onClose: vi.fn(), placeIds: [7], onCopy: vi.fn(async () => ({ copied: 1, skipped: [] })) }} />);
+    const { unmount } = render(
+      <Harness
+        {...{ isOpen: true, onClose: vi.fn(), placeIds: [7], onCopy: vi.fn(async () => ({ copied: 1, skipped: [] })) }}
+      />
+    );
     expect(await screen.findByRole('heading', { name: 'Copy to trip' })).toBeInTheDocument();
     unmount();
 
@@ -117,7 +137,11 @@ describe('CopyToTripModal', () => {
 
   it('FE-COMP-COPYTRIP-004: shows the spinner until the trips arrive', async () => {
     let resolve!: (v: { trips: typeof TRIPS }) => void;
-    vi.spyOn(tripsApi, 'list').mockReturnValue(new Promise(r => { resolve = r; }));
+    vi.spyOn(tripsApi, 'list').mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
+      })
+    );
     renderModal();
     expect(document.querySelector('.animate-spin')).not.toBeNull();
 
@@ -127,7 +151,11 @@ describe('CopyToTripModal', () => {
 
   it('FE-COMP-COPYTRIP-005: an empty or failing trips response shows the no-trips copy', async () => {
     vi.spyOn(tripsApi, 'list').mockResolvedValue({});
-    const { unmount } = render(<Harness {...{ isOpen: true, onClose: vi.fn(), placeIds: [7], onCopy: vi.fn(async () => ({ copied: 0, skipped: [] })) }} />);
+    const { unmount } = render(
+      <Harness
+        {...{ isOpen: true, onClose: vi.fn(), placeIds: [7], onCopy: vi.fn(async () => ({ copied: 0, skipped: [] })) }}
+      />
+    );
     expect(await screen.findByText('No trips yet')).toBeInTheDocument();
     unmount();
 
@@ -185,7 +213,9 @@ describe('CopyToTripModal', () => {
   });
 
   it('FE-COMP-COPYTRIP-011: a failed copy surfaces the server message and keeps the modal open', async () => {
-    const onCopy = vi.fn((): Promise<CopyResult> => Promise.reject({ response: { data: { error: 'Trip is locked' } } }));
+    const onCopy = vi.fn((): Promise<CopyResult> =>
+      Promise.reject({ response: { data: { error: 'Trip is locked' } } })
+    );
     const props = renderModal({ onCopy });
 
     fireEvent.click(await screen.findByText('Rome 2026'));
@@ -195,7 +225,12 @@ describe('CopyToTripModal', () => {
 
   it('FE-COMP-COPYTRIP-012: a second click while a copy is running is ignored', async () => {
     let resolve!: (v: CopyResult) => void;
-    const onCopy = vi.fn(() => new Promise<CopyResult>(r => { resolve = r; }));
+    const onCopy = vi.fn(
+      () =>
+        new Promise<CopyResult>((r) => {
+          resolve = r;
+        })
+    );
     const props = renderModal({ onCopy });
 
     fireEvent.click(await screen.findByText('Rome 2026'));

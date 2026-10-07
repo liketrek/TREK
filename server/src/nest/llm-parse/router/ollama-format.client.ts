@@ -10,10 +10,9 @@
  * so the router talks to `/api/chat` directly. (Cloud providers enforce via their own strict
  * tool/response_format and keep using the existing clients.)
  */
-
-import { parseLenientJson } from '../lenient-json';
-import { safeFetchLlm } from '../../../utils/ssrfGuard';
 import { readEnv } from '../../../app-config';
+import { safeFetchLlm } from '../../../utils/ssrfGuard';
+import { parseLenientJson } from '../lenient-json';
 
 export interface EnforcedExtractInput {
   /** Ollama base URL — accepts the addon's `…/v1` form; the `/v1` suffix is stripped. */

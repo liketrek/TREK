@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { readChargingInfo } from '../../../src/nest/maps/maps.helpers';
+
+import { describe, it, expect } from 'vitest';
 
 /**
  * The tag reading that turns an Overpass answer into something a traveller can filter on.
@@ -12,12 +13,14 @@ describe('readChargingInfo', () => {
   // The query has always asked for `out center tags` and the projection has always
   // thrown these away. Nothing here costs an extra request.
   it('MAPS-CHARGE-001: reads the socket families, their count and their power', () => {
-    expect(readChargingInfo({
-      'socket:type2': '4',
-      'socket:type2:output': '22 kW',
-      'socket:ccs': '2',
-      'socket:ccs:output': '150',
-    })).toEqual({
+    expect(
+      readChargingInfo({
+        'socket:type2': '4',
+        'socket:type2:output': '22 kW',
+        'socket:ccs': '2',
+        'socket:ccs:output': '150',
+      }),
+    ).toEqual({
       sockets: [
         { type: 'type2', count: 4, kw: 22 },
         { type: 'ccs', count: 2, kw: 150 },
@@ -30,9 +33,7 @@ describe('readChargingInfo', () => {
   it('MAPS-CHARGE-002: a socket that states nothing beyond its presence still counts', () => {
     // `socket:type2=yes` is common. The family is the useful part; the rest is unknown
     // rather than zero, and a filter has to be able to tell those apart.
-    expect(readChargingInfo({ 'socket:type2': 'yes' })?.sockets).toEqual([
-      { type: 'type2', count: null, kw: null },
-    ]);
+    expect(readChargingInfo({ 'socket:type2': 'yes' })?.sockets).toEqual([{ type: 'type2', count: null, kw: null }]);
   });
 
   it('MAPS-CHARGE-003: free text power is read off the front, comma or not', () => {

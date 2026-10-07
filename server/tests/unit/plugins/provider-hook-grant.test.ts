@@ -8,17 +8,25 @@
  * providersOf only reads status/hooks/granted, so we inject bare Supervised entries
  * into the private running map rather than spawning real children.
  */
-import { describe, it, expect } from 'vitest';
+import { db } from '../../../src/db/database';
 import { PluginSupervisor } from '../../../src/nest/plugins/supervisor/plugin-supervisor';
 import { createPluginRuntime } from '../../helpers/plugin-host';
-import { db } from '../../../src/db/database';
+
+import { describe, it, expect } from 'vitest';
 
 function makeSupervisor(): PluginSupervisor {
   // createRpcHost is never called on the providersOf path (no spawn).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return new PluginSupervisor((() => ({})) as any, {}, {});
 }
-function put(s: PluginSupervisor, id: string, status: string, hooks: string[], granted: string[], hookFns: Record<string, string[]> = {}): void {
+function put(
+  s: PluginSupervisor,
+  id: string,
+  status: string,
+  hooks: string[],
+  granted: string[],
+  hookFns: Record<string, string[]> = {},
+): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (s as any).running.set(id, { id, status, hooks, hookFns, granted: new Set(granted) });
 }
@@ -115,7 +123,10 @@ describe('providersOf narrowed to one optional function (#2221)', () => {
     put(s, 'ungranted', 'active', ['searchProvider'], ['hook:poi-category-provider'], both);
     put(s, 'restarting', 'starting', ['searchProvider'], ['hook:search-provider'], both);
     // A function of another hook of the same plugin does not count for this one.
-    put(s, 'crossed', 'active', ['searchProvider', 'photoProvider'], ['hook:search-provider'], { searchProvider: ['search'], photoProvider: ['suggest'] });
+    put(s, 'crossed', 'active', ['searchProvider', 'photoProvider'], ['hook:search-provider'], {
+      searchProvider: ['search'],
+      photoProvider: ['suggest'],
+    });
     expect(s.providersOf('searchProvider', 'suggest')).toEqual(['typeahead']);
     expect(s.providersOf('searchProvider')).toEqual(['typeahead', 'search-only', 'crossed']);
   });
@@ -123,14 +134,27 @@ describe('providersOf narrowed to one optional function (#2221)', () => {
   it('reads the functions off the loaded report the way it reads anything from a child: warily', async () => {
     const s = makeSupervisor();
     const starting = () => ({
-      id: 'p', status: 'starting', granted: new Set(['hook:search-provider']), hooks: [], hookFns: {}, jobs: [],
-      events: [], exports: [], mcpTools: [], subscriptions: [], pending: new Map(), invocations: new Map(), crashes: [],
+      id: 'p',
+      status: 'starting',
+      granted: new Set(['hook:search-provider']),
+      hooks: [],
+      hookFns: {},
+      jobs: [],
+      events: [],
+      exports: [],
+      mcpTools: [],
+      subscriptions: [],
+      pending: new Map(),
+      invocations: new Map(),
+      crashes: [],
     });
     const sup = starting();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (s as any).running.set('p', sup);
     // Parsed from JSON, as it crosses the IPC channel, so `__proto__` is an own key here.
-    const hookFns = JSON.parse('{"searchProvider":["search","suggest",7],"__proto__":["suggest"],"mysteryProvider":["suggest"],"photoProvider":"suggest"}');
+    const hookFns = JSON.parse(
+      '{"searchProvider":["search","suggest",7],"__proto__":["suggest"],"mysteryProvider":["suggest"],"photoProvider":"suggest"}',
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (s as any).onMessage(sup, { k: 'evt', topic: 'loaded', data: { hooks: ['searchProvider'], hookFns } });
     expect(sup.status).toBe('active');
@@ -143,7 +167,11 @@ describe('providersOf narrowed to one optional function (#2221)', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (s as any).running.set('p', bare);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (s as any).onMessage(bare, { k: 'evt', topic: 'loaded', data: { hooks: ['searchProvider'], hookFns: ['suggest'] } });
+    await (s as any).onMessage(bare, {
+      k: 'evt',
+      topic: 'loaded',
+      data: { hooks: ['searchProvider'], hookFns: ['suggest'] },
+    });
     expect(bare.status).toBe('active');
     expect(bare.hookFns).toEqual({});
     expect(s.providersOf('searchProvider', 'suggest')).toEqual([]);
@@ -156,7 +184,15 @@ describe('runtime.invokeHook defense-in-depth', () => {
     const rt = await createPluginRuntime(db);
     // one legitimate granted provider exists, so providersOf('placeDetailProvider') = ['ok']
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (rt as any).supervisor.running.set('ok', { id: 'ok', status: 'active', hooks: ['placeDetailProvider'], events: [], granted: new Set(['hook:place-detail-provider']) });
-    await expect(rt.invokeHook('other', 'placeDetailProvider', 'getDetails', [1])).rejects.toThrow(/not a granted provider/);
+    (rt as any).supervisor.running.set('ok', {
+      id: 'ok',
+      status: 'active',
+      hooks: ['placeDetailProvider'],
+      events: [],
+      granted: new Set(['hook:place-detail-provider']),
+    });
+    await expect(rt.invokeHook('other', 'placeDetailProvider', 'getDetails', [1])).rejects.toThrow(
+      /not a granted provider/,
+    );
   });
 });

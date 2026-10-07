@@ -1,17 +1,17 @@
-import { schoolHolidayBand } from '../../../components/Vacay/holidayVisual'
-import { dayVisual, hatchTint, localDateStr, monthLead, type DayVisualContext } from './vacayDayModel'
+import { schoolHolidayBand } from '../../../components/Vacay/holidayVisual';
+import { dayVisual, hatchTint, localDateStr, monthLead, type DayVisualContext } from './vacayDayModel';
 
 interface MVacayMonthProps {
-  year: number
-  month: number
+  year: number;
+  month: number;
   /** mini = year-grid tile cells, full = single-month edit cells */
-  variant: 'mini' | 'full'
-  weekStart: number
-  ctx: DayVisualContext
-  tripDates: Set<string>
-  tripDotColor: string
+  variant: 'mini' | 'full';
+  weekStart: number;
+  ctx: DayVisualContext;
+  tripDates: Set<string>;
+  tripDotColor: string;
   /** mini cells zoom into that month, full cells log the day (#1811). */
-  onDayTap: (date: string) => void
+  onDayTap: (date: string) => void;
 }
 
 /**
@@ -21,20 +21,29 @@ interface MVacayMonthProps {
  * trip-overlap dot can sit in the corner.
  */
 export default function MVacayMonth({
-  year, month, variant, weekStart, ctx, tripDates, tripDotColor, onDayTap,
+  year,
+  month,
+  variant,
+  weekStart,
+  ctx,
+  tripDates,
+  tripDotColor,
+  onDayTap,
 }: MVacayMonthProps) {
-  const lead = monthLead(year, month, weekStart)
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const mini = variant === 'mini'
+  const lead = monthLead(year, month, weekStart);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const mini = variant === 'mini';
 
   return (
     <div className={`grid grid-cols-7 ${mini ? 'gap-[2px]' : 'gap-[3px]'}`}>
-      {Array.from({ length: lead }, (_, i) => <span key={`lead-${i}`} />)}
+      {Array.from({ length: lead }, (_, i) => (
+        <span key={`lead-${i}`} />
+      ))}
       {Array.from({ length: daysInMonth }, (_, i) => {
-        const day = i + 1
-        const dateStr = localDateStr(year, month, day)
-        const dayOfWeek = new Date(year, month, day).getDay()
-        const visual = dayVisual(dateStr, dayOfWeek, ctx)
+        const day = i + 1;
+        const dateStr = localDateStr(year, month, day);
+        const dayOfWeek = new Date(year, month, day).getDay();
+        const visual = dayVisual(dateStr, dayOfWeek, ctx);
         return (
           <button
             key={day}
@@ -44,7 +53,12 @@ export default function MVacayMonth({
             className={`relative flex aspect-square items-center justify-center font-geist font-bold ${
               mini ? 'rounded-[6px] text-[0.53125rem]' : 'rounded-lg text-[0.75rem]'
             }`}
-            style={{ background: visual.background, color: visual.numColor, boxShadow: visual.boxShadow, textShadow: visual.textShadow }}
+            style={{
+              background: visual.background,
+              color: visual.numColor,
+              boxShadow: visual.boxShadow,
+              textShadow: visual.textShadow,
+            }}
           >
             {/* 2+ people: equal-width segment overlays, each solid (vacation) or hatched (comp) (#1074). */}
             {visual.segments && visual.segments.length > 1 && (
@@ -76,7 +90,7 @@ export default function MVacayMonth({
               <span
                 aria-hidden
                 className={`absolute rounded-full ${
-                  mini ? 'right-[2px] bottom-[2px] h-[3px] w-[3px]' : 'right-[4px] bottom-[4px] h-[5px] w-[5px]'
+                  mini ? 'bottom-[2px] right-[2px] h-[3px] w-[3px]' : 'bottom-[4px] right-[4px] h-[5px] w-[5px]'
                 }`}
                 style={{ background: '#f97316' }}
               />
@@ -91,8 +105,8 @@ export default function MVacayMonth({
               />
             )}
           </button>
-        )
+        );
       })}
     </div>
-  )
+  );
 }

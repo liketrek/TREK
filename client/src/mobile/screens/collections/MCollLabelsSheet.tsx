@@ -1,27 +1,27 @@
-import { useEffect, useState } from 'react'
-import { Check, Pencil, Plus, Tag, Trash2 } from 'lucide-react'
-import type { CollectionLabelUpdateRequest } from '@trek/shared'
-import type { TranslationFn } from '../../../types'
-import type { LabelOption } from '../../../pages/collections/collectionsModel'
-import MSheet from '../../components/MSheet'
-import { SWATCH_COLORS } from './collectionsMobileModel'
-import { Eyebrow, INPUT_CLS, PrimaryPill, SheetFooter, SheetHeader } from './MCollSheetKit'
+import type { CollectionLabelUpdateRequest } from '@trek/shared';
+import { Check, Pencil, Plus, Tag, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import type { LabelOption } from '../../../pages/collections/collectionsModel';
+import type { TranslationFn } from '../../../types';
+import MSheet from '../../components/MSheet';
+import { SWATCH_COLORS } from './collectionsMobileModel';
+import { Eyebrow, INPUT_CLS, PrimaryPill, SheetFooter, SheetHeader } from './MCollSheetKit';
 
-export type MCollLabelsMode = 'manage' | 'assign'
+export type MCollLabelsMode = 'manage' | 'assign';
 
 interface MCollLabelsSheetProps {
-  open: boolean
-  mode: MCollLabelsMode
-  labels: LabelOption[]
+  open: boolean;
+  mode: MCollLabelsMode;
+  labels: LabelOption[];
   /** Selection size, for the assign title. */
-  selectedCount: number
-  onCreate: (name: string, color?: string) => Promise<void>
-  onUpdate: (labelId: number, body: CollectionLabelUpdateRequest) => Promise<void>
-  onDelete: (labelId: number) => Promise<void>
-  onAssign: (labelIds: number[]) => Promise<void>
-  onSwitchToManage: () => void
-  onClose: () => void
-  t: TranslationFn
+  selectedCount: number;
+  onCreate: (name: string, color?: string) => Promise<void>;
+  onUpdate: (labelId: number, body: CollectionLabelUpdateRequest) => Promise<void>;
+  onDelete: (labelId: number) => Promise<void>;
+  onAssign: (labelIds: number[]) => Promise<void>;
+  onSwitchToManage: () => void;
+  onClose: () => void;
+  t: TranslationFn;
 }
 
 /**
@@ -29,67 +29,78 @@ interface MCollLabelsSheetProps {
  * deletes labels; assign mode toggles labels onto the current selection.
  */
 export default function MCollLabelsSheet({
-  open, mode, labels, selectedCount, onCreate, onUpdate, onDelete, onAssign, onSwitchToManage, onClose, t,
+  open,
+  mode,
+  labels,
+  selectedCount,
+  onCreate,
+  onUpdate,
+  onDelete,
+  onAssign,
+  onSwitchToManage,
+  onClose,
+  t,
 }: MCollLabelsSheetProps) {
-  const [name, setName] = useState('')
-  const [color, setColor] = useState(SWATCH_COLORS[0])
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [checked, setChecked] = useState<number[]>([])
-  const [busy, setBusy] = useState(false)
+  const [name, setName] = useState('');
+  const [color, setColor] = useState(SWATCH_COLORS[0]);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [checked, setChecked] = useState<number[]>([]);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (open) return
-    setName('')
-    setColor(SWATCH_COLORS[0])
-    setEditingId(null)
-    setChecked([])
-  }, [open])
+    if (open) return;
+    setName('');
+    setColor(SWATCH_COLORS[0]);
+    setEditingId(null);
+    setChecked([]);
+  }, [open]);
 
   const startEdit = (label: LabelOption) => {
-    setEditingId(label.id)
-    setName(label.name)
-    setColor(label.color || SWATCH_COLORS[0])
-  }
+    setEditingId(label.id);
+    setName(label.name);
+    setColor(label.color || SWATCH_COLORS[0]);
+  };
 
   const submit = async () => {
-    const trimmed = name.trim()
-    if (!trimmed || busy) return
-    setBusy(true)
+    const trimmed = name.trim();
+    if (!trimmed || busy) return;
+    setBusy(true);
     try {
-      if (editingId != null) await onUpdate(editingId, { name: trimmed, color })
-      else await onCreate(trimmed, color)
-      setName('')
-      setColor(SWATCH_COLORS[0])
-      setEditingId(null)
+      if (editingId != null) await onUpdate(editingId, { name: trimmed, color });
+      else await onCreate(trimmed, color);
+      setName('');
+      setColor(SWATCH_COLORS[0]);
+      setEditingId(null);
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
-  }
+  };
 
   const remove = async (labelId: number) => {
-    if (busy) return
-    setBusy(true)
+    if (busy) return;
+    setBusy(true);
     try {
-      await onDelete(labelId)
+      await onDelete(labelId);
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
-  }
+  };
 
   const assign = async () => {
-    if (checked.length === 0 || busy) return
-    setBusy(true)
+    if (checked.length === 0 || busy) return;
+    setBusy(true);
     try {
-      await onAssign(checked)
+      await onAssign(checked);
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
-  }
+  };
 
   const toggleChecked = (id: number) =>
-    setChecked(checked.includes(id) ? checked.filter(x => x !== id) : [...checked, id])
+    setChecked(checked.includes(id) ? checked.filter((x) => x !== id) : [...checked, id]);
 
-  const title = mode === 'assign' ? t('collections.labels.assignN', { count: selectedCount }) : t('collections.labels.manage')
+  const title =
+    mode === 'assign' ? t('collections.labels.assignN', { count: selectedCount }) : t('collections.labels.manage');
 
   return (
     <MSheet open={open} onClose={onClose} material="opaque" ariaLabel={title}>
@@ -100,13 +111,15 @@ export default function MCollLabelsSheet({
             <Eyebrow className="mb-2">{t('collections.labels.add').toUpperCase()}</Eyebrow>
             <input
               value={name}
-              onChange={e => setName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') void submit() }}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void submit();
+              }}
               placeholder={t('collections.labels.namePlaceholder')}
               className={INPUT_CLS}
             />
             <div className="mt-[11px] flex flex-wrap gap-[9px]">
-              {SWATCH_COLORS.map(col => (
+              {SWATCH_COLORS.map((col) => (
                 <button
                   key={col}
                   type="button"
@@ -138,32 +151,41 @@ export default function MCollLabelsSheet({
             </span>
             <div className="font-geist text-[0.71875rem] text-m-faint">{t('collections.labels.empty')}</div>
             {mode === 'assign' && (
-              <div className="text-center font-geist text-[0.6875rem] text-m-faint">{t('collections.labels.emptyHint')}</div>
+              <div className="text-center font-geist text-[0.6875rem] text-m-faint">
+                {t('collections.labels.emptyHint')}
+              </div>
             )}
           </div>
         ) : (
           <div className={mode === 'manage' ? 'mt-2' : ''}>
-            {labels.map(label => {
-              const col = label.color || SWATCH_COLORS[0]
-              const on = mode === 'assign' && checked.includes(label.id)
+            {labels.map((label) => {
+              const col = label.color || SWATCH_COLORS[0];
+              const on = mode === 'assign' && checked.includes(label.id);
               return (
                 <div
                   key={label.id}
                   className={`mb-1 flex items-center gap-[10px] rounded-[13px] px-3 py-[10px] ${editingId === label.id || on ? 'bg-[color:var(--m-ic)]' : ''}`}
                   style={on ? { boxShadow: `inset 0 0 0 1.5px ${col}` } : undefined}
                   onClick={mode === 'assign' ? () => toggleChecked(label.id) : undefined}
-                  onKeyDown={mode === 'assign'
-                    ? (e) => {
-                      if (e.target !== e.currentTarget) return
-                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleChecked(label.id) }
-                    }
-                    : undefined}
+                  onKeyDown={
+                    mode === 'assign'
+                      ? (e) => {
+                          if (e.target !== e.currentTarget) return;
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleChecked(label.id);
+                          }
+                        }
+                      : undefined
+                  }
                   role={mode === 'assign' ? 'checkbox' : undefined}
                   tabIndex={mode === 'assign' ? 0 : undefined}
                   aria-checked={mode === 'assign' ? on : undefined}
                 >
                   <span className="h-[9px] w-[9px] flex-none rounded-full" style={{ background: col }} />
-                  <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold text-m-ink">{label.name}</span>
+                  <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold text-m-ink">
+                    {label.name}
+                  </span>
                   <span className="font-geist text-[0.6875rem] font-bold text-m-faint">{label.count}</span>
                   {mode === 'manage' ? (
                     <>
@@ -189,7 +211,7 @@ export default function MCollLabelsSheet({
                     on && <Check size={15} strokeWidth={2.6} style={{ color: col }} />
                   )}
                 </div>
-              )
+              );
             })}
           </div>
         )}
@@ -205,5 +227,5 @@ export default function MCollLabelsSheet({
         </SheetFooter>
       )}
     </MSheet>
-  )
+  );
 }

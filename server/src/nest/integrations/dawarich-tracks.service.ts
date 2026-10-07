@@ -1,16 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { DAWARICH_TRACK_POINTS_PER_DAY, type DawarichTrack } from '@trek/shared';
 import { Trips } from '../../db/entities/Trips.entity';
 import { TripsRepository } from '../../db/repositories/Trips.repository';
 import { DawarichClient, type DawarichCreds } from './dawarich.client';
+import { bucketPointsByDay, bucketTracksByDay, countPoints, offsetMinutesOf } from './dawarich.helpers';
 import { DawarichService } from './dawarich.service';
-import {
-  bucketPointsByDay,
-  bucketTracksByDay,
-  countPoints,
-  offsetMinutesOf,
-} from './dawarich.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import { DAWARICH_TRACK_POINTS_PER_DAY, type DawarichTrack } from '@trek/shared';
 
 /**
  * The recorded route for a window, fetched on demand and never stored.

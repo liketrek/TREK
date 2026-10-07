@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { redact, SENSITIVE_KEYS } from '../../../src/middleware/globalMiddleware';
+
+import { describe, it, expect } from 'vitest';
 
 describe('globalMiddleware request-log redaction', () => {
   it('redacts secretAccessKey (any casing) — storage admin PUT bodies land in the same debug log line', () => {
@@ -141,7 +142,12 @@ describe('globalMiddleware request-log redaction', () => {
   it('keeps an endpoint that is an ordinary setting readable, like the S3 backend URL', () => {
     expect(
       redact({ endpoint: 'http://127.0.0.1:9000', bucket: 'trek', region: 'us-east-1', secretAccessKey: 'sk' }),
-    ).toEqual({ endpoint: 'http://127.0.0.1:9000', bucket: 'trek', region: 'us-east-1', secretAccessKey: '[REDACTED]' });
+    ).toEqual({
+      endpoint: 'http://127.0.0.1:9000',
+      bucket: 'trek',
+      region: 'us-east-1',
+      secretAccessKey: '[REDACTED]',
+    });
     expect(redact({ endpoint: 'https://s3.example.com', forcePathStyle: true })).toEqual({
       endpoint: 'https://s3.example.com',
       forcePathStyle: true,

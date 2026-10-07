@@ -1,25 +1,24 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
-
-vi.mock('../../../../src/db/database', async () => {
-
-  const { createSnapshotTestDb } = await import('../../../helpers/db-mock');
-  const db = createSnapshotTestDb();
-    return { db, closeDb: () => {}, reinitialize: () => {} };
-});
-
-vi.mock('../../../../src/config', () => ({ ENCRYPTION_KEY: 'storage-stats-test-key' }));
-
 import { db as testDb } from '../../../../src/db/database';
+import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
+import { StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
+import { StatsBusyError, StorageStatsService } from '../../../../src/nest/storage/storage-stats.service';
+import { StorageService } from '../../../../src/nest/storage/storage.service';
+import { createTestUnitOfWork, createTestAppSettingsRepo, sharedTestOrm } from '../../../helpers/test-uow';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import type { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
-import { StorageEventsService } from '../../../../src/nest/storage/storage-events.service';
-import { StorageRegistryService } from '../../../../src/nest/storage/storage-registry.service';
-import { StorageService } from '../../../../src/nest/storage/storage.service';
-import { StatsBusyError, StorageStatsService } from '../../../../src/nest/storage/storage-stats.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo, sharedTestOrm } from '../../../helpers/test-uow';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
+
+vi.mock('../../../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../../../helpers/db-mock');
+  const db = createSnapshotTestDb();
+  return { db, closeDb: () => {}, reinitialize: () => {} };
+});
+
+vi.mock('../../../../src/config', () => ({ ENCRYPTION_KEY: 'storage-stats-test-key' }));
 
 const tmpDirs: string[] = [];
 function makeTmpDir(): string {

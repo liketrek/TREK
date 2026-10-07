@@ -1,4 +1,4 @@
-import { render, waitFor, act } from '../../../tests/helpers/render';
+import { act, render, waitFor } from '../../../tests/helpers/render';
 import SlidingTabs from './SlidingTabs';
 
 const TABS = [
@@ -26,15 +26,13 @@ describe('SlidingTabs', () => {
 
     // jsdom has no real layout — stub geometry. Container sits at left 0; buttons report
     // the mutable rect (only the active button is ever measured).
-    rectSpy = vi
-      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
-      .mockImplementation(function (this: HTMLElement) {
-        const base = { top: 0, right: 0, bottom: 0, x: 0, y: 0, toJSON: () => ({}) };
-        if (this.tagName === 'BUTTON') {
-          return { ...base, left: activeButtonRect.left, width: activeButtonRect.width } as DOMRect;
-        }
-        return { ...base, left: 0, width: 300 } as DOMRect;
-      });
+    rectSpy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const base = { top: 0, right: 0, bottom: 0, x: 0, y: 0, toJSON: () => ({}) };
+      if (this.tagName === 'BUTTON') {
+        return { ...base, left: activeButtonRect.left, width: activeButtonRect.width } as DOMRect;
+      }
+      return { ...base, left: 0, width: 300 } as DOMRect;
+    });
 
     // Capturing ResizeObserver so tests can drive the resize path (global mock is a no-op).
     class CapturingResizeObserver {
@@ -51,7 +49,7 @@ describe('SlidingTabs', () => {
     Object.defineProperty(document, 'fonts', {
       configurable: true,
       value: {
-        ready: new Promise<void>(resolve => {
+        ready: new Promise<void>((resolve) => {
           resolveFonts = resolve;
         }),
       },
@@ -97,9 +95,7 @@ describe('SlidingTabs', () => {
 
     activeButtonRect = { left: 40, width: 90 };
     act(() => {
-      capturedResizeCallbacks.forEach(cb =>
-        cb([] as unknown as ResizeObserverEntry[], {} as ResizeObserver),
-      );
+      capturedResizeCallbacks.forEach((cb) => cb([] as unknown as ResizeObserverEntry[], {} as ResizeObserver));
     });
 
     expect(pill()!.style.left).toBe('40px');

@@ -1,28 +1,38 @@
-import { Fragment, useCallback, useMemo, useRef } from 'react'
-import { AlertTriangle, MapPin, Navigation } from 'lucide-react'
-import { useMPlanDaySwipe } from '../plan/useMPlanDaySwipe'
-import { showStopOnMap, useMRoadtrip } from './useMRoadtrip'
-import { useMRtCorridor } from './useMRtCorridor'
-import { useMRtAlternatives } from './useMRtAlternatives'
-import MRtCorridorBar from './MRtCorridorBar'
-import MRtAlternativesBar from './MRtAlternativesBar'
-import { RtAutoRow, RtBookendRow, RtBookingChips, RtDryRow, RtLegRow, RtRideRow, RtSpillRow, RtStopRow, type RowChrome } from './MRoadtripRows'
-import MBadge from '../../../components/MBadge'
-import MDancingTrek from '../../../components/MDancingTrek'
-import { formatDurationShort } from '../../../../components/Roadtrip/roadtripModel'
-import { navigationTargetLabel, getNavigationTargets } from '../../../../components/Planner/placeNavigation'
-import { useSettingsStore } from '../../../../store/settingsStore'
-import { formatDistance } from '../../../../utils/units'
-import { formatClockTime } from '../../../../utils/formatters'
-import { isRtlLanguage } from '../../../../i18n'
-import type { MTripTabPanelProps } from '../MTripShell'
-import { arrivingReroutable, legReroutable, type StopRow } from '../../../../components/Roadtrip/roadtripRowModel'
-import { ARRIVING_DRIVE, type RailDrive } from '../../../../components/Roadtrip/useRouteAlternatives'
-import { dayBookings } from '../../../../components/Roadtrip/stopBookings'
-import { bookendBooking } from '../../../../components/Roadtrip/nightBookend'
-import { getDayOrder } from '../../../../utils/dayOrder'
-import { undatedRides } from '@trek/shared/roadtrip'
-import type { Reservation, TranslationFn } from '../../../../types'
+import { undatedRides } from '@trek/shared/roadtrip';
+import { AlertTriangle, MapPin, Navigation } from 'lucide-react';
+import { Fragment, useCallback, useMemo, useRef } from 'react';
+import { getNavigationTargets, navigationTargetLabel } from '../../../../components/Planner/placeNavigation';
+import { bookendBooking } from '../../../../components/Roadtrip/nightBookend';
+import { formatDurationShort } from '../../../../components/Roadtrip/roadtripModel';
+import { arrivingReroutable, legReroutable, type StopRow } from '../../../../components/Roadtrip/roadtripRowModel';
+import { dayBookings } from '../../../../components/Roadtrip/stopBookings';
+import { ARRIVING_DRIVE, type RailDrive } from '../../../../components/Roadtrip/useRouteAlternatives';
+import { isRtlLanguage } from '../../../../i18n';
+import { useSettingsStore } from '../../../../store/settingsStore';
+import type { Reservation, TranslationFn } from '../../../../types';
+import { getDayOrder } from '../../../../utils/dayOrder';
+import { formatClockTime } from '../../../../utils/formatters';
+import { formatDistance } from '../../../../utils/units';
+import MBadge from '../../../components/MBadge';
+import MDancingTrek from '../../../components/MDancingTrek';
+import type { MTripTabPanelProps } from '../MTripShell';
+import { useMPlanDaySwipe } from '../plan/useMPlanDaySwipe';
+import {
+  RtAutoRow,
+  RtBookendRow,
+  RtBookingChips,
+  RtDryRow,
+  RtLegRow,
+  RtRideRow,
+  RtSpillRow,
+  RtStopRow,
+  type RowChrome,
+} from './MRoadtripRows';
+import MRtAlternativesBar from './MRtAlternativesBar';
+import MRtCorridorBar from './MRtCorridorBar';
+import { showStopOnMap, useMRoadtrip } from './useMRoadtrip';
+import { useMRtAlternatives } from './useMRtAlternatives';
+import { useMRtCorridor } from './useMRtCorridor';
 
 /**
  * The road trip tab: one day of the drive, as a chain or on the map.
@@ -38,17 +48,17 @@ import type { Reservation, TranslationFn } from '../../../../types'
  * scroll, the day tints, the label format and the second tap that opens the day sheet.
  */
 export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
-  const { t, days } = planner
-  const panelRef = useRef<HTMLDivElement>(null)
-  const cardRef = useRef<HTMLDivElement>(null)
-  const rt = useMRoadtrip(planner)
-  const corridor = useMRtCorridor(planner, shell)
+  const { t, days } = planner;
+  const panelRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const rt = useMRoadtrip(planner);
+  const corridor = useMRtCorridor(planner, shell);
   // Called once here and handed down, like `rt`: the chain's leg buttons and the bar over
   // the map read one controller, so a leg shows pressed for exactly the picker on the map.
-  const alts = useMRtAlternatives(planner, shell)
-  const unit = useSettingsStore(s => s.settings.distance_unit)
-  const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
-  const chrome: RowChrome = { t, unit, is12h }
+  const alts = useMRtAlternatives(planner, shell);
+  const unit = useSettingsStore((s) => s.settings.distance_unit);
+  const is12h = useSettingsStore((s) => s.settings.time_format) === '12h';
+  const chrome: RowChrome = { t, unit, is12h };
 
   // The same gesture the day timeline uses, called rather than rebuilt: 370 lines of
   // worked-out conflict avoidance, down to the dead 24px gutter that stops iOS from
@@ -58,7 +68,7 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
     selectedDayId: planner.selectedDayId,
     // skipFit: the map underneath stays mounted, and the stage's own focus points
     // frame it as soon as the selection moves.
-    onSelectDay: dayId => planner.handleSelectDay(dayId, true),
+    onSelectDay: (dayId) => planner.handleSelectDay(dayId, true),
     panelRef,
     cardRef,
     editing: false,
@@ -66,9 +76,9 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
     menuOpen: !!shell.sheet,
     rtl: isRtlLanguage(planner.language),
     describeDay: (i, n) => t('mobileTrip.dayAnnounce', { current: i + 1, total: n }),
-  })
+  });
 
-  const stage = rt.stage
+  const stage = rt.stage;
 
   // The map's whole-trip view leaves no day selected, and it stays that way when the
   // list comes up: the switch here restores nothing on purpose, and the plan tab's
@@ -76,58 +86,62 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
   // with routed days and no day picked it asks for one, rather than claiming there is
   // no route while the header above prints the whole drive's distance. A day that is
   // picked and has no drive of its own still gets the empty stage further down.
-  const noDayPicked = !stage && !rt.empty && !rt.loading && planner.selectedDayId == null
+  const noDayPicked = !stage && !rt.empty && !rt.loading && planner.selectedDayId == null;
 
   // The disc is only a control for somebody who may change a place. Read here rather than
   // inside the row so the whole chain asks once, the way `rt` and `chrome` are handled.
-  const canEditPlaces = planner.can('place_edit', planner.trip)
+  const canEditPlaces = planner.can('place_edit', planner.trip);
 
   const openStop = (row: StopRow) => {
     // A terminal is the booking's, and opens it: there is no stop sheet for an airport.
-    if (row.stop.carrier) shell.openSheet('transport', { reservationId: row.stop.carrier.reservationId })
-    else if (row.bookend) openBookend(row.stop.ownerDayId, row.bookend)
-    else shell.openSheet('rtstop', { dayId: row.stop.ownerDayId, assignmentId: row.stop.assignmentId })
-  }
+    if (row.stop.carrier) shell.openSheet('transport', { reservationId: row.stop.carrier.reservationId });
+    else if (row.bookend) openBookend(row.stop.ownerDayId, row.bookend);
+    else shell.openSheet('rtstop', { dayId: row.stop.ownerDayId, assignmentId: row.stop.assignmentId });
+  };
 
   // Where each day stands in the trip, so a booking spanning several days is listed on
   // the days between its ends as well.
-  const dayOrder = useCallback((dayId: number) => {
-    const stored = planner.days.find(d => d.id === dayId)
-    return stored ? getDayOrder(stored, planner.days) : null
-  }, [planner.days])
+  const dayOrder = useCallback(
+    (dayId: number) => {
+      const stored = planner.days.find((d) => d.id === dayId);
+      return stored ? getDayOrder(stored, planner.days) : null;
+    },
+    [planner.days]
+  );
   // The bookings under the stage's stops and the ones the stage has for no stop, keyed
   // by the stop's assignment because the rows carry no index. Opened the way the place
   // sheet opens its linked bookings: a transport in its sheet, anything else in its
   // editor.
   const bookings = useMemo(() => {
-    const byIndex = stage ? dayBookings(stage, planner.reservations, dayOrder) : null
-    const atStop = new Map<number, Reservation[]>()
-    if (stage && byIndex) for (const [i, list] of byIndex.atStop) atStop.set(stage.stops[i]!.assignmentId, list)
-    return { atStop, loose: byIndex?.loose ?? [] }
-  }, [stage, planner.reservations, dayOrder])
+    const byIndex = stage ? dayBookings(stage, planner.reservations, dayOrder) : null;
+    const atStop = new Map<number, Reservation[]>();
+    if (stage && byIndex) for (const [i, list] of byIndex.atStop) atStop.set(stage.stops[i]!.assignmentId, list);
+    return { atStop, loose: byIndex?.loose ?? [] };
+  }, [stage, planner.reservations, dayOrder]);
   // The rides on no day, which the drive leaves out: listed above the stage, whichever it is.
-  const undated = useMemo(() => undatedRides(planner.reservations), [planner.reservations])
+  const undated = useMemo(() => undatedRides(planner.reservations), [planner.reservations]);
   // A chip that may not be opened is not a button in the first place (`bookingOpens`),
   // so nothing is turned away silently here.
-  const canEditBookings = planner.can('reservation_edit', planner.trip)
+  const canEditBookings = planner.can('reservation_edit', planner.trip);
   const openBooking = (res: Reservation) => {
     if (planner.TRANSPORT_TYPES.has(res.type)) {
-      shell.openSheet('transport', { reservationId: res.id })
-      return
+      shell.openSheet('transport', { reservationId: res.id });
+      return;
     }
-    planner.setEditingReservation(res)
-    planner.setShowReservationModal(true)
-  }
+    planner.setEditingReservation(res);
+    planner.setShowReservationModal(true);
+  };
   // A booked night at the edge of the stage is no stop, and has no stop sheet: it opens the
   // booking behind the night, else the stay for somebody who may edit days, else the
   // hotel's place, the way a stay chip in the day timeline does (#2210).
   const openBookend = (dayId: number, reading: NonNullable<StopRow['bookend']>) => {
-    const booking = bookendBooking(reading, canEditBookings)
-    const res = booking === null ? undefined : planner.reservations.find(r => r.id === booking)
-    if (res) openBooking(res)
-    else if (planner.can('day_edit', planner.trip)) shell.openSheet('accommodation', { dayId, accId: reading.accommodationId })
-    else planner.handlePlaceClick(reading.placeId)
-  }
+    const booking = bookendBooking(reading, canEditBookings);
+    const res = booking === null ? undefined : planner.reservations.find((r) => r.id === booking);
+    if (res) openBooking(res);
+    else if (planner.can('day_edit', planner.trip))
+      shell.openSheet('accommodation', { dayId, accId: reading.accommodationId });
+    else planner.handlePlaceClick(reading.placeId);
+  };
 
   // The search bar sits in the same band on both halves, at the same offset, so the
   // list/map switch never moves it: it is one stage seen two ways, and a control that
@@ -141,7 +155,7 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
     <div className="pointer-events-auto absolute left-4 right-4 top-[calc(var(--m-safe-top,12px)+96px)] z-[26]">
       <MRtCorridorBar planner={planner} corridor={corridor} onOpen={() => shell.openSheet('rtsearch')} />
     </div>
-  )
+  );
 
   // ── Map half: the search bar, and the picker's bar while it is open. Everything
   // between them belongs to the map instance the shell keeps mounted, so this layer must
@@ -165,22 +179,24 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
             Mounted only while the picker is open, so nothing invisible lies over the map's
             own buttons the rest of the time. */}
         {alts.open && (
-          <div className="pointer-events-auto absolute left-4 right-4 bottom-[calc(var(--bottom-nav-h,84px)+4px)]">
+          <div className="pointer-events-auto absolute bottom-[calc(var(--bottom-nav-h,84px)+4px)] left-4 right-4">
             <MRtAlternativesBar planner={planner} alts={alts} />
           </div>
         )}
       </div>
-    )
+    );
   }
 
   // ── List half ────────────────────────────────────────────────────────────────
   return (
     <div ref={panelRef} className="absolute inset-0" {...daySwipe.handlers}>
-      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{daySwipe.announcement}</span>
+      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {daySwipe.announcement}
+      </span>
       {searchBar}
       <div
         ref={cardRef}
-        className={`absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] ${
+        className={`absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] ${
           searchBar ? 'pt-[calc(var(--m-safe-top,12px)+150px)]' : 'pt-[calc(var(--m-safe-top,12px)+102px)]'
         }`}
       >
@@ -224,9 +240,9 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
                   <MBadge caps={false} wrap>
                     {stage.distance > 0
                       ? t('roadtrip.leg.driveText', {
-                        distance: formatDistance(stage.distance / 1000, unit),
-                        time: formatDurationShort(stage.duration),
-                      })
+                          distance: formatDistance(stage.distance / 1000, unit),
+                          time: formatDurationShort(stage.duration),
+                        })
                       : t('roadtrip.summary.partial')}
                   </MBadge>
                   {/* Not on a stage that only drives from one stay to the next, where "0 stops"
@@ -239,7 +255,10 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
                   <span className="block font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-faint">
                     {t('mobileTrip.rtStart')}
                   </span>
-                  <span dir="ltr" className="mt-0.5 block text-[1.5rem] font-extrabold leading-none tabular-nums text-m-ink">
+                  <span
+                    dir="ltr"
+                    className="mt-0.5 block text-[1.5rem] font-extrabold tabular-nums leading-none text-m-ink"
+                  >
                     {rt.clocks.start ? formatClockTime(rt.clocks.start, is12h) : '-'}
                   </span>
                 </span>
@@ -247,7 +266,10 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
                   <span className="block font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-faint">
                     {t('roadtrip.stay.arrive')}
                   </span>
-                  <span dir="ltr" className="mt-0.5 block text-[1.5rem] font-extrabold leading-none tabular-nums text-m-ink">
+                  <span
+                    dir="ltr"
+                    className="mt-0.5 block text-[1.5rem] font-extrabold tabular-nums leading-none text-m-ink"
+                  >
                     {rt.clocks.arrive ? formatClockTime(rt.clocks.arrive, is12h) : '-'}
                   </span>
                 </span>
@@ -255,7 +277,10 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
               {stage.dayWarning && (
                 <div
                   className="mt-2 rounded-[13px] px-[11px] py-[7px]"
-                  style={{ background: 'color-mix(in srgb, var(--m-st-pending) 12%, transparent)', color: 'var(--m-st-pending)' }}
+                  style={{
+                    background: 'color-mix(in srgb, var(--m-st-pending) 12%, transparent)',
+                    color: 'var(--m-st-pending)',
+                  }}
                 >
                   <span className="flex items-center gap-[6px] text-[0.71875rem] font-semibold">
                     <AlertTriangle size={13} strokeWidth={2} aria-hidden="true" />
@@ -276,35 +301,53 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
             <section className="mt-2.5 overflow-hidden rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-3.5 pb-3 pt-1">
               {rt.rows.map((row, i) => {
                 if (row.kind === 'stop' && row.bookend) {
-                  return <RtBookendRow key={`s${i}`} row={row} bookend={row.bookend} chrome={chrome} onOpen={() => openStop(row)} />
+                  return (
+                    <RtBookendRow
+                      key={`s${i}`}
+                      row={row}
+                      bookend={row.bookend}
+                      chrome={chrome}
+                      onOpen={() => openStop(row)}
+                    />
+                  );
                 }
                 if (row.kind === 'stop') {
-                  const chips = bookings.atStop.get(row.stop.assignmentId)
+                  const chips = bookings.atStop.get(row.stop.assignmentId);
                   return (
                     <Fragment key={`s${i}`}>
                       <RtStopRow
                         row={row}
                         chrome={chrome}
                         onOpen={() => openStop(row)}
-                        onPickKind={canEditPlaces && !row.stop.carrier
-                          ? () => shell.openSheet('rtkind', {
-                              placeId: row.stop.placeId,
-                              stopType: row.stop.stopType ?? null,
-                              name: row.stop.name,
-                            })
-                          : undefined}
+                        onPickKind={
+                          canEditPlaces && !row.stop.carrier
+                            ? () =>
+                                shell.openSheet('rtkind', {
+                                  placeId: row.stop.placeId,
+                                  stopType: row.stop.stopType ?? null,
+                                  name: row.stop.name,
+                                })
+                            : undefined
+                        }
                       />
-                      {chips && <RtBookingChips bookings={chips} chrome={chrome} canEdit={canEditBookings} onOpen={openBooking} />}
+                      {chips && (
+                        <RtBookingChips
+                          bookings={chips}
+                          chrome={chrome}
+                          canEdit={canEditBookings}
+                          onOpen={openBooking}
+                        />
+                      )}
                     </Fragment>
-                  )
+                  );
                 }
                 if (row.kind === 'leg' || row.kind === 'arriving') {
                   // Only where the desk rail offers it too (legReroutable, arrivingReroutable),
                   // and with the card's day id, the one the desk passes: the planner finds the
                   // day each stop is stored on by itself.
-                  const leg = row.kind === 'leg'
-                  const drive: RailDrive = leg ? { kind: 'leg', index: row.index } : ARRIVING_DRIVE
-                  const reroutable = leg ? legReroutable(stage, row.index) : arrivingReroutable(stage)
+                  const leg = row.kind === 'leg';
+                  const drive: RailDrive = leg ? { kind: 'leg', index: row.index } : ARRIVING_DRIVE;
+                  const reroutable = leg ? legReroutable(stage, row.index) : arrivingReroutable(stage);
                   return (
                     <RtLegRow
                       key={`l${i}`}
@@ -316,14 +359,24 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
                       alternativesOpen={alts.isOpenFor(stage.dayId, drive)}
                       alternativesDisabled={!alts.editable}
                     />
-                  )
+                  );
                 }
                 if (row.kind === 'ride') {
-                  return <RtRideRow key={`r${i}`} row={row} chrome={chrome} onOpen={() => shell.openSheet('transport', { reservationId: row.carrier.reservationId })} />
+                  return (
+                    <RtRideRow
+                      key={`r${i}`}
+                      row={row}
+                      chrome={chrome}
+                      onOpen={() => shell.openSheet('transport', { reservationId: row.carrier.reservationId })}
+                    />
+                  );
                 }
-                if (row.kind === 'auto') return <RtAutoRow key={`a${i}`} phase={row.phase} time={row.time} chrome={chrome} />
+                if (row.kind === 'auto')
+                  return <RtAutoRow key={`a${i}`} phase={row.phase} time={row.time} chrome={chrome} />;
                 if (row.kind === 'spill') {
-                  return <RtSpillRow key={`p${i}`} fromDayNumber={row.fromDayNumber} departs={row.departs} chrome={chrome} />
+                  return (
+                    <RtSpillRow key={`p${i}`} fromDayNumber={row.fromDayNumber} departs={row.departs} chrome={chrome} />
+                  );
                 }
                 return (
                   <RtDryRow
@@ -335,22 +388,34 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
                     refuel={planner.refuel}
                     dayId={stage.dayId}
                     legIndex={row.legIndex}
-                    onSearch={planner.can('day_edit', planner.trip)
-                      ? () => planner.askRefuel(stage.dayId, dryPointFor(planner, stage.dayId, row.legIndex))
-                      : undefined}
-                    onAccept={planner.can('day_edit', planner.trip)
-                      ? poi => planner.acceptRefuel(stage.dayId, poi, dryPointFor(planner, stage.dayId, row.legIndex))
-                      : undefined}
+                    onSearch={
+                      planner.can('day_edit', planner.trip)
+                        ? () => planner.askRefuel(stage.dayId, dryPointFor(planner, stage.dayId, row.legIndex))
+                        : undefined
+                    }
+                    onAccept={
+                      planner.can('day_edit', planner.trip)
+                        ? (poi) =>
+                            planner.acceptRefuel(stage.dayId, poi, dryPointFor(planner, stage.dayId, row.legIndex))
+                        : undefined
+                    }
                   />
-                )
+                );
               })}
               {bookings.loose.length > 0 && (
                 <div className="mt-1">
                   <div className="grid gap-x-[10px]" style={{ gridTemplateColumns: '34px 1fr' }}>
                     <span aria-hidden="true" />
-                    <span className="mb-[6px] block font-geist text-[0.65625rem] font-semibold uppercase tracking-[0.08em] text-m-faint">{t('roadtrip.bookings.loose')}</span>
+                    <span className="mb-[6px] block font-geist text-[0.65625rem] font-semibold uppercase tracking-[0.08em] text-m-faint">
+                      {t('roadtrip.bookings.loose')}
+                    </span>
                   </div>
-                  <RtBookingChips bookings={bookings.loose} chrome={chrome} canEdit={canEditBookings} onOpen={openBooking} />
+                  <RtBookingChips
+                    bookings={bookings.loose}
+                    chrome={chrome}
+                    canEdit={canEditBookings}
+                    onOpen={openBooking}
+                  />
                 </div>
               )}
             </section>
@@ -358,7 +423,7 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 /**
@@ -369,20 +434,26 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
  * planned time stays put and the delta sits beside it, because the planned time is the
  * number you want to compare against.
  */
-function UpNext({ planner, shell, rt, stageDayId, onOpen }: {
-  planner: MTripTabPanelProps['planner']
-  shell: MTripTabPanelProps['shell']
-  rt: ReturnType<typeof useMRoadtrip>
-  stageDayId: number
-  onOpen: (row: StopRow) => void
+function UpNext({
+  planner,
+  shell,
+  rt,
+  stageDayId,
+  onOpen,
+}: {
+  planner: MTripTabPanelProps['planner'];
+  shell: MTripTabPanelProps['shell'];
+  rt: ReturnType<typeof useMRoadtrip>;
+  stageDayId: number;
+  onOpen: (row: StopRow) => void;
 }) {
-  const { t } = planner
-  const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
-  const next = rt.upNext
-  if (!next) return null
-  const late = next.minutesUntil < 0
-  const place = planner.places.find(p => p.id === next.row.stop.placeId)
-  const targets = place ? getNavigationTargets(place) : []
+  const { t } = planner;
+  const is12h = useSettingsStore((s) => s.settings.time_format) === '12h';
+  const next = rt.upNext;
+  if (!next) return null;
+  const late = next.minutesUntil < 0;
+  const place = planner.places.find((p) => p.id === next.row.stop.placeId);
+  const targets = place ? getNavigationTargets(place) : [];
 
   return (
     <section className="mt-2.5 rounded-[22px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-4 py-3.5 shadow-[0_18px_44px_-18px_rgba(0,0,0,.3)]">
@@ -396,9 +467,14 @@ function UpNext({ planner, shell, rt, stageDayId, onOpen }: {
               "behind plan" is the strongest honest claim available. */}
           <span
             className="whitespace-nowrap rounded-full px-2 py-[2px] text-[0.6875rem] font-semibold"
-            style={late
-              ? { background: 'color-mix(in srgb, var(--m-st-pending) 16%, transparent)', color: 'var(--m-st-pending)' }
-              : { background: 'var(--m-ic)', color: 'var(--m-ink)' }}
+            style={
+              late
+                ? {
+                    background: 'color-mix(in srgb, var(--m-st-pending) 16%, transparent)',
+                    color: 'var(--m-st-pending)',
+                  }
+                : { background: 'var(--m-ic)', color: 'var(--m-ink)' }
+            }
           >
             {late
               ? t('mobileTrip.rtBehind', { time: formatDurationShort(-next.minutesUntil * 60) })
@@ -407,7 +483,9 @@ function UpNext({ planner, shell, rt, stageDayId, onOpen }: {
         </span>
         <span className="mt-1.5 block truncate text-[1.125rem] font-bold text-m-ink">{next.row.stop.name}</span>
         {next.row.time && (
-          <span className="mt-[2px] block font-geist text-[0.75rem] tabular-nums text-m-muted">{formatClockTime(next.row.time, is12h)}</span>
+          <span className="mt-[2px] block font-geist text-[0.75rem] tabular-nums text-m-muted">
+            {formatClockTime(next.row.time, is12h)}
+          </span>
         )}
       </button>
       <div className="mt-3 flex gap-2">
@@ -432,7 +510,7 @@ function UpNext({ planner, shell, rt, stageDayId, onOpen }: {
         </button>
       </div>
     </section>
-  )
+  );
 }
 
 /**
@@ -443,27 +521,41 @@ function UpNext({ planner, shell, rt, stageDayId, onOpen }: {
  * this the ferry looked planned while the chain went round it by road. Which bookings
  * these are is decided once, in @trek/shared (`undatedRides`), for the desktop rail too.
  */
-function UndatedRides({ rides, t, onOpen }: {
-  rides: readonly Reservation[]
-  t: TranslationFn
-  onOpen: (res: Reservation) => void
+function UndatedRides({
+  rides,
+  t,
+  onOpen,
+}: {
+  rides: readonly Reservation[];
+  t: TranslationFn;
+  onOpen: (res: Reservation) => void;
 }) {
-  if (!rides.length) return null
+  if (!rides.length) return null;
   return (
-    <div role="status" className="mb-2.5 rounded-[18px] bg-[color-mix(in_srgb,var(--m-st-pending)_12%,transparent)] px-3.5 py-2.5">
+    <div
+      role="status"
+      className="mb-2.5 rounded-[18px] bg-[color-mix(in_srgb,var(--m-st-pending)_12%,transparent)] px-3.5 py-2.5"
+    >
       <ul className="flex flex-col gap-1.5">
-        {rides.map(ride => (
-          <li key={ride.id} className="flex items-start gap-2 text-caption font-semibold text-[color:var(--m-st-pending)]">
+        {rides.map((ride) => (
+          <li
+            key={ride.id}
+            className="flex items-start gap-2 text-caption font-semibold text-[color:var(--m-st-pending)]"
+          >
             <AlertTriangle size={13} strokeWidth={2} aria-hidden="true" className="mt-[2px] shrink-0" />
             <span className="min-w-0 flex-1">{t('roadtrip.ride.undated', { title: ride.title })}</span>
-            <button type="button" onClick={() => onOpen(ride)} className="shrink-0 text-m-ink underline underline-offset-2">
+            <button
+              type="button"
+              onClick={() => onOpen(ride)}
+              className="shrink-0 text-m-ink underline underline-offset-2"
+            >
               {t('roadtrip.ride.open')}
             </button>
           </li>
         ))}
       </ul>
     </div>
-  )
+  );
 }
 
 /**
@@ -474,7 +566,7 @@ function UndatedRides({ rides, t, onOpen }: {
  * says out loud where the planning happens.
  */
 function EmptyStage({ planner, loading }: { planner: MTripTabPanelProps['planner']; loading: boolean }) {
-  const { t } = planner
+  const { t } = planner;
   return (
     <div className="flex flex-col items-center justify-center px-5 py-16 text-center">
       <MDancingTrek scene="guide" className="mb-2" />
@@ -487,7 +579,7 @@ function EmptyStage({ planner, loading }: { planner: MTripTabPanelProps['planner
         </p>
       )}
     </div>
-  )
+  );
 }
 
 /**
@@ -497,7 +589,7 @@ function EmptyStage({ planner, loading }: { planner: MTripTabPanelProps['planner
  * above are where a stage comes back from, and the line says so.
  */
 function PickDay({ planner }: { planner: MTripTabPanelProps['planner'] }) {
-  const { t } = planner
+  const { t } = planner;
   return (
     <div className="flex flex-col items-center justify-center px-5 py-16 text-center">
       <MDancingTrek scene="guide" className="mb-2" />
@@ -506,22 +598,22 @@ function PickDay({ planner }: { planner: MTripTabPanelProps['planner'] }) {
         {t('mobileTrip.rtNoDayHint')}
       </p>
     </div>
-  )
+  );
 }
 
 /* ── small helpers ────────────────────────────────────────────────────────── */
 
 function stageDateLabel(planner: MTripTabPanelProps['planner'], dayId: number): string | null {
-  const day = planner.days.find(d => d.id === dayId)
-  if (!day?.date) return null
-  const date = new Date(`${day.date.slice(0, 10)}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return null
-  return new Intl.DateTimeFormat(planner.language, { weekday: 'short', day: 'numeric', month: 'short' }).format(date)
+  const day = planner.days.find((d) => d.id === dayId);
+  if (!day?.date) return null;
+  const date = new Date(`${day.date.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat(planner.language, { weekday: 'short', day: 'numeric', month: 'short' }).format(date);
 }
 
 /** The dry point the refuel search measures from, looked up by its leg. */
 function dryPointFor(planner: MTripTabPanelProps['planner'], dayId: number, legIndex: number) {
-  const day = planner.roadtripRoutes.days.find(d => d.dayId === dayId)
-  const point = day?.dryPoints?.find(p => p.legIndex === legIndex)
-  return point!
+  const day = planner.roadtripRoutes.days.find((d) => d.dayId === dayId);
+  const point = day?.dryPoints?.find((p) => p.legIndex === legIndex);
+  return point!;
 }

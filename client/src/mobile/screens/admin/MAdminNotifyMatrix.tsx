@@ -1,40 +1,43 @@
-import { useEffect, useState } from 'react'
-import { adminApi } from '../../../api/client'
-import type { TranslationFn } from '../../../types'
-import type { useToast } from '../../../components/shared/Toast'
-import { ADMIN_EVENT_LABEL_KEYS, ADMIN_CHANNEL_LABEL_KEYS } from '../../../pages/admin/AdminPage.constants'
-import MToggle from '../../components/MToggle'
-import { MAdminCard, MAdminCardHead } from './MAdminUi'
+import { useEffect, useState } from 'react';
+import { adminApi } from '../../../api/client';
+import type { useToast } from '../../../components/shared/Toast';
+import { ADMIN_CHANNEL_LABEL_KEYS, ADMIN_EVENT_LABEL_KEYS } from '../../../pages/admin/AdminPage.constants';
+import type { TranslationFn } from '../../../types';
+import MToggle from '../../components/MToggle';
+import { MAdminCard, MAdminCardHead } from './MAdminUi';
 
 interface ChannelInfo {
-  id: string
-  active: boolean
+  id: string;
+  active: boolean;
 }
 
 interface MatrixData {
-  event_types: string[]
-  channels?: ChannelInfo[]
-  implemented_combos: Record<string, string[]>
-  preferences: Record<string, Record<string, boolean>>
+  event_types: string[];
+  channels?: ChannelInfo[];
+  implemented_combos: Record<string, string[]>;
+  preferences: Record<string, Record<string, boolean>>;
 }
 
-const BUILTIN_CHANNELS = ['inapp', 'email', 'webhook', 'ntfy'] as const
+const BUILTIN_CHANNELS = ['inapp', 'email', 'webhook', 'ntfy'] as const;
 
 // Per-event × per-channel admin notification matrix — the mobile layout of
 // AdminNotificationsPanel. Loads its own data and auto-saves each toggle.
 export default function MAdminNotifyMatrix({ t, toast }: { t: TranslationFn; toast: ReturnType<typeof useToast> }) {
-  const [matrix, setMatrix] = useState<MatrixData | null>(null)
+  const [matrix, setMatrix] = useState<MatrixData | null>(null);
 
   useEffect(() => {
-    adminApi.getNotificationPreferences().then((data: MatrixData) => setMatrix(data)).catch(() => {})
-  }, [])
+    adminApi
+      .getNotificationPreferences()
+      .then((data: MatrixData) => setMatrix(data))
+      .catch(() => {});
+  }, []);
 
   if (!matrix) {
     return (
       <MAdminCard>
         <p className="font-geist text-[0.6875rem] text-m-faint">{t('common.loading')}</p>
       </MAdminCard>
-    )
+    );
   }
 
   if (matrix.event_types.length === 0) {
@@ -42,30 +45,30 @@ export default function MAdminNotifyMatrix({ t, toast }: { t: TranslationFn; toa
       <MAdminCard>
         <p className="font-geist text-[0.6875rem] text-m-faint">{t('settings.notificationPreferences.noChannels')}</p>
       </MAdminCard>
-    )
+    );
   }
 
   // Admin-scoped events only go out over the built-in channels (plugin
   // channels are user-scoped), same rule as the desktop panel.
-  const isActive = (id: string) => matrix.channels?.some((c) => c.id === id && c.active) ?? false
+  const isActive = (id: string) => matrix.channels?.some((c) => c.id === id && c.active) ?? false;
   const visibleChannels = BUILTIN_CHANNELS.filter(
-    (ch) => isActive(ch) && matrix.event_types.some((evt) => matrix.implemented_combos[evt]?.includes(ch)),
-  )
+    (ch) => isActive(ch) && matrix.event_types.some((evt) => matrix.implemented_combos[evt]?.includes(ch))
+  );
 
   const toggle = async (eventType: string, channel: string) => {
-    const current = matrix.preferences[eventType]?.[channel] ?? true
+    const current = matrix.preferences[eventType]?.[channel] ?? true;
     const updated = {
       ...matrix.preferences,
       [eventType]: { ...matrix.preferences[eventType], [channel]: !current },
-    }
-    setMatrix((m) => (m ? { ...m, preferences: updated } : m))
+    };
+    setMatrix((m) => (m ? { ...m, preferences: updated } : m));
     try {
-      await adminApi.updateNotificationPreferences(updated)
+      await adminApi.updateNotificationPreferences(updated);
     } catch {
-      setMatrix((m) => (m ? { ...m, preferences: matrix.preferences } : m))
-      toast.error(t('common.error'))
+      setMatrix((m) => (m ? { ...m, preferences: matrix.preferences } : m));
+      toast.error(t('common.error'));
     }
-  }
+  };
 
   return (
     <MAdminCard>
@@ -82,9 +85,9 @@ export default function MAdminNotifyMatrix({ t, toast }: { t: TranslationFn; toa
         ))}
       </div>
       {matrix.event_types.map((eventType) => {
-        const implemented = matrix.implemented_combos[eventType] ?? []
+        const implemented = matrix.implemented_combos[eventType] ?? [];
         // Known admin events use translated labels; anything else keeps its raw id.
-        const labelKey = ADMIN_EVENT_LABEL_KEYS[eventType]
+        const labelKey = ADMIN_EVENT_LABEL_KEYS[eventType];
         return (
           <div key={eventType} className="flex items-center gap-1 border-b border-[color:var(--m-rowbr)] py-2">
             <span className="min-w-0 flex-1 truncate text-[0.8125rem] text-m-ink">
@@ -104,8 +107,8 @@ export default function MAdminNotifyMatrix({ t, toast }: { t: TranslationFn; toa
               </span>
             ))}
           </div>
-        )
+        );
       })}
     </MAdminCard>
-  )
+  );
 }

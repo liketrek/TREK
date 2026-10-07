@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
-import type { ReservationTraveler } from '@trek/shared'
-import { avatarSrc } from '../../../../utils/avatarSrc'
-import GuestBadge from '../../../../components/shared/GuestBadge'
-import PluginFrame from '../../../../components/Plugins/PluginFrame'
-import { usePluginStore } from '../../../../store/pluginStore'
+import type { ReservationTraveler } from '@trek/shared';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import type { ReactNode } from 'react';
+import PluginFrame from '../../../../components/Plugins/PluginFrame';
+import GuestBadge from '../../../../components/shared/GuestBadge';
+import { usePluginStore } from '../../../../store/pluginStore';
+import { avatarSrc } from '../../../../utils/avatarSrc';
 
 /**
  * Scroll body shared by the list-style trip tabs (transports, bookings, costs,
@@ -17,11 +17,11 @@ import { usePluginStore } from '../../../../store/pluginStore'
 export function TabScroller({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
         {children}
       </div>
     </div>
-  )
+  );
 }
 
 /** Small count badge next to a section label / settle row (spec 03 §1.1). */
@@ -30,18 +30,23 @@ export function CountPill({ children }: { children: ReactNode }) {
     <span className="whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.59375rem] font-bold text-m-muted">
       {children}
     </span>
-  )
+  );
 }
 
 /**
  * Collapsible group header (Confirmed / Pending / … ). Chevron flips up when the
  * section is open; the count pill is optional. Layout per spec 03 §1.1.
  */
-export function SectionHeader({ label, count, open, onToggle }: {
-  label: string
-  count?: ReactNode
-  open: boolean
-  onToggle: () => void
+export function SectionHeader({
+  label,
+  count,
+  open,
+  onToggle,
+}: {
+  label: string;
+  count?: ReactNode;
+  open: boolean;
+  onToggle: () => void;
 }) {
   return (
     <button
@@ -50,9 +55,7 @@ export function SectionHeader({ label, count, open, onToggle }: {
       aria-expanded={open}
       className="mb-[2px] mt-[15px] flex w-full items-center gap-[7px] px-[2px] text-left"
     >
-      <span className="font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">
-        {label}
-      </span>
+      <span className="font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">{label}</span>
       {count != null && <CountPill>{count}</CountPill>}
       {open ? (
         <ChevronUp size={13} strokeWidth={2} className="ml-auto flex-none text-m-faint" />
@@ -60,7 +63,7 @@ export function SectionHeader({ label, count, open, onToggle }: {
         <ChevronDown size={13} strokeWidth={2} className="ml-auto flex-none text-m-faint" />
       )}
     </button>
-  )
+  );
 }
 
 /**
@@ -68,11 +71,16 @@ export function SectionHeader({ label, count, open, onToggle }: {
  * the transport / booking cards (spec 03 §1.1). Width is set by the caller via
  * `className` (e.g. flex weights); `tabular` aligns times and prices.
  */
-export function Field({ label, children, className = '', tabular = false }: {
-  label: string
-  children: ReactNode
-  className?: string
-  tabular?: boolean
+export function Field({
+  label,
+  children,
+  className = '',
+  tabular = false,
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+  tabular?: boolean;
 }) {
   return (
     <div className={`min-w-0 ${className}`}>
@@ -87,7 +95,7 @@ export function Field({ label, children, className = '', tabular = false }: {
         {children}
       </div>
     </div>
-  )
+  );
 }
 
 /**
@@ -96,30 +104,39 @@ export function Field({ label, children, className = '', tabular = false }: {
  * reveal works by keyboard too; without it there is nothing to operate and it
  * stays a plain value box.
  */
-export function ConfirmationCode({ code, label, blurred, onToggle }: {
-  code: string
-  label: string
-  blurred: boolean
-  onToggle?: () => void
+export function ConfirmationCode({
+  code,
+  label,
+  blurred,
+  onToggle,
+}: {
+  code: string;
+  label: string;
+  blurred: boolean;
+  onToggle?: () => void;
 }) {
   const boxCls = `block w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px] text-center font-geist text-[0.71875rem] font-semibold tabular-nums text-m-ink ${
     blurred ? 'blur-[4px] select-none' : ''
-  }`
+  }`;
   return (
     <div className="mt-2">
       <div className="mb-[3px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-faint">
         {label}
       </div>
-      {onToggle
-        ? <button type="button" onClick={onToggle} aria-pressed={!blurred} className={boxCls}>{code}</button>
-        : <div className={boxCls}>{code}</div>}
+      {onToggle ? (
+        <button type="button" onClick={onToggle} aria-pressed={!blurred} className={boxCls}>
+          {code}
+        </button>
+      ) : (
+        <div className={boxCls}>{code}</div>
+      )}
     </div>
-  )
+  );
 }
 
 /** 7px status dot; `color` is a --m-st-* token from STATUS_COLOR. */
 export function StatusDot({ color }: { color: string }) {
-  return <span className="h-[7px] w-[7px] flex-none rounded-full" style={{ background: color }} />
+  return <span className="h-[7px] w-[7px] flex-none rounded-full" style={{ background: color }} />;
 }
 
 /**
@@ -133,11 +150,13 @@ export function StatusDot({ color }: { color: string }) {
  * kit plugin that goes dark with TREK keeps compositing transparently.
  */
 export function ReservationPluginSlots({ tripId, reservationId }: { tripId: number; reservationId: number }) {
-  const plugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot === 'reservation-detail')
-  if (plugins.length === 0) return null
+  const plugins = usePluginStore((s) => s.plugins).filter(
+    (p) => p.type === 'widget' && p.slot === 'reservation-detail'
+  );
+  if (plugins.length === 0) return null;
   return (
     <div className="flex flex-col gap-2 px-3 pb-3">
-      {plugins.map(p => (
+      {plugins.map((p) => (
         <div key={p.id} className="overflow-hidden rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card">
           <PluginFrame
             pluginId={p.id}
@@ -149,7 +168,7 @@ export function ReservationPluginSlots({ tripId, reservationId }: { tripId: numb
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 /**
@@ -159,35 +178,36 @@ export function ReservationPluginSlots({ tripId, reservationId }: { tripId: numb
  * avatarSrc + GuestBadge like the cost member chips; renders nothing when nobody
  * is assigned. `label` comes from 'reservations.travelers.label'.
  */
-export function TravelerAvatars({ travelers, label }: {
-  travelers: ReservationTraveler[]
-  label: string
-}) {
-  if (travelers.length === 0) return null
+export function TravelerAvatars({ travelers, label }: { travelers: ReservationTraveler[]; label: string }) {
+  if (travelers.length === 0) return null;
   return (
     <div className="mt-2">
       <div className="mb-[3px] font-geist text-[0.5625rem] font-bold uppercase tracking-[.08em] text-m-faint">
         {label}
       </div>
       <div className="flex flex-wrap items-center gap-[6px]">
-        {travelers.map(tv => {
-          const src = tv.avatar_url || avatarSrc(tv.avatar)
+        {travelers.map((tv) => {
+          const src = tv.avatar_url || avatarSrc(tv.avatar);
           return (
             <span
               key={tv.user_id}
               className="flex items-center gap-[6px] rounded-full border border-[color:var(--m-rowbr)] bg-m-card py-[3px] pl-[3px] pr-[10px]"
             >
               <span className="flex h-[20px] w-[20px] flex-none items-center justify-center overflow-hidden rounded-full bg-m-act text-[0.5625rem] font-extrabold text-m-actfg">
-                {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : tv.username?.[0]?.toUpperCase()}
+                {src ? (
+                  <img src={src} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  tv.username?.[0]?.toUpperCase()
+                )}
               </span>
               <span className="truncate text-[0.71875rem] font-semibold text-m-ink">{tv.username}</span>
               {!!tv.is_guest && <GuestBadge size="xs" />}
             </span>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }
 
 /**
@@ -202,16 +222,23 @@ export function TravelerAvatars({ travelers, label }: {
  * Its horizontal padding follows SectionHeader rather than the sheet's usual 18,
  * so the label starts on the same line as the section titles right below it.
  */
-export function TravelerFilterRow({ members, active, onToggle, onClear, label, allLabel }: {
-  members: { id: number; username: string; avatar_url?: string | null }[]
-  active: Set<number>
-  onToggle: (id: number) => void
-  onClear?: () => void
-  label: string
+export function TravelerFilterRow({
+  members,
+  active,
+  onToggle,
+  onClear,
+  label,
+  allLabel,
+}: {
+  members: { id: number; username: string; avatar_url?: string | null }[];
+  active: Set<number>;
+  onToggle: (id: number) => void;
+  onClear?: () => void;
+  label: string;
   /** Resets the filter. Only rendered while one is active. */
-  allLabel?: string
+  allLabel?: string;
 }) {
-  const filtering = active.size > 0
+  const filtering = active.size > 0;
   return (
     <div
       className="mb-[2px] flex items-center gap-[10px] border-b border-[color:var(--m-rowbr)] px-[2px] pb-[9px] pt-[2px]"
@@ -222,8 +249,8 @@ export function TravelerFilterRow({ members, active, onToggle, onClear, label, a
         {label}
       </span>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-        {members.map(m => {
-          const on = active.has(m.id)
+        {members.map((m) => {
+          const on = active.has(m.id);
           return (
             <button
               key={m.id}
@@ -233,11 +260,13 @@ export function TravelerFilterRow({ members, active, onToggle, onClear, label, a
               aria-pressed={on}
               className={`flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-[color:var(--m-ic)] text-[0.625rem] font-bold text-m-muted transition-opacity ${on ? 'border-[color:var(--m-act)]' : 'border-[color:var(--m-rowbr)]'} ${on || !filtering ? 'opacity-100' : 'opacity-40'}`}
             >
-              {m.avatar_url
-                ? <img src={m.avatar_url} className="h-full w-full object-cover" alt="" />
-                : m.username?.[0]?.toUpperCase()}
+              {m.avatar_url ? (
+                <img src={m.avatar_url} className="h-full w-full object-cover" alt="" />
+              ) : (
+                m.username?.[0]?.toUpperCase()
+              )}
             </button>
-          )
+          );
         })}
       </div>
       {filtering && allLabel && onClear && (
@@ -250,5 +279,5 @@ export function TravelerFilterRow({ members, active, onToggle, onClear, label, a
         </button>
       )}
     </div>
-  )
+  );
 }

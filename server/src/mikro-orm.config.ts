@@ -1,9 +1,9 @@
 import { resolveDbPath } from './db/db-path';
+import { ALL_ENTITIES } from './db/entities';
 import { SharedSqliteDriver } from './db/orm-driver';
 import { Migrator } from '@mikro-orm/migrations';
 import { SeedManager } from '@mikro-orm/seeder';
 import { defineConfig } from '@mikro-orm/sqlite';
-import { ALL_ENTITIES } from './db/entities';
 
 export default defineConfig({
   entities: ALL_ENTITIES,

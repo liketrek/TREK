@@ -1,12 +1,10 @@
-import { Suspense } from 'react'
-import { AlertTriangle, Clock, Info } from 'lucide-react'
-import { Tooltip } from '../shared/Tooltip'
-import { useSettingsStore } from '../../store/settingsStore'
-import { MapView } from './MapView'
-import ErrorBoundary from '../shared/ErrorBoundary'
-import { MapViewGLMapbox, MapViewGLMaplibre } from './glLazy'
-import { useRoadtripHazards } from './useRoadtripHazards'
-import { useTranslation } from '../../i18n/TranslationContext'
+import { Suspense } from 'react';
+import { useTranslation } from '../../i18n/TranslationContext';
+import { useSettingsStore } from '../../store/settingsStore';
+import ErrorBoundary from '../shared/ErrorBoundary';
+import { MapViewGLMapbox, MapViewGLMaplibre } from './glLazy';
+import { MapView } from './MapView';
+import { useRoadtripHazards } from './useRoadtripHazards';
 
 // Auto-selects the map renderer based on user settings. Keeps the existing
 // Leaflet MapView untouched so the Mapbox GL variant can mature iteratively
@@ -18,22 +16,21 @@ import { useTranslation } from '../../i18n/TranslationContext'
 // them online (see the GL tile rules in vite.config.js), not prefetched.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function MapViewAuto(props: any) {
-  const { t } = useTranslation()
-  const hazards = useRoadtripHazards(props.tripId, !!props.clusterLoosely)
+  const { t } = useTranslation();
+  const hazards = useRoadtripHazards(props.tripId, !!props.clusterLoosely);
   // `dawarichTrack` arrives as a prop rather than being fetched here: the pill
   // that switches it on lives at page level and needs the load status, so the
   // fetch sits in useTripPlanner and both shells read the same one.
-  const mapProps = { ...props, hazards: hazards.feed?.hazards }
-  const provider = useSettingsStore(s => s.settings.map_provider)
-  const token = useSettingsStore(s => s.settings.mapbox_access_token)
+  const mapProps = { ...props, hazards: hazards.feed?.hazards };
+  const provider = useSettingsStore((s) => s.settings.map_provider);
+  const token = useSettingsStore((s) => s.settings.mapbox_access_token);
   // Fall back to Leaflet when Mapbox is selected but no token is set,
   // so trip planner never shows an empty map due to a missing token.
-  const glProvider = provider === 'maplibre-gl' ? 'maplibre-gl'
-    : provider === 'mapbox-gl' && token ? 'mapbox-gl'
-    : null
+  const glProvider =
+    provider === 'maplibre-gl' ? 'maplibre-gl' : provider === 'mapbox-gl' && token ? 'mapbox-gl' : null;
   // One chunk per engine: picking the binding here is what keeps mapbox-gl and
   // maplibre-gl out of each other's downloads.
-  const MapViewGL = glProvider === 'maplibre-gl' ? MapViewGLMaplibre : MapViewGLMapbox
+  const MapViewGL = glProvider === 'maplibre-gl' ? MapViewGLMaplibre : MapViewGLMapbox;
   if (glProvider) {
     // Render the previous Leaflet map as the fallback so there's no blank flash
     // while the GL chunk loads on first use.
@@ -48,7 +45,7 @@ export function MapViewAuto(props: any) {
           <MapViewGL {...mapProps} glProvider={glProvider} />
         </Suspense>
       </ErrorBoundary>
-    )
+    );
   }
-  return <MapView {...mapProps} />
+  return <MapView {...mapProps} />;
 }

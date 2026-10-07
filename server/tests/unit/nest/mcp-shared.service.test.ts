@@ -4,6 +4,19 @@
  * byte-faithful to the module functions it replaces; broadcast flows through
  * the vi.mock'd src/websocket, exactly like every .mcp.ts consumer expects.
  */
+import { db as testDb } from '../../../src/db/database';
+import { McpSharedModule } from '../../../src/nest/mcp-shared/mcp-shared.module';
+import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { createUser } from '../../helpers/factories';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestTripsRepo,
+  createTestUsersRepo,
+} from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
@@ -13,15 +26,6 @@ vi.mock('../../../src/db/database', async () => {
 });
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
-import { db as testDb } from '../../../src/db/database';
-
-import { createUser } from '../../helpers/factories';
-import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
-import { McpSharedModule } from '../../../src/nest/mcp-shared/mcp-shared.module';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestTripsRepo, createTestUsersRepo } from '../../helpers/test-uow';
 
 let svc: McpToolGuardsService;
 beforeAll(async () => {
@@ -93,7 +97,9 @@ describe('safeBroadcast', () => {
   });
 
   it('GRD-021: swallows broadcast failures so a tool result is never lost to a ws error', () => {
-    broadcastMock.mockImplementationOnce(() => { throw new Error('ws down'); });
+    broadcastMock.mockImplementationOnce(() => {
+      throw new Error('ws down');
+    });
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => svc.safeBroadcast(7, 'todo:created', {})).not.toThrow();
     expect(errSpy).toHaveBeenCalled();

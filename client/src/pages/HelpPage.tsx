@@ -1,17 +1,17 @@
-import { Children, type ReactNode } from 'react'
-import { Link } from 'react-router'
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import { Search, ChevronRight, Loader2, AlertCircle, BookOpen, PanelLeft, X } from 'lucide-react'
-import PageShell from '../components/Layout/PageShell'
-import { useTranslation } from '../i18n'
-import { useHelp } from './help/useHelp'
-import { headingSlug } from '../help/headingSlug'
+import { AlertCircle, BookOpen, ChevronRight, Loader2, PanelLeft, Search, X } from 'lucide-react';
+import { Children, type ReactNode } from 'react';
+import Markdown from 'react-markdown';
+import { Link } from 'react-router';
+import remarkGfm from 'remark-gfm';
+import PageShell from '../components/Layout/PageShell';
+import { headingSlug } from '../help/headingSlug';
+import { useTranslation } from '../i18n';
+import { useHelp } from './help/useHelp';
 
 export default function HelpPage() {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   const { page, loading, pageError, query, setQuery, navOpen, setNavOpen, contentRef, activeSlug, filtered } =
-    useHelp()
+    useHelp();
 
   const nav = (
     <nav className="flex flex-col gap-5">
@@ -21,48 +21,48 @@ export default function HelpPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('help.search')}
-          className="w-full bg-surface-tertiary text-content rounded-lg pl-9 pr-3 py-2 text-[13px] outline-none border border-transparent focus:border-edge"
+          className="w-full rounded-lg border border-transparent bg-surface-tertiary py-2 pl-9 pr-3 text-[13px] text-content outline-none focus:border-edge"
         />
       </div>
       {filtered.map((section) => (
         <div key={section.title}>
           {section.title && (
-            <h3 className="text-[10px] font-semibold tracking-[0.1em] uppercase text-content-faint mb-1.5 px-2">
+            <h3 className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-content-faint">
               {section.title}
             </h3>
           )}
           <div className="flex flex-col">
             {section.pages.map((p) => {
-              const active = p.slug === activeSlug
+              const active = p.slug === activeSlug;
               return (
                 <Link
                   key={p.slug}
                   to={`/help/${p.slug}`}
-                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[13px] transition-colors ${
+                  className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] transition-colors ${
                     active
-                      ? 'bg-accent-subtle text-accent font-semibold'
+                      ? 'bg-accent-subtle font-semibold text-accent'
                       : 'text-content-secondary hover:bg-surface-hover'
                   }`}
                 >
                   {active && <ChevronRight size={13} className="shrink-0" />}
                   <span className={active ? '' : 'pl-[18px]'}>{p.title}</span>
                 </Link>
-              )
+              );
             })}
           </div>
         </div>
       ))}
-      {!filtered.length && <p className="text-[12px] text-content-faint px-2">{t('help.noResults')}</p>}
+      {!filtered.length && <p className="px-2 text-[12px] text-content-faint">{t('help.noResults')}</p>}
     </nav>
-  )
+  );
 
   return (
     <PageShell className="bg-surface-secondary" navOffset="var(--nav-h, 56px)">
-      <div className="max-w-[1600px] mx-auto px-4 lg:px-10 py-6 flex gap-10">
+      <div className="mx-auto flex max-w-[1600px] gap-10 px-4 py-6 lg:px-10">
         {/* Desktop sidebar */}
-        <aside className="hidden lg:block w-[260px] shrink-0">
+        <aside className="hidden w-[260px] shrink-0 lg:block">
           <div className="sticky top-[calc(var(--nav-h,56px)+24px)] max-h-[calc(100vh-var(--nav-h,56px)-48px)] overflow-y-auto pr-1">
-            <div className="flex items-center gap-2 mb-4 px-2">
+            <div className="mb-4 flex items-center gap-2 px-2">
               <BookOpen size={16} className="text-accent" />
               <span className="text-[14px] font-bold text-content">{t('help.title')}</span>
             </div>
@@ -71,11 +71,12 @@ export default function HelpPage() {
         </aside>
 
         {/* Content */}
-        <main className="flex-1 min-w-0" ref={contentRef}>
+        <main className="min-w-0 flex-1" ref={contentRef}>
           {/* Mobile nav toggle */}
-          <button type="button"
+          <button
+            type="button"
             onClick={() => setNavOpen(true)}
-            className="lg:hidden inline-flex items-center gap-2 mb-4 px-3 py-2 rounded-lg bg-surface-card border border-edge text-[13px] font-medium text-content"
+            className="mb-4 inline-flex items-center gap-2 rounded-lg border border-edge bg-surface-card px-3 py-2 text-[13px] font-medium text-content lg:hidden"
           >
             <PanelLeft size={15} /> {t('help.contents')}
           </button>
@@ -88,7 +89,7 @@ export default function HelpPage() {
             <div className="flex flex-col items-center justify-center gap-2 py-24 text-center">
               <AlertCircle size={28} className="text-content-faint" />
               <p className="text-[14px] font-semibold text-content">{t('help.errorTitle')}</p>
-              <p className="text-[13px] text-content-faint max-w-sm">{t('help.errorBody')}</p>
+              <p className="max-w-sm text-[13px] text-content-faint">{t('help.errorBody')}</p>
             </div>
           ) : page ? (
             <article className="wiki-prose max-w-[1040px]">
@@ -100,15 +101,15 @@ export default function HelpPage() {
 
       {/* Mobile sidebar drawer */}
       {navOpen && (
-        <div className="lg:hidden fixed inset-0 z-[120]" role="presentation" onClick={() => setNavOpen(false)}>
+        <div className="fixed inset-0 z-[120] lg:hidden" role="presentation" onClick={() => setNavOpen(false)}>
           <div className="absolute inset-0 bg-black/40" />
           <div
-            className="absolute left-0 top-0 bottom-0 w-[280px] bg-surface-card p-5 overflow-y-auto shadow-xl"
+            className="absolute bottom-0 left-0 top-0 w-[280px] overflow-y-auto bg-surface-card p-5 shadow-xl"
             role="presentation"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[14px] font-bold text-content flex items-center gap-2">
+            <div className="mb-4 flex items-center justify-between">
+              <span className="flex items-center gap-2 text-[14px] font-bold text-content">
                 <BookOpen size={16} className="text-accent" /> {t('help.title')}
               </span>
               <button type="button" onClick={() => setNavOpen(false)} className="text-content-faint">
@@ -120,7 +121,7 @@ export default function HelpPage() {
         </div>
       )}
     </PageShell>
-  )
+  );
 }
 
 /**
@@ -132,9 +133,9 @@ export default function HelpPage() {
  */
 function headingId(children: ReactNode): string {
   const text = Children.toArray(children)
-    .map(c => (typeof c === 'string' || typeof c === 'number' ? String(c) : ''))
-    .join('')
-  return headingSlug(text)
+    .map((c) => (typeof c === 'string' || typeof c === 'number' ? String(c) : ''))
+    .join('');
+  return headingSlug(text);
 }
 
 /** Markdown renderer with TREK-styled elements and SPA-internal links. */
@@ -144,62 +145,100 @@ function WikiContent({ markdown }: { markdown: string }) {
       remarkPlugins={[remarkGfm]}
       components={{
         h1: ({ children }) => (
-          <h1 id={headingId(children)} className="text-[26px] font-bold text-content mt-1 mb-4 leading-tight">{children}</h1>
+          <h1 id={headingId(children)} className="mb-4 mt-1 text-[26px] font-bold leading-tight text-content">
+            {children}
+          </h1>
         ),
         h2: ({ children }) => (
-          <h2 id={headingId(children)} className="text-[19px] font-bold text-content mt-8 mb-3 pb-1.5 border-b border-edge-secondary scroll-mt-24">
+          <h2
+            id={headingId(children)}
+            className="mb-3 mt-8 scroll-mt-24 border-b border-edge-secondary pb-1.5 text-[19px] font-bold text-content"
+          >
             {children}
           </h2>
         ),
-        h3: ({ children }) => <h3 id={headingId(children)} className="text-[15.5px] font-semibold text-content mt-6 mb-2 scroll-mt-24">{children}</h3>,
-        h4: ({ children }) => <h4 id={headingId(children)} className="text-[14px] font-semibold text-content mt-5 mb-2 scroll-mt-24">{children}</h4>,
-        p: ({ children }) => <p className="text-[14px] text-content-secondary leading-[1.7] my-3">{children}</p>,
-        ul: ({ children }) => <ul className="list-disc pl-5 my-3 space-y-1.5 text-[14px] text-content-secondary">{children}</ul>,
-        ol: ({ children }) => <ol className="list-decimal pl-5 my-3 space-y-1.5 text-[14px] text-content-secondary">{children}</ol>,
+        h3: ({ children }) => (
+          <h3 id={headingId(children)} className="mb-2 mt-6 scroll-mt-24 text-[15.5px] font-semibold text-content">
+            {children}
+          </h3>
+        ),
+        h4: ({ children }) => (
+          <h4 id={headingId(children)} className="mb-2 mt-5 scroll-mt-24 text-[14px] font-semibold text-content">
+            {children}
+          </h4>
+        ),
+        p: ({ children }) => <p className="my-3 text-[14px] leading-[1.7] text-content-secondary">{children}</p>,
+        ul: ({ children }) => (
+          <ul className="my-3 list-disc space-y-1.5 pl-5 text-[14px] text-content-secondary">{children}</ul>
+        ),
+        ol: ({ children }) => (
+          <ol className="my-3 list-decimal space-y-1.5 pl-5 text-[14px] text-content-secondary">{children}</ol>
+        ),
         li: ({ children }) => <li className="leading-[1.6]">{children}</li>,
         a: ({ href, children }) => {
-          const url = href ?? ''
-          if (url.startsWith('#')) return <a href={url} className="text-accent hover:underline">{children}</a>
-          if (url.startsWith('/')) return <Link to={url} className="text-accent hover:underline font-medium">{children}</Link>
+          const url = href ?? '';
+          if (url.startsWith('#'))
+            return (
+              <a href={url} className="text-accent hover:underline">
+                {children}
+              </a>
+            );
+          if (url.startsWith('/'))
+            return (
+              <Link to={url} className="font-medium text-accent hover:underline">
+                {children}
+              </Link>
+            );
           return (
-            <a href={url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline font-medium">
+            <a href={url} target="_blank" rel="noopener noreferrer" className="font-medium text-accent hover:underline">
               {children}
             </a>
-          )
+          );
         },
         img: ({ src, alt }) => (
-          <img src={typeof src === 'string' ? src : ''} alt={alt} loading="lazy" className="rounded-lg border border-edge my-4 max-w-full" />
+          <img
+            src={typeof src === 'string' ? src : ''}
+            alt={alt}
+            loading="lazy"
+            className="my-4 max-w-full rounded-lg border border-edge"
+          />
         ),
         code: ({ className, children }) => {
-          const isBlock = (className ?? '').includes('language-')
-          if (isBlock) return <code className={className}>{children}</code>
-          return <code className="bg-surface-tertiary text-content rounded px-1.5 py-0.5 text-[12.5px] font-mono">{children}</code>
+          const isBlock = (className ?? '').includes('language-');
+          if (isBlock) return <code className={className}>{children}</code>;
+          return (
+            <code className="rounded bg-surface-tertiary px-1.5 py-0.5 font-mono text-[12.5px] text-content">
+              {children}
+            </code>
+          );
         },
         pre: ({ children }) => (
-          <pre className="bg-surface-tertiary text-content rounded-xl p-4 my-4 overflow-x-auto text-[12.5px] font-mono leading-relaxed border border-edge-secondary">
+          <pre className="my-4 overflow-x-auto rounded-xl border border-edge-secondary bg-surface-tertiary p-4 font-mono text-[12.5px] leading-relaxed text-content">
             {children}
           </pre>
         ),
         blockquote: ({ children }) => (
-          <blockquote className="border-l-3 border-accent bg-accent-subtle/40 rounded-r-lg px-4 py-1 my-4 text-content-secondary">
+          <blockquote className="border-l-3 bg-accent-subtle/40 my-4 rounded-r-lg border-accent px-4 py-1 text-content-secondary">
             {children}
           </blockquote>
         ),
         table: ({ children }) => (
-          <div className="overflow-x-auto my-4">
-            <table className="w-full text-[13px] border-collapse">{children}</table>
+          <div className="my-4 overflow-x-auto">
+            <table className="w-full border-collapse text-[13px]">{children}</table>
           </div>
         ),
         th: ({ children }) => (
-          <th className="text-left font-semibold text-content border border-edge-secondary px-3 py-2 bg-surface-tertiary">
+          <th className="border border-edge-secondary bg-surface-tertiary px-3 py-2 text-left font-semibold text-content">
             {children}
           </th>
         ),
-        td: ({ children }) => <td className="text-content-secondary border border-edge-secondary px-3 py-2">{children}</td>,
+        td: ({ children }) => (
+          <td className="border border-edge-secondary px-3 py-2 text-content-secondary">{children}</td>
+        ),
         hr: () => <hr className="my-6 border-edge-secondary" />,
       }}
     >
       {markdown}
     </Markdown>
-  )
+  );
 }

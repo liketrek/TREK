@@ -137,6 +137,7 @@ const storage: TranslationStrings = {
   'storage.migrate.cancel': 'Verschieben abbrechen',
   'storage.migrate.promptCancel': 'Abbrechen',
   'storage.migrate.queued': 'In Warteschlange: {categories}',
-  'storage.migrate.queueDropped': 'Die nächste Verschiebung konnte nicht gestartet werden — die verbleibende Warteschlange wurde geleert: {categories}',
+  'storage.migrate.queueDropped':
+    'Die nächste Verschiebung konnte nicht gestartet werden — die verbleibende Warteschlange wurde geleert: {categories}',
 };
 export default storage;

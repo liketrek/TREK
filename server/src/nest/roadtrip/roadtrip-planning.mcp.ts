@@ -2,8 +2,9 @@ import { ADDON_IDS } from '../../addons';
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, errorResult, type McpContext } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
-import { RoadtripSearchService } from './roadtrip-search.service';
+import { answeringRefusals } from './roadtrip-mcp.helpers';
 import { RoadtripPlanService } from './roadtrip-plan.service';
+import { RoadtripSearchService } from './roadtrip-search.service';
 import {
   roadtripPlanRequestSchema,
   roadtripCorridorRequestSchema,
@@ -19,7 +20,6 @@ import {
   riddenRanges,
   simplifyLine,
 } from '@trek/shared/roadtrip';
-import { answeringRefusals } from './roadtrip-mcp.helpers';
 
 import { z } from 'zod';
 
@@ -120,7 +120,11 @@ export class RoadtripPlanningMcp {
       const tiles = drivenPieces(line, ridden).flatMap((piece) => corridorTiles(piece, input.widthKm));
       const hits = new Map<
         string,
-        { poi: Awaited<ReturnType<RoadtripSearchService['search']>>['pois'][number]; alongKm: number; distanceKm: number }
+        {
+          poi: Awaited<ReturnType<RoadtripSearchService['search']>>['pois'][number];
+          alongKm: number;
+          distanceKm: number;
+        }
       >();
       const page = tiles.slice(input.offset, input.offset + 6);
       const failedAreas: number[] = [];
@@ -130,8 +134,8 @@ export class RoadtripPlanningMcp {
       for (const bbox of page) {
         try {
           const found = await this.maps.search({ categories: [input.category], bbox }, ctx.userId);
-          found.sources.forEach(source => sources.add(source));
-          found.failedSources.forEach(source => failedSources.add(source));
+          found.sources.forEach((source) => sources.add(source));
+          found.failedSources.forEach((source) => failedSources.add(source));
           if (found.truncated || found.clamped) truncatedAreas++;
           for (const poi of found.pois) {
             const projection = projectOntoRoute(poi, line);
@@ -166,7 +170,8 @@ export class RoadtripPlanningMcp {
         dayNumber: day.dayNumber,
         sources: [...sources],
         failedSources: [...failedSources],
-        complete: !failedSources.size && !failedAreas.length && !truncatedAreas && input.offset + page.length >= tiles.length,
+        complete:
+          !failedSources.size && !failedAreas.length && !truncatedAreas && input.offset + page.length >= tiles.length,
         failedAreas,
         truncatedAreas,
         totalAreas: tiles.length,

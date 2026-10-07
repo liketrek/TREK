@@ -1,10 +1,10 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { logInfo, logError } from '../audit/audit-log.logger';
 import { IdempotencyKeys } from '../../db/entities/IdempotencyKeys.entity';
 import type { IdempotencyKeysRepository } from '../../db/repositories/IdempotencyKeys.repository';
+import { logInfo, logError } from '../audit/audit-log.logger';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 import { purgeExpiredIdempotencyKeys } from './idempotency-cleanup';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
  * Nightly 3 AM purge of expired idempotency keys (moved from src/scheduler.ts).

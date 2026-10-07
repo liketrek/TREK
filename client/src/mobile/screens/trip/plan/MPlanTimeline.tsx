@@ -1,30 +1,55 @@
-import { useRef, useState, type MouseEvent } from 'react'
-import { ArrowRight, BedDouble, CalendarDays, CalendarRange, ChevronRight, Compass, LogIn, LogOut, MapPin, Pencil, PencilLine, Route, Ticket, TrainFront, Undo2, RotateCcw, TramFront } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
-import { useContextMenu, ContextMenu } from '../../../../components/shared/ContextMenu'
-import MarkdownText from '../../../../components/shared/MarkdownText'
-import { fmtTransitDuration } from '../../../../components/Planner/transitDisplay'
-import { routeModeIcon } from '../../../../components/Planner/routeModes'
-import { formatTime } from '../../../../utils/formatters'
-import { useMPlanTimeline, type MPlanTimelineController } from './useMPlanTimeline'
-import { cityPillsForDay, weatherIconFor } from './planTimelineModel'
-import type { HotelChip, PlanRow } from './planTimelineModel'
-import { useMPlanDragReorder } from './useMPlanDragReorder'
-import { useTouchDragBridge } from '../../../../hooks/useTouchDragBridge'
-import { useIsTouch } from '../../../../hooks/useIsTouch'
-import { ConnRow, HotelConnRow, NoteRow, PlaceRow, PlanScheduleRow, ReorderStack, TransitRow, TransportRow } from './MPlanTimelineRows'
-import type { RowDrag } from './MPlanTimelineRows'
-import { usePluginDaySchedule } from '../../../../components/Plugins/PluginDaySchedule'
-import { Fragment } from 'react'
-import MDancingTrek from '../../../components/MDancingTrek'
-import type { MPlanTimelineProps } from '../MTripShell'
-import type { MergedItem } from '../../../../utils/dayMerge'
-import type { RouteSegment } from '../../../../types'
-import type { Assignment } from '../../../../types'
-import type { ComponentType, ReactNode } from 'react'
-import GoogleMapsIcon from '../../../../components/shared/GoogleMapsIcon'
-import { isRtlLanguage } from '../../../../i18n'
-import { useMPlanDaySwipe } from './useMPlanDaySwipe'
+import type { LucideIcon } from 'lucide-react';
+import {
+  ArrowRight,
+  BedDouble,
+  CalendarDays,
+  CalendarRange,
+  ChevronRight,
+  Compass,
+  LogIn,
+  LogOut,
+  MapPin,
+  Pencil,
+  PencilLine,
+  RotateCcw,
+  Route,
+  Ticket,
+  TrainFront,
+  TramFront,
+  Undo2,
+} from 'lucide-react';
+import type { ComponentType, ReactNode } from 'react';
+import { Fragment, useRef, useState, type MouseEvent } from 'react';
+import { routeModeIcon } from '../../../../components/Planner/routeModes';
+import { fmtTransitDuration } from '../../../../components/Planner/transitDisplay';
+import { usePluginDaySchedule } from '../../../../components/Plugins/PluginDaySchedule';
+import { ContextMenu, useContextMenu } from '../../../../components/shared/ContextMenu';
+import GoogleMapsIcon from '../../../../components/shared/GoogleMapsIcon';
+import MarkdownText from '../../../../components/shared/MarkdownText';
+import { useIsTouch } from '../../../../hooks/useIsTouch';
+import { useTouchDragBridge } from '../../../../hooks/useTouchDragBridge';
+import { isRtlLanguage } from '../../../../i18n';
+import type { Assignment, RouteSegment } from '../../../../types';
+import type { MergedItem } from '../../../../utils/dayMerge';
+import { formatTime } from '../../../../utils/formatters';
+import MDancingTrek from '../../../components/MDancingTrek';
+import type { MPlanTimelineProps } from '../MTripShell';
+import type { RowDrag } from './MPlanTimelineRows';
+import {
+  ConnRow,
+  HotelConnRow,
+  NoteRow,
+  PlaceRow,
+  PlanScheduleRow,
+  ReorderStack,
+  TransitRow,
+  TransportRow,
+} from './MPlanTimelineRows';
+import type { HotelChip, PlanRow } from './planTimelineModel';
+import { cityPillsForDay, weatherIconFor } from './planTimelineModel';
+import { useMPlanDaySwipe } from './useMPlanDaySwipe';
+import { useMPlanDragReorder } from './useMPlanDragReorder';
+import { useMPlanTimeline, type MPlanTimelineController } from './useMPlanTimeline';
 
 /**
  * Plan-tab timeline of the mobile trip screen: the UP-NEXT card in go mode,
@@ -33,61 +58,76 @@ import { useMPlanDaySwipe } from './useMPlanDaySwipe'
  * follows the demo's absolute geometry, re-anchored to the shell's safe-top.
  */
 
-const GLASS_PILL = 'rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)]'
+const GLASS_PILL = 'rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)]';
 
 export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
-  const tl = useMPlanTimeline(planner)
-  const { t, trip, can } = planner
-  const canEdit = can('day_edit', trip)
-  const editing = shell.mode === 'edit' && canEdit
-  const canEditPlaces = can('place_edit', trip)
+  const tl = useMPlanTimeline(planner);
+  const { t, trip, can } = planner;
+  const canEdit = can('day_edit', trip);
+  const editing = shell.mode === 'edit' && canEdit;
+  const canEditPlaces = can('place_edit', trip);
   // Per-segment travel mode (#1281): tap a connector → pick the leg's mode.
-  const legMenu = useContextMenu()
+  const legMenu = useContextMenu();
   const openLegMenu = (e: MouseEvent, assignmentId: number, seg: RouteSegment) => {
     // Public transit sits under the road profiles, as on the desktop (#2398).
-    const transitLeg = tl.transitLegFor(seg)
+    const transitLeg = tl.transitLegFor(seg);
     legMenu.open(e, [
-      ...tl.routeModeOptions.map(o => ({ label: o.label, icon: routeModeIcon(o.key), onClick: () => tl.setLegMode(assignmentId, o.key) })),
-      ...(transitLeg ? [{ label: t('transit.title'), icon: TramFront, onClick: () => tl.planTransitLeg(transitLeg) }] : []),
+      ...tl.routeModeOptions.map((o) => ({
+        label: o.label,
+        icon: routeModeIcon(o.key),
+        onClick: () => tl.setLegMode(assignmentId, o.key),
+      })),
+      ...(transitLeg
+        ? [{ label: t('transit.title'), icon: TramFront, onClick: () => tl.planTransitLeg(transitLeg) }]
+        : []),
       { divider: true },
-      { label: t('dayplan.transportMode.useDefault'), icon: RotateCcw, onClick: () => tl.setLegMode(assignmentId, null) },
-    ])
-  }
+      {
+        label: t('dayplan.transportMode.useDefault'),
+        icon: RotateCcw,
+        onClick: () => tl.setLegMode(assignmentId, null),
+      },
+    ]);
+  };
   // Plugin time contributions in the day plan (dayScheduleProvider hook) —
   // slotted under their anchor rows, same as the desktop sidebar.
-  const daySchedule = usePluginDaySchedule(planner.tripId)
-  const day = tl.day
-  const dayId = day?.id
+  const daySchedule = usePluginDaySchedule(planner.tripId);
+  const day = tl.day;
+  const dayId = day?.id;
   // A stay chip opens the stay, the same way the stay card in the day sheet
   // does: the editor for members who may edit days, otherwise the hotel's
   // place. A stay with neither still leads to the day sheet, so the chip
   // never goes dead (#2210).
   const openStay = (chip: HotelChip) => {
-    if (!day) return
-    if (canEdit) shell.openSheet('accommodation', { dayId: day.id, accId: chip.accId, from: 'timeline' })
-    else if (chip.placeId != null) planner.handlePlaceClick(chip.placeId)
-    else shell.openSheet('day', { dayId: day.id })
-  }
+    if (!day) return;
+    if (canEdit) shell.openSheet('accommodation', { dayId: day.id, accId: chip.accId, from: 'timeline' });
+    else if (chip.placeId != null) planner.handlePlaceClick(chip.placeId);
+    else shell.openSheet('day', { dayId: day.id });
+  };
   // The icon alone tells check-out from check-in; the accessible name says it.
   const stayLabel = (chip: HotelChip) => {
-    const kind = chip.variant === 'checkin' ? t('day.checkIn') : chip.variant === 'checkout' ? t('day.checkOut') : t('mobileTrip.stay')
-    return `${kind} · ${chip.name}${chip.time ? ` · ${chip.time.slice(0, 5)}` : ''}`
-  }
+    const kind =
+      chip.variant === 'checkin'
+        ? t('day.checkIn')
+        : chip.variant === 'checkout'
+          ? t('day.checkOut')
+          : t('mobileTrip.stay');
+    return `${kind} · ${chip.name}${chip.time ? ` · ${chip.time.slice(0, 5)}` : ''}`;
+  };
   // Mirrors MDaySheet's own label so the pill and the sheet it opens agree.
-  const dayLabel = day
-    ? day.title || t('planner.dayN', { n: day.day_number || planner.days.indexOf(day) + 1 })
-    : ''
+  const dayLabel = day ? day.title || t('planner.dayN', { n: day.day_number || planner.days.indexOf(day) + 1 }) : '';
   const dayScheduleFor = (anchor: 'assignment' | 'reservation', id: number) =>
     (dayId != null
-      ? (anchor === 'assignment' ? daySchedule.byAssignment[dayId]?.[id] : daySchedule.byReservation[dayId]?.[id])
+      ? anchor === 'assignment'
+        ? daySchedule.byAssignment[dayId]?.[id]
+        : daySchedule.byReservation[dayId]?.[id]
       : undefined
-    )?.map(si => <PlanScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)
+    )?.map((si) => <PlanScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />);
 
   // Selecting the place is enough — the place inspector sheet opens off the
   // planner's selection, same contract as map marker taps.
   const openPlace = (assignment: Assignment) => {
-    planner.handlePlaceClick(assignment.place?.id ?? null, assignment.id)
-  }
+    planner.handlePlaceClick(assignment.place?.id ?? null, assignment.id);
+  };
 
   // Long-press drag reordering (#1997). Armed only in edit mode, so go-mode taps,
   // map pans and plain list scrolling keep the gesture — which is what kept
@@ -96,24 +136,24 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
   // shell already loads drag-drop-touch (utils/touchDragPolyfill), and two
   // bridges would fight over one gesture. The rows' native drag props serve
   // both, so nothing is lost there.
-  const isTouch = useIsTouch()
-  useTouchDragBridge(editing && isTouch)
+  const isTouch = useIsTouch();
+  useTouchDragBridge(editing && isTouch);
   const dnd = useMPlanDragReorder({
     merged: tl.merged,
     dayId,
     onMove: tl.moveRowTo,
     enabled: editing,
-  })
+  });
   // Swipe the whole panel left/right to step days (#2051) — the one-handed way
   // to the next day, since the chip rail is pinned to the top of the screen.
-  const panelRef = useRef<HTMLDivElement>(null)
-  const cardRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const daySwipe = useMPlanDaySwipe({
     days: planner.days,
     selectedDayId: planner.selectedDayId,
     // skipFit, exactly like the chip tap in plan view: the map underneath stays
     // mounted, and re-framing it here would move it somewhere nobody asked for.
-    onSelectDay: dayId => planner.handleSelectDay(dayId, true),
+    onSelectDay: (dayId) => planner.handleSelectDay(dayId, true),
     panelRef,
     cardRef,
     editing,
@@ -121,16 +161,16 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
     menuOpen: legMenu.menu != null,
     rtl: isRtlLanguage(planner.language),
     describeDay: (i, n) => t('mobileTrip.dayAnnounce', { current: i + 1, total: n }),
-  })
+  });
 
   const dragFor = (row: PlanRow): RowDrag | undefined => {
-    const props = dnd.dragPropsFor(row)
-    if (!props) return undefined
-    return { ...props, dragging: dnd.draggingKey === row.key, dropTarget: dnd.dropBeforeKey === row.key }
-  }
+    const props = dnd.dragPropsFor(row);
+    if (!props) return undefined;
+    return { ...props, dragging: dnd.draggingKey === row.key, dropTarget: dnd.dropBeforeKey === row.key };
+  };
 
   const reorderFor = (item: MergedItem): ReactNode => {
-    const idx = tl.merged.indexOf(item)
+    const idx = tl.merged.indexOf(item);
     return (
       <ReorderStack
         onUp={() => tl.moveRow(item, 'up')}
@@ -139,10 +179,10 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
         canDown={idx >= 0 && idx < tl.merged.length - 1}
         t={t}
       />
-    )
-  }
+    );
+  };
 
-  const chrome = { editing, t, language: tl.language, timeFormat: tl.timeFormat }
+  const chrome = { editing, t, language: tl.language, timeFormat: tl.timeFormat };
 
   return (
     <div ref={panelRef} className="absolute inset-0" {...daySwipe.handlers}>
@@ -150,7 +190,9 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
       {/* Swipe-committed day changes only — a chip tap already speaks its own
           button label plus the aria-current flip, so announcing there would say
           the day twice. */}
-      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{daySwipe.announcement}</span>
+      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {daySwipe.announcement}
+      </span>
       {!editing && <UpNextCard tl={tl} t={t} onOpen={openPlace} />}
       {editing && <EditHeader tl={tl} planner={planner} shell={shell} />}
 
@@ -160,10 +202,10 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
       <div
         ref={cardRef}
         data-touch-drag={editing ? '' : undefined}
-        className="absolute left-4 right-4 overflow-x-hidden overflow-y-auto overscroll-contain rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-3.5 pb-2 pt-1 backdrop-blur-[24px] backdrop-saturate-[1.6] bottom-[calc(env(safe-area-inset-bottom,0px)+90px)]"
+        className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+90px)] left-4 right-4 overflow-y-auto overflow-x-hidden overscroll-contain rounded-[22px] border border-[color:var(--m-cbr)] bg-[color:var(--m-card)] px-3.5 pb-2 pt-1 backdrop-blur-[24px] backdrop-saturate-[1.6]"
         style={{ top: `calc(var(--m-safe-top, 12px) + ${editing ? 140 : tl.upNext ? 216 : 102}px)` }}
       >
-        {planner.toursEnabled && tl.rows.some(row => row.kind === 'place' && row.invalidTour) && (
+        {planner.toursEnabled && tl.rows.some((row) => row.kind === 'place' && row.invalidTour) && (
           <div role="status" className="border-b border-[color:var(--warning)] p-2 text-sm text-[color:var(--warning)]">
             {t('tours.dayRoute.endpointUnknown')}
           </div>
@@ -177,90 +219,105 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
             openLabel={t('day.overview')}
             // The chip still opens the day sheet, but its accessible name says
             // WHERE the forecast is for — a roadtrip day is ambiguous otherwise (#2167).
-            weatherLabel={tl.weatherPlaceName
-              ? `${t('day.overview')} · ${t('day.weatherFor', { name: tl.weatherPlaceName })}`
-              : undefined}
+            weatherLabel={
+              tl.weatherPlaceName
+                ? `${t('day.overview')} · ${t('day.weatherFor', { name: tl.weatherPlaceName })}`
+                : undefined
+            }
             onOpenDay={() => shell.openSheet('day', { dayId: day.id })}
             onOpenStay={openStay}
             stayLabel={stayLabel}
           />
         )}
 
-        {tl.hotelLegs.top && (
-          <HotelConnRow seg={tl.hotelLegs.top.seg} name={tl.hotelLegs.top.name} placement="top" />
-        )}
-        {dayId != null && daySchedule.byPosition[dayId]?.start.map(si => <PlanScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
+        {tl.hotelLegs.top && <HotelConnRow seg={tl.hotelLegs.top.seg} name={tl.hotelLegs.top.name} placement="top" />}
+        {dayId != null &&
+          daySchedule.byPosition[dayId]?.start.map((si) => (
+            <PlanScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />
+          ))}
 
-        {day && tl.rows.map(row => {
-          switch (row.kind) {
-            case 'place':
-              return (
-                <Fragment key={row.key}>
-                  <PlaceRow
-                    assignment={row.assignment}
-                    fullPlace={tl.fullPlaceOf(row.assignment)}
-                    linkedReservations={row.linkedReservations}
+        {day &&
+          tl.rows.map((row) => {
+            switch (row.kind) {
+              case 'place':
+                return (
+                  <Fragment key={row.key}>
+                    <PlaceRow
+                      assignment={row.assignment}
+                      fullPlace={tl.fullPlaceOf(row.assignment)}
+                      linkedReservations={row.linkedReservations}
+                      chrome={chrome}
+                      reorder={reorderFor(row.item)}
+                      drag={dragFor(row)}
+                      onOpen={() => openPlace(row.assignment)}
+                      onEdit={canEditPlaces ? () => tl.editAssignment(row.assignment) : undefined}
+                      onRemove={() => tl.removeAssignment(row.assignment)}
+                    />
+                    {dayScheduleFor('assignment', row.assignment.id)}
+                  </Fragment>
+                );
+              case 'transport':
+                return (
+                  <Fragment key={row.key}>
+                    <TransportRow
+                      res={row.res}
+                      dayId={day.id}
+                      chrome={chrome}
+                      reorder={reorderFor(row.item)}
+                      drag={dragFor(row)}
+                      onOpen={() => {
+                        if (editing) tl.editTransport(row.res);
+                        else shell.openSheet('transport', { reservationId: row.res.id });
+                      }}
+                    />
+                    {dayScheduleFor('reservation', row.res.id)}
+                  </Fragment>
+                );
+              case 'transit':
+                return (
+                  <Fragment key={row.key}>
+                    <TransitRow
+                      res={row.res}
+                      transit={row.transit}
+                      dayId={day.id}
+                      open={tl.openTransitKeys.has(row.key)}
+                      chrome={chrome}
+                      reorder={reorderFor(row.item)}
+                      drag={dragFor(row)}
+                      onToggle={() => tl.toggleTransit(row.key)}
+                      onOpenJourney={() => tl.openTransitJourney(row.res)}
+                    />
+                    {dayScheduleFor('reservation', row.res.id)}
+                  </Fragment>
+                );
+              case 'note':
+                return (
+                  <NoteRow
+                    key={row.key}
+                    note={row.note}
                     chrome={chrome}
                     reorder={reorderFor(row.item)}
                     drag={dragFor(row)}
-                    onOpen={() => openPlace(row.assignment)}
-                    onEdit={canEditPlaces ? () => tl.editAssignment(row.assignment) : undefined}
-                    onRemove={() => tl.removeAssignment(row.assignment)}
+                    onEdit={() => shell.openSheet('note', { dayId: day.id, note: row.note })}
                   />
-                  {dayScheduleFor('assignment', row.assignment.id)}
-                </Fragment>
-              )
-            case 'transport':
-              return (
-                <Fragment key={row.key}>
-                  <TransportRow
-                    res={row.res}
-                    dayId={day.id}
-                    chrome={chrome}
-                    reorder={reorderFor(row.item)}
-                    drag={dragFor(row)}
-                    onOpen={() => {
-                      if (editing) tl.editTransport(row.res)
-                      else shell.openSheet('transport', { reservationId: row.res.id })
-                    }}
+                );
+              case 'conn':
+                return (
+                  <ConnRow
+                    key={row.key}
+                    seg={row.seg}
+                    onTap={
+                      editing && row.assignmentId != null
+                        ? (e) => openLegMenu(e, row.assignmentId!, row.seg)
+                        : undefined
+                    }
                   />
-                  {dayScheduleFor('reservation', row.res.id)}
-                </Fragment>
-              )
-            case 'transit':
-              return (
-                <Fragment key={row.key}>
-                  <TransitRow
-                    res={row.res}
-                    transit={row.transit}
-                    dayId={day.id}
-                    open={tl.openTransitKeys.has(row.key)}
-                    chrome={chrome}
-                    reorder={reorderFor(row.item)}
-                    drag={dragFor(row)}
-                    onToggle={() => tl.toggleTransit(row.key)}
-                    onOpenJourney={() => tl.openTransitJourney(row.res)}
-                  />
-                  {dayScheduleFor('reservation', row.res.id)}
-                </Fragment>
-              )
-            case 'note':
-              return (
-                <NoteRow
-                  key={row.key}
-                  note={row.note}
-                  chrome={chrome}
-                  reorder={reorderFor(row.item)}
-                  drag={dragFor(row)}
-                  onEdit={() => shell.openSheet('note', { dayId: day.id, note: row.note })}
-                />
-              )
-            case 'conn':
-              return <ConnRow key={row.key} seg={row.seg} onTap={editing && row.assignmentId != null ? e => openLegMenu(e, row.assignmentId!, row.seg) : undefined} />
-          }
-        })}
+                );
+            }
+          })}
 
-        {dayId != null && daySchedule.byPosition[dayId]?.end.map(si => <PlanScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
+        {dayId != null &&
+          daySchedule.byPosition[dayId]?.end.map((si) => <PlanScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
         {tl.hotelLegs.bottom && (
           <HotelConnRow seg={tl.hotelLegs.bottom.seg} name={tl.hotelLegs.bottom.name} placement="bottom" />
         )}
@@ -293,26 +350,30 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 /** Go mode: the next stop with a live countdown (only counting down on today's day). */
-function UpNextCard({ tl, t, onOpen }: {
-  tl: MPlanTimelineController
-  t: MPlanTimelineProps['planner']['t']
-  onOpen: (assignment: Assignment) => void
+function UpNextCard({
+  tl,
+  t,
+  onOpen,
+}: {
+  tl: MPlanTimelineController;
+  t: MPlanTimelineProps['planner']['t'];
+  onOpen: (assignment: Assignment) => void;
 }) {
-  const upNext = tl.upNext
-  if (!upNext) return null
-  const place = upNext.assignment.place
-  const time = place?.place_time ? formatTime(place.place_time.slice(0, 5), tl.language, tl.timeFormat) : ''
-  const sub = place?.address || place?.description || ''
+  const upNext = tl.upNext;
+  if (!upNext) return null;
+  const place = upNext.assignment.place;
+  const time = place?.place_time ? formatTime(place.place_time.slice(0, 5), tl.language, tl.timeFormat) : '';
+  const sub = place?.address || place?.description || '';
 
   return (
     <button
       type="button"
       onClick={() => onOpen(upNext.assignment)}
-      className="absolute left-4 right-4 cursor-pointer rounded-[22px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-4 py-3.5 text-left shadow-[0_18px_44px_-18px_rgba(0,0,0,.3)] backdrop-blur-[28px] backdrop-saturate-[1.8] top-[calc(var(--m-safe-top,12px)+102px)]"
+      className="absolute left-4 right-4 top-[calc(var(--m-safe-top,12px)+102px)] cursor-pointer rounded-[22px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-4 py-3.5 text-left shadow-[0_18px_44px_-18px_rgba(0,0,0,.3)] backdrop-blur-[28px] backdrop-saturate-[1.8]"
     >
       <div className="flex items-center justify-between">
         <span className="whitespace-nowrap font-geist text-[0.65625rem] font-bold uppercase tracking-[.08em] text-m-muted">
@@ -334,43 +395,51 @@ function UpNextCard({ tl, t, onOpen }: {
             )}
             <span className="min-w-0 truncate text-[1.125rem] font-bold">{place?.name}</span>
           </div>
-          {sub && <MarkdownText clamp className="mt-[2px] font-geist text-[0.75rem] text-m-muted">{sub}</MarkdownText>}
+          {sub && (
+            <MarkdownText clamp className="mt-[2px] font-geist text-[0.75rem] text-m-muted">
+              {sub}
+            </MarkdownText>
+          )}
         </div>
         <span className="ml-2 flex h-8 w-8 flex-none items-center justify-center rounded-full bg-m-act text-m-actfg">
           <ChevronRight size={16} strokeWidth={2.4} />
         </span>
       </div>
     </button>
-  )
+  );
 }
 
 /** Edit mode: city pills (day title), inline rename via the pencil, day management, named undo. */
-function EditHeader({ tl, planner, shell }: {
-  tl: MPlanTimelineController
-  planner: MPlanTimelineProps['planner']
-  shell: MPlanTimelineProps['shell']
+function EditHeader({
+  tl,
+  planner,
+  shell,
+}: {
+  tl: MPlanTimelineController;
+  planner: MPlanTimelineProps['planner'];
+  shell: MPlanTimelineProps['shell'];
 }) {
-  const { t, canUndo, handleUndo, lastActionLabel } = planner
-  const [renaming, setRenaming] = useState(false)
-  const [draft, setDraft] = useState('')
-  const pills = cityPillsForDay(tl.day, t)
+  const { t, canUndo, handleUndo, lastActionLabel } = planner;
+  const [renaming, setRenaming] = useState(false);
+  const [draft, setDraft] = useState('');
+  const pills = cityPillsForDay(tl.day, t);
 
   const commitRename = () => {
-    setRenaming(false)
-    if (draft.trim() !== (tl.day?.title ?? '').trim()) tl.renameDay(draft)
-  }
+    setRenaming(false);
+    if (draft.trim() !== (tl.day?.title ?? '').trim()) tl.renameDay(draft);
+  };
 
   return (
-    <div className="absolute left-4 right-4 flex items-center gap-2 top-[calc(var(--m-safe-top,12px)+102px)]">
+    <div className="absolute left-4 right-4 top-[calc(var(--m-safe-top,12px)+102px)] flex items-center gap-2">
       {renaming ? (
         <input
           autoFocus
           value={draft}
-          onChange={e => setDraft(e.target.value)}
+          onChange={(e) => setDraft(e.target.value)}
           onBlur={commitRename}
-          onKeyDown={e => {
-            if (e.key === 'Enter') commitRename()
-            if (e.key === 'Escape') setRenaming(false)
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commitRename();
+            if (e.key === 'Escape') setRenaming(false);
           }}
           placeholder={t('mobileTrip.dayTitlePlaceholder')}
           className={`min-w-0 flex-1 px-[11px] py-1 text-[0.75rem] font-semibold text-m-ink outline-none placeholder:text-m-faint ${GLASS_PILL}`}
@@ -381,7 +450,9 @@ function EditHeader({ tl, planner, shell }: {
             {pills.map((pill, i) => (
               <span key={`${pill}-${i}`} className="flex min-w-0 items-center gap-1.5">
                 {i > 0 && <ArrowRight size={13} strokeWidth={2.2} className="flex-none text-m-faint" />}
-                <span className={`inline-flex min-w-0 items-center truncate px-[11px] py-1 text-[0.75rem] font-semibold ${GLASS_PILL}`}>
+                <span
+                  className={`inline-flex min-w-0 items-center truncate px-[11px] py-1 text-[0.75rem] font-semibold ${GLASS_PILL}`}
+                >
                   {pill}
                 </span>
               </span>
@@ -390,7 +461,10 @@ function EditHeader({ tl, planner, shell }: {
           <button
             type="button"
             aria-label={t('mobileTrip.renameDay')}
-            onClick={() => { setDraft(tl.day?.title ?? ''); setRenaming(true) }}
+            onClick={() => {
+              setDraft(tl.day?.title ?? '');
+              setRenaming(true);
+            }}
             className="flex-none text-m-faint"
           >
             <Pencil size={14} strokeWidth={2} />
@@ -416,7 +490,7 @@ function EditHeader({ tl, planner, shell }: {
         {t('undo.button')}
       </button>
     </div>
-  )
+  );
 }
 
 /**
@@ -429,17 +503,25 @@ function EditHeader({ tl, planner, shell }: {
  * the stay chips have a target of their own: tapping a hotel opens that stay,
  * not the day (#2210). Only the weather chip still shares the day pill's target.
  */
-function TimelineHeader({ tl, dayLabel, openLabel, weatherLabel, onOpenDay, onOpenStay, stayLabel }: {
-  tl: MPlanTimelineController
-  dayLabel: string
-  openLabel: string
+function TimelineHeader({
+  tl,
+  dayLabel,
+  openLabel,
+  weatherLabel,
+  onOpenDay,
+  onOpenStay,
+  stayLabel,
+}: {
+  tl: MPlanTimelineController;
+  dayLabel: string;
+  openLabel: string;
   /** Weather-chip label naming the forecast's anchor place (#2167); falls back to openLabel. */
-  weatherLabel?: string
-  onOpenDay: () => void
-  onOpenStay: (chip: HotelChip) => void
-  stayLabel: (chip: HotelChip) => string
+  weatherLabel?: string;
+  onOpenDay: () => void;
+  onOpenStay: (chip: HotelChip) => void;
+  stayLabel: (chip: HotelChip) => string;
 }) {
-  const WeatherIcon = weatherIconFor(tl.weather?.main)
+  const WeatherIcon = weatherIconFor(tl.weather?.main);
   return (
     <div className="flex items-center gap-1.5 border-b border-[color:var(--m-rowbr)] px-0.5 py-[9px]">
       {/* The one horizontal scroller inside the swipe zone, marked so a swipe
@@ -456,7 +538,7 @@ function TimelineHeader({ tl, dayLabel, openLabel, weatherLabel, onOpenDay, onOp
           {dayLabel}
           <ChevronRight size={11} strokeWidth={2.4} aria-hidden="true" className="text-m-faint" />
         </button>
-        {tl.hotelChips.map(chip => (
+        {tl.hotelChips.map((chip) => (
           <button
             key={chip.key}
             type="button"
@@ -483,22 +565,27 @@ function TimelineHeader({ tl, dayLabel, openLabel, weatherLabel, onOpenDay, onOp
         </button>
       )}
     </div>
-  )
+  );
 }
 
 /** Icon-coded like the demo, colour-tinted per the audit (green in / red out). */
 function HotelChipIcon({ variant }: { variant: 'checkout' | 'checkin' | 'stay' }) {
-  if (variant === 'checkout') return <LogOut size={12} strokeWidth={2.2} className="text-[color:var(--m-st-danger)]" />
-  if (variant === 'checkin') return <LogIn size={12} strokeWidth={2.2} className="text-[color:var(--m-st-confirmed)]" />
-  return <BedDouble size={12} strokeWidth={2.2} className="text-m-muted" />
+  if (variant === 'checkout') return <LogOut size={12} strokeWidth={2.2} className="text-[color:var(--m-st-danger)]" />;
+  if (variant === 'checkin')
+    return <LogIn size={12} strokeWidth={2.2} className="text-[color:var(--m-st-confirmed)]" />;
+  return <BedDouble size={12} strokeWidth={2.2} className="text-m-muted" />;
 }
 
 /** Edit-mode action tile — Place · Note · Booking · Transport · Optimize · Google Maps, three per row. */
-function PlanAction({ icon: Icon, label, onClick }: {
+function PlanAction({
+  icon: Icon,
+  label,
+  onClick,
+}: {
   // Google Maps hands in its own brand mark, which is not a lucide icon (#2005).
-  icon: LucideIcon | ComponentType<{ size?: number; className?: string }>
-  label: string
-  onClick: () => void
+  icon: LucideIcon | ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  onClick: () => void;
 }) {
   return (
     <button
@@ -507,7 +594,9 @@ function PlanAction({ icon: Icon, label, onClick }: {
       className="flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-1 py-2.5 transition-transform active:scale-[.97]"
     >
       <Icon size={17} strokeWidth={2} className="text-m-muted" />
-      <span className="max-w-full text-center font-geist text-[0.625rem] font-semibold leading-tight text-m-ink">{label}</span>
+      <span className="max-w-full text-center font-geist text-[0.625rem] font-semibold leading-tight text-m-ink">
+        {label}
+      </span>
     </button>
-  )
+  );
 }

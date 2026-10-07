@@ -12,15 +12,16 @@
  * (`existsById` ignored) from the review's mutation table, none of which any other
  * suite killed.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createSnapshotTestDb } from '../../helpers/db-mock';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { Trips } from '../../../src/db/entities/Trips.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
 import { Days } from '../../../src/db/entities/Days.entity';
 import { PluginEntityMetadata } from '../../../src/db/entities/PluginEntityMetadata.entity';
 import { PluginScheduledTasks } from '../../../src/db/entities/PluginScheduledTasks.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -39,7 +40,9 @@ afterAll(async () => {
 function seed() {
   for (let i = 1; i <= 6; i++) {
     testDb
-      .prepare("INSERT INTO users (id, username, email, password_hash, display_name, avatar) VALUES (?, ?, ?, 'x', ?, ?)")
+      .prepare(
+        "INSERT INTO users (id, username, email, password_hash, display_name, avatar) VALUES (?, ?, ?, 'x', ?, ?)",
+      )
       .run(i, 'u' + i, `u${i}@x`, i % 2 ? 'D' + i : null, i === 3 ? 'a.png' : null);
   }
   const trips: Array<[number, number]> = [
@@ -48,7 +51,8 @@ function seed() {
     [3, 1],
     [4, 5],
   ];
-  for (const [id, owner] of trips) testDb.prepare('INSERT INTO trips (id, user_id, title) VALUES (?, ?, ?)').run(id, owner, 't');
+  for (const [id, owner] of trips)
+    testDb.prepare('INSERT INTO trips (id, user_id, title) VALUES (?, ?, ?)').run(id, owner, 't');
   for (const [trip, user] of [
     [1, 2],
     [1, 3],
@@ -58,7 +62,8 @@ function seed() {
   ]) {
     testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(trip, user);
   }
-  for (let d = 1; d <= 5; d++) testDb.prepare('INSERT INTO days (id, trip_id, day_number) VALUES (?, ?, ?)').run(10 + d, d % 2 ? 1 : 2, d);
+  for (let d = 1; d <= 5; d++)
+    testDb.prepare('INSERT INTO days (id, trip_id, day_number) VALUES (?, ?, ?)').run(10 + d, d % 2 ? 1 : 2, d);
 }
 
 describe('R3J-PARITY (Plan 3j Task 7 fix wave, must-land 4c)', () => {
@@ -113,11 +118,15 @@ describe('R3J-PARITY (Plan 3j Task 7 fix wave, must-land 4c)', () => {
     seed();
     const repo = t.repo(Days);
     for (const trip of [1, 2, 3, 99]) {
-      const legacy = (testDb.prepare('SELECT id FROM days WHERE trip_id = ?').all(trip) as Array<{ id: number }>).map((r) => r.id);
+      const legacy = (testDb.prepare('SELECT id FROM days WHERE trip_id = ?').all(trip) as Array<{ id: number }>).map(
+        (r) => r.id,
+      );
       expect(await repo.listIdsByTrip(trip)).toEqual(legacy);
     }
     for (const id of [11, 12, 99]) {
-      const legacy = (testDb.prepare('SELECT trip_id FROM days WHERE id = ?').get(id) as { trip_id: number } | undefined)?.trip_id;
+      const legacy = (
+        testDb.prepare('SELECT trip_id FROM days WHERE id = ?').get(id) as { trip_id: number } | undefined
+      )?.trip_id;
       expect(await repo.findTripId(id)).toEqual(legacy);
     }
   });
@@ -128,10 +137,16 @@ describe('R3J-PARITY (Plan 3j Task 7 fix wave, must-land 4c)', () => {
     await repo.upsertValue('p', 'trip', 1, 'b', '"1"');
     await repo.upsertValue('p', 'trip', 1, 'a', '"2"');
     await repo.upsertValue('q', 'trip', 1, 'a', '"x"');
-    const before = testDb.prepare("SELECT updated_at FROM plugin_entity_metadata WHERE plugin_id='p' AND key='b'").get() as { updated_at: string };
-    testDb.prepare("UPDATE plugin_entity_metadata SET updated_at='2000-01-01 00:00:00' WHERE plugin_id='p' AND key='b'").run();
+    const before = testDb
+      .prepare("SELECT updated_at FROM plugin_entity_metadata WHERE plugin_id='p' AND key='b'")
+      .get() as { updated_at: string };
+    testDb
+      .prepare("UPDATE plugin_entity_metadata SET updated_at='2000-01-01 00:00:00' WHERE plugin_id='p' AND key='b'")
+      .run();
     await repo.upsertValue('p', 'trip', 1, 'b', '"3"');
-    const after = testDb.prepare("SELECT id, value, updated_at FROM plugin_entity_metadata WHERE plugin_id='p' AND key='b'").get() as {
+    const after = testDb
+      .prepare("SELECT id, value, updated_at FROM plugin_entity_metadata WHERE plugin_id='p' AND key='b'")
+      .get() as {
       id: number;
       value: string;
       updated_at: string;
@@ -144,7 +159,11 @@ describe('R3J-PARITY (Plan 3j Task 7 fix wave, must-land 4c)', () => {
     expect(await repo.findValue('p', 'trip', 1, 'zz')).toBeNull(); // MR1 miss
     expect(await repo.countForEntity('p', 'trip', 1)).toBe(2); // MR3
     expect(await repo.listForEntity('p', 'trip', 1)).toEqual(
-      testDb.prepare("SELECT key, value FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? ORDER BY key").all('p', 'trip', 1),
+      testDb
+        .prepare(
+          'SELECT key, value FROM plugin_entity_metadata WHERE plugin_id=? AND entity_type=? AND entity_id=? ORDER BY key',
+        )
+        .all('p', 'trip', 1),
     ); // MR5, ORDER BY key
     expect(await repo.deleteValue('p', 'trip', 1, 'a')).toBe(true); // MR6
     expect(await repo.deleteValue('p', 'trip', 1, 'a')).toBe(false); // MR6, already gone
@@ -156,9 +175,9 @@ describe('R3J-PARITY (Plan 3j Task 7 fix wave, must-land 4c)', () => {
     await repo.upsertTask({ plugin_id: 'p', name: 'n', due_at: 5, payload: '1', every_ms: null });
     const id1 = (testDb.prepare("SELECT id FROM plugin_scheduled_tasks WHERE name='n'").get() as { id: number }).id;
     await repo.upsertTask({ plugin_id: 'p', name: 'n', due_at: 9, payload: '2', every_ms: 60000 });
-    expect(testDb.prepare('SELECT id, plugin_id, name, due_at, payload, every_ms FROM plugin_scheduled_tasks').all()).toEqual([
-      { id: id1, plugin_id: 'p', name: 'n', due_at: 9, payload: '2', every_ms: 60000 },
-    ]); // HR7: same id, replaced fields — an upsert, not a delete+insert
+    expect(
+      testDb.prepare('SELECT id, plugin_id, name, due_at, payload, every_ms FROM plugin_scheduled_tasks').all(),
+    ).toEqual([{ id: id1, plugin_id: 'p', name: 'n', due_at: 9, payload: '2', every_ms: 60000 }]); // HR7: same id, replaced fields — an upsert, not a delete+insert
     expect(await repo.existsForPluginAndName('p', 'n')).toBeTruthy(); // HR5
     expect(await repo.existsForPluginAndName('p', 'x')).toBeFalsy(); // HR5 miss
     expect(await repo.countForPlugin('p')).toBe(1); // HR6
@@ -196,17 +215,26 @@ describe('R3J-PARITY (Plan 3j Task 7 fix wave, must-land 4c)', () => {
     );
     expect(results.filter(Boolean).length).toBe(100); // exactly 100 writes accepted
     expect(await repo.countForEntity('capbomb', 'trip', 1)).toBe(100); // never more than 100 rows
-    expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_entity_metadata WHERE plugin_id='capbomb'").get()).toEqual({ c: 100 });
+    expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_entity_metadata WHERE plugin_id='capbomb'").get()).toEqual({
+      c: 100,
+    });
   });
 
   it('must-land 3: 130 concurrent PluginScheduledTasks.upsertTaskCapped calls for the SAME plugin, 130 DIFFERENT new names, never exceed the 100 cap', async () => {
     const repo = t.repo(PluginScheduledTasks);
     const due = Date.now() + 60_000;
     const results = await Promise.all(
-      Array.from({ length: 130 }, (_, i) => repo.upsertTaskCapped({ plugin_id: 'schedbomb', name: `t${i}`, due_at: due, payload: '1', every_ms: null }, 100)),
+      Array.from({ length: 130 }, (_, i) =>
+        repo.upsertTaskCapped(
+          { plugin_id: 'schedbomb', name: `t${i}`, due_at: due, payload: '1', every_ms: null },
+          100,
+        ),
+      ),
     );
     expect(results.filter(Boolean).length).toBe(100); // exactly 100 writes accepted
     expect(await repo.countForPlugin('schedbomb')).toBe(100); // never more than 100 rows
-    expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_scheduled_tasks WHERE plugin_id='schedbomb'").get()).toEqual({ c: 100 });
+    expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_scheduled_tasks WHERE plugin_id='schedbomb'").get()).toEqual({
+      c: 100,
+    });
   });
 });

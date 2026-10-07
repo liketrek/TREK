@@ -1,18 +1,18 @@
-import { useRef, useState } from 'react'
-import { MapPin } from 'lucide-react'
-import MSheet from '../../../components/MSheet'
-import type { MTripSheetsProps } from '../MTripShell'
-import { useTranslation } from '../../../../i18n'
-import { STOP_KINDS } from '../../../../components/Roadtrip/stopKinds'
-import { FormSheetHeader } from '../sheets/PlSheetChrome'
-import type { RoadtripStopType } from '@trek/shared'
+import type { RoadtripStopType } from '@trek/shared';
+import { MapPin } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { STOP_KINDS } from '../../../../components/Roadtrip/stopKinds';
+import { useTranslation } from '../../../../i18n';
+import MSheet from '../../../components/MSheet';
+import type { MTripSheetsProps } from '../MTripShell';
+import { FormSheetHeader } from '../sheets/PlSheetChrome';
 
 /** What the chain hands over when a stop's disc is tapped. */
 interface RtKindSheetPayload {
-  placeId?: number
+  placeId?: number;
   /** What the stop is now: a service kind, or null for a destination. */
-  stopType?: string | null
-  name?: string
+  stopType?: string | null;
+  name?: string;
 }
 
 /**
@@ -36,19 +36,19 @@ interface RtKindSheetPayload {
  * one field on one place, with the chain redrawing off the store as soon as it lands.
  */
 export default function MRtKindSheet({ planner, shell }: MTripSheetsProps) {
-  const { t } = useTranslation()
-  const open = shell.sheet?.id === 'rtkind'
-  const payload = (shell.sheet?.payload ?? {}) as RtKindSheetPayload
-  const canEdit = planner.can('place_edit', planner.trip)
+  const { t } = useTranslation();
+  const open = shell.sheet?.id === 'rtkind';
+  const payload = (shell.sheet?.payload ?? {}) as RtKindSheetPayload;
+  const canEdit = planner.can('place_edit', planner.trip);
 
   // Hold the last payload so the name and the current kind survive the exit animation
   // instead of blinking out while the sheet slides away.
-  const heldRef = useRef<RtKindSheetPayload | null>(null)
-  if (open && typeof payload.placeId === 'number') heldRef.current = payload
-  const stop = open && typeof payload.placeId === 'number' ? payload : heldRef.current
+  const heldRef = useRef<RtKindSheetPayload | null>(null);
+  if (open && typeof payload.placeId === 'number') heldRef.current = payload;
+  const stop = open && typeof payload.placeId === 'number' ? payload : heldRef.current;
 
-  const [saving, setSaving] = useState(false)
-  const current = stop?.stopType ?? null
+  const [saving, setSaving] = useState(false);
+  const current = stop?.stopType ?? null;
 
   /**
    * Writes the kind and closes.
@@ -60,21 +60,21 @@ export default function MRtKindSheet({ planner, shell }: MTripSheetsProps) {
    * save.
    */
   const pick = async (kind: RoadtripStopType | null) => {
-    const placeId = stop?.placeId
-    if (!canEdit || saving || placeId == null) return
-    setSaving(true)
+    const placeId = stop?.placeId;
+    if (!canEdit || saving || placeId == null) return;
+    setSaving(true);
     try {
-      await planner.setRoadtripStopKind(placeId, kind)
-      shell.closeSheet()
+      await planner.setRoadtripStopKind(placeId, kind);
+      shell.closeSheet();
     } catch {
       // Swallowed rather than toasted again: `setRoadtripStopKind` catches its own
       // failures and shows the message itself, so a second one here would be the same
       // news twice. What this catch is for is the sheet, which stays open on a write that
       // never landed instead of closing as if it had.
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   return (
     <MSheet
@@ -86,22 +86,16 @@ export default function MRtKindSheet({ planner, shell }: MTripSheetsProps) {
     >
       {stop && (
         <>
-          <FormSheetHeader
-            title={t('roadtrip.stop.kind')}
-            onClose={shell.closeSheet}
-            closeLabel={t('common.close')}
-          />
+          <FormSheetHeader title={t('roadtrip.stop.kind')} onClose={shell.closeSheet} closeLabel={t('common.close')} />
 
           <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-1">
-            {stop.name && (
-              <div className="truncate text-[0.875rem] font-semibold text-m-ink">{stop.name}</div>
-            )}
+            {stop.name && <div className="truncate text-[0.875rem] font-semibold text-m-ink">{stop.name}</div>}
 
             {/* Wrapped rather than scrolled sideways: seven discs do not fit one phone row,
                 and a row that scrolls hides the kinds past its edge behind a gesture. */}
             <div className="mt-[18px] flex flex-wrap justify-center gap-[10px]">
               {STOP_KINDS.map(({ key, labelKey, Icon, color }) => {
-                const on = current === key
+                const on = current === key;
                 return (
                   <button
                     key={key}
@@ -111,7 +105,9 @@ export default function MRtKindSheet({ planner, shell }: MTripSheetsProps) {
                     disabled={!canEdit || saving}
                     // Tapping the kind a stop already is takes it back to a destination,
                     // the same second tap the desktop palette answers to.
-                    onClick={() => { void pick(on ? null : key) }}
+                    onClick={() => {
+                      void pick(on ? null : key);
+                    }}
                     className="grid h-[54px] w-[54px] place-items-center rounded-[18px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] disabled:opacity-35"
                   >
                     <span
@@ -119,12 +115,15 @@ export default function MRtKindSheet({ planner, shell }: MTripSheetsProps) {
                       // theme-lint-disable: the road-signage palette from roadtripModel, the
                       // same one the chain disc and the map marker use, so the choice looks
                       // like what it will become.
-                      style={{ background: color, ...(on ? { boxShadow: `0 0 0 3px color-mix(in srgb, ${color} 45%, transparent)` } : {}) }}
+                      style={{
+                        background: color,
+                        ...(on ? { boxShadow: `0 0 0 3px color-mix(in srgb, ${color} 45%, transparent)` } : {}),
+                      }}
                     >
                       <Icon size={17} strokeWidth={2.1} aria-hidden="true" />
                     </span>
                   </button>
-                )
+                );
               })}
             </div>
 
@@ -134,7 +133,9 @@ export default function MRtKindSheet({ planner, shell }: MTripSheetsProps) {
               <button
                 type="button"
                 disabled={!canEdit || saving}
-                onClick={() => { void pick(null) }}
+                onClick={() => {
+                  void pick(null);
+                }}
                 className="mt-[18px] flex w-full items-center justify-center gap-2 rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-3 text-[0.8125rem] font-semibold text-m-ink disabled:opacity-35"
               >
                 <MapPin size={15} strokeWidth={2.2} className="flex-none text-m-muted" aria-hidden="true" />
@@ -145,5 +146,5 @@ export default function MRtKindSheet({ planner, shell }: MTripSheetsProps) {
         </>
       )}
     </MSheet>
-  )
+  );
 }

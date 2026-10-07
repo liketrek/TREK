@@ -7,6 +7,9 @@
  * for file-IO failures. It sits inside the src/nest/** coverage gate, so its
  * branches are pinned here with fs fully mocked.
  */
+import { logInfo, logDebug, logError, logWarn, LOG_LEVEL } from '../../../src/nest/audit/audit-log.logger';
+
+import fs from 'fs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('fs', () => {
@@ -19,9 +22,6 @@ vi.mock('fs', () => {
   };
   return { default: mock, ...mock };
 });
-
-import fs from 'fs';
-import { logInfo, logDebug, logError, logWarn, LOG_LEVEL } from '../../../src/nest/audit/audit-log.logger';
 
 const mocked = vi.mocked(fs);
 
@@ -57,7 +57,9 @@ describe('severity threshold (frozen at import)', () => {
     const consoleLine = String(err.mock.calls[0][0]);
     expect(consoleLine.startsWith('\x1b[31m[ERROR]\x1b[0m ')).toBe(true);
     expect(consoleLine).toMatch(/ \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2} boom$/);
-    expect(String(mocked.appendFileSync.mock.calls[0][1])).toMatch(/^\[ERROR\] \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2} boom\n$/);
+    expect(String(mocked.appendFileSync.mock.calls[0][1])).toMatch(
+      /^\[ERROR\] \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2} boom\n$/,
+    );
   });
 
   it('AUDIT-LOG-002: at LOG_LEVEL=debug every level logs with its tag', async () => {
@@ -70,7 +72,10 @@ describe('severity threshold (frozen at import)', () => {
       fresh.logDebug('d');
       fresh.logWarn('w');
       fresh.logError('e');
-      expect(log.mock.calls.map((c) => String(c[0]).includes('[INFO]') || String(c[0]).includes('[DEBUG]'))).toEqual([true, true]);
+      expect(log.mock.calls.map((c) => String(c[0]).includes('[INFO]') || String(c[0]).includes('[DEBUG]'))).toEqual([
+        true,
+        true,
+      ]);
       expect(String(warn.mock.calls[0][0])).toContain('[WARN]');
       expect(String(err.mock.calls[0][0])).toContain('[ERROR]');
       expect(mocked.appendFileSync).toHaveBeenCalledTimes(4);
@@ -150,7 +155,9 @@ describe('lazy logs dir + rotation + resilience', () => {
 
   it('AUDIT-LOG-008: file-write failures never throw and leave a console.error trace', () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mocked.appendFileSync.mockImplementation(() => { throw new Error('disk full'); });
+    mocked.appendFileSync.mockImplementation(() => {
+      throw new Error('disk full');
+    });
     expect(() => logError('still up')).not.toThrow();
     // First call is the [ERROR] line itself, second is the fallback trace.
     expect(err).toHaveBeenCalledTimes(2);
@@ -160,7 +167,9 @@ describe('lazy logs dir + rotation + resilience', () => {
   it('AUDIT-LOG-009: rotation failures are traced and the write still goes through', () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {});
     mocked.existsSync.mockReturnValue(true);
-    mocked.statSync.mockImplementation(() => { throw new Error('stat broke'); });
+    mocked.statSync.mockImplementation(() => {
+      throw new Error('stat broke');
+    });
     expect(() => logError('resilient')).not.toThrow();
     expect(String(err.mock.calls[1][0])).toBe('[logger] log rotation failed: stat broke');
     expect(mocked.appendFileSync).toHaveBeenCalledTimes(1);

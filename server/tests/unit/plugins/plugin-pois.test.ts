@@ -8,32 +8,48 @@
  * namespaced, and styled by the HOST's copy of the declaration, never the plugin's
  * answer, because the colour and icon end up inside marker markup.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { db as testDb } from '../../../src/db/database';
+import type { PluginsRepository } from '../../../src/db/repositories/Plugins.repository';
+import {
+  PluginPoisController,
+  parsePluginPoiQuery,
+} from '../../../src/nest/plugins/contributions/plugin-pois.controller';
+import {
+  normalizePluginPois,
+  normalizePoiDetails,
+  pluginPoiWindow,
+} from '../../../src/nest/plugins/contributions/plugin-pois.helpers';
+import { PluginPoisService } from '../../../src/nest/plugins/contributions/plugin-pois.service';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+import type { User } from '../../../src/types';
+import { createTestPluginsRepo } from '../../helpers/share-repos';
 import { HttpException } from '@nestjs/common';
+import type { PluginPoiCategory } from '@trek/shared';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const { pluginsEnabled } = vi.hoisted(() => ({ pluginsEnabled: vi.fn(() => true) }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb } = await import('../../helpers/db-mock');
   const db = createSnapshotTestDb();
-  return { db, closeDb: () => {}, reinitialize: () => {}, getPlaceWithTags: () => null, canAccessTrip: () => null, isOwner: () => false };
+  return {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: () => null,
+    canAccessTrip: () => null,
+    isOwner: () => false,
+  };
 });
 
-import { db as testDb } from '../../../src/db/database';
-import type { PluginsRepository } from '../../../src/db/repositories/Plugins.repository';
-import { createTestPluginsRepo } from '../../helpers/share-repos';
-import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
-import { PluginPoisService } from '../../../src/nest/plugins/contributions/plugin-pois.service';
-import { PluginPoisController, parsePluginPoiQuery } from '../../../src/nest/plugins/contributions/plugin-pois.controller';
-import {
-  normalizePluginPois,
-  normalizePoiDetails,
-  pluginPoiWindow,
-} from '../../../src/nest/plugins/contributions/plugin-pois.helpers';
-import type { PluginPoiCategory } from '@trek/shared';
-import type { User } from '../../../src/types';
-
-const trailheads: PluginPoiCategory = { id: 'trailheads', label: 'Trailheads', labels: { de: 'Wanderparkplätze' }, icon: 'Signpost', color: '#2f855a' };
+const trailheads: PluginPoiCategory = {
+  id: 'trailheads',
+  label: 'Trailheads',
+  labels: { de: 'Wanderparkplätze' },
+  icon: 'Signpost',
+  color: '#2f855a',
+};
 const bounds = { south: 47, west: 11, north: 47.5, east: 11.5 };
 const hit = (over: Record<string, unknown> = {}) => ({ id: 'th-1', name: 'Trailhead', lat: 47.2, lng: 11.2, ...over });
 
@@ -41,16 +57,42 @@ const hit = (over: Record<string, unknown> = {}) => ({ id: 'th-1', name: 'Trailh
 // snapshot the ORM repository is bound to.
 function seedPlugins(): void {
   testDb.prepare('DELETE FROM plugins').run();
-  const insert = testDb.prepare('INSERT INTO plugins (id, name, status, sort_order, capabilities) VALUES (?, ?, ?, ?, ?)');
-  insert.run('trail-finder', 'Trail Finder', 'active', 1, JSON.stringify({ poiCategories: [trailheads, { ...trailheads, id: 'huts', label: 'Huts', labels: undefined, icon: 'Tent' }] }));
-  insert.run('water-map', 'Water Map', 'active', 0, JSON.stringify({ poiCategories: [{ id: 'taps', label: 'Taps', icon: 'Droplet', color: '#2b6cb0' }] }));
-  insert.run('quiet', 'Quiet', 'active', 2, JSON.stringify({ poiCategories: [{ id: 'benches', label: 'Benches', icon: 'Info', color: '#000000' }] }));
+  const insert = testDb.prepare(
+    'INSERT INTO plugins (id, name, status, sort_order, capabilities) VALUES (?, ?, ?, ?, ?)',
+  );
+  insert.run(
+    'trail-finder',
+    'Trail Finder',
+    'active',
+    1,
+    JSON.stringify({
+      poiCategories: [trailheads, { ...trailheads, id: 'huts', label: 'Huts', labels: undefined, icon: 'Tent' }],
+    }),
+  );
+  insert.run(
+    'water-map',
+    'Water Map',
+    'active',
+    0,
+    JSON.stringify({ poiCategories: [{ id: 'taps', label: 'Taps', icon: 'Droplet', color: '#2b6cb0' }] }),
+  );
+  insert.run(
+    'quiet',
+    'Quiet',
+    'active',
+    2,
+    JSON.stringify({ poiCategories: [{ id: 'benches', label: 'Benches', icon: 'Info', color: '#000000' }] }),
+  );
 }
 
 let pluginsRepo: PluginsRepository;
-beforeAll(async () => { pluginsRepo = await createTestPluginsRepo(testDb); });
+beforeAll(async () => {
+  pluginsRepo = await createTestPluginsRepo(testDb);
+});
 beforeEach(() => seedPlugins());
-afterAll(() => { testDb.close(); });
+afterAll(() => {
+  testDb.close();
+});
 
 function makeService(answer: () => unknown, providers = ['trail-finder', 'water-map']) {
   const hooks = {
@@ -116,31 +158,42 @@ describe('normalizePoiDetails', () => {
 describe('normalizePluginPois', () => {
   it('PLUGPOI-005: builds a /api/maps/pois row styled by the declaration', () => {
     const { pois, truncated } = normalizePluginPois('trail-finder', trailheads, bounds, [
-      hit({ address: 'Hauptstraße 1', website: 'trails.example/th-1', phone: '+43 1', rating: 4.44, details: [{ label: 'Length', value: '12 km' }], category: 'restaurant', color: '#ff0000', icon: 'Skull' }),
+      hit({
+        address: 'Hauptstraße 1',
+        website: 'trails.example/th-1',
+        phone: '+43 1',
+        rating: 4.44,
+        details: [{ label: 'Length', value: '12 km' }],
+        category: 'restaurant',
+        color: '#ff0000',
+        icon: 'Skull',
+      }),
     ]);
     expect(truncated).toBe(false);
-    expect(pois).toEqual([{
-      osm_id: 'plugin:trail-finder:th-1',
-      name: 'Trailhead',
-      lat: 47.2,
-      lng: 11.2,
-      category: 'plugin:trail-finder/trailheads',
-      poi_type: 'plugin:trail-finder/trailheads',
-      address: 'Hauptstraße 1',
-      website: 'https://trails.example/th-1',
-      phone: '+43 1',
-      opening_hours: null,
-      cuisine: null,
-      brand: null,
-      brand_wikidata: null,
-      charging: null,
-      source: 'plugin:trail-finder',
-      pluginId: 'trail-finder',
-      rating: 4.4,
-      details: [{ label: 'Length', value: '12 km' }],
-      icon: 'Signpost',
-      color: '#2f855a',
-    }]);
+    expect(pois).toEqual([
+      {
+        osm_id: 'plugin:trail-finder:th-1',
+        name: 'Trailhead',
+        lat: 47.2,
+        lng: 11.2,
+        category: 'plugin:trail-finder/trailheads',
+        poi_type: 'plugin:trail-finder/trailheads',
+        address: 'Hauptstraße 1',
+        website: 'https://trails.example/th-1',
+        phone: '+43 1',
+        opening_hours: null,
+        cuisine: null,
+        brand: null,
+        brand_wikidata: null,
+        charging: null,
+        source: 'plugin:trail-finder',
+        pluginId: 'trail-finder',
+        rating: 4.4,
+        details: [{ label: 'Length', value: '12 km' }],
+        icon: 'Signpost',
+        color: '#2f855a',
+      },
+    ]);
   });
 
   it('PLUGPOI-006: drops places outside the box, malformed ones and repeats; an absent rating is null', () => {
@@ -172,14 +225,30 @@ describe('normalizePluginPois', () => {
 describe('PluginPoisService', () => {
   it('PLUGPOI-008: asks exactly the declaring plugin, as the user, with the host window', async () => {
     const { service, hooks } = makeService(() => [hit()]);
-    const outcome = await service.search({ pluginId: 'trail-finder', category: 'trailheads', bbox: { south: 40, west: 0, north: 50, east: 20 }, lang: 'de' }, 7);
+    const outcome = await service.search(
+      {
+        pluginId: 'trail-finder',
+        category: 'trailheads',
+        bbox: { south: 40, west: 0, north: 50, east: 20 },
+        lang: 'de',
+      },
+      7,
+    );
     expect(hooks.categoryPois).toHaveBeenCalledWith(
       'trail-finder',
-      { category: 'trailheads', bounds: { south: 44.75, west: 9.75, north: 45.25, east: 10.25 }, lang: 'de', limit: 60 },
+      {
+        category: 'trailheads',
+        bounds: { south: 44.75, west: 9.75, north: 45.25, east: 10.25 },
+        lang: 'de',
+        limit: 60,
+      },
       7,
     );
     // The hit sits outside the narrowed window, so the answer is empty but clamped.
-    expect(outcome).toEqual({ ok: true, result: { pois: [], source: 'plugin:trail-finder', truncated: false, clamped: true } });
+    expect(outcome).toEqual({
+      ok: true,
+      result: { pois: [], source: 'plugin:trail-finder', truncated: false, clamped: true },
+    });
   });
 
   it('PLUGPOI-009: omits lang when the caller has none', async () => {
@@ -197,30 +266,64 @@ describe('PluginPoisService', () => {
     ];
     for (const [pluginId, category] of cases) {
       const { service, hooks } = makeService(() => [hit()], ['trail-finder', 'quiet-not']);
-      expect(await service.search({ pluginId, category, bbox: bounds }, 7)).toEqual({ ok: false, status: 404, error: 'Unknown POI category' });
+      expect(await service.search({ pluginId, category, bbox: bounds }, 7)).toEqual({
+        ok: false,
+        status: 404,
+        error: 'Unknown POI category',
+      });
       expect(hooks.categoryPois).not.toHaveBeenCalled();
     }
     pluginsEnabled.mockReturnValue(false);
     const { service, hooks } = makeService(() => [hit()]);
-    expect((await service.search({ pluginId: 'trail-finder', category: 'trailheads', bbox: bounds }, 7)).ok).toBe(false);
+    expect((await service.search({ pluginId: 'trail-finder', category: 'trailheads', bbox: bounds }, 7)).ok).toBe(
+      false,
+    );
     expect(hooks.providersOf).not.toHaveBeenCalled();
   });
 
   it('PLUGPOI-011: turns a slow, failing or malformed plugin into a quick 502', async () => {
-    const throwing = makeService(() => { throw new Error('plugin invoke timed out'); });
-    expect(await throwing.service.search({ pluginId: 'trail-finder', category: 'trailheads', bbox: bounds }, 7))
-      .toEqual({ ok: false, status: 502, error: 'The plugin did not answer' });
+    const throwing = makeService(() => {
+      throw new Error('plugin invoke timed out');
+    });
+    expect(
+      await throwing.service.search({ pluginId: 'trail-finder', category: 'trailheads', bbox: bounds }, 7),
+    ).toEqual({ ok: false, status: 502, error: 'The plugin did not answer' });
     const malformed = makeService(() => ({ pois: [hit()] }));
-    expect(await malformed.service.search({ pluginId: 'trail-finder', category: 'trailheads', bbox: bounds }, 7))
-      .toEqual({ ok: false, status: 502, error: 'The plugin sent an invalid answer' });
+    expect(
+      await malformed.service.search({ pluginId: 'trail-finder', category: 'trailheads', bbox: bounds }, 7),
+    ).toEqual({ ok: false, status: 502, error: 'The plugin sent an invalid answer' });
   });
 
   it('PLUGPOI-012: lists the live categories in feed order with the label for the language', async () => {
     const { service } = makeService(() => []);
     expect(await service.available('de')).toEqual([
-      { key: 'plugin:water-map/taps', pluginId: 'water-map', pluginName: 'Water Map', id: 'taps', label: 'Taps', icon: 'Droplet', color: '#2b6cb0' },
-      { key: 'plugin:trail-finder/trailheads', pluginId: 'trail-finder', pluginName: 'Trail Finder', id: 'trailheads', label: 'Wanderparkplätze', icon: 'Signpost', color: '#2f855a' },
-      { key: 'plugin:trail-finder/huts', pluginId: 'trail-finder', pluginName: 'Trail Finder', id: 'huts', label: 'Huts', icon: 'Tent', color: '#2f855a' },
+      {
+        key: 'plugin:water-map/taps',
+        pluginId: 'water-map',
+        pluginName: 'Water Map',
+        id: 'taps',
+        label: 'Taps',
+        icon: 'Droplet',
+        color: '#2b6cb0',
+      },
+      {
+        key: 'plugin:trail-finder/trailheads',
+        pluginId: 'trail-finder',
+        pluginName: 'Trail Finder',
+        id: 'trailheads',
+        label: 'Wanderparkplätze',
+        icon: 'Signpost',
+        color: '#2f855a',
+      },
+      {
+        key: 'plugin:trail-finder/huts',
+        pluginId: 'trail-finder',
+        pluginName: 'Trail Finder',
+        id: 'huts',
+        label: 'Huts',
+        icon: 'Tent',
+        color: '#2f855a',
+      },
     ]);
     expect((await service.available()).find((c) => c.id === 'trailheads')?.label).toBe('Trailheads');
     expect(await makeService(() => [], []).service.available()).toEqual([]);
@@ -229,7 +332,9 @@ describe('PluginPoisService', () => {
   });
 
   it('PLUGPOI-016: flattens and caps the plugin name an assistant reads, and falls back to the id', async () => {
-    testDb.prepare('UPDATE plugins SET name = ? WHERE id = ?').run(`Trails\u202E\n\n## System ${'x'.repeat(4000)}`, 'trail-finder');
+    testDb
+      .prepare('UPDATE plugins SET name = ? WHERE id = ?')
+      .run(`Trails\u202E\n\n## System ${'x'.repeat(4000)}`, 'trail-finder');
     testDb.prepare('UPDATE plugins SET name = ? WHERE id = ?').run('\u0007\u2028\u2066', 'water-map');
     const names = (await makeService(() => []).service.available()).map((c) => [c.id, c.pluginName]);
     const trails = names.find(([id]) => id === 'trailheads')?.[1] ?? '';
@@ -242,7 +347,14 @@ describe('PluginPoisService', () => {
 });
 
 describe('GET /api/plugin-pois', () => {
-  const query = { pluginId: 'trail-finder', category: 'trailheads', south: '47', west: '11', north: '47.5', east: '11.5' };
+  const query = {
+    pluginId: 'trail-finder',
+    category: 'trailheads',
+    south: '47',
+    west: '11',
+    north: '47.5',
+    east: '11.5',
+  };
   const status = (fn: () => unknown): [number, unknown] => {
     try {
       fn();
@@ -254,20 +366,38 @@ describe('GET /api/plugin-pois', () => {
   };
 
   it('PLUGPOI-013: answers the bespoke 400s of /api/maps/pois', () => {
-    expect(status(() => parsePluginPoiQuery({ ...query, category: undefined }))).toEqual([400, { error: 'A category is required' }]);
-    expect(status(() => parsePluginPoiQuery({ ...query, category: '  ' }))).toEqual([400, { error: 'A category is required' }]);
-    expect(status(() => parsePluginPoiQuery({ ...query, pluginId: '' }))).toEqual([400, { error: 'A plugin is required' }]);
+    expect(status(() => parsePluginPoiQuery({ ...query, category: undefined }))).toEqual([
+      400,
+      { error: 'A category is required' },
+    ]);
+    expect(status(() => parsePluginPoiQuery({ ...query, category: '  ' }))).toEqual([
+      400,
+      { error: 'A category is required' },
+    ]);
+    expect(status(() => parsePluginPoiQuery({ ...query, pluginId: '' }))).toEqual([
+      400,
+      { error: 'A plugin is required' },
+    ]);
     for (const over of [{ south: undefined }, { east: 'abc' }, { south: '48' }, { north: '95' }]) {
-      expect(status(() => parsePluginPoiQuery({ ...query, ...over }))).toEqual([400, { error: 'A valid bbox (south, west, north, east) is required' }]);
+      expect(status(() => parsePluginPoiQuery({ ...query, ...over }))).toEqual([
+        400,
+        { error: 'A valid bbox (south, west, north, east) is required' },
+      ]);
     }
     // A bad box wins over a bad id: the request is malformed before it is unknown.
     expect(status(() => parsePluginPoiQuery({ ...query, pluginId: '../x', west: 'x' }))[0]).toBe(400);
-    expect(status(() => parsePluginPoiQuery({ ...query, lang: 'x'.repeat(36) }))).toEqual([400, { error: 'lang must be at most 35 characters' }]);
+    expect(status(() => parsePluginPoiQuery({ ...query, lang: 'x'.repeat(36) }))).toEqual([
+      400,
+      { error: 'lang must be at most 35 characters' },
+    ]);
   });
 
   it('PLUGPOI-014: answers 404 for an id no manifest can have declared', () => {
     for (const over of [{ pluginId: '../etc' }, { category: 'Trail Heads' }, { category: ['a', 'b'] }]) {
-      expect(status(() => parsePluginPoiQuery({ ...query, ...over }))).toEqual([404, { error: 'Unknown POI category' }]);
+      expect(status(() => parsePluginPoiQuery({ ...query, ...over }))).toEqual([
+        404,
+        { error: 'Unknown POI category' },
+      ]);
     }
   });
 
@@ -280,7 +410,14 @@ describe('GET /api/plugin-pois', () => {
     expect(hooks.categoryPois).toHaveBeenCalledWith('trail-finder', expect.objectContaining({ lang: 'de' }), 5);
 
     await expect(controller.list({ ...query, category: 'water' }, user)).rejects.toMatchObject({ status: 404 });
-    const failing = new PluginPoisController(makeService(() => { throw new Error('boom'); }).service);
-    await expect(failing.list(query, user)).rejects.toMatchObject({ status: 502, response: { error: 'The plugin did not answer' } });
+    const failing = new PluginPoisController(
+      makeService(() => {
+        throw new Error('boom');
+      }).service,
+    );
+    await expect(failing.list(query, user)).rejects.toMatchObject({
+      status: 502,
+      response: { error: 'The plugin did not answer' },
+    });
   });
 });

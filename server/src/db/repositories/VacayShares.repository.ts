@@ -172,7 +172,13 @@ export class VacaySharesRepository extends TrekRepository<VacayShares> {
           .selectFrom('vacay_plans')
           .select('owner_id')
           .where('id', '=', planId)
-          .union(eb.selectFrom('vacay_plan_members').select('user_id as owner_id').where('plan_id', '=', planId).where('status', '=', 'accepted')),
+          .union(
+            eb
+              .selectFrom('vacay_plan_members')
+              .select('user_id as owner_id')
+              .where('plan_id', '=', planId)
+              .where('status', '=', 'accepted'),
+          ),
       )
       .orderBy('u.username', 'asc')
       .execute();

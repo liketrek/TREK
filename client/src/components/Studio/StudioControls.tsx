@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from 'react'
-import { Check, ChevronDown } from 'lucide-react'
-import ToggleSwitch from '../Settings/ToggleSwitch'
+import { Check, ChevronDown } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import ToggleSwitch from '../Settings/ToggleSwitch';
 
 /**
  * The inspector's vocabulary.
@@ -36,21 +36,27 @@ import ToggleSwitch from '../Settings/ToggleSwitch'
  * remembered: coming back to an element and finding its panel folded up
  * differently from last time is worse than opening one group again.
  */
-export function Section({ label, children, defaultOpen = true, hint, badge }: {
-  label: string
-  children: ReactNode
-  defaultOpen?: boolean
+export function Section({
+  label,
+  children,
+  defaultOpen = true,
+  hint,
+  badge,
+}: {
+  label: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
   /** A line under the label, for a group whose name cannot carry the whole idea. */
-  hint?: string
+  hint?: string;
   /**
    * A figure beside the label, for a group worth reading while it is folded.
    * The stops list is the case: how many of them count is the thing you came
    * to check, and opening a section to read one number is a section that
    * cannot usefully be closed.
    */
-  badge?: string
+  badge?: string;
 }) {
-  const [open, setOpen] = useState(defaultOpen)
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div className={`st-section is-fold ${open ? '' : 'is-folded'}`}>
       <button type="button" className="st-section-head" onClick={() => setOpen(!open)} aria-expanded={open}>
@@ -65,35 +71,45 @@ export function Section({ label, children, defaultOpen = true, hint, badge }: {
         </div>
       )}
     </div>
-  )
+  );
 }
 
 /** A labelled line. The label sits left, the control fills what is left. */
-export function Line({ label, children, wide = false }: {
-  label: string
-  children: ReactNode
+export function Line({
+  label,
+  children,
+  wide = false,
+}: {
+  label: string;
+  children: ReactNode;
   /** Put the control under the label rather than beside it, when it needs the width. */
-  wide?: boolean
+  wide?: boolean;
 }) {
   return (
     <div className={`st-line ${wide ? 'is-wide' : ''}`}>
       <span className="st-line-label">{label}</span>
       <div className="st-line-body">{children}</div>
     </div>
-  )
+  );
 }
 
 /** Choose one of a few. The chosen one is filled in. */
-export function Choice<T extends string | number>({ value, options, onPick, ariaLabel }: {
-  value: T
-  options: { value: T; label: ReactNode; title?: string; disabled?: boolean }[]
-  onPick: (v: T) => void
-  ariaLabel?: string
+export function Choice<T extends string | number>({
+  value,
+  options,
+  onPick,
+  ariaLabel,
+}: {
+  value: T;
+  options: { value: T; label: ReactNode; title?: string; disabled?: boolean }[];
+  onPick: (v: T) => void;
+  ariaLabel?: string;
 }) {
   return (
     <div className="st-row" role="radiogroup" aria-label={ariaLabel}>
-      {options.map(o => (
-        <button type="button"
+      {options.map((o) => (
+        <button
+          type="button"
           key={String(o.value)}
           role="radio"
           aria-checked={o.value === value}
@@ -106,7 +122,7 @@ export function Choice<T extends string | number>({ value, options, onPick, aria
         </button>
       ))}
     </div>
-  )
+  );
 }
 
 /**
@@ -116,17 +132,22 @@ export function Choice<T extends string | number>({ value, options, onPick, aria
  * taller than the element it configures, and what matters about a set is which
  * of it is in — a question a row answers and a list does not.
  */
-export function Picks<T extends string>({ value, options, onToggle }: {
-  value: readonly T[]
-  options: { value: T; label: ReactNode; disabled?: boolean }[]
-  onToggle: (v: T) => void
+export function Picks<T extends string>({
+  value,
+  options,
+  onToggle,
+}: {
+  value: readonly T[];
+  options: { value: T; label: ReactNode; disabled?: boolean }[];
+  onToggle: (v: T) => void;
 }) {
   return (
     <div className="st-row">
-      {options.map(o => {
-        const on = value.includes(o.value)
+      {options.map((o) => {
+        const on = value.includes(o.value);
         return (
-          <button type="button"
+          <button
+            type="button"
             key={o.value}
             role="checkbox"
             aria-checked={on}
@@ -137,10 +158,10 @@ export function Picks<T extends string>({ value, options, onToggle }: {
             {on && <Check size={12} strokeWidth={3} />}
             {o.label}
           </button>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
 /** On or off, said the way the rest of TREK says it. */
@@ -150,7 +171,7 @@ export function Switch({ label, on, onToggle }: { label: string; on: boolean; on
       <span className="st-switch-label">{label}</span>
       <ToggleSwitch on={on} onToggle={onToggle} label={label} />
     </div>
-  )
+  );
 }
 
 /**
@@ -162,26 +183,32 @@ export function Switch({ label, on, onToggle }: { label: string; on: boolean; on
  * and a value is one undo step rather than one per keystroke.
  */
 export function NumField({
-  label, value, onChange, min, max, step = 0.5, unit,
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  step = 0.5,
+  unit,
 }: {
-  label: string
-  value: number
-  onChange: (v: number) => void
-  min?: number
-  max?: number
-  step?: number
-  unit?: string
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  unit?: string;
 }) {
-  const shown = String(Math.round(value * 100) / 100)
-  const [draft, setDraft] = useState<string | null>(null)
+  const shown = String(Math.round(value * 100) / 100);
+  const [draft, setDraft] = useState<string | null>(null);
 
   const commit = (raw: string) => {
-    setDraft(null)
-    const v = Number(raw)
-    if (raw.trim() === '' || !Number.isFinite(v)) return
-    const clamped = Math.min(max ?? Infinity, Math.max(min ?? -Infinity, v))
-    if (clamped !== value) onChange(clamped)
-  }
+    setDraft(null);
+    const v = Number(raw);
+    if (raw.trim() === '' || !Number.isFinite(v)) return;
+    const clamped = Math.min(max ?? Infinity, Math.max(min ?? -Infinity, v));
+    if (clamped !== value) onChange(clamped);
+  };
 
   return (
     <label className="st-num">
@@ -194,15 +221,15 @@ export function NumField({
           step={step}
           min={min}
           max={max}
-          onChange={e => setDraft(e.target.value)}
-          onBlur={e => commit(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-            if (e.key === 'Escape') setDraft(null)
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={(e) => commit(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+            if (e.key === 'Escape') setDraft(null);
           }}
         />
         {unit && <span className="st-num-unit">{unit}</span>}
       </span>
     </label>
-  )
+  );
 }

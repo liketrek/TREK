@@ -2,9 +2,9 @@
 import { http, HttpResponse } from 'msw';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildAdminHook, buildAdminUser, type AdminHook } from '../../../tests/helpers/mobileAdmin';
 import { server } from '../../../tests/helpers/msw/server';
 import { fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
-import { buildAdminHook, buildAdminUser, type AdminHook } from '../../../tests/helpers/mobileAdmin';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { useTranslation } from '../../i18n';
 import type { UpdateInfo } from './adminModel';

@@ -1,5 +1,6 @@
-import { z } from 'zod';
 import { hexColorSchema } from '../place/place.schema';
+
+import { z } from 'zod';
 
 /**
  * Category API contract — single source of truth for the /api/categories endpoints.

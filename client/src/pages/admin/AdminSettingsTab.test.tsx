@@ -2,9 +2,9 @@
 import { http, HttpResponse } from 'msw';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildAdminHook, type AdminHook } from '../../../tests/helpers/mobileAdmin';
 import { server } from '../../../tests/helpers/msw/server';
 import { fireEvent, render, screen, waitFor, within } from '../../../tests/helpers/render';
-import { buildAdminHook, type AdminHook } from '../../../tests/helpers/mobileAdmin';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { useTranslation } from '../../i18n';
 import type { OidcConfig } from './adminModel';
@@ -304,9 +304,7 @@ describe('AdminSettingsTab', () => {
     // A provider chosen without a key answers with OpenStreetMap rather than
     // failing, which is quiet enough to be mistaken for the provider working.
     renderTab({ placesProvider: 'amap', hasAmapKey: false });
-    expect(
-      within(card('API Keys')).getByText(/TREK index and OpenStreetMap alone/i),
-    ).toBeInTheDocument();
+    expect(within(card('API Keys')).getByText(/TREK index and OpenStreetMap alone/i)).toBeInTheDocument();
   });
 
   it('FE-ADMSET-022d: saving the provider goes through updateAppSettings, not the keys', () => {
@@ -333,9 +331,7 @@ describe('AdminSettingsTab', () => {
     // the environment would not show up in them anyway. app-config knows.
     renderTab({ managed: true, placesProvider: 'google', mapsKey: '', hasMapsKey: true });
 
-    expect(
-      within(card('API Keys')).queryByText(/falls back to OpenStreetMap/i),
-    ).not.toBeInTheDocument();
+    expect(within(card('API Keys')).queryByText(/falls back to OpenStreetMap/i)).not.toBeInTheDocument();
   });
 
   it('FE-ADMSET-023: the maps Test button is disabled without a key', () => {
@@ -347,7 +343,9 @@ describe('AdminSettingsTab', () => {
   it('FE-ADMSET-043: a key the environment sets is read-only and names its variable (#1881)', () => {
     const admin = renderTab({
       keyInputProps: (field: string) =>
-        field === 'maps' ? { disabled: true, placeholder: 'Set via PLACES_API_KEY' } : { disabled: false, placeholder: 'Enter key...' },
+        field === 'maps'
+          ? { disabled: true, placeholder: 'Set via PLACES_API_KEY' }
+          : { disabled: false, placeholder: 'Enter key...' },
       mapsKeyTestable: true,
     });
 
@@ -514,9 +512,7 @@ describe('AdminSettingsTab', () => {
 
     expect(screen.getByDisplayValue('Authentik')).toBeInTheDocument();
     expect(screen.getByDisplayValue('https://auth.example.com')).toBeInTheDocument();
-    expect(
-      screen.getByDisplayValue('https://auth.example.com/.well-known/openid-configuration')
-    ).toBeInTheDocument();
+    expect(screen.getByDisplayValue('https://auth.example.com/.well-known/openid-configuration')).toBeInTheDocument();
   });
 
   it('FE-ADMSET-034: client id and client secret update the OIDC config', () => {
@@ -615,7 +611,11 @@ describe('AdminSettingsTab', () => {
     // CustomSelect renders a plain button named after the selected option, so the
     // trigger is found through its own block, and the menu entry is the button that
     // is not the trigger.
-    server.use(http.put('/api/admin/transit-provider', () => HttpResponse.json({ error: 'Settings are read-only' }, { status: 500 })));
+    server.use(
+      http.put('/api/admin/transit-provider', () =>
+        HttpResponse.json({ error: 'Settings are read-only' }, { status: 500 })
+      )
+    );
     const admin = renderTab({
       transitProvider: 'transitous',
       setTransitProviderState: vi.fn(),

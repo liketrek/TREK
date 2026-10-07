@@ -7,12 +7,25 @@
  * real bcrypt against a factory-seeded hash, audit rows land in audit_log for
  * real, and the httpOnly trek_session cookie set/clear is asserted end to end.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { AuthModule } from '../../src/nest/auth/auth.module';
+import { AuthService } from '../../src/nest/auth/auth.service';
+import { SessionRenewalInterceptor } from '../../src/nest/auth/session-renewal.interceptor';
+import { encrypt_api_key } from '../../src/nest/common/crypto/apiKeyCrypto';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { MailerService } from '../../src/nest/notifications/mailer/mailer.service';
+import { createUser } from '../helpers/factories';
+import { resetRateLimits } from '../helpers/test-db';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb } = await import('../helpers/db-mock');
@@ -30,7 +43,13 @@ vi.mock('../../src/db/database', async () => {
 vi.mock('../../src/websocket', () => ({ broadcastToUser: vi.fn(), broadcast: vi.fn() }));
 // The audit domain is DI-native: writeAudit runs for real against the temp
 // db's audit_log table; only the file logger is silenced.
-vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
+vi.mock('../../src/nest/audit/audit-log.logger', () => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+}));
 // Switchable so the passkey cases can reproduce the real APP_URL-unset
 // fallback (http://localhost:{PORT}) without disturbing the other cases.
 const { appUrlRef } = vi.hoisted(() => ({ appUrlRef: { value: 'https://x' } }));
@@ -38,19 +57,6 @@ vi.mock('../../src/app-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../src/app-config')>();
   return { ...actual, getAppUrl: () => appUrlRef.value };
 });
-
-import { MailerService } from '../../src/nest/notifications/mailer/mailer.service';
-import { db } from '../../src/db/database';
-import { createUser } from '../helpers/factories';
-import { encrypt_api_key } from '../../src/nest/common/crypto/apiKeyCrypto';
-import { resetRateLimits } from '../helpers/test-db';
-import { AuthModule } from '../../src/nest/auth/auth.module';
-import { AuthService } from '../../src/nest/auth/auth.service';
-import { SessionRenewalInterceptor } from '../../src/nest/auth/session-renewal.interceptor';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
-import { TestUnitOfWorkModule } from '../helpers/test-uow';
-import { createTestMikroOrmModule } from '../helpers/test-orm';
 
 describe('Auth e2e (real auth guard + real service + real cookie service + temp SQLite)', () => {
   let server: Server;
@@ -60,7 +66,9 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
   let userPassword: string;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), AuthModule] })
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), AuthModule],
+    })
       // The mailer is a provider since the notifications fold; overriding it is
       // the DI-native replacement for the old services/notifications module mock.
       .overrideProvider(MailerService)
@@ -138,7 +146,9 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
   }, 10000);
 
   it('POST /login with remember_me sets a persistent cookie (Max-Age present)', async () => {
-    const res = await request(server).post('/api/auth/login').send({ email: userEmail, password: userPassword, remember_me: true });
+    const res = await request(server)
+      .post('/api/auth/login')
+      .send({ email: userEmail, password: userPassword, remember_me: true });
     expect(res.status).toBe(200);
     const setCookie = res.headers['set-cookie'] as unknown as string[];
     const cookie = setCookie.find((c) => c.startsWith('trek_session='))!;
@@ -179,14 +189,18 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
       .get('/api/auth/me')
       .set('Cookie', sessionCookie(userId, 0, { lifetime: 2592000, consumed: 1600000, remember: true }));
     expect(long.status).toBe(200);
-    const longCookie = ((long.headers['set-cookie'] ?? []) as unknown as string[]).find((c) => c.startsWith('trek_session='))!;
+    const longCookie = ((long.headers['set-cookie'] ?? []) as unknown as string[]).find((c) =>
+      c.startsWith('trek_session='),
+    )!;
     expect(longCookie).toMatch(/Max-Age=2592000/i);
 
     const sess = await request(server)
       .get('/api/auth/me')
       .set('Cookie', sessionCookie(userId, 0, { lifetime: 86400, consumed: 60000, remember: false }));
     expect(sess.status).toBe(200);
-    const sessCookie = ((sess.headers['set-cookie'] ?? []) as unknown as string[]).find((c) => c.startsWith('trek_session='))!;
+    const sessCookie = ((sess.headers['set-cookie'] ?? []) as unknown as string[]).find((c) =>
+      c.startsWith('trek_session='),
+    )!;
     expect(sessCookie).not.toMatch(/Max-Age/i);
     expect(sessCookie).not.toMatch(/Expires/i);
   }, 10000);
@@ -207,7 +221,9 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
       .post('/api/auth/login')
       .send({ email: seeded.user.email, password: seeded.password, remember_me: true });
     expect(login.status).toBe(200);
-    const loginCookie = ((login.headers['set-cookie'] as unknown as string[]).find((c) => c.startsWith('trek_session=')))!;
+    const loginCookie = (login.headers['set-cookie'] as unknown as string[]).find((c) =>
+      c.startsWith('trek_session='),
+    )!;
     const sessionValue = /trek_session=([^;]+)/.exec(loginCookie)![1];
 
     const change = await request(server)
@@ -221,7 +237,11 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
     const finalCookie = setCookie.filter((c) => c.startsWith('trek_session=')).pop()!;
     expect(finalCookie).toMatch(/Max-Age=2592000/i);
     const jwt = require('jsonwebtoken');
-    const decoded = jwt.decode(/trek_session=([^;]+)/.exec(finalCookie)![1]) as { remember?: boolean; exp: number; iat: number };
+    const decoded = jwt.decode(/trek_session=([^;]+)/.exec(finalCookie)![1]) as {
+      remember?: boolean;
+      exp: number;
+      iat: number;
+    };
     expect(decoded.remember).toBe(true);
     expect(decoded.exp - decoded.iat).toBe(2592000);
   }, 10000);
@@ -271,7 +291,9 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
 
     expect(auditRows('settings.api_keys_update')).toBe(before + 1);
     const row = db
-      .prepare("SELECT resource, details FROM audit_log WHERE action = 'settings.api_keys_update' ORDER BY id DESC LIMIT 1")
+      .prepare(
+        "SELECT resource, details FROM audit_log WHERE action = 'settings.api_keys_update' ORDER BY id DESC LIMIT 1",
+      )
       .get() as { resource: string; details: string };
     expect(row.resource).toBe('api_keys');
     expect(row.details).toContain('maps_api_key');
@@ -286,7 +308,11 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
   }, 10000);
 
   it('GET /me/settings names the variable behind a key set in the environment, never its value (#1881)', async () => {
-    const admin = createUser(db as never, { username: 'env-keys-admin', email: 'env-keys-admin@example.test', role: 'admin' });
+    const admin = createUser(db as never, {
+      username: 'env-keys-admin',
+      email: 'env-keys-admin@example.test',
+      role: 'admin',
+    });
     const prev = process.env.PLACES_API_KEY;
     process.env.PLACES_API_KEY = 'e2e-google-from-env';
     try {
@@ -303,7 +329,11 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
 
   it('GET /app-config answers has_maps_key from the instance row, never from an admin column (#1939)', async () => {
     const member = createUser(db as never, { username: 'keys-member', email: 'keys-member@example.test' });
-    const admin = createUser(db as never, { username: 'keys-cfg-admin', email: 'keys-cfg-admin@example.test', role: 'admin' });
+    const admin = createUser(db as never, {
+      username: 'keys-cfg-admin',
+      email: 'keys-cfg-admin@example.test',
+      role: 'admin',
+    });
     // Seeded here instead of riding on the save above, so running this case on
     // its own asserts the same thing.
     const setInstanceKey = (value: string | null) => {
@@ -313,7 +343,7 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
       }
       db.prepare(
         `INSERT INTO app_settings (key, value) VALUES ('maps_api_key', ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
       ).run(encrypt_api_key(value));
     };
     const hasMapsKey = async (userId: number) => {
@@ -340,7 +370,9 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
 
   describe('passkey origin gate (#2147)', () => {
     beforeAll(() => {
-      db.prepare("INSERT INTO app_settings (key, value) VALUES ('passkey_login', 'true') ON CONFLICT(key) DO UPDATE SET value = 'true'").run();
+      db.prepare(
+        "INSERT INTO app_settings (key, value) VALUES ('passkey_login', 'true') ON CONFLICT(key) DO UPDATE SET value = 'true'",
+      ).run();
       // What getAppUrl() really yields with APP_URL unset — the phantom config.
       appUrlRef.value = 'http://localhost:3001';
     });

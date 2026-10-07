@@ -1,5 +1,5 @@
-import type { PushSubscriptions } from '../entities/PushSubscriptions.entity';
 import { columnIncrementedBy, currentTimestamp, currentTimestampKysely } from '../dialect/sql-functions';
+import type { PushSubscriptions } from '../entities/PushSubscriptions.entity';
 import type { AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 

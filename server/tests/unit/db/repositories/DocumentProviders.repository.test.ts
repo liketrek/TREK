@@ -1,9 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { DocumentProviders } from '../../../../src/db/entities/DocumentProviders.entity';
+import type { DocumentProvidersRepository } from '../../../../src/db/repositories/DocumentProviders.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { DocumentProviders } from '../../../../src/db/entities/DocumentProviders.entity';
-import type { DocumentProvidersRepository } from '../../../../src/db/repositories/DocumentProviders.repository';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -35,7 +36,9 @@ function insertProvider(row: {
   sort_order?: number;
 }): void {
   testDb
-    .prepare('INSERT INTO document_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)')
+    .prepare(
+      'INSERT INTO document_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+    )
     .run(row.id, row.name, row.description ?? null, row.icon ?? null, row.enabled, row.sort_order ?? 0);
 }
 
@@ -47,7 +50,14 @@ function insertProvider(row: {
 // docstring names.
 describe('DocumentProvidersRepository — admin (AD29/AD32) read methods, full-key parity', () => {
   it('DOCPROVREPO-001 (AD29): listAllOrdered matches SELECT * FROM document_providers ORDER BY sort_order, id — unfiltered, including a disabled provider', async () => {
-    insertProvider({ id: 'paperless', name: 'Paperless', description: 'Self-hosted document management', icon: 'FileText', enabled: 0, sort_order: 1 });
+    insertProvider({
+      id: 'paperless',
+      name: 'Paperless',
+      description: 'Self-hosted document management',
+      icon: 'FileText',
+      enabled: 0,
+      sort_order: 1,
+    });
     insertProvider({ id: 'papra', name: 'Papra', enabled: 1, sort_order: 0 });
 
     const legacy = testDb.prepare('SELECT * FROM document_providers ORDER BY sort_order, id').all();
@@ -64,9 +74,23 @@ describe('DocumentProvidersRepository — admin (AD29/AD32) read methods, full-k
   });
 
   it('DOCPROVREPO-003 (AD32): findById matches SELECT * FROM document_providers WHERE id = ?, on both a pre-write read and a post-write re-select', async () => {
-    insertProvider({ id: 'paperless', name: 'Paperless', description: 'Self-hosted document management', icon: 'FileText', enabled: 0, sort_order: 3 });
+    insertProvider({
+      id: 'paperless',
+      name: 'Paperless',
+      description: 'Self-hosted document management',
+      icon: 'FileText',
+      enabled: 0,
+      sort_order: 3,
+    });
     const preWrite = await documentProviders.findById('paperless');
-    expect(preWrite).toEqual({ id: 'paperless', name: 'Paperless', description: 'Self-hosted document management', icon: 'FileText', enabled: 0, sort_order: 3 });
+    expect(preWrite).toEqual({
+      id: 'paperless',
+      name: 'Paperless',
+      description: 'Self-hosted document management',
+      icon: 'FileText',
+      enabled: 0,
+      sort_order: 3,
+    });
 
     testDb.prepare('UPDATE document_providers SET enabled = 1 WHERE id = ?').run('paperless');
     const postWrite = await documentProviders.findById('paperless');

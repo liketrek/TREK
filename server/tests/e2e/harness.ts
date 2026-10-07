@@ -1,6 +1,7 @@
+import { JWT_SECRET } from '../../src/config';
+
 import Database from 'better-sqlite3';
 import jwt from 'jsonwebtoken';
-import { JWT_SECRET } from '../../src/config';
 
 /**
  * Shared e2e harness for migrated Nest modules.
@@ -48,9 +49,13 @@ export function seedUser(db: Database.Database, overrides: Partial<SeededUser> =
     role: overrides.role ?? 'user',
     password_version: overrides.password_version ?? 0,
   };
-  db.prepare(
-    'INSERT INTO users (id, username, email, role, password_version) VALUES (?, ?, ?, ?, ?)',
-  ).run(user.id, user.username, user.email, user.role, user.password_version);
+  db.prepare('INSERT INTO users (id, username, email, role, password_version) VALUES (?, ?, ?, ?, ?)').run(
+    user.id,
+    user.username,
+    user.email,
+    user.role,
+    user.password_version,
+  );
   return user;
 }
 

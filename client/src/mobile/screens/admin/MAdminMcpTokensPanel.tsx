@@ -1,95 +1,97 @@
-import { useState, useEffect, useRef } from 'react'
-import { Key, Trash2, User, Loader2, Shield } from 'lucide-react'
-import { adminApi } from '../../../api/client'
-import { useToast } from '../../../components/shared/Toast'
-import { useTranslation } from '../../../i18n'
-import { MAdminCard } from './MAdminUi'
-import MConfirmSheet from '../settings/MConfirmSheet'
+import { Key, Loader2, Shield, Trash2, User } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { adminApi } from '../../../api/client';
+import { useToast } from '../../../components/shared/Toast';
+import { useTranslation } from '../../../i18n';
+import MConfirmSheet from '../settings/MConfirmSheet';
+import { MAdminCard } from './MAdminUi';
 
 interface AdminOAuthSession {
-  id: number
-  client_id: string
-  client_name: string
-  user_id: number
-  username: string
-  scopes: string[]
-  access_token_expires_at: string
-  refresh_token_expires_at: string
-  created_at: string
+  id: number;
+  client_id: string;
+  client_name: string;
+  user_id: number;
+  username: string;
+  scopes: string[];
+  access_token_expires_at: string;
+  refresh_token_expires_at: string;
+  created_at: string;
 }
 
 interface AdminMcpToken {
-  id: number
-  name: string
-  token_prefix: string
-  created_at: string
-  last_used_at: string | null
-  user_id: number
-  username: string
+  id: number;
+  name: string;
+  token_prefix: string;
+  created_at: string;
+  last_used_at: string | null;
+  user_id: number;
+  username: string;
 }
 
-const SCOPES_PREVIEW = 6
+const SCOPES_PREVIEW = 6;
 
 // Mobile MCP tokens admin section: OAuth sessions + long-lived MCP tokens, each
 // as a card list with loading/empty states, expandable scope chips and a
 // delete confirm sheet. Drop-in for the desktop AdminMcpTokensPanel — no props,
 // same adminApi calls and state machine, only the presentation is mobile.
 export default function MAdminMcpTokensPanel() {
-  const [sessions, setSessions] = useState<AdminOAuthSession[]>([])
-  const [sessionsLoading, setSessionsLoading] = useState(true)
-  const [tokens, setTokens] = useState<AdminMcpToken[]>([])
-  const [tokensLoading, setTokensLoading] = useState(true)
-  const [expandedScopes, setExpandedScopes] = useState<Set<number>>(new Set())
-  const [revokeConfirmId, setRevokeConfirmId] = useState<number | null>(null)
-  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null)
+  const [sessions, setSessions] = useState<AdminOAuthSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [tokens, setTokens] = useState<AdminMcpToken[]>([]);
+  const [tokensLoading, setTokensLoading] = useState(true);
+  const [expandedScopes, setExpandedScopes] = useState<Set<number>>(new Set());
+  const [revokeConfirmId, setRevokeConfirmId] = useState<number | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const toggleScopes = (id: number) =>
-    setExpandedScopes(prev => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  const toast = useToast()
-  const { t, locale } = useTranslation()
+    setExpandedScopes((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  const toast = useToast();
+  const { t, locale } = useTranslation();
 
   // The loader runs once, but a language switch while the requests are in flight
   // must still toast in the current locale — hence the ref instead of the closure.
-  const latest = useRef({ t, toast })
-  latest.current = { t, toast }
+  const latest = useRef({ t, toast });
+  latest.current = { t, toast };
 
   useEffect(() => {
-    adminApi.oauthSessions()
-      .then(d => setSessions(d.sessions || []))
+    adminApi
+      .oauthSessions()
+      .then((d) => setSessions(d.sessions || []))
       .catch(() => latest.current.toast.error(latest.current.t('admin.oauthSessions.loadError')))
-      .finally(() => setSessionsLoading(false))
+      .finally(() => setSessionsLoading(false));
 
-    adminApi.mcpTokens()
-      .then(d => setTokens(d.tokens || []))
+    adminApi
+      .mcpTokens()
+      .then((d) => setTokens(d.tokens || []))
       .catch(() => latest.current.toast.error(latest.current.t('admin.mcpTokens.loadError')))
-      .finally(() => setTokensLoading(false))
-  }, [])
+      .finally(() => setTokensLoading(false));
+  }, []);
 
   const handleRevoke = async (id: number) => {
     try {
-      await adminApi.revokeOAuthSession(id)
-      setSessions(prev => prev.filter(s => s.id !== id))
-      setRevokeConfirmId(null)
-      toast.success(t('admin.oauthSessions.revokeSuccess'))
+      await adminApi.revokeOAuthSession(id);
+      setSessions((prev) => prev.filter((s) => s.id !== id));
+      setRevokeConfirmId(null);
+      toast.success(t('admin.oauthSessions.revokeSuccess'));
     } catch {
-      toast.error(t('admin.oauthSessions.revokeError'))
+      toast.error(t('admin.oauthSessions.revokeError'));
     }
-  }
+  };
 
   const handleDelete = async (id: number) => {
     try {
-      await adminApi.deleteMcpToken(id)
-      setTokens(prev => prev.filter(tk => tk.id !== id))
-      setDeleteConfirmId(null)
-      toast.success(t('admin.mcpTokens.deleteSuccess'))
+      await adminApi.deleteMcpToken(id);
+      setTokens((prev) => prev.filter((tk) => tk.id !== id));
+      setDeleteConfirmId(null);
+      toast.success(t('admin.mcpTokens.deleteSuccess'));
     } catch {
-      toast.error(t('admin.mcpTokens.deleteError'))
+      toast.error(t('admin.mcpTokens.deleteError'));
     }
-  }
+  };
 
   return (
     <div className="space-y-3">
@@ -118,9 +120,9 @@ export default function MAdminMcpTokensPanel() {
             </div>
           ) : (
             sessions.map((session, i) => {
-              const expanded = expandedScopes.has(session.id)
-              const visible = expanded ? session.scopes : session.scopes.slice(0, SCOPES_PREVIEW)
-              const hidden = session.scopes.length - SCOPES_PREVIEW
+              const expanded = expandedScopes.has(session.id);
+              const visible = expanded ? session.scopes : session.scopes.slice(0, SCOPES_PREVIEW);
+              const hidden = session.scopes.length - SCOPES_PREVIEW;
               return (
                 <div
                   key={session.id}
@@ -137,7 +139,7 @@ export default function MAdminMcpTokensPanel() {
                       <span>{new Date(session.created_at).toLocaleDateString(locale)}</span>
                     </div>
                     <div className="mt-[6px] flex flex-wrap gap-1">
-                      {visible.map(scope => (
+                      {visible.map((scope) => (
                         <span
                           key={scope}
                           className="inline-flex items-center rounded-md border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-1.5 py-0.5 font-mono text-[0.5625rem] text-m-muted"
@@ -175,7 +177,7 @@ export default function MAdminMcpTokensPanel() {
                     <Trash2 size={14} strokeWidth={2.2} />
                   </button>
                 </div>
-              )
+              );
             })
           )}
         </MAdminCard>
@@ -259,5 +261,5 @@ export default function MAdminMcpTokensPanel() {
         onConfirm={() => deleteConfirmId !== null && handleDelete(deleteConfirmId)}
       />
     </div>
-  )
+  );
 }

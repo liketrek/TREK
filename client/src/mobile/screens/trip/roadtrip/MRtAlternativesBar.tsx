@@ -1,16 +1,20 @@
-import { AlertTriangle, Check, Loader2, Shuffle, X } from 'lucide-react'
-import MBadge from '../../../components/MBadge'
-import MIconBtn from '../../../components/MIconBtn'
-import { alternativeSubline, otherEngineNote, type AlternativeOverlay } from '../../../../components/Roadtrip/alternativeOverlays'
-import { useSettingsStore } from '../../../../store/settingsStore'
-import { formatDistance } from '../../../../utils/units'
-import { badgeLabel } from './stageBadges'
-import { RT_ALT_BAR_HEIGHT, type MRtAlternativesController } from './useMRtAlternatives'
-import type { TripPlanner } from '../MTripShell'
+import { AlertTriangle, Check, Loader2, Shuffle, X } from 'lucide-react';
+import {
+  alternativeSubline,
+  otherEngineNote,
+  type AlternativeOverlay,
+} from '../../../../components/Roadtrip/alternativeOverlays';
+import { useSettingsStore } from '../../../../store/settingsStore';
+import { formatDistance } from '../../../../utils/units';
+import MBadge from '../../../components/MBadge';
+import MIconBtn from '../../../components/MIconBtn';
+import type { TripPlanner } from '../MTripShell';
+import { badgeLabel } from './stageBadges';
+import { RT_ALT_BAR_HEIGHT, type MRtAlternativesController } from './useMRtAlternatives';
 
 export interface MRtAlternativesBarProps {
-  planner: TripPlanner
-  alts: MRtAlternativesController
+  planner: TripPlanner;
+  alts: MRtAlternativesController;
 }
 
 /**
@@ -29,9 +33,9 @@ export interface MRtAlternativesBarProps {
  * is being saved, so a second tap cannot pick another road under a write in flight.
  */
 export default function MRtAlternativesBar({ planner, alts }: MRtAlternativesBarProps) {
-  const { t } = planner
-  const title = t('roadtrip.alt.title')
-  const note = alts.picked ? otherEngineNote(alts.picked) : null
+  const { t } = planner;
+  const title = t('roadtrip.alt.title');
+  const note = alts.picked ? otherEngineNote(alts.picked) : null;
 
   return (
     <section
@@ -71,20 +75,22 @@ export default function MRtAlternativesBar({ planner, alts }: MRtAlternativesBar
             alts.saving ? '' : 'disabled:bg-[color:var(--m-ic)] disabled:text-m-faint'
           } ${note ? 'flex-none' : 'flex-1'}`}
         >
-          {alts.saving
-            ? <Loader2 size={15} strokeWidth={2.2} className="flex-none animate-spin" aria-hidden="true" />
-            : <Check size={15} strokeWidth={2.2} className="flex-none" aria-hidden="true" />}
+          {alts.saving ? (
+            <Loader2 size={15} strokeWidth={2.2} className="flex-none animate-spin" aria-hidden="true" />
+          ) : (
+            <Check size={15} strokeWidth={2.2} className="flex-none" aria-hidden="true" />
+          )}
           <span className="truncate">{t('common.confirm')}</span>
         </button>
       </div>
     </section>
-  )
+  );
 }
 
 /** The middle row: what the router said, or the roads to pick from. */
 function AlternativesBody({ planner, alts }: MRtAlternativesBarProps) {
-  const { t } = planner
-  const unit = useSettingsStore(s => s.settings.distance_unit)
+  const { t } = planner;
+  const unit = useSettingsStore((s) => s.settings.distance_unit);
 
   if (alts.phase === 'loading') {
     return (
@@ -92,15 +98,20 @@ function AlternativesBody({ planner, alts }: MRtAlternativesBarProps) {
         <Loader2 size={15} strokeWidth={2.2} className="flex-none animate-spin" aria-hidden="true" />
         <span className="truncate">{t('roadtrip.alt.loading')}</span>
       </p>
-    )
+    );
   }
   if (alts.phase === 'failed') {
     return (
       <p role="status" className="flex h-full items-center gap-2 text-[0.8125rem] font-medium text-m-ink">
-        <AlertTriangle size={15} strokeWidth={2.2} className="flex-none text-[color:var(--m-st-pending)]" aria-hidden="true" />
+        <AlertTriangle
+          size={15}
+          strokeWidth={2.2}
+          className="flex-none text-[color:var(--m-st-pending)]"
+          aria-hidden="true"
+        />
         <span className="line-clamp-2">{t('roadtrip.alt.failed')}</span>
       </p>
-    )
+    );
   }
   if (alts.phase === 'onlyOne') {
     // One road back is genuinely one sensible way to drive the leg, not a failure.
@@ -108,29 +119,29 @@ function AlternativesBody({ planner, alts }: MRtAlternativesBarProps) {
       <p role="status" className="flex h-full items-center text-[0.8125rem] font-medium text-m-muted">
         <span className="line-clamp-2">{t('roadtrip.alt.onlyOne')}</span>
       </p>
-    )
+    );
   }
   // No phase means no open picker. The tab mounts the bar only while one is open, so this
   // is at most the render it closes in, and "only one way" there would describe no leg.
-  if (alts.phase !== 'choose') return null
+  if (alts.phase !== 'choose') return null;
 
   // Scrolls sideways rather than wrapping, because the row has a fixed height. The negative
   // margin lets a chip slide under the bar's own edge instead of stopping short of it.
   return (
     <div className="-mx-[14px] flex h-full snap-x gap-2 overflow-x-auto px-[14px]" aria-busy={alts.saving}>
-      {alts.overlays.map(alt => (
+      {alts.overlays.map((alt) => (
         <AlternativeChip
           key={alt.index}
           alt={alt}
           picked={alts.picked?.index === alt.index}
           disabled={alts.saving}
           distance={formatDistance(alt.distance / 1000, unit)}
-          subline={alternativeSubline(alt, time => t('roadtrip.alt.slower', { time }))}
+          subline={alternativeSubline(alt, (time) => t('roadtrip.alt.slower', { time }))}
           onPick={() => alts.pick(alt.index)}
         />
       ))}
     </div>
-  )
+  );
 }
 
 /**
@@ -142,13 +153,20 @@ function AlternativesBody({ planner, alts }: MRtAlternativesBarProps) {
  * bar sets its figures, and the chip spells its parts out in its name for the reason the
  * stage bar does.
  */
-function AlternativeChip({ alt, picked, disabled, distance, subline, onPick }: {
-  alt: AlternativeOverlay
-  picked: boolean
-  disabled: boolean
-  distance: string
-  subline: string
-  onPick: () => void
+function AlternativeChip({
+  alt,
+  picked,
+  disabled,
+  distance,
+  subline,
+  onPick,
+}: {
+  alt: AlternativeOverlay;
+  picked: boolean;
+  disabled: boolean;
+  distance: string;
+  subline: string;
+  onPick: () => void;
 }) {
   return (
     <button
@@ -158,7 +176,9 @@ function AlternativeChip({ alt, picked, disabled, distance, subline, onPick }: {
       aria-pressed={picked}
       aria-label={badgeLabel([alt.label, distance, subline])}
       className={`flex h-full min-w-[128px] max-w-[232px] flex-none snap-start items-center gap-2.5 rounded-[16px] border px-3 text-start disabled:opacity-60 ${
-        picked ? 'border-[color:var(--m-act)] bg-[color:var(--m-inner)]' : 'border-[color:var(--m-cbr)] bg-[color:var(--m-ic)]'
+        picked
+          ? 'border-[color:var(--m-act)] bg-[color:var(--m-inner)]'
+          : 'border-[color:var(--m-cbr)] bg-[color:var(--m-ic)]'
       }`}
     >
       <span
@@ -175,5 +195,5 @@ function AlternativeChip({ alt, picked, disabled, distance, subline, onPick }: {
         <span className="mt-[3px] block truncate font-geist text-[0.6875rem] text-m-muted">{subline}</span>
       </span>
     </button>
-  )
+  );
 }

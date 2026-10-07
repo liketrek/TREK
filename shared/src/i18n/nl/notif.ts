@@ -29,7 +29,8 @@ const notif: TranslationStrings = {
   'notif.version_available.text': 'TREK {version} is nu beschikbaar',
   'notif.replica_failure.title': 'Opslagreplica mislukt',
   'notif.replica_failure.text': "Schrijven naar replica '{backend}' is mislukt: {op} van {key} — {error}",
-  'notif.replica_failure.textSuppressed': "Schrijven naar replica '{backend}' is mislukt: {op} van {key} — {error}. {suppressed} extra fout(en) zijn onderdrukt sinds de laatste melding.",
+  'notif.replica_failure.textSuppressed':
+    "Schrijven naar replica '{backend}' is mislukt: {op} van {key} — {error}. {suppressed} extra fout(en) zijn onderdrukt sinds de laatste melding.",
   'notif.action.view_trip': 'Reis bekijken',
   'notif.action.view_collab': 'Berichten bekijken',
   'notif.action.view_packing': 'Paklijst bekijken',

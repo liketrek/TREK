@@ -6,12 +6,18 @@
  * 500 quirk (shared with the trip cover config) and the place-image filter's
  * statusCode-400 contract.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { authCookie } from '../helpers/auth';
+import { createUser } from '../helpers/factories';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
-import path from 'path';
+
+import type { Application } from 'express';
 import fs from 'fs';
+import path from 'path';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -26,13 +32,11 @@ vi.mock('../../src/config', () => ({
   SESSION_DURATION_SECONDS: 86400,
   DEFAULT_LANGUAGE: 'en',
 }));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn(), getOnlineUserIds: vi.fn(() => []) }));
-
-import { db as testDb } from '../../src/db/database';
-import { buildApp } from '../../src/bootstrap';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
+vi.mock('../../src/websocket', () => ({
+  broadcast: vi.fn(),
+  broadcastToUser: vi.fn(),
+  getOnlineUserIds: vi.fn(() => []),
+}));
 
 let nestApp: INestApplication;
 let app: Application;
@@ -41,11 +45,17 @@ const coversDir = path.join(__dirname, '../../uploads/covers');
 const placesDir = path.join(__dirname, '../../uploads/places');
 
 function createCollection(ownerId: number): number {
-  return Number(testDb.prepare("INSERT INTO collections (owner_id, name) VALUES (?, 'C')").run(ownerId).lastInsertRowid);
+  return Number(
+    testDb.prepare("INSERT INTO collections (owner_id, name) VALUES (?, 'C')").run(ownerId).lastInsertRowid,
+  );
 }
 
 function createCollectionPlace(collectionId: number, ownerId: number): number {
-  return Number(testDb.prepare("INSERT INTO collection_places (collection_id, owner_id, name) VALUES (?, ?, 'P')").run(collectionId, ownerId).lastInsertRowid);
+  return Number(
+    testDb
+      .prepare("INSERT INTO collection_places (collection_id, owner_id, name) VALUES (?, ?, 'P')")
+      .run(collectionId, ownerId).lastInsertRowid,
+  );
 }
 
 beforeAll(async () => {
@@ -57,9 +67,11 @@ beforeEach(() => {
   resetTestDb(testDb);
   resetRateLimits(nestApp);
   // Enable the collections addon (the controller sits behind AddonGuard).
-  testDb.prepare(
-    "INSERT OR REPLACE INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES ('collections', 'Collections', 'Saved places', 'global', 'Bookmark', 1, 40)"
-  ).run();
+  testDb
+    .prepare(
+      "INSERT OR REPLACE INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES ('collections', 'Collections', 'Saved places', 'global', 'Bookmark', 1, 40)",
+    )
+    .run();
 });
 
 afterAll(async () => {

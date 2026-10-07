@@ -26,7 +26,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Vorlage auswählen...',
   'settings.mapDefaultHint': 'Leer lassen für OpenStreetMap (Standard)',
   'settings.routingBase': 'Eigene Routing-Instanz',
-  'settings.routingBaseHint': 'Eine eigene OSRM-Instanz. Leer nutzt die öffentlichen Server, die etwa eine Anfrage pro Sekunde erlauben — für einen Tag genug, für einen Roadtrip knapp. Wirkt erst nach einem Serverneustart.',
+  'settings.routingBaseHint':
+    'Eine eigene OSRM-Instanz. Leer nutzt die öffentlichen Server, die etwa eine Anfrage pro Sekunde erlauben — für einen Tag genug, für einen Roadtrip knapp. Wirkt erst nach einem Serverneustart.',
   'settings.valhallaBase': 'Eigene Valhalla-Instanz',
   'settings.valhallaBaseHint':
     'Zum Meiden von Mautstraßen, Autobahnen und Fähren nutzt TREK standardmäßig die öffentliche FOSSGIS-Valhalla. Hier kannst du stattdessen eine eigene Valhalla-URL eintragen. Ist nur eine eigene Routing-Instanz konfiguriert, wird die öffentliche Valhalla nicht verwendet. Nach dem Eintragen einer eigenen URL den Server neu starten und die Seite neu laden.',
@@ -81,7 +82,8 @@ const settings: TranslationStrings = {
   'settings.weekStartHint': 'Erster Tag der Woche in jedem Datumswähler. Vacay hat eine eigene Einstellung.',
   'settings.preferredNavApp': 'Orte öffnen in',
   'settings.preferredNavAppAsk': 'Jedes Mal fragen',
-  'settings.preferredNavAppHint': 'Ist eine App gewählt, öffnet der Navigations-Button sie direkt, statt alle Karten-Apps anzubieten.',
+  'settings.preferredNavAppHint':
+    'Ist eine App gewählt, öffnet der Navigations-Button sie direkt, statt alle Karten-Apps anzubieten.',
   'settings.bookingLabels': 'Orts-Labels auf Buchungsrouten',
   'settings.bookingLabelsHint': 'Zeigt Bahnhofs-/Flughafennamen auf der Karte. Wenn aus, wird nur das Icon angezeigt.',
   'settings.blurBookingCodes': 'Buchungscodes verbergen',
@@ -549,8 +551,10 @@ const settings: TranslationStrings = {
   'settings.offline.notice.busy': 'Eine Synchronisierung läuft bereits. Versuche es gleich noch einmal.',
   'settings.offline.notice.offline': 'Keine Verbindung. Verbinde dich, um Reisen offline zu speichern.',
   'settings.offline.notice.signedOut': 'Deine Sitzung ist abgelaufen. Melde dich erneut an, um zu synchronisieren.',
-  'settings.offline.notice.failed': 'Der Download konnte nicht abgeschlossen werden. Prüfe deine Verbindung und versuche es erneut.',
-  'settings.offline.notice.loadFailed': 'Der Offline-Speicher dieses Geräts konnte nicht gelesen werden. Meist hilft es, den Cache zu leeren.',
+  'settings.offline.notice.failed':
+    'Der Download konnte nicht abgeschlossen werden. Prüfe deine Verbindung und versuche es erneut.',
+  'settings.offline.notice.loadFailed':
+    'Der Offline-Speicher dieses Geräts konnte nicht gelesen werden. Meist hilft es, den Cache zu leeren.',
   'settings.offline.clear': 'Cache leeren',
   'settings.offline.clearConfirm':
     'Alle offline gespeicherten Reisedaten löschen? Du kannst jederzeit online neu synchronisieren.',
@@ -610,22 +614,27 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Wunschliste',
   'settings.apiScopes.stats': 'Summen',
   'settings.apiKeys.title': 'API-Schlüssel',
-  'settings.apiKeys.description': 'Schlüssel für die öffentliche API, damit andere Software deine Reisen lesen kann. Nur lesend: ein Schlüssel kann nichts ändern oder löschen.',
+  'settings.apiKeys.description':
+    'Schlüssel für die öffentliche API, damit andere Software deine Reisen lesen kann. Nur lesend: ein Schlüssel kann nichts ändern oder löschen.',
   'settings.apiKeys.create': 'Schlüssel erstellen',
   'settings.apiKeys.empty': 'Noch keine Schlüssel. Erstelle einen, um andere Software zu verbinden.',
   'settings.apiKeys.createdAt': 'erstellt',
   'settings.apiKeys.usedAt': 'zuletzt genutzt',
   'settings.apiKeys.deleteTitle': 'Schlüssel löschen',
-  'settings.apiKeys.deleteMessage': 'Alles, was diesen Schlüssel nutzt, hört sofort auf zu funktionieren. Das lässt sich nicht rückgängig machen.',
+  'settings.apiKeys.deleteMessage':
+    'Alles, was diesen Schlüssel nutzt, hört sofort auf zu funktionieren. Das lässt sich nicht rückgängig machen.',
   'settings.apiKeys.deleted': 'Schlüssel gelöscht',
   'settings.apiKeys.deleteFailed': 'Schlüssel konnte nicht gelöscht werden',
   'settings.apiKeys.createFailed': 'Schlüssel konnte nicht erstellt werden',
   'settings.apiKeys.copy': 'Kopieren',
-  'settings.apiKeys.docsHint': 'Schicke den Schlüssel als "Authorization: Bearer ..." oder "X-API-Key: ..." an /api/v1.',
+  'settings.apiKeys.docsHint':
+    'Schicke den Schlüssel als "Authorization: Bearer ..." oder "X-API-Key: ..." an /api/v1.',
   'settings.apiKeys.endpoint': 'Endpunkt',
   'settings.apiKeys.neverUsed': 'nie genutzt',
-  'settings.apiKeys.loadFailed': 'Deine Schlüssel konnten nicht geladen werden. Lade die Seite neu, um es noch einmal zu versuchen.',
-  'settings.apiKeys.limitReached': 'Du hast {max} Schlüssel, mehr geht pro Konto nicht. Lösche einen, den du nicht mehr brauchst, um einen neuen zu erstellen.',
+  'settings.apiKeys.loadFailed':
+    'Deine Schlüssel konnten nicht geladen werden. Lade die Seite neu, um es noch einmal zu versuchen.',
+  'settings.apiKeys.limitReached':
+    'Du hast {max} Schlüssel, mehr geht pro Konto nicht. Lösche einen, den du nicht mehr brauchst, um einen neuen zu erstellen.',
   'settings.apiKeys.copyFailed': 'Kopieren hat nicht geklappt. Markiere den Text und kopiere ihn von Hand.',
   'settings.apiKeys.modal.createTitle': 'API-Schlüssel erstellen',
   'settings.apiKeys.modal.name': 'Name',
@@ -634,7 +643,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.creating': 'Wird erstellt...',
   'settings.apiKeys.modal.create': 'Erstellen',
   'settings.apiKeys.modal.createdTitle': 'API-Schlüssel erstellt',
-  'settings.apiKeys.modal.createdWarning': 'Kopiere den Schlüssel jetzt. Er wird nur einmal angezeigt und lässt sich später nicht mehr abrufen.',
+  'settings.apiKeys.modal.createdWarning':
+    'Kopiere den Schlüssel jetzt. Er wird nur einmal angezeigt und lässt sich später nicht mehr abrufen.',
   'settings.apiKeys.modal.done': 'Fertig',
 };
 

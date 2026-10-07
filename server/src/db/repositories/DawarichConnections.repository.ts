@@ -60,7 +60,17 @@ export class DawarichConnectionsRepository extends TrekRepository<DawarichConnec
    */
   async findRow(userId: number): Promise<DawarichConnectionRow | null> {
     const row = await this.qb('c')
-      .select(['c.user', 'c.url', 'c.api_key', 'c.allow_insecure_tls', 'c.sync_enabled', 'c.last_sync_at', 'c.last_sync_state', 'c.last_sync_error', 'c.capabilities'])
+      .select([
+        'c.user',
+        'c.url',
+        'c.api_key',
+        'c.allow_insecure_tls',
+        'c.sync_enabled',
+        'c.last_sync_at',
+        'c.last_sync_state',
+        'c.last_sync_error',
+        'c.capabilities',
+      ])
       .where({ user: userId })
       .execute<DawarichConnectionRow | undefined>('get', false);
     return row ?? null;
@@ -109,7 +119,10 @@ export class DawarichConnectionsRepository extends TrekRepository<DawarichConnec
    * conflict and default to NULL/`'never'` on a genuine INSERT, matching the
    * legacy statement's own column list exactly.
    */
-  async upsertConnection(userId: number, data: { url: string | null; allowInsecureTls: boolean; syncEnabled: boolean }): Promise<void> {
+  async upsertConnection(
+    userId: number,
+    data: { url: string | null; allowInsecureTls: boolean; syncEnabled: boolean },
+  ): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
     await this.upsert(
       {
@@ -119,7 +132,11 @@ export class DawarichConnectionsRepository extends TrekRepository<DawarichConnec
         sync_enabled: data.syncEnabled ? 1 : 0,
         updated_at: currentTimestamp(platform),
       },
-      { onConflictFields: ['user'], onConflictAction: 'merge', onConflictMergeFields: ['url', 'allow_insecure_tls', 'sync_enabled', 'updated_at'] },
+      {
+        onConflictFields: ['user'],
+        onConflictAction: 'merge',
+        onConflictMergeFields: ['url', 'allow_insecure_tls', 'sync_enabled', 'updated_at'],
+      },
     );
   }
 
@@ -139,7 +156,10 @@ export class DawarichConnectionsRepository extends TrekRepository<DawarichConnec
    * NULL, last_sync_at = NULL WHERE user_id = ?`.
    */
   async resetSyncState(userId: number): Promise<void> {
-    await this.nativeUpdate({ user: userId }, { capabilities: null, last_sync_state: 'never', last_sync_error: null, last_sync_at: null });
+    await this.nativeUpdate(
+      { user: userId },
+      { capabilities: null, last_sync_state: 'never', last_sync_error: null, last_sync_at: null },
+    );
   }
 
   /**
@@ -151,7 +171,10 @@ export class DawarichConnectionsRepository extends TrekRepository<DawarichConnec
    * UPDATE with five `SET` clauses).
    */
   async clearForRemovedUrl(userId: number): Promise<void> {
-    await this.nativeUpdate({ user: userId }, { api_key: null, capabilities: null, last_sync_state: 'never', last_sync_error: null, last_sync_at: null });
+    await this.nativeUpdate(
+      { user: userId },
+      { api_key: null, capabilities: null, last_sync_state: 'never', last_sync_error: null, last_sync_at: null },
+    );
   }
 
   /**
@@ -168,7 +191,10 @@ export class DawarichConnectionsRepository extends TrekRepository<DawarichConnec
   /** DWC10 — `storeCapabilities`: `UPDATE dawarich_connections SET capabilities = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`. */
   async storeCapabilities(userId: number, capabilitiesJson: string): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
-    await this.nativeUpdate({ user: userId }, { capabilities: capabilitiesJson, updated_at: currentTimestamp(platform) });
+    await this.nativeUpdate(
+      { user: userId },
+      { capabilities: capabilitiesJson, updated_at: currentTimestamp(platform) },
+    );
   }
 
   /**
@@ -177,11 +203,19 @@ export class DawarichConnectionsRepository extends TrekRepository<DawarichConnec
    * CURRENT_TIMESTAMP WHERE user_id = ?`. **NON-HTTP ENTRYPOINT** — called
    * after every cron sync.
    */
-  async recordSyncResult(userId: number, data: { lastSyncAt: string; state: string; error: string | null }): Promise<void> {
+  async recordSyncResult(
+    userId: number,
+    data: { lastSyncAt: string; state: string; error: string | null },
+  ): Promise<void> {
     const platform = this.getEntityManager().getPlatform();
     await this.nativeUpdate(
       { user: userId },
-      { last_sync_at: data.lastSyncAt, last_sync_state: data.state, last_sync_error: data.error, updated_at: currentTimestamp(platform) },
+      {
+        last_sync_at: data.lastSyncAt,
+        last_sync_state: data.state,
+        last_sync_error: data.error,
+        updated_at: currentTimestamp(platform),
+      },
     );
   }
 

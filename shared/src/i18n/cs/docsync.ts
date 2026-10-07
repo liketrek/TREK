@@ -69,7 +69,7 @@ const docsync: TranslationStrings = {
   'docsync.state.local_deleted': 'Smazáno v TREKu',
   'docsync.state.scope_drift': 'Přesunuto mimo složku',
 
-  'docsync.conflict.resolve': "Vyřešit {count}",
+  'docsync.conflict.resolve': 'Vyřešit {count}',
 
   'docsync.conflict.title': 'Změnily se obě kopie',
   'docsync.conflict.keepTrek': 'Ponechat verzi z TREKu',
@@ -173,7 +173,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'Přenos neproběhl.',
 
   'docsync.error.unknown_provider': 'Tento poskytovatel není na této instanci dostupný.',
-  'docsync.error.provider_disabled': 'Pozastaveno: správce tohoto poskytovatele vypnul. Synchronizace bude pokračovat, jakmile ho znovu zapne.',
+  'docsync.error.provider_disabled':
+    'Pozastaveno: správce tohoto poskytovatele vypnul. Synchronizace bude pokračovat, jakmile ho znovu zapne.',
   'docsync.binding.reconnect': 'Znovu připojit',
 };
 

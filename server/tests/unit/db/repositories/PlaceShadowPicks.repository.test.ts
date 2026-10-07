@@ -3,12 +3,16 @@
  * `PlaceShadowService` used to issue raw, on real rows. `place_shadow_picks`
  * has no other repository test file before this one.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PlaceShadowPicks } from '../../../../src/db/entities/PlaceShadowPicks.entity';
+import type {
+  PlaceShadowPicksRepository,
+  NewPlaceShadowPickRow,
+} from '../../../../src/db/repositories/PlaceShadowPicks.repository';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
-import { PlaceShadowPicks } from '../../../../src/db/entities/PlaceShadowPicks.entity';
-import type { PlaceShadowPicksRepository, NewPlaceShadowPickRow } from '../../../../src/db/repositories/PlaceShadowPicks.repository';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -18,8 +22,14 @@ beforeAll(async () => {
   t = await createTestOrm(testDb);
   picks = t.repo(PlaceShadowPicks);
 });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 function row(overrides: Partial<NewPlaceShadowPickRow> = {}): NewPlaceShadowPickRow {
   return {
@@ -46,7 +56,13 @@ describe('PlaceShadowPicksRepository.insertPick', () => {
   it('PSPICKREPO-001: inserts exactly the given columns, nullable ones included', async () => {
     await picks.insertPick(row());
     const stored = testDb.prepare('SELECT * FROM place_shadow_picks').get() as { id: number };
-    expect(rawRow(stored.id)).toMatchObject({ query: 'louvre', source: 'nominatim', live_rank: 0, live_count: 5, lang: null });
+    expect(rawRow(stored.id)).toMatchObject({
+      query: 'louvre',
+      source: 'nominatim',
+      live_rank: 0,
+      live_count: 5,
+      lang: null,
+    });
   });
 });
 
@@ -78,8 +94,16 @@ describe('PlaceShadowPicksRepository.totals / countBySource / countByLiveRank', 
   it('PSPICKREPO-005: totals reports COUNT/MIN/MAX across every row', async () => {
     await picks.insertPick(row());
     await picks.insertPick(row());
-    testDb.prepare("UPDATE place_shadow_picks SET created_at = '2026-01-01 00:00:00' WHERE id = (SELECT MIN(id) FROM place_shadow_picks)").run();
-    testDb.prepare("UPDATE place_shadow_picks SET created_at = '2026-06-01 00:00:00' WHERE id = (SELECT MAX(id) FROM place_shadow_picks)").run();
+    testDb
+      .prepare(
+        "UPDATE place_shadow_picks SET created_at = '2026-01-01 00:00:00' WHERE id = (SELECT MIN(id) FROM place_shadow_picks)",
+      )
+      .run();
+    testDb
+      .prepare(
+        "UPDATE place_shadow_picks SET created_at = '2026-06-01 00:00:00' WHERE id = (SELECT MAX(id) FROM place_shadow_picks)",
+      )
+      .run();
     const totals = await picks.totals();
     expect(totals).toEqual({ total: 2, oldest: '2026-01-01 00:00:00', newest: '2026-06-01 00:00:00' });
   });
@@ -125,7 +149,12 @@ describe('PlaceShadowPicksRepository.totals / countBySource / countByLiveRank', 
     await picks.insertPick(row({ live_rank: 0 }));
     await picks.insertPick(row({ live_rank: 3 }));
     const rows = await picks.countByLiveRank();
-    expect(rows).toEqual(expect.arrayContaining([{ live_rank: 0, count: 2 }, { live_rank: 3, count: 1 }]));
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        { live_rank: 0, count: 2 },
+        { live_rank: 3, count: 1 },
+      ]),
+    );
     expect(rows).toHaveLength(2);
   });
 });
@@ -141,8 +170,13 @@ describe('PlaceShadowPicksRepository.deleteAll / purgeOlderThan', () => {
   it('PSPICKREPO-009: purgeOlderThan removes exactly the rows older than the cutoff, proving the deleted set on a seeded table', async () => {
     await picks.insertPick(row({ query: 'old' }));
     await picks.insertPick(row({ query: 'new' }));
-    const [oldRow, newRow] = testDb.prepare('SELECT id, query FROM place_shadow_picks ORDER BY id ASC').all() as { id: number; query: string }[];
-    testDb.prepare("UPDATE place_shadow_picks SET created_at = datetime('now', '-200 days') WHERE id = ?").run(oldRow.id);
+    const [oldRow, newRow] = testDb.prepare('SELECT id, query FROM place_shadow_picks ORDER BY id ASC').all() as {
+      id: number;
+      query: string;
+    }[];
+    testDb
+      .prepare("UPDATE place_shadow_picks SET created_at = datetime('now', '-200 days') WHERE id = ?")
+      .run(oldRow.id);
     testDb.prepare("UPDATE place_shadow_picks SET created_at = datetime('now', '-1 days') WHERE id = ?").run(newRow.id);
 
     const removed = await picks.purgeOlderThan(180);

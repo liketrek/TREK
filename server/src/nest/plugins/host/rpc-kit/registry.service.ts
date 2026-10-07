@@ -1,7 +1,7 @@
-import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { DiscoveryService, MetadataScanner } from '@nestjs/core';
 import { isPluginController } from './metadata';
 import { PluginRpcRegistry } from './registry';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { DiscoveryService, MetadataScanner } from '@nestjs/core';
 
 /**
  * DI-discovered registry: at boot, scans every PROVIDER marked with

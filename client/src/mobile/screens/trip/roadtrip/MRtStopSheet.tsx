@@ -1,27 +1,29 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react'
+import type { RoadtripDay, ScheduleWarning } from '@trek/shared/roadtrip';
+import { AlertTriangle, Clock, Footprints, Fuel, Hourglass, MapPin, Moon, Navigation, Pencil, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import {
-  AlertTriangle, Clock, Footprints, Fuel, Hourglass, MapPin, Moon, Navigation, Pencil, X,
-} from 'lucide-react'
-import MSheet from '../../../components/MSheet'
-import MIconBtn from '../../../components/MIconBtn'
-import MListRow from '../../../components/MListRow'
-import MToggle from '../../../components/MToggle'
-import type { MTripSheetsProps } from '../MTripShell'
-import { useTranslation } from '../../../../i18n'
-import { useSettingsStore } from '../../../../store/settingsStore'
-import { useTripStore } from '../../../../store/tripStore'
-import ChargingInfo from '../../../../components/Roadtrip/ChargingInfo'
-import { formatDurationShort } from '../../../../components/Roadtrip/roadtripModel'
-import { roadtripRows, stageOf, type StopRow } from '../../../../components/Roadtrip/roadtripRowModel'
-import { readStay, shownStay } from '../../../../components/Roadtrip/stayReading'
-import { STOP_KIND_BY_KEY } from '../../../../components/Roadtrip/stopKinds'
-import { navigationTargetLabel, getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
-import { NavigationMenu } from '../../../../components/shared/NavigationMenu'
-import { formatDistance } from '../../../../utils/units'
-import { Eyebrow, displayTime } from '../sheets/MTripSheetUi'
-import { showStopOnMap } from './useMRoadtrip'
-import type { DistanceUnit } from '../../../../types'
-import type { RoadtripDay, ScheduleWarning } from '@trek/shared/roadtrip'
+  getNavigationTargets,
+  navigationTargetLabel,
+  openNavigationTarget,
+} from '../../../../components/Planner/placeNavigation';
+import ChargingInfo from '../../../../components/Roadtrip/ChargingInfo';
+import { formatDurationShort } from '../../../../components/Roadtrip/roadtripModel';
+import { roadtripRows, stageOf, type StopRow } from '../../../../components/Roadtrip/roadtripRowModel';
+import { readStay, shownStay } from '../../../../components/Roadtrip/stayReading';
+import { STOP_KIND_BY_KEY } from '../../../../components/Roadtrip/stopKinds';
+import { NavigationMenu } from '../../../../components/shared/NavigationMenu';
+import { useTranslation } from '../../../../i18n';
+import { useSettingsStore } from '../../../../store/settingsStore';
+import { useTripStore } from '../../../../store/tripStore';
+import type { DistanceUnit } from '../../../../types';
+import { formatDistance } from '../../../../utils/units';
+import MIconBtn from '../../../components/MIconBtn';
+import MListRow from '../../../components/MListRow';
+import MSheet from '../../../components/MSheet';
+import MToggle from '../../../components/MToggle';
+import type { MTripSheetsProps } from '../MTripShell';
+import { Eyebrow, displayTime } from '../sheets/MTripSheetUi';
+import { showStopOnMap } from './useMRoadtrip';
 
 /**
  * One stop of the stage, written out.
@@ -48,16 +50,16 @@ import type { RoadtripDay, ScheduleWarning } from '@trek/shared/roadtrip'
  */
 
 interface RtStopSheetPayload {
-  dayId?: number
-  assignmentId?: number
+  dayId?: number;
+  assignmentId?: number;
 }
 
 /** The stop the sheet is about, and the card it is drawn on. */
 interface Located {
-  day: RoadtripDay
-  row: StopRow
+  day: RoadtripDay;
+  row: StopRow;
   /** Index into the CARD's stops, which is what every finding is filed under. */
-  index: number
+  index: number;
 }
 
 /**
@@ -69,33 +71,38 @@ interface Located {
  * rather than trusting one lookup that is right most of the time.
  */
 function locate(days: readonly RoadtripDay[], dayId: number | null, assignmentId: number | null): Located | null {
-  if (assignmentId == null) return null
-  const named = stageOf(days, dayId)
-  const search = named ? [named, ...days.filter(d => d !== named)] : days
+  if (assignmentId == null) return null;
+  const named = stageOf(days, dayId);
+  const search = named ? [named, ...days.filter((d) => d !== named)] : days;
   for (const day of search) {
-    const index = day.stops.findIndex(s => s.assignmentId === assignmentId && !s.automaticNight)
-    if (index < 0) continue
-    const row = roadtripRows(day).find(
-      (r): r is StopRow => r.kind === 'stop' && r.stop.assignmentId === assignmentId,
-    )
-    if (row) return { day, row, index }
+    const index = day.stops.findIndex((s) => s.assignmentId === assignmentId && !s.automaticNight);
+    if (index < 0) continue;
+    const row = roadtripRows(day).find((r): r is StopRow => r.kind === 'stop' && r.stop.assignmentId === assignmentId);
+    if (row) return { day, row, index };
   }
-  return null
+  return null;
 }
 
 /** One finding: an icon, a sentence, and the figure it is about when that reads better apart. */
-function Finding({ icon, label, value, warn = false }: {
-  icon: ReactNode
-  label: string
-  value?: string
-  warn?: boolean
+function Finding({
+  icon,
+  label,
+  value,
+  warn = false,
+}: {
+  icon: ReactNode;
+  label: string;
+  value?: string;
+  warn?: boolean;
 }) {
   return (
     <div
       className="flex min-h-[44px] items-center gap-2.5 rounded-[13px] bg-[color:var(--m-ic)] px-3 py-2.5"
       style={warn ? { color: 'var(--m-st-pending)' } : undefined}
     >
-      <span className={`flex-none ${warn ? '' : 'text-m-muted'}`} aria-hidden="true">{icon}</span>
+      <span className={`flex-none ${warn ? '' : 'text-m-muted'}`} aria-hidden="true">
+        {icon}
+      </span>
       <span className={`min-w-0 flex-1 text-[0.75rem] font-medium leading-snug ${warn ? '' : 'text-m-muted'}`}>
         {label}
       </span>
@@ -105,20 +112,28 @@ function Finding({ icon, label, value, warn = false }: {
         </span>
       )}
     </div>
-  )
+  );
 }
 
 /** One 56px action tile. Without a handler it stays a plain box instead of a dead button. */
-function ActionTile({ icon, label, value, onClick, tileRef }: {
-  icon: ReactNode
-  label: string
-  value?: string
-  onClick?: () => void
-  tileRef?: Ref<HTMLButtonElement>
+function ActionTile({
+  icon,
+  label,
+  value,
+  onClick,
+  tileRef,
+}: {
+  icon: ReactNode;
+  label: string;
+  value?: string;
+  onClick?: () => void;
+  tileRef?: Ref<HTMLButtonElement>;
 }) {
   const inner = (
     <>
-      <span className="flex-none text-m-muted" aria-hidden="true">{icon}</span>
+      <span className="flex-none text-m-muted" aria-hidden="true">
+        {icon}
+      </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[0.8125rem] font-semibold text-m-ink">{label}</span>
         {value && (
@@ -126,51 +141,60 @@ function ActionTile({ icon, label, value, onClick, tileRef }: {
         )}
       </span>
     </>
-  )
-  const box = 'flex h-14 min-w-0 items-center gap-2.5 rounded-[14px] bg-[color:var(--m-ic)] px-3 text-left'
-  if (!onClick) return <div className={box}>{inner}</div>
-  return <button ref={tileRef} type="button" onClick={onClick} className={`${box} border-0`}>{inner}</button>
+  );
+  const box = 'flex h-14 min-w-0 items-center gap-2.5 rounded-[14px] bg-[color:var(--m-ic)] px-3 text-left';
+  if (!onClick) return <div className={box}>{inner}</div>;
+  return (
+    <button ref={tileRef} type="button" onClick={onClick} className={`${box} border-0`}>
+      {inner}
+    </button>
+  );
 }
 
 /**
  * Stop detail sheet ('rtstop', payload { dayId, assignmentId }) of the road trip tab.
  */
 export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
-  const { t, locale } = useTranslation()
-  const open = shell.sheet?.id === 'rtstop'
-  const payload = (shell.sheet?.payload ?? {}) as RtStopSheetPayload
+  const { t, locale } = useTranslation();
+  const open = shell.sheet?.id === 'rtstop';
+  const payload = (shell.sheet?.payload ?? {}) as RtStopSheetPayload;
 
-  const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
-  const unitSetting = useSettingsStore(s => s.settings.distance_unit)
-  const unit: DistanceUnit = unitSetting === 'imperial' ? 'imperial' : 'metric'
-  const tripPlaces = useTripStore(s => s.places)
+  const timeFormat = useSettingsStore((s) => s.settings.time_format) || '24h';
+  const unitSetting = useSettingsStore((s) => s.settings.distance_unit);
+  const unit: DistanceUnit = unitSetting === 'imperial' ? 'imperial' : 'metric';
+  const tripPlaces = useTripStore((s) => s.places);
 
-  const days = planner.roadtripRoutes.days
+  const days = planner.roadtripRoutes.days;
   const live = useMemo(
     () => locate(days, payload.dayId ?? null, payload.assignmentId ?? null),
-    [days, payload.dayId, payload.assignmentId],
-  )
+    [days, payload.dayId, payload.assignmentId]
+  );
 
   // Hold the last stop so the card keeps its content through the 280ms exit.
-  const heldRef = useRef<Located | null>(null)
-  if (live) heldRef.current = live
-  const located = live ?? heldRef.current
+  const heldRef = useRef<Located | null>(null);
+  if (live) heldRef.current = live;
+  const located = live ?? heldRef.current;
 
-  const [navOpen, setNavOpen] = useState(false)
-  const navBtnRef = useRef<HTMLButtonElement>(null)
-  const [saving, setSaving] = useState(false)
+  const [navOpen, setNavOpen] = useState(false);
+  const navBtnRef = useRef<HTMLButtonElement>(null);
+  const [saving, setSaving] = useState(false);
   // The end-day switch, as it should read while the write is in the air.
-  const [pending, setPending] = useState<{ from: boolean; to: boolean } | null>(null)
+  const [pending, setPending] = useState<{ from: boolean; to: boolean } | null>(null);
   useEffect(() => {
-    if (!open) { setNavOpen(false); setPending(null) }
-  }, [open])
-  useEffect(() => { setPending(null) }, [payload.assignmentId])
+    if (!open) {
+      setNavOpen(false);
+      setPending(null);
+    }
+  }, [open]);
+  useEffect(() => {
+    setPending(null);
+  }, [payload.assignmentId]);
 
-  const stop = located?.row.stop ?? null
+  const stop = located?.row.stop ?? null;
   // From the whole trip store, not planner.places: with service stops hidden from the day
   // lists the phone filters them out of that list, while the stage still draws them, and
   // both the pencil and the directions have to reach the row the chain drew.
-  const place = tripPlaces.find(p => p.id === stop?.placeId) ?? null
+  const place = tripPlaces.find((p) => p.id === stop?.placeId) ?? null;
 
   /**
    * Addressed by stop, not by selection.
@@ -180,63 +204,63 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
    * and the place inspector hangs off the same value and would come up underneath. So
    * the stage sheet calls the stop-addressed writer directly.
    */
-  const canEndDay = stop != null && planner.dailyTimesActive && planner.can('day_edit', planner.trip)
+  const canEndDay = stop != null && planner.dailyTimesActive && planner.can('day_edit', planner.trip);
   // Both things that can end a day, not just the flag: a manual boundary filed against
   // this stop closes the day too, and reading only the flag showed the switch as off for a
   // stop that already ends it. Worse, the tap meant to switch it on then ran through the
   // writer's boundary branch and deleted that day end.
-  const endDayTruth = stop != null && planner.roadtripEndsDayAt(stop)
+  const endDayTruth = stop != null && planner.roadtripEndsDayAt(stop);
   // The optimistic value is released the moment the planner's own answer moves off what
   // it was taken from, so a landed write shows the real state rather than a copy of it.
-  const endDayActive = pending && pending.from === endDayTruth ? pending.to : endDayTruth
+  const endDayActive = pending && pending.from === endDayTruth ? pending.to : endDayTruth;
 
   if (!located || !stop) {
-    return <MSheet open={false} onClose={shell.closeSheet} variant="bottom" />
+    return <MSheet open={false} onClose={shell.closeSheet} variant="bottom" />;
   }
 
-  const { day, row, index } = located
-  const kind = stop.stopType ? STOP_KIND_BY_KEY[stop.stopType] : undefined
-  const KindIcon = kind?.Icon
+  const { day, row, index } = located;
+  const kind = stop.stopType ? STOP_KIND_BY_KEY[stop.stopType] : undefined;
+  const KindIcon = kind?.Icon;
 
-  const entry = row.entry
-  const arrive = displayTime(entry?.arrival, locale, timeFormat)
-  const leave = displayTime(entry?.departure, locale, timeFormat)
+  const entry = row.entry;
+  const arrive = displayTime(entry?.arrival, locale, timeFormat);
+  const leave = displayTime(entry?.departure, locale, timeFormat);
 
   // Every finding filed at this stop, not just the one the chain had room for: being late
   // and driving too far are separate answers and the sheet is where both fit.
   const warnings: ScheduleWarning[] = [
-    ...day.schedule.warnings.filter(w => w.index === index && (w.code === 'late' || w.code === 'missedLeave')),
-    ...day.driveWarnings.filter(w => w.index === index && (w.code === 'leg' || w.code === 'range')),
-  ]
+    ...day.schedule.warnings.filter((w) => w.index === index && (w.code === 'late' || w.code === 'missedLeave')),
+    ...day.driveWarnings.filter((w) => w.index === index && (w.code === 'leg' || w.code === 'range')),
+  ];
   const warningText = (w: ScheduleWarning): string => {
-    if (w.code === 'late') return t('roadtrip.warn.late', { minutes: w.minutes ?? 0 })
-    if (w.code === 'missedLeave') return t('roadtrip.warn.missedLeave', { minutes: w.minutes ?? 0 })
-    if (w.code === 'range') return t('roadtrip.limit.range', { distance: formatDistance(w.sinceKm ?? 0, unit) })
-    return t('roadtrip.limit.legOver', { time: formatDurationShort((w.overMinutes ?? 0) * 60) })
-  }
+    if (w.code === 'late') return t('roadtrip.warn.late', { minutes: w.minutes ?? 0 });
+    if (w.code === 'missedLeave') return t('roadtrip.warn.missedLeave', { minutes: w.minutes ?? 0 });
+    if (w.code === 'range') return t('roadtrip.limit.range', { distance: formatDistance(w.sinceKm ?? 0, unit) });
+    return t('roadtrip.limit.legOver', { time: formatDurationShort((w.overMinutes ?? 0) * 60) });
+  };
   const warningIcon = (w: ScheduleWarning): ReactNode => {
-    if (w.code === 'late' || w.code === 'missedLeave') return <AlertTriangle size={15} strokeWidth={2} />
-    if (w.code === 'range') return <Fuel size={15} strokeWidth={2} />
-    return <Hourglass size={15} strokeWidth={2} />
-  }
+    if (w.code === 'late' || w.code === 'missedLeave') return <AlertTriangle size={15} strokeWidth={2} />;
+    if (w.code === 'range') return <Fuel size={15} strokeWidth={2} />;
+    return <Hourglass size={15} strokeWidth={2} />;
+  };
 
   // One app offered means no picker: the tap opens it, exactly as the place sheet does.
   // The stop's own name and position stand in when the place row is not to hand, so the
   // one control a driver actually needs is there whatever else the device is missing.
-  const navTargets = getNavigationTargets(place ?? { name: stop.name, lat: stop.lat, lng: stop.lng })
+  const navTargets = getNavigationTargets(place ?? { name: stop.name, lat: stop.lat, lng: stop.lng });
   const openDirections = () => {
-    if (navTargets.length === 1) openNavigationTarget(navTargets[0])
-    else if (navTargets.length > 1) setNavOpen(true)
-  }
+    if (navTargets.length === 1) openNavigationTarget(navTargets[0]);
+    else if (navTargets.length > 1) setNavOpen(true);
+  };
 
   // A stop left at a set time is stood at until then: the stay is what that time leaves
   // of it, and the sheet says until when.
-  const stay = readStay(stop, entry)
-  const missed = warnings.some(w => w.code === 'missedLeave')
-  const shown = shownStay(stay)
-  const until = stay.until ? t('roadtrip.stay.until', { time: displayTime(stay.until, locale, timeFormat) }) : null
-  const stayText = [shown === null ? null : formatDurationShort(shown * 60), until].filter(Boolean).join(' ')
-  const canEditPlace = planner.can('place_edit', planner.trip)
+  const stay = readStay(stop, entry);
+  const missed = warnings.some((w) => w.code === 'missedLeave');
+  const shown = shownStay(stay);
+  const until = stay.until ? t('roadtrip.stay.until', { time: displayTime(stay.until, locale, timeFormat) }) : null;
+  const stayText = [shown === null ? null : formatDurationShort(shown * 60), until].filter(Boolean).join(' ');
+  const canEditPlace = planner.can('place_edit', planner.trip);
   const editStay = () => {
     // The row this sheet is on rides along, because the stay sheet comes back here when it
     // saves and 'rtstop' is located by day and assignment. Without them it reopened on a
@@ -248,46 +272,46 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
       name: stop.name,
       dayId: located.day.dayId,
       assignmentId: stop.assignmentId,
-    })
-  }
+    });
+  };
 
   // A negative id is the optimistic row of a stop still being saved. The editor would
   // write the time against an id the server never issued, and handing it null instead is
   // no way round that: the planner then falls back to the place's only visit, which can be
   // that same row. So the pencil waits until the stop carries the id the server gave it.
-  const canOpenEditor = canEditPlace && place != null && stop.assignmentId > 0
+  const canOpenEditor = canEditPlace && place != null && stop.assignmentId > 0;
   const editPlace = () => {
-    if (!place) return
-    planner.openPlaceEditor(place, stop.assignmentId)
-    shell.closeSheet()
-  }
+    if (!place) return;
+    planner.openPlaceEditor(place, stop.assignmentId);
+    shell.closeSheet();
+  };
 
   const toggleEndDay = async (next: boolean) => {
-    if (!canEndDay || saving) return
-    setPending({ from: endDayTruth, to: next })
-    setSaving(true)
+    if (!canEndDay || saving) return;
+    setPending({ from: endDayTruth, to: next });
+    setSaving(true);
     try {
       // The writer reports rather than throws, and shows its own toast, so the catch below
       // could never fire: a refused write left the switch standing at the state the trip
       // never reached, with only a toast to say otherwise.
-      if (!await planner.setRoadtripEndDay(stop)) setPending(null)
+      if (!(await planner.setRoadtripEndDay(stop))) setPending(null);
     } catch (err: unknown) {
-      setPending(null)
-      planner.toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+      setPending(null);
+      planner.toast.error(err instanceof Error ? err.message : t('common.unknownError'));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   // The camera rather than the place selection, for the reason the end-day switch above
   // stays off it: the place inspector would come up over the map. `day` is the card the
   // stop is drawn on, so a stop reached after a night drive shows on the stage that has it.
   const showOnMap = () => {
-    showStopOnMap(planner, shell, stop, day.dayId)
-    shell.closeSheet()
-  }
+    showStopOnMap(planner, shell, stop, day.dayId);
+    shell.closeSheet();
+  };
 
-  const tiles = (navTargets.length > 0 ? 1 : 0) + 1
+  const tiles = (navTargets.length > 0 ? 1 : 0) + 1;
 
   return (
     <MSheet open={open && !!live} onClose={shell.closeSheet} variant="bottom" material="opaque" ariaLabel={stop.name}>
@@ -319,7 +343,7 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
               {row.number}
             </span>
           )}
-          <h2 className="min-w-0 flex-1 line-clamp-2 text-[1.0625rem] font-bold leading-tight text-m-ink">
+          <h2 className="line-clamp-2 min-w-0 flex-1 text-[1.0625rem] font-bold leading-tight text-m-ink">
             {stop.name}
           </h2>
           <div className="flex flex-none items-center gap-2">
@@ -344,15 +368,15 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
                 <div className="min-w-0">
                   <Eyebrow>{t('roadtrip.stay.arrive')}</Eyebrow>
                   {/* dir=ltr so a clock reads the same way round in an RTL locale. */}
-                  <div dir="ltr" className="mt-1 text-[1.375rem] font-extrabold leading-none tabular-nums text-m-ink">
+                  <div dir="ltr" className="mt-1 text-[1.375rem] font-extrabold tabular-nums leading-none text-m-ink">
                     {arrive}
                   </div>
                 </div>
               )}
               {leave && (
-                <div className="min-w-0 ms-auto text-end">
+                <div className="ms-auto min-w-0 text-end">
                   <Eyebrow>{t('roadtrip.stay.leave')}</Eyebrow>
-                  <div dir="ltr" className="mt-1 text-[1.375rem] font-extrabold leading-none tabular-nums text-m-ink">
+                  <div dir="ltr" className="mt-1 text-[1.375rem] font-extrabold tabular-nums leading-none text-m-ink">
                     {leave}
                   </div>
                 </div>
@@ -391,7 +415,7 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
                 label={t('roadtrip.stop.offRoad', { distance: formatDistance(row.offRoadMeters / 1000, unit) })}
               />
             )}
-            {warnings.map(w => (
+            {warnings.map((w) => (
               <Finding key={`${w.code}-${w.index}`} icon={warningIcon(w)} label={warningText(w)} warn />
             ))}
           </div>
@@ -445,7 +469,9 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
             </span>
             <MToggle
               checked={endDayActive}
-              onChange={next => { void toggleEndDay(next) }}
+              onChange={(next) => {
+                void toggleEndDay(next);
+              }}
               ariaLabel={t('roadtrip.window.endHere')}
               disabled={saving}
             />
@@ -454,14 +480,9 @@ export default function MRtStopSheet({ planner, shell }: MTripSheetsProps) {
 
         {/* ── Out to the map, with the stop marked on it ── */}
         <div className="mt-2 border-t border-[color:var(--m-rowbr)] pt-2">
-          <MListRow
-            icon={MapPin}
-            label={t('mobileTrip.showOnMap')}
-            onClick={showOnMap}
-            className="min-h-[44px]"
-          />
+          <MListRow icon={MapPin} label={t('mobileTrip.showOnMap')} onClick={showOnMap} className="min-h-[44px]" />
         </div>
       </div>
     </MSheet>
-  )
+  );
 }

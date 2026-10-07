@@ -1,11 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { CollectionMembers } from '../../../../../src/db/entities/CollectionMembers.entity';
+import { Collections } from '../../../../../src/db/entities/Collections.entity';
+import { resolveCollectionRole, type CollectionRole } from '../../../../../src/db/repositories/_shared/collection-role';
 import { createSnapshotTestDb } from '../../../../helpers/db-mock';
+import { createUser } from '../../../../helpers/factories';
 import { resetTestDb } from '../../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../../helpers/test-orm';
-import { createUser } from '../../../../helpers/factories';
-import { Collections } from '../../../../../src/db/entities/Collections.entity';
-import { CollectionMembers } from '../../../../../src/db/entities/CollectionMembers.entity';
-import { resolveCollectionRole, type CollectionRole } from '../../../../../src/db/repositories/_shared/collection-role';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * Plan 3h Task 1, R6 — the collections cluster's shared collection-role
@@ -42,9 +43,17 @@ import { resolveCollectionRole, type CollectionRole } from '../../../../../src/d
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
 
-beforeAll(async () => { t = await createTestOrm(testDb); });
-beforeEach(() => { resetTestDb(testDb); t.clear(); });
-afterAll(async () => { await t.close(); testDb.close(); });
+beforeAll(async () => {
+  t = await createTestOrm(testDb);
+});
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
 
 type Actor = 'owner' | 'admin' | 'editor' | 'viewer' | 'pending' | 'stranger';
 
@@ -56,12 +65,13 @@ function seedFixture() {
   const { user: pending } = createUser(testDb);
   const { user: stranger } = createUser(testDb);
 
-  const collectionId = testDb
-    .prepare("INSERT INTO collections (owner_id, name) VALUES (?, 'Fixture')")
-    .run(owner.id).lastInsertRowid as number;
+  const collectionId = testDb.prepare("INSERT INTO collections (owner_id, name) VALUES (?, 'Fixture')").run(owner.id)
+    .lastInsertRowid as number;
 
   const addMember = (userId: number, role: string, status: string) =>
-    testDb.prepare('INSERT INTO collection_members (collection_id, user_id, status, role) VALUES (?, ?, ?, ?)').run(collectionId, userId, status, role);
+    testDb
+      .prepare('INSERT INTO collection_members (collection_id, user_id, status, role) VALUES (?, ?, ?, ?)')
+      .run(collectionId, userId, status, role);
   addMember(admin.id, 'admin', 'accepted');
   addMember(editor.id, 'editor', 'accepted');
   addMember(viewer.id, 'viewer', 'accepted');
@@ -69,7 +79,14 @@ function seedFixture() {
 
   return {
     collectionId: collectionId as number,
-    userIds: { owner: owner.id, admin: admin.id, editor: editor.id, viewer: viewer.id, pending: pending.id, stranger: stranger.id } as Record<Actor, number>,
+    userIds: {
+      owner: owner.id,
+      admin: admin.id,
+      editor: editor.id,
+      viewer: viewer.id,
+      pending: pending.id,
+      stranger: stranger.id,
+    } as Record<Actor, number>,
   };
 }
 
@@ -92,7 +109,10 @@ function assertCanDeleteLike(role: CollectionRole): 'ok' | 404 | 403 {
   return 'ok';
 }
 
-const EXPECTED: Record<Actor, { role: CollectionRole; access: 'ok' | 404; edit: 'ok' | 404 | 403; del: 'ok' | 404 | 403 }> = {
+const EXPECTED: Record<
+  Actor,
+  { role: CollectionRole; access: 'ok' | 404; edit: 'ok' | 404 | 403; del: 'ok' | 404 | 403 }
+> = {
   owner: { role: 'owner', access: 'ok', edit: 'ok', del: 'ok' },
   admin: { role: 'admin', access: 'ok', edit: 'ok', del: 'ok' },
   editor: { role: 'editor', access: 'ok', edit: 'ok', del: 403 },

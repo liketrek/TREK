@@ -1,12 +1,12 @@
-import Database from 'better-sqlite3';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-
+import { Trips } from '../../../src/db/entities/Trips.entity';
 import { NulSafeSqlitePlatform } from '../../../src/db/nul-safe-sqlite-platform';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createTrip, createUser } from '../../helpers/factories';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { createTrip, createUser } from '../../helpers/factories';
-import { Trips } from '../../../src/db/entities/Trips.entity';
+
+import Database from 'better-sqlite3';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * Plan 3c Task 4 review M1 / program rule 22: MikroORM 7 inlines every bound
@@ -123,7 +123,7 @@ describe('NulSafeSqlitePlatform', () => {
       expect(platform.escape(3.14)).toBe('3.14');
     });
 
-    it('formatQuery renders `NULL` for a bound NaN, matching better-sqlite3\'s own binding of NaN as NULL', () => {
+    it("formatQuery renders `NULL` for a bound NaN, matching better-sqlite3's own binding of NaN as NULL", () => {
       db.exec('CREATE TABLE nanprobe (n REAL)');
       db.exec(platform.formatQuery('insert into nanprobe (n) values (?)', [NaN]));
       const viaLiteral = db.prepare('select n from nanprobe').get() as { n: unknown };
@@ -132,11 +132,11 @@ describe('NulSafeSqlitePlatform', () => {
       expect(viaBind.n).toBeNull();
     });
 
-    it('formatQuery renders `9e999`/`-9e999` for bound ±Infinity, matching better-sqlite3\'s own REAL binding', () => {
+    it("formatQuery renders `9e999`/`-9e999` for bound ±Infinity, matching better-sqlite3's own REAL binding", () => {
       db.exec('CREATE TABLE infprobe (n REAL)');
       db.exec(platform.formatQuery('insert into infprobe (n) values (?), (?)', [Infinity, -Infinity]));
       const rows = db.prepare('select n from infprobe order by rowid').all() as { n: number }[];
-      expect(rows.map(r => r.n)).toEqual([Infinity, -Infinity]);
+      expect(rows.map((r) => r.n)).toEqual([Infinity, -Infinity]);
     });
   });
 
@@ -155,8 +155,14 @@ describe('NulSafeSqlitePlatform', () => {
     beforeAll(async () => {
       t = await createTestOrm(orm);
     });
-    beforeEach(() => { resetTestDb(orm); t.clear(); });
-    afterAll(async () => { await t.close(); orm.close(); });
+    beforeEach(() => {
+      resetTestDb(orm);
+      t.clear();
+    });
+    afterAll(async () => {
+      await t.close();
+      orm.close();
+    });
 
     it('em.findOne(Trips, { id: NaN }) misses cleanly, never throws', async () => {
       const { user } = createUser(orm);
@@ -176,7 +182,8 @@ describe('NulSafeSqlitePlatform', () => {
     it('a QB `where` on a non-finite id misses cleanly, never throws (the exact `findAccessible` shape)', async () => {
       const { user } = createUser(orm);
       createTrip(orm, user.id);
-      const row = await t.em.getRepository(Trips)
+      const row = await t.em
+        .getRepository(Trips)
         .qb('t')
         .select(['t.id'])
         .where('t.id = ?', [NaN])
@@ -188,7 +195,7 @@ describe('NulSafeSqlitePlatform', () => {
       const { user } = createUser(orm);
       const trip = createTrip(orm, user.id);
       const rows = await t.em.find(Trips, { id: { $in: [trip.id, NaN, Infinity, -Infinity] } });
-      expect(rows.map(r => r.id)).toEqual([trip.id]);
+      expect(rows.map((r) => r.id)).toEqual([trip.id]);
     });
   });
 });

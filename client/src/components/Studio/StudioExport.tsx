@@ -1,10 +1,20 @@
-import { useEffect, useId, useRef, useState } from 'react'
-import { BookOpen, FileText, Printer, Scissors } from 'lucide-react'
-import { DialogButton, DialogFooter, DialogHeader, DialogSection, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
-import type { BookDocument } from '@trek/shared'
-import { BookSheetsView } from './BookSheetsView'
-import { sheetBox, sheetsFor, type SheetMode } from './bookSheets'
-import { printSheets } from './printSheets'
+import type { BookDocument } from '@trek/shared';
+import { BookOpen, FileText, Printer, Scissors } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
+import {
+  DialogButton,
+  DialogFooter,
+  DialogHeader,
+  DialogSection,
+  DialogShell,
+  DialogTile,
+  FooterSpacer,
+  NEUTRAL_TINT,
+  fs,
+} from '../shared/DialogShell';
+import { BookSheetsView } from './BookSheetsView';
+import { sheetBox, sheetsFor, type SheetMode } from './bookSheets';
+import { printSheets } from './printSheets';
 
 /**
  * Getting the book out.
@@ -27,35 +37,38 @@ import { printSheets } from './printSheets'
  * from the DOM afterwards.
  */
 export function StudioExport({
-  doc, title, t, onClose,
+  doc,
+  title,
+  t,
+  onClose,
 }: {
-  doc: BookDocument
-  title: string
-  t: (key: string, params?: Record<string, string | number>) => string
-  onClose: () => void
+  doc: BookDocument;
+  title: string;
+  t: (key: string, params?: Record<string, string | number>) => string;
+  onClose: () => void;
 }) {
-  const [mode, setMode] = useState<SheetMode>('pages')
-  const [marks, setMarks] = useState(true)
+  const [mode, setMode] = useState<SheetMode>('pages');
+  const [marks, setMarks] = useState(true);
   /** Set once the user has asked for it — this is what triggers the render. */
-  const [building, setBuilding] = useState(false)
-  const stage = useRef<HTMLDivElement>(null)
-  const labelId = useId()
+  const [building, setBuilding] = useState(false);
+  const stage = useRef<HTMLDivElement>(null);
+  const labelId = useId();
 
-  const sheets = sheetsFor(doc, mode)
+  const sheets = sheetsFor(doc, mode);
 
   /*
    * Two sizes, because spread mode mixes them: covers are one page and
    * everything between them is two. The wider one is the document's page box
    * and the narrower gets a named rule — see printSheets.
    */
-  const widest = Math.max(...sheets.map(s => s.width), doc.page.pageWidth)
-  const box = sheetBox(widest, doc.page.pageHeight, doc.page.bleed, marks)
-  const single = sheetBox(doc.page.pageWidth, doc.page.pageHeight, doc.page.bleed, marks)
+  const widest = Math.max(...sheets.map((s) => s.width), doc.page.pageWidth);
+  const box = sheetBox(widest, doc.page.pageHeight, doc.page.bleed, marks);
+  const single = sheetBox(doc.page.pageWidth, doc.page.pageHeight, doc.page.bleed, marks);
 
   useEffect(() => {
-    if (!building) return
-    const html = stage.current?.innerHTML
-    if (!html) return
+    if (!building) return;
+    const html = stage.current?.innerHTML;
+    if (!html) return;
 
     printSheets({
       html,
@@ -70,25 +83,25 @@ export function StudioExport({
         count: t('journey.studio.exportSheetCount', { count: sheets.length }),
         preparing: t('journey.studio.exportPreparing'),
       },
-    })
-    setBuilding(false)
-    onClose()
+    });
+    setBuilding(false);
+    onClose();
     // Runs once per build. Re-running on every render of the options would
     // open a second print view behind the first.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [building])
+  }, [building]);
 
   // Studio closes itself on Escape. While this dialog is open the key is its own,
   // so it is taken in the capture phase before the editor's handler sees it.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      e.stopPropagation()
-      onClose()
-    }
-    document.addEventListener('keydown', onKey, true)
-    return () => document.removeEventListener('keydown', onKey, true)
-  }, [onClose])
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      onClose();
+    };
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
+  }, [onClose]);
 
   return (
     <>
@@ -96,34 +109,61 @@ export function StudioExport({
         onClose={onClose}
         labelledBy={labelId}
         width="narrow"
-        header={(
+        header={
           <DialogHeader
-            tile={<DialogTile><Printer size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+            tile={
+              <DialogTile>
+                <Printer size={20} strokeWidth={1.9} className="text-content-muted" />
+              </DialogTile>
+            }
             tint={NEUTRAL_TINT}
             labelId={labelId}
             onClose={onClose}
             title={t('journey.studio.export')}
           />
-        )}
-        footer={(
+        }
+        footer={
           <DialogFooter>
             <FooterSpacer />
             <DialogButton onClick={onClose}>{t('common.cancel')}</DialogButton>
-            <DialogButton variant="primary" onClick={() => setBuilding(true)} disabled={building} icon={<Printer size={14} strokeWidth={2} />}>
+            <DialogButton
+              variant="primary"
+              onClick={() => setBuilding(true)}
+              disabled={building}
+              icon={<Printer size={14} strokeWidth={2} />}
+            >
               {t('journey.studio.exportOpen')}
             </DialogButton>
           </DialogFooter>
-        )}
+        }
       >
         <DialogSection label={t('journey.studio.exportLayout')}>
           <div className="flex flex-col gap-2">
-            <Option icon={FileText} name={t('journey.studio.exportPages')} hint={t('journey.studio.exportPagesHint')} on={mode === 'pages'} onClick={() => setMode('pages')} />
-            <Option icon={BookOpen} name={t('journey.studio.exportSpreads')} hint={t('journey.studio.exportSpreadsHint')} on={mode === 'spreads'} onClick={() => setMode('spreads')} />
+            <Option
+              icon={FileText}
+              name={t('journey.studio.exportPages')}
+              hint={t('journey.studio.exportPagesHint')}
+              on={mode === 'pages'}
+              onClick={() => setMode('pages')}
+            />
+            <Option
+              icon={BookOpen}
+              name={t('journey.studio.exportSpreads')}
+              hint={t('journey.studio.exportSpreadsHint')}
+              on={mode === 'spreads'}
+              onClick={() => setMode('spreads')}
+            />
           </div>
         </DialogSection>
 
         <DialogSection label={t('journey.studio.exportFinishing')}>
-          <Option icon={Scissors} name={t('journey.studio.exportMarks')} hint={t('journey.studio.exportMarksHint', { bleed: doc.page.bleed })} on={marks} onClick={() => setMarks(!marks)} />
+          <Option
+            icon={Scissors}
+            name={t('journey.studio.exportMarks')}
+            hint={t('journey.studio.exportMarksHint', { bleed: doc.page.bleed })}
+            on={marks}
+            onClick={() => setMarks(!marks)}
+          />
         </DialogSection>
 
         <p className="m-0 text-content-muted" style={fs(12, 'body')}>
@@ -154,18 +194,24 @@ export function StudioExport({
         </div>
       )}
     </>
-  )
+  );
 }
 
-const round1 = (n: number) => Math.round(n * 10) / 10
+const round1 = (n: number) => Math.round(n * 10) / 10;
 
 /** One choice of the dialog: an icon, its name and what it means, pressed while it holds. */
-function Option({ icon: Icon, name, hint, on, onClick }: {
-  icon: typeof FileText
-  name: string
-  hint: string
-  on: boolean
-  onClick: () => void
+function Option({
+  icon: Icon,
+  name,
+  hint,
+  on,
+  onClick,
+}: {
+  icon: typeof FileText;
+  name: string;
+  hint: string;
+  on: boolean;
+  onClick: () => void;
 }) {
   return (
     <button
@@ -176,9 +222,13 @@ function Option({ icon: Icon, name, hint, on, onClick }: {
     >
       <Icon size={16} strokeWidth={1.9} className={`mt-0.5 flex-none ${on ? 'text-content' : 'text-content-muted'}`} />
       <span className="min-w-0 flex-1">
-        <span className="block font-semibold text-content" style={fs(13, 'body')}>{name}</span>
-        <span className="block text-content-muted" style={fs(11.5)}>{hint}</span>
+        <span className="block font-semibold text-content" style={fs(13, 'body')}>
+          {name}
+        </span>
+        <span className="block text-content-muted" style={fs(11.5)}>
+          {hint}
+        </span>
       </span>
     </button>
-  )
+  );
 }

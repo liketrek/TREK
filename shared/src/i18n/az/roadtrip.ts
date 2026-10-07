@@ -2,7 +2,8 @@ import type { TranslationStrings } from '../types';
 
 const roadtrip: TranslationStrings = {
   'roadtrip.stay.portals': 'Yaşayış yeri tap',
-  'roadtrip.stay.portalHint': 'Portalda təyinat yerini, tarixləri və qonaqları yoxlayın. CHECK24 əl ilə axtarış tələb edir.',
+  'roadtrip.stay.portalHint':
+    'Portalda təyinat yerini, tarixləri və qonaqları yoxlayın. CHECK24 əl ilə axtarış tələb edir.',
   'roadtrip.charging.available': 'əlçatandır',
   'roadtrip.charging.unknown': 'Etibarlı məlumat yoxdur',
   'roadtrip.charging.stale': 'Status köhnəlib',
@@ -43,14 +44,16 @@ const roadtrip: TranslationStrings = {
   'roadtrip.window.title': 'Günlük səyahət vaxtları',
   'roadtrip.window.start': 'Günün başlanma vaxtı',
   'roadtrip.window.end': 'Günün bitmə vaxtı',
-  'roadtrip.window.hint': 'Aktivləşdirmək üçün hər iki vaxtı təyin edin. Əl ilə təyin edilmiş vaxtlar üstünlük təşkil edir.',
+  'roadtrip.window.hint':
+    'Aktivləşdirmək üçün hər iki vaxtı təyin edin. Əl ilə təyin edilmiş vaxtlar üstünlük təşkil edir.',
   'roadtrip.window.invalid': 'Bitmə vaxtı başlanğıc vaxtından sonra olmalıdır.',
   'roadtrip.window.stop': 'Günün sonu',
   'roadtrip.window.resume': 'Səyahətə davam et',
   'roadtrip.window.pointHint': 'Bu, gecələmə üçün təxmini fasilə nöqtənizdir.',
   'roadtrip.window.departure': 'Qalan ziyarətdən sonra saat {time}-da davam et',
   'roadtrip.window.showPoint': 'Xəritədə göstər',
-  'roadtrip.window.incomplete': 'Bütün birləşdirici marşrutlar əlçatan olanadək günlük fasilələri hesablamaq mümkün deyil.',
+  'roadtrip.window.incomplete':
+    'Bütün birləşdirici marşrutlar əlçatan olanadək günlük fasilələri hesablamaq mümkün deyil.',
   'roadtrip.window.conflict':
     'Sabit vaxt yol və günlük fasilələrlə ziddiyyət təşkil edir. Əl ilə təyin edilmiş vaxtlar dəyişdirilmir; avtomatik planlaşdırma dayandırılıb.',
   'roadtrip.window.tooLong':
@@ -186,7 +189,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.noMatch': 'Yolboyu “{name}” ilə uyğun heç nə yoxdur.',
   'roadtrip.poi.noneMatchFilters': 'Yolboyu bu filtrlərə uyğun heç nə yoxdur.',
   'roadtrip.poi.foundFiltered': 'Yolboyu {total} nəticədən {count}',
-  'roadtrip.poi.truncated': '{count} marşrut hissəsində bir cavaba sığmayacaq qədər nəticə var — qalanlarını görmək üçün axtarış dəhlizini daraldın.',
+  'roadtrip.poi.truncated':
+    '{count} marşrut hissəsində bir cavaba sığmayacaq qədər nəticə var — qalanlarını görmək üçün axtarış dəhlizini daraldın.',
   'roadtrip.poi.search': 'Axtar',
   'roadtrip.poi.searching': '{total} hissədən {done} axtarılır',
   'roadtrip.poi.capped': 'Marşrut uzundur — yalnız ilk hissə axtarıldı.',
@@ -220,12 +224,15 @@ const roadtrip: TranslationStrings = {
   'roadtrip.alt.slower': '{time} daha yavaş',
   'roadtrip.alt.quicker': '{time} daha sürətli',
   'roadtrip.alt.otherEngine': 'Vaxt əsas marşrut mühərriki ilə deyil, yayınma marşrut mühərriki ilə hesablanıb.',
-  'roadtrip.alt.notHeld': 'Avtomobil səyahətinin marşrut mühərriki bu yolu izləyə bilmədiyi üçün yol yadda saxlanılmadı.',
+  'roadtrip.alt.notHeld':
+    'Avtomobil səyahətinin marşrut mühərriki bu yolu izləyə bilmədiyi üçün yol yadda saxlanılmadı.',
   'roadtrip.alt.ferryNotHeld':
     'Bu yol bərədən keçir. Bərəni nəqliyyat rezervasiyası kimi əlavə edin və yol onu izləsin. Bərə növbəti gün çatırsa, suyun digər tərəfindəki dayanacaqları həmin günə yerləşdirin.',
   'roadtrip.alt.legChanged': 'Yol yoxlanılarkən bu hissə dəyişdiyi üçün heç nə yadda saxlanılmadı.',
-  'roadtrip.alt.offline': 'Alternativ yollar yalnız internetə qoşulu olduqda yadda saxlanılır. Bu yolu seçmək üçün yenidən qoşulun.',
-  'roadtrip.alt.otherEngineStandard': 'Vaxt bu hissənin planlaşdırıldığı mühərriklə deyil, əsas marşrut mühərriki ilə hesablanıb.',
+  'roadtrip.alt.offline':
+    'Alternativ yollar yalnız internetə qoşulu olduqda yadda saxlanılır. Bu yolu seçmək üçün yenidən qoşulun.',
+  'roadtrip.alt.otherEngineStandard':
+    'Vaxt bu hissənin planlaşdırıldığı mühərriklə deyil, əsas marşrut mühərriki ilə hesablanıb.',
   'roadtrip.alt.avoidNotHeld':
     'Avtomobil səyahəti yalnız tənzimləmələrdə “{setting}” altında “{class}” seçildikdə bu yoldan istifadə edir.',
   'roadtrip.alt.checking': 'Bu yol avtomobil səyahətinin marşrut mühərriki ilə yoxlanılır…',
@@ -277,7 +284,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.summary.partial': 'Yolun qalan hissəsi hələ hesablanır',
   'roadtrip.stay.releaseTitle': 'Gecələmə ləğv edilsin?',
   'roadtrip.stay.releaseBody': '“{name}” məkanındakı gecələmə silinəcək. Dayanacaq fasilə kimi yolda qalacaq.',
-  'roadtrip.stay.releaseBookedBody': '“{name}” məkanındakı gecələmə, “{booking}” rezervasiyası və onunla əlaqəli bütün xərclərlə birlikdə silinəcək. Dayanacaq fasilə kimi yolda qalacaq.',
+  'roadtrip.stay.releaseBookedBody':
+    '“{name}” məkanındakı gecələmə, “{booking}” rezervasiyası və onunla əlaqəli bütün xərclərlə birlikdə silinəcək. Dayanacaq fasilə kimi yolda qalacaq.',
   'roadtrip.stay.releaseAction': 'Fasiləyə çevir',
   'roadtrip.ride.departure': 'Yola düşmə: {time}',
   'roadtrip.ride.arrival': 'Çatma: {time}',
@@ -312,7 +320,8 @@ const roadtrip: TranslationStrings = {
   'roadtrip.bookend.back': '{name} məkanına qayıt',
   'roadtrip.bookend.checkIn': 'Giriş · {name}',
   'roadtrip.bookend.afterCheckOut': 'Çıxışdan sonra yola düşür',
-  'roadtrip.bookend.noVia': 'Yaşayış yerinizə gedən və ya oradan gələn yolda ara nöqtə yoxdur. Əvəzində oraya dayanacaq əlavə edin.',
+  'roadtrip.bookend.noVia':
+    'Yaşayış yerinizə gedən və ya oradan gələn yolda ara nöqtə yoxdur. Əvəzində oraya dayanacaq əlavə edin.',
 };
 
 export default roadtrip;

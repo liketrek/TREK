@@ -1,14 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { localIsoDate } from '../utils/localDate';
-import { render, screen, waitFor, within } from '../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildSettings, buildTrip, buildUser } from '../../tests/helpers/factories';
 import { server } from '../../tests/helpers/msw/server';
+import { render, screen, waitFor, within } from '../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
-import { buildUser, buildAdmin, buildTrip, buildSettings } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { usePermissionsStore } from '../store/permissionsStore';
 import { useSettingsStore } from '../store/settingsStore';
+import { localIsoDate } from '../utils/localDate';
 import DashboardPage from './DashboardPage';
 
 beforeEach(() => {
@@ -34,7 +34,7 @@ beforeEach(() => {
         { date: '2026-06-16', base: 'EUR', quote: 'USD', rate: 1.08 },
         { date: '2026-06-16', base: 'EUR', quote: 'CHF', rate: 0.97 },
       ]);
-    }),
+    })
   );
 });
 
@@ -85,7 +85,7 @@ describe('DashboardPage', () => {
       server.use(
         http.get('/api/trips', () => {
           return HttpResponse.json({ trips: [] });
-        }),
+        })
       );
 
       render(<DashboardPage />);
@@ -120,9 +120,9 @@ describe('DashboardPage', () => {
       // Delay response to observe loading state
       server.use(
         http.get('/api/trips', async () => {
-          await new Promise(resolve => setTimeout(resolve, 50));
+          await new Promise((resolve) => setTimeout(resolve, 50));
           return HttpResponse.json({ trips: [] });
-        }),
+        })
       );
 
       render(<DashboardPage />);
@@ -185,9 +185,9 @@ describe('DashboardPage', () => {
 
       // Click the confirm button (the one inside the dialog, not the delete action button)
       // ConfirmDialog renders a confirm button with confirmLabel or t('common.delete')
-      const dialogDeleteBtn = screen.getAllByRole('button', { name: /delete/i }).find(
-        btn => btn.closest('[class*="fixed inset-0"]') || btn.closest('.fixed')
-      );
+      const dialogDeleteBtn = screen
+        .getAllByRole('button', { name: /delete/i })
+        .find((btn) => btn.closest('[class*="fixed inset-0"]') || btn.closest('.fixed'));
       // Just click the second delete button that appears (the dialog confirm button)
       const allDeleteBtns = screen.getAllByRole('button', { name: /delete/i });
       // The last one should be the confirm button in the dialog
@@ -225,10 +225,13 @@ describe('DashboardPage', () => {
 
   describe('FE-PAGE-DASH-011: Archive trip moves it to the archive filter', () => {
     it('archiving a trip removes it from active and shows it under the archive filter', async () => {
-      const archivedTrip = buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10', is_archived: 1 });
-      server.use(
-        http.put('/api/trips/:id', () => HttpResponse.json({ trip: archivedTrip })),
-      );
+      const archivedTrip = buildTrip({
+        title: 'Paris Adventure',
+        start_date: '2026-07-01',
+        end_date: '2026-07-10',
+        is_archived: 1,
+      });
+      server.use(http.put('/api/trips/:id', () => HttpResponse.json({ trip: archivedTrip })));
 
       const user = userEvent.setup();
       render(<DashboardPage />);
@@ -238,7 +241,7 @@ describe('DashboardPage', () => {
       });
 
       // The spotlight hero exposes an icon-only archive action
-      const archiveButtons = screen.getAllByRole('button', { name: /archive/i }).filter(b => !b.textContent?.trim());
+      const archiveButtons = screen.getAllByRole('button', { name: /archive/i }).filter((b) => !b.textContent?.trim());
       await user.click(archiveButtons[0]);
 
       // Switch to the archive filter segment
@@ -289,15 +292,22 @@ describe('DashboardPage', () => {
 
   describe('FE-PAGE-DASH-014: Archive filter reveals archived trips', () => {
     it('shows archived trips when the archive filter is selected', async () => {
-      const oldTrip = buildTrip({ title: 'Old Rome Trip', start_date: '2024-01-01', end_date: '2024-01-07', is_archived: 1 });
+      const oldTrip = buildTrip({
+        title: 'Old Rome Trip',
+        start_date: '2024-01-01',
+        end_date: '2024-01-07',
+        is_archived: 1,
+      });
       server.use(
         http.get('/api/trips', ({ request }) => {
           const url = new URL(request.url);
           if (url.searchParams.get('archived')) {
             return HttpResponse.json({ trips: [oldTrip] });
           }
-          return HttpResponse.json({ trips: [buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' })] });
-        }),
+          return HttpResponse.json({
+            trips: [buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' })],
+          });
+        })
       );
 
       const user = userEvent.setup();
@@ -388,7 +398,7 @@ describe('DashboardPage', () => {
           const { buildTrip } = await import('../../tests/helpers/factories');
           const trip = buildTrip({ title: 'Paris Adventure (Copy)', start_date: '2026-07-01', end_date: '2026-07-10' });
           return HttpResponse.json({ trip });
-        }),
+        })
       );
 
       const user = userEvent.setup();
@@ -430,7 +440,12 @@ describe('DashboardPage', () => {
   describe('FE-PAGE-DASH-020: Archived section - restore trip', () => {
     it('clicking restore in archived section moves trip back to active list', async () => {
       const activeTrip = buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' });
-      const archivedTrip = buildTrip({ title: 'Old Rome Trip', start_date: '2024-01-01', end_date: '2024-01-07', is_archived: 1 });
+      const archivedTrip = buildTrip({
+        title: 'Old Rome Trip',
+        start_date: '2024-01-01',
+        end_date: '2024-01-07',
+        is_archived: 1,
+      });
       const restoredTrip = { ...archivedTrip, is_archived: 0 };
 
       server.use(
@@ -442,12 +457,12 @@ describe('DashboardPage', () => {
           return HttpResponse.json({ trips: [activeTrip] });
         }),
         http.put('/api/trips/:id', async ({ request }) => {
-          const body = await request.json() as Record<string, unknown>;
+          const body = (await request.json()) as Record<string, unknown>;
           if (body.is_archived === false) {
             return HttpResponse.json({ trip: restoredTrip });
           }
           return HttpResponse.json({ trip: archivedTrip });
-        }),
+        })
       );
 
       const user = userEvent.setup();
@@ -481,7 +496,7 @@ describe('DashboardPage', () => {
       server.use(
         http.post('/api/trips', async () => {
           return HttpResponse.json({ trip: newTrip });
-        }),
+        })
       );
 
       const user = userEvent.setup();
@@ -503,7 +518,7 @@ describe('DashboardPage', () => {
       await user.type(titleInput, 'New Trip Test');
 
       // Submit the form
-      const submitBtn = screen.getAllByRole('button').find(btn => btn.textContent?.toLowerCase().includes('create'));
+      const submitBtn = screen.getAllByRole('button').find((btn) => btn.textContent?.toLowerCase().includes('create'));
       if (submitBtn) {
         await user.click(submitBtn);
         await waitFor(() => {
@@ -518,7 +533,7 @@ describe('DashboardPage', () => {
       server.use(
         http.get('/api/trips', () => {
           return HttpResponse.json({ error: 'Server error' }, { status: 500 });
-        }),
+        })
       );
 
       render(<DashboardPage />);
@@ -554,7 +569,7 @@ describe('DashboardPage', () => {
           const url = new URL(request.url);
           if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [] });
           return HttpResponse.json({ trips: [ongoingTrip] });
-        }),
+        })
       );
 
       render(<DashboardPage />);
@@ -591,7 +606,7 @@ describe('DashboardPage', () => {
           const url = new URL(request.url);
           if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [] });
           return HttpResponse.json({ trips: [upcomingTrip] });
-        }),
+        })
       );
 
       render(<DashboardPage />);
@@ -640,7 +655,12 @@ describe('DashboardPage', () => {
   describe('FE-PAGE-DASH-027: Archive filter toggles archived trips in and out of view', () => {
     it('shows archived trips under the archive filter and hides them under planned', async () => {
       const activeTrip = buildTrip({ title: 'Active Trip', start_date: '2026-08-01', end_date: '2026-08-10' });
-      const archivedTrip = buildTrip({ title: 'Old Archived Trip', start_date: '2024-03-01', end_date: '2024-03-07', is_archived: 1 });
+      const archivedTrip = buildTrip({
+        title: 'Old Archived Trip',
+        start_date: '2024-03-01',
+        end_date: '2024-03-07',
+        is_archived: 1,
+      });
 
       server.use(
         http.get('/api/trips', ({ request }) => {
@@ -649,7 +669,7 @@ describe('DashboardPage', () => {
             return HttpResponse.json({ trips: [archivedTrip] });
           }
           return HttpResponse.json({ trips: [activeTrip] });
-        }),
+        })
       );
 
       const user = userEvent.setup();
@@ -676,7 +696,12 @@ describe('DashboardPage', () => {
   describe('FE-PAGE-DASH-028: Unarchive action restores trip to active list', () => {
     it('clicking restore on an archived trip removes it from archived section', async () => {
       const activeTrip = buildTrip({ title: 'My Active Trip', start_date: '2026-08-01', end_date: '2026-08-10' });
-      const archivedTrip = buildTrip({ title: 'Restored Trip', start_date: '2024-06-01', end_date: '2024-06-07', is_archived: 1 });
+      const archivedTrip = buildTrip({
+        title: 'Restored Trip',
+        start_date: '2024-06-01',
+        end_date: '2024-06-07',
+        is_archived: 1,
+      });
       const restoredTrip = { ...archivedTrip, is_archived: 0 };
 
       server.use(
@@ -688,12 +713,12 @@ describe('DashboardPage', () => {
           return HttpResponse.json({ trips: [activeTrip] });
         }),
         http.put('/api/trips/:id', async ({ request }) => {
-          const body = await request.json() as Record<string, unknown>;
+          const body = (await request.json()) as Record<string, unknown>;
           if (body.is_archived === false) {
             return HttpResponse.json({ trip: restoredTrip });
           }
           return HttpResponse.json({ trip: archivedTrip });
-        }),
+        })
       );
 
       const user = userEvent.setup();
@@ -726,7 +751,7 @@ describe('DashboardPage', () => {
         http.post('/api/trips/:id/copy', async () => {
           const trip = buildTrip({ title: 'Paris Adventure (Copy)', start_date: '2026-07-01', end_date: '2026-07-10' });
           return HttpResponse.json({ trip });
-        }),
+        })
       );
 
       const user = userEvent.setup();
@@ -756,7 +781,7 @@ describe('DashboardPage', () => {
       server.use(
         http.get('/api/trips', () => {
           return HttpResponse.json({ trips: [] });
-        }),
+        })
       );
 
       render(<DashboardPage />);
@@ -767,7 +792,7 @@ describe('DashboardPage', () => {
 
       // The add-trip card and the floating action button both offer a way to create a trip
       const createButtons = screen.getAllByRole('button');
-      const createBtn = createButtons.find(btn => btn.textContent?.toLowerCase().includes('trip'));
+      const createBtn = createButtons.find((btn) => btn.textContent?.toLowerCase().includes('trip'));
       expect(createBtn).toBeDefined();
     });
   });
@@ -790,7 +815,7 @@ describe('DashboardPage', () => {
           const url = new URL(request.url);
           if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [] });
           return HttpResponse.json({ trips: [ongoingTrip] });
-        }),
+        })
       );
 
       render(<DashboardPage />);
@@ -813,9 +838,9 @@ describe('DashboardPage', () => {
 
   describe('FE-PAGE-DASH-033: Atlas distance respects distance unit setting', () => {
     const distanceValue = (text: string) =>
-      screen.getByText((_, element) =>
-        element?.classList.contains('value') === true &&
-        element.textContent?.replace(/\s+/g, ' ').trim() === text
+      screen.getByText(
+        (_, element) =>
+          element?.classList.contains('value') === true && element.textContent?.replace(/\s+/g, ' ').trim() === text
       );
 
     beforeEach(() => {
@@ -828,7 +853,7 @@ describe('DashboardPage', () => {
             totalDistanceKm: 10,
             countries: [],
           })
-        ),
+        )
       );
     });
 
@@ -888,7 +913,10 @@ describe('DashboardPage', () => {
     it('reads the timezone widget zones from the settings store', async () => {
       // A zone that is NOT in the hardcoded default ([home, London, Tokyo]) — its presence
       // proves the widget reads the stored preference rather than the old localStorage default.
-      seedStore(useSettingsStore, { settings: buildSettings({ dashboard_timezones: ['America/New_York'] }), isLoaded: true });
+      seedStore(useSettingsStore, {
+        settings: buildSettings({ dashboard_timezones: ['America/New_York'] }),
+        isLoaded: true,
+      });
       render(<DashboardPage />);
       await waitFor(() => expect(screen.getByRole('button', { name: /add timezone/i })).toBeInTheDocument());
       expect(screen.getByText('New York')).toBeInTheDocument();
@@ -917,7 +945,7 @@ describe('DashboardPage', () => {
       // the old code deleted it unconditionally, permanently losing the values.
       server.use(
         http.put('/api/settings', () => new HttpResponse(null, { status: 500 })),
-        http.post('/api/settings/bulk', () => new HttpResponse(null, { status: 500 })),
+        http.post('/api/settings/bulk', () => new HttpResponse(null, { status: 500 }))
       );
       localStorage.setItem('trek_fx_from', 'CAD');
       localStorage.setItem('trek_fx_to', 'CHF');
@@ -952,7 +980,7 @@ describe('DashboardPage', () => {
           const url = new URL(request.url);
           if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [] });
           return HttpResponse.json({ trips });
-        }),
+        })
       );
     // The grid, not the hero — the hero renders the same title and would mask the bug.
     const grid = () => document.querySelector('.trips') as HTMLElement;
@@ -1012,7 +1040,7 @@ describe('DashboardPage', () => {
           const url = new URL(request.url);
           if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [] });
           return HttpResponse.json({ trips });
-        }),
+        })
       );
 
     it('names every action on the card, so none of them is icon-only guesswork', async () => {
@@ -1023,7 +1051,7 @@ describe('DashboardPage', () => {
       await waitFor(() => expect(screen.getAllByText('Lisbon 2025').length).toBeGreaterThan(0));
       await user.click(screen.getByText('Completed'));
       const card = (await screen.findAllByText('Lisbon 2025'))
-        .map(n => n.closest('.trip-card'))
+        .map((n) => n.closest('.trip-card'))
         .find(Boolean) as HTMLElement;
       for (const label of ['Edit', 'Duplicate', 'Archive', 'Delete']) {
         const button = card.querySelector(`[aria-label="${label}"]`) as HTMLElement;
@@ -1034,12 +1062,17 @@ describe('DashboardPage', () => {
     });
 
     it('swaps the archive icon for a restore one once the trip is archived', async () => {
-      const archived = buildTrip({ title: 'Old Rome Trip', start_date: '2024-01-01', end_date: '2024-01-07', is_archived: 1 });
+      const archived = buildTrip({
+        title: 'Old Rome Trip',
+        start_date: '2024-01-01',
+        end_date: '2024-01-07',
+        is_archived: 1,
+      });
       server.use(
         http.get('/api/trips', ({ request }) => {
           const url = new URL(request.url);
           return HttpResponse.json({ trips: url.searchParams.get('archived') ? [archived] : [] });
-        }),
+        })
       );
       const user = userEvent.setup();
       render(<DashboardPage />);
@@ -1059,18 +1092,26 @@ describe('DashboardPage', () => {
 
   describe('FE-PAGE-DASH-2190: trip search', () => {
     it('finds trips across filters by title and date, and by a place on them, then clears', async () => {
-      const oldTrip = buildTrip({ id: 77, title: 'Old Rome Trip', start_date: '2024-05-01', end_date: '2024-05-07', is_archived: 1 });
+      const oldTrip = buildTrip({
+        id: 77,
+        title: 'Old Rome Trip',
+        start_date: '2024-05-01',
+        end_date: '2024-05-07',
+        is_archived: 1,
+      });
       const philly = buildTrip({ id: 78, title: 'East Coast', start_date: '2026-09-01', end_date: '2026-09-07' });
       server.use(
         http.get('/api/trips', ({ request }) => {
           const url = new URL(request.url);
           if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [oldTrip] });
-          return HttpResponse.json({ trips: [buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' }), philly] });
+          return HttpResponse.json({
+            trips: [buildTrip({ title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' }), philly],
+          });
         }),
         http.get('/api/trips/search', ({ request }) => {
           const q = new URL(request.url).searchParams.get('q');
           return HttpResponse.json({ matches: q === 'diner' ? [{ trip_id: 78, places: ["Dante's Diner"] }] : [] });
-        }),
+        })
       );
       const user = userEvent.setup();
       render(<DashboardPage />);
@@ -1100,4 +1141,3 @@ describe('DashboardPage', () => {
     });
   });
 });
-

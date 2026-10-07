@@ -1,5 +1,4 @@
-import { XMLParser } from 'fast-xml-parser';
-import type { ZodType } from 'zod';
+import { coord, gpxBuilder } from '../places/gpx-export.helpers';
 import {
   COLLECTION_FILE_FORMAT,
   COLLECTION_FILE_VERSION,
@@ -20,7 +19,9 @@ import {
   type CollectionGpxReadResult,
   type CollectionLink,
 } from '@trek/shared';
-import { coord, gpxBuilder } from '../places/gpx-export.helpers';
+
+import { XMLParser } from 'fast-xml-parser';
+import type { ZodType } from 'zod';
 
 /**
  * A list as GPX and back (#2301).
@@ -50,7 +51,7 @@ const HTTP_URL = /^https?:\/\//i;
 
 /** The extension fields that hold one value each; labels and links repeat. */
 const SCALAR_EXTENSIONS = (Object.keys(COLLECTION_GPX_PLACE_FIELDS) as (keyof CollectionFilePlace)[]).filter(
-  field => COLLECTION_GPX_PLACE_FIELDS[field] === 'extension' && field !== 'labels' && field !== 'links',
+  (field) => COLLECTION_GPX_PLACE_FIELDS[field] === 'extension' && field !== 'labels' && field !== 'links',
 );
 
 // ---------------------------------------------------------------------------
@@ -63,7 +64,7 @@ const SCALAR_EXTENSIONS = (Object.keys(COLLECTION_GPX_PLACE_FIELDS) as (keyof Co
  * name is enough for a strict reader to refuse the whole file.
  */
 function xmlText(value: string): string {
-  return value.replace(/[\p{Cc}\p{Cs}\uFFFE\uFFFF]/gu, ch => (ch === '\t' || ch === '\n' || ch === '\r' ? ch : ''));
+  return value.replace(/[\p{Cc}\p{Cs}\uFFFE\uFFFF]/gu, (ch) => (ch === '\t' || ch === '\n' || ch === '\r' ? ch : ''));
 }
 
 /** A value as element text, or nothing, since an empty element is noise to every reader. */
@@ -91,9 +92,9 @@ function placeExtensions(place: CollectionFilePlace): Record<string, unknown> | 
   }
   const labels = (place.labels ?? []).map(textOf).filter(Boolean);
   if (labels.length) ext[`${TREK}:label`] = labels;
-  const links = (place.links ?? []).filter(link => HTTP_URL.test(link.url));
+  const links = (place.links ?? []).filter((link) => HTTP_URL.test(link.url));
   if (links.length) {
-    ext[`${TREK}:link`] = links.map(link => ({ '@_href': xmlText(link.url), '#text': textOf(link.label) }));
+    ext[`${TREK}:link`] = links.map((link) => ({ '@_href': xmlText(link.url), '#text': textOf(link.label) }));
   }
   return Object.keys(ext).length ? ext : undefined;
 }
@@ -118,7 +119,7 @@ function metadata(file: ExportedCollectionFile): Record<string, unknown> {
   if (file.color) ext[`${TREK}:color`] = textOf(file.color);
   if (file.icon) ext[`${TREK}:icon`] = textOf(file.icon);
   if (file.labels?.length) {
-    ext[`${TREK}:label`] = file.labels.map(label => ({
+    ext[`${TREK}:label`] = file.labels.map((label) => ({
       ...(label.color ? { '@_color': xmlText(label.color) } : {}),
       '#text': xmlText(label.name),
     }));
@@ -281,8 +282,8 @@ function fit<T>(schema: ZodType<T>, raw: Record<string, unknown>, required: read
   const given = Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== null && v !== undefined));
   const first = schema.safeParse(given);
   if (first.success) return first.data;
-  const refused = new Set(first.error.issues.map(issue => String(issue.path[0])));
-  if (required.some(field => refused.has(field))) return null;
+  const refused = new Set(first.error.issues.map((issue) => String(issue.path[0])));
+  if (required.some((field) => refused.has(field))) return null;
   const second = schema.safeParse(Object.fromEntries(Object.entries(given).filter(([key]) => !refused.has(key))));
   return second.success ? second.data : null;
 }
@@ -291,10 +292,10 @@ const LABEL_NAME = collectionFilePlaceSchema.shape.labels.unwrap().element;
 
 /** GPX 1.1 `<link href>`, or GPX 1.0's `<url>` beside `<urlname>`. */
 function gpxLinks(el: XmlNode): CollectionLink[] {
-  const found = asArray(el.link).map(link => ({ url: attr(link, 'href'), label: text(node(link).text) }));
+  const found = asArray(el.link).map((link) => ({ url: attr(link, 'href'), label: text(node(link).text) }));
   if (found.length === 0 && text(el.url)) found.push({ url: text(el.url), label: text(el.urlname) });
   return found
-    .map(link => fit(collectionLinkSchema, link, ['url']))
+    .map((link) => fit(collectionLinkSchema, link, ['url']))
     .filter((link): link is CollectionLink => link !== null);
 }
 
@@ -337,7 +338,7 @@ function readPlace(value: unknown, fallbackName: string | null, prefixes: Prefix
   const cmt = text(el.cmt);
   const [website, ...moreLinks] = gpxLinks(el);
   const ownLinks = asArray(own('link'))
-    .map(link => fit(collectionLinkSchema, { url: attr(link, 'href'), label: text(link) }, ['url']))
+    .map((link) => fit(collectionLinkSchema, { url: attr(link, 'href'), label: text(link) }, ['url']))
     .filter((link): link is CollectionLink => link !== null);
 
   const raw: Record<string, unknown> = {
@@ -368,7 +369,11 @@ function readPlace(value: unknown, fallbackName: string | null, prefixes: Prefix
 }
 
 function listName(root: XmlNode, meta: XmlNode, fileName: string | undefined): string {
-  const fromFile = fileName?.split(/[\\/]/).pop()?.replace(/\.gpx$/i, '').trim();
+  const fromFile = fileName
+    ?.split(/[\\/]/)
+    .pop()
+    ?.replace(/\.gpx$/i, '')
+    .trim();
   // GPX 1.1 keeps the name in <metadata>, GPX 1.0 on the root.
   const name = text(meta.name) ?? text(root.name) ?? (fromFile || 'GPX');
   return clip(name, collectionFileSchema.shape.name.maxLength);
@@ -459,7 +464,7 @@ export function gpxToCollectionFile(source: string, fileName?: string): Collecti
   const metaExt = node(meta.extensions);
   const own = (field: string): unknown => (prefixes.trek ? metaExt[`${prefixes.trek}:${field}`] : undefined);
   const labels = asArray(own('label'))
-    .map(label => fit(collectionFileLabelSchema, { name: text(label), color: attr(label, 'color') }, ['name']))
+    .map((label) => fit(collectionFileLabelSchema, { name: text(label), color: attr(label, 'color') }, ['name']))
     .filter((label): label is CollectionFileLabel => label !== null)
     .slice(0, MAX_COLLECTION_FILE_LABELS);
 

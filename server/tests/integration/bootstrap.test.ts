@@ -6,9 +6,16 @@
  * platform/inline endpoints, and (in production) HSTS. This is the test that proves
  * server/src/bootstrap.ts + index.ts serve everything correctly without the legacy app.
  */
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import request from 'supertest';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { UnitOfWork } from '../../src/nest/database/unit-of-work';
+import { authCookie } from '../helpers/auth';
+import { createUser } from '../helpers/factories';
+import { resetTestDb } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
+
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
 vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
@@ -37,21 +44,22 @@ vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.
 // above means no boot sweep runs in this harness, full stop.
 vi.mock('../../src/nest/scheduling/cron-registrar.service', () => ({
   CronRegistrarService: class {
-    isEnabled() { return false; }
-    register() { return false; }
-    async runOnBoot() { /* inert — see comment above */ }
+    isEnabled() {
+      return false;
+    }
+    register() {
+      return false;
+    }
+    async runOnBoot() {
+      /* inert — see comment above */
+    }
     unregister() {}
-    get jobCount() { return 0; }
+    get jobCount() {
+      return 0;
+    }
     onApplicationShutdown() {}
   },
 }));
-
-import { db as testDb } from '../../src/db/database';
-import { resetTestDb } from '../helpers/test-db';
-import { createUser } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { buildApp } from '../../src/bootstrap';
-import { UnitOfWork } from '../../src/nest/database/unit-of-work';
 
 describe('BOOTSTRAP (F6) — unified NestJS app serves the whole surface', () => {
   let app: INestApplication;

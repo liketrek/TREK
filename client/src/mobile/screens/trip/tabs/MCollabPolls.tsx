@@ -1,19 +1,18 @@
-import { useCallback, useEffect, useState } from 'react'
-import { BarChart3, Check, Clock, Lock, Plus, Trash2, X } from 'lucide-react'
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
-import { sanitizedMarkdownPlugins, sanitizedMarkdownComponents } from '../../../../components/shared/markdownSanitize'
-import MDancingTrek from '../../../components/MDancingTrek'
-import { collabApi } from '../../../../api/client'
-import { addListener, removeListener } from '../../../../api/websocket'
-import { useAuthStore } from '../../../../store/authStore'
-import ToggleSwitch from '../../../../components/Settings/ToggleSwitch'
-import MSheet from '../../../components/MSheet'
-import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
-import MConfirmSheet from '../../settings/MConfirmSheet'
-import type { TripPlanner } from '../MTripShell'
-import { SectionHeader, TabScroller } from './tabChrome'
+import { BarChart3, Check, Clock, Lock, Plus, Trash2, X } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import Markdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
+import { collabApi } from '../../../../api/client';
+import { addListener, removeListener } from '../../../../api/websocket';
+import ToggleSwitch from '../../../../components/Settings/ToggleSwitch';
+import { sanitizedMarkdownComponents, sanitizedMarkdownPlugins } from '../../../../components/shared/markdownSanitize';
+import { useAuthStore } from '../../../../store/authStore';
+import MDancingTrek from '../../../components/MDancingTrek';
+import MSheet from '../../../components/MSheet';
+import MConfirmSheet from '../../settings/MConfirmSheet';
+import type { TripPlanner } from '../MTripShell';
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome';
 import {
   formatPollCountdown,
   hasUserVoted,
@@ -22,20 +21,25 @@ import {
   splitPolls,
   totalPollVotes,
   type CollabPollData,
-} from './collabModel'
+} from './collabModel';
+import { SectionHeader, TabScroller } from './tabChrome';
 
 interface MCollabPollsProps {
-  planner: TripPlanner
+  planner: TripPlanner;
 }
 
-interface GetPollsResponse { polls: CollabPollData[] }
-interface PollResponse { poll: CollabPollData }
+interface GetPollsResponse {
+  polls: CollabPollData[];
+}
+interface PollResponse {
+  poll: CollabPollData;
+}
 
 interface PollFormSubmitData {
-  question: string
-  options: string[]
-  multipleChoice: boolean
-  deadline: string | null
+  question: string;
+  options: string[];
+  multipleChoice: boolean;
+  deadline: string | null;
 }
 
 /**
@@ -46,101 +50,123 @@ interface PollFormSubmitData {
  * the established mobile visual language, not a port of desktop markup.
  */
 export default function MCollabPolls({ planner }: MCollabPollsProps) {
-  const { t, tripId, toast } = planner
-  const { user } = useAuthStore()
-  const canEdit = planner.can('collab_edit', planner.trip)
-  const currentUserId = user?.id ?? null
+  const { t, tripId, toast } = planner;
+  const { user } = useAuthStore();
+  const canEdit = planner.can('collab_edit', planner.trip);
+  const currentUserId = user?.id ?? null;
 
-  const [polls, setPolls] = useState<CollabPollData[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
-  const [collapsedClosed, setCollapsedClosed] = useState(false)
-  const [, setTick] = useState(0)
+  const [polls, setPolls] = useState<CollabPollData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [collapsedClosed, setCollapsedClosed] = useState(false);
+  const [, setTick] = useState(0);
 
   // ── Load ──
   useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    collabApi.getPolls(tripId).then((data: GetPollsResponse) => {
-      if (!cancelled) setPolls(data.polls || [])
-    }).catch(() => { /* leave polls empty */ }).finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [tripId])
+    let cancelled = false;
+    setLoading(true);
+    collabApi
+      .getPolls(tripId)
+      .then((data: GetPollsResponse) => {
+        if (!cancelled) setPolls(data.polls || []);
+      })
+      .catch(() => {
+        /* leave polls empty */
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tripId]);
 
   // ── WebSocket (own listener, not handleRemoteEvent) ──
   useEffect(() => {
     const handler = (event: Record<string, unknown>) => {
-      if (String(event.tripId) !== String(tripId)) return
+      if (String(event.tripId) !== String(tripId)) return;
       if (event.type === 'collab:poll:created') {
-        const poll = event.poll as CollabPollData
-        setPolls(prev => (prev.some(p => p.id === poll.id) ? prev : [poll, ...prev]))
+        const poll = event.poll as CollabPollData;
+        setPolls((prev) => (prev.some((p) => p.id === poll.id) ? prev : [poll, ...prev]));
       }
       if (event.type === 'collab:poll:voted' || event.type === 'collab:poll:closed') {
-        const poll = event.poll as CollabPollData
-        setPolls(prev => prev.map(p => (p.id === poll.id ? poll : p)))
+        const poll = event.poll as CollabPollData;
+        setPolls((prev) => prev.map((p) => (p.id === poll.id ? poll : p)));
       }
       if (event.type === 'collab:poll:deleted') {
-        const pollId = event.pollId as number
-        setPolls(prev => prev.filter(p => p.id !== pollId))
+        const pollId = event.pollId as number;
+        setPolls((prev) => prev.filter((p) => p.id !== pollId));
       }
-    }
-    addListener(handler)
-    return () => removeListener(handler)
-  }, [tripId])
+    };
+    addListener(handler);
+    return () => removeListener(handler);
+  }, [tripId]);
 
   // ── Deadline countdown ticker — re-render every 30s so formatPollCountdown recomputes ──
   useEffect(() => {
-    if (!polls.some(p => p.deadline && isPollActive(p))) return
-    const iv = setInterval(() => setTick(v => v + 1), 30000)
-    return () => clearInterval(iv)
-  }, [polls])
+    if (!polls.some((p) => p.deadline && isPollActive(p))) return;
+    const iv = setInterval(() => setTick((v) => v + 1), 30000);
+    return () => clearInterval(iv);
+  }, [polls]);
 
-  const handleCreate = useCallback(async (data: PollFormSubmitData) => {
-    try {
-      const res = (await collabApi.createPoll(tripId, {
-        question: data.question,
-        options: data.options,
-        // Server reads `data.multiple || data.multiple_choice`
-        // (nest/collab/collab.service.ts) — both are sent so either shape lands.
-        multiple: data.multipleChoice,
-        multiple_choice: data.multipleChoice,
-        deadline: data.deadline || undefined,
-      })) as PollResponse
-      setPolls(prev => (prev.some(p => p.id === res.poll.id) ? prev : [res.poll, ...prev]))
-    } catch {
-      toast.error(t('common.error'))
-      throw new Error('create failed')
-    }
-  }, [tripId, toast, t])
+  const handleCreate = useCallback(
+    async (data: PollFormSubmitData) => {
+      try {
+        const res = (await collabApi.createPoll(tripId, {
+          question: data.question,
+          options: data.options,
+          // Server reads `data.multiple || data.multiple_choice`
+          // (nest/collab/collab.service.ts) — both are sent so either shape lands.
+          multiple: data.multipleChoice,
+          multiple_choice: data.multipleChoice,
+          deadline: data.deadline || undefined,
+        })) as PollResponse;
+        setPolls((prev) => (prev.some((p) => p.id === res.poll.id) ? prev : [res.poll, ...prev]));
+      } catch {
+        toast.error(t('common.error'));
+        throw new Error('create failed');
+      }
+    },
+    [tripId, toast, t]
+  );
 
-  const handleVote = useCallback(async (pollId: number, optionIndex: number) => {
-    try {
-      const res = (await collabApi.votePoll(tripId, pollId, optionIndex)) as PollResponse
-      // Reconcile against the poll we asked about, like handleClosePoll does.
-      setPolls(prev => prev.map(p => (p.id === pollId ? res.poll : p)))
-    } catch {
-      toast.error(t('common.error'))
-    }
-  }, [tripId, toast, t])
+  const handleVote = useCallback(
+    async (pollId: number, optionIndex: number) => {
+      try {
+        const res = (await collabApi.votePoll(tripId, pollId, optionIndex)) as PollResponse;
+        // Reconcile against the poll we asked about, like handleClosePoll does.
+        setPolls((prev) => prev.map((p) => (p.id === pollId ? res.poll : p)));
+      } catch {
+        toast.error(t('common.error'));
+      }
+    },
+    [tripId, toast, t]
+  );
 
-  const handleClosePoll = useCallback(async (pollId: number) => {
-    try {
-      const res = (await collabApi.closePoll(tripId, pollId)) as PollResponse
-      setPolls(prev => prev.map(p => (p.id === pollId ? res.poll : p)))
-    } catch {
-      toast.error(t('common.error'))
-    }
-  }, [tripId, toast, t])
+  const handleClosePoll = useCallback(
+    async (pollId: number) => {
+      try {
+        const res = (await collabApi.closePoll(tripId, pollId)) as PollResponse;
+        setPolls((prev) => prev.map((p) => (p.id === pollId ? res.poll : p)));
+      } catch {
+        toast.error(t('common.error'));
+      }
+    },
+    [tripId, toast, t]
+  );
 
-  const handleDelete = useCallback(async (pollId: number) => {
-    try {
-      await collabApi.deletePoll(tripId, pollId)
-      setPolls(prev => prev.filter(p => p.id !== pollId))
-    } catch {
-      toast.error(t('common.error'))
-    }
-  }, [tripId, toast, t])
+  const handleDelete = useCallback(
+    async (pollId: number) => {
+      try {
+        await collabApi.deletePoll(tripId, pollId);
+        setPolls((prev) => prev.filter((p) => p.id !== pollId));
+      } catch {
+        toast.error(t('common.error'));
+      }
+    },
+    [tripId, toast, t]
+  );
 
   if (loading) {
     return (
@@ -150,10 +176,10 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
           <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('common.loading')}</p>
         </div>
       </TabScroller>
-    )
+    );
   }
 
-  const { active, closed } = splitPolls(polls)
+  const { active, closed } = splitPolls(polls);
 
   return (
     <TabScroller>
@@ -177,7 +203,7 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
         </div>
       ) : (
         <>
-          {active.map(poll => (
+          {active.map((poll) => (
             <PollCardRow
               key={poll.id}
               poll={poll}
@@ -197,21 +223,22 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
                   label={t('collab.polls.closedSection')}
                   count={closed.length}
                   open={!collapsedClosed}
-                  onToggle={() => setCollapsedClosed(v => !v)}
+                  onToggle={() => setCollapsedClosed((v) => !v)}
                 />
               )}
-              {!collapsedClosed && closed.map(poll => (
-                <PollCardRow
-                  key={poll.id}
-                  poll={poll}
-                  canEdit={canEdit}
-                  currentUserId={currentUserId}
-                  t={t}
-                  onVote={handleVote}
-                  onClosePoll={handleClosePoll}
-                  onDelete={() => setPendingDeleteId(poll.id)}
-                />
-              ))}
+              {!collapsedClosed &&
+                closed.map((poll) => (
+                  <PollCardRow
+                    key={poll.id}
+                    poll={poll}
+                    canEdit={canEdit}
+                    currentUserId={currentUserId}
+                    t={t}
+                    onVote={handleVote}
+                    onClosePoll={handleClosePoll}
+                    onDelete={() => setPendingDeleteId(poll.id)}
+                  />
+                ))}
             </div>
           )}
         </>
@@ -228,40 +255,55 @@ export default function MCollabPolls({ planner }: MCollabPollsProps) {
         cancelLabel={t('common.cancel')}
         danger
         onConfirm={() => {
-          if (pendingDeleteId !== null) handleDelete(pendingDeleteId)
-          setPendingDeleteId(null)
+          if (pendingDeleteId !== null) handleDelete(pendingDeleteId);
+          setPendingDeleteId(null);
         }}
       />
     </TabScroller>
-  )
+  );
 }
 
 /* ------------------------------------------------------------------ */
 
-function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onDelete }: {
-  poll: CollabPollData
-  canEdit: boolean
-  currentUserId: number | null
-  t: TripPlanner['t']
-  onVote: (pollId: number, optionIndex: number) => void
-  onClosePoll: (pollId: number) => void
-  onDelete: () => void
+function PollCardRow({
+  poll,
+  canEdit,
+  currentUserId,
+  t,
+  onVote,
+  onClosePoll,
+  onDelete,
+}: {
+  poll: CollabPollData;
+  canEdit: boolean;
+  currentUserId: number | null;
+  t: TripPlanner['t'];
+  onVote: (pollId: number, optionIndex: number) => void;
+  onClosePoll: (pollId: number) => void;
+  onDelete: () => void;
 }) {
-  const total = totalPollVotes(poll)
-  const closed = !isPollActive(poll)
-  const countdown = closed ? null : formatPollCountdown(poll.deadline, t)
-  const voted = currentUserId != null && hasUserVoted(poll, currentUserId)
-  const maxCount = pollMaxVoteCount(poll)
+  const total = totalPollVotes(poll);
+  const closed = !isPollActive(poll);
+  const countdown = closed ? null : formatPollCountdown(poll.deadline, t);
+  const voted = currentUserId != null && hasUserVoted(poll, currentUserId);
+  const maxCount = pollMaxVoteCount(poll);
 
   return (
     <div className="mt-2 overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]">
-      <div className="flex items-start gap-2 px-3 py-[10px]" style={closed ? { background: 'var(--m-card)' } : undefined}>
+      <div
+        className="flex items-start gap-2 px-3 py-[10px]"
+        style={closed ? { background: 'var(--m-card)' } : undefined}
+      >
         <div className="min-w-0 flex-1">
           {/* Question is cross-user markdown (#2177): sanitized, raw HTML stays
               inert, links open in a new tab with rel protection (#1629).
               Heading/list sizes are em-based so they follow the text scale. */}
           <div className="break-words text-[0.8125rem] font-bold leading-[1.35] text-m-ink [&_a]:underline [&_h1]:mb-1 [&_h1]:text-[1.35em] [&_h1]:leading-[1.2] [&_h2]:mb-1 [&_h2]:text-[1.2em] [&_h2]:leading-[1.25] [&_h3]:mb-1 [&_h3]:text-[1.1em] [&_h3]:leading-[1.3] [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-1 [&_ul]:list-disc [&_ul]:pl-4">
-            <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={sanitizedMarkdownPlugins} components={sanitizedMarkdownComponents}>
+            <Markdown
+              remarkPlugins={[remarkGfm, remarkBreaks]}
+              rehypePlugins={sanitizedMarkdownPlugins}
+              components={sanitizedMarkdownComponents}
+            >
               {poll.question}
             </Markdown>
           </div>
@@ -311,15 +353,16 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
 
       <div className="flex flex-col gap-[6px] px-3 pb-3 pt-[2px]">
         {poll.options.map((opt, idx) => {
-          const count = opt.voters?.length || 0
-          const pct = total > 0 ? Math.round((count / total) * 100) : 0
-          const myVote = currentUserId != null && (opt.voters || []).some(v => String(v.user_id) === String(currentUserId))
-          const isWinner = closed && count > 0 && count === maxCount
+          const count = opt.voters?.length || 0;
+          const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+          const myVote =
+            currentUserId != null && (opt.voters || []).some((v) => String(v.user_id) === String(currentUserId));
+          const isWinner = closed && count > 0 && count === maxCount;
           const fillTint = myVote
             ? 'color-mix(in srgb, var(--m-act) 16%, transparent)'
             : isWinner
               ? 'color-mix(in srgb, var(--m-st-confirmed) 16%, transparent)'
-              : 'color-mix(in srgb, var(--m-ink) 6%, transparent)'
+              : 'color-mix(in srgb, var(--m-ink) 6%, transparent)';
 
           return (
             <button
@@ -334,17 +377,22 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
                 className={`relative flex h-5 w-5 flex-none items-center justify-center border-2 ${
                   poll.multiple_choice ? 'rounded-[6px]' : 'rounded-full'
                 }`}
-                style={{ borderColor: myVote ? 'var(--m-act)' : 'var(--m-rowbr)', background: myVote ? 'var(--m-act)' : 'transparent' }}
+                style={{
+                  borderColor: myVote ? 'var(--m-act)' : 'var(--m-rowbr)',
+                  background: myVote ? 'var(--m-act)' : 'transparent',
+                }}
               >
                 {myVote && <Check size={11} strokeWidth={3} className="text-m-actfg" />}
               </span>
               {/* No truncate: long or multiline options wrap fully (#2177) */}
-              <span className={`relative min-w-0 flex-1 whitespace-pre-wrap break-words text-[0.8125rem] [overflow-wrap:anywhere] ${myVote || isWinner ? 'font-bold' : 'font-medium'} text-m-ink`}>
+              <span
+                className={`relative min-w-0 flex-1 whitespace-pre-wrap break-words text-[0.8125rem] [overflow-wrap:anywhere] ${myVote || isWinner ? 'font-bold' : 'font-medium'} text-m-ink`}
+              >
                 {opt.text}
               </span>
               {(voted || closed) && count > 0 && (
                 <span className="relative flex flex-none -space-x-1">
-                  {(opt.voters || []).slice(0, 3).map(v => (
+                  {(opt.voters || []).slice(0, 3).map((v) => (
                     <span
                       key={v.user_id}
                       className="flex h-[18px] w-[18px] items-center justify-center overflow-hidden rounded-full border-2 border-[color:var(--m-ic)] bg-[color:var(--m-card)] font-geist text-[0.5rem] font-bold text-m-muted"
@@ -362,66 +410,76 @@ function PollCardRow({ poll, canEdit, currentUserId, t, onVote, onClosePoll, onD
                 <span className="relative flex-none font-geist text-[0.75rem] font-bold text-m-muted">{pct}%</span>
               )}
             </button>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }
 
-function PollFormSheet({ open, onClose, onSubmit, t }: {
-  open: boolean
-  onClose: () => void
-  onSubmit: (data: PollFormSubmitData) => Promise<void>
-  t: TripPlanner['t']
+function PollFormSheet({
+  open,
+  onClose,
+  onSubmit,
+  t,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (data: PollFormSubmitData) => Promise<void>;
+  t: TripPlanner['t'];
 }) {
-  const [question, setQuestion] = useState('')
-  const [options, setOptions] = useState(['', ''])
-  const [multipleChoice, setMultipleChoice] = useState(false)
-  const [deadline, setDeadline] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+  const [question, setQuestion] = useState('');
+  const [options, setOptions] = useState(['', '']);
+  const [multipleChoice, setMultipleChoice] = useState(false);
+  const [deadline, setDeadline] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!open) return
-    setQuestion('')
-    setOptions(['', ''])
-    setMultipleChoice(false)
-    setDeadline('')
-  }, [open])
+    if (!open) return;
+    setQuestion('');
+    setOptions(['', '']);
+    setMultipleChoice(false);
+    setDeadline('');
+  }, [open]);
 
-  const trimmedOptions = options.map(o => o.trim()).filter(Boolean)
-  const canSubmit = question.trim().length > 0 && trimmedOptions.length >= 2 && !submitting
+  const trimmedOptions = options.map((o) => o.trim()).filter(Boolean);
+  const canSubmit = question.trim().length > 0 && trimmedOptions.length >= 2 && !submitting;
 
   const handleSubmit = async () => {
-    if (!canSubmit) return
-    setSubmitting(true)
+    if (!canSubmit) return;
+    setSubmitting(true);
     try {
       await onSubmit({
         question: question.trim(),
         options: trimmedOptions,
         multipleChoice,
         deadline: deadline ? new Date(deadline).toISOString() : null,
-      })
-      onClose()
+      });
+      onClose();
     } catch {
       // onSubmit already surfaced a toast
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
-  const minDeadline = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+  const minDeadline = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
   return (
     <MSheet open={open} onClose={onClose} ariaLabel={t('collab.polls.new')}>
-      <FormSheetHeader icon={BarChart3} title={t('collab.polls.new')} onClose={onClose} closeLabel={t('common.close')} />
+      <FormSheetHeader
+        icon={BarChart3}
+        title={t('collab.polls.new')}
+        onClose={onClose}
+        closeLabel={t('common.close')}
+      />
 
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
         <Eyebrow className="mb-[5px] uppercase">{t('collab.polls.question')} *</Eyebrow>
         <textarea
           rows={4}
           value={question}
-          onChange={e => setQuestion(e.target.value)}
+          onChange={(e) => setQuestion(e.target.value)}
           maxLength={300}
           placeholder={t('collab.polls.questionPlaceholder')}
           className={FIELD_AREA_CLS}
@@ -435,7 +493,7 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
               <textarea
                 rows={2}
                 value={opt}
-                onChange={e => setOptions(prev => prev.map((o, j) => (j === i ? e.target.value : o)))}
+                onChange={(e) => setOptions((prev) => prev.map((o, j) => (j === i ? e.target.value : o)))}
                 placeholder={t('collab.polls.optionPlaceholder', { n: i + 1 })}
                 maxLength={200}
                 className={FIELD_AREA_CLS}
@@ -443,7 +501,7 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
               {options.length > 2 && (
                 <button
                   type="button"
-                  onClick={() => setOptions(prev => prev.filter((_, j) => j !== i))}
+                  onClick={() => setOptions((prev) => prev.filter((_, j) => j !== i))}
                   aria-label={t('common.delete')}
                   className="flex-none text-m-faint"
                 >
@@ -454,7 +512,7 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
           ))}
           <button
             type="button"
-            onClick={() => setOptions(prev => [...prev, ''])}
+            onClick={() => setOptions((prev) => [...prev, ''])}
             className="flex items-center gap-1 rounded-[10px] border border-dashed border-[color:var(--m-rowbr)] px-3 py-[7px] font-geist text-[0.75rem] font-bold text-m-faint"
           >
             <Plus size={12} strokeWidth={2.4} /> {t('collab.polls.addOption')}
@@ -463,7 +521,11 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
 
         <div className="mt-3 flex items-center justify-between rounded-[12px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px]">
           <span className="text-[0.8125rem] font-semibold text-m-ink">{t('collab.polls.multiChoice')}</span>
-          <ToggleSwitch on={multipleChoice} onToggle={() => setMultipleChoice(v => !v)} label={t('collab.polls.multiChoice')} />
+          <ToggleSwitch
+            on={multipleChoice}
+            onToggle={() => setMultipleChoice((v) => !v)}
+            label={t('collab.polls.multiChoice')}
+          />
         </div>
 
         <Eyebrow className="mb-[5px] mt-3 uppercase">{t('collab.polls.deadline')}</Eyebrow>
@@ -472,7 +534,7 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
             type="datetime-local"
             value={deadline}
             min={minDeadline}
-            onChange={e => setDeadline(e.target.value)}
+            onChange={(e) => setDeadline(e.target.value)}
             className={`${FIELD_CLS} flex-1`}
           />
           {deadline && (
@@ -496,5 +558,5 @@ function PollFormSheet({ open, onClose, onSubmit, t }: {
         submitDisabled={!canSubmit}
       />
     </MSheet>
-  )
+  );
 }

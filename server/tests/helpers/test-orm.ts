@@ -1,11 +1,12 @@
-import type { EntityClass, EntityRepository, GetRepository } from '@mikro-orm/core';
-import { MikroORM, type EntityManager } from '@mikro-orm/sqlite';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import type { DynamicModule } from '@nestjs/common';
-import type Database from 'better-sqlite3';
 import { ALL_ENTITIES } from '../../src/db/entities';
 import { createBoundSqliteDriver } from '../../src/db/orm-driver';
 import mikroOrmConfig from '../../src/mikro-orm.config';
+import type { EntityClass, EntityRepository, GetRepository } from '@mikro-orm/core';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { MikroORM, type EntityManager } from '@mikro-orm/sqlite';
+import type { DynamicModule } from '@nestjs/common';
+
+import type Database from 'better-sqlite3';
 
 export interface TestOrm {
   orm: MikroORM;

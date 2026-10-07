@@ -1,7 +1,7 @@
-import DayImpactList, { type ImpactListSkin } from '../../components/shared/DayImpactList'
-import type { ImpactLine } from '../../utils/dayImpactLines'
+import DayImpactList, { type ImpactListSkin } from '../../components/shared/DayImpactList';
+import type { ImpactLine } from '../../utils/dayImpactLines';
 
-const DANGER_TINT = 'bg-[color:color-mix(in_srgb,var(--m-st-danger)_9%,transparent)]'
+const DANGER_TINT = 'bg-[color:color-mix(in_srgb,var(--m-st-danger)_9%,transparent)]';
 
 /** The mobile tokens for the same rows: an inset card with hairlines between rows. */
 const PHONE: ImpactListSkin = {
@@ -26,11 +26,20 @@ const PHONE: ImpactListSkin = {
     danger: 'text-[color:var(--m-st-danger)]',
   },
   rowTone: { neutral: '', muted: '', warning: '', danger: DANGER_TINT },
-  plain: 'mt-3 flex items-center gap-[8px] rounded-[13px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-[11px] py-[10px] text-[0.75rem] text-m-muted',
+  plain:
+    'mt-3 flex items-center gap-[8px] rounded-[13px] border border-[color:var(--m-inbr)] bg-[color:var(--m-inner)] px-[11px] py-[10px] text-[0.75rem] text-m-muted',
   plainIcon: 'flex-none text-m-faint',
-}
+};
 
 /** The phone's day impact list: DayImpactList drawn in the mobile tokens. */
-export default function MDayImpactList({ lines, days, label }: { lines: ImpactLine[]; days?: string[]; label?: string }) {
-  return <DayImpactList lines={lines} days={days} label={label} skin={PHONE} />
+export default function MDayImpactList({
+  lines,
+  days,
+  label,
+}: {
+  lines: ImpactLine[];
+  days?: string[];
+  label?: string;
+}) {
+  return <DayImpactList lines={lines} days={days} label={label} skin={PHONE} />;
 }

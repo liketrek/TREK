@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Zap } from 'lucide-react'
-import { pluginsApi, type PluginDayScheduleItem, type PluginDayTint } from '../../api/client'
+import { Zap } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { pluginsApi, type PluginDayScheduleItem, type PluginDayTint } from '../../api/client';
 
 /**
  * Host-rendered rows for the `dayScheduleProvider` plugin hook — time
@@ -15,61 +15,71 @@ const TONE_COLORS: Record<PluginDayScheduleItem['tone'], string> = {
   success: '#10b981',
   warn: '#f59e0b',
   danger: '#ef4444',
-}
+};
 
 export interface PluginDaySchedule {
   /** dayId → assignmentId → rows anchored under that place row. */
-  byAssignment: Record<number, Record<number, PluginDayScheduleItem[]>>
+  byAssignment: Record<number, Record<number, PluginDayScheduleItem[]>>;
   /** dayId → reservationId → rows anchored under that booking row. */
-  byReservation: Record<number, Record<number, PluginDayScheduleItem[]>>
+  byReservation: Record<number, Record<number, PluginDayScheduleItem[]>>;
   /** dayId → rows pinned to the start / end of the day (end = default anchor). */
-  byPosition: Record<number, { start: PluginDayScheduleItem[]; end: PluginDayScheduleItem[] }>
+  byPosition: Record<number, { start: PluginDayScheduleItem[]; end: PluginDayScheduleItem[] }>;
   /** dayId → total contributed minutes (for the route-footer "+X min"). */
-  minutesByDay: Record<number, number>
+  minutesByDay: Record<number, number>;
 }
 
-const EMPTY: PluginDaySchedule = { byAssignment: {}, byReservation: {}, byPosition: {}, minutesByDay: {} }
+const EMPTY: PluginDaySchedule = { byAssignment: {}, byReservation: {}, byPosition: {}, minutesByDay: {} };
 
 export function usePluginDaySchedule(tripId?: number | string | null): PluginDaySchedule {
-  const [items, setItems] = useState<PluginDayScheduleItem[]>([])
+  const [items, setItems] = useState<PluginDayScheduleItem[]>([]);
 
   useEffect(() => {
-    if (tripId == null) { setItems([]); return }
-    let alive = true
-    pluginsApi.daySchedule(tripId)
-      .then(r => { if (alive) setItems(r.items || []) })
-      .catch(() => { if (alive) setItems([]) }) // fail-safe: no extra rows
-    return () => { alive = false }
-  }, [tripId])
+    if (tripId == null) {
+      setItems([]);
+      return;
+    }
+    let alive = true;
+    pluginsApi
+      .daySchedule(tripId)
+      .then((r) => {
+        if (alive) setItems(r.items || []);
+      })
+      .catch(() => {
+        if (alive) setItems([]);
+      }); // fail-safe: no extra rows
+    return () => {
+      alive = false;
+    };
+  }, [tripId]);
 
   return useMemo(() => {
-    if (items.length === 0) return EMPTY
-    const out: PluginDaySchedule = { byAssignment: {}, byReservation: {}, byPosition: {}, minutesByDay: {} }
+    if (items.length === 0) return EMPTY;
+    const out: PluginDaySchedule = { byAssignment: {}, byReservation: {}, byPosition: {}, minutesByDay: {} };
     for (const it of items) {
       if (it.assignmentId != null) {
-        const day = (out.byAssignment[it.dayId] ??= {})
-        ;(day[it.assignmentId] ??= []).push(it)
+        const day = (out.byAssignment[it.dayId] ??= {});
+        (day[it.assignmentId] ??= []).push(it);
       } else if (it.reservationId != null) {
-        const day = (out.byReservation[it.dayId] ??= {})
-        ;(day[it.reservationId] ??= []).push(it)
+        const day = (out.byReservation[it.dayId] ??= {});
+        (day[it.reservationId] ??= []).push(it);
       } else {
-        const day = (out.byPosition[it.dayId] ??= { start: [], end: [] })
-        day[it.position === 'start' ? 'start' : 'end'].push(it)
+        const day = (out.byPosition[it.dayId] ??= { start: [], end: [] });
+        day[it.position === 'start' ? 'start' : 'end'].push(it);
       }
-      if (it.minutes) out.minutesByDay[it.dayId] = (out.minutesByDay[it.dayId] || 0) + it.minutes
+      if (it.minutes) out.minutesByDay[it.dayId] = (out.minutesByDay[it.dayId] || 0) + it.minutes;
     }
-    return out
-  }, [items])
+    return out;
+  }, [items]);
 }
 
 /** dayId → the per-region paint (and optional tooltip) for that day's card. */
-export type PluginDayTintRegions = Omit<PluginDayTint, 'pluginId' | 'dayId'>
-export type PluginDayTints = Record<number, PluginDayTintRegions>
+export type PluginDayTintRegions = Omit<PluginDayTint, 'pluginId' | 'dayId'>;
+export type PluginDayTints = Record<number, PluginDayTintRegions>;
 
 /** The three separately tintable regions of a day card. */
-export type PluginDayTintRegion = 'badge' | 'header' | 'activity'
+export type PluginDayTintRegion = 'badge' | 'header' | 'activity';
 
-const EMPTY_TINTS: PluginDayTints = {}
+const EMPTY_TINTS: PluginDayTints = {};
 
 /**
  * Host-rendered day colours for the `dayTintProvider` plugin hook — "day 12 belongs
@@ -82,33 +92,43 @@ const EMPTY_TINTS: PluginDayTints = {}
  * provider wins), so this is a flat index — the callers just look a day up.
  */
 export function usePluginDayTints(tripId?: number | string | null): PluginDayTints {
-  const [tints, setTints] = useState<PluginDayTint[]>([])
+  const [tints, setTints] = useState<PluginDayTint[]>([]);
 
   useEffect(() => {
-    if (tripId == null) { setTints([]); return }
-    let alive = true
-    pluginsApi.dayTints(tripId)
-      .then(r => { if (alive) setTints(r.tints || []) })
-      .catch(() => { if (alive) setTints([]) }) // fail-safe: no tints
-    return () => { alive = false }
-  }, [tripId])
+    if (tripId == null) {
+      setTints([]);
+      return;
+    }
+    let alive = true;
+    pluginsApi
+      .dayTints(tripId)
+      .then((r) => {
+        if (alive) setTints(r.tints || []);
+      })
+      .catch(() => {
+        if (alive) setTints([]);
+      }); // fail-safe: no tints
+    return () => {
+      alive = false;
+    };
+  }, [tripId]);
 
   return useMemo(() => {
-    if (tints.length === 0) return EMPTY_TINTS
-    const out: PluginDayTints = {}
+    if (tints.length === 0) return EMPTY_TINTS;
+    const out: PluginDayTints = {};
     for (const t of tints) {
-      const { pluginId: _pluginId, dayId: _dayId, ...regions } = t
-      out[t.dayId] = regions
+      const { pluginId: _pluginId, dayId: _dayId, ...regions } = t;
+      out[t.dayId] = regions;
     }
-    return out
-  }, [tints])
+    return out;
+  }, [tints]);
 }
 
 /** True when a plugin paints this region at all — the callers that change more than a
  * background (the badge switches its text colour) need this without rebuilding the
  * background string. */
 export function dayTinted(tint: PluginDayTintRegions | undefined, region: PluginDayTintRegion): boolean {
-  return Boolean(tint?.[`${region}Tone`] || tint?.[`${region}Color`])
+  return Boolean(tint?.[`${region}Tone`] || tint?.[`${region}Color`]);
 }
 
 /** A plugin's own colour, pulled into the lightness band the current theme can render.
@@ -119,7 +139,7 @@ export function dayTinted(tint: PluginDayTintRegions | undefined, region: Plugin
  * washes out against the light sidebar, near-black turns the dark one to mud. The band
  * is a CSS variable rather than a constant here because the answer is per theme. */
 const clampLightness = (color: string) =>
-  `oklch(from ${color} clamp(var(--day-tint-l-min), l, var(--day-tint-l-max)) c h)`
+  `oklch(from ${color} clamp(var(--day-tint-l-min), l, var(--day-tint-l-max)) c h)`;
 
 /** The `color-mix` background for one tinted region, or undefined when no plugin paints
  * it — in which case the caller keeps whatever it renders without plugins.
@@ -133,32 +153,44 @@ export function dayTintBackground(
   tint: PluginDayTintRegions | undefined,
   region: PluginDayTintRegion,
   alphaVar: string,
-  base = 'transparent',
+  base = 'transparent'
 ): string | undefined {
-  const color = tint?.[`${region}Color`]
-  const tone = tint?.[`${region}Tone`]
+  const color = tint?.[`${region}Color`];
+  const tone = tint?.[`${region}Tone`];
   // Server-resolved: a region carries a colour or a tone, never both.
-  const paint = color ? clampLightness(color) : tone ? (TONE_COLORS[tone] ?? TONE_COLORS.default) : undefined
-  if (!paint) return undefined
-  return `color-mix(in srgb, ${paint} var(${alphaVar}), ${base})`
+  const paint = color ? clampLightness(color) : tone ? (TONE_COLORS[tone] ?? TONE_COLORS.default) : undefined;
+  if (!paint) return undefined;
+  return `color-mix(in srgb, ${paint} var(${alphaVar}), ${base})`;
 }
 
 export function formatScheduleMinutes(minutes: number): string {
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  return h > 0 ? `${h} h ${m} min` : `${m} min`
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h > 0 ? `${h} h ${m} min` : `${m} min`;
 }
 
 /** One contributed row — a slim line in the timeline, styled like the route
  * connectors so it reads as schedule information, not as an itinerary item. */
 export function PluginDayScheduleRow({ item }: { item: PluginDayScheduleItem }) {
-  const color = TONE_COLORS[item.tone] ?? TONE_COLORS.default
+  const color = TONE_COLORS[item.tone] ?? TONE_COLORS.default;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 14px', fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))', color: 'var(--text-muted)', lineHeight: 1.3 }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '3px 14px',
+        fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))',
+        color: 'var(--text-muted)',
+        lineHeight: 1.3,
+      }}
+    >
       <Zap size={11} strokeWidth={2} style={{ color, flexShrink: 0 }} />
-      {item.minutes != null && <span style={{ fontWeight: 600, flexShrink: 0 }}>{formatScheduleMinutes(item.minutes)}</span>}
+      {item.minutes != null && (
+        <span style={{ fontWeight: 600, flexShrink: 0 }}>{formatScheduleMinutes(item.minutes)}</span>
+      )}
       {item.minutes != null && <span style={{ opacity: 0.4 }}>·</span>}
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
     </div>
-  )
+  );
 }

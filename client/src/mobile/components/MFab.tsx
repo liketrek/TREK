@@ -1,10 +1,10 @@
-import { ReactNode } from 'react'
+import { ReactNode } from 'react';
 
 interface MFabProps {
-  onClick?: () => void
-  ariaLabel: string
-  className?: string
-  children: ReactNode
+  onClick?: () => void;
+  ariaLabel: string;
+  className?: string;
+  children: ReactNode;
 }
 
 /** 56px round action button on the --m-act surface (bottom-nav "+", screen FABs). */
@@ -18,5 +18,5 @@ export default function MFab({ onClick, ariaLabel, className = '', children }: M
     >
       {children}
     </button>
-  )
+  );
 }

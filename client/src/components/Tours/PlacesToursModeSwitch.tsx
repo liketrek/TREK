@@ -1,11 +1,11 @@
-import React from 'react'
-import { MapPin, Mountain } from 'lucide-react'
-import { useTranslation } from '../../i18n/TranslationContext'
-import { NEUTRAL_TINT, fs } from '../shared/DialogShell'
+import { MapPin, Mountain } from 'lucide-react';
+import React from 'react';
+import { useTranslation } from '../../i18n/TranslationContext';
+import { NEUTRAL_TINT, fs } from '../shared/DialogShell';
 
 interface PlacesToursModeSwitchProps {
-  active: boolean
-  onChange: (tours: boolean) => void
+  active: boolean;
+  onChange: (tours: boolean) => void;
 }
 
 /**
@@ -15,16 +15,20 @@ interface PlacesToursModeSwitchProps {
  * Only rendered while the tours addon is on.
  */
 export default function PlacesToursModeSwitch({ active, onChange }: PlacesToursModeSwitchProps): React.ReactElement {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   const options: [boolean, string, typeof MapPin][] = [
     [false, t('tours.mode.places'), MapPin],
     [true, t('tours.mode.tours'), Mountain],
-  ]
+  ];
   return (
     <div className="flex-none px-3 pb-0.5 pt-2.5" style={{ background: NEUTRAL_TINT }}>
-      <div role="tablist" aria-label={t('tours.mode.label')} className="flex w-full gap-0.5 rounded-[10px] bg-surface-tertiary p-[3px]">
+      <div
+        role="tablist"
+        aria-label={t('tours.mode.label')}
+        className="flex w-full gap-0.5 rounded-[10px] bg-surface-tertiary p-[3px]"
+      >
         {options.map(([value, label, Icon]) => {
-          const selected = active === value
+          const selected = active === value;
           return (
             <button
               key={label}
@@ -40,9 +44,9 @@ export default function PlacesToursModeSwitch({ active, onChange }: PlacesToursM
               <Icon size={13} strokeWidth={2} aria-hidden />
               <span className="truncate">{label}</span>
             </button>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }
