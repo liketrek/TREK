@@ -25,6 +25,13 @@ vi.mock('../../../src/sync/syncTriggers', () => ({
   unregisterSyncTriggers: vi.fn(),
 }));
 
+// Login kicks off a full trip sync it does not wait for. Left real, that sync
+// can still be logging when the file's worker shuts down, and vitest reports
+// the cut-off console call as an unhandled error. Nothing here is about sync.
+vi.mock('../../../src/sync/tripSyncManager', () => ({
+  tripSyncManager: { syncAll: vi.fn(async () => {}) },
+}));
+
 beforeEach(() => {
   resetAllStores();
   vi.clearAllMocks();
