@@ -131,8 +131,7 @@ ENV PORT=3000
 # the clients would never pick up the new bundle. The server reads this file
 # first (server/src/app-config/image-version.ts).
 ARG APP_VERSION=dev
-RUN if [ "$APP_VERSION" != "dev" ]; then printf '%s
-' "$APP_VERSION" > /app/server/VERSION; fi
+RUN if [ "$APP_VERSION" != "dev" ]; then printf '%s\n' "$APP_VERSION" > /app/server/VERSION; fi
 
 # OCI metadata: Renovate, Watchtower and the registries read the source label to
 # link an image update to its release notes (#1498). The release workflows add
