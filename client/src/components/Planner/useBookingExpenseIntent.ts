@@ -20,6 +20,16 @@ export interface BookingExpenseRemoval {
 export function useBookingExpenseIntent(submit: () => Promise<unknown>, removal?: BookingExpenseRemoval) {
   const intentRef = useRef<BookingExpenseIntent | null>(null);
 
+  // The wish belongs to the save its click starts. A save that returns early
+  // (no title) or throws never reads it, and it must not open the editor on
+  // the next, unrelated save. A newer click's wish is left alone.
+  const saveWith = (intent: BookingExpenseIntent) => {
+    intentRef.current = intent;
+    void submit().finally(() => {
+      if (intentRef.current === intent) intentRef.current = null;
+    });
+  };
+
   return {
     /** Forgets a wish left from an earlier opening. */
     reset: () => {
@@ -31,15 +41,9 @@ export function useBookingExpenseIntent(submit: () => Promise<unknown>, removal?
       intentRef.current = null;
       return intent;
     },
-    create: () => {
-      intentRef.current = { create: true };
-      void submit();
-    },
+    create: () => saveWith({ create: true }),
     /** Saves the booking first, then opens the linked expense. */
-    edit: (item: BudgetItem) => {
-      intentRef.current = { editItem: item };
-      void submit();
-    },
+    edit: (item: BudgetItem) => saveWith({ editItem: item }),
     remove: async (item: BudgetItem) => {
       if (!removal) return;
       try {

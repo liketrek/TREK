@@ -1,4 +1,4 @@
-// FE-PLANNER-BOOKINGEXPENSE-001 to -004: the expense wish of the booking and
+// FE-PLANNER-BOOKINGEXPENSE-001 to -006: the expense wish of the booking and
 // transport forms, desktop and phone alike.
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -50,5 +50,34 @@ describe('useBookingExpenseIntent', () => {
     const { result } = renderHook(() => useBookingExpenseIntent(submit));
     await expect(result.current.remove(buildBudgetItem())).resolves.toBeUndefined();
     expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('FE-PLANNER-BOOKINGEXPENSE-005: a save that ends without reading the wish does not leave it for the next save', async () => {
+    // The desktop reads the wish only after a successful save; an empty title
+    // returns before that point.
+    const submit = vi.fn(async () => undefined);
+    const { result } = renderHook(() => useBookingExpenseIntent(submit));
+    await act(async () => result.current.create());
+    expect(result.current.take()).toBeNull();
+  });
+
+  it('FE-PLANNER-BOOKINGEXPENSE-006: a save that throws does not leave the wish for the next save', async () => {
+    let fail: (e: Error) => void = () => undefined;
+    const submit = vi.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          fail = reject;
+        })
+    );
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      const { result } = renderHook(() => useBookingExpenseIntent(submit));
+      act(() => result.current.edit(buildBudgetItem({ id: 9 })));
+      await act(async () => fail(new Error('save failed')));
+      expect(result.current.take()).toBeNull();
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
   });
 });

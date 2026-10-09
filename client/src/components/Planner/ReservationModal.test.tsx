@@ -1,4 +1,4 @@
-// FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-106
+// FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-107
 import { render, screen, waitFor, fireEvent, within, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -1439,6 +1439,22 @@ describe('ReservationModal', () => {
         expect.objectContaining({ prefill: expect.objectContaining({ reservationId: 84 }) })
       )
     );
+  });
+
+  it('FE-PLANNER-RESMODAL-107: a create-expense click that saves nothing does not open the editor on the next plain save', async () => {
+    budgetEnabled();
+    const onSave = vi.fn().mockResolvedValue({ id: 85 });
+    const onOpenExpense = vi.fn();
+    render(<ReservationModal {...defaultProps} onSave={onSave} onOpenExpense={onOpenExpense} />);
+
+    // No title yet: the save returns early and nothing is created.
+    await userEvent.click(screen.getByRole('button', { name: /Create expense/i }));
+    expect(onSave).not.toHaveBeenCalled();
+
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'Dinner');
+    await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onOpenExpense).not.toHaveBeenCalled();
   });
 
   // ── File error paths ────────────────────────────────────────────────────────
