@@ -17,6 +17,7 @@ import {
   computeMigrationCandidates,
   effectiveCategoryMap,
   foldBackends,
+  mirrorProbeTargets,
   removeBackend,
   removeBackendAndMirrors,
   renameBackendRefs,
@@ -225,6 +226,17 @@ export function useStoragePanel() {
       setEditing(null);
     };
 
+    // A mirrored row probes its primary and each replica one by one, with the draft
+    // options of each: the server would resolve a mirror stub against its SAVED
+    // backends by name, so unsaved edits (or a replica not saved yet) would be missed.
+    // row.mirrorName only exists when foldBackends adopted a draft mirror for this
+    // row, so the draft lookup cannot miss.
+    const testRow = (row: FoldedBackendRow) => {
+      if (!row.mirrorName) return admin.test(row.backend);
+      const mirror = draft.backends.find((b) => b.name === row.mirrorName)!;
+      return admin.testMirror(row.mirrorName, mirrorProbeTargets(draft, state, mirror));
+    };
+
     const removeMessage = (name: string, isDegenerate: boolean): string => {
       const row = rows.find((r) => r.name === name);
       const assigned = isDegenerate
@@ -333,6 +345,7 @@ export function useStoragePanel() {
       usageSums,
       startAdd,
       startEdit,
+      testRow,
       commitBackend,
       removeMessage,
       confirmRemoval,

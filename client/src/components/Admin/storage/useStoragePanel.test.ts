@@ -1,4 +1,4 @@
-// FE-ADMIN-STOR-PANEL-001 to -012: the storage panel logic behind both admin shells.
+// FE-ADMIN-STOR-PANEL-001 to -017: the storage panel logic behind both admin shells.
 import { act, renderHook, waitFor } from '@testing-library/react';
 
 import { STORAGE_CATEGORIES, type StorageAdminState, type StorageBackend, type StorageConfig } from '@trek/shared';
@@ -216,6 +216,27 @@ describe('useStoragePanel', () => {
     );
     expect(result.current.migrationQueue).toEqual([]);
     expect(fake.admin.startMigration).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-ADMIN-STOR-PANEL-017: testRow probes a plain row as it is and a mirrored row per draft target', () => {
+    const state = baseState();
+    const draft: StorageConfig = {
+      ...settingsDocumentOf(state),
+      backends: [
+        ...settingsDocumentOf(state).backends,
+        { name: 'off-box-mirror', type: 'mirror', options: { primary: 'off-box', replicas: ['uploads-local'] } },
+      ],
+    };
+    fake.admin = makeAdmin(state, draft);
+    const { result } = renderHook(() => useStoragePanel());
+    const rows = result.current.loaded!.rows;
+    void result.current.loaded!.testRow(rows.find((r) => r.name === 'uploads-local')!);
+    expect(fake.admin.test).toHaveBeenCalledWith(expect.objectContaining({ name: 'uploads-local' }));
+    void result.current.loaded!.testRow(rows.find((r) => r.name === 'off-box')!);
+    expect(fake.admin.testMirror).toHaveBeenCalledWith('off-box-mirror', [
+      expect.objectContaining({ name: 'off-box', type: 'local' }),
+      expect.objectContaining({ name: 'uploads-local', type: 'local' }),
+    ]);
   });
 
   it('FE-ADMIN-STOR-PANEL-013: backfill and stats actions toast the server error', async () => {

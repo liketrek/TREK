@@ -190,7 +190,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
     )
   }
   const {
-    state, draft, backendNames, rows, degenerate, effective, usageSums, startAdd, startEdit, commitBackend,
+    state, draft, backendNames, rows, degenerate, effective, usageSums, startAdd, startEdit, testRow, commitBackend,
     removeMessage, confirmRemoval, setCategory, save, moveAndSave, routeOnlySave,
   } = loaded
 
@@ -236,11 +236,6 @@ export default function MAdminStoragePanel(): React.ReactElement {
           {rows.map((row) => {
             const resultKey = row.mirrorName ?? row.name
             const result = admin.testResults[resultKey]
-            // row.mirrorName only exists when foldBackends adopted a draft mirror
-            // for this row, so the draft lookup below cannot miss.
-            const testCandidate = row.mirrorName
-              ? draft.backends.find((b) => b.name === row.mirrorName)!
-              : row.backend
             const rowUsage = usageSums?.[row.name]
             const backfill = row.mirrorName ? state.backfills.find((b) => b.backend === row.mirrorName) : undefined
             return (
@@ -285,7 +280,7 @@ export default function MAdminStoragePanel(): React.ReactElement {
                   <p className="mt-1 font-geist text-[0.625rem] text-m-muted">{t('storage.backends.envReadOnly')}</p>
                 )}
                 <div className="mt-2 flex gap-2">
-                  <MAdminButton variant="ghost" onClick={() => admin.test(testCandidate)}>
+                  <MAdminButton variant="ghost" onClick={() => void testRow(row)}>
                     {t('storage.actions.test')}
                   </MAdminButton>
                   {row.source !== 'env' && (

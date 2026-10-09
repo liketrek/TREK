@@ -38,7 +38,7 @@ import {
   StatusPill,
 } from '../../Settings/settingsKit'
 import BackendForm from './BackendForm'
-import { CACHE_CATEGORIES, mirrorProbeTargets, primaryNameOf } from './storageModel'
+import { CACHE_CATEGORIES, primaryNameOf } from './storageModel'
 import { categoryNames, migrationPromptLine, useStoragePanel } from './useStoragePanel'
 
 /** The compact buttons of a backend row: white on a hairline, a size under the card's own. */
@@ -123,7 +123,7 @@ export default function AdminStoragePanel(): React.ReactElement {
     )
   }
   const {
-    state, draft, migrationCandidates, backendNames, rows, degenerate, effective, usageSums, startAdd, startEdit,
+    state, draft, migrationCandidates, backendNames, rows, degenerate, effective, usageSums, startAdd, startEdit, testRow,
     commitBackend, removeMessage, confirmRemoval, setCategory, save, moveAndSave, routeOnlySave,
   } = loaded
 
@@ -202,11 +202,6 @@ export default function AdminStoragePanel(): React.ReactElement {
           {rows.map((row) => {
             const resultKey = row.mirrorName ?? row.name
             const result = testResultFor(resultKey)
-            // row.mirrorName only exists when foldBackends adopted a draft mirror
-            // for this row, so the draft lookup below cannot miss.
-            const testCandidate = row.mirrorName
-              ? draft.backends.find((b) => b.name === row.mirrorName)!
-              : row.backend
             const rowUsage = usageSums?.[row.name]
             const backfill = row.mirrorName ? state.backfills.find((b) => b.backend === row.mirrorName) : undefined
             const TypeIcon = TYPE_ICON[row.type] ?? HardDrive
@@ -234,11 +229,7 @@ export default function AdminStoragePanel(): React.ReactElement {
                     <button type="button"
                       className={ROW_BUTTON}
                       style={fs(12, 'body')}
-                      onClick={() =>
-                        row.mirrorName
-                          ? admin.testMirror(resultKey, mirrorProbeTargets(draft, state, testCandidate))
-                          : admin.test(testCandidate)
-                      }
+                      onClick={() => void testRow(row)}
                     >
                       <PlugZap size={13} strokeWidth={2.2} />
                       {t('storage.actions.test')}
