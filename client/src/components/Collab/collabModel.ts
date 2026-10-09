@@ -150,13 +150,16 @@ export interface CollabNoteData {
 /** Category swatch palette, the same 6 hex values the desktop picker uses. */
 export const NOTE_COLORS = ['#6366f1', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
 
-/** One color per category, taken from whatever any note in that category
- *  already has stored (every note in a category is written with the same
- *  color at create time, so first-seen === all-seen in practice). */
-export function buildCategoryColorMap(notes: CollabNoteData[]): Record<string, string> {
+/** One color per category, taken from the notes in it, for the desktop panel and the
+ *  phone tab alike. Every note in a category is normally written with the same color,
+ *  but a recolour that failed halfway or a note written over the API can leave two;
+ *  then the last one in list order wins. */
+export function buildCategoryColorMap(
+  notes: readonly { category?: string | null; color?: string | null }[]
+): Record<string, string> {
   const map: Record<string, string> = {};
   for (const n of notes) {
-    if (n.category && n.color && !map[n.category]) map[n.category] = n.color;
+    if (n.category && n.color) map[n.category] = n.color;
   }
   return map;
 }

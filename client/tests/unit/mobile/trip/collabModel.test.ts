@@ -179,14 +179,23 @@ describe('collabModel — chat', () => {
 });
 
 describe('collabModel — notes', () => {
-  it('FE-MOB-CLBM-011: buildCategoryColorMap keeps the first colour seen per category', () => {
+  it('FE-MOB-CLBM-011: buildCategoryColorMap keeps the last colour seen per category', () => {
     const notes = [
       note({ id: 1, category: 'Ideas', color: '#ef4444' }),
       note({ id: 2, category: 'Ideas', color: '#10b981' }),
       note({ id: 3, category: 'Food', color: null }),
       note({ id: 4, category: null, color: '#3b82f6' }),
     ];
-    expect(buildCategoryColorMap(notes)).toEqual({ Ideas: '#ef4444' });
+    expect(buildCategoryColorMap(notes)).toEqual({ Ideas: '#10b981' });
+  });
+
+  it('FE-MOB-CLBM-023: a category whose notes disagree takes the colour the desktop panel shows', () => {
+    // A category recolour that failed halfway leaves its notes on two colours.
+    const notes = [
+      note({ id: 1, category: 'Ideas', color: '#ef4444' }),
+      note({ id: 2, category: 'Ideas', color: '#10b981' }),
+    ];
+    expect(buildCategoryColorMap(notes)).toEqual({ Ideas: '#10b981' });
   });
 
   it('FE-MOB-CLBM-012: getCategoryColor round-robins fresh categories onto the palette', () => {

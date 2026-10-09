@@ -18,6 +18,7 @@ import type { User } from '../../types'
 import type { CollabNote } from './CollabNotes.types'
 import { announceNoteFilesChanged, useCollabNotesData } from './useCollabNotesData'
 import { FONT, NOTE_COLORS } from './CollabNotes.constants'
+import { buildCategoryColorMap } from './collabModel'
 import { NoteFormModal } from './CollabNotesFormModal'
 import { CategorySettingsModal } from './CollabNotesCategorySettingsModal'
 import { NoteCard } from './CollabNotesCard'
@@ -68,13 +69,10 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
   }
 
   // Category colors: from notes first, then from empty categories
-  const categoryColors = useMemo(() => {
-    const map = { ...emptyCategories }
-    for (const n of notes) {
-      if (n.category && n.color) map[n.category] = n.color
-    }
-    return map
-  }, [notes, emptyCategories])
+  const categoryColors = useMemo(
+    () => ({ ...emptyCategories, ...buildCategoryColorMap(notes) }),
+    [notes, emptyCategories]
+  )
 
   const getCategoryColor = (cat) => {
     if (!cat) return NOTE_COLORS[0].value
