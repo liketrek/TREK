@@ -1,4 +1,4 @@
-// FE-COMP-FXHOOK-001 to -007: the currency converter both dashboards share.
+// FE-COMP-FXHOOK-001 to -008: the currency converter both dashboards share.
 import { act, renderHook, waitFor } from '@testing-library/react';
 
 import { useSettingsStore } from '../../store/settingsStore';
@@ -39,7 +39,7 @@ afterEach(() => {
 
 describe('useCurrencyConverter', () => {
   it('FE-COMP-FXHOOK-001: defaults to EUR to USD and converts the amount with the fetched rate', async () => {
-    const { result } = renderHook(() => useCurrencyConverter({ abortStale: false }));
+    const { result } = renderHook(() => useCurrencyConverter());
     expect(result.current.from).toBe('EUR');
     expect(result.current.to).toBe('USD');
     expect(result.current.currencies).toBe(CURRENCIES);
@@ -50,19 +50,18 @@ describe('useCurrencyConverter', () => {
     expect(result.current.converted).toBeCloseTo(2.75);
   });
 
-  it('FE-COMP-FXHOOK-002: the desktop mode fetches without a signal, the phone mode with one', async () => {
-    renderHook(() => useCurrencyConverter({ abortStale: false }));
+  it('FE-COMP-FXHOOK-002: both dashboards fetch the rates with an abort signal', async () => {
+    renderHook(() => useCurrencyConverter());
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(fetchMock.mock.calls[0]).toEqual(['https://api.frankfurter.dev/v2/rates?base=EUR']);
-
-    renderHook(() => useCurrencyConverter({ abortStale: true }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    expect(fetchMock.mock.calls[1][1]).toEqual({ signal: expect.any(AbortSignal) });
+    expect(fetchMock.mock.calls[0]).toEqual([
+      'https://api.frankfurter.dev/v2/rates?base=EUR',
+      { signal: expect.any(AbortSignal) },
+    ]);
   });
 
-  it('FE-COMP-FXHOOK-003: the phone mode aborts the request on unmount and on a refetch', async () => {
+  it('FE-COMP-FXHOOK-003: it aborts the request on unmount and on a refetch', async () => {
     fetchMock.mockImplementation(() => new Promise(() => {}));
-    const { result, unmount } = renderHook(() => useCurrencyConverter({ abortStale: true }));
+    const { result, unmount } = renderHook(() => useCurrencyConverter());
     const first = (fetchMock.mock.calls[0][1] as { signal: AbortSignal }).signal;
     act(() => result.current.fetchRates());
     expect(first.aborted).toBe(true);
@@ -73,20 +72,20 @@ describe('useCurrencyConverter', () => {
 
   it('FE-COMP-FXHOOK-004: a failed or malformed answer leaves no rate', async () => {
     fetchMock.mockImplementationOnce(() => Promise.reject(new Error('offline')));
-    const failed = renderHook(() => useCurrencyConverter({ abortStale: false }));
+    const failed = renderHook(() => useCurrencyConverter());
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     expect(failed.result.current.rate).toBeNull();
     expect(failed.result.current.converted).toBeNull();
 
     fetchMock.mockImplementationOnce(() => respond({ error: 'nope' }));
-    const malformed = renderHook(() => useCurrencyConverter({ abortStale: true }));
+    const malformed = renderHook(() => useCurrencyConverter());
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(malformed.result.current.rate).toBeNull();
   });
 
   it('FE-COMP-FXHOOK-005: picking and swapping write the pair to the settings', () => {
     seedSettings({ dashboard_fx_from: 'GBP', dashboard_fx_to: 'JPY' });
-    const { result } = renderHook(() => useCurrencyConverter({ abortStale: false }));
+    const { result } = renderHook(() => useCurrencyConverter());
     act(() => result.current.swap());
     expect(updateSetting).toHaveBeenCalledWith('dashboard_fx_from', 'JPY');
     expect(updateSetting).toHaveBeenCalledWith('dashboard_fx_to', 'GBP');
@@ -98,7 +97,7 @@ describe('useCurrencyConverter', () => {
     localStorage.setItem('trek_fx_from', 'CAD');
     localStorage.setItem('trek_fx_to', 'AUD');
     seedSettings({}, true);
-    renderHook(() => useCurrencyConverter({ abortStale: false }));
+    renderHook(() => useCurrencyConverter());
     expect(updateSetting).toHaveBeenCalledWith('dashboard_fx_from', 'CAD');
     expect(updateSetting).toHaveBeenCalledWith('dashboard_fx_to', 'AUD');
     await waitFor(() => expect(localStorage.getItem('trek_fx_from')).toBeNull());
@@ -109,9 +108,29 @@ describe('useCurrencyConverter', () => {
     localStorage.setItem('trek_fx_from', 'CAD');
     updateSetting.mockRejectedValue(new Error('down'));
     seedSettings({}, true);
-    renderHook(() => useCurrencyConverter({ abortStale: false }));
+    renderHook(() => useCurrencyConverter());
     await waitFor(() => expect(updateSetting).toHaveBeenCalled());
     await Promise.resolve();
     expect(localStorage.getItem('trek_fx_from')).toBe('CAD');
+  });
+
+  it('FE-COMP-FXHOOK-008: a late answer for the previous from currency never overwrites the newer one', async () => {
+    let resolveEur: (body: unknown) => void = () => {};
+    fetchMock.mockImplementation((url: string) =>
+      url.endsWith('base=EUR')
+        ? new Promise((resolve) => {
+            resolveEur = (body) => resolve({ json: () => Promise.resolve(body) } as Response);
+          })
+        : respond([{ quote: 'USD', rate: 1.3 }])
+    );
+    const { result } = renderHook(() => useCurrencyConverter());
+    act(() => seedSettings({ dashboard_fx_from: 'GBP' }));
+    await waitFor(() => expect(result.current.rate).toBe(1.3));
+    await act(async () => {
+      resolveEur([{ quote: 'USD', rate: 1.1 }]);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(result.current.rate).toBe(1.3);
   });
 });

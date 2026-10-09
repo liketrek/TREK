@@ -7,10 +7,11 @@ import { CURRENCIES } from '../Budget/BudgetPanel.constants';
  * The dashboard's currency converter: the pair lives in the user's settings, the
  * rates come from Frankfurter for the `from` currency.
  *
- * `abortStale` (the phone widget) aborts a request still in flight when a new one
- * starts or the widget goes away, so a late answer never lands on a gone tree.
+ * A request still in flight is aborted when a new one starts or the widget goes
+ * away, so a late answer for an older `from` never overwrites a newer one and never
+ * lands on a gone tree.
  */
-export function useCurrencyConverter({ abortStale }: { abortStale: boolean }) {
+export function useCurrencyConverter() {
   const isLoaded = useSettingsStore((s) => s.isLoaded);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
   const from = useSettingsStore((s) => s.settings.dashboard_fx_from) || 'EUR';
@@ -26,18 +27,14 @@ export function useCurrencyConverter({ abortStale }: { abortStale: boolean }) {
   const inFlight = useRef<AbortController | null>(null);
 
   const fetchRates = useCallback(() => {
-    let signal: AbortSignal | undefined;
-    if (abortStale) {
-      inFlight.current?.abort();
-      const controller = new AbortController();
-      inFlight.current = controller;
-      signal = controller.signal;
-    }
-    const url = `https://api.frankfurter.dev/v2/rates?base=${from}`;
-    (signal ? fetch(url, { signal }) : fetch(url))
+    inFlight.current?.abort();
+    const controller = new AbortController();
+    inFlight.current = controller;
+    const { signal } = controller;
+    fetch(`https://api.frankfurter.dev/v2/rates?base=${from}`, { signal })
       .then((r) => r.json())
       .then((d: Array<{ quote: string; rate: number }>) => {
-        if (signal?.aborted) return;
+        if (signal.aborted) return;
         if (!Array.isArray(d)) {
           setRates(null);
           return;
@@ -49,16 +46,15 @@ export function useCurrencyConverter({ abortStale }: { abortStale: boolean }) {
       })
       .catch(() => {
         // An abort is not a failure: it means nobody is waiting for the answer.
-        if (!signal?.aborted) setRates(null);
+        if (!signal.aborted) setRates(null);
       });
-  }, [from, abortStale]);
+  }, [from]);
 
   useEffect(() => {
     fetchRates();
-    if (!abortStale) return;
     const pending = inFlight;
     return () => pending.current?.abort();
-  }, [fetchRates, abortStale]);
+  }, [fetchRates]);
 
   // One-time migration of the pre-3.1.3 localStorage values into the user's settings,
   // so a (docker) upgrade no longer resets the widget (#1311).

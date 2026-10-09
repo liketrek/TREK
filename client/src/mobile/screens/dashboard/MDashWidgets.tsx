@@ -101,7 +101,7 @@ function MCurrencyWidget(): React.ReactElement {
   const { t } = useTranslation()
   // The request outlives the widget: this is a third-party endpoint on a mobile
   // screen a user can leave immediately, so a pending one is aborted on the way out.
-  const { from, to, setFrom, setTo, amount, setAmount, currencies, rate, converted, swap, fetchRates } = useCurrencyConverter({ abortStale: true })
+  const { from, to, setFrom, setTo, amount, setAmount, currencies, rate, converted, swap, fetchRates } = useCurrencyConverter()
 
   return (
     <WidgetPanel

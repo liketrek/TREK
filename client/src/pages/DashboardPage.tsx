@@ -662,7 +662,7 @@ function TripCard({ trip, locale, badges, matchedPlaces, onOpen, onEdit, onCopy,
 // ── Currency tool (self-contained, mirrors the design's fx widget) ───────────
 function CurrencyTool(): React.ReactElement {
   const { t } = useTranslation()
-  const { from, to, setFrom, setTo, amount, setAmount, currencies, rate, converted, swap, fetchRates: fetchRate } = useCurrencyConverter({ abortStale: false })
+  const { from, to, setFrom, setTo, amount, setAmount, currencies, rate, converted, swap, fetchRates: fetchRate } = useCurrencyConverter()
   const ccyOptions = currencies.map(c => ({ value: c, label: c }))
 
   return (
