@@ -128,7 +128,7 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
     setIsSaving(true)
     try {
       const saved = await saveTransport(buildPayload(days, {
-        reservation: res, prefill, budgetEnabled: isBudgetEnabled, anchorOnStations: true, emptyMetadataAsNull: true,
+        reservation: res, prefill, budgetEnabled: isBudgetEnabled, anchorOnStations: true,
       }))
       // Persist the traveler assignment once we have the reservation id (from the
       // save result on create, or the edited reservation) — only when it changed.

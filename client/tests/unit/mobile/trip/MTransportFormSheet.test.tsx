@@ -248,7 +248,7 @@ describe('MTransportFormSheet', () => {
       location: null,
       confirmation_number: 'BUS-4711',
       notes: 'Seat 4 reserved',
-      metadata: null,
+      metadata: {},
       endpoints: [
         { role: 'from', sequence: 0, name: 'Osaka Station', code: null, lat: 34.7, lng: 135.5, timezone: null, local_date: '2026-05-01', local_time: '08:15' },
         { role: 'to', sequence: 1, name: 'Kyoto Station', code: null, lat: 34.98, lng: 135.75, timezone: null, local_date: '2026-05-02', local_time: '11:00' },
@@ -395,7 +395,7 @@ describe('MTransportFormSheet', () => {
     await submit()
 
     const payload = handleSaveTransport.mock.calls[0][0]
-    expect(payload.metadata).toBeNull()
+    expect(payload.metadata).toEqual({})
     expect(payload.endpoints).toEqual([])
     expect(payload.day_id).toBeNull()
   })
@@ -791,7 +791,7 @@ describe('MTransportFormSheet', () => {
 
     await submit('common.update')
     const payload = handleSaveTransport.mock.calls[0][0]
-    expect(payload.metadata).toBeNull()
+    expect(payload.metadata).toEqual({})
     expect(payload.endpoints).toEqual([
       expect.objectContaining({ role: 'from', name: 'Osaka Station' }),
       expect.objectContaining({ role: 'to', sequence: 1, name: 'Nara Station' }),
@@ -1141,5 +1141,20 @@ describe('MTransportFormSheet', () => {
     await submit('common.update')
     expect(handleSaveTransport).toHaveBeenCalled()
     expect(addFile).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-TRFRM-060: editing a bus with a stored price sends an empty metadata object, not null, so the price survives (#2233)', async () => {
+    const handleSaveTransport = makeSave()
+    const editingTransport = {
+      id: 62, trip_id: 1, type: 'bus', title: 'Airport shuttle', status: 'confirmed', day_id: 12,
+      metadata: { price: '45', priceCurrency: 'EUR' }, endpoints: [],
+    } as unknown as Reservation
+    renderSheet(makePlanner({ editingTransport, handleSaveTransport }))
+    typeTitle('Airport shuttle (late)')
+
+    await submit('common.update')
+    // The server reads null as "clear the column" and only carries the expense
+    // price over into an object, so null here would wipe price / priceCurrency.
+    expect(handleSaveTransport.mock.calls[0][0].metadata).toEqual({})
   })
 })

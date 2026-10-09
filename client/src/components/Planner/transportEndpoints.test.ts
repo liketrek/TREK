@@ -82,7 +82,6 @@ const DESKTOP_SAVE: TransportPayloadOptions = {
   prefill: null,
   budgetEnabled: false,
   anchorOnStations: false,
-  emptyMetadataAsNull: false,
   url: '',
 };
 const PHONE_SAVE: TransportPayloadOptions = {
@@ -90,7 +89,6 @@ const PHONE_SAVE: TransportPayloadOptions = {
   prefill: null,
   budgetEnabled: false,
   anchorOnStations: true,
-  emptyMetadataAsNull: true,
 };
 
 describe('transport types and endpoints', () => {
@@ -392,10 +390,10 @@ describe('buildTransportPayload', () => {
     });
   });
 
-  it('FE-PLANNER-TRANSPORTEP-014: the phone sends no url and an empty metadata as null; a url is sent when given', () => {
+  it('FE-PLANNER-TRANSPORTEP-014: the phone sends no url and an empty metadata as an empty object; a url is sent when given', () => {
     const phone = buildTransportPayload(draft(), days, PHONE_SAVE);
     expect(phone).not.toHaveProperty('url');
-    expect(phone.metadata).toBeNull();
+    expect(phone.metadata).toEqual({});
     expect(buildTransportPayload(draft(), days, { ...DESKTOP_SAVE, url: 'https://x.test' }).url).toBe('https://x.test');
   });
 

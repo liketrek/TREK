@@ -497,8 +497,6 @@ export interface TransportPayloadOptions {
    * first and last rows.
    */
   anchorOnStations: boolean;
-  /** The phone sends a booking without metadata as null; the desktop sends an empty object (#2233). */
-  emptyMetadataAsNull: boolean;
   /** The desktop's link field; the phone has none and sends no url. */
   url?: string;
 }
@@ -731,7 +729,9 @@ export function buildTransportPayload(
     confirmation_number: form.confirmation_number || null,
     notes: form.notes || null,
     ...(opts.url !== undefined ? { url: opts.url || null } : {}),
-    metadata: opts.emptyMetadataAsNull && Object.keys(metadata).length === 0 ? null : metadata,
+    // Always an object, never null: the server reads null as "clear the column" and
+    // would drop the expense price mirrored into metadata (#2233).
+    metadata,
     endpoints,
     needs_review: false,
   };

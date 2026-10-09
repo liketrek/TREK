@@ -137,7 +137,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
     setIsSaving(true)
     try {
       const saved = await onSave(payload(days, {
-        reservation, prefill, budgetEnabled: isBudgetEnabled, anchorOnStations: false, emptyMetadataAsNull: false, url: form.url,
+        reservation, prefill, budgetEnabled: isBudgetEnabled, anchorOnStations: false, url: form.url,
       }))
       // Persist the traveler assignment once we have the reservation id (create → save
       // result, edit → existing reservation), and only when it actually changed (#1517).

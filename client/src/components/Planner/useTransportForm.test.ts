@@ -150,9 +150,8 @@ describe('useTransportForm', () => {
       prefill: null,
       budgetEnabled: false,
       anchorOnStations: true,
-      emptyMetadataAsNull: true,
     });
-    expect(payload).toMatchObject({ title: 'Coach', type: 'bus', day_id: 1, metadata: null });
+    expect(payload).toMatchObject({ title: 'Coach', type: 'bus', day_id: 1, metadata: {} });
     expect(payload.endpoints).toEqual([
       expect.objectContaining({ role: 'to', name: 'B', sequence: 1, local_date: '2026-05-01' }),
     ]);

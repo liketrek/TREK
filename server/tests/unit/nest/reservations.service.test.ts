@@ -263,6 +263,23 @@ describe('ReservationsService (DI-native, real SQL)', () => {
       expect(reservation.metadata).toBeNull();
     });
 
+    it('RESV-SVC-043: a bus edit with an empty metadata object keeps the price, the same edit with null drops it (#2233)', async () => {
+      // A bus, car, taxi or ferry has no metadata of its own, so the booking form
+      // rebuilds it as {}. The phone used to send null instead, which this
+      // service rightly reads as "clear the column", and the price went with it.
+      const { trip } = ownerTrip();
+      const res = createReservation(testDb, trip.id, { title: 'Shuttle', type: 'bus' });
+      await updateRows(orm, Reservations, { id: res.id }, { metadata: JSON.stringify({ price: '45', priceCurrency: 'EUR' }) });
+
+      let current = (await svc.getReservation(String(res.id), String(trip.id)))!;
+      let { reservation } = await svc.update(String(res.id), String(trip.id), { metadata: {} }, current);
+      expect(JSON.parse(reservation.metadata as string)).toEqual({ price: '45', priceCurrency: 'EUR' });
+
+      current = (await svc.getReservation(String(res.id), String(trip.id)))!;
+      ({ reservation } = await svc.update(String(res.id), String(trip.id), { metadata: null }, current));
+      expect(reservation.metadata).toBeNull();
+    });
+
     it('RESV-SVC-010: endpoints [] wipes stored endpoints; an absent field leaves them alone', async () => {
       const { trip } = ownerTrip();
       const res = createReservation(testDb, trip.id, { title: 'Bus' });
