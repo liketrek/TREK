@@ -1839,9 +1839,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     if (fromReservationId && fromDayId !== day.id) {
                       const r = reservations.find(x => x.id === Number(fromReservationId))
                       if (r) { const update = computeMultiDayMove(r, day.id, phase); tripActions.updateReservation(tripId, r.id, update).catch((err: unknown) => toast.error(err instanceof Error ? err.message : t('common.unknownError'))) }
-                      setDraggingId(null); setDropTargetKey(null); dragDataRef.current = null; return
+                      setDraggingId(null); setDropTargetKey(null); window.__dragData = dragDataRef.current = null; return
                     }
-                    if (!assignmentId && !noteId && !placeId) { dragDataRef.current = null; window.__dragData = null; return }
+                    if (!assignmentId && !noteId && !placeId) { window.__dragData = dragDataRef.current = null; return }
                     if (placeId) {
                       onAssignToDay?.(Number.parseInt(placeId), day.id)
                       setDropTargetKey(null); window.__dragData = null; return
