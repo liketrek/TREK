@@ -23,9 +23,9 @@ interface UseGithubReleasesOptions {
   isPrerelease: boolean;
   /**
    * Keep pulling pages until at least one release survives the prerelease filter, up to
-   * MAX_PAGES_PER_LOAD per load. A failed page then keeps what is already shown and
-   * leaves the page counter where it was, and the next good load clears the error.
-   * Without it each load reads exactly one page and the page counter moves on regardless.
+   * MAX_PAGES_PER_LOAD per load. Without it each load reads exactly one page. Either way
+   * a failed page keeps what is already shown and leaves the page counter where it was,
+   * and the next good load clears the error.
    */
   fillPages?: boolean;
 }
@@ -59,9 +59,11 @@ export function useGithubReleases({ isPrerelease, fillPages = false }: UseGithub
 
   const fetchReleases = async (pageNum = 1, append = false) => {
     const data = await fetchPage(pageNum);
-    if (!data) return;
+    if (!data) return false;
     setReleases((prev) => (append ? [...prev, ...data] : data));
     setHasMore(data.length === PER_PAGE);
+    setError(null);
+    return true;
   };
 
   // Keep pulling pages until at least one release survives the prerelease filter,
@@ -102,8 +104,7 @@ export function useGithubReleases({ isPrerelease, fillPages = false }: UseGithub
     }
     const next = page + 1;
     setLoadingMore(true);
-    await fetchReleases(next, true);
-    setPage(next);
+    if (await fetchReleases(next, true)) setPage(next);
     setLoadingMore(false);
   };
 

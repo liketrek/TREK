@@ -1,4 +1,4 @@
-// FE-ADMIN-GH-001 to FE-ADMIN-GH-016
+// FE-ADMIN-GH-001 to FE-ADMIN-GH-017
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -332,5 +332,32 @@ describe('GitHubPanel', () => {
 
     // Load more should be hidden (PAGE_2 < 10)
     expect(screen.queryByText('Load more')).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-GH-017: a failed "Load more" keeps the list and the retry loads the page', async () => {
+    let failPage2 = true;
+    server.use(
+      http.get('/api/admin/github-releases', ({ request }) => {
+        const page = new URL(request.url).searchParams.get('page');
+        if (page === '2') {
+          if (failPage2) return HttpResponse.json({ error: 'rate limited' }, { status: 500 });
+          return HttpResponse.json(PAGE_2);
+        }
+        return HttpResponse.json(PAGE_1);
+      }),
+    );
+    const user = userEvent.setup();
+    render(<GitHubPanel />);
+    await screen.findByText('v1.0.0');
+
+    await user.click(screen.getByText('Load more'));
+    await screen.findByText(/Failed to load releases/);
+    expect(screen.getAllByText(/v1\.\d\.0/).length).toBe(10);
+
+    failPage2 = false;
+    await user.click(screen.getByText('Load more'));
+    await screen.findByText('v0.0.0');
+    expect(screen.getAllByText(/^v[01]\.\d\.0$/).length).toBe(15);
+    expect(screen.queryByText(/Failed to load releases/)).not.toBeInTheDocument();
   });
 });

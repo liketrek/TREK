@@ -1,4 +1,4 @@
-// FE-COMP-GHREL-HOOK-001 to -011: the release history behind both admin shells.
+// FE-COMP-GHREL-HOOK-001 to -012: the release history behind both admin shells.
 import { act, renderHook, waitFor } from '@testing-library/react';
 
 import apiClient from '../../api/client';
@@ -76,7 +76,7 @@ describe('useGithubReleases, one page per load', () => {
     expect(result.current.loadingMore).toBe(false);
   });
 
-  it('FE-COMP-GHREL-HOOK-004: a failed load more sets the error and still moves the page on', async () => {
+  it('FE-COMP-GHREL-HOOK-004: a failed load more sets the error and holds the page', async () => {
     const spy = serve({ 1: fullPage(1), 2: new Error('rate limited'), 3: [release(21)] });
     const { result } = renderHook(() => useGithubReleases({ isPrerelease: false }));
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -87,8 +87,35 @@ describe('useGithubReleases, one page per load', () => {
     await act(async () => {
       await result.current.handleLoadMore();
     });
-    expect(requestedPages(spy)).toEqual([1, 2, 3]);
+    expect(requestedPages(spy)).toEqual([1, 2, 2]);
     expect(result.current.error).toBe('rate limited');
+  });
+
+  it('FE-COMP-GHREL-HOOK-012: a failed load more keeps the list and the retry clears the error', async () => {
+    let failPage2 = true;
+    const spy = vi
+      .spyOn(apiClient, 'get')
+      .mockImplementation(async (_url: string, config?: { params?: { page?: number } }) => {
+        const page = config?.params?.page;
+        if (page === 1) return { data: fullPage(1) };
+        if (failPage2) throw new Error('offline');
+        return { data: [release(11)] };
+      });
+    const { result } = renderHook(() => useGithubReleases({ isPrerelease: false }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(async () => {
+      await result.current.handleLoadMore();
+    });
+    expect(result.current.error).toBe('offline');
+    expect(result.current.releases).toHaveLength(10);
+    failPage2 = false;
+    await act(async () => {
+      await result.current.handleLoadMore();
+    });
+    expect(requestedPages(spy)).toEqual([1, 2, 2]);
+    expect(result.current.error).toBeNull();
+    expect(result.current.releases).toHaveLength(11);
+    expect(result.current.hasMore).toBe(false);
   });
 
   it('FE-COMP-GHREL-HOOK-005: a first page of only prereleases is all a stable install gets', async () => {

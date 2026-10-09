@@ -69,7 +69,7 @@ function SupportCard({ link }: { link: SupportLink }) {
 export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: boolean }) {
   const { t } = useTranslation();
   const {
-    shownReleases: shown, loading, error, expanded, toggleExpand, hasMore, loadingMore, handleLoadMore, formatDate,
+    releases, shownReleases: shown, loading, error, expanded, toggleExpand, hasMore, loadingMore, handleLoadMore, formatDate,
   } = useGithubReleases({ isPrerelease });
 
   // Simple markdown-to-html for release notes (handles headers, bold, lists, links)
@@ -183,7 +183,7 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
         </div>
       </SettingsCard>
     );
-  } else if (error) {
+  } else if (error && releases.length === 0) {
     releasesCard = <SettingsCard icon={AlertTriangle} tone="danger" title={t('admin.github.error')} hint={error} />;
   } else {
     releasesCard = (
@@ -275,6 +275,13 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
             })}
           </div>
         </div>
+
+        {/* A failed "Load more" keeps the timeline and stays retryable */}
+        {error && (
+          <p className="m-0 text-center text-content-faint" style={fs(11.5)}>
+            {t('admin.github.error')}: {error}
+          </p>
+        )}
 
         {/* Load more */}
         {hasMore && (
