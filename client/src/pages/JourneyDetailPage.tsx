@@ -11,7 +11,7 @@ import EmptyState from '../components/shared/EmptyState'
 import { Outlet } from 'react-router'
 import {
   ArrowLeft, MoreHorizontal, List, Grid, MapPin,
-  Plus, ChevronUp, ChevronDown, Eye, EyeOff, BookOpen, Image, Search, X,
+  Plus, ChevronUp, ChevronDown, Eye, EyeOff, BookOpen, Image, Search, X, Loader2,
 } from 'lucide-react'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import JourneyDayDawarich from '../components/Journey/JourneyDayDawarich'
@@ -56,6 +56,7 @@ function JourneyDetailPageDesktop() {
     query, setQuery, dismissSuggestion, restoreSuggestions, openAtEntryId,
     dawarichByDate, dawarichBusyId, acceptDawarich, dismissDawarich,
     mapRef, fullMapRef, galleryUploadRef, galleryProviders, setGalleryProviders, galleryBrowseRef,
+    galleryUploadProgress, setGalleryUploadProgress,
     activeLocationId, handleMarkerClick, handleLocationClick,
     mapEntries, sidebarMapItems, tripDates, isMobile, tracks, mapPhotos, openMapPhotos,
     feedEdge, scrollFeedTo,
@@ -145,11 +146,21 @@ function JourneyDetailPageDesktop() {
       ))}
       <button type="button"
         onClick={() => galleryUploadRef.current?.()}
-        className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
+        disabled={galleryUploadProgress !== null}
+        className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0"
         style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}
       >
-        <Plus size={16} strokeWidth={2.4} />
-        {t('common.upload')}
+        {galleryUploadProgress ? (
+          <>
+            <Loader2 size={16} strokeWidth={2.4} className="animate-spin" />
+            {t('journey.editor.uploadingProgress', { done: String(galleryUploadProgress.done), total: String(galleryUploadProgress.total) })}
+          </>
+        ) : (
+          <>
+            <Plus size={16} strokeWidth={2.4} />
+            {t('common.upload')}
+          </>
+        )}
       </button>
     </div>
   ) : null
@@ -600,6 +611,7 @@ function JourneyDetailPageDesktop() {
                 )}
                 <GalleryView
                   onRegisterUpload={(fn) => { galleryUploadRef.current = fn }}
+                  onUploadProgress={setGalleryUploadProgress}
                   onRegisterProviders={(providers, browse) => { setGalleryProviders(providers); galleryBrowseRef.current = browse }}
                   entries={current.entries}
                   gallery={current.gallery || []}

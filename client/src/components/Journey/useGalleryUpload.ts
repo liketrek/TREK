@@ -14,8 +14,9 @@ export interface GalleryUploadOptions {
   /** Reload the journey once the upload is through, whatever came of it. */
   onUploaded: () => void;
   /**
-   * Hand the upload a progress callback, as the desktop gallery always has. The count
-   * is only tracked; no view shows it.
+   * Hand the upload a progress callback, so `progress` counts the files up while they go
+   * (the desktop gallery's upload button shows it). Without it the count stays at none
+   * done until the batch is through.
    */
   trackProgress?: boolean;
   /**
@@ -76,5 +77,5 @@ export function useGalleryUpload({
     e.target.value = '';
   };
 
-  return { uploading: progress !== null, handleGalleryUpload };
+  return { uploading: progress !== null, progress, handleGalleryUpload };
 }

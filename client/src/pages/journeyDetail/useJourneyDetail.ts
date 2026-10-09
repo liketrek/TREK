@@ -40,6 +40,8 @@ export function useJourneyDetail() {
   const fullMapRef = useRef<JourneyMapHandle>(null)
   /** The gallery hands its file picker up here, so the hero button can open it. */
   const galleryUploadRef = useRef<(() => void) | null>(null)
+  /** The gallery's upload count while it runs, for that same hero button. */
+  const [galleryUploadProgress, setGalleryUploadProgress] = useState<{ done: number; total: number } | null>(null)
   /** Same deal for photo providers: the gallery probes which ones are
       connected and reports them up, so the header can render an Immich/
       Synology button next to Upload. */
@@ -561,6 +563,7 @@ export function useJourneyDetail() {
     dawarichByDate, dawarichBusyId: dawarich.busyId, acceptDawarich, dismissDawarich,
     openAtEntryId,
     mapRef, fullMapRef, galleryUploadRef, galleryProviders, setGalleryProviders, galleryBrowseRef,
+    galleryUploadProgress, setGalleryUploadProgress,
     activeLocationId, handleMarkerClick, handleLocationClick,
     mapEntries, sidebarMapItems, tripDates, isMobile, tracks: mapTracks, dawarichTrail,
     mapPhotos, openMapPhotos,

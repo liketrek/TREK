@@ -1,4 +1,4 @@
-// FE-JRN-GALLERYUPLOAD-001 to FE-JRN-GALLERYUPLOAD-006: the gallery upload behind both
+// FE-JRN-GALLERYUPLOAD-001 to FE-JRN-GALLERYUPLOAD-007: the gallery upload behind both
 // the desktop gallery and the phone journey screen.
 import { act, renderHook } from '@testing-library/react';
 import type React from 'react';
@@ -110,5 +110,33 @@ describe('useGalleryUpload', () => {
     await act(() => result.current.handleGalleryUpload(changeEvent([new File(['a'], 'a.jpg')]).event));
     expect(toast.success).toHaveBeenCalledWith('view:journey.photosUploaded');
     expect(addToast).not.toHaveBeenCalled();
+  });
+
+  it('FE-JRN-GALLERYUPLOAD-007: progress counts the files up while they go and is gone after', async () => {
+    let finish: () => void = () => {};
+    let report: (p: unknown) => void = () => {};
+    upload.mockImplementationOnce(
+      (_id: number, _files: File[], cbs?: { onProgress?: (p: unknown) => void }) =>
+        new Promise((resolve) => {
+          report = (p) => cbs?.onProgress?.(p);
+          finish = () => resolve({ succeeded: [], failed: [] });
+        })
+    );
+    const { result } = setup({ trackProgress: true });
+    expect(result.current.progress).toBeNull();
+    let running: Promise<void> = Promise.resolve();
+    await act(async () => {
+      running = result.current.handleGalleryUpload(
+        changeEvent([new File(['a'], 'a.jpg'), new File(['b'], 'b.jpg')]).event
+      );
+    });
+    expect(result.current.progress).toEqual({ done: 0, total: 2 });
+    act(() => report({ done: 1, total: 2 }));
+    expect(result.current.progress).toEqual({ done: 1, total: 2 });
+    await act(async () => {
+      finish();
+      await running;
+    });
+    expect(result.current.progress).toBeNull();
   });
 });

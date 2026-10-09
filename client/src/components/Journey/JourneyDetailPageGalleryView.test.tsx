@@ -1,4 +1,4 @@
-// FE-JRN-GALLERY-001 to FE-JRN-GALLERY-020
+// FE-JRN-GALLERY-001 to FE-JRN-GALLERY-021
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { act, useRef, useState } from 'react'
@@ -79,11 +79,12 @@ const entries: JourneyEntry[] = [
 /** Mirrors the page wiring: the gallery reports its connected providers up,
     and the host renders one button per provider next to Upload. The picker's
     Add goes through the same hook the page takes from useJourneyDetail. */
-function GalleryHarness({ gallery, onPhotoClick, onRefresh, onRegisterUpload }: {
+function GalleryHarness({ gallery, onPhotoClick, onRefresh, onRegisterUpload, onUploadProgress }: {
   gallery: GalleryPhoto[]
   onPhotoClick: (photos: GalleryPhoto[], index: number) => void
   onRefresh: () => void
   onRegisterUpload?: (fn: () => void) => void
+  onUploadProgress?: (progress: { done: number; total: number } | null) => void
 }) {
   const [providers, setProviders] = useState<{ id: string; name: string }[]>([])
   const browseRef = useRef<((provider: string) => void) | null>(null)
@@ -103,6 +104,7 @@ function GalleryHarness({ gallery, onPhotoClick, onRefresh, onRegisterUpload }: 
         onRefresh={onRefresh}
         onAddProviderPhotos={addPickedPhotos}
         onRegisterUpload={onRegisterUpload}
+        onUploadProgress={onUploadProgress}
         onRegisterProviders={(p, browse) => { setProviders(p); browseRef.current = browse }}
       />
     </>
@@ -112,10 +114,11 @@ function GalleryHarness({ gallery, onPhotoClick, onRefresh, onRegisterUpload }: 
 function mountGallery(gallery: GalleryPhoto[], onRegisterUpload?: (fn: () => void) => void) {
   const onPhotoClick = vi.fn()
   const onRefresh = vi.fn()
+  const onUploadProgress = vi.fn()
   const utils = render(
-    <GalleryHarness gallery={gallery} onPhotoClick={onPhotoClick} onRefresh={onRefresh} onRegisterUpload={onRegisterUpload} />,
+    <GalleryHarness gallery={gallery} onPhotoClick={onPhotoClick} onRefresh={onRefresh} onRegisterUpload={onRegisterUpload} onUploadProgress={onUploadProgress} />,
   )
-  return { ...utils, onPhotoClick, onRefresh }
+  return { ...utils, onPhotoClick, onRefresh, onUploadProgress }
 }
 
 function useConnectedImmich() {
@@ -347,6 +350,19 @@ describe('GalleryView', () => {
     expect(uploadGalleryPhotos).toHaveBeenCalledTimes(1)
     expect(toastSpy).toHaveBeenCalledWith('1 photo uploaded', 'success', undefined)
     expect(input.value).toBe('')
+  })
+
+  it('FE-JRN-GALLERY-021: hands the upload count up while the files go, and clears it after', async () => {
+    const { container, onRefresh, onUploadProgress } = mountGallery([])
+    expect(onUploadProgress).toHaveBeenLastCalledWith(null)
+    onUploadProgress.mockClear()
+
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement
+    fireEvent.change(input, { target: { files: [new File(['a'], 'a.jpg', { type: 'image/jpeg' })] } })
+
+    await waitFor(() => expect(onRefresh).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(onUploadProgress).toHaveBeenLastCalledWith(null))
+    expect(onUploadProgress).toHaveBeenCalledWith({ done: 0, total: 1 })
   })
 
   it('FE-JRN-GALLERY-015: reports partially failed uploads but still refreshes', async () => {

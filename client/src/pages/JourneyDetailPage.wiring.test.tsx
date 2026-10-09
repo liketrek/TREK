@@ -1,4 +1,4 @@
-// FE-JRN-DETWIRE-001 to FE-JRN-DETWIRE-042
+// FE-JRN-DETWIRE-001 to FE-JRN-DETWIRE-043
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '../../tests/helpers/render';
 import { journeyApi } from '../api/client';
@@ -106,6 +106,7 @@ function buildHook(over: Record<string, unknown> = {}): Record<string, unknown> 
     acceptDawarich: vi.fn(async () => {}), dismissDawarich: vi.fn(),
     mapRef: { current: null }, fullMapRef: { current: null }, galleryUploadRef: { current: null },
     galleryProviders: [], setGalleryProviders: vi.fn(), galleryBrowseRef: { current: null },
+    galleryUploadProgress: null, setGalleryUploadProgress: vi.fn(),
     activeLocationId: null, handleMarkerClick: vi.fn(), handleLocationClick: vi.fn(),
     mapEntries: [], sidebarMapItems: [], tripDates: new Set<string>(), isMobile: false,
     feedEdge: { atTop: true, atBottom: true }, scrollFeedTo: vi.fn(),
@@ -600,5 +601,13 @@ describe('JourneyDetailPage wiring', () => {
     } finally {
       process.off('unhandledRejection', unhandled);
     }
+  });
+
+  it('FE-JRN-DETWIRE-043: the gallery upload button counts the files up while they go', () => {
+    const { hook } = setup({ view: 'gallery', galleryUploadProgress: { done: 1, total: 3 } });
+    expect(mocks.captured.gallery.onUploadProgress).toBe(hook.setGalleryUploadProgress);
+    const button = screen.getByText('journey.editor.uploadingProgress').closest('button')!;
+    expect(button).toBeDisabled();
+    expect(screen.queryByText('common.upload')).not.toBeInTheDocument();
   });
 });

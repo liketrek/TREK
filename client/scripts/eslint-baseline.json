@@ -2,7 +2,7 @@
   "src": {
     "@typescript-eslint/no-explicit-any": 155,
     "@typescript-eslint/no-unused-expressions": 2,
-    "@typescript-eslint/no-unused-vars": 159,
+    "@typescript-eslint/no-unused-vars": 158,
     "no-empty": 19,
     "no-useless-assignment": 7,
     "no-useless-escape": 1,

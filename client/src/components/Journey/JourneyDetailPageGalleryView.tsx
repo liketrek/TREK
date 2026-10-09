@@ -12,7 +12,7 @@ import { useGalleryUpload } from './useGalleryUpload'
 import { ScrollTrigger } from './JourneyDetailPageScrollTrigger'
 import EmptyState from '../shared/EmptyState'
 
-export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick, onRefresh, onAddProviderPhotos, onRegisterUpload, onRegisterProviders }: {
+export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick, onRefresh, onAddProviderPhotos, onRegisterUpload, onRegisterProviders, onUploadProgress }: {
   entries: JourneyEntry[]
   gallery: GalleryPhoto[]
   journeyId: number
@@ -23,13 +23,16 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
   /** What the picker's Add does: the host's useProviderPhotoAdds, shared with the phone screen. */
   onAddProviderPhotos: (journeyId: number, provider: string, groups: ProviderPhotoGroup[], entryId: number | null) => Promise<unknown>
   onRegisterUpload?: (fn: () => void) => void
+  /** The upload's file count while it runs, null once it is through: the page's Upload button shows it. */
+  onUploadProgress?: (progress: { done: number; total: number } | null) => void
   onRegisterProviders?: (providers: { id: string; name: string }[], browse: (provider: string) => void) => void
 }) {
   const { t } = useTranslation()
   const [showPicker, setShowPicker] = useState(false)
   const [pickerProvider, setPickerProvider] = useState<string | null>(null)
-  const { uploading: galleryUploading, handleGalleryUpload } =
+  const { progress: galleryProgress, handleGalleryUpload } =
     useGalleryUpload({ journeyId, onUploaded: onRefresh, trackProgress: true })
+  useEffect(() => { onUploadProgress?.(galleryProgress) }, [galleryProgress, onUploadProgress])
   const toast = useToast()
 
   // The providers enabled AND connected for the current user, handed up: the page
