@@ -11,7 +11,7 @@ import { server } from '../../../helpers/msw/server'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-PLEDIT-001 to FE-MOB-PLEDIT-046, plus the 009b, 025b and 029b variants
+// FE-MOB-PLEDIT-001 to FE-MOB-PLEDIT-047, plus the 009b, 025b and 029b variants
 // planner.t echoes the key, so every label/placeholder is asserted as its key.
 
 const CATEGORIES = [
@@ -187,6 +187,34 @@ describe('MPlaceEditSheet', () => {
     fireEvent.paste(lat, { clipboardData: { getData: () => ' 35.6895, 139.6917 ' } })
     expect(lat).toHaveValue('35.6895')
     expect(screen.getByPlaceholderText('places.formLng')).toHaveValue('139.6917')
+  })
+
+  it('FE-MOB-PLEDIT-047: a pasted "lat, lng" pair counts as typed, so a later pick without a position keeps it', async () => {
+    let searches = 0
+    server.use(
+      http.post('/api/maps/search', () => {
+        searches += 1
+        return HttpResponse.json(searches === 1
+          ? { source: 'osm', places: [{ name: 'Ueno Koen', address: 'Taito', lat: 35.7, lng: 139.7 }] }
+          : { source: 'osm', places: [{ name: 'Ameyoko', address: 'Ueno' }] })
+      }),
+    )
+    setup()
+    const search = screen.getByPlaceholderText('places.mapsSearchPlaceholder')
+    fireEvent.change(search, { target: { value: 'ueno koen' } })
+    fireEvent.click(screen.getByRole('button', { name: 'common.search' }))
+    fireEvent.click(await screen.findByText('Ueno Koen'))
+
+    const lat = screen.getByPlaceholderText('places.formLat')
+    fireEvent.paste(lat, { clipboardData: { getData: () => '35.7101, 139.7745' } })
+
+    fireEvent.change(search, { target: { value: 'ameyoko' } })
+    fireEvent.click(screen.getByRole('button', { name: 'common.search' }))
+    fireEvent.click(await screen.findByText('Ameyoko'))
+
+    expect(nameField()).toHaveValue('Ameyoko')
+    expect(lat).toHaveValue('35.7101')
+    expect(screen.getByPlaceholderText('places.formLng')).toHaveValue('139.7745')
   })
 
   it('FE-MOB-PLEDIT-013: an unparseable paste is left to the browser', () => {

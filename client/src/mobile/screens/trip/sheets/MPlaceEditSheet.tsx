@@ -165,7 +165,10 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
     const pair = parseCoordinatePair(e.clipboardData.getData('text'))
     if (pair) {
       e.preventDefault()
-      setForm(prev => ({ ...prev, lat: pair[0], lng: pair[1] }))
+      // Through handleChange, as on the desktop: a pasted position is the user's,
+      // so the next search pick must not clear it.
+      handleChange('lat', pair[0])
+      handleChange('lng', pair[1])
     }
   }
 
