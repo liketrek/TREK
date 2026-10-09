@@ -1,4 +1,4 @@
-// FE-COMP-PHOTOPROVIDERS-001 to FE-COMP-PHOTOPROVIDERS-027
+// FE-COMP-PHOTOPROVIDERS-001 to FE-COMP-PHOTOPROVIDERS-028
 import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -278,6 +278,31 @@ describe('PhotoProvidersSection', () => {
     await screen.findByText('Immich');
     await user.click(screen.getByRole('button', { name: /test connection/i }));
     expect(await screen.findByText('Could not connect to Immich: Auth failed')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-PHOTOPROVIDERS-028: a settings read landing after the status probe does not flip the badge to connected', async () => {
+    let releaseSettings!: () => void;
+    const settingsGate = new Promise<void>(r => (releaseSettings = r));
+    let statusAnswered = false;
+    server.use(
+      // Stored credentials make the settings read say connected; the probe says the server is down.
+      http.get('/api/addons/immich/settings', async () => {
+        await settingsGate;
+        return HttpResponse.json({ url: 'https://photos.example.com', connected: true });
+      }),
+      http.get('/api/addons/immich/status', () => {
+        statusAnswered = true;
+        return HttpResponse.json({ connected: false });
+      }),
+    );
+    seedMemoriesEnabled();
+    render(<PhotoProvidersSection />);
+    await screen.findByText('Immich');
+    await waitFor(() => expect(statusAnswered).toBe(true));
+    releaseSettings();
+    await waitFor(() => expect(screen.getByDisplayValue('https://photos.example.com')).toBeInTheDocument());
+    expect(screen.getByText('Not connected')).toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
   });
 
   it('FE-COMP-PHOTOPROVIDERS-016: Test button is disabled while test is in progress', async () => {

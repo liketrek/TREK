@@ -81,8 +81,8 @@ function stubGets(byPath: Record<string, Resp | (() => Promise<Resp>)>) {
   });
 }
 
-function render(statusRouteOwnsBadge: boolean) {
-  return renderHook(() => usePhotoProviderConnections({ statusRouteOwnsBadge }));
+function render() {
+  return renderHook(() => usePhotoProviderConnections());
 }
 
 beforeEach(() => {
@@ -111,7 +111,7 @@ describe('usePhotoProviderConnections', () => {
       false
     );
     stubGets({});
-    const { result } = render(true);
+    const { result } = render();
     expect(result.current.memoriesEnabled).toBe(false);
     expect(result.current.activePhotoProviders.map((p) => p.id)).toEqual(['immich']);
   });
@@ -122,43 +122,37 @@ describe('usePhotoProviderConnections', () => {
       '/addons/immich/settings': { data: { url: 'https://p.example', api_key: 'secret', include_shared: true } },
       '/addons/immich/status': { data: { connected: true } },
     });
-    const { result } = render(true);
+    const { result } = render();
     await waitFor(() => expect(result.current.providerValues.immich?.url).toBe('https://p.example'));
     expect(result.current.providerValues.immich).toEqual({ url: 'https://p.example', shared: 'true' });
     await waitFor(() => expect(result.current.providerConnected.immich).toBe(true));
   });
 
-  it('FE-COMP-PHOTOCONN-004: with the status route owning the badge, a late settings read does not override it', async () => {
+  it('FE-COMP-PHOTOCONN-004: the status route owns the badge, so a late settings read does not override it', async () => {
     seedProviders([PROVIDER]);
     let resolveSettings!: (r: Resp) => void;
     stubGets({
       '/addons/immich/settings': () => new Promise<Resp>((r) => (resolveSettings = r)),
       '/addons/immich/status': { data: { connected: true } },
     });
-    const { result } = render(true);
+    const { result } = render();
     await waitFor(() => expect(result.current.providerConnected.immich).toBe(true));
     await act(async () => resolveSettings({ data: { url: 'u', connected: false } }));
     expect(result.current.providerValues.immich?.url).toBe('u');
     expect(result.current.providerConnected.immich).toBe(true);
   });
 
-  it('FE-COMP-PHOTOCONN-005: without that, the later settings read sets the badge', async () => {
-    seedProviders([PROVIDER]);
-    let resolveSettings!: (r: Resp) => void;
-    stubGets({
-      '/addons/immich/settings': () => new Promise<Resp>((r) => (resolveSettings = r)),
-      '/addons/immich/status': { data: { connected: true } },
-    });
-    const { result } = render(false);
+  it('FE-COMP-PHOTOCONN-005: a provider without a status route takes the badge from the settings read', async () => {
+    seedProviders([{ ...PROVIDER, config: { settings_get: '/addons/immich/settings' } }]);
+    stubGets({ '/addons/immich/settings': { data: { url: 'u', connected: true } } });
+    const { result } = render();
     await waitFor(() => expect(result.current.providerConnected.immich).toBe(true));
-    await act(async () => resolveSettings({ data: { url: 'u', connected: false } }));
-    expect(result.current.providerConnected.immich).toBe(false);
   });
 
   it('FE-COMP-PHOTOCONN-006: save is blocked while a required field is blank', async () => {
     seedProviders([PROVIDER]);
     stubGets({ '/addons/immich/settings': { data: {} }, '/addons/immich/status': { data: {} } });
-    const { result } = render(true);
+    const { result } = render();
     await waitFor(() => expect(result.current.providerValues.immich?.url).toBe(''));
     expect(result.current.isProviderSaveDisabled(PROVIDER)).toBe(true);
     act(() => result.current.handleProviderFieldChange('immich', 'url', 'https://a'));
@@ -173,7 +167,7 @@ describe('usePhotoProviderConnections', () => {
       '/addons/immich/status': { data: { connected: false } },
     });
     const put = vi.spyOn(apiClient, 'put').mockResolvedValue({ data: {} });
-    const { result } = render(true);
+    const { result } = render();
     await waitFor(() => expect(result.current.providerValues.immich?.url).toBe('https://a'));
     act(() => result.current.handleProviderFieldChange('immich', 'url', ' https://b '));
     get.mockClear();
@@ -188,7 +182,7 @@ describe('usePhotoProviderConnections', () => {
     seedProviders([PROVIDER]);
     stubGets({ '/addons/immich/settings': { data: {} }, '/addons/immich/status': { data: {} } });
     const put = vi.spyOn(apiClient, 'put').mockRejectedValue(new Error('x'));
-    const { result } = render(true);
+    const { result } = render();
     await act(() => result.current.handleSaveProvider(PROVIDER));
     expect(toast.error).toHaveBeenCalledWith('memories.saveError(Immich)');
     put.mockClear();
@@ -203,7 +197,7 @@ describe('usePhotoProviderConnections', () => {
       '/addons/immich/status': { data: {} },
     });
     const post = vi.spyOn(apiClient, 'post').mockResolvedValue({ data: { connected: true } });
-    const { result } = render(true);
+    const { result } = render();
     await waitFor(() => expect(result.current.providerValues.immich?.url).toBe('https://a'));
     await act(() => result.current.handleTestProvider(PROVIDER));
     expect(post).toHaveBeenCalledWith('/addons/immich/test', { url: 'https://a', include_shared: false });
@@ -220,10 +214,10 @@ describe('usePhotoProviderConnections', () => {
     seedProviders([PROVIDER]);
     stubGets({ '/addons/immich/settings': { data: {} }, '/addons/immich/status': { data: {} } });
     vi.spyOn(apiClient, 'post').mockResolvedValue({ data: { connected: false, error: 'bad key' } });
-    const phone = render(true);
+    const phone = render();
     await act(() => phone.result.current.handleTestProvider(PROVIDER));
     expect(toast.error).toHaveBeenLastCalledWith('memories.connectionError(Immich): bad key');
-    const desktop = render(false);
+    const desktop = render();
     await act(() => desktop.result.current.handleTestProvider(PROVIDER));
     expect(toast.error).toHaveBeenLastCalledWith('memories.connectionError(Immich): bad key');
     vi.mocked(apiClient.post).mockResolvedValue({ data: { connected: false } });

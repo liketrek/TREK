@@ -49,22 +49,13 @@ export const getProviderFields = (provider: PhotoProviderAddon): ProviderField[]
   return [...(provider.fields || [])].sort((a, b) => a.sort_order - b.sort_order);
 };
 
-export interface PhotoProviderConnectionOptions {
-  /**
-   * When the provider has a status route, let only that route set the badge and
-   * ignore the `connected` flag of the settings read, so the two responses cannot
-   * race. The phone does this; the desktop takes whichever answer lands last.
-   */
-  statusRouteOwnsBadge: boolean;
-}
-
 /**
  * The photo provider connection cards behind both settings shells: every enabled
  * photo_provider addon with its declared fields, seeded and hydrated values
  * (secrets never prefilled), the connection badge, and save and test. The desktop
  * section and its phone twin render their own markup over this.
  */
-export function usePhotoProviderConnections({ statusRouteOwnsBadge }: PhotoProviderConnectionOptions) {
+export function usePhotoProviderConnections() {
   const { t } = useTranslation();
   const toast = useToast();
   const { isEnabled: addonEnabled, addons } = useAddonStore();
@@ -156,7 +147,10 @@ export function usePhotoProviderConnections({ statusRouteOwnsBadge }: PhotoProvi
               ...prev,
               [provider.id]: { ...(prev[provider.id] || {}), ...nextValues },
             }));
-            if (!(statusRouteOwnsBadge && cfg.status_get) && typeof res.data?.connected === 'boolean') {
+            // A provider with a status route lets only that route set the badge: the settings
+            // read can only say credentials are stored, and taking whichever of the two answers
+            // lands last would show an unreachable server as connected.
+            if (!cfg.status_get && typeof res.data?.connected === 'boolean') {
               setProviderConnected((prev) => ({ ...prev, [provider.id]: !!res.data.connected }));
             }
           })
@@ -169,7 +163,7 @@ export function usePhotoProviderConnections({ statusRouteOwnsBadge }: PhotoProvi
     return () => {
       isCancelled = true;
     };
-  }, [activePhotoProviders, activeProviderSignature, statusRouteOwnsBadge]);
+  }, [activePhotoProviders, activeProviderSignature]);
 
   const handleProviderFieldChange = (providerId: string, key: string, value: string) => {
     setProviderValues((prev) => ({

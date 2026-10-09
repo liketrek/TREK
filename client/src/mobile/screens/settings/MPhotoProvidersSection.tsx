@@ -30,7 +30,7 @@ export default function MPhotoProvidersSection(): React.ReactElement {
     isProviderSaveDisabled,
     handleSaveProvider,
     handleTestProvider,
-  } = usePhotoProviderConnections({ statusRouteOwnsBadge: true })
+  } = usePhotoProviderConnections()
 
   const renderPhotoProviderSection = (provider: PhotoProviderAddon): React.ReactElement => {
     const fields = getProviderFields(provider)
