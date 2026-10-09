@@ -1,4 +1,4 @@
-// FE-JRN-DETWIRE-001 to FE-JRN-DETWIRE-041
+// FE-JRN-DETWIRE-001 to FE-JRN-DETWIRE-042
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '../../tests/helpers/render';
 import { journeyApi } from '../api/client';
@@ -581,5 +581,24 @@ describe('JourneyDetailPage wiring', () => {
     setup({ isMobile: true, view: 'timeline', galleryProviders: immich });
     expect(screen.queryByText('common.upload')).not.toBeInTheDocument();
     expect(screen.queryByText('Immich')).not.toBeInTheDocument();
+  });
+
+  it('FE-JRN-DETWIRE-042: a rejected suggestions preference keeps the local flip and rejects nothing', async () => {
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      const update = vi.spyOn(journeyApi, 'updatePreferences').mockRejectedValue(new Error('offline'));
+      const { hook } = setup({ isMobile: true });
+
+      fireEvent.click(screen.getByRole('button', { name: 'journey.skeletons.hide' }));
+
+      expect(hook.setHideSkeletons).toHaveBeenCalledWith(true);
+      await waitFor(() => expect(update).toHaveBeenCalledWith(7, { hide_skeletons: true }));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(unhandled).not.toHaveBeenCalled();
+      expect(toast.error).not.toHaveBeenCalled();
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
   });
 });

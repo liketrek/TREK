@@ -118,7 +118,11 @@ function JourneyDetailPageDesktop() {
   const toggleSkeletons = async () => {
     const next = !hideSkeletons
     setHideSkeletons(next)
-    await journeyApi.updatePreferences(current.id, { hide_skeletons: next })
+    try {
+      await journeyApi.updatePreferences(current.id, { hide_skeletons: next })
+    } catch {
+      // A view preference, as on the phone: the local flip stands until the next load.
+    }
   }
   const skeletonLabel = hideSkeletons ? t('journey.skeletons.show') : t('journey.skeletons.hide')
   const barButton = 'w-10 h-10 flex-shrink-0 rounded-lg bg-surface-elevated backdrop-blur-lg border border-edge shadow-lg text-content-secondary flex items-center justify-center hover:bg-surface-hover active:scale-95 transition-transform'
