@@ -607,6 +607,30 @@ describe('TripPlannerPage', () => {
     });
   });
 
+  describe('FE-PAGE-PLANNER-016b: both plan view panel tabs say whether their panel is open', () => {
+    it('gives the left and right tab aria-expanded and a focus ring, and flips it when a panel closes', async () => {
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+      renderPlannerPage(42);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => {
+        expect(screen.getAllByRole('button', { name: 'Collapse' })).toHaveLength(2);
+      });
+      for (const tab of screen.getAllByRole('button', { name: 'Collapse' })) {
+        expect(tab).toHaveAttribute('aria-expanded', 'true');
+        expect(tab).toHaveClass('focus-visible:outline');
+      }
+
+      const rightTab = screen.getAllByRole('button', { name: 'Collapse' })[1];
+      fireEvent.click(rightTab);
+      await waitFor(() => expect(rightTab).toHaveAttribute('aria-expanded', 'false'));
+      expect(rightTab).toHaveAccessibleName('Places');
+      expect(rightTab).toHaveClass('focus-visible:outline');
+    });
+  });
+
   describe('FE-PAGE-PLANNER-017: Trip navigation error redirects to dashboard', () => {
     it('navigates to /dashboard when loadTrip rejects', async () => {
       seedStore(useTripStore, {

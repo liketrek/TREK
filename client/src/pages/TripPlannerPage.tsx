@@ -300,7 +300,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
             />
 
             <div className="hidden md:block" style={{ position: 'absolute', left: 10, top: 10, bottom: 10, zIndex: 20 }}>
-              <LeftPanelTab hidden={leftHidden} label={leftHidden ? t('trip.mobilePlan') : t('common.collapse')} onToggle={toggleLeft} />
+              <PanelTab hidden={leftHidden} label={leftHidden ? t('trip.mobilePlan') : t('common.collapse')} onToggle={toggleLeft} />
 
               <div style={{
                 width: leftHidden ? 0 : leftWidth, height: '100%',
@@ -424,22 +424,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
             </div>
 
             <div className="hidden md:block" style={{ position: 'absolute', right: 10, top: 10, bottom: 10, zIndex: 20 }}>
-              {/* The panel's tab: a flap on its edge while open, a raised accent tile once it is tucked away. */}
-              <Tooltip label={rightHidden ? t('trip.mobilePlaces') : t('common.collapse')} placement="left">
-                <button type="button" onClick={toggleRight}
-                  aria-label={rightHidden ? t('trip.mobilePlaces') : t('common.collapse')}
-                  className={rightHidden ? 'bg-accent text-accent-text shadow-md hover:opacity-90' : 'text-content-faint hover:text-content'}
-                  style={{
-                    position: rightHidden ? 'fixed' : 'absolute', top: rightHidden ? 'calc(var(--nav-h) + 44px + 14px)' : 14, right: rightHidden ? 10 : undefined, left: rightHidden ? undefined : -28, zIndex: -1,
-                    width: 36, height: 36, borderRadius: rightHidden ? 10 : '10px 0 0 10px',
-                    background: rightHidden ? undefined : 'var(--sidebar-bg)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                    border: 'none',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'color 0.15s',
-                  }}>
-                  {rightHidden ? <PanelRightOpen size={16} /> : <PanelRightClose size={16} />}
-                </button>
-              </Tooltip>
+              <PanelTab side="right" hidden={rightHidden} label={rightHidden ? t('trip.mobilePlaces') : t('common.collapse')} onToggle={toggleRight} />
 
               <div style={{
                 width: rightHidden ? 0 : rightWidth, height: '100%',
@@ -671,7 +656,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               onViewBaseLayerChange={tourPlanner.setMapBaseLayer}
             />
             <div className="hidden md:block" style={{ position: 'absolute', left: 10, top: 10, bottom: 10, zIndex: 20 }}>
-              <LeftPanelTab hidden={leftHidden} label={leftHidden ? t('trip.mobilePlan') : t('common.collapse')} onToggle={toggleLeft} announced />
+              <PanelTab hidden={leftHidden} label={leftHidden ? t('trip.mobilePlan') : t('common.collapse')} onToggle={toggleLeft} />
               <div style={{
                 width: leftHidden ? 0 : leftPanelPx, height: '100%', position: 'relative',
                 background: 'var(--sidebar-bg)', backdropFilter: 'blur(24px) saturate(180%)',
@@ -984,31 +969,38 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
   )
 }
 
-interface LeftPanelTabProps {
+interface PanelTabProps {
   hidden: boolean
   label: string
   onToggle: () => void
-  /** Also states whether the panel is open and shows a focus ring (the tour planner's tab). */
-  announced?: boolean
+  side?: 'left' | 'right'
 }
 
-/** The left panel's tab: a flap on its edge while open, a raised accent tile once it is tucked away. */
-export function LeftPanelTab({ hidden, label, onToggle, announced = false }: LeftPanelTabProps): React.ReactElement {
+/**
+ * A side panel's tab: a flap on its edge while open, a raised accent tile once it is tucked away.
+ * One component for both panels in every view, so each states whether its panel is open and shows a focus ring.
+ */
+export function PanelTab({ hidden, label, onToggle, side = 'left' }: PanelTabProps): React.ReactElement {
   const look = hidden ? 'bg-accent text-accent-text shadow-md hover:opacity-90' : 'text-content-faint hover:text-content'
+  const left = side === 'left'
+  const [Open, Close] = left ? [PanelLeftOpen, PanelLeftClose] : [PanelRightOpen, PanelRightClose]
   return (
-    <Tooltip label={label} placement="right">
+    <Tooltip label={label} placement={left ? 'right' : 'left'}>
       <button type="button" onClick={onToggle}
         aria-label={label}
-        aria-expanded={announced ? !hidden : undefined}
-        className={announced ? `${look} focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent` : look}
+        aria-expanded={!hidden}
+        className={`${look} focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent`}
         style={{
           position: hidden ? 'fixed' : 'absolute', top: hidden ? 'calc(var(--nav-h) + 44px + 14px)' : 14,
-          left: hidden ? 10 : undefined, right: hidden ? undefined : -28, zIndex: -1,
-          width: 36, height: 36, borderRadius: hidden ? 10 : '0 10px 10px 0',
+          ...(left
+            ? { left: hidden ? 10 : undefined, right: hidden ? undefined : -28 }
+            : { right: hidden ? 10 : undefined, left: hidden ? undefined : -28 }),
+          zIndex: -1,
+          width: 36, height: 36, borderRadius: hidden ? 10 : left ? '0 10px 10px 0' : '10px 0 0 10px',
           background: hidden ? undefined : 'var(--sidebar-bg)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
           border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s',
         }}>
-        {hidden ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        {hidden ? <Open size={16} /> : <Close size={16} />}
       </button>
     </Tooltip>
   )
