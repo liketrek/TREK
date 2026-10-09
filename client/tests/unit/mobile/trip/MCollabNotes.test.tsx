@@ -607,4 +607,35 @@ describe('MCollabNotes', () => {
     expect(links).toHaveLength(1)
     expect(links[0]).toHaveAttribute('href', 'https://visa.test')
   })
+
+  it('FE-MOB-CNOTE-034: attaching, detaching and deleting tell the Files tab to reload', async () => {
+    let filesChanged = 0
+    const onFilesChanged = () => { filesChanged += 1 }
+    window.addEventListener('collab-files-changed', onFilesChanged)
+    try {
+      serveNotes([note(1, {
+        title: 'Visa',
+        attachments: [{ id: 5, filename: 'p', original_name: 'passport.pdf', url: '/uploads/p' }],
+      })])
+      serveWrites()
+      await renderNotes()
+
+      fireEvent.click(screen.getByText('Visa'))
+      fireEvent.click(within(screen.getByText('passport.pdf')).getByRole('button'))
+      await waitFor(() => expect(deletedFiles).toEqual(['1/5']))
+      await waitFor(() => expect(filesChanged).toBe(1))
+
+      fireEvent.change(fileInput(), { target: { files: [new File(['a'], 'x.pdf')] } })
+      fireEvent.click(screen.getByRole('button', { name: 'collab.notes.save' }))
+      await waitFor(() => expect(uploadedTo).toEqual(['1']))
+      await waitFor(() => expect(filesChanged).toBe(2))
+
+      fireEvent.click(await screen.findByRole('button', { name: 'collab.notes.delete' }))
+      fireEvent.click(screen.getByRole('button', { name: 'common.delete' }))
+      await waitFor(() => expect(deletedIds).toEqual(['1']))
+      await waitFor(() => expect(filesChanged).toBe(3))
+    } finally {
+      window.removeEventListener('collab-files-changed', onFilesChanged)
+    }
+  })
 })

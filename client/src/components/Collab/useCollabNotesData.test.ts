@@ -1,4 +1,4 @@
-// FE-COLLAB-NOTESDATA-001 to FE-COLLAB-NOTESDATA-008: the note list behind the desktop
+// FE-COLLAB-NOTESDATA-001 to FE-COLLAB-NOTESDATA-009: the note list behind the desktop
 // Collab panel (empties on a failed load, waits for a trip id) and the phone's notes tab
 // (keeps the list, always loads), with
 // the live note events and the attachment upload both run after saving a note.
@@ -169,5 +169,24 @@ describe('useCollabNotesData', () => {
     const { result } = await loaded();
     act(() => result.current.setNotes([note(9)]));
     expect(result.current.notes.map((n) => n.id)).toEqual([9]);
+  });
+
+  it('FE-COLLAB-NOTESDATA-009: an upload batch tells the Files tab to reload once, an empty one does not', async () => {
+    const onFilesChanged = vi.fn();
+    window.addEventListener('collab-files-changed', onFilesChanged);
+    try {
+      vi.mocked(collabApi.uploadNoteFile).mockRejectedValueOnce(new Error('too big'));
+      const { result } = await loaded();
+      await act(async () => {
+        await result.current.uploadNoteFiles(5, []);
+      });
+      expect(onFilesChanged).not.toHaveBeenCalled();
+      await act(async () => {
+        await result.current.uploadNoteFiles(5, [new File(['a'], 'a.pdf'), new File(['b'], 'b.pdf')]);
+      });
+      expect(onFilesChanged).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener('collab-files-changed', onFilesChanged);
+    }
   });
 });

@@ -6,7 +6,7 @@ import { sanitizedMarkdownPlugins, sanitizedMarkdownComponents } from '../../../
 import { Check, ExternalLink, FileText, Paperclip, Pin, PinOff, Plus, StickyNote, Trash2, X } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { collabApi } from '../../../../api/client'
-import { useCollabNotesData } from '../../../../components/Collab/useCollabNotesData'
+import { announceNoteFilesChanged, useCollabNotesData } from '../../../../components/Collab/useCollabNotesData'
 import { openFile } from '../../../../utils/fileDownload'
 import { safeExternalHref } from '../../../../utils/safeUrl'
 import MSheet from '../../../components/MSheet'
@@ -115,6 +115,7 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
     try {
       await collabApi.deleteNote(tripId, noteId)
       setNotes(prev => prev.filter(n => n.id !== noteId))
+      announceNoteFilesChanged()
     } catch {
       toast.error(t('common.error'))
     }
@@ -128,6 +129,7 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
       setNotes(prev => prev.map(n => (
         n.id === noteId ? { ...n, attachments: n.attachments.filter(f => f.id !== fileId) } : n
       )))
+      announceNoteFilesChanged()
       return true
     } catch {
       toast.error(t('common.error'))

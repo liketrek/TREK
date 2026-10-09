@@ -16,7 +16,7 @@ import ConfirmDialog from '../shared/ConfirmDialog'
 import EmptyState from '../shared/EmptyState'
 import type { User } from '../../types'
 import type { CollabNote } from './CollabNotes.types'
-import { useCollabNotesData } from './useCollabNotesData'
+import { announceNoteFilesChanged, useCollabNotesData } from './useCollabNotesData'
 import { FONT, NOTE_COLORS } from './CollabNotes.constants'
 import { NoteFormModal } from './CollabNotesFormModal'
 import { CategorySettingsModal } from './CollabNotesCategorySettingsModal'
@@ -101,7 +101,6 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
         // Reload note with attachments
         const fresh = await collabApi.getNotes(tripId)
         if (fresh?.notes) setNotes(fresh.notes)
-        window.dispatchEvent(new Event('collab-files-changed'))
         return
       }
       setNotes(prev => {
@@ -185,13 +184,12 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
       await uploadNoteFiles(editingNote.id, pendingFiles)
       const fresh = await collabApi.getNotes(tripId)
       if (fresh?.notes) setNotes(fresh.notes)
-      window.dispatchEvent(new Event('collab-files-changed'))
     }
   }, [editingNote, tripId, handleUpdateNote, setNotes, uploadNoteFiles])
 
   const handleDeleteNoteFile = useCallback(async (noteId, fileId) => {
     try { await collabApi.deleteNoteFile(tripId, noteId, fileId) } catch { toast.error(t('common.error')) }
-    window.dispatchEvent(new Event('collab-files-changed'))
+    announceNoteFilesChanged()
   }, [tripId, toast, t])
 
   const handleDeleteNote = useCallback(async (noteId) => {
@@ -202,7 +200,7 @@ function useCollabNotes({ tripId, currentUser }: CollabNotesProps) {
       throw err
     }
     setNotes(prev => prev.filter(n => n.id !== noteId))
-    window.dispatchEvent(new Event('collab-files-changed'))
+    announceNoteFilesChanged()
   }, [tripId, toast, t, setNotes])
 
   // ── Derived data ──
