@@ -25,7 +25,6 @@ export default function MVacayShareSheet({ open, onClose }: MVacayShareSheetProp
     submit: shareWith,
     successKey: 'vacay.shareSent',
     errorKey: 'vacay.shareFailed',
-    clearOnLoadError: true,
     sheetOpen: open,
   })
   const { toggleHidden, remove } = useVacayShareActions()

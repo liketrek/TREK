@@ -26,7 +26,6 @@ export default function VacaySharedCalendars() {
     submit: shareWith,
     successKey: 'vacay.shareSent',
     errorKey: 'vacay.shareFailed',
-    clearOnLoadError: false,
   })
   const shareLabelId = useId()
 

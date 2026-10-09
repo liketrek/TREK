@@ -25,7 +25,6 @@ export default function MVacayInviteSheet({ open, onClose }: MVacayInviteSheetPr
     submit: invite,
     successKey: 'vacay.inviteSent',
     errorKey: 'vacay.inviteError',
-    clearOnLoadError: true,
     sheetOpen: open,
   })
 

@@ -33,7 +33,6 @@ export default function VacayPersons() {
     submit: invite,
     successKey: 'vacay.inviteSent',
     errorKey: 'vacay.inviteError',
-    clearOnLoadError: false,
   })
   const inviteLabelId = useId()
   const colorLabelId = useId()

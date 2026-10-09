@@ -13,11 +13,6 @@ interface VacayUserPickerOptions {
   successKey: string;
   errorKey: string;
   /**
-   * Empty the list when loading it fails (the phone sheets). Otherwise the list
-   * from the last load stays.
-   */
-  clearOnLoadError: boolean;
-  /**
    * The phone sheets pass their open flag: every opening clears the pick, folds
    * the inline user list and reloads the users. The desktop dialogs leave it out
    * and load on their own.
@@ -34,7 +29,6 @@ export function useVacayUserPicker<U extends { id: number; username: string }>({
   submit,
   successKey,
   errorKey,
-  clearOnLoadError,
   sheetOpen,
 }: VacayUserPickerOptions) {
   const { t } = useTranslation();
@@ -50,9 +44,11 @@ export function useVacayUserPicker<U extends { id: number; username: string }>({
       const data = await apiClient.get(endpoint).then((r) => r.data);
       setAvailable(data.users);
     } catch {
-      if (clearOnLoadError) setAvailable([]);
+      // A failed load empties the list, so nobody picks from a stale one and the
+      // dialog or sheet shows its "no users available" state.
+      setAvailable([]);
     }
-  }, [endpoint, clearOnLoadError]);
+  }, [endpoint]);
 
   useEffect(() => {
     if (!sheetOpen) return;
