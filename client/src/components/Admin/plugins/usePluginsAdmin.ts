@@ -26,11 +26,6 @@ import {
   type VersionMismatch,
 } from './pluginModel';
 
-interface UsePluginsAdminOptions {
-  /** Start every pending update at once from "Update all" instead of one after another. */
-  updateAllInParallel?: boolean;
-}
-
 /**
  * Admin > Plugins, the logic behind both shells (the desktop panel and the phone panel
  * render their own markup over it): the installed list and the registry, the toolbar
@@ -38,7 +33,7 @@ interface UsePluginsAdminOptions {
  * updates and version switches, signature refusals and re-trust, egress hosts, error
  * logs and the instance settings form.
  */
-export function usePluginsAdmin({ updateAllInParallel = false }: UsePluginsAdminOptions = {}) {
+export function usePluginsAdmin() {
   const { t } = useTranslation();
   const toast = useToast();
   const [runtimeOn, setRuntimeOn] = useState(false);
@@ -549,15 +544,8 @@ export function usePluginsAdmin({ updateAllInParallel = false }: UsePluginsAdmin
   const updatable = useMemo(() => plugins.filter((p) => isUpdateAvailable(p, latest)), [plugins, latest]);
 
   // One after another: busy is a single slot, so parallel updates would leave the
-  // other rows clickable mid-install and refresh once per plugin. The phone still
-  // starts them all at once (updateAllInParallel).
+  // other rows clickable mid-install and refresh once per plugin.
   const updateAll = async () => {
-    if (updateAllInParallel) {
-      // p => runUpdate(p), NOT forEach(runUpdate): forEach's index would land in
-      // runUpdate's `version` parameter and pin the update to a number.
-      updatable.forEach((p) => void runUpdate(p));
-      return;
-    }
     for (const p of updatable) await runUpdate(p);
   };
 

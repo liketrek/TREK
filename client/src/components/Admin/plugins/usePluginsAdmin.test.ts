@@ -66,8 +66,8 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-async function mounted(options?: Parameters<typeof usePluginsAdmin>[0]) {
-  const hook = renderHook(() => usePluginsAdmin(options));
+async function mounted() {
+  const hook = renderHook(() => usePluginsAdmin());
   await waitFor(() => expect(hook.result.current.loading).toBe(false));
   return hook;
 }
@@ -184,7 +184,7 @@ describe('usePluginsAdmin', () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it('FE-ADMIN-PLUGINS-HOOK-008: by default Update all runs the updates one after another', async () => {
+  it('FE-ADMIN-PLUGINS-HOOK-008: Update all runs the updates one after another', async () => {
     serve([row({ id: 'a', name: 'A' }), row({ id: 'b', name: 'B' })], [entry({ id: 'a' }), entry({ id: 'b' })]);
     const first = deferred<unknown>();
     const update = vi
@@ -205,18 +205,15 @@ describe('usePluginsAdmin', () => {
     expect(update).toHaveBeenCalledTimes(2);
   });
 
-  it('FE-ADMIN-PLUGINS-HOOK-009: with updateAllInParallel every update starts at once, without a version', async () => {
+  it('FE-ADMIN-PLUGINS-HOOK-009: Update all starts only the first update, without a version', async () => {
     serve([row({ id: 'a', name: 'A' }), row({ id: 'b', name: 'B' })], [entry({ id: 'a' }), entry({ id: 'b' })]);
     const update = vi.spyOn(adminApi, 'pluginUpdate').mockReturnValue(new Promise(() => {}));
-    const { result } = await mounted({ updateAllInParallel: true });
+    const { result } = await mounted();
     await waitFor(() => expect(result.current.updatable).toHaveLength(2));
     act(() => {
       void result.current.updateAll();
     });
-    expect(update.mock.calls).toEqual([
-      ['a', undefined],
-      ['b', undefined],
-    ]);
+    expect(update.mock.calls).toEqual([['a', undefined]]);
   });
 
   it('FE-ADMIN-PLUGINS-HOOK-010: the drop overlay arms on a file drag and ignores an unmatched leave', async () => {

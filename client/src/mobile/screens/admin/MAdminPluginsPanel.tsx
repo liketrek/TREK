@@ -128,7 +128,7 @@ export default function MAdminPluginsPanel() {
     updatable, updateAll, shownInstalled, shownRegistry, anyFilter, ignoreTrekRange, rowMenuPlugin, reviewBlock,
     askUninstall, uninstallConfirmed, downgradeConfirmed, retrustBlocked, consentUnsigned, approveConsent,
     deferConsent, downloadDependency,
-  } = usePluginsAdmin({ updateAllInParallel: true })
+  } = usePluginsAdmin()
 
   return (
     <div className="relative space-y-3"
