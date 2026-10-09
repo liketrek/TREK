@@ -24,8 +24,8 @@ export function stopDraftDefaults(draft: RoadtripStopDraft | null | undefined): 
 /**
  * The two questions a stop found along the drive answers before it goes onto the trip,
  * what kind it is and how long it takes, behind the desktop stop popup and the phone's
- * draft sheet. `initialDraft` gives the first answers; the phone seeds them again for
- * every draft it is handed.
+ * draft sheet. `initialDraft` gives the first answers; both seed them again with
+ * `seed` for every draft they are handed while they stay open.
  */
 export function useStopDraftForm(initialDraft: RoadtripStopDraft | null) {
   const [stopType, setStopType] = useState<RoadtripStopType | null>(() => stopDraftDefaults(initialDraft).stopType);
