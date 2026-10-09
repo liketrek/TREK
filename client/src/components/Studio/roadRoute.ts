@@ -1,5 +1,5 @@
 import { calculateRouteWithLegs } from '../Map/RouteCalculator'
-import { legKm } from './legKm'
+import { haversineKm } from '../../utils/geo'
 
 /**
  * The roads between a book's stops.
@@ -99,7 +99,7 @@ export async function fetchRoads(
     const a = stops[i]
     const b = stops[i + 1]
 
-    if (legKm(a, b) > ROAD_CEILING_KM) {
+    if (haversineKm(a, b) > ROAD_CEILING_KM) {
       opts.onProgress?.(i + 1, legs)
       continue
     }

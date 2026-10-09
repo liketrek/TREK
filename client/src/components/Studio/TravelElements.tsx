@@ -8,7 +8,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { fontStack } from './bookFonts'
-import { legKm } from './legKm'
+import { haversineKm } from '../../utils/geo'
 import { brightness } from './folioColour'
 import { COUNTRY_SHAPES, countryParts, countryWorldPath, projectMercator, unprojectMercator } from './countryShapes'
 import { projectOntoTiles, tileView, usableStaticUrl } from './mapTiles'
@@ -380,7 +380,7 @@ function MapView({ el, frameStyle, big = false }: {
       const d = Math.hypot(dx, dy)
       if (d < 1e-6) return { k: 0, nx: 0, ny: 0 }
 
-      const u = Math.min(1, Math.max(0, Math.log(legKm(a, b) / 150) / Math.log(10)))
+      const u = Math.min(1, Math.max(0, Math.log(haversineKm(a, b) / 150) / Math.log(10)))
       const ramp = u * u * (3 - 2 * u)
       // How much of the leg runs east-west, which is where a bow is truthful.
       const eastWest = 0.35 + 0.65 * Math.abs(dx / d)
