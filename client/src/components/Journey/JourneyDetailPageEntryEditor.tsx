@@ -149,7 +149,7 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
     handleSave, handleFileChange, pickGalleryPhoto, removePhoto, searchLocation, pickLocation, handleUseCurrentLocation,
   } = useJourneyEntryForm({
     entry, journeyId, trips, galleryPhotos, onSave, onUploadPhotos, onAddProviderPhotos, onDone,
-    blankVerdictRow: true, dirtyOnCoordinates: true, toastSaveError: true, autoFillWeather: showWeather,
+    blankVerdictRow: true, dirtyOnCoordinates: true, autoFillWeather: showWeather,
   })
   const [photoTab, setPhotoTab] = useState<'upload' | 'gallery' | 'external'>('upload')
   const [availableProviders, setAvailableProviders] = useState<{ id: string; name: string }[]>([])

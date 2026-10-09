@@ -1,4 +1,4 @@
-// FE-JRN-ENTRYFORM-001 to FE-JRN-ENTRYFORM-020: the journey entry form logic behind both
+// FE-JRN-ENTRYFORM-001 to FE-JRN-ENTRYFORM-021: the journey entry form logic behind both
 // the desktop editor dialog and the phone entry sheet.
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type React from 'react';
@@ -198,9 +198,9 @@ describe('useJourneyEntryForm', () => {
     );
   });
 
-  it('FE-JRN-ENTRYFORM-007: a failed save toasts for the desktop dialog and rejects for the sheet', async () => {
+  it('FE-JRN-ENTRYFORM-007: a failed save toasts for the desktop dialog and the sheet alike', async () => {
     const onSave = vi.fn().mockRejectedValue({ response: { data: { error: 'Locked' } } });
-    const desktop = setup({ onSave, toastSaveError: true });
+    const desktop = setup({ onSave, blankVerdictRow: true, dirtyOnCoordinates: true });
     await act(() => desktop.result.current.handleSave());
     expect(addToast).toHaveBeenCalledWith('Locked', 'error', undefined);
     expect(desktop.result.current.saving).toBe(false);
@@ -208,9 +208,9 @@ describe('useJourneyEntryForm', () => {
     const sheet = setup({ onSave });
     let rejected = false;
     await act(() => sheet.result.current.handleSave().catch(() => void (rejected = true)));
-    expect(rejected).toBe(true);
+    expect(rejected).toBe(false);
     expect(sheet.result.current.saving).toBe(false);
-    expect(addToast).toHaveBeenCalledTimes(1);
+    expect(addToast).toHaveBeenCalledTimes(2);
   });
 
   it('FE-JRN-ENTRYFORM-008: links gallery photos picked before the first save', async () => {
@@ -377,5 +377,15 @@ describe('useJourneyEntryForm', () => {
       setup({ entry: entry({ location_lat: null, location_lng: null, stats_excluded: true }) }).result.current
         .offersStatsToggle
     ).toBe(true);
+  });
+
+  it('FE-JRN-ENTRYFORM-021: a failed save on the phone sheet toasts and keeps the form open', async () => {
+    const onSave = vi.fn().mockRejectedValue({ response: { data: { error: 'Locked' } } });
+    const onDone = vi.fn();
+    const sheet = setup({ onSave, onDone, withTags: true });
+    await act(() => sheet.result.current.handleSave());
+    expect(addToast).toHaveBeenCalledWith('Locked', 'error', undefined);
+    expect(onDone).not.toHaveBeenCalled();
+    expect(sheet.result.current.saving).toBe(false);
   });
 });

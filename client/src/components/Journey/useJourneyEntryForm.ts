@@ -49,8 +49,6 @@ export interface JourneyEntryFormOptions {
   withTags?: boolean;
   /** Moving the point alone, without renaming it, counts as an unsaved change (the desktop dialog). */
   dirtyOnCoordinates?: boolean;
-  /** Toast a failed save and swallow it (the desktop dialog); otherwise the save rejects. */
-  toastSaveError?: boolean;
   /** Show a failed "use my location" under the field (the phone sheet) instead of as a toast. */
   inlineLocateError?: boolean;
   /** Fill an empty weather field from the forecast once the place and day are known (the desktop dialog). */
@@ -81,7 +79,6 @@ export function useJourneyEntryForm({
   blankVerdictRow = false,
   withTags = false,
   dirtyOnCoordinates = false,
-  toastSaveError = false,
   inlineLocateError = false,
   autoFillWeather = false,
 }: JourneyEntryFormOptions) {
@@ -378,7 +375,6 @@ export function useJourneyEntryForm({
       }
       onDone();
     } catch (err) {
-      if (!toastSaveError) throw err;
       // Neither the page callback nor journeyStore toasts, so without this the
       // whole entry just fails to save with no sign of it.
       toast.error(getApiErrorMessage(err, t('journey.settings.saveFailed')));
