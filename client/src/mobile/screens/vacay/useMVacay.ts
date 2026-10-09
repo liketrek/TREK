@@ -46,7 +46,7 @@ export function useMVacay() {
   const {
     mode, setMode, halfDay, setHalfDay, compDay, setCompDay, tripDates, entryMap, sharedMap,
     companyHolidaySet, companyHalfSet, blockWeekends, weekendDays, companyHolidaysEnabled, logDay,
-  } = useVacayCalendarLogic({ selectedYear, plan, tripsFollowWindowShape: true })
+  } = useVacayCalendarLogic({ selectedYear, plan })
   const [sheet, setSheet] = useState<MVacaySheet>(null)
 
   // The leave-year window's shape as a primitive. loadAll() hands back a fresh

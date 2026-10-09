@@ -20,11 +20,6 @@ type SharedDayMark = {
 interface VacayCalendarLogicOptions {
   selectedYear: number;
   plan: VacayPlan | null | undefined;
-  /**
-   * Reload the trip dots only when the leave-year window changes shape (the phone
-   * screen). Otherwise they reload whenever the settings object is replaced.
-   */
-  tripsFollowWindowShape: boolean;
 }
 
 /** The leave-year window's shape as a primitive, stable across deep-equal reloads. */
@@ -41,7 +36,7 @@ function localDay(d: Date): string {
  * screen: the log mode with its half-day and comp-day modifiers, the per-day maps
  * the cells render from, the trip dots, and what a click on a day logs.
  */
-export function useVacayCalendarLogic({ selectedYear, plan, tripsFollowWindowShape }: VacayCalendarLogicOptions) {
+export function useVacayCalendarLogic({ selectedYear, plan }: VacayCalendarLogicOptions) {
   const selectedUserId = useVacayStore((s) => s.selectedUserId);
   const entries = useVacayStore((s) => s.entries);
   const companyHolidays = useVacayStore((s) => s.companyHolidays);
@@ -60,7 +55,10 @@ export function useVacayCalendarLogic({ selectedYear, plan, tripsFollowWindowSha
   const [compDay, setCompDay] = useState(false);
   const [tripDates, setTripDates] = useState<Set<string>>(new Set());
 
-  const tripsKey = tripsFollowWindowShape ? vacayWindowShape(yearSettings) : yearSettings;
+  // The trip dots reload only when the leave-year window changes shape: loadAll()
+  // hands back a deep-equal settings object on every refresh, and that must not
+  // request the trips again.
+  const tripsKey = vacayWindowShape(yearSettings);
   useEffect(() => {
     const settings = useVacayStore.getState().yearSettings;
     let cancelled = false;

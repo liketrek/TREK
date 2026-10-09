@@ -33,7 +33,7 @@ function entry(over: Partial<VacayEntry>): VacayEntry {
 type Options = Parameters<typeof useVacayCalendarLogic>[0];
 
 function logic(over: Partial<Options> = {}) {
-  const props: Options = { selectedYear: 2026, plan: plan(), tripsFollowWindowShape: false, ...over };
+  const props: Options = { selectedYear: 2026, plan: plan(), ...over };
   return renderHook((p: Options) => useVacayCalendarLogic(p), { initialProps: props });
 }
 
@@ -79,7 +79,7 @@ describe('useVacayCalendarLogic', () => {
     await act(() => result.current.logDay('2026-03-04'));
     expect(toggleCompanyHoliday).toHaveBeenCalledWith('2026-03-04', 0.5);
 
-    rerender({ selectedYear: 2026, plan: plan({ company_holidays_enabled: false }), tripsFollowWindowShape: false });
+    rerender({ selectedYear: 2026, plan: plan({ company_holidays_enabled: false }) });
     await act(() => result.current.logDay('2026-03-05'));
     expect(toggleCompanyHoliday).toHaveBeenCalledTimes(1);
     expect(result.current.companyHolidaysEnabled).toBe(false);
@@ -160,17 +160,18 @@ describe('useVacayCalendarLogic', () => {
     expect([...result.current.tripDates]).toEqual(['2026-01-01', '2026-01-02']);
   });
 
-  it('FE-COMP-VACAYCAL-010: the desktop mode reloads trips on every new settings object', async () => {
+  it('FE-COMP-VACAYCAL-010: the desktop grid does not request the trips again for a deep-equal settings reload', async () => {
     const list = vi.spyOn(tripsApi, 'list').mockResolvedValue({ trips: [] } as never);
     logic();
     await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
     act(() => useVacayStore.setState({ yearSettings: { ...CALENDAR } }));
-    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+    await act(async () => {});
+    expect(list).toHaveBeenCalledTimes(1);
   });
 
-  it('FE-COMP-VACAYCAL-011: the phone mode reloads trips only when the window shape changes', async () => {
+  it('FE-COMP-VACAYCAL-011: the trips reload only when the window shape changes', async () => {
     const list = vi.spyOn(tripsApi, 'list').mockResolvedValue({ trips: [] } as never);
-    logic({ tripsFollowWindowShape: true });
+    logic();
     await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
     act(() => useVacayStore.setState({ yearSettings: { ...CALENDAR } }));
     await Promise.resolve();

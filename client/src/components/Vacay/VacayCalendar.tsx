@@ -15,7 +15,7 @@ export default function VacayCalendar() {
     mode, setMode, halfDay, setHalfDay, compDay, setCompDay, tripDates, entryMap, sharedMap,
     companyHolidaySet, companyHalfSet, blockWeekends, weekendDays, companyHolidaysEnabled, selectedUser,
     logDay: handleCellClick,
-  } = useVacayCalendarLogic({ selectedYear, plan, tripsFollowWindowShape: false })
+  } = useVacayCalendarLogic({ selectedYear, plan })
   const companyMode = mode === 'company'
   const [tip, setTip] = useState<HoverTip | null>(null)
 
