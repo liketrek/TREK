@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { TourCreateResponse, TourListItem, TourWaypointRole, TourMaxHikingDifficulty } from '@trek/shared'
+import { MAX_PLANNED_TOUR_DURATION_MINUTES, tourWebsiteSchema, type TourCreateResponse, type TourListItem, type TourWaypointRole, type TourMaxHikingDifficulty } from '@trek/shared'
 import { tourRepo } from '../../../repo/tourRepo'
 import { randomId } from '../../../utils/randomId'
 import type { TourBaseLayer } from '../../Map/MapLayerSwitcher'
@@ -26,8 +26,12 @@ export type TourPlannerStatus =
   | 'saved'
 
 interface DraftPayload {
-  version: 1 | 2
+  version: 1 | 2 | 3 | 4 | 5 | 6
   name: string
+  description?: string
+  website?: string
+  plannedDurationMinutes?: number | null
+  breakAdditionalMinutes?: number | null
   waypoints: TourPlannerWaypoint[]
   maxHikingDifficulty?: TourMaxHikingDifficulty
   editingPlaceId?: number | null
@@ -63,7 +67,13 @@ function sameWaypointSnapshot(a: TourPlannerWaypoint[], b: TourPlannerWaypoint[]
 function validDraft(value: unknown): value is DraftPayload {
   if (!value || typeof value !== 'object') return false
   const draft = value as Partial<DraftPayload>
-  return (draft.version === 1 || draft.version === 2) && typeof draft.name === 'string'
+  return (draft.version === 1 || draft.version === 2 || draft.version === 3 || draft.version === 4 || draft.version === 5 || draft.version === 6) && typeof draft.name === 'string'
+    && (draft.description === undefined || typeof draft.description === 'string')
+    && (draft.website === undefined || typeof draft.website === 'string')
+    && (draft.plannedDurationMinutes === undefined || draft.plannedDurationMinutes === null
+      || (Number.isInteger(draft.plannedDurationMinutes) && draft.plannedDurationMinutes >= 0 && draft.plannedDurationMinutes <= MAX_PLANNED_TOUR_DURATION_MINUTES))
+    && (draft.breakAdditionalMinutes === undefined || draft.breakAdditionalMinutes === null
+      || (Number.isInteger(draft.breakAdditionalMinutes) && draft.breakAdditionalMinutes >= 0 && draft.breakAdditionalMinutes <= MAX_PLANNED_TOUR_DURATION_MINUTES))
     && (draft.editingPlaceId == null || (Number.isInteger(draft.editingPlaceId) && draft.editingPlaceId > 0))
     && (draft.maxHikingDifficulty == null || (Number.isInteger(draft.maxHikingDifficulty) && draft.maxHikingDifficulty >= 1 && draft.maxHikingDifficulty <= 6))
     && Array.isArray(draft.waypoints)
@@ -112,6 +122,10 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
   }, [storageKey])
 
   const [name, setNameState] = useState(restored?.name ?? '')
+  const [description, setDescriptionState] = useState(restored?.description ?? '')
+  const [website, setWebsiteState] = useState(restored?.website ?? '')
+  const [plannedDurationMinutes, setPlannedDurationMinutesState] = useState<number | null>(restored?.plannedDurationMinutes ?? null)
+  const [breakAdditionalMinutes, setBreakAdditionalMinutesState] = useState<number | null>(restored?.breakAdditionalMinutes ?? null)
   const [waypoints, setWaypoints] = useState<TourPlannerWaypoint[]>(restored?.waypoints ?? [])
   const [maxHikingDifficulty, setMaxHikingDifficultyState] = useState<TourMaxHikingDifficulty>(restored?.maxHikingDifficulty ?? 2)
   const [selectedWaypointId, setSelectedWaypointId] = useState<string | null>(restored?.waypoints[0]?.id ?? null)
@@ -238,6 +252,15 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
     setSelectedWaypointId(id)
   }, [commitWaypoints])
 
+  const setWaypointPosition = useCallback((id: string, lat: number, lng: number) => {
+    if (!editPermissionRef.current || saveInFlightRef.current || !Number.isFinite(lat) || !Number.isFinite(lng)) return false
+    const current = waypointsRef.current.find(point => point.id === id)
+    if (!current) return false
+    if (current.lat === lat && current.lng === lng) return true
+    commitWaypoints(points => points.map(point => point.id === id ? { ...point, lat, lng } : point))
+    return true
+  }, [commitWaypoints])
+
   const removeWaypoint = useCallback((id: string) => {
     if (!editPermissionRef.current) return
     commitWaypoints(current => current.filter(point => point.id !== id))
@@ -254,6 +277,24 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
       return next
     })
   }, [commitWaypoints])
+
+  const reorderWaypoint = useCallback(
+    (id: string, targetId: string, placement: 'before' | 'after') => {
+      if (!editPermissionRef.current || saveInFlightRef.current || id === targetId) return;
+      commitWaypoints((current) => {
+        const fromIndex = current.findIndex((point) => point.id === id);
+        const targetIndex = current.findIndex((point) => point.id === targetId);
+        if (fromIndex < 0 || targetIndex < 0) return current;
+        const next = [...current];
+        const [moved] = next.splice(fromIndex, 1);
+        const targetAfterRemoval = next.findIndex((point) => point.id === targetId);
+        const insertIndex = targetAfterRemoval + (placement === 'after' ? 1 : 0);
+        next.splice(insertIndex, 0, moved);
+        return next;
+      });
+    },
+    [commitWaypoints]
+  );
 
   const undo = useCallback(() => {
     if (!editPermissionRef.current) return
@@ -304,6 +345,60 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
     if (status === 'saved' || status === 'saving') setStatus(waypointsRef.current.length < 2 ? 'dirty' : 'ready')
   }, [invalidateDetailRequest, name, status])
 
+  const setDescription = useCallback((value: string) => {
+    if (!editPermissionRef.current || value === description) return
+    invalidateDetailRequest()
+    draftRevisionRef.current += 1
+    setDescriptionState(value)
+    setHasUnsavedChanges(true)
+    setSaveOutcome(null)
+    if (status === 'saved' || status === 'saving') setStatus(waypointsRef.current.length < 2 ? 'dirty' : 'ready')
+  }, [description, invalidateDetailRequest, status])
+
+  const setWebsite = useCallback((value: string) => {
+    if (!editPermissionRef.current || value === website) return
+    invalidateDetailRequest()
+    draftRevisionRef.current += 1
+    setWebsiteState(value)
+    setHasUnsavedChanges(true)
+    setSaveOutcome(null)
+    if (status === 'saved' || status === 'saving') setStatus(waypointsRef.current.length < 2 ? 'dirty' : 'ready')
+  }, [invalidateDetailRequest, status, website])
+
+  const setPlannedDurationMinutes = useCallback((value: number | null) => {
+    if (!editPermissionRef.current || value === plannedDurationMinutes) return
+    invalidateDetailRequest()
+    draftRevisionRef.current += 1
+    setPlannedDurationMinutesState(value)
+    setHasUnsavedChanges(true)
+    setSaveOutcome(null)
+    if (status === 'saved' || status === 'saving') setStatus(waypointsRef.current.length < 2 ? 'dirty' : 'ready')
+  }, [invalidateDetailRequest, plannedDurationMinutes, status])
+
+  const setBreakAdditionalMinutes = useCallback((value: number | null) => {
+    if (!editPermissionRef.current || value === breakAdditionalMinutes) return
+    invalidateDetailRequest()
+    draftRevisionRef.current += 1
+    setBreakAdditionalMinutesState(value)
+    setHasUnsavedChanges(true)
+    setSaveOutcome(null)
+    if (status === 'saved' || status === 'saving') setStatus(waypointsRef.current.length < 2 ? 'dirty' : 'ready')
+  }, [breakAdditionalMinutes, invalidateDetailRequest, status])
+
+  const websiteInvalid = website.trim().length > 0 && !tourWebsiteSchema.safeParse(website).success
+  const plannedDurationInvalid = plannedDurationMinutes !== null
+    && (!Number.isInteger(plannedDurationMinutes) || plannedDurationMinutes < 0 || plannedDurationMinutes > MAX_PLANNED_TOUR_DURATION_MINUTES)
+  const walkingDurationMinutes = durationSeconds === null ? null : Math.round(durationSeconds / 60)
+  const automaticPlannedTotalMinutes = walkingDurationMinutes === null
+    ? null
+    : walkingDurationMinutes + (breakAdditionalMinutes ?? 0)
+  const breakAdditionalInvalid = breakAdditionalMinutes !== null
+    && (!Number.isInteger(breakAdditionalMinutes) || breakAdditionalMinutes < 0 || breakAdditionalMinutes > MAX_PLANNED_TOUR_DURATION_MINUTES)
+  const plannedTotalMinutes = plannedDurationMinutes ?? automaticPlannedTotalMinutes
+  const plannedTotalInvalid = plannedDurationMinutes === null
+    && automaticPlannedTotalMinutes !== null
+    && automaticPlannedTotalMinutes > MAX_PLANNED_TOUR_DURATION_MINUTES
+
   const returnToNeutral = useCallback(() => {
     if (saveInFlightRef.current) return
     invalidateDetailRequest()
@@ -313,6 +408,10 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
     setRouteProfileFocus(null)
     localStorage.removeItem(storageKey)
     setNameState('')
+    setDescriptionState('')
+    setWebsiteState('')
+    setPlannedDurationMinutesState(null)
+    setBreakAdditionalMinutesState(null)
     setWaypoints([])
     setMaxHikingDifficultyState(2)
     waypointsRef.current = []
@@ -430,6 +529,10 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
       contextGenerationRef.current += 1
       draftRevisionRef.current += 1
       setNameState(result.tour.name)
+      setDescriptionState(result.tour.description ?? '')
+      setWebsiteState(result.tour.website ?? '')
+      setPlannedDurationMinutesState(result.tour.planned_duration_minutes ?? null)
+      setBreakAdditionalMinutesState(result.tour.break_additional_minutes ?? null)
       setWaypoints(nextWaypoints)
       setMaxHikingDifficultyState(result.tour.max_hiking_difficulty ?? 2)
       waypointsRef.current = nextWaypoints
@@ -543,9 +646,9 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
 
   useEffect(() => {
     if (!hasUnsavedChanges) return
-    const draft: DraftPayload = { version: 2, name, waypoints, maxHikingDifficulty, editingPlaceId }
+    const draft: DraftPayload = { version: 6, name, description, website, plannedDurationMinutes, breakAdditionalMinutes, waypoints, maxHikingDifficulty, editingPlaceId }
     localStorage.setItem(storageKey, JSON.stringify(draft))
-  }, [editingPlaceId, hasUnsavedChanges, maxHikingDifficulty, name, storageKey, waypoints])
+  }, [breakAdditionalMinutes, description, editingPlaceId, hasUnsavedChanges, maxHikingDifficulty, name, plannedDurationMinutes, storageKey, waypoints, website])
 
   useEffect(() => {
     if (!hasUnsavedChanges) return
@@ -556,6 +659,7 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
 
   const canSave = canEdit && !isSaving && hasUnsavedChanges && name.trim().length > 0 && status === 'ready'
     && routeForKey === waypointKey && hasCompleteElevation(enrichedGeometry)
+    && description.length <= 2000 && !websiteInvalid && !plannedDurationInvalid && !breakAdditionalInvalid && !plannedTotalInvalid
 
   const save = useCallback(async () => {
     if (!mountedRef.current || saveInFlightRef.current || !editPermissionRef.current || !canSave || !hasCompleteElevation(enrichedGeometry)) return null
@@ -569,6 +673,8 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
     const submittedPlaceId = editingPlaceId
     const payload = {
       name: name.trim(),
+      description: description.trim() || null,
+      website: website.trim() ? tourWebsiteSchema.parse(website) : null,
       tour_type: 'hike',
       route_geometry: enrichedGeometry.map(point => [point[0], point[1], point[2]]),
       waypoints: waypoints.map((point, sequence) => ({
@@ -579,6 +685,8 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
       })),
       max_hiking_difficulty: maxHikingDifficulty,
       duration_seconds: durationSeconds,
+      planned_duration_minutes: plannedDurationMinutes,
+      break_additional_minutes: breakAdditionalMinutes,
     } as const
     setStatus('saving')
     setIsSaving(true)
@@ -618,13 +726,17 @@ export function useTourPlanner({ tripId, active = true, onSaved, canEdit: editPe
         setIsSaving(false)
       }
     }
-  }, [canSave, durationSeconds, editingPlaceId, enrichedGeometry, invalidateDetailRequest, maxHikingDifficulty, name, onSaved, storageKey, tripId, waypoints])
+  }, [breakAdditionalMinutes, canSave, description, durationSeconds, editingPlaceId, enrichedGeometry, invalidateDetailRequest, maxHikingDifficulty, name, onSaved, plannedDurationMinutes, storageKey, tripId, waypoints, website])
 
   return {
     canEdit, canAssign,
     name, setName, maxHikingDifficulty, setMaxHikingDifficulty,
+    description, setDescription, website, setWebsite, websiteInvalid,
+    plannedDurationMinutes, setPlannedDurationMinutes, plannedDurationInvalid,
+    breakAdditionalMinutes, setBreakAdditionalMinutes, breakAdditionalInvalid,
+    walkingDurationMinutes, plannedTotalMinutes, plannedTotalInvalid,
     waypoints, selectedWaypointId, setSelectedWaypointId,
-    addWaypoint, removeWaypoint, moveWaypoint,
+    addWaypoint, setWaypointPosition, removeWaypoint, moveWaypoint, reorderWaypoint,
     undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0,
     status, error, retry, isSaving,
     route, enrichedGeometry, routeAnalysis, distanceMeters, durationSeconds,

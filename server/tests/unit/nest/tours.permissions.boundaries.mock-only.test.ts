@@ -265,6 +265,8 @@ describe('Real ToursService update trip boundary (stubbed repositories)', () => 
     expect(f.toursRepo.findInTrip).toHaveBeenCalledTimes(2);
     expect(f.placesRepo.updateTourRoute).toHaveBeenCalledExactlyOnceWith(42, 7, {
       name: input.name, lat: 48, lng: 11, route_geometry: JSON.stringify(input.route_geometry),
+      ...(input.description !== undefined ? { description: input.description } : {}),
+      ...(input.website !== undefined ? { website: input.website } : {}),
     });
     expect(f.toursRepo.updateInTrip).toHaveBeenCalledExactlyOnceWith(7, 42, expect.objectContaining({ tour_type: 'hike', duration: null }));
     expect(f.waypointsRepo.deleteForPlace).toHaveBeenCalledExactlyOnceWith(42);

@@ -1,7 +1,6 @@
 import type { AssertRowKeys } from './_shared/rows';
 import type { Tours } from '../entities/Tours.entity';
 import { TrekRepository } from './_shared/trek-repository';
-import type { DB } from '../kysely/db';
 
 /**
  * A tour as the Tours list and detail read it: the `tours` facet joined with
@@ -12,11 +11,15 @@ import type { DB } from '../kysely/db';
 export interface TourListRow {
   place_id: number;
   name: string;
+  description?: string | null;
+  website?: string | null;
   tour_type: string;
   distance: number | null;
   elevation_gain: number | null;
   elevation_loss: number | null;
   duration: number | null;
+  planned_duration_minutes: number | null;
+  break_additional_minutes: number | null;
   difficulty: string | null;
   wanderer_ref: string | null;
   match_confidence: number | null;
@@ -33,6 +36,8 @@ export interface TourRow {
   elevation_gain: number | null;
   elevation_loss: number | null;
   duration: number | null;
+  planned_duration_minutes: number | null;
+  break_additional_minutes: number | null;
   difficulty: string | null;
   wanderer_ref: string | null;
   match_confidence: number | null;
@@ -49,14 +54,24 @@ export interface TourInsert {
   elevation_gain: number | null;
   elevation_loss: number | null;
   duration: number | null;
+  planned_duration_minutes: number | null;
+  break_additional_minutes?: number | null;
   match_confidence: number | null;
   max_hiking_difficulty: number;
 }
 
 /** What a route edit replaces on an existing tour. */
-export type TourUpdate = Omit<TourInsert, 'place_id'>;
+export type TourUpdate = Omit<TourInsert, 'place_id' | 'planned_duration_minutes' | 'break_additional_minutes'> & {
+  planned_duration_minutes?: number | null;
+  break_additional_minutes?: number | null;
+};
 
-type ToursKyselyDB = Pick<DB, 'tours' | 'places' | 'day_assignments' | 'tour_waypoints'>;
+interface ToursKyselyDB {
+  tours: TourRow;
+  places: { id: number; trip_id: number; name: string; description: string | null; website: string | null };
+  day_assignments: { id: number; day_id: number; place_id: number };
+  tour_waypoints: { id: number; place_id: number };
+}
 
 /**
  * `tours` — the facet that makes a place a tour (#2586). Keyed on the owning
@@ -81,11 +96,15 @@ export class ToursRepository extends TrekRepository<Tours> {
       .select((eb) => [
         'p.id as place_id',
         'p.name as name',
+        'p.description as description',
+        'p.website as website',
         't.tour_type as tour_type',
         't.distance as distance',
         't.elevation_gain as elevation_gain',
         't.elevation_loss as elevation_loss',
         't.duration as duration',
+        't.planned_duration_minutes as planned_duration_minutes',
+        't.break_additional_minutes as break_additional_minutes',
         't.difficulty as difficulty',
         't.wanderer_ref as wanderer_ref',
         't.match_confidence as match_confidence',
@@ -169,6 +188,8 @@ export class ToursRepository extends TrekRepository<Tours> {
       elevation_gain: input.elevation_gain,
       elevation_loss: input.elevation_loss,
       duration: input.duration,
+      planned_duration_minutes: input.planned_duration_minutes,
+      break_additional_minutes: input.break_additional_minutes ?? null,
       match_confidence: input.match_confidence,
       max_hiking_difficulty: input.max_hiking_difficulty,
     });
@@ -199,6 +220,8 @@ export class ToursRepository extends TrekRepository<Tours> {
         elevation_gain: input.elevation_gain,
         elevation_loss: input.elevation_loss,
         duration: input.duration,
+        ...(input.planned_duration_minutes !== undefined ? { planned_duration_minutes: input.planned_duration_minutes } : {}),
+        ...(input.break_additional_minutes !== undefined ? { break_additional_minutes: input.break_additional_minutes } : {}),
         match_confidence: input.match_confidence,
         max_hiking_difficulty: input.max_hiking_difficulty,
       })

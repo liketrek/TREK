@@ -1,5 +1,5 @@
 import { act, useState } from 'react'
-import { fireEvent, render, screen, waitFor } from '../../../../tests/helpers/render'
+import { fireEvent, render, screen, waitFor, within } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TourListItem } from '@trek/shared'
@@ -48,6 +48,20 @@ function planner(overrides: Partial<TourPlannerController> = {}): TourPlannerCon
     maxHikingDifficulty: 2,
     setMaxHikingDifficulty: vi.fn(),
     name: '',
+    description: '',
+    setDescription: vi.fn(),
+    website: '',
+    setWebsite: vi.fn(),
+    websiteInvalid: false,
+    plannedDurationMinutes: null,
+    setPlannedDurationMinutes: vi.fn(),
+    plannedDurationInvalid: false,
+    breakAdditionalMinutes: null,
+    setBreakAdditionalMinutes: vi.fn(),
+    breakAdditionalInvalid: false,
+    walkingDurationMinutes: null,
+    plannedTotalMinutes: null,
+    plannedTotalInvalid: false,
     startNewTour: vi.fn(),
     newTourConfirmationOpen: false,
     cancelNewTour: vi.fn(),
@@ -65,6 +79,9 @@ function planner(overrides: Partial<TourPlannerController> = {}): TourPlannerCon
     editingPlaceId: null,
     openingTourId: null,
     openTour: vi.fn().mockResolvedValue(true),
+    reorderWaypoint: vi.fn(),
+    moveWaypoint: vi.fn(),
+    removeWaypoint: vi.fn(),
     saveOutcome: null,
     hasUnsavedChanges: false,
     discard: vi.fn(),
@@ -92,6 +109,16 @@ beforeEach(() => {
 })
 
 describe('TourPlannerToursRail', () => {
+  it('RS-02: keeps calculated Walking time visible in the right Tour metrics rail', () => {
+    render(<TourPlannerToursRail planner={planner({
+      mode: { type: 'new-draft' }, durationSeconds: 4800,
+      walkingDurationMinutes: 80, breakAdditionalMinutes: 50, plannedTotalMinutes: 130,
+    })} tours={[tour]} {...railProps} />)
+
+    expect(screen.getByText('Walking time')).toBeInTheDocument()
+    expect(screen.getByText('1 h 20 min')).toBeInTheDocument()
+  })
+
   it('disables saved-tour switching and Plan another while a Save is pending', () => {
     const controller = planner({
       isSaving: true,
@@ -289,6 +316,227 @@ describe('TourPlannerToursRail', () => {
 })
 
 describe('TourPlannerRail', () => {
+  it('RS-01: edits Tour description and HTTPS information link without exposing editable fields in GPX mode', () => {
+    const setDescription = vi.fn()
+    const setWebsite = vi.fn()
+    const { rerender } = render(
+      <TourPlannerRail
+        planner={planner({ mode: { type: 'new-draft' }, hasUnsavedChanges: true, setDescription, setWebsite })}
+      />
+    )
+    const description = screen.getByLabelText('Description')
+    const website = screen.getByLabelText('Website')
+    fireEvent.change(description, { target: { value: 'A quiet ridge route' } })
+    fireEvent.change(website, { target: { value: 'https://www.komoot.com/tour/42' } })
+    expect(setDescription).toHaveBeenCalledWith('A quiet ridge route')
+    expect(setWebsite).toHaveBeenCalledWith('https://www.komoot.com/tour/42')
+
+    rerender(
+      <TourPlannerRail
+        planner={planner({
+          mode: { type: 'view-gpx', placeId: 42, tour },
+          readOnlyGpxTour: { tour, routeGeometry: null },
+          waypoints: [],
+          websiteInvalid: true,
+        })}
+      />
+    )
+    expect(screen.queryByLabelText('Description')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Website')).not.toBeInTheDocument()
+  })
+
+  it('RS-02: edits breaks and planned total directly, and clearing total returns it to automatic', () => {
+    const setPlannedDurationMinutes = vi.fn()
+    const setBreakAdditionalMinutes = vi.fn()
+    const controller = planner({
+      mode: { type: 'new-draft' }, hasUnsavedChanges: true, durationSeconds: 3600,
+      walkingDurationMinutes: 60, breakAdditionalMinutes: 35, setBreakAdditionalMinutes,
+      plannedDurationMinutes: null, plannedTotalMinutes: 95, setPlannedDurationMinutes,
+    })
+    const { rerender } = render(<TourPlannerRail planner={controller} />)
+
+    expect(screen.queryByTestId('tour-planner-walking-time')).not.toBeInTheDocument()
+    expect(screen.getByTestId('tour-planner-time-grid')).toHaveClass('grid')
+    expect(screen.getByTestId('tour-planner-time-grid')).toHaveClass('grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))]')
+    const breaks = screen.getByLabelText('Breaks / additional time')
+    expect(breaks).toHaveValue(35)
+    fireEvent.change(breaks, { target: { value: '50' } })
+    expect(setBreakAdditionalMinutes).toHaveBeenCalledWith(50)
+    fireEvent.change(breaks, { target: { value: '' } })
+    expect(setBreakAdditionalMinutes).toHaveBeenLastCalledWith(null)
+    fireEvent.change(breaks, { target: { value: '50' } })
+    const input = screen.getByLabelText('Planned total duration')
+    expect(input).toHaveValue(95)
+    expect(input).toHaveStyle({ width: '6rem' })
+    expect(screen.getByText('Calculated total')).toBeInTheDocument()
+    expect(controller.durationSeconds).toBe(3600)
+    fireEvent.change(input, { target: { value: '125' } })
+    expect(setPlannedDurationMinutes).toHaveBeenCalledWith(125)
+
+    rerender(<TourPlannerRail planner={planner({
+      mode: { type: 'new-draft' }, hasUnsavedChanges: true, plannedDurationMinutes: 125,
+      setPlannedDurationMinutes,
+      plannedTotalMinutes: 125, walkingDurationMinutes: 60, breakAdditionalMinutes: 35,
+    })} />)
+    const overriddenInput = screen.getByLabelText(/Planned total duration/)
+    expect(overriddenInput).toHaveValue(125)
+    expect(document.querySelector('label[for="tour-planner-planned-duration"]')).toHaveTextContent('Manual override')
+    fireEvent.change(overriddenInput, { target: { value: '' } })
+    expect(setPlannedDurationMinutes).toHaveBeenCalledWith(null)
+
+    rerender(<TourPlannerRail planner={planner({
+      mode: { type: 'new-draft' }, hasUnsavedChanges: true, plannedDurationMinutes: 1441,
+      plannedDurationInvalid: true,
+    })} />)
+    expect(screen.getByLabelText(/Planned total duration/)).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter a whole value from 0 to 1,440 minutes.')
+
+    rerender(<TourPlannerRail planner={planner({
+      mode: { type: 'new-draft' }, hasUnsavedChanges: true, breakAdditionalMinutes: 1441,
+      breakAdditionalInvalid: true,
+    })} />)
+    expect(screen.getByLabelText('Breaks / additional time')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter a whole value from 0 to 1,440 minutes.')
+  })
+
+  it('RS-02: Info controls are keyboard focusable, use shared tooltips, and expose touch disclosures', async () => {
+    render(<TourPlannerRail planner={planner({
+      mode: { type: 'new-draft' }, hasUnsavedChanges: true, walkingDurationMinutes: 80,
+      breakAdditionalMinutes: 50, plannedTotalMinutes: 130,
+    })} />)
+
+    const breaksInfo = screen.getByRole('button', { name: 'About breaks and additional time' })
+    expect(breaksInfo.tabIndex).toBe(0)
+    expect(breaksInfo).toHaveAttribute('aria-expanded', 'false')
+    expect(breaksInfo).toHaveAttribute('aria-controls')
+    expect(breaksInfo).toHaveClass('focus-visible:outline')
+    const matches = vi.spyOn(breaksInfo, 'matches').mockImplementation(selector => selector === ':focus-visible')
+    fireEvent.focus(breaksInfo)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Optional whole minutes added to calculated walking time.')
+    fireEvent.blur(breaksInfo)
+    matches.mockRestore()
+    fireEvent.click(breaksInfo)
+    expect(breaksInfo).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('note')).toHaveTextContent('Optional whole minutes added to calculated walking time.')
+
+    const totalInfo = screen.getByRole('button', { name: 'About planned total duration' })
+    expect(totalInfo).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(totalInfo)
+    expect(screen.getByText('Calculated planned total duration.')).toBeInTheDocument()
+  })
+
+  it('RS-01: marks unsafe website values invalid and does not offer Save', () => {
+    render(<TourPlannerRail planner={planner({ mode: { type: 'new-draft' }, hasUnsavedChanges: true, website: 'http://example.org', websiteInvalid: true })} />)
+    expect(screen.getByLabelText('Website')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByRole('alert')).toHaveTextContent('TREK cannot use that address.')
+  })
+
+  const reorderWaypoints = [
+    { id: 'a', lat: 48, lng: 11, role: 'start' as const },
+    { id: 'b', lat: 48.1, lng: 11.1, role: 'via' as const },
+    { id: 'c', lat: 48.2, lng: 11.2, role: 'via' as const },
+    { id: 'd', lat: 48.3, lng: 11.3, role: 'end' as const },
+  ];
+
+  it('RC-07: dragging before and after rows commits only on drop by stable waypoint ids', () => {
+    const reorderWaypoint = vi.fn();
+    render(
+      <TourPlannerRail
+        planner={planner({
+          mode: { type: 'new-draft' },
+          hasUnsavedChanges: true,
+          waypoints: reorderWaypoints,
+          reorderWaypoint,
+        })}
+      />
+    );
+    const rows = screen.getAllByTestId('tour-planner-waypoint-row');
+    const transfer = { setData: vi.fn(), getData: vi.fn(() => 'a'), effectAllowed: 'all', dropEffect: 'move' };
+    const dispatchDrag = (type: string, target: HTMLElement, dataTransfer: typeof transfer, clientY = 0) => {
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(event, 'dataTransfer', { value: dataTransfer });
+      Object.defineProperty(event, 'clientY', { value: clientY });
+      fireEvent(target, event);
+    };
+    for (const row of [rows[1], rows[2]]) {
+      Object.defineProperty(row, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({
+          top: 0,
+          bottom: 20,
+          height: 20,
+          left: 0,
+          right: 100,
+          width: 100,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+        }),
+      });
+    }
+
+    dispatchDrag('dragstart', within(rows[0]).getByTestId('tour-planner-waypoint-drag-handle'), transfer);
+    dispatchDrag('dragover', rows[2], transfer, 1);
+    expect(reorderWaypoint).not.toHaveBeenCalled();
+    dispatchDrag('drop', rows[2], transfer, 1);
+    expect(reorderWaypoint).toHaveBeenCalledOnce();
+    expect(reorderWaypoint).toHaveBeenLastCalledWith('a', 'c', 'before');
+
+    reorderWaypoint.mockClear();
+    const lastTransfer = { ...transfer, getData: vi.fn(() => 'd') };
+    dispatchDrag('dragstart', within(rows[3]).getByTestId('tour-planner-waypoint-drag-handle'), lastTransfer);
+    dispatchDrag('dragover', rows[1], lastTransfer, 15);
+    expect(reorderWaypoint).not.toHaveBeenCalled();
+    dispatchDrag('drop', rows[1], lastTransfer, 15);
+    expect(reorderWaypoint).toHaveBeenCalledOnce();
+    expect(reorderWaypoint).toHaveBeenLastCalledWith('d', 'b', 'after');
+  });
+
+  it('RC-07: cancelled drags do not reorder and keyboard arrow controls remain buttons', async () => {
+    const user = userEvent.setup();
+    const reorderWaypoint = vi.fn();
+    const moveWaypoint = vi.fn();
+    render(
+      <TourPlannerRail
+        planner={planner({
+          mode: { type: 'new-draft' },
+          hasUnsavedChanges: true,
+          waypoints: reorderWaypoints,
+          reorderWaypoint,
+          moveWaypoint,
+        })}
+      />
+    );
+    const rows = screen.getAllByTestId('tour-planner-waypoint-row');
+    const transfer = { setData: vi.fn(), getData: vi.fn(() => 'a'), effectAllowed: 'all', dropEffect: 'move' };
+    Object.defineProperty(rows[2], 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        top: 0,
+        bottom: 20,
+        height: 20,
+        left: 0,
+        right: 100,
+        width: 100,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }),
+    });
+
+    fireEvent.dragStart(within(rows[0]).getByTestId('tour-planner-waypoint-drag-handle'), { dataTransfer: transfer });
+    fireEvent.dragOver(rows[2], { dataTransfer: transfer, clientY: -1 });
+    fireEvent.dragEnd(rows[0], { dataTransfer: transfer });
+    expect(reorderWaypoint).not.toHaveBeenCalled();
+
+    const moveDown = screen.getAllByRole('button', { name: 'Move waypoint down' })[0];
+    expect(moveDown).toBeEnabled();
+    moveDown.focus();
+    await user.keyboard(' ');
+    expect(moveWaypoint).toHaveBeenCalledWith('a', 1);
+    expect(reorderWaypoint).not.toHaveBeenCalled();
+  });
+
   it('disables draft mutation and replacement controls while saving', () => {
     const controller = planner({
       mode: { type: 'new-draft' },

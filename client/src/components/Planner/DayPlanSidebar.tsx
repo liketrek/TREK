@@ -72,6 +72,9 @@ import { DayPlanSidebarFooter } from './DayPlanSidebarFooter'
 import type { DayAddControls } from '../../utils/dayAdd'
 import type { DayDeleteQuestion } from '../../utils/dayImpactLines'
 import type { Trip, Day, Place, Category, Assignment, Accommodation, Reservation, AssignmentsMap, RouteResult, RouteSegment, DayNote } from '../../types'
+import { formatPlannedTourDuration, type TourPlannedTimes } from '../Tours/tourPresentation'
+import type { TourListItem } from '@trek/shared'
+import TourDayRowFacts, { TourDayRowIcon } from '../Tours/TourDayRowFacts'
 
 interface DayPlanSidebarProps {
   tripId: number
@@ -79,6 +82,7 @@ interface DayPlanSidebarProps {
   days: Day[]
   places: Place[]
   tourPlaceIds?: ReadonlySet<number>
+  plannedTourDurations?: ReadonlyMap<number, TourPlannedTimes & { tour?: TourListItem }>
   categories: Category[]
   assignments: AssignmentsMap
   selectedDayId: number | null
@@ -2123,6 +2127,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                         const assignment = item.data
                         const place = assignment.place
                         if (!place) return null
+                        const isTourPlace = toursEnabled && (props.tourPlaceIds?.has(place.id) || place.tour_place_id === place.id)
+                        const tourTimes = isTourPlace ? props.plannedTourDurations?.get(place.id) : undefined
+                        const dayRowTour = tourTimes?.tour
                         const cat = categories.find(c => c.id === place.category_id)
                         const isPlaceSelected = selectedAssignmentId ? assignment.id === selectedAssignmentId : place.id === selectedPlaceId
                         const isDraggingThis = draggingId === assignment.id
@@ -2294,7 +2301,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                 onMouseLeave={() => setLockHoverId(null)}
                                 className="relative flex flex-none rounded-full"
                               >
-                                <PlaceAvatar place={place} category={cat} size={32} />
+                                {dayRowTour ? <TourDayRowIcon type={dayRowTour.tour_type} size={32} /> : <PlaceAvatar place={place} category={cat} size={32} />}
                                 {/* Hover/locked overlay */}
                                 {(lockHoverId === assignment.id || isLocked) && (
                                   <span className="absolute inset-0 grid place-items-center rounded-full transition-colors"
@@ -2306,7 +2313,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                             </Tooltip>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div className="flex min-w-0 items-center gap-1.5">
-                                {cat && (() => {
+                                {!dayRowTour && cat && (() => {
                                   const CatIcon = getCategoryIcon(cat.icon)
                                   return (
                                     <Tooltip label={cat.name}>
@@ -2327,15 +2334,37 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                                   </Tooltip>
                                 )}
                               </div>
-                              {(place.place_time || place.description || place.address || cat?.name) && (
-                                <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+                              {(dayRowTour || place.place_time || (tourTimes && (tourTimes.walkingMinutes != null || tourTimes.breakMinutes != null || tourTimes.plannedTotalMinutes != null)) || place.description || place.address || cat?.name) && (
+                                <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5">
                                   {place.place_time && (
                                     <TimePill>
                                       {formatTime(place.place_time, locale, timeFormat)}{place.end_time ? ` – ${formatTime(place.end_time, locale, timeFormat)}` : ''}
                                     </TimePill>
                                   )}
+                                  {dayRowTour && <TourDayRowFacts tour={dayRowTour} />}
+                                  {!dayRowTour && tourTimes?.walkingMinutes != null && (
+                                    <TimePill>
+                                      <span data-testid="trip-plan-tour-walking-time" aria-label={`${t('tours.planner.inspector.duration')}: ${formatPlannedTourDuration(tourTimes.walkingMinutes)}`}>
+                                        {t('tours.planner.walkingShort')}: {formatPlannedTourDuration(tourTimes.walkingMinutes)}
+                                      </span>
+                                    </TimePill>
+                                  )}
+                                  {!dayRowTour && tourTimes?.breakMinutes != null && (
+                                    <TimePill>
+                                      <span data-testid="trip-plan-tour-breaks" aria-label={`${t('tours.planner.breaksAdditional')}: ${formatPlannedTourDuration(tourTimes.breakMinutes)}`}>
+                                        {t('tours.planner.breaksShort')}: {formatPlannedTourDuration(tourTimes.breakMinutes)}
+                                      </span>
+                                    </TimePill>
+                                  )}
+                                  {!dayRowTour && tourTimes?.plannedTotalMinutes != null && (
+                                    <TimePill>
+                                      <span data-testid="trip-plan-tour-planned-duration" aria-label={`${t('tours.planner.plannedTotalDuration')}: ${formatPlannedTourDuration(tourTimes.plannedTotalMinutes)}${tourTimes.manuallyOverridden ? `, ${t('tours.planner.plannedTotalManual')}` : ''}`}>
+                                        {t('tours.planner.plannedShort')}: {formatPlannedTourDuration(tourTimes.plannedTotalMinutes)}{tourTimes.manuallyOverridden ? ` · ${t('tours.planner.plannedTotalManual')}` : ''}
+                                      </span>
+                                    </TimePill>
+                                  )}
                                   {(place.description || place.address || cat?.name) && (
-                                    <div className="collab-note-md min-w-0 flex-1 text-content-faint" style={{ ...fs(10.5), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3, maxHeight: '1.3em' }}>
+                                    <div data-testid={isTourPlace ? 'trip-plan-tour-description' : undefined} className="collab-note-md min-w-0 flex-1 text-content-faint" style={{ ...fs(10.5), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: isTourPlace ? 'normal' : 'nowrap', lineHeight: 1.3, maxHeight: isTourPlace ? '2.6em' : '1.3em', ...(isTourPlace ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const } : {}) }}>
                                       <Markdown remarkPlugins={[remarkGfm]}>{place.description || place.address || cat?.name || ''}</Markdown>
                                     </div>
                                   )}

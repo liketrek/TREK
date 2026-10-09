@@ -18,6 +18,37 @@ export type TourTypeKey = z.infer<typeof tourTypeKeySchema>;
 export const tourMaxHikingDifficultySchema = z.number().int().min(1).max(6);
 export type TourMaxHikingDifficulty = z.infer<typeof tourMaxHikingDifficultySchema>;
 
+/** Tours are single-day activities, so a planned total is bounded to 24 hours. */
+export const MAX_PLANNED_TOUR_DURATION_MINUTES = 24 * 60;
+export const plannedTourDurationMinutesSchema = z
+  .number()
+  .int()
+  .min(0)
+  .max(MAX_PLANNED_TOUR_DURATION_MINUTES)
+  .nullable();
+
+export const tourWebsiteSchema = z
+  .string()
+  .trim()
+  .max(500)
+  .url()
+  .superRefine((value, ctx) => {
+    let parsed: URL;
+    try {
+      parsed = new URL(value);
+    } catch {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'must be a valid URL' });
+      return;
+    }
+    if (parsed.protocol !== 'https:') {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'must be an HTTPS URL' });
+    }
+    if (parsed.username || parsed.password) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'must not contain URL credentials' });
+    }
+  })
+  .transform((value) => new URL(value).toString());
+
 export const tourTypeSchema = z.object({
   key: tourTypeKeySchema,
   label_key: z.string(),
@@ -38,6 +69,8 @@ export const tourSchema = z.object({
   elevation_gain: z.number().nullable(),
   elevation_loss: z.number().nullable(),
   duration: z.number().nullable(),
+  planned_duration_minutes: plannedTourDurationMinutesSchema.optional(),
+  break_additional_minutes: plannedTourDurationMinutesSchema.optional(),
   difficulty: z.string().nullable(),
   // Nullable reference to a tour in wanderer.
   wanderer_ref: z.string().nullable(),
@@ -62,6 +95,8 @@ export type TourTypeListResponse = z.infer<typeof tourTypeListResponseSchema>;
  */
 export const tourListItemSchema = tourSchema.extend({
   name: z.string(),
+  description: z.string().nullable().optional(),
+  website: z.string().nullable().optional(),
   planned: z.boolean(),
   caution: z.boolean(),
   /** Read-model provenance signal: planner-authored tours persist routing controls; GPX imports do not. */
@@ -99,8 +134,24 @@ export const tourCreateRequestSchema = z
     waypoints: z.array(tourWaypointSchema).min(2),
     max_hiking_difficulty: tourMaxHikingDifficultySchema.default(2),
     duration_seconds: z.number().finite().nonnegative().nullable().optional(),
+    planned_duration_minutes: plannedTourDurationMinutesSchema.optional(),
+    break_additional_minutes: plannedTourDurationMinutesSchema.optional(),
+    description: z.string().trim().max(2000).nullable().optional(),
+    website: tourWebsiteSchema.nullable().optional(),
   })
   .superRefine((value, ctx) => {
+    if (
+      value.planned_duration_minutes == null &&
+      value.duration_seconds != null &&
+      value.break_additional_minutes != null &&
+      Math.round(value.duration_seconds / 60) + value.break_additional_minutes > MAX_PLANNED_TOUR_DURATION_MINUTES
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['break_additional_minutes'],
+        message: 'walking time plus breaks must be 1440 minutes or less unless a total is overridden',
+      });
+    }
     value.waypoints.forEach((point, index) => {
       const expectedRole: TourWaypointRole =
         index === 0 ? 'start' : index === value.waypoints.length - 1 ? 'end' : 'via';

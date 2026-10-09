@@ -364,4 +364,43 @@ describe('LocationSelect', () => {
     expect(screen.queryByText('Gare du Nord')).not.toBeInTheDocument();
     expect(screen.getByText('Gare de Lyon')).toBeInTheDocument();
   });
+
+  it('marks the keyboard-highlighted result as active and selects it with Enter', async () => {
+    const user = userEvent.setup();
+    server.use(searchRoute([GARE, LYON]));
+    const onPick = vi.fn();
+
+    render(<LocationSelect value={null} onChange={onPick} ariaLabel="Search map location" showSearchStatus />);
+    const input = screen.getByRole('combobox', { name: 'Search map location' });
+    await user.type(input, 'Gare');
+    const firstOption = await screen.findByRole('option', { name: /Gare du Nord/ });
+    await user.keyboard('{ArrowDown}');
+
+    expect(firstOption).toHaveAttribute('aria-selected', 'true');
+    expect(input).toHaveAttribute('aria-activedescendant', firstOption.id);
+    await user.keyboard('{Enter}');
+    expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ name: 'Gare du Nord' }));
+  });
+
+  it('shows a localized no-result status after an empty successful search', async () => {
+    const user = userEvent.setup();
+    server.use(searchRoute([]));
+
+    render(<LocationSelect value={null} onChange={vi.fn()} ariaLabel="Search map location" showSearchStatus />);
+    await user.type(screen.getByRole('combobox', { name: 'Search map location' }), 'Nowhere');
+
+    expect(await screen.findByText(/Nothing found for/)).toBeInTheDocument();
+  });
+
+  it('shows a non-mutating error status when the provider request fails', async () => {
+    const user = userEvent.setup();
+    server.use(http.post('/api/maps/search', () => HttpResponse.json({ error: 'unavailable' }, { status: 503 })));
+    const onChange = vi.fn();
+
+    render(<LocationSelect value={null} onChange={onChange} ariaLabel="Search map location" showSearchStatus />);
+    await user.type(screen.getByRole('combobox', { name: 'Search map location' }), 'Kyoto');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Error');
+    expect(onChange).not.toHaveBeenCalled();
+  });
 });

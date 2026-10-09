@@ -19,6 +19,8 @@ export class Tours {
   match_confidence?: number | null;
   created_at?: string | null;
   max_hiking_difficulty: number & Opt = 2;
+  planned_duration_minutes?: number | null;
+  break_additional_minutes?: number | null;
   tourTypeRef!: Ref<TourTypes>;
   tour_waypoints_collection = new Collection<TourWaypoints>(this);
 }
@@ -39,6 +41,8 @@ export const ToursSchema = defineEntity({
     match_confidence: p.double().nullable(),
     created_at: p.text().nullable().defaultRaw(`CURRENT_TIMESTAMP`),
     max_hiking_difficulty: p.integer().default(2),
+    planned_duration_minutes: p.integer().nullable(),
+    break_additional_minutes: p.integer().nullable(),
     tourTypeRef: () => p.manyToOne(TourTypes).ref().joinColumn('tour_type').hidden().index('idx_tours_tour_type'),
     tour_waypoints_collection: () => p.oneToMany(TourWaypoints).mappedBy('place').hidden(),
   },

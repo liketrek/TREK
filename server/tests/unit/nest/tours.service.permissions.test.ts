@@ -109,11 +109,11 @@ describe('ToursService planner contracts (mock-only; SQLite rollback semantics a
 
     expect(setup.uow.transactional).toHaveBeenCalledOnce();
     expect(setup.placesRepo.insertTourPlace).toHaveBeenCalledExactlyOnceWith({
-      trip_id: 7, name: request.name, lat: 48, lng: 11, route_geometry: JSON.stringify(request.route_geometry),
+      trip_id: 7, name: request.name, lat: 48, lng: 11, route_geometry: JSON.stringify(request.route_geometry), description: request.description ?? null, website: request.website ?? null,
     });
     expect(setup.toursRepo.insertTour).toHaveBeenCalledExactlyOnceWith({
       place_id: 42, tour_type: 'hike', distance: expect.any(Number), elevation_gain: 50, elevation_loss: 20,
-      duration: 60, match_confidence: 1, max_hiking_difficulty: 2,
+      duration: 60, planned_duration_minutes: null, break_additional_minutes: null, match_confidence: 1, max_hiking_difficulty: 2,
     });
     expect((setup.toursRepo.insertTour.mock.calls[0][0] as { distance: number }).distance).toBeGreaterThan(0);
     expect(setup.waypointsRepo.insertForPlace).toHaveBeenCalledExactlyOnceWith(42, request.waypoints);
@@ -188,6 +188,8 @@ describe('ToursService planner contracts (mock-only; SQLite rollback semantics a
     expect(setup.uow.transactional).toHaveBeenCalledOnce();
     expect(setup.placesRepo.updateTourRoute).toHaveBeenCalledExactlyOnceWith(42, 7, {
       name: update.name, lat: 49, lng: 12, route_geometry: JSON.stringify(update.route_geometry),
+      ...(update.description !== undefined ? { description: update.description } : {}),
+      ...(update.website !== undefined ? { website: update.website } : {}),
     });
     expect(setup.toursRepo.updateInTrip).toHaveBeenCalledExactlyOnceWith(7, 42, {
       tour_type: 'hike', distance: expect.any(Number), elevation_gain: 60, elevation_loss: 0,

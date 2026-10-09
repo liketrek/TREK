@@ -1,6 +1,6 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useId, useRef, useState, type ReactNode } from 'react'
 import type { TourListItem } from '@trek/shared'
-import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, Info, MapPin, Plus, Redo2, RotateCcw, Save, ShieldAlert, Trash2, Undo2 } from 'lucide-react'
+import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, GripVertical, Info, MapPin, Plus, Redo2, RotateCcw, Save, ShieldAlert, Trash2, Undo2 } from 'lucide-react'
 import type { Day } from '../../../types'
 import { useTranslation } from '../../../i18n'
 import { useSettingsStore } from '../../../store/settingsStore'
@@ -16,7 +16,7 @@ import { BOX } from '../../Planner/bookings/bookingParts'
 import { BarButton, SoftPill } from '../../Planner/planParts'
 import TourListRow from '../TourListRow'
 import ElevationProfile from '../../shared/ElevationProfile'
-import { hikeSourceBadgeLabel, tourSource } from '../tourPresentation'
+import { formatPlannedTourDuration, hikeSourceBadgeLabel, tourSource } from '../tourPresentation'
 import { FoldButton, TourDayMenu, TourMetricFields, TourNotice, TourSection } from '../tourParts'
 import type { DistanceIndexedProfileSample, RouteProfileFocus } from '../../../utils/routeGeometry'
 import type { TourPlannerController, TourPlannerStatus } from './useTourPlanner'
@@ -62,12 +62,38 @@ function RailTitle({ title, sub, aside }: { title: string; sub?: ReactNode; asid
   )
 }
 
+function DurationInfo({ description, label }: { description: string; label: string }) {
+  const id = useId()
+  const [open, setOpen] = useState(false)
+  return (
+    <span className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5">
+      <Tooltip label={description}>
+        <button
+          type="button"
+          aria-label={label}
+          aria-expanded={open}
+          aria-controls={id}
+          onClick={() => setOpen(value => !value)}
+          className="grid h-5 w-5 flex-none place-items-center rounded-full text-content-faint transition-colors hover:bg-surface-card hover:text-content focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          <Info size={13} strokeWidth={2} aria-hidden="true" />
+        </button>
+      </Tooltip>
+      <span id={id} hidden={!open} role="note" className="basis-full text-content-muted" style={fs(10.5, 'body')}>
+        {description}
+      </span>
+    </span>
+  )
+}
+
 export function TourPlannerRail({ planner, canEdit: editPermission, canAssign: assignPermission }: { planner: TourPlannerController } & TourPermissionProps) {
   const { canEdit } = useTourPermissions({ canEdit: editPermission ?? planner.canEdit, canAssign: assignPermission ?? planner.canAssign })
   const { t } = useTranslation()
   const distanceUnit = useSettingsStore(state => state.settings.distance_unit)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [pendingDifficulty, setPendingDifficulty] = useState<1 | 2 | 3 | 4 | 5 | 6 | null>(null)
+  const [draggedWaypointId, setDraggedWaypointId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ id: string; placement: 'before' | 'after' } | null>(null);
   const alpineAcknowledged = useRef(false)
   const isSaving = planner.isSaving
   const statusKey = isSaving ? STATUS_KEY.saving : STATUS_KEY[planner.status]
@@ -180,6 +206,111 @@ export function TourPlannerRail({ planner, canEdit: editPermission, canAssign: a
               />
             </div>
             <div className="min-w-0">
+              <label className={LABEL} htmlFor="tour-planner-description">{t('places.formDescription')}</label>
+              <textarea
+                id="tour-planner-description"
+                disabled={!canEdit || isSaving}
+                value={planner.description}
+                onChange={event => { if (canEdit && !isSaving) planner.setDescription(event.target.value) }}
+                maxLength={2000}
+                rows={3}
+                className={`${INPUT} min-h-[72px] resize-y`}
+              />
+            </div>
+            <TourSection label={t('tours.planner.plannedTotalDuration')}>
+              <div data-testid="tour-planner-time-grid" className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))] gap-3">
+                <div className="min-w-0">
+                  <div className="mb-[5px] flex min-w-0 items-center gap-1">
+                    <label className={`${LABEL} mb-0`} htmlFor="tour-planner-breaks">{t('tours.planner.breaksAdditional')}</label>
+                    <DurationInfo
+                      label={t('tours.planner.breaksAdditionalInfoLabel')}
+                      description={t('tours.planner.breaksAdditionalInfo')}
+                    />
+                  </div>
+                  <input
+                    id="tour-planner-breaks"
+                    aria-label={t('tours.planner.breaksAdditional')}
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={1440}
+                    step={1}
+                    disabled={!canEdit || isSaving}
+                    value={planner.breakAdditionalMinutes ?? ''}
+                    onChange={event => { if (canEdit && !isSaving) planner.setBreakAdditionalMinutes(event.target.value === '' ? null : Number(event.target.value)) }}
+                    aria-invalid={planner.breakAdditionalInvalid || undefined}
+                    aria-describedby={`tour-planner-breaks-hint${planner.breakAdditionalInvalid ? ' tour-planner-breaks-error' : ''}`}
+                    className={INPUT}
+                  />
+                  <span id="tour-planner-breaks-hint" className="mt-1 block text-content-faint" style={fs(10.5)}>
+                    {t('tours.planner.breaksAdditionalHint')}
+                  </span>
+                  {planner.breakAdditionalInvalid && (
+                    <span id="tour-planner-breaks-error" role="alert" className="mt-1 block text-danger" style={fs(11)}>
+                      {t('tours.planner.timeValueInvalid')}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="mb-[5px] flex min-w-0 items-center gap-1">
+                    <label className={`${LABEL} mb-0`} htmlFor="tour-planner-planned-duration">
+                      {t('tours.planner.plannedTotalDuration')}
+                      {planner.plannedDurationMinutes != null && <span className="ms-1 normal-case text-info">· {t('tours.planner.plannedTotalManual')}</span>}
+                    </label>
+                    <DurationInfo
+                      label={t('tours.planner.plannedTotalInfoLabel')}
+                      description={t('tours.planner.plannedTotalInfo')}
+                    />
+                  </div>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <input
+                      id="tour-planner-planned-duration"
+                      aria-label={t('tours.planner.plannedTotalDuration')}
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      max={1440}
+                      step={1}
+                      disabled={!canEdit || isSaving}
+                      value={planner.plannedDurationMinutes ?? planner.plannedTotalMinutes ?? ''}
+                      onChange={event => { if (canEdit && !isSaving) planner.setPlannedDurationMinutes(event.target.value === '' ? null : Number(event.target.value)) }}
+                      aria-invalid={planner.plannedDurationInvalid || undefined}
+                      aria-describedby={planner.plannedDurationInvalid ? 'tour-planner-planned-duration-error' : undefined}
+                      className={`${INPUT} min-w-0 flex-none`}
+                      style={{ width: '6rem' }}
+                    />
+                    {planner.plannedDurationMinutes == null && <span className="text-content-faint" style={fs(10.5)}>{t('tours.planner.plannedTotalAutomatic')}</span>}
+                  </div>
+                  {planner.plannedDurationInvalid && (
+                    <span id="tour-planner-planned-duration-error" role="alert" className="mt-1 block text-danger" style={fs(11)}>
+                      {t('tours.planner.timeValueInvalid')}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </TourSection>
+            <div className="min-w-0">
+              <label className={LABEL} htmlFor="tour-planner-website">{t('places.formWebsite')}</label>
+              <input
+                id="tour-planner-website"
+                type="url"
+                inputMode="url"
+                disabled={!canEdit || isSaving}
+                value={planner.website}
+                onChange={event => { if (canEdit && !isSaving) planner.setWebsite(event.target.value) }}
+                maxLength={500}
+                placeholder={t('collab.notes.websitePlaceholder')}
+                aria-invalid={planner.websiteInvalid || undefined}
+                aria-describedby={planner.websiteInvalid ? 'tour-planner-website-error' : undefined}
+                className={INPUT}
+              />
+              {planner.websiteInvalid && (
+                <span id="tour-planner-website-error" role="alert" className="mt-1 block text-danger" style={fs(11)}>
+                  {t('dawarich.error.invalid_url')}
+                </span>
+              )}
+            </div>
+            <div className="min-w-0">
               <label className={LABEL} htmlFor="tour-planner-difficulty">{t('tours.planner.maxDifficulty')}</label>
               <CustomSelect
                 id="tour-planner-difficulty"
@@ -207,17 +338,74 @@ export function TourPlannerRail({ planner, canEdit: editPermission, canAssign: a
                 <p className="m-0">{t('tours.planner.startingPoint')} {t('tours.planner.firstUseDetails')}</p>
               </div>
             ) : (
-              <ol className="m-0 flex list-none flex-col gap-px p-0">
+              <ol data-touch-drag className="m-0 flex list-none flex-col gap-px p-0">
                 {planner.waypoints.map((point, index) => {
-                  const selected = planner.selectedWaypointId === point.id
+                  const selected = planner.selectedWaypointId === point.id;
+                  const isDropTarget = dropTarget?.id === point.id && draggedWaypointId !== point.id;
                   return (
-                    <li key={point.id}>
-                      <button
-                        type="button"
-                        onClick={() => planner.setSelectedWaypointId(point.id)}
-                        className={`group flex w-full items-center gap-2.5 rounded-[12px] px-2 py-1.5 text-start outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--text-primary)] ${selected ? 'bg-surface-selected' : 'hover:bg-surface-hover'}`}
-                        aria-current={selected ? 'true' : undefined}
-                      >
+                    <li
+                      key={point.id}
+                      data-testid="tour-planner-waypoint-row"
+                      onDragStart={(event) => {
+                        if (!canEdit || isSaving) {
+                          event.preventDefault();
+                          return;
+                        }
+                        if (event.dataTransfer) {
+                          event.dataTransfer.effectAllowed = 'move';
+                          event.dataTransfer.setData('text/plain', point.id);
+                        }
+                        setDraggedWaypointId(point.id);
+                        setDropTarget(null);
+                      }}
+                      onDragOver={(event) => {
+                        if (!canEdit || isSaving || !draggedWaypointId || draggedWaypointId === point.id) return;
+                        event.preventDefault();
+                        if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+                        const bounds = event.currentTarget.getBoundingClientRect();
+                        const placement = event.clientY >= bounds.top + bounds.height / 2 ? 'after' : 'before';
+                        setDropTarget((current) =>
+                          current?.id === point.id && current.placement === placement
+                            ? current
+                            : { id: point.id, placement }
+                        );
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        const draggedId = draggedWaypointId || event.dataTransfer.getData('text/plain');
+                        if (
+                          canEdit &&
+                          !isSaving &&
+                          draggedId &&
+                          draggedId !== point.id &&
+                          dropTarget?.id === point.id
+                        ) {
+                          planner.reorderWaypoint(draggedId, point.id, dropTarget.placement);
+                        }
+                        setDraggedWaypointId(null);
+                        setDropTarget(null);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedWaypointId(null);
+                        setDropTarget(null);
+                      }}
+                      className={`relative rounded-[12px] ${draggedWaypointId === point.id ? 'opacity-45' : ''} ${isDropTarget ? 'bg-surface-hover' : ''}`}
+                    >
+                      {isDropTarget && (
+                        <span
+                          aria-hidden="true"
+                          className={`pointer-events-none absolute inset-x-2 z-10 h-0.5 rounded bg-accent ${dropTarget.placement === 'before' ? 'top-0' : 'bottom-0'}`}
+                        />
+                      )}
+                      <div className="group flex w-full items-center gap-2.5 rounded-[12px] px-2 py-1.5">
+                        <span
+                          draggable={canEdit && !isSaving}
+                          aria-hidden="true"
+                          data-testid="tour-planner-waypoint-drag-handle"
+                          className={`grid h-6 w-5 flex-none place-items-center text-content-faint ${canEdit && !isSaving ? 'cursor-grab active:cursor-grabbing' : 'opacity-35'}`}
+                        >
+                          <GripVertical size={14} strokeWidth={1.8} />
+                        </span>
                         <span
                           aria-label={t('tours.planner.waypointLabel', { n: index + 1 })}
                           data-waypoint-number={index + 1}
@@ -226,26 +414,53 @@ export function TourPlannerRail({ planner, canEdit: editPermission, canAssign: a
                         >
                           {index + 1}
                         </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block font-semibold leading-tight text-content" style={fs(12.5, 'body')}>{roleLabel(point.role, t)}</span>
-                          <span className="mt-0.5 block truncate font-geist tabular-nums text-content-faint" style={fs(10.5)}>{point.lat.toFixed(5)}, {point.lng.toFixed(5)}</span>
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => planner.setSelectedWaypointId(point.id)}
+                          className="flex min-w-0 flex-1 flex-col text-start outline-none focus-visible:rounded focus-visible:ring-2 focus-visible:ring-[color:var(--text-primary)]"
+                          aria-current={selected ? 'true' : undefined}
+                        >
+                          <span className="block font-semibold leading-tight text-content" style={fs(12.5, 'body')}>
+                            {roleLabel(point.role, t)}
+                          </span>
+                          <span
+                            className="mt-0.5 block truncate font-geist tabular-nums text-content-faint"
+                            style={fs(10.5)}
+                          >
+                            {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
+                          </span>
+                        </button>
                         {canEdit && (
-                          <span className={`flex flex-none items-center gap-0.5 transition-opacity ${selected ? '' : 'opacity-50 group-hover:opacity-100 group-focus-within:opacity-100'}`}>
-                            <WaypointAction label={t('tours.planner.moveUp')} disabled={isSaving || index === 0} onAct={() => planner.moveWaypoint(point.id, -1)}>
+                          <span
+                            className={`flex flex-none items-center gap-0.5 transition-opacity ${selected ? '' : 'opacity-50 group-focus-within:opacity-100 group-hover:opacity-100'}`}
+                          >
+                            <WaypointAction
+                              label={t('tours.planner.moveUp')}
+                              disabled={isSaving || index === 0}
+                              onAct={() => planner.moveWaypoint(point.id, -1)}
+                            >
                               <ArrowUp size={13} strokeWidth={2.2} />
                             </WaypointAction>
-                            <WaypointAction label={t('tours.planner.moveDown')} disabled={isSaving || index === lastIndex} onAct={() => planner.moveWaypoint(point.id, 1)}>
+                            <WaypointAction
+                              label={t('tours.planner.moveDown')}
+                              disabled={isSaving || index === lastIndex}
+                              onAct={() => planner.moveWaypoint(point.id, 1)}
+                            >
                               <ArrowDown size={13} strokeWidth={2.2} />
                             </WaypointAction>
-                            <WaypointAction label={t('tours.planner.remove')} disabled={isSaving} danger onAct={() => planner.removeWaypoint(point.id)}>
+                            <WaypointAction
+                              label={t('tours.planner.remove')}
+                              disabled={isSaving}
+                              danger
+                              onAct={() => planner.removeWaypoint(point.id)}
+                            >
                               <Trash2 size={13} strokeWidth={2} />
                             </WaypointAction>
                           </span>
                         )}
-                      </button>
+                      </div>
                     </li>
-                  )
+                  );
                 })}
               </ol>
             )}
@@ -316,17 +531,14 @@ export function TourPlannerRail({ planner, canEdit: editPermission, canAssign: a
 function WaypointAction({ label, disabled, danger = false, onAct, children }: { label: string; disabled: boolean; danger?: boolean; onAct: () => void; children: ReactNode }) {
   return (
     <Tooltip label={label}>
-      <span
-        role="button"
-        tabIndex={disabled ? -1 : 0}
+      <button type="button" disabled={disabled}
         aria-label={label}
         aria-disabled={disabled}
         onClick={event => { event.stopPropagation(); if (!disabled) onAct() }}
-        onKeyDown={event => { if (!disabled && event.key === 'Enter') { event.stopPropagation(); onAct() } }}
         className={`grid h-6 w-6 place-items-center rounded-full transition-colors ${disabled ? 'pointer-events-none opacity-25' : danger ? 'text-danger hover:bg-surface-card' : 'text-content-muted hover:bg-surface-card hover:text-content'}`}
       >
         {children}
-      </span>
+      </button>
     </Tooltip>
   )
 }
@@ -421,7 +633,22 @@ export function TourPlannerToursRail({ planner, tours, days, loading, onAssignTo
     selectTour(tour)
   }
 
-  const walkingTime = { label: t('tours.planner.inspector.duration'), value: t('tours.durationMinutes', { count: Math.max(1, Math.round((planner.durationSeconds ?? 0) / 60)) }) }
+  const tourTimeFields = [
+    {
+      label: t('tours.planner.inspector.duration'),
+      value: planner.walkingDurationMinutes == null
+        ? t('tours.planner.walkingTimeUnknown')
+        : formatPlannedTourDuration(planner.walkingDurationMinutes),
+    },
+    {
+      label: t('tours.planner.breaksAdditional'),
+      value: planner.breakAdditionalMinutes == null ? '—' : formatPlannedTourDuration(planner.breakAdditionalMinutes),
+    },
+    {
+      label: `${t('tours.planner.plannedTotalDuration')}${planner.plannedDurationMinutes != null ? ` · ${t('tours.planner.plannedTotalManual')}` : ''}`,
+      value: planner.plannedTotalMinutes == null ? t('tours.planner.walkingTimeUnknown') : formatPlannedTourDuration(planner.plannedTotalMinutes),
+    },
+  ]
 
   return (
     <aside className="flex h-full min-h-0 flex-col" aria-label={t('tours.planner.tripTours')}>
@@ -433,7 +660,7 @@ export function TourPlannerToursRail({ planner, tours, days, loading, onAssignTo
         {hasRoute && (
           <>
             <TourSection label={t('tours.planner.inspector.title')}>
-              <TourMetricFields analysis={routeAnalysis} unit={distanceUnit} extra={[walkingTime]} columns={2} />
+              <TourMetricFields analysis={routeAnalysis} unit={distanceUnit} extra={tourTimeFields} columns={2} />
             </TourSection>
             {routeAnalysis && (
               <ElevationSection

@@ -47,6 +47,7 @@ const glMap = vi.hoisted(() => ({
   getStyle: vi.fn().mockReturnValue({ layers: [] }),
   isStyleLoaded: vi.fn().mockReturnValue(true),
   getCanvasContainer: vi.fn(() => glCanvasContainer),
+  getContainer: vi.fn(() => glCanvasContainer),
   getLayer: vi.fn().mockReturnValue(null),
   queryRenderedFeatures: vi.fn().mockReturnValue([]),
   querySourceFeatures: vi.fn().mockReturnValue([]),
@@ -244,6 +245,17 @@ function buildMapPlace(overrides: Record<string, any> = {}) {
     category_icon: null,
     ...overrides,
   } as any
+}
+
+function pointer(type: string, x: number, y: number): Event {
+  const event = new Event(type, { bubbles: true, cancelable: true })
+  Object.defineProperties(event, {
+    button: { value: 0 },
+    clientX: { value: x },
+    clientY: { value: y },
+    pointerId: { value: 1 },
+  })
+  return event
 }
 
 beforeEach(() => {
@@ -931,6 +943,55 @@ describe('MapViewGL', () => {
     expect(glMap.easeTo).not.toHaveBeenCalled()
   })
 
+  it('honors a location-search camera intent and preserves it through later route updates', async () => {
+    loadOnAttach();
+    const searchPoint: [number, number] = [35.0116, 135.7681];
+    const { rerender } = render(
+      <MapViewGL
+        places={[]}
+        route={null}
+        followSelection={false}
+        focusKey="tour:0:search:1"
+        focusPoints={[searchPoint]}
+        glProvider="maplibre-gl"
+      />
+    );
+    await act(async () => {});
+    expect(glMap.fitBounds).toHaveBeenCalledOnce();
+    expect(glMap.fitBounds).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ maxZoom: 15 }));
+    const mapConstructions = vi.mocked(maplibregl.Map).mock.calls.length;
+    glMap.fitBounds.mockClear();
+
+    rerender(
+      <MapViewGL
+        places={[]}
+        route={[[searchPoint, [35.02, 135.77]]]}
+        followSelection={false}
+        focusKey="tour:0:search:1"
+        focusPoints={[searchPoint, [35.02, 135.77]]}
+        glProvider="maplibre-gl"
+      />
+    );
+    await act(async () => {});
+    expect(glMap.fitBounds).not.toHaveBeenCalled();
+    expect(vi.mocked(maplibregl.Map).mock.calls).toHaveLength(mapConstructions);
+
+    rerender(
+      <MapViewGL
+        places={[]}
+        followSelection={false}
+        focusKey="tour:1"
+        focusPoints={[
+          [46.8, 9.5],
+          [47.1, 10.1],
+        ]}
+        glProvider="maplibre-gl"
+      />
+    );
+    await act(async () => {});
+    expect(glMap.fitBounds).toHaveBeenCalledOnce();
+  });
+
   it('frames Tour focus once, ignores waypoint and route updates, then honors a new focus intent', async () => {
     loadOnAttach()
     const { rerender } = render(
@@ -980,6 +1041,126 @@ describe('MapViewGL', () => {
     )
     await act(async () => {})
     expect(glMap.fitBounds).toHaveBeenCalledOnce()
+  })
+
+  it.each(['maplibre-gl', 'mapbox-gl'] as const)('RC-08: %s previews waypoint drags locally and commits only on pointer up without changing the camera', async (provider) => {
+    loadOnAttach()
+    glMap.project.mockImplementation((lngLat: [number, number]) => ({ x: lngLat[0] * 10, y: lngLat[1] * 10 }))
+    glMap.unproject.mockReturnValue({ lng: 2.3522, lat: 48.8566 })
+    glMap.getContainer.mockReturnValue(glCanvasContainer)
+    const waypoint = { id: 'via-1', lat: 48, lng: 11, role: 'via' as const }
+    const waypoints = [waypoint]
+    const onMove = vi.fn(() => true)
+    const onSelect = vi.fn()
+    const onMapClick = vi.fn()
+    const view = render(
+      <MapViewGL
+        places={[]}
+        plannerWaypoints={waypoints}
+        onPlannerWaypointClick={onSelect}
+        onPlannerWaypointMove={onMove}
+        onMapClick={onMapClick}
+        focusKey="tour:1"
+        focusPoints={[[waypoint.lat, waypoint.lng]]}
+        routeProfileFocus={null}
+        glProvider={provider}
+      />
+    )
+    await act(async () => {})
+    glMap.fitBounds.mockClear()
+    const pin = provider === 'maplibre-gl'
+      ? glCanvasContainer.querySelector('[aria-label="Waypoint 1"]') as HTMLButtonElement
+      : glMarkers.created.find(marker => marker.element.getAttribute('aria-label') === 'Waypoint 1')?.element as HTMLButtonElement
+    const startTransform = pin.style.transform
+    const libraryMarker = provider === 'mapbox-gl' ? glMarkers.created.find(marker => marker.element === pin) : undefined
+    const startLngLat = libraryMarker?.lngLat
+
+    act(() => {
+      pin.dispatchEvent(pointer('pointerdown', 10, 10))
+      pin.dispatchEvent(pointer('pointermove', 30, 40))
+    })
+    if (provider === 'maplibre-gl') expect(pin.style.transform).not.toBe(startTransform)
+    else expect(libraryMarker?.lngLat).not.toEqual(startLngLat)
+    expect(onMove).not.toHaveBeenCalled()
+    expect(waypoints[0]).toEqual(waypoint)
+
+    view.rerender(
+      <MapViewGL
+        places={[]}
+        plannerWaypoints={waypoints}
+        onPlannerWaypointClick={onSelect}
+        onPlannerWaypointMove={onMove}
+        onMapClick={onMapClick}
+        focusKey="tour:1"
+        focusPoints={[[waypoint.lat, waypoint.lng]]}
+        routeProfileFocus={{ distanceMeters: 100, elevationMeters: 0, lat: 48.1, lng: 11.1, sampleIndex: 0 }}
+        glProvider={provider}
+      />
+    )
+    if (provider === 'maplibre-gl') expect(pin.style.transform).not.toBe(startTransform)
+    else expect(libraryMarker?.lngLat).not.toEqual(startLngLat)
+
+    act(() => {
+      pin.dispatchEvent(pointer('pointerup', 30, 40))
+      pin.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+    expect(onMove).toHaveBeenCalledOnce()
+    expect(onMove).toHaveBeenCalledWith(waypoint.id, 48.8566, 2.3522)
+    expect(onSelect).not.toHaveBeenCalled()
+    expect(onMapClick).not.toHaveBeenCalled()
+    view.rerender(
+      <MapViewGL
+        places={[]}
+        plannerWaypoints={[{ ...waypoint, lat: 48.4, lng: 11.3 }]}
+        onPlannerWaypointClick={onSelect}
+        onPlannerWaypointMove={onMove}
+        onMapClick={onMapClick}
+        focusKey="tour:1"
+        focusPoints={[[48.4, 11.3]]}
+        routeProfileFocus={{ distanceMeters: 100, elevationMeters: 0, lat: 48.1, lng: 11.1, sampleIndex: 0 }}
+        glProvider={provider}
+      />
+    )
+    expect(glMap.fitBounds).not.toHaveBeenCalled()
+    expect(glMap.flyTo).not.toHaveBeenCalled()
+    expect(glMap.jumpTo).not.toHaveBeenCalled()
+  })
+
+  it('RC-08: pointer cancellation restores the MapLibre pin and plain clicks still select and add separately', async () => {
+    loadOnAttach()
+    const waypoint = { id: 'start', lat: 48, lng: 11, role: 'start' as const }
+    const onMove = vi.fn(() => true)
+    const onSelect = vi.fn()
+    const onMapClick = vi.fn()
+    render(
+      <MapViewGL
+        places={[]}
+        plannerWaypoints={[waypoint]}
+        onPlannerWaypointClick={onSelect}
+        onPlannerWaypointMove={onMove}
+        onMapClick={onMapClick}
+        glProvider="maplibre-gl"
+      />
+    )
+    await act(async () => {})
+    const pin = glCanvasContainer.querySelector('[aria-label="Waypoint 1"]') as HTMLButtonElement
+    const initialTransform = pin.style.transform
+    act(() => {
+      pin.dispatchEvent(pointer('pointerdown', 10, 10))
+      pin.dispatchEvent(pointer('pointermove', 30, 40))
+      pin.dispatchEvent(pointer('pointercancel', 30, 40))
+    })
+    expect(pin.style.transform).toBe(initialTransform)
+    expect(onMove).not.toHaveBeenCalled()
+
+    act(() => {
+      pin.dispatchEvent(pointer('pointerdown', 10, 10))
+      pin.dispatchEvent(pointer('pointerup', 10, 10))
+      pin.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+    expect(onSelect).toHaveBeenCalledOnce()
+    expect(onSelect).toHaveBeenCalledWith(waypoint.id)
+    expect(onMapClick).not.toHaveBeenCalled()
   })
 
   it('keeps selection fit and the pending route-arrival refit for semantic changes', async () => {

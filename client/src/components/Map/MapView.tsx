@@ -6,6 +6,7 @@ import MarkerClusterGroup from 'react-leaflet-cluster'
 import { makeMarkerDraggable, makePoiDraggable, draggedPoiId } from './markerDrag'
 import { CLUSTER_OPTIONS, createClusterIcon, revealInCluster, type ClusterGroupLike } from './markerCluster'
 import RoadtripViaMarkers from './RoadtripViaMarkers'
+import { wirePlannerWaypointDrag } from './plannerWaypointDrag'
 import HazardLayers from './HazardLayers'
 import { ALT_CASING, ALT_LABEL_TEXT } from '../Roadtrip/alternativeColors'
 import { serviceMarkerHtml, serviceMarkerOuter } from '../Roadtrip/serviceMarker'
@@ -449,7 +450,7 @@ interface BoundsControllerProps {
    */
   focusPoints?: [number, number][]
   /** Changes only when the caller intentionally wants a new initial frame. */
-  focusKey?: number
+  focusKey?: number | string
   /** False while the map is locked (#2010): an arriving route no longer re-fits it. */
   follow?: boolean
   /**
@@ -759,14 +760,69 @@ const MemoMarker = memo(function MemoMarker({
   )
 })
 
-function plannerWaypointIcon(index: number, selected: boolean): L.DivIcon {
+function plannerWaypointIcon(index: number, selected: boolean, draggable: boolean): L.DivIcon {
   const size = selected ? 30 : 26
   return L.divIcon({
-    className: '',
+    className: 'tour-planner-waypoint-marker',
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
-    html: `<span style="display:flex;width:${size}px;height:${size}px;align-items:center;justify-content:center;border-radius:9999px;background:#0a84ff;color:white;border:${selected ? 3 : 2}px solid white;box-shadow:0 2px 7px rgba(0,0,0,.4);font:700 11px system-ui;cursor:pointer">${index + 1}</span>`,
+    html: `<span style="display:flex;width:${size}px;height:${size}px;align-items:center;justify-content:center;border-radius:9999px;background:#0a84ff;color:white;border:${selected ? 3 : 2}px solid white;box-shadow:0 2px 7px rgba(0,0,0,.4);font:700 11px system-ui;cursor:${draggable ? 'grab' : 'pointer'};touch-action:${draggable ? 'none' : 'auto'};user-select:none">${index + 1}</span>`,
   })
+}
+
+function PlannerWaypointMarker({
+  point,
+  index,
+  selected,
+  onClick,
+  onMove,
+}: {
+  point: { id: string; lat: number; lng: number };
+  index: number;
+  selected: boolean;
+  onClick?: (id: string) => void;
+  onMove?: (id: string, lat: number, lng: number) => boolean;
+}) {
+  const map = useMap()
+  const [marker, setMarker] = useState<L.Marker | null>(null)
+  const handlersRef = useRef({ onClick, onMove })
+  handlersRef.current = { onClick, onMove }
+  const position = useMemo(() => [point.lat, point.lng] as [number, number], [point.lat, point.lng])
+  const icon = useMemo(() => plannerWaypointIcon(index, selected, !!onMove), [index, onMove, selected])
+  const eventHandlers = useMemo(() => ({
+    click: (event: { originalEvent: MouseEvent }) => {
+      event.originalEvent.stopPropagation()
+      handlersRef.current.onClick?.(point.id)
+    },
+  }), [point.id])
+
+  useEffect(() => {
+    if (!marker || !onMove) return
+    const element = marker.getElement()
+    return wirePlannerWaypointDrag({
+      element,
+      initial: { lat: point.lat, lng: point.lng },
+      coordinateAt: (clientX, clientY) => {
+        const rect = map.getContainer().getBoundingClientRect()
+        const at = map.containerPointToLatLng([clientX - rect.left, clientY - rect.top])
+        return { lat: at.lat, lng: at.lng }
+      },
+      setPosition: ({ lat, lng }) => { marker.setLatLng([lat, lng]) },
+      onCommit: ({ lat, lng }) => handlersRef.current.onMove?.(point.id, lat, lng) ?? false,
+    })
+  }, [map, marker, onMove, point.id, point.lat, point.lng])
+
+  return (
+    <Marker
+      ref={setMarker}
+      position={position}
+      icon={icon}
+      zIndexOffset={selected ? 1200 : 1100}
+      eventHandlers={eventHandlers}
+    >
+      <Tooltip direction="top" offset={[0, -12]}>{index + 1}</Tooltip>
+    </Marker>
+  )
 }
 
 export const MapView = memo(function MapView({
@@ -838,6 +894,7 @@ export const MapView = memo(function MapView({
   plannerWaypoints = [],
   selectedPlannerWaypointId = null,
   onPlannerWaypointClick,
+  onPlannerWaypointMove,
   routeProfileFocus = null,
   viewBaseLayer,
   onViewBaseLayerChange,
@@ -1371,20 +1428,14 @@ export const MapView = memo(function MapView({
       ) : null}
 
       {(plannerWaypoints as Array<{ id: string; lat: number; lng: number }>).map((point, index) => (
-        <Marker
+        <PlannerWaypointMarker
           key={`planner-waypoint-${point.id}`}
-          position={[point.lat, point.lng]}
-          icon={plannerWaypointIcon(index, point.id === selectedPlannerWaypointId)}
-          zIndexOffset={point.id === selectedPlannerWaypointId ? 1200 : 1100}
-          eventHandlers={{
-            click: (event: { originalEvent: MouseEvent }) => {
-              event.originalEvent.stopPropagation()
-              onPlannerWaypointClick?.(point.id)
-            },
-          }}
-        >
-          <Tooltip direction="top" offset={[0, -12]}>{index + 1}</Tooltip>
-        </Marker>
+          point={point}
+          index={index}
+          selected={point.id === selectedPlannerWaypointId}
+          onClick={onPlannerWaypointClick}
+          onMove={onPlannerWaypointMove}
+        />
       ))}
 
       {/* GPX imported route geometries */}

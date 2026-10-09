@@ -441,6 +441,48 @@ describe('MapView', () => {
     expect(mapMock.fitBounds).toHaveBeenCalled()
   })
 
+  it('honors a location-search camera intent and preserves it through later route updates', () => {
+    const searchPoint: [number, number] = [35.0116, 135.7681];
+    const { rerender } = render(
+      <MapView
+        places={[]}
+        route={null}
+        followSelection={false}
+        focusKey="tour:0:search:1"
+        focusPoints={[searchPoint]}
+      />
+    );
+    expect(mapMock.fitBounds).toHaveBeenCalledOnce();
+    expect(mapMock.fitBounds).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ maxZoom: 16 }));
+    const mapContainer = screen.getByTestId('map-container');
+    mapMock.fitBounds.mockClear();
+
+    rerender(
+      <MapView
+        places={[]}
+        route={[[searchPoint, [35.02, 135.77]]]}
+        followSelection={false}
+        focusKey="tour:0:search:1"
+        focusPoints={[searchPoint, [35.02, 135.77]]}
+      />
+    );
+    expect(mapMock.fitBounds).not.toHaveBeenCalled();
+    expect(screen.getByTestId('map-container')).toBe(mapContainer);
+
+    rerender(
+      <MapView
+        places={[]}
+        followSelection={false}
+        focusKey="tour:1"
+        focusPoints={[
+          [46.8, 9.5],
+          [47.1, 10.1],
+        ]}
+      />
+    );
+    expect(mapMock.fitBounds).toHaveBeenCalledOnce();
+  });
+
   it('frames Tour focus once, ignores waypoint and route updates, then honors a new focus intent', () => {
     const route: [number, number][][] = [[[48, 11], [48.2, 11.3]]]
     const { rerender } = render(

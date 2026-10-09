@@ -5,17 +5,29 @@
 // Here the hook is replaced by a controllable fixture so every branch of the
 // layout — panels, portals, tabs, modals — and every inline callback the page
 // hands its children can be driven directly.
-import React from 'react'
-import { render, screen, fireEvent, waitFor, act, cleanup } from '../../tests/helpers/render'
-import { resetAllStores, seedStore } from '../../tests/helpers/store'
-import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment, buildReservation, buildPackingItem, buildTodoItem } from '../../tests/helpers/factories'
-import { useAuthStore } from '../store/authStore'
-import { useTripStore } from '../store/tripStore'
-import { useSettingsStore } from '../store/settingsStore'
-import { assignmentsApi } from '../api/client'
-import { analyzeRouteGeometry } from '../utils/routeGeometry'
-import TripPlannerPage from './TripPlannerPage'
-import type { Day, Place, Reservation, Settings } from '../types'
+import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
+import React from 'react';
+import {
+  buildAssignment,
+  buildDay,
+  buildPackingItem,
+  buildPlace,
+  buildReservation,
+  buildTodoItem,
+  buildTrip,
+  buildUser,
+} from '../../tests/helpers/factories';
+import { server } from '../../tests/helpers/msw/server';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '../../tests/helpers/render';
+import { resetAllStores, seedStore } from '../../tests/helpers/store';
+import { assignmentsApi } from '../api/client';
+import { useAuthStore } from '../store/authStore';
+import { useSettingsStore } from '../store/settingsStore';
+import { useTripStore } from '../store/tripStore';
+import type { Day, Place, Reservation, Settings } from '../types';
+import { analyzeRouteGeometry } from '../utils/routeGeometry';
+import TripPlannerPage from './TripPlannerPage';
 
 // ── Component stubs ───────────────────────────────────────────────────────────
 // Each stub records the props it was rendered with so the page's inline
@@ -25,6 +37,7 @@ const captured: Record<string, Props> = {}
 const plannerActions = vi.hoisted(() => ({
   viewGpxTour: vi.fn(),
   addWaypoint: vi.fn(),
+  setWaypointPosition: vi.fn(() => true),
   openTour: vi.fn(),
   startNewTour: vi.fn(),
   forgetDeletedTour: vi.fn((_placeId: number) => undefined),
@@ -129,6 +142,7 @@ vi.mock('../components/Tours/planner/useTourPlanner', () => ({
     openTour: plannerActions.openTour,
     viewGpxTour: plannerActions.viewGpxTour,
     addWaypoint: plannerActions.addWaypoint,
+    setWaypointPosition: plannerActions.setWaypointPosition,
     closeGpxTour: vi.fn(),
     readOnlyGpxTour: plannerActions.readOnlyGpxTour,
     readOnlyGpxAnalysis: plannerActions.readOnlyGpxAnalysis,
@@ -452,6 +466,7 @@ beforeEach(() => {
   confirmDialogs.length = 0
   plannerActions.viewGpxTour.mockReset()
   plannerActions.addWaypoint.mockReset()
+  plannerActions.setWaypointPosition.mockReset().mockReturnValue(true)
   plannerActions.openTour.mockReset()
   plannerActions.startNewTour.mockReset()
   plannerActions.forgetDeletedTour.mockReset()
@@ -560,6 +575,66 @@ describe('TripPlannerPage — shell', () => {
     expect(plannerActions.openTour).not.toHaveBeenCalled()
   })
 
+  it('shows location search only in TOUR-PLANNER and focuses a result without writing planner data', async () => {
+    const user = userEvent.setup();
+    const createAssignment = vi.spyOn(assignmentsApi, 'create');
+    server.use(
+      http.post('/api/maps/search', async ({ request }) => {
+        const { query } = (await request.json()) as { query: string };
+        expect(query).toBe('Kyoto');
+        return HttpResponse.json({
+          places: [{ name: 'Kyoto', address: 'Japan', lat: 35.0116, lng: 135.7681, osm_id: 'kyoto' }],
+        });
+      })
+    );
+
+    const view = renderPage({
+      activeTab: 'tour-planner',
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+      toursEnabled: true,
+      places: [],
+    });
+    const input = screen.getByRole('combobox', { name: 'reservations.searchLocation' });
+    const mapElement = screen.getByTestId('map-view');
+
+    await user.type(input, 'Kyoto');
+    await screen.findByRole('option', { name: /Kyoto/ });
+    await user.keyboard('{ArrowDown}{Enter}');
+
+    await waitFor(() => expect(props('map').focusPoints).toEqual([[35.0116, 135.7681]]));
+    expect(props('map').focusKey).toBe('tour:0:search:1');
+    expect(props('map').places).toEqual([]);
+    expect(props('map').plannerWaypoints).toEqual([]);
+    expect(props('map').onPlannerWaypointMove).toBeUndefined();
+    expect(screen.getByTestId('map-view')).toBe(mapElement);
+    expect(plannerActions.addWaypoint).not.toHaveBeenCalled();
+    expect(plannerActions.openTour).not.toHaveBeenCalled();
+    expect(plannerActions.startNewTour).not.toHaveBeenCalled();
+
+    plannerActions.mode = { type: 'new-draft' };
+    plannerActions.mapFocusKey = 1;
+    view.rerender(<TripPlannerPage />);
+    expect(props('map').focusPoints).toEqual([]);
+    expect(props('map').focusKey).toBe('tour:1');
+    expect(props('map').onPlannerWaypointMove).toBe(plannerActions.setWaypointPosition);
+    expect(screen.getByTestId('map-view')).toBe(mapElement);
+    expect(plannerActions.addWaypoint).not.toHaveBeenCalled();
+
+    act(() => props('map').onMapClick({ latlng: { lat: 35.02, lng: 135.77 } }));
+    expect(plannerActions.addWaypoint).toHaveBeenCalledOnce();
+    expect(plannerActions.addWaypoint).toHaveBeenCalledWith(35.02, 135.77);
+    act(() => props('map').onPlannerWaypointMove('via-1', 35.03, 135.78));
+    expect(plannerActions.setWaypointPosition).toHaveBeenCalledOnce();
+    expect(plannerActions.setWaypointPosition).toHaveBeenCalledWith('via-1', 35.03, 135.78);
+    expect(createAssignment).not.toHaveBeenCalled();
+    expect(plannerActions.openTour).not.toHaveBeenCalled();
+    createAssignment.mockRestore();
+
+    view.unmount();
+    renderPage({ activeTab: 'plan', showPlaceForm: true });
+    expect(screen.queryByRole('combobox', { name: 'reservations.searchLocation' })).not.toBeInTheDocument();
+  });
+
   it('preserves the visible TOUR-PLANNER camera when the Plan a Tour button starts an empty draft', async () => {
     const place = buildPlace({ id: 81, lat: 35.01, lng: 135.76 })
     mockStartNewTourTransition()
@@ -580,7 +655,7 @@ describe('TripPlannerPage — shell', () => {
     expect(props('map').focusPoints).toEqual([])
     expect(props('map').route).toBeNull()
     expect(props('map').plannerWaypoints).toEqual([])
-    expect(props('map').focusKey).toBe(1)
+    expect(props('map').focusKey).toBe('tour:1');
     expect(screen.getByTestId('map-view')).toBe(mapElement)
     expect(props('map').onMapClick).toBeTypeOf('function')
     act(() => props('map').onMapClick({ latlng: { lat: 35.02, lng: 135.77 } }))
@@ -630,7 +705,7 @@ describe('TripPlannerPage — shell', () => {
     expect(props('map').focusPoints).toEqual([])
     expect(props('map').route).toBeNull()
     expect(props('map').plannerWaypoints).toEqual([])
-    expect(props('map').focusKey).toBe(9)
+    expect(props('map').focusKey).toBe('tour:9');
     expect(screen.getByTestId('map-view')).toBe(mapElement)
     expect(props('map').onMapClick).toBeTypeOf('function')
   })

@@ -24,6 +24,8 @@ function tour(overrides: Partial<TourListItem> = {}): TourListItem {
 
 const body: TourCreateRequest = {
   name: 'Lake loop',
+  description: 'A quiet loop above the lake',
+  website: 'https://www.komoot.com/tour/42',
   tour_type: 'hike',
   route_geometry: [[47, 11, 1000], [47.01, 11, 1100], [47.02, 11, 1050]],
   waypoints: [
@@ -32,6 +34,8 @@ const body: TourCreateRequest = {
   ],
   max_hiking_difficulty: 3,
   duration_seconds: 5430,
+  planned_duration_minutes: 95,
+  break_additional_minutes: 35,
 }
 
 beforeEach(async () => {
@@ -132,9 +136,10 @@ describe('tourRepo.create', () => {
 
     expect(id).toBeLessThan(0)
     expect(result.waypoints).toEqual(body.waypoints)
-    expect(result.tour).toMatchObject({ name: 'Lake loop', elevation_gain: 100, elevation_loss: 50, duration: 91, max_hiking_difficulty: 3, has_waypoints: true, planned: false })
+    expect(result.tour).toMatchObject({ name: 'Lake loop', elevation_gain: 100, elevation_loss: 50, duration: 91, planned_duration_minutes: 95, break_additional_minutes: 35, max_hiking_difficulty: 3, has_waypoints: true, planned: false })
+    expect(result.tour).toMatchObject({ description: 'A quiet loop above the lake', website: 'https://www.komoot.com/tour/42' })
     expect(result.tour.distance).toBeGreaterThan(2)
-    expect(await offlineDb.places.get(id)).toMatchObject({ trip_id: 3, name: 'Lake loop', lat: 47, lng: 11, route_geometry: JSON.stringify(body.route_geometry) })
+    expect(await offlineDb.places.get(id)).toMatchObject({ trip_id: 3, name: 'Lake loop', description: body.description, website: body.website, lat: 47, lng: 11, route_geometry: JSON.stringify(body.route_geometry) })
     expect(await offlineDb.tours.get(id)).toMatchObject({ trip_id: 3, waypoints: body.waypoints })
 
     const [mutation] = await offlineDb.mutationQueue.toArray()
@@ -161,7 +166,8 @@ describe('tourRepo.update', () => {
     const result = await tourRepo.update(3, 40, body)
 
     expect(result.tour).toMatchObject({ place_id: 40, name: 'Lake loop', planned: true, elevation_gain: 100 })
-    expect(await offlineDb.places.get(40)).toMatchObject({ name: 'Lake loop', notes: 'keep me', lat: 47 })
+    expect(result.tour).toMatchObject({ description: body.description, website: body.website })
+    expect(await offlineDb.places.get(40)).toMatchObject({ name: 'Lake loop', description: body.description, website: body.website, notes: 'keep me', lat: 47 })
     const [mutation] = await offlineDb.mutationQueue.toArray()
     expect(mutation).toMatchObject({ method: 'PUT', url: '/trips/3/tours/40', resource: 'tours', entityId: 40 })
     expect(mutation.tempEntityId).toBeUndefined()
@@ -175,6 +181,18 @@ describe('tourRepo.update', () => {
 
     const queued = (await offlineDb.mutationQueue.toArray()).sort((a, b) => a.createdAt - b.createdAt)
     expect(queued[1]).toMatchObject({ url: '/trips/3/tours/{id}', tempEntityId: created.tour.place_id })
+  })
+
+  it('RS-01: offline route edits that omit old metadata preserve cached description and website', async () => {
+    setOnline(false)
+    await offlineDb.tours.put({ ...tour({ description: 'Keep description', website: 'https://example.org/old', planned_duration_minutes: 95, break_additional_minutes: 35 }), trip_id: 3 })
+    await offlineDb.places.put(buildPlace({ id: 40, trip_id: 3, description: 'Keep description', website: 'https://example.org/old' }))
+    const { description: _description, website: _website, planned_duration_minutes: _planned, break_additional_minutes: _breaks, ...legacyBody } = body
+
+    const result = await tourRepo.update(3, 40, legacyBody)
+
+    expect(result.tour).toMatchObject({ description: 'Keep description', website: 'https://example.org/old', planned_duration_minutes: 95, break_additional_minutes: 35 })
+    expect(await offlineDb.places.get(40)).toMatchObject({ description: 'Keep description', website: 'https://example.org/old' })
   })
 
   it('FE-REPO-TOUR-012: online edits and GPX imports refresh the cache', async () => {

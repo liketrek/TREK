@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, Check, ChevronDown, ChevronUp, File, FileImage, FileText, Info, MapPin, Mountain, Navigation, Pencil, Plus, Minus, Upload } from 'lucide-react'
+import { AlertTriangle, Check, ChevronDown, ChevronUp, ExternalLink, File, FileImage, FileText, Info, MapPin, Mountain, Navigation, Pencil, Plus, Minus, Upload } from 'lucide-react'
 import Markdown from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
@@ -22,7 +22,7 @@ import { analyzeRouteGeometry } from '../../utils/routeGeometry'
 import { filesForPlace } from '../../utils/placeFiles'
 import { openFile } from '../../utils/fileDownload'
 import { getNavigationTargets, navigationTargetLabel, openNavigationTarget } from '../Planner/placeNavigation'
-import { hikeSourceBadgeLabel, tourSource } from './tourPresentation'
+import { formatPlannedTourDuration, hikeSourceBadgeLabel, tourPlannedTimes, tourSource, tourWebsitePresentation } from './tourPresentation'
 import { TourMetricFields, TourNotice, TourTile } from './tourParts'
 import { useTourPermissions, type TourPermissionProps } from './useTourPermissions'
 
@@ -137,6 +137,9 @@ export default function TourDetailDialog({
   const navigationTargets = getNavigationTargets(place)
   const navigationLabel = navigationTargets.length === 1 ? navigationTargetLabel(navigationTargets[0], t) : t('inspector.navigation')
   const source = tourSource(tour)
+  const tourTimes = tourPlannedTimes(tour)
+  const description = tour.description !== undefined ? tour.description : place.description
+  const website = tourWebsitePresentation(tour.website !== undefined ? tour.website : place.website)
   const colorLabel = place.route_color ? place.route_color.toUpperCase() : t('inspector.trackColorAuto')
 
   const saveName = async () => {
@@ -217,7 +220,27 @@ export default function TourDetailDialog({
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           <SoftPill icon={<Mountain size={11} strokeWidth={2} className="flex-none" style={{ color: trackColor }} />}>{t(`tourTypes.${tour.tour_type}`)}</SoftPill>
           {tour.difficulty && <SoftPill>{t('tours.detail.difficulty')}: {tour.difficulty}</SoftPill>}
-          {tour.duration != null && <TimePill>{t('tours.durationMinutes', { count: tour.duration })}</TimePill>}
+          {tourTimes.walkingMinutes != null && (
+            <TimePill>
+              <span aria-label={`${t('tours.planner.inspector.duration')}: ${formatPlannedTourDuration(tourTimes.walkingMinutes)}`}>
+                {t('tours.planner.inspector.duration')}: {formatPlannedTourDuration(tourTimes.walkingMinutes)}
+              </span>
+            </TimePill>
+          )}
+          {tourTimes.breakMinutes != null && (
+            <TimePill>
+              <span aria-label={`${t('tours.planner.breaksAdditional')}: ${formatPlannedTourDuration(tourTimes.breakMinutes)}`}>
+                {t('tours.planner.breaksAdditional')}: {formatPlannedTourDuration(tourTimes.breakMinutes)}
+              </span>
+            </TimePill>
+          )}
+          {tourTimes.plannedTotalMinutes != null && (
+            <TimePill>
+              <span aria-label={`${t('tours.planner.plannedTotalDuration')}: ${formatPlannedTourDuration(tourTimes.plannedTotalMinutes)}${tourTimes.manuallyOverridden ? `, ${t('tours.planner.plannedTotalManual')}` : ''}`}>
+                {t('tours.planner.plannedTotalDuration')}: {formatPlannedTourDuration(tourTimes.plannedTotalMinutes)}{tourTimes.manuallyOverridden ? ` · ${t('tours.planner.plannedTotalManual')}` : ''}
+              </span>
+            </TimePill>
+          )}
           <SoftPill>{hikeSourceBadgeLabel(tour, t)}</SoftPill>
           {tour.caution && (
             <Tooltip label={t('tours.caution.tooltip')}>
@@ -313,7 +336,15 @@ export default function TourDetailDialog({
         )}
       </DialogSection>
 
-      {place.description && <DialogSection className="flex-none" label={t('places.formDescription')}><MarkdownBox>{place.description}</MarkdownBox></DialogSection>}
+      {description && <DialogSection className="flex-none" label={t('places.formDescription')}><MarkdownBox>{description}</MarkdownBox></DialogSection>}
+      {website && (
+        <DialogSection className="flex-none" label={t('places.formWebsite')}>
+          <a href={website.href} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex max-w-full items-center gap-1.5 text-content hover:underline">
+            <ExternalLink size={13} className="flex-none" />
+            <span className="truncate">{website.provider ? `${website.provider} · ${website.domain}` : `${t('places.formWebsite')} · ${website.domain}`}</span>
+          </a>
+        </DialogSection>
+      )}
       {place.notes && <DialogSection className="flex-none" label={t('places.formNotes')}><MarkdownBox>{place.notes}</MarkdownBox></DialogSection>}
       {assignment?.notes && <DialogSection className="flex-none" label={t('places.assignmentNotes')}><MarkdownBox>{assignment.notes}</MarkdownBox></DialogSection>}
 

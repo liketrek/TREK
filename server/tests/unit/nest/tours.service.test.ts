@@ -36,6 +36,8 @@ import { createTestToursRepo, createTestTourTypesRepo, createTestTourWaypointsRe
 
 const request: TourCreateRequest = {
   name: 'Ridge walk',
+  description: 'A quiet ridge above the lake.',
+  website: 'https://www.komoot.com/tour/42',
   tour_type: 'hike',
   route_geometry: [[48, 11, 600], [48.01, 11.02, 650], [48.02, 11.04, 630]],
   waypoints: [
@@ -44,6 +46,8 @@ const request: TourCreateRequest = {
   ],
   max_hiking_difficulty: 2,
   duration_seconds: 3600,
+  planned_duration_minutes: 90,
+  break_additional_minutes: 25,
 };
 
 /** Two waypoints on the same sequence: the UNIQUE(place_id, sequence) index rejects the second one. */
@@ -89,6 +93,24 @@ afterEach(() => { vi.restoreAllMocks(); });
 afterAll(() => { testDb.close(); });
 
 describe('ToursService planner creation', () => {
+  it.each([
+    'http://example.org/route',
+    'javascript:alert(1)',
+    'data:text/plain,route',
+    'file:///route.gpx',
+    'https://user:secret@example.org/route',
+  ])('rejects invalid informational website %s before creating rows', async website => {
+    const parsed = tourCreateRequestSchema.safeParse({ ...request, website })
+    expect(parsed.success).toBe(false)
+    await expect(service.createTour(tripId, { ...request, website } as TourCreateRequest)).rejects.toThrow()
+    expect(await count(Places)).toBe(0)
+    expect(await count(Tours)).toBe(0)
+  })
+
+  it('safely reports malformed website input through schema safeParse', () => {
+    expect(tourCreateRequestSchema.safeParse({ ...request, website: 'not a url' }).success).toBe(false)
+  })
+
   it('TOURS-SVC-001: atomically stores full geometry, derived metrics, and ordered control points', async () => {
     const writeStates: boolean[] = [];
     broadcast.mockImplementation(() => { writeStates.push(testDb.inTransaction); });
@@ -105,15 +127,20 @@ describe('ToursService planner creation', () => {
     }));
     if (!place || !tour) throw new Error('createTour should have stored the place and its tour');
 
-    expect(place).toMatchObject({ trip_id: Number(tripId), name: 'Ridge walk', lat: 48, lng: 11, transport_mode: 'walking' });
+    expect(place).toMatchObject({ trip_id: Number(tripId), name: 'Ridge walk', lat: 48, lng: 11, transport_mode: 'walking', duration_minutes: 60 });
+    expect(place).toMatchObject({ description: 'A quiet ridge above the lake.', website: 'https://www.komoot.com/tour/42' });
     expect(JSON.parse(String(place.route_geometry))).toEqual(request.route_geometry);
-    expect(tour).toMatchObject({ tour_type: 'hike', match_confidence: 1, max_hiking_difficulty: 2 });
+    expect(tour).toMatchObject({ tour_type: 'hike', match_confidence: 1, max_hiking_difficulty: 2, planned_duration_minutes: 90, break_additional_minutes: 25 });
     expect(tour.distance).toBeGreaterThan(0);
     expect(tour.elevation_gain).toBe(50);
     expect(tour.elevation_loss).toBe(20);
     expect(tour.duration).toBe(60);
+    expect(result.tour.duration).toBe(60);
+    expect(result.tour.planned_duration_minutes).toBe(90);
+    expect(result.tour.break_additional_minutes).toBe(25);
     expect(points).toEqual([{ role: 'start', sequence: 0 }, { role: 'end', sequence: 1 }]);
     expect(result.tour).toMatchObject({ name: 'Ridge walk', planned: false, has_waypoints: true, caution: false });
+    expect(result.tour).toMatchObject({ description: 'A quiet ridge above the lake.', website: 'https://www.komoot.com/tour/42' });
     expect(result.waypoints).toEqual(request.waypoints);
     expect(broadcast).toHaveBeenNthCalledWith(1, tripId, 'tours:changed', { placeIds: [placeId] }, 'socket-1');
     expect(broadcast).toHaveBeenNthCalledWith(2, tripId, 'place:created', { place: expect.objectContaining({ id: placeId }) }, 'socket-1');
@@ -147,6 +174,28 @@ describe('ToursService planner creation', () => {
     const { duration_seconds: _omitted, ...withoutDuration } = request;
     const result = await service.createTour(tripId, withoutDuration);
     expect(result.tour.duration).toBeNull();
+  });
+
+  it('RS-02: leaves planned total empty when omitted and preserves the calculated duration', async () => {
+    const { planned_duration_minutes: _omitted, ...withoutPlannedDuration } = request;
+    const result = await service.createTour(tripId, withoutPlannedDuration);
+    expect(result.tour.duration).toBe(60);
+    expect(result.tour.planned_duration_minutes).toBeNull();
+  });
+
+  it.each([-1, 1.5, 1441])('RS-02: rejects invalid breaks %s before writing Tour rows', async breakMinutes => {
+    await expect(service.createTour(tripId, { ...request, break_additional_minutes: breakMinutes } as TourCreateRequest)).rejects.toThrow();
+    expect(await count(Places)).toBe(0);
+    expect(await count(Tours)).toBe(0);
+  });
+
+  it('RS-02: rejects overlong automatic totals but permits a bounded manual override', async () => {
+    const tooLong = { ...request, duration_seconds: 1430 * 60, break_additional_minutes: 11, planned_duration_minutes: null };
+    await expect(service.createTour(tripId, tooLong)).rejects.toThrow();
+    const overridden = await service.createTour(tripId, { ...tooLong, planned_duration_minutes: 1200 });
+    expect(overridden.tour.duration).toBe(1430);
+    expect(overridden.tour.planned_duration_minutes).toBe(1200);
+    expect(overridden.tour.break_additional_minutes).toBe(11);
   });
 
   it('TOURS-SVC-010: a type the catalogue holds but has not enabled is a 400 without a write', async () => {
@@ -254,6 +303,8 @@ describe('ToursService updates', () => {
   const update: TourCreateRequest = {
     ...request,
     name: 'Updated ridge walk',
+    description: 'Updated description',
+    website: 'https://alltrails.com/trail/42',
     route_geometry: [[49, 12, 700], [49.02, 12.04, 760]],
     waypoints: [
       { lat: 49, lng: 12, role: 'start', sequence: 0 },
@@ -261,10 +312,13 @@ describe('ToursService updates', () => {
       { lat: 49.02, lng: 12.04, role: 'end', sequence: 2 },
     ],
     duration_seconds: 2700.5,
+    planned_duration_minutes: 110,
+    break_additional_minutes: 40,
   };
 
   it('TOURS-SVC-005: atomically updates route data and replaces persisted control points', async () => {
     const created = await service.createTour(tripId, request);
+    testDb.prepare('UPDATE places SET duration_minutes = 35 WHERE id = ?').run(created.tour.place_id)
     broadcast.mockReset();
     const writeStates: boolean[] = [];
     broadcast.mockImplementation(() => { writeStates.push(testDb.inTransaction); });
@@ -274,12 +328,12 @@ describe('ToursService updates', () => {
     expect(result.tour).toMatchObject({ place_id: created.tour.place_id, name: 'Updated ridge walk' });
     expect(result.waypoints).toEqual(update.waypoints);
     const storedPlace = await firstPlace();
-    expect({ name: storedPlace.name, lat: storedPlace.lat, lng: storedPlace.lng, transport_mode: storedPlace.transport_mode }).toEqual({
-      name: 'Updated ridge walk', lat: 49, lng: 12, transport_mode: 'walking',
+    expect({ name: storedPlace.name, description: storedPlace.description, website: storedPlace.website, lat: storedPlace.lat, lng: storedPlace.lng, transport_mode: storedPlace.transport_mode, duration_minutes: storedPlace.duration_minutes }).toEqual({
+      name: 'Updated ridge walk', description: 'Updated description', website: 'https://alltrails.com/trail/42', lat: 49, lng: 12, transport_mode: 'walking', duration_minutes: 35,
     });
     const storedTour = await firstTour();
-    expect({ duration: storedTour.duration, elevation_gain: storedTour.elevation_gain, elevation_loss: storedTour.elevation_loss }).toEqual({
-      duration: 45, elevation_gain: 60, elevation_loss: 0,
+    expect({ duration: storedTour.duration, planned_duration_minutes: storedTour.planned_duration_minutes, elevation_gain: storedTour.elevation_gain, elevation_loss: storedTour.elevation_loss }).toEqual({
+      duration: 45, planned_duration_minutes: 110, elevation_gain: 60, elevation_loss: 0,
     });
     expect(broadcast).toHaveBeenNthCalledWith(1, tripId, 'tours:changed', { placeIds: [created.tour.place_id] }, 'socket-2');
     expect(broadcast).toHaveBeenNthCalledWith(2,
@@ -288,6 +342,39 @@ describe('ToursService updates', () => {
     expect(writeStates).toEqual([false, false]);
   });
 
+  it('preserves description and website when an older Tour update omits optional metadata', async () => {
+    const created = await service.createTour(tripId, request);
+    const { description: _description, website: _website, planned_duration_minutes: _planned, break_additional_minutes: _breaks, ...legacyUpdate } = update;
+
+    const result = await service.updateTour(tripId, String(created.tour.place_id), legacyUpdate);
+
+    expect(result.tour).toMatchObject({ description: request.description, website: request.website });
+    expect(result.tour.planned_duration_minutes).toBe(request.planned_duration_minutes);
+    expect(result.tour.break_additional_minutes).toBe(request.break_additional_minutes);
+    expect(testDb.prepare('SELECT description, website FROM places WHERE id = ?').get(created.tour.place_id))
+      .toEqual({ description: request.description, website: request.website });
+  });
+
+  it('clears planned total duration only when an update explicitly sends null', async () => {
+    const created = await service.createTour(tripId, request);
+    const result = await service.updateTour(tripId, String(created.tour.place_id), { ...update, planned_duration_minutes: null });
+    expect(result.tour.duration).toBe(45);
+    expect(result.tour.planned_duration_minutes).toBeNull();
+  });
+
+  it('RS-01: updates informational fields without overwriting Place or Wanderer provenance', async () => {
+    const created = await service.createTour(tripId, request)
+    testDb.prepare('UPDATE places SET source = ? WHERE id = ?').run('gpx-import:source-42', created.tour.place_id)
+    testDb.prepare('UPDATE tours SET wanderer_ref = ? WHERE place_id = ?').run('wanderer:trail-42', created.tour.place_id)
+    const metadataUpdate = { ...update, description: 'Updated details', website: 'https://outdooractive.com/route/42' }
+
+    await service.updateTour(tripId, String(created.tour.place_id), metadataUpdate)
+
+    expect(testDb.prepare('SELECT description, website, source FROM places WHERE id = ?').get(created.tour.place_id))
+      .toEqual({ description: 'Updated details', website: 'https://outdooractive.com/route/42', source: 'gpx-import:source-42' })
+    expect(testDb.prepare('SELECT wanderer_ref FROM tours WHERE place_id = ?').get(created.tour.place_id))
+      .toEqual({ wanderer_ref: 'wanderer:trail-42' })
+  })
   it('TOURS-SVC-006: rolls an invalid waypoint replacement back to the previous saved tour', async () => {
     const created = await service.createTour(tripId, request);
     broadcast.mockReset();

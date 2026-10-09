@@ -1536,11 +1536,11 @@ describe('PlacesRepository.insertTourPlace (TO10) / updateTourRoute (TO11)', () 
   it('PLACEREPO-TOUR-001: insertTourPlace writes the route place as a walking place and leaves the rest at its defaults', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const id = await places.insertTourPlace({ trip_id: trip.id, name: 'Ridge walk', lat: 47, lng: 11, route_geometry: '[[47,11],[47.1,11.1]]' });
+    const id = await places.insertTourPlace({ trip_id: trip.id, name: 'Ridge walk', lat: 47, lng: 11, route_geometry: '[[47,11],[47.1,11.1]]', description: 'Lake ridge', website: 'https://www.komoot.com/tour/42' });
 
     expect(await places.findInTrip(id, trip.id)).toMatchObject({
       trip_id: trip.id, name: 'Ridge walk', lat: 47, lng: 11, transport_mode: 'walking',
-      route_geometry: '[[47,11],[47.1,11.1]]', duration_minutes: 60, reservation_status: 'none', category_id: null,
+      route_geometry: '[[47,11],[47.1,11.1]]', description: 'Lake ridge', website: 'https://www.komoot.com/tour/42', duration_minutes: 60, reservation_status: 'none', category_id: null,
     });
   });
 
@@ -1550,7 +1550,7 @@ describe('PlacesRepository.insertTourPlace (TO10) / updateTourRoute (TO11)', () 
     const other = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id, { name: 'Old', lat: 1, lng: 1 });
     await updateRows(t.orm, Places, { id: place.id }, { transport_mode: 'driving', updated_at: null });
-    const route = { name: 'New', lat: 47, lng: 11, route_geometry: '[[47,11],[47.2,11.2]]' };
+    const route = { name: 'New', lat: 47, lng: 11, route_geometry: '[[47,11],[47.2,11.2]]', description: 'Updated details', website: 'https://alltrails.com/trail/42' };
 
     expect(await places.updateTourRoute(place.id, other.id, route)).toBe(false);
     expect(await places.findInTrip(place.id, trip.id)).toMatchObject({ name: 'Old', transport_mode: 'driving', updated_at: null });

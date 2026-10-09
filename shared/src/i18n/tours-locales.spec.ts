@@ -20,7 +20,7 @@ const tokens = (value: string) => [...value.matchAll(/\{[^{}]+\}/g)].map((match)
 // placeholder spec; here only the general keys are.
 const groups = pluralGroups(Object.keys(english));
 const generalKeys = (keys: string[]) => keys.filter((key) => !pluralFormOf(key, groups));
-const GENERAL_KEY_COUNT = 117;
+const GENERAL_KEY_COUNT = 133;
 
 function literalKeys(source: string): string[] {
   const tree = ts.createSourceFile('locale.ts', source, ts.ScriptTarget.Latest, true);
@@ -34,7 +34,7 @@ function literalKeys(source: string): string[] {
 }
 
 describe('Tours locale contracts', () => {
-  it('covers all 27 supported locales with 117 general source keys', () => {
+  it('covers all 27 supported locales with 133 general source keys', () => {
     expect(Object.keys(domains)).toHaveLength(27);
     expect(Object.keys(domains).sort()).toEqual(SUPPORTED_LANGUAGE_CODES.map((code) => `./${code}/tours.ts`).sort());
     expect(generalKeys(Object.keys(english))).toHaveLength(GENERAL_KEY_COUNT);

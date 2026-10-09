@@ -198,6 +198,7 @@ export default function MPlanTimeline({ planner, shell }: MPlanTimelineProps) {
                 <Fragment key={row.key}>
                   <PlaceRow
                     assignment={row.assignment}
+                    tour={planner.toursEnabled ? planner.tours.find(tour => tour.place_id === row.assignment.place_id) : undefined}
                     fullPlace={tl.fullPlaceOf(row.assignment)}
                     linkedReservations={row.linkedReservations}
                     chrome={chrome}

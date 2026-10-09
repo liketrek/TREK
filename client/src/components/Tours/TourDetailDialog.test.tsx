@@ -104,6 +104,43 @@ describe('TourDetailDialog', () => {
     expect(screen.queryByText('Participants')).not.toBeInTheDocument()
   })
 
+  it('RS-01: shows Tour description and classified HTTPS information link without fetching it', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    render(
+      <TourDetailDialog
+        {...defaultProps}
+        tour={{ ...tour, description: 'Ridge above the lake', website: 'https://www.komoot.com/tour/42' }}
+        place={{ ...place, description: 'Ridge above the lake', website: 'https://www.komoot.com/tour/42' }}
+      />
+    )
+
+    expect(screen.getByText('Ridge above the lake')).toBeInTheDocument()
+    const link = screen.getByRole('link', { name: 'Komoot · komoot.com' })
+    expect(link).toHaveAttribute('href', 'https://www.komoot.com/tour/42')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer nofollow')
+    expect(fetchSpy).not.toHaveBeenCalled()
+    fetchSpy.mockRestore()
+  })
+
+  it('RS-02: labels calculated walking time and planned total as separate values', () => {
+    render(<TourDetailDialog {...defaultProps} tour={{ ...tour, duration: 60, break_additional_minutes: 35, planned_duration_minutes: 125 }} />)
+
+    expect(screen.getByText('Walking time: 1 h')).toBeInTheDocument()
+    expect(screen.getByText('Breaks / additional time: 35 min')).toBeInTheDocument()
+    expect(screen.getByText('Planned total duration: 2 h 5 min · Manual override')).toBeInTheDocument()
+  })
+
+  it('RS-01: rejects an unsafe legacy Tour website for rendering', () => {
+    render(
+      <TourDetailDialog
+        {...defaultProps}
+        tour={{ ...tour, website: 'javascript:alert(1)' }}
+        place={{ ...place, website: 'javascript:alert(1)' }}
+      />
+    )
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+  })
+
   it('uses existing assignment callbacks for add and remove actions', () => {
     const { rerender } = render(<TourDetailDialog {...defaultProps} days={[{ id: 7 } as never]} selectedDayId={7} />)
     fireEvent.click(screen.getByRole('button', { name: /Add to Day/i }))

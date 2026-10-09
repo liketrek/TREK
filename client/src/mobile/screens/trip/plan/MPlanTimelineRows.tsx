@@ -17,6 +17,8 @@ import type { TransitLegDisplay } from '../../../../components/Planner/transitDi
 import type { Assignment, DayNote, Place, Reservation, RouteSegment, TranslationFn } from '../../../../types'
 import { formatScheduleMinutes } from '../../../../components/Plugins/PluginDaySchedule'
 import type { PluginDayScheduleItem } from '../../../../api/client'
+import type { TourListItem } from '@trek/shared'
+import TourDayRowFacts, { TourDayRowIcon } from '../../../../components/Tours/TourDayRowFacts'
 
 /**
  * The five row types of the mobile day timeline (place / manual transport /
@@ -120,9 +122,10 @@ const ROW_CODE = 'flex-none whitespace-nowrap font-geist text-[0.71875rem] text-
 
 // ── b3) Place row ────────────────────────────────────────────────────────────
 
-export function PlaceRow({ assignment, fullPlace, linkedReservations, chrome, reorder, drag, onOpen, onEdit, onRemove }: {
+export function PlaceRow({ assignment, fullPlace, tour, linkedReservations, chrome, reorder, drag, onOpen, onEdit, onRemove }: {
   assignment: Assignment
   fullPlace: Place | undefined
+  tour?: TourListItem
   linkedReservations: Reservation[]
   chrome: RowChrome
   reorder: ReactNode
@@ -171,7 +174,7 @@ export function PlaceRow({ assignment, fullPlace, linkedReservations, chrome, re
     >
       {!chrome.editing && (
         <AvatarRing className="shadow-[0_3px_8px_-3px_rgba(0,0,0,.4)]">
-          <PlaceAvatar
+          {tour ? <TourDayRowIcon type={tour.tour_type} /> : <PlaceAvatar
             place={fullPlace ?? {
               id: place?.id ?? assignment.place_id,
               name: place?.name ?? '',
@@ -183,12 +186,12 @@ export function PlaceRow({ assignment, fullPlace, linkedReservations, chrome, re
             }}
             size={27}
             category={place?.category ? { color: place.category.color ?? undefined, icon: place.category.icon ?? undefined } : null}
-          />
+          />}
         </AvatarRing>
       )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <CatIcon size={12} strokeWidth={2.2} className="flex-none text-m-muted" />
+          {tour ? (chrome.editing && <TourDayRowIcon type={tour.tour_type} size={20} />) : <CatIcon size={12} strokeWidth={2.2} className="flex-none text-m-muted" />}
           <span className="min-w-0 truncate text-[0.875rem] font-semibold">{place?.name}</span>
           {bookingLines.length > 0 && (
             <span className="flex flex-none items-center gap-1 rounded-full bg-[color:var(--m-ic)] px-[7px] py-[2px] text-[0.5625rem] font-bold tracking-[.04em]">
@@ -197,6 +200,7 @@ export function PlaceRow({ assignment, fullPlace, linkedReservations, chrome, re
             </span>
           )}
         </div>
+        {tour && <div className="mt-[2px]"><TourDayRowFacts tour={tour} mobile /></div>}
         {(time || sub) && (
           <div className="mt-[2px] flex min-w-0 items-center gap-1.5">
             {time && <span className={TIME_CHIP}>{time}</span>}

@@ -1333,7 +1333,7 @@ export class PlacesRepository extends TrekRepository<Places> {
    * ?)`. The place a drawn tour lives on starts at the route's first point;
    * every other column keeps its default. Returns the generated id.
    */
-  async insertTourPlace(input: { trip_id: number; name: string; lat: number; lng: number; route_geometry: string }): Promise<number> {
+  async insertTourPlace(input: { trip_id: number; name: string; lat: number; lng: number; route_geometry: string; description?: string | null; website?: string | null }): Promise<number> {
     return await this.insert({
       trip: input.trip_id,
       name: input.name,
@@ -1341,6 +1341,8 @@ export class PlacesRepository extends TrekRepository<Places> {
       lng: input.lng,
       transport_mode: 'walking',
       route_geometry: input.route_geometry,
+      description: input.description ?? null,
+      website: input.website ?? null,
     });
   }
 
@@ -1354,7 +1356,7 @@ export class PlacesRepository extends TrekRepository<Places> {
   async updateTourRoute(
     id: number,
     trip_id: number,
-    input: { name: string; lat: number; lng: number; route_geometry: string },
+    input: { name: string; lat: number; lng: number; route_geometry: string; description?: string | null; website?: string | null },
   ): Promise<boolean> {
     const platform = this.getEntityManager().getPlatform();
     const updated = await this.nativeUpdate(
@@ -1365,6 +1367,8 @@ export class PlacesRepository extends TrekRepository<Places> {
         lng: input.lng,
         transport_mode: 'walking',
         route_geometry: input.route_geometry,
+        ...(input.description !== undefined ? { description: input.description } : {}),
+        ...(input.website !== undefined ? { website: input.website } : {}),
         updated_at: currentTimestamp(platform),
       },
     );

@@ -57,6 +57,16 @@ describe('ToursSidebar', () => {
     expect(row).toHaveClass('bg-surface-selected')
   })
 
+  it('RS-01: previews the Tour description and classified information-link host', () => {
+    const listed = { ...tour, description: 'A quiet path above the lake', website: 'https://www.komoot.com/tour/42', planned_duration_minutes: 95 }
+    render(<ToursSidebar tripId={1} days={[]} tours={[listed]} onAssignToDay={vi.fn()} onSelectTour={vi.fn()} />)
+    const row = screen.getByRole('option', { name: /Selected ridge walk/i })
+    expect(row).toHaveTextContent('A quiet path above the lake')
+    expect(row).toHaveTextContent('Komoot · komoot.com')
+    expect(row).toHaveTextContent('1 h 35 min')
+    expect(row.querySelector('[data-testid="tour-description-preview"]')).toHaveStyle({ WebkitLineClamp: '2' })
+  })
+
   it('selects the tour from keyboard activation', () => {
     const onSelectTour = vi.fn()
     render(<ToursSidebar tripId={1} days={[]} tours={[tour]} selectedPlaceId={null} onAssignToDay={vi.fn()} onSelectTour={onSelectTour} />)

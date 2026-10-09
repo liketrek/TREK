@@ -37,7 +37,7 @@ function endpointsOf(routeGeometry: unknown): TourWaypoint[] {
  */
 function routeFields(body: TourCreateRequest) {
   const metrics = computeTourMetrics(body.route_geometry as GeometryPoint[])
-  return {
+  const fields = {
     name: body.name,
     tour_type: body.tour_type,
     distance: metrics.distanceKm,
@@ -48,13 +48,27 @@ function routeFields(body: TourCreateRequest) {
     caution: false,
     max_hiking_difficulty: body.max_hiking_difficulty,
     has_waypoints: true,
+    ...(body.planned_duration_minutes !== undefined ? { planned_duration_minutes: body.planned_duration_minutes } : {}),
+    ...(body.break_additional_minutes !== undefined ? { break_additional_minutes: body.break_additional_minutes } : {}),
+  }
+  return {
+    ...fields,
+    ...(body.description !== undefined ? { description: body.description } : {}),
+    ...(body.website !== undefined ? { website: body.website } : {}),
   }
 }
 
 /** The owning place's route columns, which a create or edit replaces with the tour's. */
 function routePlaceFields(body: TourCreateRequest) {
   const start = body.route_geometry[0]
-  return { name: body.name, lat: start[0], lng: start[1], route_geometry: JSON.stringify(body.route_geometry) }
+  return {
+    name: body.name,
+    lat: start[0],
+    lng: start[1],
+    route_geometry: JSON.stringify(body.route_geometry),
+    ...(body.description !== undefined ? { description: body.description } : {}),
+    ...(body.website !== undefined ? { website: body.website } : {}),
+  }
 }
 
 /**
@@ -106,9 +120,10 @@ export const tourRepo = {
       const tempId = nextTempId()
       const tour: CachedTour = {
         place_id: tempId, trip_id: tid, difficulty: null, wanderer_ref: null, planned: false,
+        description: null, website: null, planned_duration_minutes: null, break_additional_minutes: null,
         ...routeFields(body), waypoints: body.waypoints,
       }
-      const place = { id: tempId, trip_id: tid, ...routePlaceFields(body) } as Place
+      const place = { id: tempId, trip_id: tid, description: null, website: null, ...routePlaceFields(body) } as Place
       await offlineDb.transaction('rw', offlineDb.places, offlineDb.tours, async () => {
         await offlineDb.places.put(place)
         await offlineDb.tours.put(tour)

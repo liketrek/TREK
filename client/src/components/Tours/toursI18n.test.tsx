@@ -72,6 +72,10 @@ describe('Tours English and German copy', () => {
     expect(de['tours.planner.safetyNoteDetails']).toMatch(/OSM.*Wetter.*Sperrungen/)
     expect(de['tours.planner.difficulty.t3Warning']).toMatch(/Trittsicherheit/)
     expect(de['tours.planner.difficulty.alpineBody']).toMatch(/OSM/)
+    expect(toursText(en, 'tours.planner.breaksAdditionalInfo')).toBe('Optional whole minutes added to calculated walking time.')
+    expect(toursText(en, 'tours.planner.plannedTotalInfo')).toBe('Calculated planned total duration.')
+    expect(toursText(de, 'tours.planner.breaksAdditionalInfo')).toBe('Optionale ganze Minuten, die zur berechneten Gehzeit hinzukommen.')
+    expect(toursText(de, 'tours.planner.plannedTotalInfo')).toBe('Berechnete geplante Gesamtdauer.')
   })
 
   for (const [language, neutral, newTitle, editTitle, gpxTitle, back] of [

@@ -1534,6 +1534,58 @@ describe('DayPlanSidebar', () => {
     expect(onDeletePlace).not.toHaveBeenCalled()
   })
 
+  it('RS-01: previews Tour descriptions in two lines only while Tours is enabled', () => {
+    const description = 'A long description of the ridge route, the lake overlook, and the return path.'
+    const place = buildPlace({ id: 45, name: 'Ridge walk', description, tour_place_id: 45 })
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const assignment = buildAssignment({ id: 101, day_id: 10, order_index: 0, place })
+    const times = { walkingMinutes: 60, breakMinutes: 35, plannedTotalMinutes: 95, manuallyOverridden: false }
+    const props = makeDefaultProps({ days: [day], places: [place], tourPlaceIds: new Set([place.id]), plannedTourDurations: new Map([[place.id, times]]), assignments: { '10': [assignment] } })
+    useAddonStore.setState({ addons: [{ id: 'tours', name: 'Tours', type: 'trip', icon: '', enabled: true }] })
+    const view = render(<DayPlanSidebar {...props} />)
+    const tourPreview = view.container.querySelector('[data-testid="trip-plan-tour-description"]') as HTMLElement
+    expect(tourPreview).toHaveTextContent(description)
+    expect(tourPreview.style.display).toBe('-webkit-box')
+    expect(tourPreview.style.webkitLineClamp).toBe('2')
+    expect(tourPreview.style.maxHeight).toBe('2.6em')
+    expect(screen.getByTestId('trip-plan-tour-walking-time')).toHaveTextContent('Walk: 1 h')
+    expect(screen.getByTestId('trip-plan-tour-breaks')).toHaveTextContent('Breaks: 35 min')
+    expect(screen.getByTestId('trip-plan-tour-planned-duration')).toHaveTextContent('Planned: 1 h 35 min')
+
+    view.rerender(<DayPlanSidebar {...{ ...props, plannedTourDurations: new Map([[place.id, { ...times, plannedTotalMinutes: 125, manuallyOverridden: true }]]) }} />)
+    expect(screen.getByTestId('trip-plan-tour-planned-duration')).toHaveTextContent('Manual override')
+
+    useAddonStore.setState({ addons: [{ id: 'tours', name: 'Tours', type: 'trip', icon: '', enabled: false }] })
+    view.rerender(<DayPlanSidebar {...props} />)
+    expect(view.container.querySelector('[data-testid="trip-plan-tour-description"]')).toBeNull()
+    expect(view.container.querySelector('[data-testid="trip-plan-tour-planned-duration"]')).toBeNull()
+    expect(screen.getByText(description).closest('.collab-note-md')).toHaveStyle({ whiteSpace: 'nowrap', maxHeight: '1.3em' })
+  })
+
+  it('RC-01: uses facet type and compact facts only for Tours, preserving Tours-off Place presentation', () => {
+    const place = buildPlace({ id: 45, name: 'Ridge walk', description: 'Above the lake', tour_place_id: 45 })
+    const day = buildDay({ id: 10, title: 'Day 1' })
+    const assignment = buildAssignment({ id: 101, day_id: 10, order_index: 0, place })
+    const tour = {
+      place_id: 45, name: place.name, tour_type: 'hike' as const, distance: 4, elevation_gain: 100, elevation_loss: 80,
+      duration: 53, break_additional_minutes: 10, planned_duration_minutes: null, difficulty: null,
+      wanderer_ref: null, match_confidence: 1, max_hiking_difficulty: 2, planned: true, caution: false,
+    }
+    const props = makeDefaultProps({ days: [day], places: [place], tourPlaceIds: new Set([45]), assignments: { '10': [assignment] },
+      plannedTourDurations: new Map([[45, { tour, walkingMinutes: 53, breakMinutes: 10, plannedTotalMinutes: 63, manuallyOverridden: false }]]) })
+    useAddonStore.setState({ addons: [{ id: 'tours', name: 'Tours', type: 'trip', icon: '', enabled: true }] })
+    const view = render(<DayPlanSidebar {...props} />)
+    expect(screen.getByTestId('plan-tour-icon').querySelector('.lucide-mountain')).toBeTruthy()
+    expect(screen.getByTestId('plan-tour-distance')).toHaveTextContent('4')
+    expect(screen.getByTestId('plan-tour-ascent')).toHaveTextContent('100')
+    expect(screen.getByTestId('trip-plan-tour-walking-time')).toHaveAccessibleName('Walking time: 53 min')
+    expect(screen.getByTestId('trip-plan-tour-planned-duration')).toHaveTextContent('1 h 3 min')
+    useAddonStore.setState({ addons: [{ id: 'tours', name: 'Tours', type: 'trip', icon: '', enabled: false }] })
+    view.rerender(<DayPlanSidebar {...props} />)
+    expect(screen.queryByTestId('plan-tour-icon')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('plan-tour-facts')).not.toBeInTheDocument()
+  })
+
   it('TRIP-PLAN preserves legacy route-backed Place Delete when Tours is disabled', async () => {
     const user = userEvent.setup()
     useAddonStore.setState({ addons: [{ id: 'tours', name: 'Tours', type: 'trip', icon: '', enabled: false }] })

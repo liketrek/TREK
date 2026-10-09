@@ -164,7 +164,7 @@ describe('Tours GPX atomic persistence and postcommit publication', () => {
     expect(result.tours).toHaveLength(2);
     expect(result.skipped).toBe(0);
     expect(result.caution).toBe(true);
-    expect(result.tours[0]).toMatchObject({ name: 'walk', tour_type: 'hike', max_hiking_difficulty: 2, planned: false, has_waypoints: false, caution: true, match_confidence: 0.3 });
+    expect(result.tours[0]).toMatchObject({ name: 'walk', tour_type: 'hike', max_hiking_difficulty: 2, planned: false, has_waypoints: false, caution: true, match_confidence: 0.3, duration: null, planned_duration_minutes: null, break_additional_minutes: null });
     expect(result.tours[1]).toMatchObject({ name: 'Ridge', elevation_gain: 50, elevation_loss: 30, caution: false, match_confidence: 1 });
 
     const rows = (await findRows(await sharedTestOrm(testDb), Places, {}, { id: 'asc' })) as Array<{ id: number; trip_id: number; description: string; route_geometry: string; route_color: string }>;
@@ -173,8 +173,19 @@ describe('Tours GPX atomic persistence and postcommit publication', () => {
     expect(JSON.parse(rows[0].route_geometry)).toEqual([[48, 11], [48.01, 11.01]]);
     expect(JSON.parse(rows[1].route_geometry)).toEqual([[49, 12, 100], [49.01, 12.01, 150], [49.02, 12.02, 120]]);
     expect(new Set(rows.map(row => row.route_color)).size).toBe(2);
-    expect((await findRows(await sharedTestOrm(testDb), Tours, {}, { place: 'asc' })).map(tour => ({ place_id: tour.place_id, tour_type: tour.tour_type })))
-      .toEqual(rows.map(row => ({ place_id: row.id, tour_type: 'hike' })));
+    expect((await findRows(await sharedTestOrm(testDb), Tours, {}, { place: 'asc' })).map(tour => ({
+      place_id: tour.place_id,
+      tour_type: tour.tour_type,
+      duration: tour.duration,
+      planned_duration_minutes: tour.planned_duration_minutes,
+      break_additional_minutes: tour.break_additional_minutes,
+    }))).toEqual(rows.map(row => ({
+      place_id: row.id,
+      tour_type: 'hike',
+      duration: null,
+      planned_duration_minutes: null,
+      break_additional_minutes: null,
+    })));
     expect(await count('tour_waypoints')).toBe(0);
 
     expect(seen).toEqual([

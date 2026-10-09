@@ -94,6 +94,17 @@ function clickOn(el: Element) {
   })
 }
 
+function pointer(type: string, x: number, y: number): Event {
+  const event = new Event(type, { bubbles: true, cancelable: true })
+  Object.defineProperties(event, {
+    button: { value: 0 },
+    clientX: { value: x },
+    clientY: { value: y },
+    pointerId: { value: 1 },
+  })
+  return event
+}
+
 // Two stops a few hundred metres apart in Nara: separate pins at this zoom, not a cluster.
 const places = [
   { ...buildPlace({ id: 1, name: 'Todai-ji', lat: 34.689, lng: 135.8398 }), category_name: null, category_color: null, category_icon: null },
@@ -114,6 +125,143 @@ async function renderMap() {
 }
 
 describe('MapView on a real Leaflet map', () => {
+  it('RC-08: previews waypoint drags locally and commits only at pointer up without panning', async () => {
+    const waypoint = { id: 'via-1', lat: 34.689, lng: 135.8398, role: 'via' as const }
+    const waypoints = [waypoint]
+    const onMove = vi.fn(() => true)
+    const onSelect = vi.fn()
+    const onMapClick = vi.fn()
+    const view = render(
+      <MapView
+        places={[]}
+        center={[waypoint.lat, waypoint.lng]}
+        zoom={15}
+        tileUrl={RASTER}
+        plannerWaypoints={waypoints}
+        onPlannerWaypointClick={onSelect}
+        onPlannerWaypointMove={onMove}
+        onMapClick={onMapClick}
+        focusKey="tour:1"
+        focusPoints={[[waypoint.lat, waypoint.lng]]}
+        routeProfileFocus={null}
+      />
+    )
+    const map = maps[maps.length - 1]
+    await waitFor(() => expect(view.container.querySelector('.tour-planner-waypoint-marker')).not.toBeNull())
+    const pin = view.container.querySelector('.tour-planner-waypoint-marker') as HTMLElement
+    let marker: L.Marker | null = null
+    map.eachLayer(layer => {
+      if (layer instanceof L.Marker && layer.getElement() === pin) marker = layer
+    })
+    expect(marker).not.toBeNull()
+    const start = map.latLngToContainerPoint([waypoint.lat, waypoint.lng])
+    const end = start.add([30, 20])
+    const expected = map.containerPointToLatLng(end)
+    const center = map.getCenter()
+
+    act(() => {
+      pin.dispatchEvent(pointer('pointerdown', start.x, start.y))
+      pin.dispatchEvent(mouse('mousedown', start.x, start.y))
+      pin.dispatchEvent(pointer('pointermove', end.x, end.y))
+    })
+    expect(marker!.getLatLng().lat).toBeCloseTo(expected.lat, 6)
+    expect(marker!.getLatLng().lng).toBeCloseTo(expected.lng, 6)
+    expect(onMove).not.toHaveBeenCalled()
+    expect(waypoints[0]).toEqual(waypoint)
+
+    view.rerender(
+      <MapView
+        places={[]}
+        center={[waypoint.lat, waypoint.lng]}
+        zoom={15}
+        tileUrl={RASTER}
+        plannerWaypoints={waypoints}
+        onPlannerWaypointClick={onSelect}
+        onPlannerWaypointMove={onMove}
+        onMapClick={onMapClick}
+        focusKey="tour:1"
+        focusPoints={[[waypoint.lat, waypoint.lng]]}
+        routeProfileFocus={{ distanceMeters: 100, elevationMeters: 0, lat: 34.69, lng: 135.84, sampleIndex: 0 }}
+      />
+    )
+    expect(marker!.getLatLng().lat).toBeCloseTo(expected.lat, 6)
+    expect(marker!.getLatLng().lng).toBeCloseTo(expected.lng, 6)
+
+    act(() => {
+      pin.dispatchEvent(pointer('pointerup', end.x, end.y))
+      pin.dispatchEvent(mouse('mouseup', end.x, end.y))
+      pin.dispatchEvent(mouse('click', end.x, end.y))
+    })
+    expect(onMove).toHaveBeenCalledOnce()
+    expect(onMove).toHaveBeenCalledWith(waypoint.id, expected.lat, expected.lng)
+    expect(onSelect).not.toHaveBeenCalled()
+    expect(onMapClick).not.toHaveBeenCalled()
+    expect(map.getCenter().lat).toBeCloseTo(center.lat, 6)
+    expect(map.getCenter().lng).toBeCloseTo(center.lng, 6)
+
+    view.rerender(
+      <MapView
+        places={[]}
+        center={[waypoint.lat, waypoint.lng]}
+        zoom={15}
+        tileUrl={RASTER}
+        plannerWaypoints={[{ ...waypoint, lat: expected.lat, lng: expected.lng }]}
+        onPlannerWaypointClick={onSelect}
+        onPlannerWaypointMove={onMove}
+        onMapClick={onMapClick}
+        focusKey="tour:1"
+        focusPoints={[[expected.lat, expected.lng]]}
+        routeProfileFocus={{ distanceMeters: 100, elevationMeters: 0, lat: 34.69, lng: 135.84, sampleIndex: 0 }}
+      />
+    )
+    expect(map.getCenter().lat).toBeCloseTo(center.lat, 6)
+    expect(map.getCenter().lng).toBeCloseTo(center.lng, 6)
+  })
+
+  it('RC-08: cancellation restores the marker and a plain click still selects without affecting map-add', async () => {
+    const waypoint = { id: 'start', lat: 34.689, lng: 135.8398, role: 'start' as const }
+    const onMove = vi.fn(() => true)
+    const onSelect = vi.fn()
+    const onMapClick = vi.fn()
+    const view = render(
+      <MapView
+        places={[]}
+        center={[waypoint.lat, waypoint.lng]}
+        zoom={15}
+        tileUrl={RASTER}
+        plannerWaypoints={[waypoint]}
+        onPlannerWaypointClick={onSelect}
+        onPlannerWaypointMove={onMove}
+        onMapClick={onMapClick}
+      />
+    )
+    const map = maps[maps.length - 1]
+    await waitFor(() => expect(view.container.querySelector('.tour-planner-waypoint-marker')).not.toBeNull())
+    const pin = view.container.querySelector('.tour-planner-waypoint-marker') as HTMLElement
+    let marker: L.Marker | null = null
+    map.eachLayer(layer => {
+      if (layer instanceof L.Marker && layer.getElement() === pin) marker = layer
+    })
+    const start = map.latLngToContainerPoint([waypoint.lat, waypoint.lng])
+    const end = start.add([30, 20])
+
+    act(() => {
+      pin.dispatchEvent(pointer('pointerdown', start.x, start.y))
+      pin.dispatchEvent(pointer('pointermove', end.x, end.y))
+      pin.dispatchEvent(pointer('pointercancel', end.x, end.y))
+    })
+    expect(marker!.getLatLng().lat).toBeCloseTo(waypoint.lat, 6)
+    expect(marker!.getLatLng().lng).toBeCloseTo(waypoint.lng, 6)
+    expect(onMove).not.toHaveBeenCalled()
+
+    clickOn(pin)
+    expect(onSelect).toHaveBeenCalledOnce()
+    expect(onSelect).toHaveBeenCalledWith(waypoint.id)
+    expect(onMapClick).not.toHaveBeenCalled()
+    act(() => map.fire('click', { latlng: L.latLng(34.7, 135.85) }))
+    expect(onMapClick).toHaveBeenCalledOnce()
+  })
+
   it('uses WGS-84 for Tours-local Topo over global Amap and preserves a Beijing click through layer switches', async () => {
     useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, map_base_layer: 'default' } })
     const beijing = { ...buildPlace({ id: 201, name: 'Beijing', lat: 39.9042, lng: 116.4074 }), category_name: null, category_color: null, category_icon: null }

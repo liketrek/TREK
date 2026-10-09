@@ -82,6 +82,544 @@ describe('useTourPlanner', () => {
     expect(result.current.waypoints).toHaveLength(3)
   })
 
+  it('RC-08: commits a dragged coordinate once and reroutes only after the completed drag', async () => {
+    detailTour.mockResolvedValue({
+      tour: savedTour,
+      waypoints: [
+        { lat: 48, lng: 11, role: 'start', sequence: 0 },
+        { lat: 48.01, lng: 11.01, role: 'via', sequence: 1 },
+        { lat: 48.02, lng: 11.02, role: 'end', sequence: 2 },
+      ],
+    })
+    const { result } = renderHook(() => useTourPlanner({ tripId: 76 }))
+    await act(async () => { expect(await result.current.openTour(savedTour)).toBe(true) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    const id = result.current.waypoints[1].id
+    const original = { lat: result.current.waypoints[1].lat, lng: result.current.waypoints[1].lng }
+    const callsBeforeDrag = routeWalkingTour.mock.calls.length
+
+    act(() => { expect(result.current.setWaypointPosition(id, 48.03, 11.04)).toBe(true) })
+    expect(result.current.waypoints[1]).toMatchObject({ lat: 48.03, lng: 11.04 })
+    expect(result.current.route).toEqual(routed.coordinates)
+    expect(routeWalkingTour).toHaveBeenCalledTimes(callsBeforeDrag)
+    expect(result.current.canUndo).toBe(true)
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    expect(routeWalkingTour).toHaveBeenCalledTimes(callsBeforeDrag + 1)
+    act(() => result.current.undo())
+    expect(result.current.waypoints[1]).toMatchObject(original)
+    expect(result.current.canUndo).toBe(false)
+    expect(result.current.canRedo).toBe(true)
+    act(() => result.current.redo())
+    expect(result.current.waypoints[1]).toMatchObject({ lat: 48.03, lng: 11.04 })
+  })
+
+  it('RC-08: preserves a dragged coordinate through draft recovery', () => {
+    const first = renderHook(() => useTourPlanner({ tripId: 75 }))
+    act(() => {
+      first.result.current.addWaypoint(48, 11)
+      first.result.current.addWaypoint(48.1, 11.1)
+      first.result.current.addWaypoint(48.2, 11.2)
+    })
+    const waypoint = first.result.current.waypoints[1]
+    act(() => { expect(first.result.current.setWaypointPosition(waypoint.id, 48.15, 11.16)).toBe(true) })
+    first.unmount()
+
+    const recovered = renderHook(() => useTourPlanner({ tripId: 75 }))
+    expect(recovered.result.current.waypoints[1]).toMatchObject({ id: waypoint.id, lat: 48.15, lng: 11.16 })
+  })
+
+  it('RC-08: saves and reopens the final dragged coordinate', async () => {
+    const initialWaypoints = [
+      { lat: 48, lng: 11, role: 'start' as const, sequence: 0 },
+      { lat: 48.1, lng: 11.1, role: 'via' as const, sequence: 1 },
+      { lat: 48.2, lng: 11.2, role: 'end' as const, sequence: 2 },
+    ]
+    const finalWaypoints = [
+      initialWaypoints[0],
+      { ...initialWaypoints[1], lat: 48.15, lng: 11.16 },
+      initialWaypoints[2],
+    ]
+    detailTour
+      .mockResolvedValueOnce({ tour: savedTour, waypoints: initialWaypoints })
+      .mockResolvedValueOnce({ tour: savedTour, waypoints: finalWaypoints })
+    updateTour.mockResolvedValue({ tour: savedTour, waypoints: finalWaypoints })
+    const { result } = renderHook(() => useTourPlanner({ tripId: 74 }))
+    expect(result.current.breakAdditionalMinutes).toBeNull()
+    await act(async () => { expect(await result.current.openTour(savedTour)).toBe(true) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    const id = result.current.waypoints[1].id
+    act(() => { expect(result.current.setWaypointPosition(id, 48.15, 11.16)).toBe(true) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    act(() => result.current.setName('Moved ridge'))
+    expect(result.current.canSave).toBe(true)
+
+    await act(async () => { await result.current.save() })
+    expect(updateTour).toHaveBeenCalledWith(
+      74,
+      savedTour.place_id,
+      expect.objectContaining({
+        waypoints: finalWaypoints.map((point, sequence) => ({ ...point, sequence })),
+      })
+    )
+    await act(async () => { expect(await result.current.openTour(savedTour)).toBe(true) })
+    expect(result.current.waypoints[1]).toMatchObject({ lat: 48.15, lng: 11.16 })
+  })
+
+  it('RC-08: aborts an obsolete dragged-coordinate route and ignores its late response', async () => {
+    const staleRoute = deferred<typeof routed | null>()
+    const replacementRoute = { ...routed, coordinates: [[52, 14], [52.01, 14.01]] as [number, number][] }
+    routeWalkingTour
+      .mockResolvedValueOnce(routed)
+      .mockReturnValueOnce(staleRoute.promise)
+      .mockResolvedValueOnce(replacementRoute)
+    const { result } = renderHook(() => useTourPlanner({ tripId: 73 }))
+    act(() => {
+      result.current.addWaypoint(48, 11)
+      result.current.addWaypoint(48.1, 11.1)
+      result.current.addWaypoint(48.2, 11.2)
+    })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    const [first, second] = result.current.waypoints
+
+    act(() => { expect(result.current.setWaypointPosition(second.id, 48.11, 11.12)).toBe(true) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    const obsoleteSignal = routeWalkingTour.mock.calls[1][1] as AbortSignal
+    expect(obsoleteSignal.aborted).toBe(false)
+
+    act(() => { expect(result.current.setWaypointPosition(first.id, 48.02, 11.03)).toBe(true) })
+    expect(obsoleteSignal.aborted).toBe(true)
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    expect(result.current.route).toEqual(replacementRoute.coordinates)
+    await act(async () => { staleRoute.resolve(routed); await Promise.resolve() })
+    expect(result.current.route).toEqual(replacementRoute.coordinates)
+  })
+
+  it('RS-01: saves and reopens description and website with the Tour metadata', async () => {
+    createTour.mockResolvedValue({
+      tour: { ...savedTour, description: 'Lake ridge details', website: 'https://www.komoot.com/tour/42' },
+      waypoints: [],
+    })
+    detailTour.mockResolvedValue({
+      tour: { ...savedTour, description: 'Lake ridge details', website: 'https://www.komoot.com/tour/42' },
+      waypoints: [
+        { lat: 48, lng: 11, role: 'start', sequence: 0 },
+        { lat: 48.1, lng: 11.1, role: 'end', sequence: 1 },
+      ],
+    })
+    updateTour.mockResolvedValue({
+      tour: { ...savedTour, name: 'Edited ridge', description: 'Updated details', website: 'https://alltrails.com/trail/42' },
+      waypoints: [],
+    })
+    const { result } = renderHook(() => useTourPlanner({ tripId: 72 }))
+    act(() => {
+      result.current.startNewTour()
+      result.current.addWaypoint(48, 11)
+      result.current.addWaypoint(48.1, 11.1)
+      result.current.setName('Ridge notes')
+      result.current.setDescription('Lake ridge details')
+      result.current.setWebsite(' HTTPS://WWW.KOMOOT.COM/tour/42 ')
+    })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    expect(result.current.canSave).toBe(true)
+    await act(async () => { await result.current.save() })
+    expect(createTour).toHaveBeenCalledWith(72, expect.objectContaining({
+      description: 'Lake ridge details',
+      website: 'https://www.komoot.com/tour/42',
+    }))
+
+    await act(async () => { expect(await result.current.openTour(savedTour)).toBe(true) })
+    expect(result.current.description).toBe('Lake ridge details')
+    expect(result.current.website).toBe('https://www.komoot.com/tour/42')
+    act(() => {
+      result.current.setName('Edited ridge')
+      result.current.setDescription('Updated details')
+      result.current.setWebsite('https://alltrails.com/trail/42')
+    })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    await act(async () => { await result.current.save() })
+    expect(updateTour).toHaveBeenCalledWith(72, savedTour.place_id, expect.objectContaining({
+      description: 'Updated details',
+      website: 'https://alltrails.com/trail/42',
+    }))
+  })
+
+  it('RS-01: restores informational metadata from draft and blocks an unsafe website', () => {
+    const first = renderHook(() => useTourPlanner({ tripId: 71 }))
+    act(() => {
+      first.result.current.addWaypoint(48, 11)
+      first.result.current.addWaypoint(48.1, 11.1)
+      first.result.current.setName('Ridge notes')
+      first.result.current.setDescription('Restored description')
+      first.result.current.setWebsite('https://example.org/route')
+      first.result.current.setPlannedDurationMinutes(95)
+      first.result.current.setBreakAdditionalMinutes(35)
+    })
+    first.unmount()
+
+    const recovered = renderHook(() => useTourPlanner({ tripId: 71 }))
+    expect(recovered.result.current.description).toBe('Restored description')
+    expect(recovered.result.current.website).toBe('https://example.org/route')
+    expect(recovered.result.current.plannedDurationMinutes).toBe(95)
+    expect(recovered.result.current.breakAdditionalMinutes).toBe(35)
+    act(() => recovered.result.current.setBreakAdditionalMinutes(-1))
+    expect(recovered.result.current.breakAdditionalInvalid).toBe(true)
+    act(() => recovered.result.current.setBreakAdditionalMinutes(35.5))
+    expect(recovered.result.current.breakAdditionalInvalid).toBe(true)
+    act(() => recovered.result.current.setPlannedDurationMinutes(1441))
+    expect(recovered.result.current.plannedDurationInvalid).toBe(true)
+    act(() => recovered.result.current.setPlannedDurationMinutes(95.5))
+    expect(recovered.result.current.plannedDurationInvalid).toBe(true)
+    act(() => recovered.result.current.setWebsite('http://example.org/route'))
+    expect(recovered.result.current.websiteInvalid).toBe(true)
+    expect(recovered.result.current.canSave).toBe(false)
+  })
+
+  it('RS-02: saves, reopens and clears planned total without replacing calculated route duration', async () => {
+    const saved = { ...savedTour, duration: 30, planned_duration_minutes: 95, break_additional_minutes: 40 }
+    createTour.mockResolvedValue({ tour: saved, waypoints: [] })
+    detailTour.mockResolvedValue({
+      tour: saved,
+      waypoints: [
+        { lat: 48, lng: 11, role: 'start', sequence: 0 },
+        { lat: 48.1, lng: 11.1, role: 'end', sequence: 1 },
+      ],
+    })
+    updateTour.mockResolvedValue({ tour: { ...saved, planned_duration_minutes: null }, waypoints: [] })
+    const { result } = renderHook(() => useTourPlanner({ tripId: 73 }))
+    act(() => {
+      result.current.startNewTour()
+      result.current.addWaypoint(48, 11)
+      result.current.addWaypoint(48.1, 11.1)
+      result.current.setName('Ridge notes')
+      result.current.setBreakAdditionalMinutes(40)
+      result.current.setPlannedDurationMinutes(95)
+    })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    expect(result.current.durationSeconds).toBe(routed.durationSeconds)
+    expect(result.current.canSave).toBe(true)
+    await act(async () => { await result.current.save() })
+    expect(createTour).toHaveBeenCalledWith(73, expect.objectContaining({
+      duration_seconds: routed.durationSeconds,
+      planned_duration_minutes: 95,
+      break_additional_minutes: 40,
+    }))
+
+    await act(async () => { expect(await result.current.openTour(savedTour)).toBe(true) })
+    expect(result.current.plannedDurationMinutes).toBe(95)
+    expect(result.current.breakAdditionalMinutes).toBe(40)
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    act(() => result.current.setPlannedDurationMinutes(null))
+    await act(async () => { await result.current.save() })
+    expect(updateTour).toHaveBeenCalledWith(73, savedTour.place_id, expect.objectContaining({
+      duration_seconds: routed.durationSeconds,
+      planned_duration_minutes: null,
+      break_additional_minutes: 40,
+    }))
+  })
+
+  it('RS-02: recalculates automatic total when route changes but preserves a manual override', async () => {
+    routeWalkingTour
+      .mockResolvedValueOnce({ ...routed, durationSeconds: 3600 })
+      .mockResolvedValueOnce({ ...routed, durationSeconds: 5400 })
+      .mockResolvedValueOnce({ ...routed, durationSeconds: 7200 })
+    const { result } = renderHook(() => useTourPlanner({ tripId: 74 }))
+    act(() => {
+      result.current.addWaypoint(48, 11)
+      result.current.addWaypoint(48.1, 11.1)
+      result.current.setBreakAdditionalMinutes(30)
+    })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    expect(result.current.walkingDurationMinutes).toBe(60)
+    expect(result.current.plannedTotalMinutes).toBe(90)
+
+    const waypointId = result.current.waypoints[1].id
+    act(() => result.current.setWaypointPosition(waypointId, 48.2, 11.2))
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    expect(result.current.walkingDurationMinutes).toBe(90)
+    expect(result.current.plannedTotalMinutes).toBe(120)
+
+    act(() => result.current.setPlannedDurationMinutes(110))
+    act(() => result.current.setWaypointPosition(waypointId, 48.3, 11.3))
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    expect(result.current.walkingDurationMinutes).toBe(120)
+    expect(result.current.plannedTotalMinutes).toBe(110)
+    expect(result.current.plannedDurationMinutes).toBe(110)
+
+    act(() => result.current.setPlannedDurationMinutes(null))
+    expect(result.current.plannedTotalMinutes).toBe(150)
+    act(() => result.current.setBreakAdditionalMinutes(null))
+    expect(result.current.breakAdditionalMinutes).toBeNull()
+    expect(result.current.plannedTotalMinutes).toBe(120)
+  })
+
+  it('RS-01: changing informational metadata does not create waypoints or reroute', async () => {
+    const { result } = renderHook(() => useTourPlanner({ tripId: 70 }))
+    act(() => {
+      result.current.addWaypoint(48, 11)
+      result.current.addWaypoint(48.1, 11.1)
+    })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    const ids = result.current.waypoints.map(point => point.id)
+    const routeBeforeMetadataEdit = result.current.route
+    const routeCalls = routeWalkingTour.mock.calls.length
+
+    act(() => {
+      result.current.setDescription('A ridge above the lake')
+      result.current.setWebsite('https://example.org/ridge')
+    })
+
+    expect(result.current.waypoints.map(point => point.id)).toEqual(ids)
+    expect(result.current.route).toEqual(routeBeforeMetadataEdit)
+    expect(routeWalkingTour).toHaveBeenCalledTimes(routeCalls)
+  })
+
+  it('RC-07: reorders stable waypoint ids once, normalizes roles, and routes only after the drop', async () => {
+    detailTour.mockResolvedValue({
+      tour: savedTour,
+      waypoints: [
+        { lat: 48, lng: 11, role: 'start', sequence: 0 },
+        { lat: 48.01, lng: 11.01, role: 'via', sequence: 1 },
+        { lat: 48.02, lng: 11.02, role: 'via', sequence: 2 },
+        { lat: 48.03, lng: 11.03, role: 'end', sequence: 3 },
+      ],
+    });
+    const { result } = renderHook(() => useTourPlanner({ tripId: 77 }));
+    await act(async () => {
+      expect(await result.current.openTour(savedTour)).toBe(true);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(450);
+    });
+    const original = result.current.waypoints.map((point) => point.id);
+    const routeCallsBeforeDrop = routeWalkingTour.mock.calls.length;
+
+    act(() => result.current.reorderWaypoint(original[0], original[2], 'after'));
+
+    expect(result.current.waypoints.map((point) => point.id)).toEqual([
+      original[1],
+      original[2],
+      original[0],
+      original[3],
+    ]);
+    expect(result.current.waypoints.map((point) => point.role)).toEqual(['start', 'via', 'via', 'end']);
+    expect(result.current.canUndo).toBe(true);
+    expect(result.current.canRedo).toBe(false);
+    expect(result.current.route).toEqual(routed.coordinates);
+    expect(routeWalkingTour).toHaveBeenCalledTimes(routeCallsBeforeDrop);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(450);
+    });
+    expect(routeWalkingTour).toHaveBeenCalledTimes(routeCallsBeforeDrop + 1);
+
+    act(() => result.current.undo());
+    expect(result.current.waypoints.map((point) => point.id)).toEqual(original);
+    expect(result.current.canUndo).toBe(false);
+    expect(result.current.canRedo).toBe(true);
+
+    act(() => result.current.redo());
+    expect(result.current.waypoints.map((point) => point.id)).toEqual([
+      original[1],
+      original[2],
+      original[0],
+      original[3],
+    ]);
+  });
+
+  it('RC-07: preserves an earlier waypoint move through draft recovery', () => {
+    const first = renderHook(() => useTourPlanner({ tripId: 78 }));
+    act(() => {
+      first.result.current.addWaypoint(48, 11);
+      first.result.current.addWaypoint(48.1, 11.1);
+      first.result.current.addWaypoint(48.2, 11.2);
+    });
+    const ids = first.result.current.waypoints.map((point) => point.id);
+
+    act(() => first.result.current.reorderWaypoint(ids[2], ids[0], 'before'));
+    expect(first.result.current.waypoints.map((point) => point.id)).toEqual([ids[2], ids[0], ids[1]]);
+    expect(first.result.current.waypoints.map((point) => point.role)).toEqual(['start', 'via', 'end']);
+    const stored = JSON.parse(localStorage.getItem('tour-draft-78')!) as { waypoints: { id: string }[] };
+    expect(stored.waypoints.map((point) => point.id)).toEqual([ids[2], ids[0], ids[1]]);
+
+    first.unmount();
+    const recovered = renderHook(() => useTourPlanner({ tripId: 78 }));
+    expect(recovered.result.current.waypoints.map((point) => point.id)).toEqual([ids[2], ids[0], ids[1]]);
+    expect(recovered.result.current.waypoints.map((point) => point.role)).toEqual(['start', 'via', 'end']);
+  });
+
+  it('RC-07: saves reordered sequence and reopens the same waypoint order', async () => {
+    const initialWaypoints = [
+      { lat: 48, lng: 11, role: 'start' as const, sequence: 0 },
+      { lat: 48.1, lng: 11.1, role: 'via' as const, sequence: 1 },
+      { lat: 48.2, lng: 11.2, role: 'via' as const, sequence: 2 },
+      { lat: 48.3, lng: 11.3, role: 'end' as const, sequence: 3 },
+    ];
+    const reorderedWaypoints = [
+      initialWaypoints[0],
+      { ...initialWaypoints[3], role: 'via' as const },
+      initialWaypoints[1],
+      { ...initialWaypoints[2], role: 'end' as const },
+    ];
+    detailTour
+      .mockResolvedValueOnce({ tour: savedTour, waypoints: initialWaypoints })
+      .mockResolvedValueOnce({ tour: savedTour, waypoints: reorderedWaypoints });
+    updateTour.mockResolvedValue({ tour: savedTour, waypoints: reorderedWaypoints });
+    const { result } = renderHook(() => useTourPlanner({ tripId: 79 }));
+    await act(async () => {
+      expect(await result.current.openTour(savedTour)).toBe(true);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(450);
+    });
+    const ids = result.current.waypoints.map((point) => point.id);
+
+    act(() => result.current.reorderWaypoint(ids[3], ids[1], 'before'));
+    expect(result.current.waypoints.map((point) => [point.lat, point.lng])).toEqual(
+      reorderedWaypoints.map((point) => [point.lat, point.lng])
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(450);
+    });
+    act(() => result.current.setName('Reordered ridge'));
+    expect(result.current.canSave).toBe(true);
+
+    await act(async () => {
+      await result.current.save();
+    });
+    expect(updateTour).toHaveBeenCalledWith(
+      79,
+      savedTour.place_id,
+      expect.objectContaining({
+        waypoints: reorderedWaypoints.map((point, sequence) => ({
+          lat: point.lat,
+          lng: point.lng,
+          role: point.role,
+          sequence,
+        })),
+      })
+    );
+
+    await act(async () => {
+      expect(await result.current.openTour(savedTour)).toBe(true);
+    });
+    expect(result.current.waypoints.map((point) => [point.lat, point.lng])).toEqual(
+      reorderedWaypoints.map((point) => [point.lat, point.lng])
+    );
+  });
+
+  it('RC-07: aborts obsolete reorder routing and ignores its late response', async () => {
+    const staleRoute = deferred<typeof routed | null>();
+    const replacementRoute = {
+      ...routed,
+      coordinates: [
+        [52, 14],
+        [52.01, 14.01],
+      ] as [number, number][],
+    };
+    routeWalkingTour
+      .mockResolvedValueOnce(routed)
+      .mockReturnValueOnce(staleRoute.promise)
+      .mockResolvedValueOnce(replacementRoute);
+    const { result } = renderHook(() => useTourPlanner({ tripId: 80 }));
+    act(() => {
+      result.current.addWaypoint(48, 11);
+      result.current.addWaypoint(48.1, 11.1);
+      result.current.addWaypoint(48.2, 11.2);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(450);
+    });
+    const ids = result.current.waypoints.map((point) => point.id);
+
+    act(() => result.current.reorderWaypoint(ids[0], ids[1], 'after'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(450);
+    });
+    const obsoleteSignal = routeWalkingTour.mock.calls[1][1] as AbortSignal;
+    expect(obsoleteSignal.aborted).toBe(false);
+
+    act(() => result.current.reorderWaypoint(ids[1], ids[2], 'after'));
+    expect(obsoleteSignal.aborted).toBe(true);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(450);
+    });
+    expect(result.current.route).toEqual(replacementRoute.coordinates);
+    await act(async () => {
+      staleRoute.resolve(routed);
+      await Promise.resolve();
+    });
+    expect(result.current.route).toEqual(replacementRoute.coordinates);
+  });
+
+
+  it('RS-01: saves and reopens description and website with the Tour metadata', async () => {
+    createTour.mockResolvedValue({
+      tour: { ...savedTour, description: 'Lake ridge details', website: 'https://www.komoot.com/tour/42' },
+      waypoints: [],
+    })
+    detailTour.mockResolvedValue({
+      tour: { ...savedTour, description: 'Lake ridge details', website: 'https://www.komoot.com/tour/42' },
+      waypoints: [
+        { lat: 48, lng: 11, role: 'start', sequence: 0 },
+        { lat: 48.1, lng: 11.1, role: 'end', sequence: 1 },
+      ],
+    })
+    updateTour.mockResolvedValue({
+      tour: { ...savedTour, name: 'Edited ridge', description: 'Updated details', website: 'https://alltrails.com/trail/42' },
+      waypoints: [],
+    })
+    const { result } = renderHook(() => useTourPlanner({ tripId: 72 }))
+    act(() => {
+      result.current.startNewTour()
+      result.current.addWaypoint(48, 11)
+      result.current.addWaypoint(48.1, 11.1)
+      result.current.setName('Ridge notes')
+      result.current.setDescription('Lake ridge details')
+      result.current.setWebsite(' HTTPS://WWW.KOMOOT.COM/tour/42 ')
+    })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    expect(result.current.canSave).toBe(true)
+    await act(async () => { await result.current.save() })
+    expect(createTour).toHaveBeenCalledWith(72, expect.objectContaining({
+      description: 'Lake ridge details',
+      website: 'https://www.komoot.com/tour/42',
+    }))
+
+    await act(async () => { expect(await result.current.openTour(savedTour)).toBe(true) })
+    expect(result.current.description).toBe('Lake ridge details')
+    expect(result.current.website).toBe('https://www.komoot.com/tour/42')
+    act(() => {
+      result.current.setName('Edited ridge')
+      result.current.setDescription('Updated details')
+      result.current.setWebsite('https://alltrails.com/trail/42')
+    })
+    await act(async () => { await vi.advanceTimersByTimeAsync(450) })
+    await act(async () => { await result.current.save() })
+    expect(updateTour).toHaveBeenCalledWith(72, savedTour.place_id, expect.objectContaining({
+      description: 'Updated details',
+      website: 'https://alltrails.com/trail/42',
+    }))
+  })
+
+  it('RS-01: restores informational metadata from draft and blocks an unsafe website', () => {
+    const first = renderHook(() => useTourPlanner({ tripId: 71 }))
+    act(() => {
+      first.result.current.addWaypoint(48, 11)
+      first.result.current.addWaypoint(48.1, 11.1)
+      first.result.current.setName('Ridge notes')
+      first.result.current.setDescription('Restored description')
+      first.result.current.setWebsite('https://example.org/route')
+    })
+    first.unmount()
+
+    const recovered = renderHook(() => useTourPlanner({ tripId: 71 }))
+    expect(recovered.result.current.description).toBe('Restored description')
+    expect(recovered.result.current.website).toBe('https://example.org/route')
+    act(() => recovered.result.current.setWebsite('http://example.org/route'))
+    expect(recovered.result.current.websiteInvalid).toBe(true)
+    expect(recovered.result.current.canSave).toBe(false)
+  })
+
   it('changes the map focus intent only for explicit Tour context changes', async () => {
     detailTour.mockResolvedValue({
       tour: savedTour,
@@ -945,7 +1483,7 @@ describe('useTourPlanner', () => {
 
     expect(result.current.mode).toEqual({ type: 'new-draft' })
     expect(JSON.parse(localStorage.getItem('tour-draft-23') || 'null')).toMatchObject({
-      version: 2,
+      version: 6,
       name: '',
       waypoints: [],
       maxHikingDifficulty: 2,
