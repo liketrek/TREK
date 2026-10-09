@@ -77,13 +77,14 @@ describe('MSettingsNotifications', () => {
     expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
-  it('FE-MOB-SETNOTIF-002: a failing preferences load keeps the loading line instead of crashing', async () => {
+  it('FE-MOB-SETNOTIF-002: a failing preferences load shows an error instead of the loading line', async () => {
     server.use(
       http.get('/api/notifications/preferences', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
       http.get('/api/settings', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
     );
     render(<MSettingsNotifications />);
-    await waitFor(() => expect(screen.getByText('Loading...')).toBeInTheDocument());
+    expect(await screen.findByText('Error')).toBeInTheDocument();
+    expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
     expect(screen.getByText('Notifications')).toBeInTheDocument();
   });
 

@@ -16,14 +16,14 @@ import { SettingsCard, SettingsHint, StatusPill, SETTINGS_BUTTON, SETTINGS_BUTTO
 export default function NotificationsTab(): React.ReactElement {
   const { t } = useTranslation()
   const {
-    matrix, saving, visibleChannels, hasChannel, pluginChannels, toggle, testChannel, channelTesting,
+    matrix, loadFailed, saving, visibleChannels, hasChannel, pluginChannels, toggle, testChannel, channelTesting,
     webhookUrl, setWebhookUrl, webhookIsSet, webhookSaving, webhookTesting, saveWebhookUrl, testWebhookUrl,
     ntfyTopic, setNtfyTopic, ntfyServer, setNtfyServer, ntfyToken, setNtfyToken, ntfyTokenIsSet,
     ntfySaving, ntfyTesting, saveNtfySettings, clearNtfyToken, testNtfySettings,
   } = useNotificationSettings()
 
   const renderMatrix = () => {
-    if (!matrix) return <MatrixSkeleton label={t('common.loading')} />
+    if (!matrix) return loadFailed ? <SettingsHint>{t('common.error')}</SettingsHint> : <MatrixSkeleton label={t('common.loading')} />
 
     if (visibleChannels.length === 0) {
       return <SettingsHint>{t('settings.notificationPreferences.noChannels')}</SettingsHint>

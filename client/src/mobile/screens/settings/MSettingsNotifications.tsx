@@ -17,7 +17,7 @@ export default function MSettingsNotifications() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const {
-    matrix, saving, visibleChannels, hasChannel, pluginChannels, toggle, testChannel, channelTesting,
+    matrix, loadFailed, saving, visibleChannels, hasChannel, pluginChannels, toggle, testChannel, channelTesting,
     webhookUrl, setWebhookUrl, webhookIsSet, webhookSaving, webhookTesting, saveWebhookUrl, testWebhookUrl,
     ntfyTopic, setNtfyTopic, ntfyServer, setNtfyServer, ntfyToken, setNtfyToken, ntfyTokenIsSet,
     ntfySaving, ntfyTesting, saveNtfySettings, clearNtfyToken, testNtfySettings,
@@ -25,7 +25,9 @@ export default function MSettingsNotifications() {
 
   return (
     <MSetCard title={t('settings.notifications')} icon={Bell}>
-      {!matrix && <p className="font-geist text-[0.6875rem] italic text-m-faint">{t('common.loading')}</p>}
+      {!matrix && (
+        <p className="font-geist text-[0.6875rem] italic text-m-faint">{loadFailed ? t('common.error') : t('common.loading')}</p>
+      )}
 
       {matrix && visibleChannels.length === 0 && (
         <p className="font-geist text-[0.6875rem] italic text-m-faint">{t('settings.notificationPreferences.noChannels')}</p>

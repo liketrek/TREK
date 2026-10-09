@@ -191,4 +191,38 @@ describe('useNotificationSettings', () => {
     expect(toast.error).toHaveBeenCalledWith('settings.notificationPreferences.testFailed');
     expect(result.current.channelTesting).toBeNull();
   });
+
+  it('FE-COMP-NOTIFSETTINGS-010: a failed load flags the matrix as failed and toasts once, however many requests failed', async () => {
+    vi.spyOn(notificationsApi, 'getPreferences').mockRejectedValue(new Error('x'));
+    vi.spyOn(settingsApi, 'get').mockRejectedValue(new Error('y'));
+    const { result } = renderHook(() => useNotificationSettings());
+    await waitFor(() => expect(result.current.loadFailed).toBe(true));
+    // Let both rejections settle before counting toasts.
+    await act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith('common.error');
+    expect(result.current.matrix).toBeNull();
+  });
+
+  it('FE-COMP-NOTIFSETTINGS-011: a load that settles after unmount touches nothing', async () => {
+    let rejectPrefs!: (e: Error) => void;
+    let rejectSettings!: (e: Error) => void;
+    vi.spyOn(notificationsApi, 'getPreferences').mockReturnValue(
+      new Promise((_, reject) => {
+        rejectPrefs = reject;
+      })
+    );
+    vi.spyOn(settingsApi, 'get').mockReturnValue(
+      new Promise((_, reject) => {
+        rejectSettings = reject;
+      })
+    );
+    const { unmount } = renderHook(() => useNotificationSettings());
+    unmount();
+    await act(async () => {
+      rejectPrefs(new Error('x'));
+      rejectSettings(new Error('y'));
+    });
+    expect(toast.error).not.toHaveBeenCalled();
+  });
 });

@@ -57,6 +57,18 @@ describe('NotificationsTab', () => {
     expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
+  it('FE-COMP-NOTIFICATIONS-032: a failed preferences load shows an error instead of loading for good', async () => {
+    server.use(http.get('/api/notifications/preferences', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+    render(
+      <>
+        <ToastContainer />
+        <NotificationsTab />
+      </>
+    );
+    await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
+    expect(screen.getAllByText('Error').length).toBeGreaterThan(0);
+  });
+
   it('FE-COMP-NOTIFICATIONS-002: renders the matrix after preferences load', async () => {
     render(<NotificationsTab />);
     // The event label is translated; fallback is the key itself

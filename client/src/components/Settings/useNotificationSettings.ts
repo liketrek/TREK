@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 
 import { notificationsApi, settingsApi } from '../../api/client';
 import { useTranslation } from '../../i18n';
@@ -44,6 +44,7 @@ export function useNotificationSettings({ skipMaskedToken = false }: Notificatio
   const { t } = useTranslation();
   const toast = useToast();
   const [matrix, setMatrix] = useState<PreferencesMatrix | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
   const [webhookIsSet, setWebhookIsSet] = useState(false);
@@ -57,14 +58,34 @@ export function useNotificationSettings({ skipMaskedToken = false }: Notificatio
   const [ntfyTesting, setNtfyTesting] = useState(false);
   const [channelTesting, setChannelTesting] = useState<string | null>(null);
 
+  // The loader runs once; the error toast reads the latest t and toast.
+  const loadError = useEffectEvent(() => toast.error(t('common.error')));
+
   useEffect(() => {
+    let cancelled = false;
+    // Both loads fail together when the server is down; one toast is enough,
+    // the matrix shows its own error line.
+    let toasted = false;
+    const failed = () => {
+      if (toasted) return;
+      toasted = true;
+      loadError();
+    };
     notificationsApi
       .getPreferences()
-      .then((data: PreferencesMatrix) => setMatrix(data))
-      .catch(() => {});
+      .then((data: PreferencesMatrix) => {
+        if (!cancelled) setMatrix(data);
+      })
+      .catch(() => {
+        // Without this the matrix would sit on its loading line for good.
+        if (cancelled) return;
+        setLoadFailed(true);
+        failed();
+      });
     settingsApi
       .get()
       .then((data: { settings: Record<string, unknown> }) => {
+        if (cancelled) return;
         const val = (data.settings?.webhook_url as string) || '';
         if (val === MASKED) {
           setWebhookIsSet(true);
@@ -82,7 +103,12 @@ export function useNotificationSettings({ skipMaskedToken = false }: Notificatio
           setNtfyToken(rawToken);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) failed();
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Columns are whatever the server says exists and the admin turned on, so a
@@ -227,6 +253,7 @@ export function useNotificationSettings({ skipMaskedToken = false }: Notificatio
 
   return {
     matrix,
+    loadFailed,
     saving,
     visibleChannels,
     hasChannel,
