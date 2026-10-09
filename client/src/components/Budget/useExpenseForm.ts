@@ -38,7 +38,6 @@ let ticketItemSeq = 0;
  * through the trip store. Both surfaces lay it out their own way.
  *
  * Where the two save differently today, the surface says which way:
- * `ticketShareMembers` (desktop) also sends everyone a ticket line names (#1382);
  * `oneSaveAtATime` (phone) ignores a save while one is out; `keepSavingOnSuccess`
  * (phone) leaves the form busy after a save that went through, as the sheet closes.
  */
@@ -50,7 +49,6 @@ export function useExpenseForm({
   editing,
   prefill,
   onSaved,
-  ticketShareMembers = false,
   oneSaveAtATime = false,
   keepSavingOnSuccess = false,
 }: {
@@ -61,7 +59,6 @@ export function useExpenseForm({
   editing: BudgetItem | null;
   prefill?: ExpensePrefill;
   onSaved: () => void;
-  ticketShareMembers?: boolean;
   oneSaveAtATime?: boolean;
   keepSavingOnSuccess?: boolean;
 }) {
@@ -349,7 +346,7 @@ export function useExpenseForm({
     // only the ticked set would drop their share, leaving the member sum short of
     // total_price and handing the settlement a difference it can never clear (#1382).
     const memberIds =
-      splitMode === 'ticket' && ticketShareMembers
+      splitMode === 'ticket'
         ? [...new Set([...participants, ...Object.keys(ticketInfo.shares).map(Number)])].sort((a, b) => a - b)
         : [...participants];
     const memberList = memberIds.map((id) => ({

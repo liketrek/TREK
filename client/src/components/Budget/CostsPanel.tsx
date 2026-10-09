@@ -1178,7 +1178,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
     setCat, setCurrency, setCustomAmounts, setDay, setName, setNote, setPayerId,
     setPreviewReceipts: setModalPreviewReceipts, setSplitMode, splitMode, splitShortfall, splitSum, sym, ticketInfo,
     ticketItems, toggleParticipant, togglePayer, total, totalNum, tripCur, uploadingReceipt, valid,
-  } = useExpenseForm({ tripId, base, people, me, editing, prefill, onSaved, ticketShareMembers: true })
+  } = useExpenseForm({ tripId, base, people, me, editing, prefill, onSaved })
 
   // The custom split typed as percentages instead of amounts (#1709).
   const pct = usePercentSplit({ total: totalNum, participants, customAmounts, setCustomAmounts, currency })

@@ -21,7 +21,7 @@ vi.mock('./receiptUploads', () => ({
   ),
 }));
 
-// FE-BUDGET-EXPFORM-001 to FE-BUDGET-EXPFORM-020
+// FE-BUDGET-EXPFORM-001 to FE-BUDGET-EXPFORM-021
 
 const PEOPLE: TripMember[] = [
   { id: 1, username: 'alice', avatar_url: null },
@@ -36,7 +36,6 @@ let addToast: ReturnType<typeof vi.fn>;
 interface Options {
   editing?: BudgetItem | null;
   prefill?: ExpensePrefill;
-  ticketShareMembers?: boolean;
   oneSaveAtATime?: boolean;
   keepSavingOnSuccess?: boolean;
 }
@@ -52,7 +51,6 @@ function setup(options: Options = {}) {
       editing: options.editing ?? null,
       prefill: options.prefill,
       onSaved,
-      ticketShareMembers: options.ticketShareMembers,
       oneSaveAtATime: options.oneSaveAtATime,
       keepSavingOnSuccess: options.keepSavingOnSuccess,
     })
@@ -464,26 +462,22 @@ describe('useExpenseForm: saving', () => {
     expect(result.current.pendingReceiptFiles).toEqual([]);
   });
 
-  it('FE-BUDGET-EXPFORM-017: a ticket split sends everyone a line names on the desktop, only the ticked on the phone (#1382)', async () => {
-    const run = async (ticketShareMembers: boolean) => {
-      const { result } = setup({ ticketShareMembers });
-      act(() => {
-        result.current.setName('Lunch');
-        result.current.setSplitMode('ticket');
-        result.current.handleAddEmptyItem();
-      });
-      const id = result.current.ticketItems[0].id;
-      act(() => {
-        result.current.handleUpdateItemName(id, 'Pizza');
-        result.current.handleUpdateItemPrice(id, '12');
-        // Bob eats from the line but is not ticked for the expense.
-        result.current.toggleParticipant(2);
-      });
-      await save(result);
-      return addBudgetItem.mock.calls[addBudgetItem.mock.calls.length - 1][1];
-    };
-    const desktop = await run(true);
-    expect(desktop).toMatchObject({
+  it('FE-BUDGET-EXPFORM-017: a ticket split sends everyone a line names, ticked or not (#1382)', async () => {
+    const { result } = setup();
+    act(() => {
+      result.current.setName('Lunch');
+      result.current.setSplitMode('ticket');
+      result.current.handleAddEmptyItem();
+    });
+    const id = result.current.ticketItems[0].id;
+    act(() => {
+      result.current.handleUpdateItemName(id, 'Pizza');
+      result.current.handleUpdateItemPrice(id, '12');
+      // Bob eats from the line but is not ticked for the expense.
+      result.current.toggleParticipant(2);
+    });
+    await save(result);
+    expect(addBudgetItem.mock.calls[0][1]).toMatchObject({
       members: [
         { user_id: 1, amount: 6 },
         { user_id: 2, amount: 6 },
@@ -492,8 +486,6 @@ describe('useExpenseForm: saving', () => {
       total_price: 12,
       ticket_json: JSON.stringify({ items: [{ name: 'Pizza', price: '12', parts: [1, 2] }] }),
     });
-    const phone = await run(false);
-    expect(phone).toMatchObject({ members: [{ user_id: 1, amount: 6 }], member_ids: [1] });
   });
 
   it('FE-BUDGET-EXPFORM-018: a failed save says why; a receipt it could not take back is counted', async () => {
@@ -548,5 +540,30 @@ describe('useExpenseForm: saving', () => {
     const invalid = setup();
     await save(invalid.result);
     expect(saveWithReceipts).toHaveBeenCalledTimes(3);
+  });
+
+  it('FE-BUDGET-EXPFORM-021: the phone sends everyone a ticket line names too, so the shares add up to the total (#1382)', async () => {
+    const { result } = setup({ oneSaveAtATime: true, keepSavingOnSuccess: true });
+    act(() => {
+      result.current.setName('Lunch');
+      result.current.setSplitMode('ticket');
+      result.current.handleAddEmptyItem();
+    });
+    const id = result.current.ticketItems[0].id;
+    act(() => {
+      result.current.handleUpdateItemName(id, 'Pizza');
+      result.current.handleUpdateItemPrice(id, '12');
+      // Bob eats from the line but is not ticked for the expense.
+      result.current.toggleParticipant(2);
+    });
+    await save(result);
+    expect(addBudgetItem.mock.calls[0][1]).toMatchObject({
+      members: [
+        { user_id: 1, amount: 6 },
+        { user_id: 2, amount: 6 },
+      ],
+      member_ids: [1, 2],
+      total_price: 12,
+    });
   });
 });
