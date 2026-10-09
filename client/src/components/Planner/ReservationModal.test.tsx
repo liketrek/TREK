@@ -1,4 +1,4 @@
-// FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-105
+// FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-106
 import { render, screen, waitFor, fireEvent, within, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -1407,6 +1407,38 @@ describe('ReservationModal', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave.mock.calls[0][0].create_budget_entry).toEqual({ total_price: 50, category: 'accommodation' });
+  });
+
+  it('FE-PLANNER-RESMODAL-106: an import with source files but no upload handler still saves and opens the expense editor', async () => {
+    // Without onFileUpload the pending source files cannot go anywhere; the save
+    // used to call the missing handler, reject, and never reach the expense step.
+    budgetEnabled();
+    const onSave = vi.fn().mockResolvedValue({ id: 84 });
+    const onOpenExpense = vi.fn();
+    const prefill = hotelPrefill({
+      type: 'restaurant',
+      metadata: {},
+      _accommodation: undefined,
+      _sourceFiles: [new File(['pdf'], 'voucher.pdf', { type: 'application/pdf' })],
+    });
+    render(
+      <ReservationModal
+        {...defaultProps}
+        onFileUpload={undefined}
+        onSave={onSave}
+        onOpenExpense={onOpenExpense}
+        prefill={prefill}
+        days={reviewDays()}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /Create expense/i }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(onOpenExpense).toHaveBeenCalledWith(
+        expect.objectContaining({ prefill: expect.objectContaining({ reservationId: 84 }) })
+      )
+    );
   });
 
   // ── File error paths ────────────────────────────────────────────────────────

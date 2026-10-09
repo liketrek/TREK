@@ -34,13 +34,16 @@ export function travelersChanged(reservation: Pick<Reservation, 'travelers'> | n
  * the other, each described with the booking's title. Callers run it after both a
  * create and an edit: the form only holds files the user just picked, so nothing is
  * uploaded twice, and skipping the edit dropped them without a word (#2534).
+ * Without an upload handler (a dialog opened with no file support) there is
+ * nowhere to send them, so nothing is uploaded and the save carries on.
  */
 export async function uploadBookingFiles(
-  upload: (fd: FormData) => Promise<unknown>,
+  upload: ((fd: FormData) => Promise<unknown>) | undefined,
   savedId: number,
   files: File[],
   description: string
 ): Promise<void> {
+  if (!upload) return;
   for (const file of files) {
     const fd = new FormData();
     fd.append('file', file);

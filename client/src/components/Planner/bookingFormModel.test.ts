@@ -1,4 +1,4 @@
-// FE-PLANNER-BOOKINGFORM-001 to -007: the travellers, picked files, attached files
+// FE-PLANNER-BOOKINGFORM-001 to -008: the travellers, picked files, attached files
 // and expense requests of the transport and booking forms, desktop and phone alike.
 import { typeToCostCategory } from '@trek/shared';
 import { describe, expect, it, vi } from 'vitest';
@@ -58,6 +58,10 @@ describe('bookingFormModel', () => {
     upload.mockClear();
     await uploadBookingFiles(upload, 42, [], 'none');
     expect(upload).not.toHaveBeenCalled();
+  });
+
+  it('FE-PLANNER-BOOKINGFORM-008: without an upload handler the picked files are skipped and the save is not rejected', async () => {
+    await expect(uploadBookingFiles(undefined, 42, [new File(['a'], 'a.pdf')], 'Hotel stay')).resolves.toBeUndefined();
   });
 
   it('FE-PLANNER-BOOKINGFORM-005: an expense wish opens the editor for the saved booking, nothing else does', () => {
