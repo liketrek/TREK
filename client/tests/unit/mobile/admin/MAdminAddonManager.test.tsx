@@ -1,8 +1,8 @@
-// FE-MOB-AADD-001 to FE-MOB-AADD-036
+// FE-MOB-AADD-001 to FE-MOB-AADD-037
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
-import { render, screen, waitFor, within } from '../../../helpers/render';
+import { act, render, screen, waitFor, within } from '../../../helpers/render';
 import { server } from '../../../helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../helpers/store';
 import { buildSettings } from '../../../helpers/factories';
@@ -67,6 +67,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  document.documentElement.classList.remove('dark');
 });
 
 describe('MAdminAddonManager', () => {
@@ -92,21 +93,13 @@ describe('MAdminAddonManager', () => {
     expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-dark.svg');
   });
 
-  it('FE-MOB-AADD-003: dark mode and auto+prefers-dark swap the wordmark', async () => {
-    seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: 'dark' }) });
-    const { unmount } = render(<MAdminAddonManager />);
-    await screen.findByText('No addons available');
-    expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-light.svg');
-    unmount();
-
-    const matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() });
-    vi.stubGlobal('matchMedia', matchMedia);
-    seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: 'auto' }) });
+  it('FE-MOB-AADD-003: the dark palette swaps the wordmark', async () => {
+    // The wordmark reads the .dark class, the same source applyAppearance() writes
+    // for dark and for auto under a dark OS theme.
+    document.documentElement.classList.add('dark');
     render(<MAdminAddonManager />);
     await screen.findByText('No addons available');
     expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-light.svg');
-    expect(matchMedia).toHaveBeenCalledWith('(prefers-color-scheme: dark)');
-    vi.unstubAllGlobals();
   });
 
   it('FE-MOB-AADD-004: a failing load toasts the addon error', async () => {
@@ -756,5 +749,16 @@ describe('MAdminAddonManager', () => {
     expect(document.querySelector('svg.lucide-users')).toBeInTheDocument();
     expect(document.querySelector('svg.lucide-sparkles')).toBeInTheDocument();
     expect(document.querySelector('svg.lucide-puzzle')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-AADD-037: under auto the wordmark follows an OS theme switch without a re-render', async () => {
+    seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: 'auto' }) });
+    render(<MAdminAddonManager />);
+    await screen.findByText('No addons available');
+    expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-dark.svg');
+
+    // applyAppearance() flips the .dark class when the OS theme changes under auto.
+    act(() => document.documentElement.classList.add('dark'));
+    await waitFor(() => expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-light.svg'));
   });
 });

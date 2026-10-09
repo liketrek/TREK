@@ -1,6 +1,6 @@
 import { type ComponentType } from 'react'
 import { useTranslation } from '../../../i18n'
-import { useSettingsStore } from '../../../store/settingsStore'
+import { useIsDark } from '../../../hooks/useIsDark'
 import {
   Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen,
   Sparkles, Luggage, Plane, Server, Cloud, Bookmark, Users, Check, Loader2,
@@ -56,8 +56,7 @@ function AddonIcon({ name, size = 18, enabled = true }: AddonIconProps) {
 
 export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTracking, collabFeatures, onToggleCollabFeature }: { bagTrackingEnabled?: boolean; onToggleBagTracking?: () => void; collabFeatures?: CollabFeatures; onToggleCollabFeature?: (key: string) => void }) {
   const { t } = useTranslation()
-  const dm = useSettingsStore(s => s.settings.dark_mode)
-  const dark = dm === true || dm === 'dark' || (dm === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  const dark = useIsDark()
   const {
     addons, loading, handleToggle, tripAddons, globalAddons, integrationAddons, providerOptions, documentProviderOptions,
   } = useAddonManager()
