@@ -81,8 +81,8 @@ function stubGets(byPath: Record<string, Resp | (() => Promise<Resp>)>) {
   });
 }
 
-function render(statusRouteOwnsBadge: boolean, testErrorGap = '') {
-  return renderHook(() => usePhotoProviderConnections({ statusRouteOwnsBadge, testErrorGap }));
+function render(statusRouteOwnsBadge: boolean) {
+  return renderHook(() => usePhotoProviderConnections({ statusRouteOwnsBadge }));
 }
 
 beforeEach(() => {
@@ -216,16 +216,19 @@ describe('usePhotoProviderConnections', () => {
     expect(result.current.providerTesting.immich).toBe(false);
   });
 
-  it('FE-COMP-PHOTOCONN-010: a failed probe joins the server reason with the gap each shell asks for', async () => {
+  it('FE-COMP-PHOTOCONN-010: a failed probe joins the server reason as ": reason" on both shells', async () => {
     seedProviders([PROVIDER]);
     stubGets({ '/addons/immich/settings': { data: {} }, '/addons/immich/status': { data: {} } });
     vi.spyOn(apiClient, 'post').mockResolvedValue({ data: { connected: false, error: 'bad key' } });
-    const phone = render(true, '');
+    const phone = render(true);
     await act(() => phone.result.current.handleTestProvider(PROVIDER));
     expect(toast.error).toHaveBeenLastCalledWith('memories.connectionError(Immich): bad key');
-    const desktop = render(false, ' ');
+    const desktop = render(false);
     await act(() => desktop.result.current.handleTestProvider(PROVIDER));
-    expect(toast.error).toHaveBeenLastCalledWith('memories.connectionError(Immich) : bad key');
+    expect(toast.error).toHaveBeenLastCalledWith('memories.connectionError(Immich): bad key');
+    vi.mocked(apiClient.post).mockResolvedValue({ data: { connected: false } });
+    await act(() => desktop.result.current.handleTestProvider(PROVIDER));
+    expect(toast.error).toHaveBeenLastCalledWith('memories.connectionError(Immich)');
     vi.mocked(apiClient.post).mockRejectedValue(new Error('x'));
     await act(() => desktop.result.current.handleTestProvider(PROVIDER));
     expect(toast.error).toHaveBeenLastCalledWith('memories.connectionError(Immich)');

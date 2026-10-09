@@ -1,4 +1,4 @@
-// FE-COMP-PHOTOPROVIDERS-001 to FE-COMP-PHOTOPROVIDERS-026
+// FE-COMP-PHOTOPROVIDERS-001 to FE-COMP-PHOTOPROVIDERS-027
 import { render, screen, waitFor } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -261,6 +261,23 @@ describe('PhotoProvidersSection', () => {
     const testBtn = screen.getByRole('button', { name: /test connection/i });
     await user.click(testBtn);
     expect(await screen.findByText(/Auth failed/i)).toBeInTheDocument();
+  });
+
+  it('FE-COMP-PHOTOPROVIDERS-027: a failed test reads "provider: reason" with no stray space', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post('/api/addons/immich/test', () => HttpResponse.json({ connected: false, error: 'Auth failed' })),
+    );
+    seedMemoriesEnabled();
+    render(
+      <>
+        <ToastContainer />
+        <PhotoProvidersSection />
+      </>,
+    );
+    await screen.findByText('Immich');
+    await user.click(screen.getByRole('button', { name: /test connection/i }));
+    expect(await screen.findByText('Could not connect to Immich: Auth failed')).toBeInTheDocument();
   });
 
   it('FE-COMP-PHOTOPROVIDERS-016: Test button is disabled while test is in progress', async () => {

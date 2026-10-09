@@ -56,8 +56,6 @@ export interface PhotoProviderConnectionOptions {
    * race. The phone does this; the desktop takes whichever answer lands last.
    */
   statusRouteOwnsBadge: boolean;
-  /** What goes between the failed test sentence and the server's ": reason" ('' on the phone, ' ' on the desktop). */
-  testErrorGap: string;
 }
 
 /**
@@ -66,7 +64,7 @@ export interface PhotoProviderConnectionOptions {
  * (secrets never prefilled), the connection badge, and save and test. The desktop
  * section and its phone twin render their own markup over this.
  */
-export function usePhotoProviderConnections({ statusRouteOwnsBadge, testErrorGap }: PhotoProviderConnectionOptions) {
+export function usePhotoProviderConnections({ statusRouteOwnsBadge }: PhotoProviderConnectionOptions) {
   const { t } = useTranslation();
   const toast = useToast();
   const { isEnabled: addonEnabled, addons } = useAddonStore();
@@ -220,7 +218,7 @@ export function usePhotoProviderConnections({ statusRouteOwnsBadge, testErrorGap
         toast.success(t('memories.connectionSuccess', { provider_name: provider.name }));
       } else {
         const detail = res.data?.error ? `: ${String(res.data.error)}` : '';
-        toast.error(`${t('memories.connectionError', { provider_name: provider.name })}${testErrorGap}${detail}`);
+        toast.error(`${t('memories.connectionError', { provider_name: provider.name })}${detail}`);
       }
     } catch {
       toast.error(t('memories.connectionError', { provider_name: provider.name }));

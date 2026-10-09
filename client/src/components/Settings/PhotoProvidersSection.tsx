@@ -27,7 +27,7 @@ export default function PhotoProvidersSection(): React.ReactElement {
     isProviderSaveDisabled,
     handleSaveProvider,
     handleTestProvider,
-  } = usePhotoProviderConnections({ statusRouteOwnsBadge: false, testErrorGap: ' ' })
+  } = usePhotoProviderConnections({ statusRouteOwnsBadge: false })
 
   const renderPhotoProviderSection = (provider: PhotoProviderAddon): React.ReactElement => {
     const fields = getProviderFields(provider)
