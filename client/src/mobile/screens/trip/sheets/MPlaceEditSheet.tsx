@@ -237,7 +237,13 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
       />
 
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-[2px]" onPaste={handlePaste}>
-        <PlPlaceSearch planner={planner} locationBias={locationBias} onPick={applyPick} onResolvingChange={setResolvingPick} />
+        <PlPlaceSearch
+          planner={planner}
+          locationBias={locationBias}
+          onPick={applyPick}
+          onSuggestionName={name => setForm(prev => ({ ...prev, name }))}
+          onResolvingChange={setResolvingPick}
+        />
 
         {placesEnrichEnabled && (
           <div className="mt-3">

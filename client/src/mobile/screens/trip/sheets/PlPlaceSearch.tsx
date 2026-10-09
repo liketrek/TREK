@@ -40,6 +40,12 @@ interface PlPlaceSearchProps {
   /** Search bias derived from the trip's existing places (trip centre). */
   locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } }
   onPick: (pick: PlSearchPick) => void
+  /**
+   * A suggestion was tapped: only its name goes into the form while its place is
+   * looked up, as on the desktop. Handing it over as a pick would clear every
+   * field the previous pick filled, and a failed lookup would leave them empty.
+   */
+  onSuggestionName: (name: string) => void
   /** True while a suggestion's details are being resolved (name spinner). */
   onResolvingChange?: (resolving: boolean) => void
 }
@@ -67,7 +73,7 @@ function placeToPick(place: MapsPlace): PlSearchPick {
  * detection — the mobile counterpart of PlaceFormModal's search block, on the
  * same search logic (usePlaceSearch).
  */
-export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvingChange }: PlPlaceSearchProps) {
+export default function PlPlaceSearch({ planner, locationBias, onPick, onSuggestionName, onResolvingChange }: PlPlaceSearchProps) {
   const { t, toast } = planner
   const {
     query, setQuery, results, suggestions, setSuggestions, acSource, searchSource, searching, googleAnswers,
@@ -78,7 +84,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onResolvi
     t,
     toast,
     onPlace: place => onPick(placeToPick(place)),
-    onSuggestionName: name => onPick({ name }),
+    onSuggestionName,
     onMapLink: resolved => onPick({
       name: resolved.name || undefined,
       address: resolved.address || undefined,

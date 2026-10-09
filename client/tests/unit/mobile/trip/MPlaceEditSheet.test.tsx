@@ -11,7 +11,7 @@ import { server } from '../../../helpers/msw/server'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-PLEDIT-001 to FE-MOB-PLEDIT-045, plus the 009b, 025b and 029b variants
+// FE-MOB-PLEDIT-001 to FE-MOB-PLEDIT-046, plus the 009b, 025b and 029b variants
 // planner.t echoes the key, so every label/placeholder is asserted as its key.
 
 const CATEGORIES = [
@@ -225,6 +225,39 @@ describe('MPlaceEditSheet', () => {
     expect(nameField()).toHaveValue('Ueno Koen')
     fireEvent.click(submit())
     expect(planner.toast.warning).toHaveBeenCalledWith('places.duplicateExists:Ueno Park')
+  })
+
+  it('FE-MOB-PLEDIT-046: tapping a suggestion only puts its name in, so a failed lookup keeps the position of the last pick', async () => {
+    let searches = 0
+    server.use(
+      http.post('/api/maps/search', () => {
+        searches += 1
+        return HttpResponse.json(searches === 1
+          ? { source: 'osm', places: [{ name: 'Ueno Koen', address: 'Taito', lat: 35.7, lng: 139.7, website: 'https://ueno.example' }] }
+          : { source: 'osm', places: [] })
+      }),
+      http.post('/api/maps/autocomplete', () => HttpResponse.json({
+        source: 'osm', suggestions: [{ placeId: 'sug-46', mainText: 'Louvre', secondaryText: 'Paris' }],
+      })),
+      http.get('/api/maps/details/:placeId', () => HttpResponse.json({}, { status: 500 })),
+    )
+    const { planner } = setup()
+    const search = screen.getByPlaceholderText('places.mapsSearchPlaceholder')
+    fireEvent.change(search, { target: { value: 'ueno koen' } })
+    fireEvent.click(screen.getByRole('button', { name: 'common.search' }))
+    fireEvent.click(await screen.findByText('Ueno Koen'))
+    expect(screen.getByPlaceholderText('places.formLat')).toHaveValue('35.7')
+
+    fireEvent.change(search, { target: { value: 'Lou' } })
+    fireEvent.click(await screen.findByText('Louvre'))
+    await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('places.mapsSearchError'))
+
+    // The same as the desktop dialog: the name is the suggestion's, the rest is what the last pick wrote.
+    expect(nameField()).toHaveValue('Louvre')
+    expect(screen.getByPlaceholderText('places.formAddressPlaceholder')).toHaveValue('Taito')
+    expect(screen.getByPlaceholderText('places.formLat')).toHaveValue('35.7')
+    expect(screen.getByPlaceholderText('places.formLng')).toHaveValue('139.7')
+    expect(screen.getByPlaceholderText('https://')).toHaveValue('https://ueno.example')
   })
 
   it('FE-MOB-PLEDIT-017: an existing place never triggers the duplicate guard', async () => {

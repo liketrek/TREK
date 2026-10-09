@@ -61,13 +61,14 @@ function recordGoogleRetry() {
 
 function setup(plannerOverrides: Partial<TripPlanner> = {}, locationBias?: Parameters<typeof PlPlaceSearch>[0]['locationBias']) {
   const onPick = vi.fn()
+  const onSuggestionName = vi.fn()
   const onResolvingChange = vi.fn()
   const planner = buildPlanner(plannerOverrides)
   const view = render(
-    <PlPlaceSearch planner={planner} locationBias={locationBias} onPick={onPick} onResolvingChange={onResolvingChange} />,
+    <PlPlaceSearch planner={planner} locationBias={locationBias} onPick={onPick} onSuggestionName={onSuggestionName} onResolvingChange={onResolvingChange} />,
   )
   const input = screen.getByPlaceholderText('places.mapsSearchPlaceholder')
-  return { ...view, planner, onPick, onResolvingChange, input }
+  return { ...view, planner, onPick, onSuggestionName, onResolvingChange, input }
 }
 
 describe('PlPlaceSearch', () => {
@@ -110,7 +111,7 @@ describe('PlPlaceSearch', () => {
       recordAutocomplete(),
       http.get('/api/maps/details/:placeId', () => HttpResponse.json({ place: LOUVRE })),
     )
-    const { input, onPick } = setup()
+    const { input, onPick, onSuggestionName } = setup()
     fireEvent.change(input, { target: { value: 'Lou' } })
     const row = await screen.findByText('Louvre')
     // The row swallows pointerdown so the field's blur handler cannot close
@@ -119,9 +120,9 @@ describe('PlPlaceSearch', () => {
     expect(pointerDown).toBe(false)
     fireEvent.click(row)
 
-    // Optimistic name first, then the full record.
-    expect(onPick).toHaveBeenNthCalledWith(1, { name: 'Louvre' })
-    await waitFor(() => expect(onPick).toHaveBeenCalledTimes(2))
+    // Optimistic name first, on its own, then the full record.
+    expect(onSuggestionName).toHaveBeenCalledWith('Louvre')
+    await waitFor(() => expect(onPick).toHaveBeenCalledTimes(1))
     expect(onPick).toHaveBeenLastCalledWith({
       name: 'Louvre Museum',
       address: 'Rue de Rivoli, Paris',
@@ -149,7 +150,7 @@ describe('PlPlaceSearch', () => {
     fireEvent.change(input, { target: { value: 'Lou' } })
     fireEvent.click(await screen.findByText('Louvre'))
 
-    await waitFor(() => expect(onPick).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(onPick).toHaveBeenCalledTimes(1))
     expect(searchBodies[0]).toEqual({ query: 'Louvre, Paris, France' })
     expect(onPick).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'Louvre Museum', lat: '48.8606' }))
   })
@@ -174,7 +175,7 @@ describe('PlPlaceSearch', () => {
     fireEvent.change(input, { target: { value: 'Tok' } })
     fireEvent.click(await screen.findByText('Tokio Hauptbahnhof'))
 
-    await waitFor(() => expect(onPick).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(onPick).toHaveBeenCalledTimes(1))
     expect(searchBodies).toHaveLength(0)
     expect(onPick).toHaveBeenLastCalledWith(expect.objectContaining({
       name: 'Tokio Hauptbahnhof', lat: '35.6811816', lng: '139.76598265',
@@ -543,7 +544,7 @@ describe('PlPlaceSearch plugin search (#2221)', () => {
     const { input, onPick } = setup()
     fireEvent.change(input, { target: { value: 'Ichi' } })
     fireEvent.click(await screen.findByText('Ichiran Ueno'))
-    await waitFor(() => expect(onPick).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(onPick).toHaveBeenCalledTimes(1))
     expect(onPick).toHaveBeenLastCalledWith(expect.objectContaining({
       name: 'Ichiran Ueno', address: 'Ueno 6-11-12, Taito', lat: '35.7101', lng: '139.7745',
       osm_id: 'plugin:all-the-places:ichiran-ueno', website: 'https://ichiran.com/shop/ueno',
