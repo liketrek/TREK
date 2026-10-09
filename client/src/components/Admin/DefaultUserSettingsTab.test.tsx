@@ -1,4 +1,4 @@
-// FE-ADMIN-DUS-001 to FE-ADMIN-DUS-028
+// FE-ADMIN-DUS-001 to FE-ADMIN-DUS-029
 import { render, screen, waitFor, within, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -6,6 +6,7 @@ import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildAdmin } from '../../../tests/helpers/factories';
 import { useAuthStore } from '../../store/authStore';
+import { AMAP_ROAD } from '../../constants/mapDefaults';
 import { ToastContainer } from '../shared/Toast';
 import DefaultUserSettingsTab from './DefaultUserSettingsTab';
 
@@ -218,6 +219,18 @@ describe('DefaultUserSettingsTab', () => {
     await waitFor(() => expect(puts).toEqual([{ map_tile_url: url }]));
     expect(screen.getByPlaceholderText(TILE_PLACEHOLDER)).toHaveValue(url);
     expect(screen.getByTestId('map-preview')).toHaveAttribute('data-tile', url);
+  });
+
+  it('FE-ADMIN-DUS-029: the Amap presets a user can pick are offered as instance defaults too', async () => {
+    const user = userEvent.setup();
+    const { puts } = stubDefaults();
+    render(<DefaultUserSettingsTab />);
+    await screen.findByText('Default User Settings');
+
+    await pickFromSelect(user, 'Select template...', '高德地图 (Amap)');
+
+    await waitFor(() => expect(puts).toEqual([{ map_tile_url: AMAP_ROAD }]));
+    expect(screen.getByTestId('map-preview')).toHaveAttribute('data-tile', AMAP_ROAD);
   });
 
   it('FE-ADMIN-DUS-011: a hand-typed tile URL is saved on blur', async () => {

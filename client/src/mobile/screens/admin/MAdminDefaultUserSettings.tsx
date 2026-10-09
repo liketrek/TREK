@@ -7,7 +7,7 @@ import { getApiErrorMessage, type DistanceUnit, type WeekStart } from '../../../
 import { weekStartOptions } from '../../../utils/calendarWeek'
 import { withTileApiKey } from '../../../utils/tileUrl'
 import { defaultStyleForProvider } from '../../../components/Map/glProviders'
-import { DEFAULT_MAP_PRESETS as MAP_PRESETS, type MapProvider } from '../../../components/Settings/mapSettingsModel'
+import { MAP_PRESETS, type MapProvider } from '../../../components/Settings/mapSettingsModel'
 import { useDefaultUserSettings, type Defaults } from '../../../components/Admin/useDefaultUserSettings'
 import MToggle from '../../components/MToggle'
 import MSegmented from '../../components/MSegmented'

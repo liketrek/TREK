@@ -12,7 +12,7 @@ import type { DistanceUnit, WeekStart } from '../../types'
 import { weekStartOptions } from '../../utils/calendarWeek'
 import { withTileApiKey } from '../../utils/tileUrl'
 import { defaultStyleForProvider } from '../Map/glProviders'
-import { DEFAULT_MAP_PRESETS as MAP_PRESETS, type MapProvider } from '../Settings/mapSettingsModel'
+import { MAP_PRESETS, type MapProvider } from '../Settings/mapSettingsModel'
 import RoutingInstanceFields from './RoutingInstanceFields'
 import { useDefaultUserSettings, type Defaults } from './useDefaultUserSettings'
 

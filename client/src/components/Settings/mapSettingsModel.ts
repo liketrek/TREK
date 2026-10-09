@@ -18,8 +18,11 @@ export interface MapPreset {
   url: string;
 }
 
-/** The tile presets an admin can make the default for every user. */
-export const DEFAULT_MAP_PRESETS: MapPreset[] = [
+/**
+ * The tile presets a user picks from in their own map settings, and the same list
+ * an admin picks the default for every user from.
+ */
+export const MAP_PRESETS: MapPreset[] = [
   { name: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' },
   { name: 'OpenStreetMap DE', url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png' },
   // The app default, and a vector style rather than a {z}/{x}/{y} template: no
@@ -31,11 +34,6 @@ export const DEFAULT_MAP_PRESETS: MapPreset[] = [
   { name: 'CartoDB Light', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' },
   { name: 'CartoDB Dark', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' },
   { name: 'Stadia Smooth', url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png' },
-];
-
-/** The tile presets a user picks from in their own map settings. */
-export const MAP_PRESETS: MapPreset[] = [
-  ...DEFAULT_MAP_PRESETS,
   // Amap (高德). GCJ-02 tiles: the map switches to a shifted projection for
   // these so markers still land on the right street (see gcj02Crs.ts). The only
   // basemap here that is genuinely good inside mainland China.

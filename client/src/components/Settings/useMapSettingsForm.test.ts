@@ -3,18 +3,12 @@ import { act, renderHook } from '@testing-library/react';
 
 import { buildSettings } from '../../../tests/helpers/factories';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
+import { AMAP_ROAD, AMAP_SATELLITE } from '../../constants/mapDefaults';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import type { Settings } from '../../types';
 import { MAPBOX_DEFAULT_STYLE, OPENFREEMAP_DEFAULT_STYLE } from '../Map/glProviders';
-import {
-  DEFAULT_MAP_PRESETS,
-  MAP_PRESETS,
-  PREVIEW_CENTER,
-  normalizeProvider,
-  slotStyle,
-  styleForProvider,
-} from './mapSettingsModel';
+import { MAP_PRESETS, PREVIEW_CENTER, normalizeProvider, slotStyle, styleForProvider } from './mapSettingsModel';
 import { useMapSettingsForm } from './useMapSettingsForm';
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
@@ -36,10 +30,9 @@ beforeEach(() => {
 });
 
 describe('mapSettingsModel', () => {
-  it('FE-COMP-MAPFORM-001: the user list adds the two Amap presets to the admin list', () => {
-    expect(MAP_PRESETS.slice(0, DEFAULT_MAP_PRESETS.length)).toEqual(DEFAULT_MAP_PRESETS);
-    expect(DEFAULT_MAP_PRESETS).toHaveLength(7);
+  it('FE-COMP-MAPFORM-001: one preset list, the two Amap presets included, serves users and the admin defaults', () => {
     expect(MAP_PRESETS).toHaveLength(9);
+    expect(MAP_PRESETS.map((p) => p.url)).toEqual(expect.arrayContaining([AMAP_ROAD, AMAP_SATELLITE]));
   });
 
   it('FE-COMP-MAPFORM-002: provider and style rules', () => {
