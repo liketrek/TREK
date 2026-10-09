@@ -1,7 +1,7 @@
 import type { AssignmentsMap, Day, Place } from '../../../../types'
 import { placeMatchesSearch } from '../../../../utils/placeSearch'
 import {
-  matchesCategoryFilter, matchesPlacesFilter, type PlacesRatingFloor,
+  matchesPlacesFilter, type PlacesRatingFloor,
 } from '../../../../utils/placesFilter'
 import {
   plannedPlaceIds as sharedPlannedPlaceIds,
@@ -58,15 +58,4 @@ interface PoolFilterArgs {
 
 export function filterPool(places: Place[], { filter, categoryFilters, ratingFilter = 'all', search, plannedIds }: PoolFilterArgs): Place[] {
   return places.filter(p => matchesPlacesFilter(p, { filter, categoryFilters, ratingFilter }, { plannedIds }) && matchesSearch(p, search))
-}
-
-/** Chip counts run on the category+search base set, like the desktop tabs. */
-export function poolCounts(places: Place[], categoryFilters: Set<string>, search: string, plannedIds: Set<number>) {
-  const base = places.filter(p => matchesCategoryFilter(p, categoryFilters) && matchesSearch(p, search))
-  return {
-    all: base.length,
-    unplanned: base.filter(p => !plannedIds.has(p.id)).length,
-    planned: base.filter(p => plannedIds.has(p.id)).length,
-    tracks: base.filter(p => p.route_geometry).length,
-  }
 }
