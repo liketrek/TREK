@@ -92,7 +92,6 @@ export default function MTransportFormSheet({ planner, onOpenExpense }: MTranspo
       fallbackType: 'flight',
       dayId: transportModalDayId ?? '',
       stopDaysFromEndpoints: true,
-      resetHiddenRoutes: true,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showTransportModal])

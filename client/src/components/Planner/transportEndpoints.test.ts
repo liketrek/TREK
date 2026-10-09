@@ -62,8 +62,8 @@ const airport = (iata: string, city = 'City'): Airport => ({
   tz: 'Europe/Berlin',
 });
 
-const DESKTOP: RouteSeedOptions = { isEdit: true, stopDaysFromEndpoints: false, resetHiddenRoutes: false };
-const PHONE: RouteSeedOptions = { isEdit: true, stopDaysFromEndpoints: true, resetHiddenRoutes: true };
+const DESKTOP: RouteSeedOptions = { isEdit: true, stopDaysFromEndpoints: false };
+const PHONE: RouteSeedOptions = { isEdit: true, stopDaysFromEndpoints: true };
 
 function draft(overrides: Partial<TransportDraft> = {}): TransportDraft {
   return {
@@ -197,7 +197,10 @@ describe('seedTransportRoute', () => {
 
   it('FE-PLANNER-TRANSPORTEP-005: a flight seeds its airports; only the phone reads a stopover day from its endpoint', () => {
     const desktop = seedTransportRoute(flight, meta, 'flight', days, DESKTOP);
-    expect(Object.keys(desktop)).toEqual(['waypoints']);
+    expect(desktop.fromPick).toEqual({});
+    expect(desktop.toPick).toEqual({});
+    expect(desktop.carStops).toEqual([]);
+    expect(desktop.trainWaypoints).toEqual([emptyStationWaypoint(), emptyStationWaypoint()]);
     const [first, stop, last] = desktop.waypoints!;
     expect(first).toMatchObject({ depDayId: 1, depTime: '08:00', arrTime: '', airline: 'LH', seat: '3C' });
     expect(first.airport?.iata).toBe('MUC');
@@ -300,7 +303,7 @@ describe('seedTransportRoute', () => {
     expect(arr).toMatchObject({ location: null, arrDayId: 2 });
   });
 
-  it('FE-PLANNER-TRANSPORTEP-010: a car reads its stops in order; another type keeps none; the phone resets the rest', () => {
+  it('FE-PLANNER-TRANSPORTEP-010: a car reads its stops in order; another type keeps none; the rest is reset', () => {
     const car = buildReservation({
       type: 'car',
       endpoints: [ep('from', 0), ep('stop', 2, { local_time: '14:00' }), ep('stop', 1), ep('to', 3)],
@@ -312,14 +315,21 @@ describe('seedTransportRoute', () => {
       { location: { name: 'stop-1', lat: 11, lng: 21, address: null }, time: '' },
       { location: { name: 'stop-2', lat: 12, lng: 22, address: null }, time: '14:00' },
     ]);
-    expect(desktop.waypoints).toBeUndefined();
+    expect(desktop.waypoints).toEqual([emptyWaypoint(), emptyWaypoint()]);
+    expect(desktop.trainWaypoints).toEqual([emptyStationWaypoint(), emptyStationWaypoint()]);
 
     const phone = seedTransportRoute(car, {}, 'car', days, PHONE);
     expect(phone.waypoints).toEqual([emptyWaypoint(), emptyWaypoint()]);
     expect(phone.trainWaypoints).toEqual([emptyStationWaypoint(), emptyStationWaypoint()]);
 
     const bus = seedTransportRoute({ ...car, type: 'bus', endpoints: [] }, {}, 'bus', days, DESKTOP);
-    expect(bus).toEqual({ fromPick: { location: undefined }, toPick: { location: undefined }, carStops: [] });
+    expect(bus).toEqual({
+      fromPick: { location: undefined },
+      toPick: { location: undefined },
+      waypoints: [emptyWaypoint(), emptyWaypoint()],
+      trainWaypoints: [emptyStationWaypoint(), emptyStationWaypoint()],
+      carStops: [],
+    });
   });
 
   it('FE-PLANNER-TRANSPORTEP-011: a new booking starts every row on the given day', () => {

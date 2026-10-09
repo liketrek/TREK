@@ -291,8 +291,6 @@ export interface RouteSeedOptions {
    * local_date. The desktop leaves it empty.
    */
   stopDaysFromEndpoints: boolean;
-  /** The phone also clears the rows the booking's type does not show. */
-  resetHiddenRoutes: boolean;
 }
 
 /** The empty route of a new booking, every row starting on the given day. */
@@ -429,24 +427,34 @@ export function seedTransportRoute(
   type: TransportType,
   days: Day[],
   opts: RouteSeedOptions
-): TransportRoute {
+): Required<TransportRoute> {
+  // Every row is set, including those the type does not show: the form stays
+  // mounted between openings, and a row kept from the previous booking would come
+  // back (and be saved) as soon as the type is switched to one that shows it.
   if (type === 'flight') {
-    const waypoints = flightWaypoints(src, meta, days, opts);
-    return opts.resetHiddenRoutes ? { waypoints, fromPick: {}, toPick: {} } : { waypoints };
+    return {
+      waypoints: flightWaypoints(src, meta, days, opts),
+      trainWaypoints: [emptyStationWaypoint(), emptyStationWaypoint()],
+      fromPick: {},
+      toPick: {},
+      carStops: [],
+    };
   }
   if (usesStationRoute(type)) {
-    return { trainWaypoints: stationWaypoints(src, meta, days, opts), fromPick: {}, toPick: {} };
+    return {
+      waypoints: [emptyWaypoint(), emptyWaypoint()],
+      trainWaypoints: stationWaypoints(src, meta, days, opts),
+      fromPick: {},
+      toPick: {},
+      carStops: [],
+    };
   }
   const eps = src.endpoints || [];
   return {
     fromPick: { location: locationFromEndpoint(eps.find((e) => e.role === 'from')) || undefined },
     toPick: { location: locationFromEndpoint(eps.find((e) => e.role === 'to')) || undefined },
-    ...(opts.resetHiddenRoutes
-      ? {
-          waypoints: [emptyWaypoint(), emptyWaypoint()],
-          trainWaypoints: [emptyStationWaypoint(), emptyStationWaypoint()],
-        }
-      : {}),
+    waypoints: [emptyWaypoint(), emptyWaypoint()],
+    trainWaypoints: [emptyStationWaypoint(), emptyStationWaypoint()],
     // Stops persist for every type; only a car offers an editor for them, so only a
     // car reads them back into one. The others keep passing theirs through untouched.
     carStops:

@@ -119,7 +119,6 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       fallbackType: 'transport_other',
       dayId: selectedDayId ?? '',
       stopDaysFromEndpoints: false,
-      resetHiddenRoutes: false,
       extraFields: (s, meta) => ({
         url: s.url || '',
         meta_airline: meta.airline || '',

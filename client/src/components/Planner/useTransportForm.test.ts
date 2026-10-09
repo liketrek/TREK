@@ -1,4 +1,4 @@
-// FE-PLANNER-TRANSPORTFORM-001 to -007: the transport form state behind the
+// FE-PLANNER-TRANSPORTFORM-001 to -008: the transport form state behind the
 // desktop TransportModal and the phone's transport sheet.
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
@@ -30,7 +30,6 @@ const seedOptions = {
   fallbackType: 'transport_other' as const,
   dayId: '' as string | number,
   stopDaysFromEndpoints: false,
-  resetHiddenRoutes: false,
 };
 
 describe('useTransportForm', () => {
@@ -105,19 +104,19 @@ describe('useTransportForm', () => {
     expect(result.current.form).not.toHaveProperty('url');
   });
 
-  it('FE-PLANNER-TRANSPORTFORM-005: the desktop keeps the rows a flight does not show, the phone clears them', () => {
+  it('FE-PLANNER-TRANSPORTFORM-005: seeding a flight clears the rows a flight does not show, desktop and phone alike', () => {
     const flight = buildReservation({ type: 'flight', endpoints: [ep('from', 0, 'MUC'), ep('to', 1, 'BER')] });
     const picked = { location: { name: 'kept', lat: 0, lng: 0 } };
 
     const desktop = renderHook(() => useTransportForm(EMPTY_TRANSPORT_FIELDS)).result;
     act(() => desktop.current.setFromPick(picked));
     act(() => desktop.current.seed(flight, days, seedOptions));
-    expect(desktop.current.fromPick).toBe(picked);
+    expect(desktop.current.fromPick).toEqual({});
     expect(desktop.current.waypoints.map((w) => w.airport?.iata)).toEqual(['MUC', 'BER']);
 
     const phone = renderHook(() => useTransportForm(EMPTY_TRANSPORT_FIELDS)).result;
     act(() => phone.current.setFromPick(picked));
-    act(() => phone.current.seed(flight, days, { ...seedOptions, resetHiddenRoutes: true }));
+    act(() => phone.current.seed(flight, days, { ...seedOptions, stopDaysFromEndpoints: true }));
     expect(phone.current.fromPick).toEqual({});
   });
 
@@ -155,5 +154,31 @@ describe('useTransportForm', () => {
     expect(payload.endpoints).toEqual([
       expect.objectContaining({ role: 'to', name: 'B', sequence: 1, local_date: '2026-05-01' }),
     ]);
+  });
+
+  it('FE-PLANNER-TRANSPORTFORM-008: editing a flight or train after a car drops the car route, so switching back to car saves no stale stops', () => {
+    const car = buildReservation({ type: 'car', endpoints: [ep('from', 0), ep('stop', 1), ep('to', 2)] });
+    const flight = buildReservation({ type: 'flight', endpoints: [ep('from', 0, 'MUC'), ep('to', 1, 'BER')] });
+    const train = buildReservation({ type: 'train', endpoints: [ep('from', 0), ep('to', 1)] });
+
+    for (const next of [flight, train]) {
+      const { result } = renderHook(() => useTransportForm(EMPTY_TRANSPORT_FIELDS));
+      act(() => result.current.seed(car, days, seedOptions));
+      expect(result.current.carStops).toHaveLength(1);
+
+      act(() => result.current.seed(next, days, seedOptions));
+      expect(result.current.carStops).toEqual([]);
+      expect(result.current.fromPick).toEqual({});
+      expect(result.current.toPick).toEqual({});
+
+      act(() => result.current.set('type', 'car'));
+      const payload = result.current.payload(days, {
+        reservation: next,
+        prefill: null,
+        budgetEnabled: false,
+        anchorOnStations: false,
+      });
+      expect(payload.endpoints).toEqual([]);
+    }
   });
 });
