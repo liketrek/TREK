@@ -31,11 +31,6 @@ export interface PreferencesMatrix {
 export const MASKED = '••••••••';
 
 export interface NotificationSettingsOptions {
-  /**
-   * The phone sends the whole preference matrix on a toggle; the desktop sends only
-   * the toggled cell, so a second toggle in flight cannot be overwritten by it.
-   */
-  sendWholeMatrix?: boolean;
   /** The phone never sends an ntfy token that reads exactly like the mask. */
   skipMaskedToken?: boolean;
 }
@@ -45,10 +40,7 @@ export interface NotificationSettingsOptions {
  * phone section render their own markup over this): the event/channel matrix, the
  * webhook and ntfy credentials, and the test sends for every channel.
  */
-export function useNotificationSettings({
-  sendWholeMatrix = false,
-  skipMaskedToken = false,
-}: NotificationSettingsOptions = {}) {
+export function useNotificationSettings({ skipMaskedToken = false }: NotificationSettingsOptions = {}) {
   const { t } = useTranslation();
   const toast = useToast();
   const [matrix, setMatrix] = useState<PreferencesMatrix | null>(null);
@@ -128,28 +120,18 @@ export function useNotificationSettings({
   const toggle = async (eventType: string, channel: string) => {
     if (!matrix || isLockedCell(matrix.locked, eventType, channel)) return;
     const current = matrix.preferences[eventType]?.[channel] ?? true;
-    let payload: Record<string, Record<string, boolean>>;
-    if (sendWholeMatrix) {
-      const updated = {
-        ...matrix.preferences,
-        [eventType]: { ...matrix.preferences[eventType], [channel]: !current },
-      };
-      setMatrix((m) => (m ? { ...m, preferences: updated } : m));
-      payload = updated;
-    } else {
-      setMatrix((m) =>
-        m
-          ? {
-              ...m,
-              preferences: { ...m.preferences, [eventType]: { ...m.preferences[eventType], [channel]: !current } },
-            }
-          : m
-      );
-      // Only the toggled cell goes out. The server merges what it gets, and sending the
-      // whole matrix would carry this render's value for every other cell: a second
-      // toggle made while this request is in flight would be overwritten by it.
-      payload = { [eventType]: { [channel]: !current } };
-    }
+    setMatrix((m) =>
+      m
+        ? {
+            ...m,
+            preferences: { ...m.preferences, [eventType]: { ...m.preferences[eventType], [channel]: !current } },
+          }
+        : m
+    );
+    // Only the toggled cell goes out. The server merges what it gets, and sending the
+    // whole matrix would carry this render's value for every other cell: a second
+    // toggle made while this request is in flight would be overwritten by it.
+    const payload = { [eventType]: { [channel]: !current } };
     setSaving(true);
     try {
       await notificationsApi.updatePreferences(payload);

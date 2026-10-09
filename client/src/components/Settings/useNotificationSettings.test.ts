@@ -77,12 +77,12 @@ describe('useNotificationSettings', () => {
     expect(result.current.saving).toBe(false);
   });
 
-  it('FE-COMP-NOTIFSETTINGS-004: the phone toggle sends the whole matrix', async () => {
+  it('FE-COMP-NOTIFSETTINGS-004: the phone toggle sends only the toggled cell too', async () => {
     stubLoad();
     const update = vi.spyOn(notificationsApi, 'updatePreferences').mockResolvedValue({});
-    const { result } = await loaded({ sendWholeMatrix: true });
+    const { result } = await loaded({ skipMaskedToken: true });
     await act(() => result.current.toggle('trip_invite', 'inapp'));
-    expect(update).toHaveBeenCalledWith({ trip_invite: { inapp: false, email: false } });
+    expect(update).toHaveBeenCalledWith({ trip_invite: { inapp: false } });
     expect(result.current.matrix?.preferences.trip_invite).toEqual({ inapp: false, email: false });
   });
 

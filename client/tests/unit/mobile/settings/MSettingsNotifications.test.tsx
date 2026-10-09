@@ -442,7 +442,7 @@ describe('MSettingsNotifications', () => {
   });
 
   describe('event matrix', () => {
-    it('FE-MOB-SETNOTIF-026: tapping a chip flips the preference and PUTs the whole matrix', async () => {
+    it('FE-MOB-SETNOTIF-026: tapping a chip flips the preference and PUTs only that cell', async () => {
       const user = userEvent.setup();
       let body: Record<string, Record<string, boolean>> | null = null;
       server.use(
@@ -457,7 +457,7 @@ describe('MSettingsNotifications', () => {
       await user.click(chip);
 
       await waitFor(() => expect(body).not.toBeNull());
-      expect(body).toEqual({ trip_invite: { inapp: false, webhook: false } });
+      expect(body).toEqual({ trip_invite: { inapp: false } });
     });
 
     it('FE-MOB-SETNOTIF-027: a channel with no stored preference defaults to on', async () => {
@@ -511,7 +511,7 @@ describe('MSettingsNotifications', () => {
         http.put('/api/notifications/preferences', async ({ request }) => {
           const body = (await request.json()) as Record<string, Record<string, boolean>>;
           // The first write is the in-app flip; it hangs until the test rejects it.
-          if (body.trip_invite.webhook === false) {
+          if ('inapp' in body.trip_invite) {
             return new Promise<Response>(resolve => {
               rejectInapp = () => resolve(HttpResponse.json({ error: 'nope' }, { status: 500 }) as unknown as Response);
             });
@@ -539,6 +539,34 @@ describe('MSettingsNotifications', () => {
       await waitFor(() => expect(screen.getByRole('button', { name: 'In-App' }).className).toBe(activeClass));
       // The webhook toggle the user made meanwhile is not undone.
       expect(screen.getByRole('button', { name: 'Webhook' }).className).toBe(activeClass);
+    });
+
+    it('FE-MOB-SETNOTIF-035: a second toggle while the first is in flight sends only its own cell', async () => {
+      const user = userEvent.setup();
+      const bodies: Record<string, Record<string, boolean>>[] = [];
+      let rejectFirst!: () => void;
+      server.use(
+        http.put('/api/notifications/preferences', async ({ request }) => {
+          bodies.push((await request.json()) as Record<string, Record<string, boolean>>);
+          if (bodies.length === 1) {
+            return new Promise<Response>(resolve => {
+              rejectFirst = () => resolve(HttpResponse.json({ error: 'nope' }, { status: 500 }) as unknown as Response);
+            });
+          }
+          return HttpResponse.json({ success: true });
+        }),
+      );
+      render(<MSettingsNotifications />);
+
+      await user.click(await screen.findByRole('button', { name: 'In-App' }));
+      await waitFor(() => expect(bodies).toHaveLength(1));
+      await user.click(screen.getByRole('button', { name: 'Webhook' }));
+      await waitFor(() => expect(bodies).toHaveLength(2));
+      rejectFirst();
+
+      // The failed in-app flip is rolled back on screen, so the server must not get it
+      // through the webhook write either.
+      expect(bodies).toEqual([{ trip_invite: { inapp: false } }, { trip_invite: { webhook: true } }]);
     });
 
     it('FE-MOB-SETNOTIF-029: the saving hint shows while the update is in flight', async () => {

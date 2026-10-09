@@ -21,7 +21,7 @@ export default function MSettingsNotifications() {
     webhookUrl, setWebhookUrl, webhookIsSet, webhookSaving, webhookTesting, saveWebhookUrl, testWebhookUrl,
     ntfyTopic, setNtfyTopic, ntfyServer, setNtfyServer, ntfyToken, setNtfyToken, ntfyTokenIsSet,
     ntfySaving, ntfyTesting, saveNtfySettings, clearNtfyToken, testNtfySettings,
-  } = useNotificationSettings({ sendWholeMatrix: true, skipMaskedToken: true })
+  } = useNotificationSettings({ skipMaskedToken: true })
 
   return (
     <MSetCard title={t('settings.notifications')} icon={Bell}>
