@@ -96,7 +96,7 @@ export default function AdminStoragePanel(): React.ReactElement {
   const {
     admin, editing, setEditing, confirmRemove, setConfirmRemove, syncPrompt, setSyncPrompt, migratePrompt,
     closeMigratePrompt, migrationQueue, handleCancelMigration, handleRefreshStats, handleStartBackfill, handleCancelBackfill, loaded,
-  } = useStoragePanel({ dropQueueOnFailure: true })
+  } = useStoragePanel()
   // Open/closed only: the render below and moveAndSave both recompute
   // computeMigrationCandidates(draft, state) fresh rather than reading the
   // candidates the prompt opened with, which go stale the moment the operator

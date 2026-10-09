@@ -64,15 +64,6 @@ interface StorageEditing {
   mirror: { candidates: string[]; initialTargets: string[] };
 }
 
-interface UseStoragePanelOptions {
-  /**
-   * What a failed migration start does to the rest of the queue. When set, the
-   * remaining candidates are dropped, named in a second toast, and the state is
-   * refreshed; otherwise only the error is toasted and the rest stay queued.
-   */
-  dropQueueOnFailure?: boolean;
-}
-
 /**
  * The storage admin panel behind both shells (the desktop sections and the phone cards
  * render their own markup over it): the backend editor, the removal confirm, the
@@ -80,7 +71,7 @@ interface UseStoragePanelOptions {
  * accepted category migrations one at a time. Everything that needs the loaded state
  * and draft sits under `loaded`, which is null until both exist.
  */
-export function useStoragePanel({ dropQueueOnFailure = false }: UseStoragePanelOptions = {}) {
+export function useStoragePanel() {
   const { t } = useTranslation();
   const toast = useToast();
   const admin = useStorageAdmin(t('common.error'), t('storage.saveConflict'));
@@ -126,7 +117,7 @@ export function useStoragePanel({ dropQueueOnFailure = false }: UseStoragePanelO
   // rule spans backfills and migrations alike, so starting while one runs
   // would 409, and the queued candidate would be lost (no retry).
   //
-  // With dropQueueOnFailure, a failed startMigration POST does not strand
+  // A failed startMigration POST does not strand
   // `rest`: it was already dequeued into local state before the POST, so on
   // failure nothing would change `migrationQueue` or `admin.state` again and
   // the remaining candidates would sit invisibly, never migrated. The whole
@@ -145,7 +136,6 @@ export function useStoragePanel({ dropQueueOnFailure = false }: UseStoragePanelO
       migrationStartInFlight.current = false;
       if (error) {
         toast.error(error);
-        if (!dropQueueOnFailure) return;
         if (rest.length > 0) {
           toast.error(
             t('storage.migrate.queueDropped', {

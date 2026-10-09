@@ -188,7 +188,7 @@ describe('useStoragePanel', () => {
     expect(result.current.migratePrompt).toBeNull();
   });
 
-  it('FE-ADMIN-STOR-PANEL-011: by default a failed migration start only toasts and keeps the rest queued', async () => {
+  it('FE-ADMIN-STOR-PANEL-011: a failed migration start toasts, drops the rest of the queue, and refreshes', async () => {
     fake.admin = makeAdmin(baseState(), movingDraft('files', 'covers'));
     vi.mocked(fake.admin.startMigration).mockResolvedValueOnce('busy');
     const { result } = renderHook(() => useStoragePanel());
@@ -196,15 +196,15 @@ describe('useStoragePanel', () => {
       await result.current.loaded!.moveAndSave();
     });
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('busy'));
-    expect(toast.error).toHaveBeenCalledTimes(1);
-    expect(result.current.migrationQueue).toHaveLength(1);
-    expect(fake.admin.refreshState).not.toHaveBeenCalled();
+    await waitFor(() => expect(toast.error).toHaveBeenCalledTimes(2));
+    expect(result.current.migrationQueue).toHaveLength(0);
+    expect(fake.admin.refreshState).toHaveBeenCalled();
   });
 
-  it('FE-ADMIN-STOR-PANEL-012: with dropQueueOnFailure a failed start drops the rest, names it, and refreshes', async () => {
+  it('FE-ADMIN-STOR-PANEL-012: a failed start drops the rest, names it, and refreshes', async () => {
     fake.admin = makeAdmin(baseState(), movingDraft('files', 'covers'));
     vi.mocked(fake.admin.startMigration).mockResolvedValueOnce('busy');
-    const { result } = renderHook(() => useStoragePanel({ dropQueueOnFailure: true }));
+    const { result } = renderHook(() => useStoragePanel());
     await act(async () => {
       await result.current.loaded!.moveAndSave();
     });
