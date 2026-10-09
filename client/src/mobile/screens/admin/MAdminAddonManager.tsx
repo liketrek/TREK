@@ -3,7 +3,7 @@ import { useTranslation } from '../../../i18n'
 import { useSettingsStore } from '../../../store/settingsStore'
 import {
   Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen,
-  Sparkles, Luggage, Plane, Server, Cloud, Bookmark, Check, Loader2,
+  Sparkles, Luggage, Plane, Server, Cloud, Bookmark, Users, Check, Loader2,
 } from 'lucide-react'
 import DawarichIcon from '../../../components/shared/DawarichIcon'
 import AirTrailIcon from '../../../components/shared/AirTrailIcon'
@@ -24,8 +24,10 @@ import { useLlmParsingConfig } from '../../../components/Admin/addons/useLlmPars
 import { ImmichIcon, SynologyIcon } from '../../../components/Admin/addons/PhotoProviderIcons'
 import { MAdminButton, MAdminCard, MAdminField, MAdminInput, MAdminSecretInput } from './MAdminUi'
 
+// Keys are the `icon` column from the addons table; anything unknown falls back to
+// Puzzle. Users/Sparkles cover collab and llm_parsing, as on the desktop.
 const ICON_MAP = {
-  ListChecks, Wallet, FileText, CalendarDays, Puzzle, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen, Plane, Bookmark,
+  ListChecks, Wallet, FileText, CalendarDays, Puzzle, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen, Plane, Bookmark, Users, Sparkles,
   Dawarich: DawarichIcon,
 }
 

@@ -1,4 +1,4 @@
-// FE-MOB-AADD-001 to FE-MOB-AADD-035
+// FE-MOB-AADD-001 to FE-MOB-AADD-036
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
@@ -741,5 +741,20 @@ describe('MAdminAddonManager', () => {
 
     await user.type(screen.getByDisplayValue('sk-secret'), '-rotated');
     expect(screen.getByDisplayValue('sk-secret-rotated')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-AADD-036: collab and AI parsing show their own icons, not the puzzle fallback', async () => {
+    server.use(
+      addonsRoute([
+        buildAddon({ id: 'collab', name: 'Collab', icon: 'Users', enabled: true }),
+        buildAddon({ id: 'llm_parsing', name: 'AI Parsing', icon: 'Sparkles', type: 'integration', enabled: false }),
+      ]),
+    );
+    render(<MAdminAddonManager />);
+
+    await screen.findByRole('switch', { name: 'Collab' });
+    expect(document.querySelector('svg.lucide-users')).toBeInTheDocument();
+    expect(document.querySelector('svg.lucide-sparkles')).toBeInTheDocument();
+    expect(document.querySelector('svg.lucide-puzzle')).not.toBeInTheDocument();
   });
 });
