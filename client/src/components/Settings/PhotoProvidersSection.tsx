@@ -7,21 +7,14 @@ import { SETTINGS_BUTTON, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, Stat
 import { EditorField, INPUT } from '../shared/dialogParts'
 import { fs } from '../shared/DialogShell'
 import { Tooltip } from '../shared/Tooltip'
-import {
-  getProviderConfig,
-  getProviderFields,
-  usePhotoProviderConnections,
-  type PhotoProviderAddon,
-} from './usePhotoProviderConnections'
+import { usePhotoProviderConnections, type PhotoProviderAddon } from './usePhotoProviderConnections'
 
 export default function PhotoProvidersSection(): React.ReactElement {
   const { t } = useTranslation()
   const {
     memoriesEnabled,
     activePhotoProviders,
-    providerValues,
-    providerConnected,
-    providerTesting,
+    providerCard,
     saving,
     handleProviderFieldChange,
     isProviderSaveDisabled,
@@ -30,13 +23,7 @@ export default function PhotoProvidersSection(): React.ReactElement {
   } = usePhotoProviderConnections()
 
   const renderPhotoProviderSection = (provider: PhotoProviderAddon): React.ReactElement => {
-    const fields = getProviderFields(provider)
-    const cfg = getProviderConfig(provider)
-    const values = providerValues[provider.id] || {}
-    const connected = !!providerConnected[provider.id]
-    const testing = !!providerTesting[provider.id]
-    const canSave = !!cfg.settings_put
-    const canTest = !!(cfg.test_post || cfg.test_get || cfg.status_get)
+    const { fields, values, connected, testing, canSave, canTest } = providerCard(provider)
 
     const saveDisabledReason = !canSave
       ? t('memories.saveRouteNotConfigured')

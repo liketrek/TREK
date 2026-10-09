@@ -3,12 +3,7 @@ import { Camera, Save, RefreshCw } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { MSetCard, MSetEyebrow, MSetRow, MSetInput, MSetButton, MSetHint } from './MSettingsUi'
 import MToggle from '../../components/MToggle'
-import {
-  getProviderConfig,
-  getProviderFields,
-  usePhotoProviderConnections,
-  type PhotoProviderAddon,
-} from '../../../components/Settings/usePhotoProviderConnections'
+import { usePhotoProviderConnections, type PhotoProviderAddon } from '../../../components/Settings/usePhotoProviderConnections'
 
 /**
  * Mobile-native twin of components/Settings/PhotoProvidersSection. Same logic
@@ -22,9 +17,7 @@ export default function MPhotoProvidersSection(): React.ReactElement {
   const {
     memoriesEnabled,
     activePhotoProviders,
-    providerValues,
-    providerConnected,
-    providerTesting,
+    providerCard,
     saving,
     handleProviderFieldChange,
     isProviderSaveDisabled,
@@ -33,13 +26,7 @@ export default function MPhotoProvidersSection(): React.ReactElement {
   } = usePhotoProviderConnections()
 
   const renderPhotoProviderSection = (provider: PhotoProviderAddon): React.ReactElement => {
-    const fields = getProviderFields(provider)
-    const cfg = getProviderConfig(provider)
-    const values = providerValues[provider.id] || {}
-    const connected = !!providerConnected[provider.id]
-    const testing = !!providerTesting[provider.id]
-    const canSave = !!cfg.settings_put
-    const canTest = !!(cfg.test_post || cfg.test_get || cfg.status_get)
+    const { fields, values, connected, testing, canSave, canTest } = providerCard(provider)
 
     return (
       <MSetCard key={provider.id} title={provider.name || provider.id} icon={Camera} className="mt-3 first:mt-0">

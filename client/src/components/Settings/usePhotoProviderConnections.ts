@@ -221,9 +221,23 @@ export function usePhotoProviderConnections() {
     }
   };
 
+  /** What one provider card draws from: its fields, values, badge and which buttons work. */
+  const providerCard = (provider: PhotoProviderAddon) => {
+    const cfg = getProviderConfig(provider);
+    return {
+      fields: getProviderFields(provider),
+      values: providerValues[provider.id] || {},
+      connected: !!providerConnected[provider.id],
+      testing: !!providerTesting[provider.id],
+      canSave: !!cfg.settings_put,
+      canTest: !!(cfg.test_post || cfg.test_get || cfg.status_get),
+    };
+  };
+
   return {
     memoriesEnabled,
     activePhotoProviders,
+    providerCard,
     providerValues,
     providerConnected,
     providerTesting,

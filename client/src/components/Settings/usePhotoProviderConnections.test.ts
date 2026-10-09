@@ -1,4 +1,4 @@
-// FE-COMP-PHOTOCONN-001 to -010: the photo provider connection logic both settings shells share.
+// FE-COMP-PHOTOCONN-001 to -011: the photo provider connection logic both settings shells share.
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import apiClient from '../../api/client';
@@ -226,5 +226,21 @@ describe('usePhotoProviderConnections', () => {
     vi.mocked(apiClient.post).mockRejectedValue(new Error('x'));
     await act(() => desktop.result.current.handleTestProvider(PROVIDER));
     expect(toast.error).toHaveBeenLastCalledWith('memories.connectionError(Immich)');
+  });
+
+  it('FE-COMP-PHOTOCONN-011: providerCard hands each card its fields, values, badge and working buttons', async () => {
+    seedProviders([PROVIDER]);
+    stubGets({
+      '/addons/immich/settings': { data: { url: 'https://a' } },
+      '/addons/immich/status': { data: { connected: true } },
+    });
+    const { result } = render();
+    await waitFor(() => expect(result.current.providerCard(PROVIDER).connected).toBe(true));
+    const card = result.current.providerCard(PROVIDER);
+    expect(card.fields.map((f) => f.key)).toEqual(['url', 'api_key', 'shared']);
+    expect(card.values).toEqual({ url: 'https://a', shared: 'false' });
+    expect(card).toMatchObject({ testing: false, canSave: true, canTest: true });
+    const bare = result.current.providerCard({ ...PROVIDER, id: 'other', config: {} });
+    expect(bare).toMatchObject({ values: {}, connected: false, canSave: false, canTest: false });
   });
 });
