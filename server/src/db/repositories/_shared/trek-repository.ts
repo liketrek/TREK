@@ -70,12 +70,15 @@ import {
  * option itself any more. See
  * https://mikro-orm.io/docs/entity-manager#disableidentitymap.
  *
- * **Kysely.** `em.getKysely()` (used for the one or two statements per
- * repository the QueryBuilder cannot express — a recursive CTE, a
- * `DELETE … RETURNING`) resolves its `EntityManager` with `getContext(false)`
- * too (`node_modules/@mikro-orm/sql/SqlEntityManager.js`), so it has the
- * exact same gap as the write paths above. {@link TrekRepository.kysely} is
- * the one place a repository reaches Kysely from now on, instead of calling
+ * **Kysely.** `em.getKysely()` is the query API for every read that joins,
+ * aggregates or projects across tables and for set-based writes, typed
+ * against the generated `DB` from `db/kysely/db.ts`; the entity methods cover
+ * single-table CRUD, and new code adds no QueryBuilder calls (server/CLAUDE.md,
+ * "Which query API"; `lint:query-api` holds the existing ones). It resolves its
+ * `EntityManager` with `getContext(false)` too
+ * (`node_modules/@mikro-orm/sql/SqlEntityManager.js`), so it has the exact
+ * same gap as the write paths above. {@link TrekRepository.kysely} is the one
+ * place a repository reaches Kysely, instead of calling
  * `this.getEntityManager().getKysely()` directly.
  *
  * See https://mikro-orm.io/docs/repositories (custom repositories) and
@@ -95,11 +98,9 @@ export abstract class TrekRepository<Entity extends object> extends EntityReposi
   }
 
   /**
-   * `em.getKysely()`, validated first. The QueryBuilder has no recursive-CTE
-   * support and its `DELETE … RETURNING` is silently dropped
-   * (`WebauthnChallenges.repository.ts::claimChallenge`'s docstring), so a
-   * handful of methods across the program need this escape hatch — always
-   * through here now, never `this.getEntityManager().getKysely()` directly.
+   * `em.getKysely()`, validated first: the query API for join, aggregate and
+   * set-based statements (see the class docstring), always reached through
+   * here, never through `this.getEntityManager().getKysely()` directly.
    * No explicit return-type annotation: `SqlEntityManager.getKysely`'s
    * return type is expressed in terms of `this` (the entity list the calling
    * `EntityManager` was constructed with), which does not survive being

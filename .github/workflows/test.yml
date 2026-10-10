@@ -311,6 +311,12 @@ jobs:
         # through tests/helpers/factories (MikroORM) instead.
         run: cd server && npm run lint:test-sql
 
+      - name: QueryBuilder calls in the repositories may only shrink
+        # Counts this.qb(...)/createQueryBuilder(...) per file under
+        # src/db/repositories/ against scripts/query-api-baseline.json. New
+        # code uses Kysely for join reads and the entity methods for CRUD.
+        run: cd server && npm run lint:query-api
+
       - name: Open request schemas may only shrink
         # Needs the shared build above. Counts open shapes (records of
         # unknown, passthrough, any) in shared's request schemas.

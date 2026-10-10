@@ -182,6 +182,7 @@ The `@trek/shared` package is the single source of truth for code shared between
 | `npm run lint:boundaries`    | Import cycles and domain boundaries may not grow past their baseline (CI gate) |
 | `npm run lint:tx`            | Methods that write more than once outside one transaction may not grow past their baseline (CI gate) |
 | `npm run lint:test-sql`      | Raw SQL fixtures in `tests/` may not grow past their baseline (CI gate) |
+| `npm run lint:query-api`     | MikroORM QueryBuilder calls in the repositories may not grow past their baseline (CI gate) |
 | `npm run lint:dialect`       | SQLite-only SQL spellings under `src/` may not grow past their baseline (CI gate) |
 | `npm run gen:db-types`       | Regenerate the Kysely table types in `src/db/kysely/` from the migrated schema |
 | `npm run check:db-types`     | Verify the generated Kysely table types match the migrations (CI gate) |
@@ -250,7 +251,7 @@ Then open a Pull Request from your fork to `liketrek/TREK` targeting the `dev` b
 - Always branch off from an up-to-date `dev` — run `git fetch upstream && git rebase upstream/dev` before starting new work.
 - Run tests before pushing: `npm test` at the repo root runs all workspaces. That alone is not the full CI gate. With `shared` built, these are the checks CI runs before any test (`.github/workflows/test.yml` is the source of truth):
   - in `shared/`: `npm run typecheck && npm run contracts:open`
-  - in `server/`: `npm run build && npm run typecheck && npm run typecheck:tests && npm run typecheck:scripts && npm run check:entities && npm run check:db-types && npm run lint:check && npm run db:call-graph -- --sync --tx && npm run lint:size && npm run lint:boundaries && npm run lint:tx && npm run lint:test-sql && npm run lint:dialect && npm run check:plugin-facts`
+  - in `server/`: `npm run build && npm run typecheck && npm run typecheck:tests && npm run typecheck:scripts && npm run check:entities && npm run check:db-types && npm run lint:check && npm run db:call-graph -- --sync --tx && npm run lint:size && npm run lint:boundaries && npm run lint:tx && npm run lint:test-sql && npm run lint:query-api && npm run lint:dialect && npm run check:plugin-facts`
   - in `client/`: `npm run typecheck && npm run lint:warnings && npm run lint:pages && npm run lint:rtl && npm run lint:size && npm run lint:format && npm run lint:layers && npm run lint:offline && npm run lint:dup && npm run lint:pairs && npm run lint:skips && npm run lint:i18n-keys`
   - at the root, if you touched translations: `npm run i18n:parity:strict --workspace=shared`
 - Follow the commit message conventions described in the [[Contributing]] guidelines.
