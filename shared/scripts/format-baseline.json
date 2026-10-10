@@ -369,7 +369,6 @@
   "src/i18n/zh/settings.ts",
   "src/i18n/zh/system_notice.ts",
   "src/journey/journey.schema.spec.ts",
-  "src/journey/journey.schema.ts",
   "src/plugins/plugins.schema.spec.ts",
   "src/public-api/public-api.schema.ts",
   "src/reservation/reservation.schema.spec.ts",
