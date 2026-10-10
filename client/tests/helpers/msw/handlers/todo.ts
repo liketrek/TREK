@@ -6,9 +6,20 @@ import { contractHandler } from '../contract';
 // @trek/shared holds the todo requests but no todo item schema yet, so only
 // the request side is checked here.
 
-/** The server stores checked as 0/1 and answers it that way, whichever form the request used. */
-const asStored = <T extends { checked?: boolean | number }>({ checked, ...rest }: T) =>
-  checked === undefined ? rest : { ...rest, checked: Number(checked) };
+/**
+ * The row as the server stores it: checked as 0/1 whichever form the request
+ * used, and a cleared priority as its default, 0.
+ */
+const asStored = <T extends { checked?: boolean | number; priority?: number | null }>({
+  checked,
+  priority,
+  ...rest
+}: T) => ({
+  ...rest,
+  ...(checked === undefined ? {} : { checked: Number(checked) }),
+  ...(priority === undefined ? {} : { priority: priority ?? 0 }),
+});
+
 export const todoHandlers = [
   contractHandler('get', '/api/trips/:id/todo', {}, ({ params }) => ({
     items: [buildTodoItem({ trip_id: Number(params.id) })],

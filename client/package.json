@@ -30,6 +30,7 @@
     "lint:dup": "node scripts/dup-lint.mjs",
     "lint:pairs": "node scripts/pairs-lint.mjs",
     "lint:skips": "node scripts/skip-lint.mjs",
+    "lint:strict": "node scripts/strict-lint.mjs",
     "lint:i18n-keys": "node scripts/i18n-keys.mjs",
     "check:gl-split": "node scripts/check-gl-split.mjs",
     "theme:lint": "node scripts/theme-lint.mjs",

@@ -380,6 +380,13 @@ jobs:
       - name: Typecheck
         run: cd client && npm run typecheck
 
+      - name: Strict type check
+        # tsconfig.strict.json is the same program with strictNullChecks and
+        # noImplicitAny; its errors per file may not rise above
+        # scripts/strict-baseline.json, and a file without an entry, every new
+        # one included, has to be clean (scripts/strict-lint.mjs).
+        run: cd client && npm run lint:strict
+
       - name: Lint
         # Fails on any ESLint error, like lint:check did, and on any rule
         # whose warning count rises above scripts/eslint-baseline.json.

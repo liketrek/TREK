@@ -8,6 +8,7 @@ Scope: the **`@trek/client`** workspace (React 19 + Vite + Zustand + Tailwind PW
 npm run dev               # Vite dev server; proxies the API/ws/uploads/MCP/OAuth paths → http://localhost:3001
 npm run build             # prebuild generates PWA icons, then vite build
 npm run typecheck         # tsc --noEmit (CI)
+npm run lint:strict       # tsc over tsconfig.strict.json (strictNullChecks + noImplicitAny): errors per file may only shrink against scripts/strict-baseline.json, a new file starts at zero (CI gate; --list shows them, --update lowers it)
 npm run lint              # eslint .   (CI runs lint:warnings instead, which fails on the same errors)
 npm run lint:warnings     # eslint (typed), failing on any error and on any warning count per rule above scripts/eslint-baseline.json and on any entry above its count (app code, tests and eslint-disable'd messages counted apart; a `/* eslint <rule>: ... */` config comment fails outright; --update lowers it). Frozen as warnings: floating/misused promises, `.catch(() => {})` (trek/no-swallowed-catch), react-hooks v7 recommended, complexity/max-depth/max-params/max-lines-per-function (120 per .ts function, 300 per .tsx), `use*Store()` without a selector, `window.__*` and window.dispatchEvent buses (trek/no-window-globals), no-console, no-non-null-assertion; the local rules live in scripts/lib/eslint-rules.mjs
 npm run lint:pages        # enforce the Page pattern (CI gate)
