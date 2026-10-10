@@ -1,5 +1,6 @@
 export { readEnv, validateEnvAtBoot } from './env';
 export { getAppUrl, getMcpSafeUrl } from './app-url';
+export { runningVersion } from './running-version';
 export type { AppEnv, RawEnv } from './env';
 export {
   deriveAll,

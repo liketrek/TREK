@@ -1,5 +1,5 @@
 import semver from 'semver';
-import { readEnv } from '../../../app-config';
+import { readEnv, runningVersion } from '../../../app-config';
 
 /**
  * Host-version compatibility for plugins (#plugins). A manifest declares the TREK
@@ -12,7 +12,7 @@ import { readEnv } from '../../../app-config';
 
 /** The running TREK version (same source as the rest of the app). */
 export function hostVersion(): string {
-  return readEnv().app.appVersion || (require('../../../../package.json') as { version: string }).version;
+  return runningVersion();
 }
 
 let warnedUnparseable = false;

@@ -31,8 +31,8 @@ import {
   type TrekWebSocket,
 } from './ws-state';
 import { JourneyDomainService } from '../journey/journey-domain.service';
-import { hostVersion } from '../plugins/install/host-compat';
 import { readAppSetting } from '../common/app-settings.registry';
+import { runningVersion } from '../../app-config';
 
 const HEARTBEAT_INTERVAL = 30_000;
 
@@ -159,7 +159,7 @@ export class RealtimeGateway
       // The version lets a client that stayed open across a deploy notice it
       // runs the previous build: a deploy restarts the server, so every open
       // client reconnects and reads this again.
-      socket.send(JSON.stringify({ type: 'welcome', socketId: sid, version: hostVersion() }));
+      socket.send(JSON.stringify({ type: 'welcome', socketId: sid, version: runningVersion() }));
       socket.on('pong', () => { socket.isAlive = true; });
     } catch (err) {
       logError(`ws handshake failed: ${err instanceof Error ? err.message : String(err)}`);
