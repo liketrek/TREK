@@ -68,11 +68,6 @@ const logMock = vi.hoisted(() => ({ logInfo: vi.fn(), logError: vi.fn(), logWarn
 
 vi.mock('../../../src/db/database', () => dbMock);
 vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-secret',
-  ENCRYPTION_KEY: 'a'.repeat(64),
-  updateJwtSecret: () => {},
-}));
 vi.mock('fs', () => ({ default: fsMock, ...fsMock }));
 vi.mock('archiver', () => ({ default: archiverMock }));
 vi.mock('unzipper', () => ({ default: unzipperMock }));

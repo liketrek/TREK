@@ -6,7 +6,7 @@
  */
 
 import jwt from 'jsonwebtoken';
-import { TEST_CONFIG } from './test-db';
+import { TEST_CONFIG } from './test-config';
 
 /** Signs a JWT for the given user ID using the test secret. */
 export function generateToken(userId: number, extraClaims: Record<string, unknown> = {}): string {

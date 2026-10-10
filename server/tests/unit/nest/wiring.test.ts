@@ -1,26 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../../../src/nest/app.module';
 import { FeaturesController } from '../../../src/nest/health/features.controller';
 import { AdminGuard } from '../../../src/nest/auth-core/admin.guard';
-
-vi.mock('../../../src/config', async () => {
-  const { readEnv } = await import('../../../src/app-config');
-  const env = readEnv();
-  return {
-    ENCRYPTION_KEY: 'wiring-test-inert-encryption-key',
-    JWT_SECRET: 'wiring-test-inert-jwt-secret',
-    updateJwtSecret: vi.fn(),
-    DEFAULT_LANGUAGE: env.app.defaultLanguage,
-    SESSION_DURATION: env.session.duration,
-    SESSION_DURATION_MS: env.session.durationMs,
-    SESSION_DURATION_SECONDS: env.session.durationSeconds,
-    SESSION_DURATION_REMEMBER: env.session.durationRemember,
-    SESSION_DURATION_REMEMBER_MS: env.session.durationRememberMs,
-    SESSION_DURATION_REMEMBER_SECONDS: env.session.durationRememberSeconds,
-  };
-});
 
 function ctx(user: unknown) {
   return { switchToHttp: () => ({ getRequest: () => ({ user }) }) } as never;

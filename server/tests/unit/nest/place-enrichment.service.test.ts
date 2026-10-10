@@ -28,8 +28,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   SsrfBlockedError: class extends Error {},
 }));
 
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
 // Reached for any `gers:` place id, where the real one is an outbound request
 // to the TREK Places API. Only this export is replaced; the record shaping the
 // rest of the module provides stays as it is.

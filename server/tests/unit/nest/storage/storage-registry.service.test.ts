@@ -11,9 +11,6 @@ vi.mock('../../../../src/db/database', async () => {
     return { db, closeDb: () => {}, reinitialize: () => {} };
 });
 
-
-vi.mock('../../../../src/config', () => ({ ENCRYPTION_KEY: 'storage-registry-test-key' }));
-
 import { db as testDb } from '../../../../src/db/database';
 import fs from 'node:fs';
 import os from 'node:os';

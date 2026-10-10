@@ -7,11 +7,6 @@ const { legacyDatabaseAccess } = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock('../../../src/config', () => ({
-  ENCRYPTION_KEY: 'test-only-inert-key',
-  JWT_SECRET: 'test-only-inert-secret',
-  updateJwtSecret: vi.fn(),
-}));
 vi.mock('../../../src/db/database', () => ({
   db: new Proxy({}, {
     get: (_target, property: string | symbol) => legacyDatabaseAccess(property),

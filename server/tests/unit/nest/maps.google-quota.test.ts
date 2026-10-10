@@ -9,8 +9,6 @@ vi.mock('../../../src/db/database', () => ({
   db: { prepare: () => ({ get: () => undefined, run: () => undefined, all: () => [] }) },
 }));
 
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
 import { GooglePlacesClient } from '../../../src/nest/maps/providers/google-places.provider';
 import { buildMapsService } from '../../helpers/maps-service';
 import { GoogleTransitProvider } from '../../../src/nest/transit/google-transit.provider';

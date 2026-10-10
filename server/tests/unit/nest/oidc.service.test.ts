@@ -24,15 +24,6 @@ vi.mock('../../../src/db/database', async () => {
   return { db, closeDb: () => {}, reinitialize: () => {} };
 });
 
-
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  SESSION_DURATION_SECONDS: 86400,
-  SESSION_DURATION_REMEMBER_SECONDS: 2592000,
-  updateJwtSecret: () => {},
-}));
-
 // Construction insurance for the injected AuthService's import graph (same set
 // as auth.service.test.ts) — TripMembershipService is deliberately the real one,
 // not a stub: OIDC-SVC-045 asserts the actual trip_members row a trip-bound

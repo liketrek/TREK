@@ -11,17 +11,6 @@ import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { of, lastValueFrom } from 'rxjs';
 import jwt from 'jsonwebtoken';
 
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  SESSION_DURATION: '24h',
-  SESSION_DURATION_MS: 86400000,
-  SESSION_DURATION_SECONDS: 86400,
-  SESSION_DURATION_REMEMBER: '30d',
-  SESSION_DURATION_REMEMBER_MS: 2592000000,
-  SESSION_DURATION_REMEMBER_SECONDS: 2592000,
-  updateJwtSecret: () => {},
-}));
-
 import { SessionRenewalInterceptor } from '../../../src/nest/auth/session-renewal.interceptor';
 import type { SessionsService } from '../../../src/nest/sessions/sessions.service';
 

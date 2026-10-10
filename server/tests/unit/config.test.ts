@@ -2,6 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// The subject here is config.ts itself, so this suite takes the real module
+// rather than the fixed values the global setup puts in its place.
+vi.unmock('../../src/config');
+
 // config.ts resolves its key material at import time, so every case here has to
 // reset the module registry and re-import it with the file system stubbed out.
 const ENC_KEY_FILE = path.resolve(__dirname, '../../data/.encryption_key');

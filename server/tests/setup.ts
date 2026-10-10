@@ -2,7 +2,7 @@
 // Environment variables must be set before any module import so that
 // config.ts, database.ts, etc. pick them up at import time. (Importing from
 // 'vitest' itself is safe: it is externalized and pulls in no app modules.)
-import { afterEach } from 'vitest';
+import { afterEach, vi } from 'vitest';
 // The one app module imported here, and it is deliberately a static import even
 // though import declarations are hoisted above the process.env writes below.
 // The chain is nominatim.client -> maps.helpers -> app-config, and its only
@@ -17,6 +17,15 @@ import { afterEach } from 'vitest';
 // app-config with a factory that has no getAppUrl, and the late import then
 // resolves maps.helpers against that mock and throws.
 import { setGeoThrottleInterval } from '../src/nest/geo/nominatim.client';
+import { resetTestConfig } from './helpers/test-config';
+
+// src/config resolves key material from data/ at import time and writes the
+// files it does not find. Every suite gets the fixed values in
+// helpers/test-config.ts instead, so none of them declares its own mock; a
+// suite that needs other values calls overrideTestConfig(), and the afterEach
+// below puts the defaults back. The few suites whose subject is config.ts
+// itself call vi.unmock for it.
+vi.mock('../src/config', async () => (await import('./helpers/test-config')).TEST_CONFIG);
 
 // Fixed encryption key (64 hex chars = 32 bytes) for at-rest crypto in tests
 process.env.ENCRYPTION_KEY = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2';
@@ -49,6 +58,7 @@ interface DynamicImportGlobal {
 const realSetImmediate = globalThis.setImmediate;
 afterEach(async () => {
   await new Promise((resolve) => realSetImmediate(resolve));
+  resetTestConfig();
 });
 
 // Nominatim's rate limit is a property of the real service, not of the code

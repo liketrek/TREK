@@ -28,12 +28,11 @@ import {
   verifiedSessionClaims,
   verifyJwtAndLoadUser,
 } from '../../../../src/nest/auth-core/jwt-verify';
+import { TEST_CONFIG } from '../../../helpers/test-config';
 
 import type { Request } from 'express';
 import jwt from 'jsonwebtoken';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-
-vi.mock('../../../../src/config', () => ({ JWT_SECRET: 'test-secret' }));
 
 function makeReq(
   overrides: {
@@ -125,7 +124,7 @@ describe('verifyJwtAndLoadUser', () => {
       role: 'user',
       password_version: 0,
     });
-    const token = jwt.sign({ id: 1 }, 'test-secret', { algorithm: 'HS256' });
+    const token = jwt.sign({ id: 1 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256' });
 
     expect(await verifyJwtAndLoadUser(token, users, sessionsRepo())).toEqual({
       id: 1,
@@ -143,12 +142,16 @@ describe('verifyJwtAndLoadUser', () => {
   it('AUTH-JWT-003: returns null when the user no longer exists', async () => {
     const users = usersRepo(null);
     expect(
-      await verifyJwtAndLoadUser(jwt.sign({ id: 99999 }, 'test-secret', { algorithm: 'HS256' }), users, sessionsRepo()),
+      await verifyJwtAndLoadUser(
+        jwt.sign({ id: 99999 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256' }),
+        users,
+        sessionsRepo(),
+      ),
     ).toBeNull();
   });
 
   it('AUTH-JWT-004: returns null for an expired token', async () => {
-    const expired = jwt.sign({ id: 1, exp: Math.floor(Date.now() / 1000) - 3600 }, 'test-secret', {
+    const expired = jwt.sign({ id: 1, exp: Math.floor(Date.now() / 1000) - 3600 }, TEST_CONFIG.JWT_SECRET, {
       algorithm: 'HS256',
     });
     expect(await verifyJwtAndLoadUser(expired, usersRepo(null), sessionsRepo())).toBeNull();
@@ -174,7 +177,7 @@ describe('verifyJwtAndLoadUser', () => {
       role: 'user',
       password_version: 0,
     });
-    const mfaToken = jwt.sign({ id: 1, purpose: 'mfa_login' }, 'test-secret', { algorithm: 'HS256' });
+    const mfaToken = jwt.sign({ id: 1, purpose: 'mfa_login' }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256' });
 
     expect(await verifyJwtAndLoadUser(mfaToken, users, sessionsRepo())).toBeNull();
     expect(users.findByIdWithPasswordVersion).not.toHaveBeenCalled();
@@ -188,7 +191,7 @@ describe('verifyJwtAndLoadUser', () => {
       role: 'user',
       password_version: 2,
     });
-    const stale = jwt.sign({ id: 1, pv: 1 }, 'test-secret', { algorithm: 'HS256' });
+    const stale = jwt.sign({ id: 1, pv: 1 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256' });
 
     expect(await verifyJwtAndLoadUser(stale, users, sessionsRepo())).toBeNull();
   });
@@ -201,7 +204,7 @@ describe('verifyJwtAndLoadUser', () => {
       role: 'user',
       password_version: 2,
     });
-    const current = jwt.sign({ id: 1, pv: 2 }, 'test-secret', { algorithm: 'HS256' });
+    const current = jwt.sign({ id: 1, pv: 2 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256' });
 
     expect(await verifyJwtAndLoadUser(current, users, sessionsRepo())).not.toBeNull();
   });
@@ -218,7 +221,7 @@ describe('verifyJwtAndLoadUser', () => {
       role: 'user',
       password_version: null,
     });
-    const legacy = jwt.sign({ id: 1 }, 'test-secret', { algorithm: 'HS256' });
+    const legacy = jwt.sign({ id: 1 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256' });
 
     expect(await verifyJwtAndLoadUser(legacy, users, sessionsRepo())).not.toBeNull();
   });
@@ -231,7 +234,7 @@ describe('verifyJwtAndLoadUser', () => {
       role: 'user',
       password_version: 1,
     });
-    const legacy = jwt.sign({ id: 1 }, 'test-secret', { algorithm: 'HS256' });
+    const legacy = jwt.sign({ id: 1 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256' });
 
     expect(await verifyJwtAndLoadUser(legacy, users, sessionsRepo())).toBeNull();
   });
@@ -243,7 +246,7 @@ describe('verifyJwtAndLoadUser: the session check', () => {
 
   it('AUTH-JWT-011: a token without a jti is never looked up, so tokens from before the upgrade keep working', async () => {
     const sessions = sessionsRepo();
-    const legacy = jwt.sign({ id: 1, pv: 0 }, 'test-secret', { algorithm: 'HS256' });
+    const legacy = jwt.sign({ id: 1, pv: 0 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256' });
 
     expect(await verifyJwtAndLoadUser(legacy, usersRepo(alice), sessions)).not.toBeNull();
     expect(sessions.findActive).not.toHaveBeenCalled();
@@ -251,7 +254,7 @@ describe('verifyJwtAndLoadUser: the session check', () => {
 
   it('AUTH-JWT-012: a token naming an active session of its own user passes', async () => {
     const sessions = sessionsRepo({ id: SID, last_seen_at: dbNow() });
-    const token = jwt.sign({ id: 1, pv: 0 }, 'test-secret', { algorithm: 'HS256', jwtid: SID });
+    const token = jwt.sign({ id: 1, pv: 0 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256', jwtid: SID });
 
     expect(await verifyJwtAndLoadUser(token, usersRepo(alice), sessions)).toEqual({
       id: 1,
@@ -267,14 +270,14 @@ describe('verifyJwtAndLoadUser: the session check', () => {
   });
 
   it('AUTH-JWT-013: a token whose session is revoked, expired or unknown is refused', async () => {
-    const token = jwt.sign({ id: 1, pv: 0 }, 'test-secret', { algorithm: 'HS256', jwtid: SID });
+    const token = jwt.sign({ id: 1, pv: 0 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256', jwtid: SID });
 
     expect(await verifyJwtAndLoadUser(token, usersRepo(alice), sessionsRepo(null))).toBeNull();
   });
 
   it('AUTH-JWT-014: a jti that is not a string is refused without a lookup', async () => {
     const sessions = sessionsRepo({ id: SID, last_seen_at: dbNow() });
-    const token = jwt.sign({ id: 1, pv: 0, jti: 42 }, 'test-secret', { algorithm: 'HS256' });
+    const token = jwt.sign({ id: 1, pv: 0, jti: 42 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256' });
 
     expect(await verifyJwtAndLoadUser(token, usersRepo(alice), sessions)).toBeNull();
     expect(sessions.findActive).not.toHaveBeenCalled();
@@ -282,7 +285,7 @@ describe('verifyJwtAndLoadUser: the session check', () => {
 
   it('AUTH-JWT-015: the password_version gate runs before the session lookup', async () => {
     const sessions = sessionsRepo({ id: SID, last_seen_at: dbNow() });
-    const stale = jwt.sign({ id: 1, pv: 0 }, 'test-secret', { algorithm: 'HS256', jwtid: SID });
+    const stale = jwt.sign({ id: 1, pv: 0 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256', jwtid: SID });
 
     expect(await verifyJwtAndLoadUser(stale, usersRepo({ ...alice, password_version: 1 }), sessions)).toBeNull();
     expect(sessions.findActive).not.toHaveBeenCalled();
@@ -291,7 +294,7 @@ describe('verifyJwtAndLoadUser: the session check', () => {
   it('AUTH-JWT-016: last_seen_at is refreshed once it is older than the touch interval, not before', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-08T12:00:00Z'));
-    const token = jwt.sign({ id: 1, pv: 0 }, 'test-secret', { algorithm: 'HS256', jwtid: SID });
+    const token = jwt.sign({ id: 1, pv: 0 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256', jwtid: SID });
 
     const fresh = sessionsRepo({ id: SID, last_seen_at: '2026-10-08 11:58:00' });
     expect(await verifyJwtAndLoadUser(token, usersRepo(alice), fresh)).not.toBeNull();
@@ -307,7 +310,7 @@ describe('verifyJwtAndLoadUser: the session check', () => {
     const sessions = sessionsRepo({ id: SID, last_seen_at: '2020-01-01 00:00:00' }, async () => {
       throw new Error('database is locked');
     });
-    const token = jwt.sign({ id: 1, pv: 0 }, 'test-secret', { algorithm: 'HS256', jwtid: SID });
+    const token = jwt.sign({ id: 1, pv: 0 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256', jwtid: SID });
 
     expect(await verifyJwtAndLoadUser(token, usersRepo(alice), sessions)).not.toBeNull();
     expect(sessions.touchLastSeen).toHaveBeenCalled();
@@ -316,31 +319,31 @@ describe('verifyJwtAndLoadUser: the session check', () => {
 
 describe('currentSessionId', () => {
   it('reads the jti of the cookie token', () => {
-    const token = jwt.sign({ id: 1 }, 'test-secret', { algorithm: 'HS256', jwtid: 'sid-1' });
+    const token = jwt.sign({ id: 1 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256', jwtid: 'sid-1' });
     expect(currentSessionId(makeReq({ cookies: { trek_session: token } }))).toBe('sid-1');
   });
 
   it('falls back to the bearer token', () => {
-    const token = jwt.sign({ id: 1 }, 'test-secret', { algorithm: 'HS256', jwtid: 'sid-2' });
+    const token = jwt.sign({ id: 1 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256', jwtid: 'sid-2' });
     expect(currentSessionId(makeReq({ headers: { authorization: `Bearer ${token}` } }))).toBe('sid-2');
   });
 
   it('is undefined for a token without a jti, and without any token', () => {
     expect(
-      currentSessionId(makeReq({ cookies: { trek_session: jwt.sign({ id: 1 }, 'test-secret') } })),
+      currentSessionId(makeReq({ cookies: { trek_session: jwt.sign({ id: 1 }, TEST_CONFIG.JWT_SECRET) } })),
     ).toBeUndefined();
     expect(currentSessionId(makeReq())).toBeUndefined();
   });
 
   it('is undefined for a jti that is not a string', () => {
-    const token = jwt.sign({ id: 1, jti: 7 }, 'test-secret', { algorithm: 'HS256' });
+    const token = jwt.sign({ id: 1, jti: 7 }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256' });
     expect(currentSessionId(makeReq({ cookies: { trek_session: token } }))).toBeUndefined();
   });
 });
 
 describe('verifiedSessionClaims', () => {
   it('returns the claims of a well-signed token, even an expired one', () => {
-    const expired = jwt.sign({ id: 3, jti: 'sid', exp: Math.floor(Date.now() / 1000) - 60 }, 'test-secret', {
+    const expired = jwt.sign({ id: 3, jti: 'sid', exp: Math.floor(Date.now() / 1000) - 60 }, TEST_CONFIG.JWT_SECRET, {
       algorithm: 'HS256',
     });
     expect(verifiedSessionClaims(expired)).toEqual(expect.objectContaining({ id: 3, jti: 'sid' }));
@@ -352,9 +355,9 @@ describe('verifiedSessionClaims', () => {
 
   it('refuses a purpose-scoped token and one without a numeric user id', () => {
     expect(
-      verifiedSessionClaims(jwt.sign({ id: 3, purpose: 'mfa_login' }, 'test-secret', { algorithm: 'HS256' })),
+      verifiedSessionClaims(jwt.sign({ id: 3, purpose: 'mfa_login' }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256' })),
     ).toBeNull();
-    expect(verifiedSessionClaims(jwt.sign({ id: 'x' }, 'test-secret', { algorithm: 'HS256' }))).toBeNull();
+    expect(verifiedSessionClaims(jwt.sign({ id: 'x' }, TEST_CONFIG.JWT_SECRET, { algorithm: 'HS256' }))).toBeNull();
   });
 
   it('is null without a token', () => {

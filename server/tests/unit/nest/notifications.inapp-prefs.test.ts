@@ -22,13 +22,6 @@ vi.mock('../../../src/db/database', async () => {
     return mock;
 });
 
-
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
-
 // Mock WebSocket broadcast — must use vi.hoisted() so broadcastMock is available
 // when the vi.mock factory is evaluated (factories are hoisted before const declarations)
 const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));

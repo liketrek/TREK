@@ -28,8 +28,6 @@ vi.mock('../../../src/nest/geo/nominatim.client', async (importOriginal) => ({
   nominatimFetch: mockNominatim,
 }));
 
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
 import { buildMapsService } from '../../helpers/maps-service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import { noGoogleQuota } from '../../helpers/google-quota';
@@ -55,7 +53,6 @@ vi.mock('../../../src/app-config', async (importOriginal) => {
     },
   };
 });
-
 
 /** An index row, far enough from the OSM one below not to be deduped. */
 const indexHit = (name: string, lat = 35.31, lng = 139.53) => ({

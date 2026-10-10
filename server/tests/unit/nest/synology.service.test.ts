@@ -18,12 +18,6 @@ vi.mock('../../../src/db/database', async () => {
     return { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: () => null, isOwner: () => false, getPlaceWithTags: () => null };
 });
 
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'x'.repeat(40),
-  ENCRYPTION_KEY: 'a'.repeat(64),
-  updateJwtSecret: () => {},
-}));
-
 const { decryptMock, maybeEncryptMock } = vi.hoisted(() => ({
   decryptMock: vi.fn((v: string) => v),
   maybeEncryptMock: vi.fn((v: string) => v),

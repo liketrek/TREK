@@ -23,8 +23,6 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
   trekPlacesNearby: mockNearby,
 }));
 
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import { buildMapsParts } from '../../helpers/maps-service';
 import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';

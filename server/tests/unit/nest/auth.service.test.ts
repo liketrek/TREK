@@ -25,14 +25,6 @@ vi.mock('../../../src/db/database', async () => {
     return mock;
 });
 
-
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-secret',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  SESSION_DURATION_SECONDS: 86400,
-  SESSION_DURATION_REMEMBER_SECONDS: 2592000,
-  updateJwtSecret: () => {},
-}));
 vi.mock('../../../src/nest/common/crypto/mfaCrypto', () => ({
   encryptMfaSecret: vi.fn((s) => `enc:${s}`),
   decryptMfaSecret: vi.fn((s: string) => s.replace('enc:', '')),
@@ -50,6 +42,7 @@ vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() 
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
 
+import { TEST_CONFIG } from '../../helpers/test-config';
 import { asLegacyResult } from '../../helpers/domain-error';
 import { db as testDb } from '../../../src/db/database';
 import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll, vi } from 'vitest';
@@ -648,7 +641,7 @@ describe('verifyMfaLogin — validation', () => {
   it('AUTH-DB-039: returns 401 when mfa_token has wrong purpose', async () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const jwt = require('jsonwebtoken');
-    const tok = jwt.sign({ id: 1, purpose: 'wrong' }, 'test-secret', { expiresIn: '5m', algorithm: 'HS256' });
+    const tok = jwt.sign({ id: 1, purpose: 'wrong' }, TEST_CONFIG.JWT_SECRET, { expiresIn: '5m', algorithm: 'HS256' });
     const result = await asLegacyResult(svc.verifyMfaLogin({ mfa_token: tok, code: '123456' }));
     expect(result.status).toBe(401);
     expect(result.error).toMatch(/invalid/i);
@@ -657,7 +650,7 @@ describe('verifyMfaLogin — validation', () => {
   it('AUTH-DB-040: returns 401 when user not found for valid mfa_token', async () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const jwt = require('jsonwebtoken');
-    const tok = jwt.sign({ id: 99999, purpose: 'mfa_login' }, 'test-secret', { expiresIn: '5m', algorithm: 'HS256' });
+    const tok = jwt.sign({ id: 99999, purpose: 'mfa_login' }, TEST_CONFIG.JWT_SECRET, { expiresIn: '5m', algorithm: 'HS256' });
     const result = await asLegacyResult(svc.verifyMfaLogin({ mfa_token: tok, code: '123456' }));
     expect(result.status).toBe(401);
   });
@@ -1189,7 +1182,6 @@ describe('resetPassword', () => {
     expect((await svc.requestPasswordReset(user.email, null)).reason).toBe('throttled_per_email');
   });
 });
-
 
 // ---------------------------------------------------------------------------
 // Quirk fixes after the DI fold (trailing fix(server) commit): AUTH-DB-089+.

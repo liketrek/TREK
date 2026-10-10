@@ -25,8 +25,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   SsrfBlockedError: class extends Error {},
 }));
 
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
 const { mockTrekPlacesById } = vi.hoisted(() => ({
   mockTrekPlacesById: vi.fn(async (_gers: string): Promise<unknown> => null),
 }));
@@ -396,7 +394,6 @@ describe('filling Google gaps from the free sources', () => {
     expect(out.hours?.weekdayDescriptions).toEqual(['Monday: 09:00-17:00']);
   });
 })
-
 
 describe("the description on the place's own website", () => {
   // The ordinary case, and the one nothing covered before: a restaurant has no

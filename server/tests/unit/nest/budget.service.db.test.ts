@@ -17,12 +17,6 @@ vi.mock('../../../src/db/database', async () => {
   return { db, closeDb: () => {}, reinitialize: () => {} };
 });
 
-
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-secret',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
 // Frozen snapshot of the rates in play in #1543 (rates[X] = units of X per 1 base).

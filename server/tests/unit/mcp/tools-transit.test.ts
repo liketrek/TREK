@@ -7,7 +7,6 @@ import { resetTestDb } from '../../helpers/test-db';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
 
-
 const { broadcastMock } = vi.hoisted(() => ({
   broadcastMock: vi.fn(),
 }));
@@ -17,11 +16,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
 
 import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
 import type { TransitPlace } from '../../../src/nest/transit/transit.helpers';

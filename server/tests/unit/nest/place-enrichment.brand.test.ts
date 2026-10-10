@@ -27,8 +27,6 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   SsrfBlockedError: class extends Error {},
 }));
 
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
 import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
 import { readBrandIdentity } from '../../../src/nest/maps/maps.service';
 import type { MapsService } from '../../../src/nest/maps/maps.service';

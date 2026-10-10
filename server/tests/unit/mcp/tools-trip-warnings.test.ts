@@ -5,7 +5,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { db as testDb } from '../../../src/db/database';
 
-
 const { broadcastMock, pluginsEnabled } = vi.hoisted(() => ({
   broadcastMock: vi.fn(),
   pluginsEnabled: vi.fn(() => true),
@@ -16,11 +15,6 @@ vi.mock('../../../src/db/database', async () => {
   return buildDbMock(createSnapshotTestDb());
 });
 vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
 // The admin kill switch reads live env; drive it from the test instead of the process.
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 

@@ -12,7 +12,7 @@
  * every client would receive its own writes back and drag-and-drop would jump.
  *
  * None of that shows up in the existing suite, because the 100+ tests that touch
- * realtime mock `src/websocket` and never look at the bytes. So: if a change makes
+ * realtime record broadcasts on a FakeRealtimeService and never look at the bytes. So: if a change makes
  * these fail, it is a breaking change for every deployed client.
  */
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
@@ -23,22 +23,13 @@ vi.mock('../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
   return buildDbMock(createSnapshotTestDb());
 });
-vi.mock('../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-  SESSION_DURATION: '24h',
-  SESSION_DURATION_MS: 86400000,
-  SESSION_DURATION_SECONDS: 86400,
-  DEFAULT_LANGUAGE: 'en',
-}));
 
 import type { INestApplication } from '@nestjs/common';
 import { buildApp, getHttpServer } from '../../src/bootstrap';
 import { db as testDb } from '../../src/db/database';
 import { resetTestDb } from '../helpers/test-db';
 import { createUser, createTrip } from '../helpers/factories';
-import { broadcast, broadcastToUser } from '../../src/websocket';
+import { broadcast, broadcastToUser } from '../../src/nest/realtime/ws-state';
 import { createEphemeralToken } from '../../src/nest/auth-core/ephemeral-tokens';
 
 let server: http.Server;

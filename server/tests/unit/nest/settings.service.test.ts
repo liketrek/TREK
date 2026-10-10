@@ -26,13 +26,6 @@ vi.mock('../../../src/db/database', async () => {
     return mock;
 });
 
-
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-secret',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
-
 // Passthrough crypto — value comes back unchanged for most tests
 vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   maybe_encrypt_api_key: (v: string) => v,

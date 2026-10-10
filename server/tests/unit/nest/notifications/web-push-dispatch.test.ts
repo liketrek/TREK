@@ -21,11 +21,6 @@ vi.mock('../../../../src/db/database', async () => {
     isOwner: () => false,
   };
 });
-vi.mock('../../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
 const { safeFetchFollow, logError } = vi.hoisted(() => ({ safeFetchFollow: vi.fn(), logError: vi.fn() }));
 vi.mock('../../../../src/nest/audit/audit-log.logger', () => ({
   LOG_LEVEL: 'error',

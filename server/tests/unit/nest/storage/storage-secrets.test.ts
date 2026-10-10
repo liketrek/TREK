@@ -1,6 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
-
-vi.mock('../../../../src/config', () => ({ ENCRYPTION_KEY: 'storage-secrets-test-key' }));
+import { describe, it, expect } from 'vitest';
 
 import { MASKED_SETTING_VALUE, type StorageConfig } from '@trek/shared';
 import {
@@ -37,7 +35,6 @@ const LOCAL_ONLY: StorageConfig = {
   backends: [{ name: 'nas', type: 'local', options: { root: '/mnt/nas' } }],
   categories: {},
 };
-
 
 describe('encryptStorageSecrets', () => {
   it('encrypts plaintext secrets and round-trips through decrypt', () => {

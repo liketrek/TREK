@@ -19,7 +19,6 @@ vi.mock('../../../src/db/database', async () => {
   return { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: async () => null };
 });
 import { db as testDb } from '../../../src/db/database';
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'x'.repeat(40), ENCRYPTION_KEY: 'a'.repeat(64), updateJwtSecret: () => {} }));
 
 import { PluginsService } from '../../../src/nest/plugins/plugins.service';
 import { PluginsController } from '../../../src/nest/plugins/plugins.controller';

@@ -37,13 +37,6 @@ vi.mock('../../../src/db/database', async () => {
     return mock;
 });
 
-
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-secret',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
-
 // Spy on the photo-cache reclaim hook so delete tests assert the wiring without
 // touching disk. The removal logic itself is covered in placePhotoCache.test.ts.
 // Injected stub since the photo-cache fold (was a partial path mock).

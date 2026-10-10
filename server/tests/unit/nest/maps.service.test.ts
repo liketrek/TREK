@@ -133,11 +133,6 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   maybe_encrypt_api_key: (v: string | null) => v,
 }));
 
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-secret',
-  ENCRYPTION_KEY: '0'.repeat(64),
-}));
-
 // pois(), searchPlaces() and autocompletePlaces() all ask the index before the
 // old path, and trekPlacesEnabled fails open — so a case that reaches one of
 // them with no fetch stub in place leaves the runner for places.liketrek.com.

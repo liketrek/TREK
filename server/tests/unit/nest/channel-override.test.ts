@@ -16,7 +16,6 @@ vi.mock('../../../src/db/database', async () => {
     return { db, closeDb: () => {}, reinitialize: () => {}, canAccessTrip: () => null, isOwner: () => false, getPlaceWithTags: () => null };
 });
 
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'x'.repeat(40), ENCRYPTION_KEY: 'a'.repeat(64), updateJwtSecret: () => {} }));
 vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({ decrypt_api_key: (v: string) => v, maybe_encrypt_api_key: (v: string) => v, encrypt_api_key: (v: string) => v }));
 const { sendMailMock } = vi.hoisted(() => ({ sendMailMock: vi.fn().mockResolvedValue({ accepted: ['a@b.c'] }) }));
 vi.mock('nodemailer', () => ({ default: { createTransport: vi.fn(() => ({ sendMail: sendMailMock, verify: vi.fn() })) } }));

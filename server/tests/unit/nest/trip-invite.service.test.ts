@@ -20,11 +20,6 @@ vi.mock('../../../src/db/database', async () => {
     isOwner: () => false,
   };
 });
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-secret',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
 
 import { db as testDb } from '../../../src/db/database';
 import { resetTestDb } from '../../helpers/test-db';

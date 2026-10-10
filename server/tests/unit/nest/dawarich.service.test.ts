@@ -47,13 +47,9 @@ import { createSnapshotTestDb } from '../../helpers/db-mock';
 
 const testDb = createSnapshotTestDb();
 
-// Same fixed key the global setup exports, pinned here so the at-rest round
-// trip cannot depend on what is lying in server/data.
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-secret',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
+// The at-rest round trip uses the fixed key of the global test config
+// (tests/helpers/test-config.ts), so it cannot depend on what is lying in
+// server/data.
 
 // The whole ssrfGuard surface, not only `checkSsrf`: several modules on the
 // import graph pull other names off it, and a factory mock that omits one

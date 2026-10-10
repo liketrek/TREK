@@ -15,8 +15,6 @@ vi.mock('../../../src/db/database', () => ({
   db: { prepare: () => ({ get: () => undefined, run: () => undefined, all: () => [] }) },
 }));
 
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
 vi.mock('../../../src/utils/ssrfGuard', () => ({
   safeFetchFollow: vi.fn(),
   checkSsrf: vi.fn(async () => ({ allowed: true })),

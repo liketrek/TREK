@@ -29,13 +29,10 @@ vi.mock('../../src/db/database', async () => {
 // The audit domain is DI-native: writeAudit runs for real against the temp db's
 // audit_log table; only the file logger is silenced.
 vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
-// apiKeyCrypto imports ENCRYPTION_KEY from here for the cipher; the raw
-// process.env var is managed separately in beforeAll/afterAll for the
-// no-explicit-key case (STORE2E-007). JWT_SECRET must also be
-// supplied — jwt-verify.ts (JwtAuthGuard) and the harness's signSession both
-// import it from this same module, so mocking the module wholesale requires
-// keeping both consistent.
-vi.mock('../../src/config', () => ({ ENCRYPTION_KEY: 'e2e-storage-key', JWT_SECRET: 'e2e-storage-jwt-secret' }));
+// apiKeyCrypto reads ENCRYPTION_KEY for the cipher from src/config, which the
+// global test setup fixes (tests/helpers/test-config.ts); the raw process.env
+// var is managed separately in beforeAll/afterAll for the no-explicit-key case
+// (STORE2E-007).
 
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';

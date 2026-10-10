@@ -15,16 +15,10 @@ vi.mock('../../../src/db/database', async () => {
     return { db, closeDb: () => {}, reinitialize: () => {}, getPlaceWithTags: () => null, canAccessTrip: () => undefined, isOwner: () => false };
 });
 
-
 const logMock = vi.hoisted(() => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
 
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-secret',
-  ENCRYPTION_KEY: 'a'.repeat(64),
-  updateJwtSecret: () => {},
-}));
 
 import { db as testDb } from '../../../src/db/database';
 import { createUser, createTrip, createTodoItem, setAppSetting, setNotificationChannels } from '../../helpers/factories';

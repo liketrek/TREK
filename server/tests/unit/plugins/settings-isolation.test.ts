@@ -20,7 +20,6 @@ import { db as testDb } from '../../../src/db/database';
 import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import { AuditService } from '../../../src/nest/audit/audit.service';
 import { createTestAddonsService } from '../../helpers/test-addons';
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'x'.repeat(40), ENCRYPTION_KEY: 'a'.repeat(64), updateJwtSecret: () => {} }));
 
 import { createUser } from '../../helpers/factories';
 import { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';

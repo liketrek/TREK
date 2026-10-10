@@ -10,7 +10,6 @@
  *     const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
  *     return buildDbMock(createSnapshotTestDb());
  *   });
- *   vi.mock('../../src/config', () => TEST_CONFIG);
  *
  *   import { db as testDb } from '../../src/db/database';
  *   import { resetTestDb, resetRateLimits } from '../helpers/test-db';
@@ -188,15 +187,3 @@ export function resetRateLimits(app: INestApplication): Promise<void> {
   return ctrl.rl.reset();
 }
 
-/** Fixed config mock — use with vi.mock('../../src/config', () => TEST_CONFIG) */
-export const TEST_CONFIG = {
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-  SESSION_DURATION: '24h',
-  SESSION_DURATION_MS: 86400000,
-  SESSION_DURATION_SECONDS: 86400,
-  SESSION_DURATION_REMEMBER: '30d',
-  SESSION_DURATION_REMEMBER_MS: 2592000000,
-  SESSION_DURATION_REMEMBER_SECONDS: 2592000,
-};

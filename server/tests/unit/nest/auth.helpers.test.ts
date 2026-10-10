@@ -9,7 +9,6 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
 vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   decrypt_api_key: vi.fn((v) => v),
   maybe_encrypt_api_key: vi.fn((v) => v),

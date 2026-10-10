@@ -49,8 +49,6 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   maybe_encrypt_api_key: (v: string | null) => v,
 }));
 
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
 // The index answers search and autocomplete before any keyed provider, and
 // trekPlacesEnabled fails open, so a service-level case that reached it with
 // the Amap fetch stub in place would leave the runner for places.liketrek.com.
