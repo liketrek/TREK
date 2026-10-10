@@ -1,3 +1,4 @@
+import { DomainError } from '../common/domain-error';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { resolvePackedState, type TrekWsPayload, type TrekWsTripEventName } from '@trek/shared';
@@ -806,14 +807,14 @@ export class PackingService {
 
   async getPackingTemplate(id: string) {
     const template = await this.templatesRepo.findById(id);
-    if (!template) return { error: 'Template not found', status: 404 };
+    if (!template) throw new DomainError(404, 'Template not found');
     const categories = await this.templateCategoriesRepo.listForTemplate(id);
     const items = await this.templateItemsRepo.listForTemplate(id);
     return { template, categories, items };
   }
 
   async createPackingTemplate(name: string, createdBy: number) {
-    if (!name?.trim()) return { error: 'Name is required', status: 400 };
+    if (!name?.trim()) throw new DomainError(400, 'Name is required');
     const newId = await this.templatesRepo.insertTemplate(name.trim(), createdBy);
     const template = await this.templatesRepo.findById(newId);
     return { template };
@@ -821,14 +822,14 @@ export class PackingService {
 
   async updatePackingTemplate(id: string, data: { name?: string }) {
     const template = await this.templatesRepo.findById(id);
-    if (!template) return { error: 'Template not found', status: 404 };
+    if (!template) throw new DomainError(404, 'Template not found');
     if (data.name?.trim()) await this.templatesRepo.updateName(id, data.name.trim());
     return { template: await this.templatesRepo.findById(id) };
   }
 
   async deletePackingTemplate(id: string) {
     const template = await this.templatesRepo.findById(id);
-    if (!template) return { error: 'Template not found', status: 404 };
+    if (!template) throw new DomainError(404, 'Template not found');
     await this.templatesRepo.delete(id);
     return { name: template.name };
   }
@@ -836,9 +837,9 @@ export class PackingService {
   // Template categories
 
   async createTemplateCategory(templateId: string, name: string) {
-    if (!name?.trim()) return { error: 'Category name is required', status: 400 };
+    if (!name?.trim()) throw new DomainError(400, 'Category name is required');
     const template = await this.templatesRepo.findById(templateId);
-    if (!template) return { error: 'Template not found', status: 404 };
+    if (!template) throw new DomainError(404, 'Template not found');
     const newId = await this.uow.transactional(async () => {
       const maxOrder = await this.templateCategoriesRepo.maxSortOrder(templateId);
       return await this.templateCategoriesRepo.insertCategory(templateId, name.trim(), (maxOrder ?? -1) + 1);
@@ -848,7 +849,7 @@ export class PackingService {
 
   async updateTemplateCategory(templateId: string, catId: string, data: { name?: string }) {
     const cat = await this.templateCategoriesRepo.findInTemplate(catId, templateId);
-    if (!cat) return { error: 'Category not found', status: 404 };
+    if (!cat) throw new DomainError(404, 'Category not found');
     if (data.name?.trim())
       await this.templateCategoriesRepo.updateName(catId, data.name.trim());
     return { category: await this.templateCategoriesRepo.findById(catId) };
@@ -856,7 +857,7 @@ export class PackingService {
 
   async deleteTemplateCategory(templateId: string, catId: string) {
     const cat = await this.templateCategoriesRepo.findInTemplate(catId, templateId);
-    if (!cat) return { error: 'Category not found', status: 404 };
+    if (!cat) throw new DomainError(404, 'Category not found');
     await this.templateCategoriesRepo.delete(catId);
     return {};
   }
@@ -864,9 +865,9 @@ export class PackingService {
   // Template items
 
   async createTemplateItem(templateId: string, catId: string, name: string) {
-    if (!name?.trim()) return { error: 'Item name is required', status: 400 };
+    if (!name?.trim()) throw new DomainError(400, 'Item name is required');
     const cat = await this.templateCategoriesRepo.findInTemplate(catId, templateId);
-    if (!cat) return { error: 'Category not found', status: 404 };
+    if (!cat) throw new DomainError(404, 'Category not found');
     const newId = await this.uow.transactional(async () => {
       const maxOrder = await this.templateItemsRepo.maxSortOrder(catId);
       return await this.templateItemsRepo.insertTemplateItem({ category_id: catId, name: name.trim(), sort_order: (maxOrder ?? -1) + 1 });
@@ -876,7 +877,7 @@ export class PackingService {
 
   async updateTemplateItem(templateId: string, itemId: string, data: { name?: string }) {
     const item = await this.templateItemsRepo.findScoped(itemId, templateId);
-    if (!item) return { error: 'Item not found', status: 404 };
+    if (!item) throw new DomainError(404, 'Item not found');
     if (data.name?.trim())
       await this.templateItemsRepo.updateName(itemId, data.name.trim());
     return { item: await this.templateItemsRepo.findById(itemId) };
@@ -884,7 +885,7 @@ export class PackingService {
 
   async deleteTemplateItem(templateId: string, itemId: string) {
     const item = await this.templateItemsRepo.findScoped(itemId, templateId);
-    if (!item) return { error: 'Item not found', status: 404 };
+    if (!item) throw new DomainError(404, 'Item not found');
     await this.templateItemsRepo.delete(itemId);
     return {};
   }

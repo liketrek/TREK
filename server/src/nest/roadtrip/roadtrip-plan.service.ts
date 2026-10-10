@@ -1,10 +1,11 @@
+import { DomainError } from '../common/domain-error';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { SettingsService } from '../settings/settings.service';
 import { DayBoundariesService } from './day-boundaries.service';
 import { RoadtripPreferencesService } from './roadtrip-preferences.service';
 import { RoadtripRouterService } from './roadtrip-router.service';
 import { RoadtripService } from './roadtrip.service';
-import { Injectable, HttpException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { type RoadtripPreferences } from '@trek/shared';
 import { Days } from '../../db/entities/Days.entity';
 import type { DaysRepository } from '../../db/repositories/Days.repository';
@@ -69,7 +70,7 @@ export class RoadtripPlanService {
   ) {}
 
   async context(tripId: number, userId: number) {
-    if (!(await this.tripsRepo.findAccessible(tripId, userId))) throw new HttpException({ error: 'Trip not found' }, 404);
+    if (!(await this.tripsRepo.findAccessible(tripId, userId))) throw new DomainError(404, 'Trip not found');
     // RPL1 — `DaysRepository.listPlanDays`.
     const days = await this.daysRepo.listPlanDays(tripId);
     // RPL2 — `DayAssignmentsRepository.listRoadtripVisits`.
@@ -139,7 +140,7 @@ export class RoadtripPlanService {
       preferences.roadtrip_day_end_mode,
     );
     if (preferences.roadtrip_day_start && preferences.roadtrip_day_end && !window)
-      throw new HttpException({ error: 'Day end must be later than day start.' }, 400);
+      throw new DomainError(400, 'Day end must be later than day start.');
     const seams = context.carriers.map((booking) => carrierSeam(booking)).filter((seam): seam is CarrierSeam => seam !== null);
     const dayNumberOf = (dayId: number): number => context.days.find((d) => d.id === dayId)?.day_number ?? 0;
     const stored: PlanDay[] = context.days.map((day) => {
@@ -196,7 +197,7 @@ export class RoadtripPlanService {
     const avoid = parseAvoid(preferences.roadtrip_avoid);
     const connectDays = preferences.roadtrip_connect_days || window !== null;
     if (context.visits.length > 150)
-      throw new HttpException({ error: 'This trip exceeds the 150-visit calculation limit.' }, 400);
+      throw new DomainError(400, 'This trip exceeds the 150-visit calculation limit.');
     const asked = new Set<string>();
     const distanceUnit: DistanceUnit =
       (await this.settings.getUserSettings(userId)).distance_unit === 'imperial' ? 'imperial' : 'metric';

@@ -14,6 +14,7 @@
  * 2026-08 admin fold, since this service already owned all three template
  * tables.
  */
+import { asLegacyResult } from '../../helpers/domain-error';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
@@ -1049,44 +1050,44 @@ describe('PackingService — the surface the deleted bridge exposed', () => {
 describe('Packing templates', () => {
   it('ADMIN-SVC-031 — createPackingTemplate returns template', async () => {
     const { user: admin } = createAdmin(testDb);
-    const result = await svc.createPackingTemplate('Beach Trip', admin.id) as any;
+    const result = await asLegacyResult(svc.createPackingTemplate('Beach Trip', admin.id)) as any;
     expect(result.template.name).toBe('Beach Trip');
   });
 
   it('ADMIN-SVC-032 — createPackingTemplate returns 400 for empty name', async () => {
     const { user: admin } = createAdmin(testDb);
-    const result = await svc.createPackingTemplate('', admin.id) as any;
+    const result = await asLegacyResult(svc.createPackingTemplate('', admin.id)) as any;
     expect(result.status).toBe(400);
   });
 
   it('ADMIN-SVC-033 — listPackingTemplates returns array', async () => {
     const { user: admin } = createAdmin(testDb);
-    await svc.createPackingTemplate('Template A', admin.id);
+    await asLegacyResult(svc.createPackingTemplate('Template A', admin.id));
     const templates = await svc.listPackingTemplates() as any[];
     expect(templates.length).toBeGreaterThanOrEqual(1);
   });
 
   it('ADMIN-SVC-034 — updatePackingTemplate updates name', async () => {
     const { user: admin } = createAdmin(testDb);
-    const created = await svc.createPackingTemplate('Old Name', admin.id) as any;
-    const result = await svc.updatePackingTemplate(String(created.template.id), { name: 'New Name' }) as any;
+    const created = await asLegacyResult(svc.createPackingTemplate('Old Name', admin.id)) as any;
+    const result = await asLegacyResult(svc.updatePackingTemplate(String(created.template.id), { name: 'New Name' })) as any;
     expect(result.template.name).toBe('New Name');
   });
 
   it('ADMIN-SVC-035 — updatePackingTemplate returns 404 for non-existent', async () => {
-    const result = await svc.updatePackingTemplate('99999', { name: 'Ghost' }) as any;
+    const result = await asLegacyResult(svc.updatePackingTemplate('99999', { name: 'Ghost' })) as any;
     expect(result.status).toBe(404);
   });
 
   it('ADMIN-SVC-036 — deletePackingTemplate removes template', async () => {
     const { user: admin } = createAdmin(testDb);
-    const created = await svc.createPackingTemplate('To Delete', admin.id) as any;
-    const result = await svc.deletePackingTemplate(String(created.template.id)) as any;
+    const created = await asLegacyResult(svc.createPackingTemplate('To Delete', admin.id)) as any;
+    const result = await asLegacyResult(svc.deletePackingTemplate(String(created.template.id))) as any;
     expect(result.name).toBe('To Delete');
   });
 
   it('ADMIN-SVC-037 — deletePackingTemplate returns 404 for non-existent', async () => {
-    const result = await svc.deletePackingTemplate('99999') as any;
+    const result = await asLegacyResult(svc.deletePackingTemplate('99999')) as any;
     expect(result.status).toBe(404);
   });
 });
@@ -1094,50 +1095,50 @@ describe('Packing templates', () => {
 describe('Template categories', () => {
   it('ADMIN-SVC-038 — createTemplateCategory creates a category', async () => {
     const { user: admin } = createAdmin(testDb);
-    const tpl = await svc.createPackingTemplate('Tpl', admin.id) as any;
-    const result = await svc.createTemplateCategory(String(tpl.template.id), 'Clothing') as any;
+    const tpl = await asLegacyResult(svc.createPackingTemplate('Tpl', admin.id)) as any;
+    const result = await asLegacyResult(svc.createTemplateCategory(String(tpl.template.id), 'Clothing')) as any;
     expect(result.category.name).toBe('Clothing');
   });
 
   it('ADMIN-SVC-039 — createTemplateCategory returns 400 for empty name', async () => {
     const { user: admin } = createAdmin(testDb);
-    const tpl = await svc.createPackingTemplate('Tpl', admin.id) as any;
-    const result = await svc.createTemplateCategory(String(tpl.template.id), '') as any;
+    const tpl = await asLegacyResult(svc.createPackingTemplate('Tpl', admin.id)) as any;
+    const result = await asLegacyResult(svc.createTemplateCategory(String(tpl.template.id), '')) as any;
     expect(result.status).toBe(400);
   });
 
   it('ADMIN-SVC-040 — createTemplateCategory returns 404 for missing template', async () => {
-    const result = await svc.createTemplateCategory('99999', 'Clothing') as any;
+    const result = await asLegacyResult(svc.createTemplateCategory('99999', 'Clothing')) as any;
     expect(result.status).toBe(404);
   });
 
   it('ADMIN-SVC-041 — updateTemplateCategory updates name', async () => {
     const { user: admin } = createAdmin(testDb);
-    const tpl = await svc.createPackingTemplate('Tpl', admin.id) as any;
-    const cat = await svc.createTemplateCategory(String(tpl.template.id), 'Old') as any;
-    const result = await svc.updateTemplateCategory(String(tpl.template.id), String(cat.category.id), { name: 'New' }) as any;
+    const tpl = await asLegacyResult(svc.createPackingTemplate('Tpl', admin.id)) as any;
+    const cat = await asLegacyResult(svc.createTemplateCategory(String(tpl.template.id), 'Old')) as any;
+    const result = await asLegacyResult(svc.updateTemplateCategory(String(tpl.template.id), String(cat.category.id), { name: 'New' })) as any;
     expect(result.category.name).toBe('New');
   });
 
   it('ADMIN-SVC-042 — updateTemplateCategory returns 404 for missing category', async () => {
     const { user: admin } = createAdmin(testDb);
-    const tpl = await svc.createPackingTemplate('Tpl', admin.id) as any;
-    const result = await svc.updateTemplateCategory(String(tpl.template.id), '99999', { name: 'X' }) as any;
+    const tpl = await asLegacyResult(svc.createPackingTemplate('Tpl', admin.id)) as any;
+    const result = await asLegacyResult(svc.updateTemplateCategory(String(tpl.template.id), '99999', { name: 'X' })) as any;
     expect(result.status).toBe(404);
   });
 
   it('ADMIN-SVC-043 — deleteTemplateCategory removes category', async () => {
     const { user: admin } = createAdmin(testDb);
-    const tpl = await svc.createPackingTemplate('Tpl', admin.id) as any;
-    const cat = await svc.createTemplateCategory(String(tpl.template.id), 'Remove Me') as any;
-    const result = await svc.deleteTemplateCategory(String(tpl.template.id), String(cat.category.id)) as any;
+    const tpl = await asLegacyResult(svc.createPackingTemplate('Tpl', admin.id)) as any;
+    const cat = await asLegacyResult(svc.createTemplateCategory(String(tpl.template.id), 'Remove Me')) as any;
+    const result = await asLegacyResult(svc.deleteTemplateCategory(String(tpl.template.id), String(cat.category.id))) as any;
     expect(result.error).toBeUndefined();
   });
 
   it('ADMIN-SVC-044 — deleteTemplateCategory returns 404 for missing', async () => {
     const { user: admin } = createAdmin(testDb);
-    const tpl = await svc.createPackingTemplate('Tpl', admin.id) as any;
-    const result = await svc.deleteTemplateCategory(String(tpl.template.id), '99999') as any;
+    const tpl = await asLegacyResult(svc.createPackingTemplate('Tpl', admin.id)) as any;
+    const result = await asLegacyResult(svc.deleteTemplateCategory(String(tpl.template.id), '99999')) as any;
     expect(result.status).toBe(404);
   });
 });
@@ -1145,11 +1146,11 @@ describe('Template categories', () => {
 describe('getPackingTemplate', () => {
   it('ADMIN-SVC-056 — returns template with categories and items when template exists', async () => {
     const { user: admin } = createAdmin(testDb);
-    const tpl = await svc.createPackingTemplate('Full Template', admin.id) as any;
-    const cat = await svc.createTemplateCategory(String(tpl.template.id), 'Clothing') as any;
-    await svc.createTemplateItem(String(tpl.template.id), String(cat.category.id), 'T-Shirt');
+    const tpl = await asLegacyResult(svc.createPackingTemplate('Full Template', admin.id)) as any;
+    const cat = await asLegacyResult(svc.createTemplateCategory(String(tpl.template.id), 'Clothing')) as any;
+    await asLegacyResult(svc.createTemplateItem(String(tpl.template.id), String(cat.category.id), 'T-Shirt'));
 
-    const result = await svc.getPackingTemplate(String(tpl.template.id)) as any;
+    const result = await asLegacyResult(svc.getPackingTemplate(String(tpl.template.id))) as any;
     expect(result.template).toBeDefined();
     expect(result.template.name).toBe('Full Template');
     expect(Array.isArray(result.categories)).toBe(true);
@@ -1160,7 +1161,7 @@ describe('getPackingTemplate', () => {
   });
 
   it('ADMIN-SVC-057 — returns 404 for non-existent template', async () => {
-    const result = await svc.getPackingTemplate('99999') as any;
+    const result = await asLegacyResult(svc.getPackingTemplate('99999')) as any;
     expect(result.status).toBe(404);
     expect(result.error).toBeDefined();
   });
@@ -1169,54 +1170,54 @@ describe('getPackingTemplate', () => {
 describe('Template items', () => {
   it('ADMIN-SVC-058 — createTemplateItem returns item with name', async () => {
     const { user: admin } = createAdmin(testDb);
-    const tpl = await svc.createPackingTemplate('Tpl', admin.id) as any;
-    const cat = await svc.createTemplateCategory(String(tpl.template.id), 'Gear') as any;
-    const result = await svc.createTemplateItem(String(tpl.template.id), String(cat.category.id), 'Backpack') as any;
+    const tpl = await asLegacyResult(svc.createPackingTemplate('Tpl', admin.id)) as any;
+    const cat = await asLegacyResult(svc.createTemplateCategory(String(tpl.template.id), 'Gear')) as any;
+    const result = await asLegacyResult(svc.createTemplateItem(String(tpl.template.id), String(cat.category.id), 'Backpack')) as any;
     expect(result.item).toBeDefined();
     expect(result.item.name).toBe('Backpack');
   });
 
   it('ADMIN-SVC-059 — createTemplateItem returns 400 for empty name', async () => {
     const { user: admin } = createAdmin(testDb);
-    const tpl = await svc.createPackingTemplate('Tpl', admin.id) as any;
-    const cat = await svc.createTemplateCategory(String(tpl.template.id), 'Gear') as any;
-    const result = await svc.createTemplateItem(String(tpl.template.id), String(cat.category.id), '') as any;
+    const tpl = await asLegacyResult(svc.createPackingTemplate('Tpl', admin.id)) as any;
+    const cat = await asLegacyResult(svc.createTemplateCategory(String(tpl.template.id), 'Gear')) as any;
+    const result = await asLegacyResult(svc.createTemplateItem(String(tpl.template.id), String(cat.category.id), '')) as any;
     expect(result.status).toBe(400);
   });
 
   it('ADMIN-SVC-060 — createTemplateItem returns 404 for non-existent category', async () => {
     const { user: admin } = createAdmin(testDb);
-    const tpl = await svc.createPackingTemplate('Tpl', admin.id) as any;
-    const result = await svc.createTemplateItem(String(tpl.template.id), '99999', 'Item') as any;
+    const tpl = await asLegacyResult(svc.createPackingTemplate('Tpl', admin.id)) as any;
+    const result = await asLegacyResult(svc.createTemplateItem(String(tpl.template.id), '99999', 'Item')) as any;
     expect(result.status).toBe(404);
   });
 
   it('ADMIN-SVC-061 — updateTemplateItem updates name', async () => {
     const { user: admin } = createAdmin(testDb);
-    const tpl = await svc.createPackingTemplate('Tpl', admin.id) as any;
-    const cat = await svc.createTemplateCategory(String(tpl.template.id), 'Gear') as any;
-    const item = await svc.createTemplateItem(String(tpl.template.id), String(cat.category.id), 'Old Item') as any;
-    const result = await svc.updateTemplateItem(String(tpl.template.id), String(item.item.id), { name: 'New Item' }) as any;
+    const tpl = await asLegacyResult(svc.createPackingTemplate('Tpl', admin.id)) as any;
+    const cat = await asLegacyResult(svc.createTemplateCategory(String(tpl.template.id), 'Gear')) as any;
+    const item = await asLegacyResult(svc.createTemplateItem(String(tpl.template.id), String(cat.category.id), 'Old Item')) as any;
+    const result = await asLegacyResult(svc.updateTemplateItem(String(tpl.template.id), String(item.item.id), { name: 'New Item' })) as any;
     expect(result.item.name).toBe('New Item');
   });
 
   it('ADMIN-SVC-062 — updateTemplateItem returns 404 for non-existent item', async () => {
-    const result = await svc.updateTemplateItem('1', '99999', { name: 'Ghost' }) as any;
+    const result = await asLegacyResult(svc.updateTemplateItem('1', '99999', { name: 'Ghost' })) as any;
     expect(result.status).toBe(404);
   });
 
   it('ADMIN-SVC-063 — deleteTemplateItem removes item', async () => {
     const { user: admin } = createAdmin(testDb);
-    const tpl = await svc.createPackingTemplate('Tpl', admin.id) as any;
-    const cat = await svc.createTemplateCategory(String(tpl.template.id), 'Gear') as any;
-    const item = await svc.createTemplateItem(String(tpl.template.id), String(cat.category.id), 'To Delete') as any;
-    const result = await svc.deleteTemplateItem(String(tpl.template.id), String(item.item.id)) as any;
+    const tpl = await asLegacyResult(svc.createPackingTemplate('Tpl', admin.id)) as any;
+    const cat = await asLegacyResult(svc.createTemplateCategory(String(tpl.template.id), 'Gear')) as any;
+    const item = await asLegacyResult(svc.createTemplateItem(String(tpl.template.id), String(cat.category.id), 'To Delete')) as any;
+    const result = await asLegacyResult(svc.deleteTemplateItem(String(tpl.template.id), String(item.item.id))) as any;
     expect(result.error).toBeUndefined();
     expect(await findRow(await orm(), PackingTemplateItems, { id: item.item.id })).toBeNull();
   });
 
   it('ADMIN-SVC-064 — deleteTemplateItem returns 404 for non-existent item', async () => {
-    const result = await svc.deleteTemplateItem('1', '99999') as any;
+    const result = await asLegacyResult(svc.deleteTemplateItem('1', '99999')) as any;
     expect(result.status).toBe(404);
   });
 });
@@ -1226,23 +1227,23 @@ describe('Template items', () => {
 describe('Template item scoping (post-fold quirk fix)', () => {
   it('ADMIN-SVC-076 — update/deleteTemplateItem honour :templateId instead of ignoring it', async () => {
     const { user: admin } = createAdmin(testDb);
-    const tplA = await svc.createPackingTemplate('A', admin.id) as any;
-    const tplB = await svc.createPackingTemplate('B', admin.id) as any;
-    const catA = await svc.createTemplateCategory(String(tplA.template.id), 'Gear') as any;
-    const item = await svc.createTemplateItem(String(tplA.template.id), String(catA.category.id), 'Tent') as any;
+    const tplA = await asLegacyResult(svc.createPackingTemplate('A', admin.id)) as any;
+    const tplB = await asLegacyResult(svc.createPackingTemplate('B', admin.id)) as any;
+    const catA = await asLegacyResult(svc.createTemplateCategory(String(tplA.template.id), 'Gear')) as any;
+    const item = await asLegacyResult(svc.createTemplateItem(String(tplA.template.id), String(catA.category.id), 'Tent')) as any;
 
     // Template B does not own the item — both routes must 404 rather than act.
-    expect(await svc.updateTemplateItem(String(tplB.template.id), String(item.item.id), { name: 'Hijacked' }) as any)
+    expect(await asLegacyResult(svc.updateTemplateItem(String(tplB.template.id), String(item.item.id), { name: 'Hijacked' })) as any)
       .toMatchObject({ status: 404 });
-    expect(await svc.deleteTemplateItem(String(tplB.template.id), String(item.item.id)) as any)
+    expect(await asLegacyResult(svc.deleteTemplateItem(String(tplB.template.id), String(item.item.id))) as any)
       .toMatchObject({ status: 404 });
     expect((await findRow(await orm(), PackingTemplateItems, { id: item.item.id }))!.name)
       .toBe('Tent');
 
     // The owning template still works.
-    expect((await svc.updateTemplateItem(String(tplA.template.id), String(item.item.id), { name: 'Tarp' }) as any).item.name)
+    expect((await asLegacyResult(svc.updateTemplateItem(String(tplA.template.id), String(item.item.id), { name: 'Tarp' })) as any).item.name)
       .toBe('Tarp');
-    expect(await svc.deleteTemplateItem(String(tplA.template.id), String(item.item.id)) as any).toEqual({});
+    expect(await asLegacyResult(svc.deleteTemplateItem(String(tplA.template.id), String(item.item.id))) as any).toEqual({});
   });
 });
 

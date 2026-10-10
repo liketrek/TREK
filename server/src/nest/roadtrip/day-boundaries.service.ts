@@ -1,5 +1,6 @@
+import { DomainError } from '../common/domain-error';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { HttpException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { RoadtripDayBoundary } from '@trek/shared';
 import { DayAssignments } from '../../db/entities/DayAssignments.entity';
 import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
@@ -30,7 +31,7 @@ export class DayBoundariesService {
     // `DayAssignmentsRepository.findInTrip` (AS12) is the trip-scoped read.
     const belongs = async (id: number) => !!(await this.dayAssignmentsRepo.findInTrip(id, tripIdNum));
     if (!(await belongs(boundary.from_assignment_id)) || (boundary.to_assignment_id !== null && !(await belongs(boundary.to_assignment_id)))) {
-      throw new HttpException({ error: 'Stop not found' }, 404);
+      throw new DomainError(404, 'Stop not found');
     }
     // RB2 → RB3, un-transacted (R7 — pin, don't fix): the ownership check above and
     // the upsert below are two statements, not one.

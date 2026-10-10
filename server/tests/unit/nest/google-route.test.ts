@@ -59,7 +59,7 @@ describe('Google route import', () => {
   it('rejects unrelated URLs and oversized routes without fetching or truncating', async () => {
     const { service, maps } = await setup();
     for (const url of ['https://example.com/maps/dir/A/B', 'http://google.com/maps/dir/A/B', 'https://user:pass@google.com/maps/dir/A/B', 'https://google.com/search?q=A']) {
-      await expect(service.preview(url)).rejects.toThrow('Http Exception');
+      await expect(service.preview(url)).rejects.toThrow('Use a Google Maps directions link.');
     }
     await expect(service.preview(`https://google.com/maps/dir/${Array.from({ length: 31 }, (_, i) => `A${i}`).join('/')}`)).rejects.toThrow();
     expect(maps.geocodeQuery).not.toHaveBeenCalled();

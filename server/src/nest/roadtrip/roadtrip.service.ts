@@ -1,4 +1,5 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { DomainError } from '../common/domain-error';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import type { RoadtripDayTrack, RoadtripVia, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -75,7 +76,7 @@ export class RoadtripService {
    */
   private requireDayId(dayId: string | number): number {
     const parsed = toRowId(dayId);
-    if (parsed === null) throw new HttpException({ error: 'Day not found' }, 404);
+    if (parsed === null) throw new DomainError(404, 'Day not found');
     return parsed;
   }
 

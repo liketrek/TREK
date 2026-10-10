@@ -1,4 +1,5 @@
-import { Injectable, HttpException } from '@nestjs/common';
+import { DomainError } from '../common/domain-error';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -166,7 +167,7 @@ export class BookingImportService {
     const kitineraryAvailable = this.extractor.isAvailable();
     const aiAvailable = await this.llmParse.isAvailable(userId);
     if (!kitineraryAvailable && !aiAvailable) {
-      throw new HttpException({ error: 'KItinerary extractor is not available on this server' }, 503);
+      throw new DomainError(503, 'KItinerary extractor is not available on this server');
     }
 
     const allItems: ParsedBookingItem[] = [];

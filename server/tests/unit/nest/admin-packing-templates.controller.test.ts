@@ -4,6 +4,7 @@
  * envelope, same create-201 split, same audit actions — these cases came over from
  * admin.controller.test.ts with the routes.
  */
+import { DomainError } from '../../../src/nest/common/domain-error';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import { AdminPackingTemplatesController } from '../../../src/nest/packing/admin-packing-templates.controller';
@@ -35,16 +36,6 @@ function controller(over: Partial<PackingService> = {}) {
   return { c: new AdminPackingTemplatesController(packing, { writeAudit } as unknown as AuditService), packing };
 }
 
-/**
- * An override whose return value the real method signature cannot produce. Every error
- * branch in PackingService sets a status, so an error envelope without one is not part
- * of the service's return type, yet the controller still has a fallback for it and
- * PACKTPL-003 is the case that covers that fallback.
- */
-function offContract<K extends keyof PackingService>(name: K, impl: () => unknown) {
-  return { [name]: vi.fn(impl) } as unknown as Partial<PackingService>;
-}
-
 const thrown = async (run: () => unknown) => {
   try {
     await run();
@@ -63,14 +54,14 @@ describe('AdminPackingTemplatesController', () => {
     expect(await controller().c.list()).toEqual({ templates: [{ id: 1 }] });
   });
 
-  it('PACKTPL-002 a service {error,status} becomes that HTTP status, not a 200 body', async () => {
-    const { c } = controller({ getPackingTemplate: vi.fn(async () => ({ error: 'not found', status: 404 })) });
+  it('PACKTPL-002 a service refusal becomes that HTTP status, not a 200 body', async () => {
+    const { c } = controller({ getPackingTemplate: vi.fn(async () => { throw new DomainError(404, 'not found'); }) });
     expect(await thrown(() => c.get('9'))).toEqual({ status: 404, body: { error: 'not found' } });
   });
 
-  it('PACKTPL-003 an error without a status defaults to 400', async () => {
-    const { c } = controller(offContract('createTemplateCategory', async () => ({ error: 'name required' })));
-    expect(await thrown(() => c.createCategory('1', { name: '' }))).toEqual({ status: 400, body: { error: 'name required' } });
+  it('PACKTPL-003 a 400 refusal keeps its status and text', async () => {
+    const { c } = controller({ createTemplateCategory: vi.fn(async () => { throw new DomainError(400, 'Category name is required'); }) });
+    expect(await thrown(() => c.createCategory('1', { name: '' }))).toEqual({ status: 400, body: { error: 'Category name is required' } });
   });
 
   it('PACKTPL-004 create audits with the new template id', async () => {

@@ -62,7 +62,7 @@ export class PackingMcp {
     description: 'Add an item to the packing checklist for a trip. It lands on the common list everyone shares unless visibility says otherwise; use set_packing_item_sharing to move an existing item between those tiers.',
     inputSchema: {
       tripId: idSchema,
-      name: z.string().min(1).max(200),
+      name: packingCreateItemRequestSchema.shape.name.max(200),
       category: z.string().max(100).optional().describe('Packing category (e.g. Clothes, Electronics)'),
       bag_id: packingCreateItemRequestSchema.shape.bag_id.describe('Bag to pack the item into (ids come from list_packing_bags)'),
       quantity: packingCreateItemRequestSchema.shape.quantity.describe('How many to pack, clamped to 1-999'),
@@ -138,7 +138,7 @@ export class PackingMcp {
     inputSchema: {
       tripId: idSchema,
       itemId: idSchema,
-      name: z.string().min(1).max(200).optional(),
+      name: packingCreateItemRequestSchema.shape.name.max(200).optional(),
       category: z.string().max(100).optional(),
       bag_id: packingUpdateItemRequestSchema.shape.bag_id.describe('Bag to pack the item into (ids come from list_packing_bags); null takes it out of its bag'),
       quantity: packingUpdateItemRequestSchema.shape.quantity.describe('How many to pack, clamped to 1-999'),
@@ -234,8 +234,8 @@ export class PackingMcp {
     description: 'Create a new packing bag (e.g. "Carry-on", "Checked bag").',
     inputSchema: {
       tripId: idSchema,
-      name: z.string().min(1).max(100),
-      color: z.string().optional(),
+      name: packingCreateBagRequestSchema.shape.name.max(100),
+      color: packingCreateBagRequestSchema.shape.color,
       weight_limit_grams: packingCreateBagRequestSchema.shape.weight_limit_grams.describe('Allowance in grams the bag is measured against (the fill bar)'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -258,8 +258,8 @@ export class PackingMcp {
     inputSchema: {
       tripId: idSchema,
       bagId: idSchema,
-      name: z.string().optional(),
-      color: z.string().optional(),
+      name: packingUpdateBagRequestSchema.shape.name,
+      color: packingUpdateBagRequestSchema.shape.color,
       weight_limit_grams: packingUpdateBagRequestSchema.shape.weight_limit_grams.describe('Allowance in grams the bag is measured against (the fill bar); null lifts the limit'),
       user_id: packingUpdateBagRequestSchema.shape.user_id.describe('Trip member the bag belongs to; null leaves it unassigned, and an id outside the trip roster unassigns it too'),
     },
@@ -441,7 +441,6 @@ export class PackingMcp {
     // Templates are global; the REST route restricts management to admins. Match it.
     if (!(await this.guards.isAdminUser(ctx.userId))) return adminRequired();
     const result = await this.packing.deletePackingTemplate(String(templateId));
-    if ('error' in result) return errorResult(result.error);
     return ok({ success: true, name: result.name });
   }
 

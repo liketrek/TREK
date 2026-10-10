@@ -1,4 +1,5 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { DomainError } from '../common/domain-error';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import type { ChargingInfo } from '@trek/shared';
 import { z } from 'zod';
@@ -24,7 +25,7 @@ export class ChargingService {
   /** CH1 — `PlacesRepository.findChargingProbe` (trip-scoped). */
   async read(tripId: number, placeId: number) {
     const place = await this.placesRepo.findChargingProbe(placeId, tripId);
-    if (!place) throw new HttpException({ error: 'Place not found' }, 404);
+    if (!place) throw new DomainError(404, 'Place not found');
     if (place.stop_type !== 'charging' || place.lat == null || place.lng == null) return empty('unknown');
     return this.lookup(place.lat, place.lng, place.name);
   }

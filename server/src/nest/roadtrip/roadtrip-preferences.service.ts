@@ -1,7 +1,8 @@
+import { DomainError } from '../common/domain-error';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { RealtimeService } from '../realtime/realtime.service';
 import { UnitOfWork } from '../database/unit-of-work';
-import { HttpException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   ROADTRIP_PREFERENCE_KEYS,
   roadtripPreferencesSchema,
@@ -42,7 +43,7 @@ export class RoadtripPreferencesService {
     const saved = await this.uow.transactional(async () => {
       const next = { ...(await this.read(tripId)), ...validated };
       if (next.roadtrip_day_start && next.roadtrip_day_end && next.roadtrip_day_end <= next.roadtrip_day_start) {
-        throw new HttpException({ error: 'Day end must be later than day start.' }, 400);
+        throw new DomainError(400, 'Day end must be later than day start.');
       }
       // RPF3 — `RoadtripPreferencesRepository.upsertValue`.
       for (const [key, value] of Object.entries(validated)) {

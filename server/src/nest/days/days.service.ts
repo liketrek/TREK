@@ -1,4 +1,5 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { DomainError } from '../common/domain-error';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { addIsoDays, MAX_TRIP_DAYS, planDatedAppend } from '@trek/shared';
 import type { RoadtripDayBoundary, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
@@ -303,7 +304,7 @@ export class DaysService {
     // (it stored those through affinity and answered 201) — the same class
     // of defect `PlacesService.create` was fixed for (A-M1).
     const tripIdNum = toRowId(tripId);
-    if (tripIdNum === null) throw new HttpException({ error: 'Trip not found' }, 404);
+    if (tripIdNum === null) throw new DomainError(404, 'Trip not found');
     // DY5: the next day number and the row that takes it in one transaction, so
     // two days added at once cannot both read the same MAX. `|| 0` keeps a stored
     // 0 becoming 1, as the legacy formula did.
@@ -606,7 +607,7 @@ export class DaysService {
     // through affinity and answered 201 for — rather than the renumber-
     // then-skip-the-invariant split H2 found for hex ids.
     const tripIdNum = toRowId(tripId);
-    if (tripIdNum === null) throw new HttpException({ error: 'Trip not found' }, 404);
+    if (tripIdNum === null) throw new DomainError(404, 'Trip not found');
     const rows: DayOrderRow[] = await this.daysRepo.listOrderedForReorder(tripIdNum);
     const n = rows.length;
     const pos = Math.min(Math.max(position ?? n + 1, 1), n + 1);
@@ -673,7 +674,7 @@ export class DaysService {
   async appendDated(tripId: string | number, viewerId: number, notes?: string): Promise<DatedDayAppend> {
     // The same parse-once gate `create`/`insert` use (class docstring).
     const trip = toRowId(tripId);
-    if (trip === null) throw new HttpException({ error: 'Trip not found' }, 404);
+    if (trip === null) throw new DomainError(404, 'Trip not found');
     const appended = await this.uow.transactional(async () => {
       const range = await this.tripsRepo.findDatesById(trip);
       const rows: DayOrderRow[] = await this.daysRepo.listOrderedForReorder(trip);

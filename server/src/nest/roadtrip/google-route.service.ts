@@ -1,4 +1,5 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { DomainError } from '../common/domain-error';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import type { GoogleRouteImport, GoogleRoutePreview } from '@trek/shared';
 import { MapsService, GOOGLE_SHORT_HOSTS, isGoogleMapsHost } from '../maps/maps.service';
@@ -25,18 +26,18 @@ export class GoogleRouteService {
     let url = new URL(raw);
     if (url.protocol !== 'https:' || url.username || url.password || url.port ||
       !isGoogleMapsHost(url.hostname) && !GOOGLE_SHORT_HOSTS.includes(url.hostname))
-      throw new HttpException({ error: 'Use a Google Maps directions link.' }, 400);
+      throw new DomainError(400, 'Use a Google Maps directions link.');
     if (GOOGLE_SHORT_HOSTS.includes(url.hostname)) {
       const reply = await safeFetchFollow(url.href, { signal: AbortSignal.timeout(10000) });
       url = new URL(reply.url);
       await reply.body?.cancel();
-      if (!isGoogleMapsHost(url.hostname)) throw new HttpException({ error: 'Use a Google Maps directions link.' }, 400);
+      if (!isGoogleMapsHost(url.hostname)) throw new DomainError(400, 'Use a Google Maps directions link.');
     }
     if (url.protocol !== 'https:' || !isDirectionsUrl(url.href))
-      throw new HttpException({ error: 'Use a Google Maps directions link.' }, 400);
+      throw new DomainError(400, 'Use a Google Maps directions link.');
     const waypoints = parseDirectionsUrl(url.href, MAX_DIR_WAYPOINTS + 1);
     if (waypoints.length < 2 || waypoints.length > MAX_DIR_WAYPOINTS)
-      throw new HttpException({ error: 'The link must contain between 2 and 30 readable stops.' }, 400);
+      throw new DomainError(400, 'The link must contain between 2 and 30 readable stops.');
     const stops: GoogleRoutePreview['stops'] = [];
     for (const waypoint of waypoints) {
       let name = (waypoint.name || `${waypoint.lat}, ${waypoint.lng}`).slice(0, 200);
@@ -63,16 +64,16 @@ export class GoogleRouteService {
   async import(tripId: number, userId: number, input: GoogleRouteImport, socketId?: string) {
     // GR0 — `TripsRepository.findAccessible` (keeps the row: `access.user_id` feeds the permission check below).
     const access = await this.tripsRepo.findAccessible(tripId, userId);
-    if (!access) throw new HttpException({ error: 'Trip not found' }, 404);
+    if (!access) throw new DomainError(404, 'Trip not found');
     // GR1 — `UsersRepository.getRole`.
     const role = (await this.usersRepo.getRole(userId)) ?? 'user';
     // `every` cannot await the permission check, so the same all-of test runs as
     // an explicit loop — same actions, same order, same short-circuit.
     for (const action of ['place_edit', 'day_edit']) {
       if (!(await this.permissions.checkPermission(action, role, access.user_id, userId, access.user_id !== userId)))
-        throw new HttpException({ error: 'Permission denied' }, 403);
+        throw new DomainError(403, 'Permission denied');
     }
-    if (!(await this.assignments.dayExists(String(input.dayId), String(tripId)))) throw new HttpException({ error: 'Day not found' }, 404);
+    if (!(await this.assignments.dayExists(String(input.dayId), String(tripId)))) throw new DomainError(404, 'Day not found');
     // `map` cannot await the now-async assignment write, so the same per-stop
     // sequence runs as an explicit loop inside the transaction.
     const imported = await this.uow.transactional(async () => {
