@@ -8,10 +8,10 @@
  * iteration. Every refusal is the exact message and status the import route
  * has always answered.
  */
-import { Injectable } from '@nestjs/common';
 import { checkSsrf, safeFetchFollow, SsrfBlockedError } from '../../../utils/ssrfGuard';
-import { LIST_USER_AGENT, MAX_LIST_RESPONSE_BYTES } from './google-list.provider';
 import type { ListImportError, ListRead, NaverListPlace } from '../place-import.types';
+import { LIST_USER_AGENT, MAX_LIST_RESPONSE_BYTES } from './google-list.provider';
+import { Injectable } from '@nestjs/common';
 
 /** Bookmarks asked for per page. */
 const PAGE_SIZE = 20;
@@ -35,7 +35,11 @@ export class NaverListProvider {
     // Redirects are followed manually so each hop is re-validated against the
     // SSRF guard (a short link could otherwise 302 to an internal address).
     let parsedUrl: URL;
-    try { parsedUrl = new URL(url); } catch { return { error: 'Invalid URL', status: 400 }; }
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      return { error: 'Invalid URL', status: 400 };
+    }
     if (parsedUrl.hostname === 'naver.me') {
       try {
         const redirectRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(10000) });
@@ -52,7 +56,7 @@ export class NaverListProvider {
       return { error: 'Could not extract folder ID from URL. Please use a shared Naver Maps list link.', status: 400 };
     }
 
-    const fetchPage = async (start: number) => {
+    const fetchPage = async (start: number): Promise<{ data: NaverPage } | ListImportError> => {
       const apiUrl = `https://pages.map.naver.com/save-pages/api/maps-bookmark/v3/shares/${encodeURIComponent(folderId)}/bookmarks?placeInfo=true&start=${start}&limit=${limit}&sort=lastUseTime&mcids=ALL&createIdNo=true`;
       const apiRes = await fetch(apiUrl, {
         headers: {
@@ -94,9 +98,10 @@ export class NaverListProvider {
     }
 
     const listName = firstPage.data.folder?.name || 'Naver Maps List';
-    const totalCount = typeof firstPage.data.folder?.bookmarkCount === 'number'
-      ? firstPage.data.folder.bookmarkCount
-      : (firstPage.data.bookmarkList?.length || 0);
+    const totalCount =
+      typeof firstPage.data.folder?.bookmarkCount === 'number'
+        ? firstPage.data.folder.bookmarkCount
+        : firstPage.data.bookmarkList?.length || 0;
 
     const allItems: Record<string, unknown>[] = [...(firstPage.data.bookmarkList || [])];
     for (let start = limit; start < totalCount; start += limit) {
@@ -117,9 +122,12 @@ export class NaverListProvider {
     for (const item of allItems) {
       const lat = Number(item?.py);
       const lng = Number(item?.px);
-      const name = typeof item?.name === 'string' && item.name.trim()
-        ? item.name.trim()
-        : (typeof item?.displayName === 'string' ? item.displayName.trim() : '');
+      const name =
+        typeof item?.name === 'string' && item.name.trim()
+          ? item.name.trim()
+          : typeof item?.displayName === 'string'
+            ? item.displayName.trim()
+            : '';
       const note = typeof item?.memo === 'string' && item.memo.trim() ? item.memo.trim() : null;
       const address = typeof item?.address === 'string' && item.address.trim() ? item.address.trim() : null;
 
