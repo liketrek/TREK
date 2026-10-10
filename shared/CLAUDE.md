@@ -8,7 +8,9 @@ Scope: the **`@trek/shared`** workspace — the **single source of truth** for A
 npm run build              # tsdown → dist/ (CJS + ESM + .d.ts). REQUIRED before server/client typecheck or run
 npm run build:watch        # what the root `npm run dev` runs
 npm run typecheck          # tsc --noEmit
-npm run lint               # eslint --fix (rewrites files)
+npm run lint               # eslint, check-only (lint-prettier.yml)
+npm run lint:fix           # eslint --fix
+npm run lint:format        # Prettier outside scripts/format-baseline.json, which only shrinks (lint-prettier.yml)
 npm run test               # vitest run — co-located *.spec.ts files
 npm run i18n:parity        # audit locale drift, exits 0
 npm run i18n:parity:strict # CI gate, exits 1 on any drift (also runs the untranslated ratchet below)

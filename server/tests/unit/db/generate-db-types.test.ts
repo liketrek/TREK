@@ -1,7 +1,3 @@
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { describe, expect, it } from 'vitest';
 import {
   checkDbTypes,
   generateDbTypes,
@@ -17,6 +13,11 @@ import {
   type ColumnInfo,
   type TableInfo,
 } from '../../../scripts/generate-db-types';
+
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { describe, expect, it } from 'vitest';
 
 function column(overrides: Partial<ColumnInfo> & { name: string }): ColumnInfo {
   return { type: 'TEXT', notnull: true, hasDefault: false, pk: 0, hidden: 0, ...overrides };
@@ -80,7 +81,10 @@ describe('renderTable', () => {
   it('DBTYPES-005: a composite primary key is required on insert, not a rowid', () => {
     const source = renderTable({
       name: 'place_tags',
-      columns: [column({ name: 'place_id', type: 'INTEGER', pk: 1 }), column({ name: 'tag_id', type: 'INTEGER', pk: 2 })],
+      columns: [
+        column({ name: 'place_id', type: 'INTEGER', pk: 1 }),
+        column({ name: 'tag_id', type: 'INTEGER', pk: 2 }),
+      ],
     });
     expect(source).toContain('  place_id: number;');
     expect(source).toContain('  tag_id: number;');
@@ -154,13 +158,38 @@ describe('checkDbTypes / writeDbTypes', () => {
 });
 
 describe('the committed src/db/kysely/', () => {
-  it(
-    'DBTYPES-013: matches what the migrated schema generates (the check:db-types gate)',
-    async () => {
-      const files = await generateDbTypes();
-      expect(files.get('db.ts')).toContain('  budget_items: BudgetItemsTable;');
-      expect(checkDbTypes(KYSELY_DIR, files)).toEqual([]);
-    },
-    60_000,
-  );
+  it('DBTYPES-013: matches what the migrated schema generates (the check:db-types gate)', async () => {
+    const files = await generateDbTypes();
+    expect(files.get('db.ts')).toContain('  budget_items: BudgetItemsTable;');
+    expect(checkDbTypes(KYSELY_DIR, files)).toEqual([]);
+  }, 60_000);
+});
+
+describe('formatting', () => {
+  it('DBTYPES-014: every generated file is already Prettier-clean, so lint:format and check:db-types agree', async () => {
+    const prettier = await import('prettier');
+    // Sorted by name, as readSchema hands them over.
+    const files = renderAll([
+      ITEMS,
+      {
+        name: 'place_tags',
+        columns: [
+          column({ name: 'place_id', type: 'INTEGER', pk: 1 }),
+          column({ name: 'tag_id', type: 'INTEGER', pk: 2 }),
+        ],
+      },
+      {
+        name: 't',
+        columns: [column({ name: 'total', type: 'INTEGER', hidden: 2 }), column({ name: 'note', notnull: false })],
+      },
+    ]);
+    const verdicts = await Promise.all(
+      [...files].map(async ([fileName, content]) => {
+        const filepath = path.join(KYSELY_DIR, fileName);
+        const options = await prettier.resolveConfig(filepath);
+        return { fileName, clean: await prettier.check(content, { ...options, filepath }) };
+      }),
+    );
+    expect(verdicts).toEqual([...files.keys()].map((fileName) => ({ fileName, clean: true })));
+  });
 });

@@ -114,12 +114,17 @@ function propertyKey(name: string): string {
 export function renderTable(table: TableInfo): string {
   const types = table.columns.map((c) => columnType(table, c));
   const has = (marker: string) => types.some((t) => t.startsWith(`${marker}<`));
-  const imports =
-    (has('GeneratedAlways') ? "import type { GeneratedAlways } from 'kysely';\n" : '') +
-    (has('InsertOptional') ? "import type { InsertOptional } from './columns';\n" : '');
-  const importBlock = imports === '' ? '' : `${imports}\n`;
+  // Laid out the way the server's Prettier import sorting leaves them, so the
+  // output passes lint:format as written: the relative import first, one blank
+  // line between the groups, and the header comment on the first import with
+  // no blank line after it. A file without imports keeps its blank line.
+  const groups = [
+    has('InsertOptional') ? "import type { InsertOptional } from './columns';\n" : '',
+    has('GeneratedAlways') ? "import type { GeneratedAlways } from 'kysely';\n" : '',
+  ].filter((group) => group !== '');
+  const importBlock = groups.length === 0 ? '\n' : `${groups.join('\n')}\n`;
   const body = table.columns.map((c, i) => `  ${propertyKey(c.name)}: ${types[i]};`).join('\n');
-  return `${HEADER}\n${importBlock}export interface ${interfaceName(table.name)} {\n${body}\n}\n`;
+  return `${HEADER}${importBlock}export interface ${interfaceName(table.name)} {\n${body}\n}\n`;
 }
 
 /**
@@ -132,7 +137,7 @@ export function renderTable(table: TableInfo): string {
  */
 export function renderColumns(): string {
   return (
-    `${HEADER}\nimport type { ColumnType } from 'kysely';\n\n` +
+    `${HEADER}import type { ColumnType } from 'kysely';\n\n` +
     '/** A column an insert may leave out: the database assigns it (rowid, DEFAULT) or stores NULL. */\n' +
     'export type InsertOptional<T> = ColumnType<T, T | void, T>;\n'
   );
@@ -145,7 +150,7 @@ export function renderDb(tables: readonly TableInfo[]): string {
     .join('\n');
   const body = tables.map((t) => `  ${propertyKey(t.name)}: ${interfaceName(t.name)};`).join('\n');
   return (
-    `${HEADER}\n${imports}\n\n` +
+    `${HEADER}${imports}\n\n` +
     '/** Every table of the migrated schema. A repository narrows it: `this.kysely<Pick<DB, \'trips\'>>()`. */\n' +
     `export interface DB {\n${body}\n}\n`
   );

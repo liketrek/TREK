@@ -128,7 +128,8 @@ These commands run across all workspaces at once and are the recommended way to 
 | `npm test`           | Run tests in shared, server, and client                            |
 | `npm run test:cov`   | Run coverage for shared, server, client and plugin-sdk             |
 | `npm run test:e2e`   | Run end-to-end tests (server)                                      |
-| `npm run lint`       | Lint shared, server, and client                                    |
+| `npm run lint`       | Lint shared, server, and client (check-only)                       |
+| `npm run lint:fix`   | Apply ESLint's fixes in shared and server                          |
 | `npm run format`     | Format shared, server, and client                                  |
 | `npm run format:check` | Check formatting across all workspaces                           |
 
@@ -147,7 +148,9 @@ The `@trek/shared` package is the single source of truth for code shared between
 | `npm run typecheck`         | Type-check without emitting          |
 | `npm run i18n:parity`       | Check locale key parity              |
 | `npm run i18n:parity:strict`| Strict locale key parity (CI gate)   |
-| `npm run lint`              | Lint source                          |
+| `npm run lint`              | Lint source, check-only (CI gate)    |
+| `npm run lint:fix`          | Lint source and apply the fixes      |
+| `npm run lint:format`       | Every file outside the shrinking baseline is Prettier-formatted (CI gate) |
 | `npm run format`            | Format source                        |
 | `npm run format:check`   | Check formatting                  |
 | `npm run contracts:open`    | Open shapes in the request contracts may only shrink (CI gate) |
@@ -170,8 +173,9 @@ The `@trek/shared` package is the single source of truth for code shared between
 | `npm run test:e2e`           | Run end-to-end tests                     |
 | `npm run test:watch`         | Run tests in watch mode                  |
 | `npm run test:coverage`      | Run tests with coverage report           |
-| `npm run lint`               | Lint source                              |
-| `npm run lint:check`         | Lint everything, no `--fix`              |
+| `npm run lint`               | Lint everything, check-only              |
+| `npm run lint:fix`           | Lint everything and apply the fixes      |
+| `npm run lint:check`         | Same as `npm run lint`                   |
 | `npm run lint:warnings`      | ESLint, failing on any error and on warnings above the per-rule baseline (CI gate, replaces `lint:check`) |
 | `npm run check:plugin-facts` | Verify generated plugin facts (CI gate)  |
 | `npm run lint:size`          | No source file grows past its line limit or its baseline entry (CI gate) |
@@ -182,6 +186,7 @@ The `@trek/shared` package is the single source of truth for code shared between
 | `npm run gen:db-types`       | Regenerate the Kysely table types in `src/db/kysely/` from the migrated schema |
 | `npm run check:db-types`     | Verify the generated Kysely table types match the migrations (CI gate) |
 | `npm run probe:pg`           | Run the dialect helpers and repository statements against Postgres (CI job, needs `TREK_PG_PROBE_URL`) |
+| `npm run lint:format`        | Every file outside the shrinking baseline is Prettier-formatted (CI gate) |
 | `npm run format`             | Format source                            |
 
 ### Client (`/client`)

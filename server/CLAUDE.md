@@ -12,6 +12,7 @@ npm run typecheck:tests   # tsc over tests/ — CI runs this too; vitest green d
 npm run lint              # eslint, no fix
 npm run lint:fix          # eslint --fix
 npm run lint:warnings     # eslint errors fail, warnings per rule may only shrink (CI gate, scripts/eslint-baseline.json)
+npm run lint:format      # Prettier over src/ and tests/ outside scripts/format-baseline.json, which only shrinks (CI gate)
 npm run test              # vitest run; also test:unit / test:integration / test:ws / test:e2e
 npm run test:coverage     # istanbul coverage; per-domain ratchet over src/nest/**
 npm run gen:plugin-facts  # regenerate the plugin-protocol tables into plugin-sdk/ + shared/

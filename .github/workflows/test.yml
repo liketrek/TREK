@@ -260,6 +260,13 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=8192
         run: cd server && npm run lint:warnings
 
+      - name: Formatting check
+        # Prettier over src/ and tests/: a file outside
+        # scripts/format-baseline.json must be formatted, and the list only
+        # shrinks. Once the mechanical reformat lands and --update empties the
+        # list, this is a full prettier --check.
+        run: cd server && npm run lint:format
+
       - name: DB call-graph gate (no sync DB-touching methods, no raw transactions)
         run: cd server && npm run db:call-graph -- --sync --tx
 

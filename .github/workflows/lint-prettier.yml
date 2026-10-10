@@ -23,12 +23,16 @@ jobs:
         run: npm install
 
       - name: Run lint & format check
+        # Both are check-only: lint used to run eslint --fix, which rewrote the
+        # files before format:check looked at them, so neither could fail on
+        # formatting. lint:format holds every file outside
+        # scripts/format-baseline.json to Prettier; the list only shrinks.
         id: checks
         continue-on-error: true
         run: |
           cd shared
           npm run lint
-          npm run format:check
+          npm run lint:format
 
       - name: Comment on PR if checks failed
         if: steps.checks.outcome == 'failure'
@@ -46,8 +50,9 @@ jobs:
                 '',
                 '```bash',
                 'cd shared',
-                'npm run lint',
-                'npm run format',
+                'npm run lint:fix',
+                'npx prettier --write <file>   # each file lint:format names',
+                'npm run lint:format -- --update   # when a listed file is formatted now',
                 '```',
                 '',
                 'Then commit and push the changes.',
