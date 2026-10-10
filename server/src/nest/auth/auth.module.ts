@@ -41,7 +41,7 @@ import { AuditModule } from '../audit/audit.module';
 import { MailerModule } from '../notifications/mailer/mailer.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
-import { EphemeralTokenModule } from './ephemeral-token.module';
+import { EphemeralTokenModule } from '../auth-core/ephemeral-token.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';

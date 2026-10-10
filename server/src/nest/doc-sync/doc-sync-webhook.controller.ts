@@ -2,7 +2,7 @@ import { Controller, HttpCode, OnModuleDestroy, Param, Post, Req } from '@nestjs
 import { MikroORM } from '@mikro-orm/core';
 import type { Request } from 'express';
 import crypto from 'crypto';
-import { Public } from '../auth/public.decorator';
+import { Public } from '../auth-core/public.decorator';
 import { withRequestContext } from '../database/request-context';
 import { WEBHOOK_NUDGE_DEBOUNCE_SECONDS } from './doc-sync.constants';
 import { DocSyncConfigService, type LinkRow } from './doc-sync-config.service';

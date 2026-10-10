@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpException, Param, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { PluginsService, MissingRequiredSettingError } from './plugins.service';
 import { PluginRuntimeService } from './plugin-runtime.service';

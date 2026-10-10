@@ -14,7 +14,7 @@ import { dbNow } from '../../db/types';
  *
  * Free functions rather than a provider: the platform routes run outside the
  * container and would have no way to inject one, and the guards that call this
- * (the MFA policy is nest/auth/mfa-policy.guard.ts now) share the one copy.
+ * (the MFA policy is nest/auth-core/mfa-policy.guard.ts now) share the one copy.
  * Note JWT_SECRET is deliberately a live binding from src/config, not an app-config value: the admin panel rotates it
  * at runtime and `export let` is what makes a rotation take effect in-process.
  *

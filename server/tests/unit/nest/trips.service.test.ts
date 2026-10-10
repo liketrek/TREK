@@ -79,7 +79,7 @@ import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpe
 import fs from 'fs';
 import path from 'path';
 import { notificationsStub } from '../../helpers/notifications';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
 import {
   createTestUnitOfWork, createTestAppSettingsRepo, createTestUsersRepo, sharedTestOrm,
   createTestDaysRepo, createTestDayAssignmentsRepo, createTestDayNotesRepo, createTestTripsRepo,

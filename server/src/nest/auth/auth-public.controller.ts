@@ -3,14 +3,14 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, MfaVerifyLoginDto } from './auth.dto';
 import { RateLimitService } from '../common/rate-limit.service';
-import { OptionalJwtGuard } from './optional-jwt.guard';
+import { OptionalJwtGuard } from '../auth-core/optional-jwt.guard';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
 import { willDropSecureCookie } from '../common/cookie';
 import type { User } from '../../types';
-import { Public } from './public.decorator';
-import { MfaExempt } from './mfa-policy.guard';
-import { extractToken, verifiedSessionClaims } from './jwt-verify';
+import { Public } from '../auth-core/public.decorator';
+import { MfaExempt } from '../auth-core/mfa-policy.guard';
+import { extractToken, verifiedSessionClaims } from '../auth-core/jwt-verify';
 import { SessionsService, sessionClientFrom } from '../sessions/sessions.service';
 
 const WINDOW = 15 * 60 * 1000;

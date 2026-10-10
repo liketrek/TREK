@@ -4,14 +4,14 @@ import { oidcLoginQuerySchema } from '@trek/shared';
 import { readEnv } from '../../app-config';
 import { OidcService, OIDC_STATE_TTL_MS, OIDC_AUTH_CODE_TTL_MS } from './oidc.service';
 import { cookieOptions } from '../common/cookie';
-import { AdminGuard } from '../auth/admin.guard';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { AdminGuard } from '../auth-core/admin.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import type { User } from '../../types';
 import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
 import { AdminOidcUpdateDto } from '../admin/admin.dto';
-import { Public } from '../auth/public.decorator';
+import { Public } from '../auth-core/public.decorator';
 import { ManagedForbidden } from '../common/managed';
 import { sessionClientFrom } from '../sessions/sessions.service';
 

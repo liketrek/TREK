@@ -2,7 +2,7 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ADDON_IDS } from '../../addons';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { TripAccessGuard } from '../permissions/trip-access.guard';
 import { RoadtripHazardsService } from './roadtrip-hazards.service';
 

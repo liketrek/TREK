@@ -25,8 +25,8 @@ import type { User } from '../../types';
 import { MapsService } from './maps.service';
 import { StorageService } from '../storage/storage.service';
 import { isClientAbortError } from '../storage/storage.types';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { MapsSearchDto, MapsNearbyDto, MapsAutocompleteDto, MapsResolveUrlDto } from './maps.dto';
 
 /** Google's session-token shape: URL-safe ASCII, at most 36 characters. The

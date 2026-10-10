@@ -2,19 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HttpException } from '@nestjs/common';
 import type { Request } from 'express';
 
-vi.mock('../../../src/nest/auth/jwt-verify', () => ({ extractToken: vi.fn(), verifyJwtAndLoadUser: vi.fn() }));
-vi.mock('../../../src/nest/common/cookie', () => ({ setAuthCookie: vi.fn() }));
-vi.mock('../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
-vi.mock('../../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
+vi.mock('../../../../src/nest/auth-core/jwt-verify', () => ({ extractToken: vi.fn(), verifyJwtAndLoadUser: vi.fn() }));
+vi.mock('../../../../src/nest/common/cookie', () => ({ setAuthCookie: vi.fn() }));
+vi.mock('../../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
+vi.mock('../../../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
 
 import type { EntityManager } from '@mikro-orm/core';
-import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
-import { CookieAuthGuard } from '../../../src/nest/auth/cookie-auth.guard';
-import { OptionalJwtGuard } from '../../../src/nest/auth/optional-jwt.guard';
-import { AdminGuard } from '../../../src/nest/auth/admin.guard';
-import { PasskeyEnabledGuard } from '../../../src/nest/auth/passkey-enabled.guard';
-import { PasskeyController } from '../../../src/nest/auth/passkey.controller';
-import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
+import { JwtAuthGuard } from '../../../../src/nest/auth-core/jwt-auth.guard';
+import { CookieAuthGuard } from '../../../../src/nest/auth-core/cookie-auth.guard';
+import { OptionalJwtGuard } from '../../../../src/nest/auth-core/optional-jwt.guard';
+import { AdminGuard } from '../../../../src/nest/auth-core/admin.guard';
+import { PasskeyEnabledGuard } from '../../../../src/nest/auth/passkey-enabled.guard';
+import { PasskeyController } from '../../../../src/nest/auth/passkey.controller';
+import { RateLimitService } from '../../../../src/nest/common/rate-limit.service';
 
 // AuditService is constructor-injected since the auditLog DI migration; the
 // wrapper keeps the historical construction sites positional.
@@ -32,13 +32,13 @@ const passkey = {
   deletePasskey: vi.fn(),
 };
 const pc = (limiter: RateLimitService) => new PasskeyController(limiter, audit, passkey as unknown as PasskeyService);
-import { CurrentUser } from '../../../src/nest/auth/current-user.decorator';
-import { extractToken, verifyJwtAndLoadUser } from '../../../src/nest/auth/jwt-verify';
-import type { AuthService } from '../../../src/nest/auth/auth.service';
-import type { PasskeyService } from '../../../src/nest/auth/passkey.service';
-import { setAuthCookie } from '../../../src/nest/common/cookie';
-import type { AuditService } from '../../../src/nest/audit/audit.service';
-import type { User } from '../../../src/types';
+import { CurrentUser } from '../../../../src/nest/auth-core/current-user.decorator';
+import { extractToken, verifyJwtAndLoadUser } from '../../../../src/nest/auth-core/jwt-verify';
+import type { AuthService } from '../../../../src/nest/auth/auth.service';
+import type { PasskeyService } from '../../../../src/nest/auth/passkey.service';
+import { setAuthCookie } from '../../../../src/nest/common/cookie';
+import type { AuditService } from '../../../../src/nest/audit/audit.service';
+import type { User } from '../../../../src/types';
 
 const user = { id: 1, username: 'u', role: 'user', email: 'u@example.test' } as User;
 

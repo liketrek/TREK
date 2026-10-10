@@ -9,7 +9,7 @@ const h = vi.hoisted(() => ({
   sendToResponse: vi.fn(),
 }));
 
-vi.mock('../../../src/nest/auth/jwt-verify', () => ({ verifyJwtAndLoadUser: h.verifyJwtAndLoadUser }));
+vi.mock('../../../src/nest/auth-core/jwt-verify', () => ({ verifyJwtAndLoadUser: h.verifyJwtAndLoadUser }));
 vi.mock('../../../src/db/database', () => ({ db: { prepare: h.dbPrepare } }));
 
 import {

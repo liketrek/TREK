@@ -5,7 +5,7 @@ import { Trips } from '../../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../../db/repositories/Trips.repository';
 import { Plugins } from '../../../db/entities/Plugins.entity';
 import type { PluginsRepository } from '../../../db/repositories/Plugins.repository';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { PluginRouteDto } from '../plugins.dto';

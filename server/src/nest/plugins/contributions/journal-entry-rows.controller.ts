@@ -6,7 +6,7 @@ import { JourneyEntries } from '../../../db/entities/JourneyEntries.entity';
 import type { JourneyEntriesRepository } from '../../../db/repositories/JourneyEntries.repository';
 import { AddonsService } from '../../addons/addons.service';
 import { ADDON_IDS } from '../../../addons';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';

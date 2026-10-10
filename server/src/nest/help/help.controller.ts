@@ -1,6 +1,6 @@
 import { Controller, Get, HttpException, Param, Query, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { Public } from '../auth/public.decorator';
+import { Public } from '../auth-core/public.decorator';
 import {
   getWikiIndex,
   getWikiPage,

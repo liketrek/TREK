@@ -13,8 +13,8 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import type { User } from '../../types';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';

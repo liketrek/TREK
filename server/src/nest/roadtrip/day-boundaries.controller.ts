@@ -4,7 +4,7 @@ import { roadtripDayBoundarySchema } from '@trek/shared';
 import { ADDON_IDS } from '../../addons';
 import { RequireAddon } from '../addons/require-addon.decorator';
 import { AddonGuard } from '../addons/addon.guard';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { RealtimeService } from '../realtime/realtime.service';
 import { DayBoundariesService } from './day-boundaries.service';

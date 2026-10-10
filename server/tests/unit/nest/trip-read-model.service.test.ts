@@ -59,7 +59,7 @@ import { MapsService } from '../../../src/nest/maps/maps.service';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import { notificationsStub } from '../../helpers/notifications';
 import { accommodationsOver } from '../../helpers/accommodations-service';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
 import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
 import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';

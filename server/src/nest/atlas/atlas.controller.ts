@@ -18,8 +18,8 @@ import type { AtlasLocateResponse, RegionGeo } from '@trek/shared';
 import type { User } from '../../types';
 import { AtlasService, BucketItemExistsError } from './atlas.service';
 import { AtlasMarkRegionDto, AtlasCreateBucketItemDto, AtlasUpdateBucketItemDto } from './atlas.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 
 /**
  * /api/addons/atlas — visited countries/regions, region GeoJSON, bucket list.

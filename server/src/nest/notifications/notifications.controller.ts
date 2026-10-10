@@ -22,11 +22,11 @@ import {
   TestNtfyDto,
   NotificationRespondDto,
 } from './notifications.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard } from '../auth/admin.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { AdminGuard } from '../auth-core/admin.guard';
 import { NotificationPreferencesService } from './notification-preferences.service';
 import { AdminNotificationPreferencesDto, NotificationDefaultsUpdateDto } from '../admin/admin.dto';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { ManagedForbidden } from '../common/managed';
 
 // The masked placeholder the client sends instead of a stored secret (8× U+2022).

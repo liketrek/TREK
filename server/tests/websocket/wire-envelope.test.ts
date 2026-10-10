@@ -39,7 +39,7 @@ import { db as testDb } from '../../src/db/database';
 import { resetTestDb } from '../helpers/test-db';
 import { createUser, createTrip } from '../helpers/factories';
 import { broadcast, broadcastToUser } from '../../src/websocket';
-import { createEphemeralToken } from '../../src/nest/auth/ephemeral-tokens';
+import { createEphemeralToken } from '../../src/nest/auth-core/ephemeral-tokens';
 
 let server: http.Server;
 let wsUrl: string;

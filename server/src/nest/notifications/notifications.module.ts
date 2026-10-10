@@ -13,7 +13,6 @@ import { PushController } from './push/push.controller';
 import { PushSubscriptionsService } from './push/push-subscriptions.service';
 import { VapidKeysService } from './push/vapid-keys.service';
 import { MailerModule } from './mailer/mailer.module';
-import { AuthModule } from '../auth/auth.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
 import { StorageModule } from '../storage/storage.module';
 import { Notifications } from '../../db/entities/Notifications.entity';
@@ -25,9 +24,9 @@ import { TodoItems } from '../../db/entities/TodoItems.entity';
 import { PushSubscriptions } from '../../db/entities/PushSubscriptions.entity';
 
 /** Notifications domain (L6 leaf module). Registered in AppModule.
- *  AuthModule feeds NotificationsMcp's demo gate; MailerModule carries SMTP,
- *  which lives outside this module so AuthService can send the password-reset
- *  mail without AuthModule and NotificationsModule importing each other.
+ *  MailerModule carries SMTP, which lives outside this module so AuthService
+ *  can send the password-reset mail without AuthModule and NotificationsModule
+ *  importing each other.
  *  StorageModule feeds StorageHealthNotifierService, which bridges replica
  *  failures into admin notifications — this direction has no cycle (Storage
  *  imports only AppConfig+Audit+Scheduling).
@@ -63,7 +62,7 @@ import { PushSubscriptions } from '../../db/entities/PushSubscriptions.entity';
       TodoItems,
       PushSubscriptions,
     ]),
-    AuthModule,
+    
     MailerModule,
     SchedulingModule,
     StorageModule,

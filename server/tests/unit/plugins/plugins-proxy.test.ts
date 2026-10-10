@@ -11,7 +11,7 @@ const { pluginsEnabledMock, extractTokenMock, verifyMock } = vi.hoisted(() => ({
   verifyMock: vi.fn(() => ({ id: 5, username: 'ada', role: 'user' })),
 }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled: pluginsEnabledMock }));
-vi.mock('../../../src/nest/auth/jwt-verify', () => ({ extractToken: extractTokenMock, verifyJwtAndLoadUser: verifyMock }));
+vi.mock('../../../src/nest/auth-core/jwt-verify', () => ({ extractToken: extractTokenMock, verifyJwtAndLoadUser: verifyMock }));
 
 import type { EntityManager } from '@mikro-orm/core';
 import { PluginsProxyController } from '../../../src/nest/plugins/plugins-proxy.controller';

@@ -67,7 +67,7 @@ import { DemoService } from '../../src/nest/common/demo.service';
 import { CollectionsRpc } from '../../src/nest/collections/collections.rpc';
 import { makeNotificationsService } from './notifications';
 import { notificationsStub } from './notifications';
-import { EphemeralTokenService } from '../../src/nest/auth/ephemeral-token.service';
+import { EphemeralTokenService } from '../../src/nest/auth-core/ephemeral-token.service';
 import { UserCleanupService } from '../../src/nest/auth/user-cleanup.service';
 import { UnsplashService } from '../../src/nest/unsplash/unsplash.service';
 import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';

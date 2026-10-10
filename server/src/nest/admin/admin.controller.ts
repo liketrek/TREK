@@ -23,9 +23,9 @@ import {
 } from './admin.dto';
 import { PluginRuntimeService } from '../plugins/plugin-runtime.service';
 import { AddonsService } from '../addons/addons.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard } from '../auth/admin.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { AdminGuard } from '../auth-core/admin.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
 import { logInfo } from '../audit/audit-log.logger';
 import { AuditService } from '../audit/audit.service';

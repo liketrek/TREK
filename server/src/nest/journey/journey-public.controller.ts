@@ -6,7 +6,7 @@ import { StorageService } from '../storage/storage.service';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
 import { ADDON_IDS } from '../../addons';
-import { Public } from '../auth/public.decorator';
+import { Public } from '../auth-core/public.decorator';
 
 /**
  * /api/public/journey — unauthenticated, share-token validated read + photo

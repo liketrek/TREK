@@ -24,7 +24,7 @@ import type { DawarichErrorCode } from '@trek/shared';
 import { DawarichController } from '../../../src/nest/integrations/dawarich.controller';
 import { AcceptError } from '../../../src/nest/integrations/dawarich-suggestions.service';
 import { DawarichError } from '../../../src/nest/integrations/dawarich.client';
-import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import { AddonGuard } from '../../../src/nest/addons/addon.guard';
 import { REQUIRE_ADDON } from '../../../src/nest/addons/require-addon.decorator';
 import { ADDON_IDS } from '../../../src/addons';

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { LlmCapabilitiesController } from '../../../../src/nest/llm-parse/llm-capabilities.controller';
-import { JwtAuthGuard } from '../../../../src/nest/auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../../src/nest/auth-core/jwt-auth.guard';
 import type { LlmParseService } from '../../../../src/nest/llm-parse/llm-parse.service';
 import type { User } from '../../../../src/types';
 

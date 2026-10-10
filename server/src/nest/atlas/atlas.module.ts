@@ -7,7 +7,6 @@ import { AtlasRpc } from './atlas.rpc';
 import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { AtlasMcp } from './atlas.mcp';
 import { AddonsModule } from '../addons/addons.module';
-import { AuthModule } from '../auth/auth.module';
 import { PublicStatsController } from './public-stats.controller';
 import { ApiTokenGuard } from '../public-api/api-token.guard';
 import { TokensModule } from '../tokens/tokens.module';
@@ -54,7 +53,7 @@ import { PlaceRegionsRepairJob } from './place-regions-repair.job';
  */
 @Module({
   imports: [
-    AuthModule,
+    
     PluginGuardsModule,
     AddonsModule,
     TokensModule,

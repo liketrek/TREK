@@ -37,7 +37,7 @@ import { SessionsService, type SessionClient } from '../sessions/sessions.servic
 // Type-and-guard only: the app-config read reports the provider choice, it does
 // not construct one, so this does not pull the maps domain into auth.
 import { isPlacesProviderChoice } from '../maps/providers/places-provider';
-import { EphemeralTokenService } from './ephemeral-token.service';
+import { EphemeralTokenService } from '../auth-core/ephemeral-token.service';
 // Import from sessionManager directly, NOT the ../../mcp barrel: the barrel pulls
 // the whole tools fan-out (and via the domain bridges, the Nest services) into
 // every consumer of this module — a nest→mcp→nest module cycle.
@@ -45,7 +45,7 @@ import { revokeUserSessions } from '../../mcp/sessionManager';
 import { UserCleanupService } from './user-cleanup.service';
 import { splitManagedKeys } from '../common/managed';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
-import { verifyJwtAndLoadUser } from './jwt-verify';
+import { verifyJwtAndLoadUser } from '../auth-core/jwt-verify';
 import { User } from '../../types';
 import { UserIdentityTakenError, type UserRow } from '../../db/repositories/Users.repository';
 import { DEMO_EMAIL_PRIMARY, DEMO_PASS, isDemoEmail } from '../common/demo';
@@ -1110,7 +1110,7 @@ export class AuthService {
   // -------------------------------------------------------------------------
 
   /**
-   * Verify a JWT the same way `auth/jwt-verify.ts#verifyJwtAndLoadUser`
+   * Verify a JWT the same way `auth-core/jwt-verify.ts#verifyJwtAndLoadUser`
    * does — including the `password_version` check — so that stolen tokens
    * lose access the moment the victim resets their password.
    *

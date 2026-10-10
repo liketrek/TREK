@@ -2,9 +2,9 @@ import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Pu
 import type { Request } from 'express';
 import { PackingService } from './packing.service';
 import { AdminTemplateNameDto } from '../admin/admin.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard } from '../auth/admin.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { AdminGuard } from '../auth-core/admin.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
 import type { User } from '../../types';

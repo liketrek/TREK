@@ -23,8 +23,8 @@ import {
   AssignmentRouteDto,
   AssignmentParticipantsDto,
 } from './assignments.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 
 

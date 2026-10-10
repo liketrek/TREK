@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Headers, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { ToursService } from './tours.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';

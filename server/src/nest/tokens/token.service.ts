@@ -10,7 +10,7 @@ import { McpTokens } from '../../db/entities/McpTokens.entity';
 import type { McpTokensRepository, McpTokenBasicRow } from '../../db/repositories/McpTokens.repository';
 import { Users } from '../../db/entities/Users.entity';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
-import { EphemeralTokenService } from '../auth/ephemeral-token.service';
+import { EphemeralTokenService } from '../auth-core/ephemeral-token.service';
 import { toRowId } from '../common/row-id';
 // Import from sessionManager directly, NOT the ../../mcp barrel: the barrel pulls
 // the whole tools fan-out (and via the domain bridges, the Nest services) into

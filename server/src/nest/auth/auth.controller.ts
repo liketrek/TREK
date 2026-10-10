@@ -37,14 +37,14 @@ import {
   ResourceTokenDto,
 } from './auth.dto';
 import { RateLimitService } from '../common/rate-limit.service';
-import { JwtAuthGuard } from './jwt-auth.guard';
-import { CurrentUser } from './current-user.decorator';
-import { currentSessionId, decodeSessionClaims } from './jwt-verify';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { currentSessionId, decodeSessionClaims } from '../auth-core/jwt-verify';
 import { sessionClientFrom } from '../sessions/sessions.service';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
 import type { User } from '../../types';
-import { MfaExempt } from './mfa-policy.guard';
+import { MfaExempt } from '../auth-core/mfa-policy.guard';
 import { ManagedForbidden } from '../common/managed';
 
 const WINDOW = 15 * 60 * 1000;

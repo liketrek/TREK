@@ -29,7 +29,7 @@ import {
   extractToken,
   verifiedSessionClaims,
   verifyJwtAndLoadUser,
-} from '../../../../src/nest/auth/jwt-verify';
+} from '../../../../src/nest/auth-core/jwt-verify';
 import type { UsersRepository, UserWithPasswordVersion } from '../../../../src/db/repositories/Users.repository';
 import type { UserSessionsRepository } from '../../../../src/db/repositories/UserSessions.repository';
 import { dbNow } from '../../../../src/db/types';

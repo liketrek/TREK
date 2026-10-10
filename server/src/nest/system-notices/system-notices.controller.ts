@@ -2,8 +2,8 @@ import { Controller, Get, HttpCode, HttpException, Param, Post, Query, UseGuards
 import type { SystemNoticeDto } from '@trek/shared';
 import type { User } from '../../types';
 import { SystemNoticesService } from './system-notices.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 
 /**
  * `?supports=release` names the layouts the calling bundle can draw, comma separated,

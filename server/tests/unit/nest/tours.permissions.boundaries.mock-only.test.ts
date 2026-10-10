@@ -35,12 +35,12 @@ vi.mock('../../../src/nest/places/places.service', () => ({ PlacesService: class
 vi.mock('../../../src/nest/assignments/assignments.service', () => ({ AssignmentsService: class {} }));
 vi.mock('../../../src/nest/app-config/runtime-env.service', () => ({ RuntimeEnvService: class {} }));
 vi.mock('../../../src/nest/storage/storage.service', () => ({ StorageService: class {} }));
-vi.mock('../../../src/nest/auth/jwt-verify', () => ({ extractToken: vi.fn(), verifyJwtAndLoadUser: vi.fn() }));
+vi.mock('../../../src/nest/auth-core/jwt-verify', () => ({ extractToken: vi.fn(), verifyJwtAndLoadUser: vi.fn() }));
 
 import { PlacesController } from '../../../src/nest/places/places.controller';
 import { DayAssignmentsController } from '../../../src/nest/assignments/assignments.controller';
 import { ToursService } from '../../../src/nest/tours/tours.service';
-import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import { TripAccessGuard, TRIP_PERMISSION_KEY } from '../../../src/nest/permissions/trip-access.guard';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import type { PlacesService } from '../../../src/nest/places/places.service';

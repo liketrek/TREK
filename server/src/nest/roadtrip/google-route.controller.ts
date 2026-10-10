@@ -5,7 +5,7 @@ import { googleRouteImportSchema, googleRoutePreviewRequestSchema } from '@trek/
 import { ADDON_IDS } from '../../addons';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { TripAccessGuard } from '../permissions/trip-access.guard';
 import { GoogleRouteService } from './google-route.service';
 

@@ -35,7 +35,7 @@ vi.mock('../../../src/db/database', async () => {
     isOwner: () => false,
   };
 });
-vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
+vi.mock('../../../src/nest/auth-core/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
 vi.mock('../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => ({
@@ -67,7 +67,7 @@ import type { UsersRepository } from '../../../src/db/repositories/Users.reposit
 import { createTestMcpTokensRepo, createTestUsersRepo, sharedTestOrm } from '../../helpers/test-uow';
 import { findRow, updateRows } from '../../helpers/factories/rows';
 import { McpTokens } from '../../../src/db/entities/McpTokens.entity';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
 import { ApiTokenGuard } from '../../../src/nest/public-api/api-token.guard';
 import { PublicApiController } from '../../../src/nest/public-api/public-api.controller';
 import type { PublicApiService } from '../../../src/nest/public-api/public-api.service';

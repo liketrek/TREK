@@ -3,7 +3,7 @@ import type { Request, Response } from 'express';
 import path from 'path';
 import { FilesService } from './files.service';
 import { contentDisposition } from '../common/content-disposition';
-import { Public } from '../auth/public.decorator';
+import { Public } from '../auth-core/public.decorator';
 import { StorageService } from '../storage/storage.service';
 
 /**

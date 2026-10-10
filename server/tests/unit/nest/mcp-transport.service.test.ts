@@ -27,7 +27,7 @@ import type { OauthService } from '../../../src/nest/oauth/oauth.service';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { AuditService } from '../../../src/nest/audit/audit.service';
 import type { McpRegistryService } from '../../../src/nest-mcp';
-import { IS_PUBLIC } from '../../../src/nest/auth/public.decorator';
+import { IS_PUBLIC } from '../../../src/nest/auth-core/public.decorator';
 
 const user = { id: 7, username: 'u', email: 'u@example.com', role: 'user' as const };
 

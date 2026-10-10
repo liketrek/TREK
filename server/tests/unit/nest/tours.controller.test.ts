@@ -31,7 +31,7 @@ vi.mock('../../../src/nest/permissions/permissions.service', () => ({ Permission
 vi.mock('../../../src/nest/addons/addons.service', () => ({ AddonsService: class {} }));
 vi.mock('../../../src/nest/places/places.service', () => ({ PlacesService: class {} }));
 vi.mock('../../../src/nest/tours/tours.service', () => ({ ToursService: class {} }));
-vi.mock('../../../src/nest/auth/jwt-verify', () => ({ extractToken: vi.fn(), verifyJwtAndLoadUser: vi.fn() }));
+vi.mock('../../../src/nest/auth-core/jwt-verify', () => ({ extractToken: vi.fn(), verifyJwtAndLoadUser: vi.fn() }));
 
 import type { TourCreateRequest } from '@trek/shared';
 import { ToursController } from '../../../src/nest/tours/tours.controller';
@@ -40,7 +40,7 @@ import type { ToursService } from '../../../src/nest/tours/tours.service';
 import type { PlacesService } from '../../../src/nest/places/places.service';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import { AddonGuard } from '../../../src/nest/addons/addon.guard';
-import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import { TRIP_PERMISSION_KEY, TripAccessGuard } from '../../../src/nest/permissions/trip-access.guard';
 import { REQUIRE_ADDON } from '../../../src/nest/addons/require-addon.decorator';
 import type { User } from '../../../src/types';

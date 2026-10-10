@@ -7,7 +7,7 @@ beforeEach(() => {
 
 describe('ephemeralTokens', () => {
   async function getModule() {
-    return import('../../../../src/nest/auth/ephemeral-tokens');
+    return import('../../../../src/nest/auth-core/ephemeral-tokens');
   }
 
   // AUTH-030 — Resource token creation (single-use)

@@ -4,8 +4,8 @@ import { memoryStorage } from 'multer';
 import type { User } from '../../types';
 import { ADDON_IDS } from '../../addons';
 import { AddonsService } from '../addons/addons.service';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { PlacesService } from '../places/places.service';
 import { ToursService } from './tours.service';
 

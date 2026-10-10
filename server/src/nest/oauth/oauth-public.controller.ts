@@ -5,7 +5,7 @@ import { RateLimitService } from '../common/rate-limit.service';
 import { getClientIp } from '../audit/client-ip';
 import { logWarn } from '../audit/audit-log.logger';
 import { AuditService } from '../audit/audit.service';
-import { Public } from '../auth/public.decorator';
+import { Public } from '../auth-core/public.decorator';
 import { OAUTH_CLIENT_ALLOWED_SCOPES } from '../../db/json-columns';
 import { decodeJson } from '../../utils/json-column';
 

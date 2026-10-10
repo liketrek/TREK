@@ -95,7 +95,7 @@ import { RoadtripPreferencesMcp } from '../../src/nest/roadtrip/roadtrip-prefere
 import { RoadtripPreferencesService } from '../../src/nest/roadtrip/roadtrip-preferences.service';
 import { RoadtripService } from '../../src/nest/roadtrip/roadtrip.service';
 import { notificationsStub } from './notifications';
-import { EphemeralTokenService } from '../../src/nest/auth/ephemeral-token.service';
+import { EphemeralTokenService } from '../../src/nest/auth-core/ephemeral-token.service';
 import { AllowedFileTypesService } from '../../src/nest/files/allowed-file-types.service';
 import { MemoriesMcp } from '../../src/nest/memories/memories.mcp';
 import { ImmichService } from '../../src/nest/memories/immich.service';

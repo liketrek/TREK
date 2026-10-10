@@ -4,7 +4,7 @@ import { MaintenanceRepository } from '../../db/repositories/MaintenanceReposito
 import { KitineraryExtractorService } from '../booking-import/kitinerary-extractor.service';
 import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
-import { Public } from '../auth/public.decorator';
+import { Public } from '../auth-core/public.decorator';
 import { ReadinessService } from './readiness.service';
 
 /** Exposes the container probe and the server feature flags consumed by the

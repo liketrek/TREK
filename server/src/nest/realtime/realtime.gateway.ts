@@ -11,7 +11,7 @@ import {
 import type { IncomingMessage } from 'node:http';
 import type { WebSocketServer } from 'ws';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { EphemeralTokenService } from '../auth/ephemeral-token.service';
+import { EphemeralTokenService } from '../auth-core/ephemeral-token.service';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { Users } from '../../db/entities/Users.entity';

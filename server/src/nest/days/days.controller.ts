@@ -14,8 +14,8 @@ import type { User } from '../../types';
 import { DaysService, DayReorderError, DayAppendError, type DatedDayAppend } from './days.service';
 import { DayRemovalService, DayDeleteError, type DayRemoval } from './day-removal.service';
 import { DayCreateDto, DayReorderDto, DayTransportDto, DayUpdateDto } from './days.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 
 /**

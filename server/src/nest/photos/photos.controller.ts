@@ -2,8 +2,8 @@ import { Controller, Get, Headers, HttpException, Param, Res, UseGuards } from '
 import type { Response } from 'express';
 import type { User } from '../../types';
 import { PhotosService } from './photos.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 
 /**
  * /api/photos/:id/{thumbnail,original,info} — global (not trip-scoped) photo

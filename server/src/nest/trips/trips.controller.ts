@@ -27,8 +27,8 @@ import { MAX_TRIP_DAYS, type ActiveTripResponse, type TripSearchResponse } from 
 import { StorageService } from '../storage/storage.service';
 import type { User } from '../../types';
 import { TripsService } from './trips.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
 import { logInfo } from '../audit/audit-log.logger';
 import { AuditService } from '../audit/audit.service';

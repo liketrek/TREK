@@ -72,7 +72,13 @@ over an injected `AddonsService`.
   import them from outside the container. `geo.ts` keeps the clamped haversine,
   since `asin` of a value a hair over 1 is NaN and a NaN distance fails every
   comparison silently.
-- `auth/jwt-verify.ts`: `extractToken` and `verifyJwtAndLoadUser`, the one
+- `auth-core/`: the request-auth kernel every controller imports: the guards
+  (`JwtAuthGuard`, `OptionalJwtAuthGuard`, `CookieAuthGuard`, `AdminGuard`, the
+  global `GlobalAuthGuard` and `MfaPolicyGuard`), `@CurrentUser()`, `@Public()`/
+  `@OptionalAuth()`, JWT verification and the ephemeral download/ws tokens. It
+  imports no domain, so `lint:boundaries` treats it as shared kernel like
+  `common/`; `auth/` keeps the account flows (login, MFA, passkeys, sessions).
+- `auth-core/jwt-verify.ts`: `extractToken` and `verifyJwtAndLoadUser`, the one
   session check behind the guards, the MCP bearer path and the download token.
   `JWT_SECRET` stays a live binding from `src/config.ts`, because the admin panel
   rotates it at runtime and a `registerAs` token would freeze the boot value.

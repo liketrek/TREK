@@ -1,10 +1,10 @@
 import { All, Controller, Param, Req, Res } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/core';
 import type { Request, Response } from 'express';
-import { extractToken, verifyJwtAndLoadUser } from '../auth/jwt-verify';
+import { extractToken, verifyJwtAndLoadUser } from '../auth-core/jwt-verify';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
-import { Public } from '../auth/public.decorator';
+import { Public } from '../auth-core/public.decorator';
 import { Users } from '../../db/entities/Users.entity';
 import { UserSessions } from '../../db/entities/UserSessions.entity';
 

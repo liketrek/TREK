@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Headers, HttpCode, HttpException, Param,
 import type { RoadtripDayTrack, RoadtripVia } from '@trek/shared';
 import { RoadtripService } from './roadtrip.service';
 import { RoadtripViaBatchDto, RoadtripViaCreateDto, RoadtripViaReanchorDto, RoadtripViaUpdateDto } from './roadtrip.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
 import { AddonGuard } from '../addons/addon.guard';

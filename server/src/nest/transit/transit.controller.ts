@@ -1,7 +1,7 @@
 import { Controller, Get, HttpException, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RateLimitService } from '../common/rate-limit.service';
 import { TransitService } from './transit.service';
 import type { User } from '../../types';

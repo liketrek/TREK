@@ -1,7 +1,7 @@
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { PLUGIN_SEARCH_SUGGEST_MAX } from '@trek/shared';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import {

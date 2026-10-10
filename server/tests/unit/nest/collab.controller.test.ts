@@ -6,7 +6,7 @@ import path from 'path';
 
 import { CollabController, collabChatImageFilter, collabNoteFileFilter } from '../../../src/nest/collab/collab.controller';
 import { TripAccessGuard, TRIP_PERMISSION_KEY } from '../../../src/nest/permissions/trip-access.guard';
-import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import type { CollabService } from '../../../src/nest/collab/collab.service';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
 import type { User } from '../../../src/types';

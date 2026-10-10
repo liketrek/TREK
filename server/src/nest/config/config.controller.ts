@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import type { PublicConfig } from '@trek/shared';
 import { DEFAULT_LANGUAGE } from '../../config';
-import { Public } from '../auth/public.decorator';
+import { Public } from '../auth-core/public.decorator';
 
 /**
  * /api/config — public (unauthenticated) bootstrap config.

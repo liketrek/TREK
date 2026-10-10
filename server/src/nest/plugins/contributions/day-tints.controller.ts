@@ -5,7 +5,7 @@ import { Trips } from '../../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../../db/repositories/Trips.repository';
 import { Days } from '../../../db/entities/Days.entity';
 import type { DaysRepository } from '../../../db/repositories/Days.repository';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';

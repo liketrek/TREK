@@ -4,8 +4,8 @@ import type {
   PlaceShadowPickResult,
   PlaceShadowSummaryResult,
 } from '@trek/shared';
-import { AdminGuard } from '../auth/admin.guard';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AdminGuard } from '../auth-core/admin.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { PlaceShadowPickDto } from './place-shadow.dto';
 import { PlaceShadowService } from './place-shadow.service';
 

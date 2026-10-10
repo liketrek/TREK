@@ -23,7 +23,7 @@ import { withRequestContext } from '../../../src/nest/database/request-context';
 import type { DatabaseBackupStrategy } from '../../../src/nest/database/database-backup.interface';
 import { resetDemoUser } from '../../../src/demo/demo-reset';
 import { SessionsService } from '../../../src/nest/sessions/sessions.service';
-import { verifyJwtAndLoadUser } from '../../../src/nest/auth/jwt-verify';
+import { verifyJwtAndLoadUser } from '../../../src/nest/auth-core/jwt-verify';
 import { Users } from '../../../src/db/entities/Users.entity';
 import { UserSessions } from '../../../src/db/entities/UserSessions.entity';
 

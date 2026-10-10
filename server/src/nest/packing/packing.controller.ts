@@ -15,8 +15,8 @@ import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import type { User } from '../../types';
 import { PackingService, isInvalidBagRef } from './packing.service';
 import { isUpdateConflict } from '../common/conflictResult';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { toRowId } from '../common/row-id';
 import {

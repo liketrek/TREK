@@ -10,7 +10,7 @@ import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AppConfigModule } from '../app-config/app-config.module';
-import { EphemeralTokenModule } from '../auth/ephemeral-token.module';
+import { EphemeralTokenModule } from '../auth-core/ephemeral-token.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { AllowedFileTypesModule } from './allowed-file-types.module';
 import { AllowedFileTypesService } from './allowed-file-types.service';

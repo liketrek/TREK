@@ -1,8 +1,8 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import type { LlmCapabilitiesResponse } from '@trek/shared';
 import type { User } from '../../types';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { LlmParseService } from './llm-parse.service';
 
 /**

@@ -7,9 +7,9 @@ import { ShareService } from './share.service';
 import { StorageService } from '../storage/storage.service';
 import { isClientAbortError } from '../storage/storage.types';
 import { ShareLinkDto } from './share.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { Public } from '../auth/public.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { Public } from '../auth-core/public.decorator';
 
 /**
  * /api/trips/:tripId/share-link — manage a trip's public read-only share token.

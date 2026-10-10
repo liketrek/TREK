@@ -38,7 +38,7 @@ import {
 } from '../../../src/nest/realtime/ws-state';
 import { emitPluginEvent } from '../../../src/plugin-event-sink';
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
-import type { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import type { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
 import type { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';

@@ -1,16 +1,16 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Patch, Post, Req, Res, UseGuards } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { RateLimitService } from '../common/rate-limit.service';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { PasskeyEnabledGuard } from './passkey-enabled.guard';
-import { CurrentUser } from './current-user.decorator';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { setAuthCookie } from '../common/cookie';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';
 import { PasskeyService } from './passkey.service';
 import { PasskeyRegisterOptionsDto, PasskeyRegisterVerifyDto, PasskeyLoginVerifyDto, PasskeyRenameDto, PasskeyDeleteDto } from './auth.dto';
 import type { User } from '../../types';
-import { MfaExempt } from './mfa-policy.guard';
+import { MfaExempt } from '../auth-core/mfa-policy.guard';
 import { sessionClientFrom } from '../sessions/sessions.service';
 
 const WINDOW = 15 * 60 * 1000;

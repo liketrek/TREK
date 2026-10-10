@@ -2,8 +2,8 @@ import { Body, Controller, Delete, Get, HttpException, Param, Post, Put, UseGuar
 import type { Tag, TagListResponse } from '@trek/shared';
 import type { User } from '../../types';
 import { TagsService } from './tags.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { TagCreateDto, TagUpdateDto } from './tags.dto';
 
 /**

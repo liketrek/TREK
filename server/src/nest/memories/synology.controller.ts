@@ -4,8 +4,8 @@ import type { User } from '../../types';
 import type { ServiceResult } from './memories.helpers';
 import { fail, success } from './memories.helpers';
 import { MemoriesService } from './memories.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { SynologySearchDto, SynologySettingsDto, SynologyTestDto } from './memories.dto';
 
 function _parseStringBodyField(value: unknown): string {

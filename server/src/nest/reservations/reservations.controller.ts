@@ -12,8 +12,8 @@ import {
 } from '@nestjs/common';
 import type { User } from '../../types';
 import { ReservationsService } from './reservations.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { AirtrailLinkService } from '../integrations/airtrail-link.service';
 import {

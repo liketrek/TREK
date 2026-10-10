@@ -15,9 +15,9 @@ import { SessionsService } from '../sessions/sessions.service';
 import { isDemoEmail } from '../common/demo';
 import { readEnv } from '../../app-config';
 import type { User } from '../../types';
-import { CurrentUser } from './current-user.decorator';
-import { currentSessionId } from './jwt-verify';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { currentSessionId } from '../auth-core/jwt-verify';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 
 /**
  * The signed-in user's own sessions: where they are signed in, and signing

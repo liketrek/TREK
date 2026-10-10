@@ -29,8 +29,8 @@ import {
   VacayUpdateStatsDto,
   VacayYearSettingsDto,
 } from './vacay.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 
 /**
  * /api/addons/vacay — shared vacation-day planner.

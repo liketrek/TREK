@@ -46,7 +46,7 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   mask_stored_api_key: vi.fn((v: string | null | undefined) => (v ? '••••••••' : null)),
   encrypt_api_key: vi.fn((v) => v),
 }));
-vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
+vi.mock('../../../src/nest/auth-core/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
 // The four provider calls go through the SSRF guard now (link-local and the
 // cloud-metadata range are refused, every redirect hop re-checked). These tests
@@ -84,7 +84,7 @@ import { TripMembershipService } from '../../../src/nest/trip-membership/trip-me
 import { AuthService } from '../../../src/nest/auth/auth.service';
 import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
 import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
 import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
 import { OidcService } from '../../../src/nest/oidc/oidc.service';
 import { InMemoryOidcFlowStore } from '../../../src/nest/oidc/oidc-flow.store';

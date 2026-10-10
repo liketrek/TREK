@@ -3,7 +3,7 @@ import type { Request } from 'express';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { PluginCapabilityAudit } from '../../db/entities/PluginCapabilityAudit.entity';
 import type { PluginCapabilityAuditRepository } from '../../db/repositories/PluginCapabilityAudit.repository';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { readAuditForUser } from './host/plugin-audit';
 

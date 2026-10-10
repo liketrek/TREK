@@ -9,7 +9,7 @@ import { countRows, findRow, findRows } from '../../../helpers/factories/rows';
 import { UserSessions } from '../../../../src/db/entities/UserSessions.entity';
 import { SessionsService, USER_AGENT_MAX_LENGTH, legacySessionId, sessionClientFrom } from '../../../../src/nest/sessions/sessions.service';
 import { userSessionIdSchema } from '@trek/shared';
-import { verifyJwtAndLoadUser } from '../../../../src/nest/auth/jwt-verify';
+import { verifyJwtAndLoadUser } from '../../../../src/nest/auth-core/jwt-verify';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import type { Request } from 'express';
 import { JWT_SECRET, SESSION_DURATION_REMEMBER_SECONDS, SESSION_DURATION_SECONDS } from '../../../../src/config';

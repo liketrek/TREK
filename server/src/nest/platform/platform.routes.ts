@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { EntityManager } from '@mikro-orm/core';
 
 import { readEnv } from '../../app-config';
-import { verifyJwtAndLoadUser } from '../auth/jwt-verify';
+import { verifyJwtAndLoadUser } from '../auth-core/jwt-verify';
 import { withRequestContext } from '../database/request-context';
 import { StorageService } from '../storage/storage.service';
 import { StorageInvalidKeyError, StorageNotFoundError, type StorageCategory } from '../storage/storage.types';

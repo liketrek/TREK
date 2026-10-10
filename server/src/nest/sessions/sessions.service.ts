@@ -53,7 +53,7 @@ export function sessionClientFrom(req: Pick<Request, 'headers'>): SessionClient 
  * Session tokens and the `user_sessions` rows behind them.
  *
  * Every token issued here carries a random `jti` naming its row, and
- * `verifyJwtAndLoadUser` (auth/jwt-verify.ts) refuses a token whose row is
+ * `verifyJwtAndLoadUser` (auth-core/jwt-verify.ts) refuses a token whose row is
  * revoked, expired or gone. That is what lets a logout end the token instead
  * of only clearing the cookie, and lets a user sign out a device. A token
  * without a `jti` was issued before sessions were tracked: it is never looked
@@ -146,7 +146,7 @@ export class SessionsService {
 
   /**
    * The active session a token names, for the session check in
-   * `verifyJwtAndLoadUser` (auth/jwt-verify.ts, its `SessionLookup`): null
+   * `verifyJwtAndLoadUser` (auth-core/jwt-verify.ts, its `SessionLookup`): null
    * when it is revoked, expired, gone or another user's.
    */
   async findActive(id: string, userId: number, now: string): Promise<{ id: string; last_seen_at: string } | null> {

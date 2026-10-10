@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, Headers, HttpCode, HttpException, Post, UseGuards } from '@nestjs/common';
 import type { PushPublicKeyResult, PushSubscribeResult, PushUnsubscribeResult } from '@trek/shared';
 import type { User } from '../../../types';
-import { CurrentUser } from '../../auth/current-user.decorator';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { CurrentUser } from '../../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
 import { PushSubscribeDto, PushUnsubscribeDto } from '../notifications.dto';
 import { checkPushSubscription } from './push-subscription.helpers';
 import { PushSubscriptionsService } from './push-subscriptions.service';

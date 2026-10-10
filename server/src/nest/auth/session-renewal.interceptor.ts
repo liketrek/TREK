@@ -2,7 +2,7 @@ import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nes
 import type { Request, Response } from 'express';
 import type { Observable } from 'rxjs';
 import { SessionsService, sessionClientFrom } from '../sessions/sessions.service';
-import { decodeSessionClaims } from './jwt-verify';
+import { decodeSessionClaims } from '../auth-core/jwt-verify';
 import { setAuthCookie } from '../common/cookie';
 
 /**

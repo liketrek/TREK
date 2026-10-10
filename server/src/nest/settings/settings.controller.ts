@@ -5,11 +5,11 @@ import type { User } from '../../types';
 import { SettingsService, isAdminOnlyEndpointSetting } from './settings.service';
 import { SettingUpsertDto, SettingsBulkDto } from './settings.dto';
 import { AdminDefaultUserSettingsDto } from '../admin/admin.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard } from '../auth/admin.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { AdminGuard } from '../auth-core/admin.guard';
 import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { isManagedLockedKey, splitManagedKeys } from '../common/managed';
 

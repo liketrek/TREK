@@ -20,7 +20,7 @@ import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { RoadtripController } from '../../../src/nest/roadtrip/roadtrip.controller';
 import type { RoadtripService } from '../../../src/nest/roadtrip/roadtrip.service';
 import { AddonGuard } from '../../../src/nest/addons/addon.guard';
-import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import { TripAccessGuard } from '../../../src/nest/permissions/trip-access.guard';
 
 const VIA = { id: 5, day_id: 4, after_order_index: 0, sequence: 0, lat: 53, lng: 10 };

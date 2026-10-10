@@ -43,7 +43,7 @@ vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
   mask_stored_api_key: vi.fn((v: string | null | undefined) => (v ? '••••••••' : null)),
   encrypt_api_key: vi.fn((v) => v),
 }));
-vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
+vi.mock('../../../src/nest/auth-core/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
 
 // ---------------------------------------------------------------------------
@@ -61,16 +61,16 @@ import { PermissionsService } from '../../../src/nest/permissions/permissions.se
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { verifyJwtAndLoadUser } from '../../../src/nest/auth/jwt-verify';
+import { verifyJwtAndLoadUser } from '../../../src/nest/auth-core/jwt-verify';
 import { authenticator } from 'otplib';
 import { hashBackupCode } from '../../../src/nest/auth/auth.helpers';
-import { createEphemeralToken } from '../../../src/nest/auth/ephemeral-tokens';
+import { createEphemeralToken } from '../../../src/nest/auth-core/ephemeral-tokens';
 import { TripMembershipService } from '../../../src/nest/trip-membership/trip-membership.service';
 import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
 import { WebauthnConfigService } from '../../../src/nest/auth/webauthn-config.service';
 import { revokeUserSessions } from '../../../src/mcp/sessionManager';
 import { MailerService } from '../../../src/nest/notifications/mailer/mailer.service';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
 import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
 import { DEFAULT_ALLOWED_EXTENSIONS } from '../../../src/nest/files/files.constants';
 import { createTestPushSubscriptionsRepo } from '../../helpers/notifications-repos';

@@ -14,8 +14,8 @@ import {
 import type { User } from '../../types';
 import { AccommodationsService, type MirrorSender } from './accommodations.service';
 import { AccommodationCreateDto, AccommodationUpdateDto } from './accommodations.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 
 type AccommodationBody = {

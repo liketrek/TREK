@@ -24,7 +24,7 @@ vi.mock('../../../src/nest/backup/backup.impl', () => ({
 import { BackupController } from '../../../src/nest/backup/backup.controller';
 import { StorageNotFoundError } from '../../../src/nest/storage/storage.types';
 import { BackupService as RealBackupService } from '../../../src/nest/backup/backup.service';
-import { AdminGuard } from '../../../src/nest/auth/admin.guard';
+import { AdminGuard } from '../../../src/nest/auth-core/admin.guard';
 import type { BackupService } from '../../../src/nest/backup/backup.service';
 import type { AutoBackupJob } from '../../../src/nest/backup/auto-backup.job';
 import type { AuditService } from '../../../src/nest/audit/audit.service';

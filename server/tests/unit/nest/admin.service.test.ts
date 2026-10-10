@@ -81,7 +81,7 @@ import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-reg
 import type { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { __clearVersionCacheForTests } from '../../../src/nest/admin/admin.helpers';
 import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
 import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
 import {
   createTestUnitOfWork,

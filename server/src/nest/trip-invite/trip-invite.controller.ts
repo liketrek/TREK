@@ -2,8 +2,8 @@ import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Re
 import type { Request } from 'express';
 import type { User } from '../../types';
 import { TripInviteService } from './trip-invite.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { RateLimitService } from '../common/rate-limit.service';
 import { TripInviteLinkCreateDto } from './trip-invite.dto';
 import { getClientIp } from '../audit/client-ip';

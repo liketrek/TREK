@@ -1,7 +1,7 @@
 import { Module, type OnModuleDestroy } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { RealtimeGateway } from './realtime.gateway';
-import { EphemeralTokenModule } from '../auth/ephemeral-token.module';
+import { EphemeralTokenModule } from '../auth-core/ephemeral-token.module';
 import { JourneyDomainModule } from '../journey/journey-domain.module';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { Users } from '../../db/entities/Users.entity';

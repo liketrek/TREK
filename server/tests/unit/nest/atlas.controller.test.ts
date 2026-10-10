@@ -3,7 +3,7 @@ import { HttpException, RequestMethod } from '@nestjs/common';
 import type { Response } from 'express';
 import { AtlasController } from '../../../src/nest/atlas/atlas.controller';
 import { TravelStatsController } from '../../../src/nest/atlas/travel-stats.controller';
-import { JwtAuthGuard } from '../../../src/nest/auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import { BucketItemExistsError } from '../../../src/nest/atlas/atlas.service';
 import type { AtlasService } from '../../../src/nest/atlas/atlas.service';
 import type { User } from '../../../src/types';

@@ -3,7 +3,7 @@ import { HttpException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../../../src/nest/app.module';
 import { FeaturesController } from '../../../src/nest/health/features.controller';
-import { AdminGuard } from '../../../src/nest/auth/admin.guard';
+import { AdminGuard } from '../../../src/nest/auth-core/admin.guard';
 
 vi.mock('../../../src/config', async () => {
   const { readEnv } = await import('../../../src/app-config');

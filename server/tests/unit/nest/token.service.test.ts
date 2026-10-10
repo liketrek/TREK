@@ -26,7 +26,7 @@ vi.mock('../../../src/db/database', async () => {
 });
 
 
-vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
+vi.mock('../../../src/nest/auth-core/ephemeral-tokens', () => ({ createEphemeralToken: vi.fn() }));
 vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn() }));
 
 // ---------------------------------------------------------------------------
@@ -39,10 +39,10 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser } from '../../helpers/factories';
 import { TokenService } from '../../../src/nest/tokens/token.service';
 import { TokensModule } from '../../../src/nest/tokens/tokens.module';
-import { createEphemeralToken } from '../../../src/nest/auth/ephemeral-tokens';
+import { createEphemeralToken } from '../../../src/nest/auth-core/ephemeral-tokens';
 import { revokeUserSessions } from '../../../src/mcp/sessionManager';
 import { expectRegisteredProvider } from '../../helpers/module-providers';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
 import { createTestMcpTokensRepo, createTestUsersRepo } from '../../helpers/test-uow';
 import { sharedTestOrm } from '../../helpers/test-uow';
 import { countRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';

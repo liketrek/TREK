@@ -25,8 +25,8 @@
  *                   the next rule instead.
  *   sharedImportsDomain
  *                   a file of the shared kernel (src/nest/common, database,
- *                   app-config), which every domain imports, importing from a
- *                   domain. That ties the domain into every other one.
+ *                   app-config, auth-core), which every domain imports,
+ *                   importing from a domain. That ties the domain into every other one.
  *   domainInternals a file in src/nest/<A>/ importing (value or type) a
  *                   file of src/nest/<B>/ that is not B's public surface.
  *                   Public is what the codebase already treats that way: the
@@ -58,8 +58,12 @@ const ts = require('typescript');
 
 export const RULES = ['fileCycles', 'domainCycles', 'sharedImportsDomain', 'domainInternals', 'dbImportsNest'];
 
-/** Folders under src/nest whose every file is shared infrastructure, open to all domains. */
-export const SHARED_DOMAINS = new Set(['common', 'database', 'app-config']);
+/**
+ * Folders under src/nest whose every file is shared infrastructure, open to all domains.
+ * auth-core holds the request-auth primitives (the guards, the decorators, JWT
+ * verification, ephemeral tokens) every controller needs; it imports no domain.
+ */
+export const SHARED_DOMAINS = new Set(['common', 'database', 'app-config', 'auth-core']);
 
 /** File name suffixes that make up a domain's public surface. */
 export const PUBLIC_SUFFIXES = [

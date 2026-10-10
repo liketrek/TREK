@@ -1,6 +1,6 @@
 import { All, Controller, Get, NotFoundException, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { Public } from '../auth/public.decorator';
+import { Public } from '../auth-core/public.decorator';
 import { DiscoveryMetadataService } from './discovery-metadata.service';
 import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';

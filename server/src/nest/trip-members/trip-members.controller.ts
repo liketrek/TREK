@@ -15,8 +15,8 @@ import {
 import type { Request } from 'express';
 import type { User } from '../../types';
 import { TripMembersService } from './trip-members.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { RequireTripOwner, TripOwnerGuard } from '../permissions/trip-owner.guard';
 import { getClientIp } from '../audit/client-ip';
 import { AuditService } from '../audit/audit.service';

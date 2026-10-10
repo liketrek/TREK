@@ -5,7 +5,7 @@ import path from 'node:path';
 import { pluginsEnabled } from './kill-switch';
 import { PluginRuntimeService } from './plugin-runtime.service';
 import { pluginCodeDir } from './paths';
-import { Public } from '../auth/public.decorator';
+import { Public } from '../auth-core/public.decorator';
 
 /**
  * Serves a page/widget plugin's static client from /plugin-frame/:id/* (#plugins,

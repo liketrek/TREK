@@ -3,7 +3,7 @@ import type { Request } from 'express';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Trips } from '../../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../../db/repositories/Trips.repository';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';

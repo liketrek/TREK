@@ -3,7 +3,7 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import type { PluginPoiCategory } from '@trek/shared';
 import { Plugins } from '../../db/entities/Plugins.entity';
 import type { PluginsRepository } from '../../db/repositories/Plugins.repository';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { pluginsEnabled } from './kill-switch';
 import { POI_CATEGORY_PERMISSION, poiCategoriesOf } from './poi-categories';
 

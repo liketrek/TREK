@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Put, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import type { GoogleQuotaStatus } from '@trek/shared';
-import { AdminGuard } from '../auth/admin.guard';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
+import { AdminGuard } from '../auth-core/admin.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
 import type { User } from '../../types';

@@ -56,7 +56,7 @@ import { NotificationsService } from '../../../src/nest/notifications/notificati
 import { AdminService } from '../../../src/nest/admin/admin.service';
 import { DataPathsService } from '../../../src/nest/app-config/data-paths.service';
 import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
 import { AllowedFileTypesService } from '../../../src/nest/files/allowed-file-types.service';
 import {
   createTestUnitOfWork,

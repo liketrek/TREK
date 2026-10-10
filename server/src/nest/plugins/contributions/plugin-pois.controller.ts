@@ -1,8 +1,8 @@
 import { Controller, Get, HttpException, Query, UseGuards } from '@nestjs/common';
 import { pluginPoiQuerySchema, type PluginPoiQuery, type PluginPoiResponse } from '@trek/shared';
 import type { User } from '../../../types';
-import { CurrentUser } from '../../auth/current-user.decorator';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { CurrentUser } from '../../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
 import { PluginPoisService, UNKNOWN_POI_CATEGORY } from './plugin-pois.service';
 
 const BBOX_FIELDS: ReadonlySet<string> = new Set(['south', 'west', 'north', 'east', 'bbox']);

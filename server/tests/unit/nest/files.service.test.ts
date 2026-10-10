@@ -41,10 +41,10 @@ const checkPermission = vi.fn(() => true);
 const permissionsStub = { checkPermission } as unknown as PermissionsService;
 
 const { verifyJwtAndLoadUser } = vi.hoisted(() => ({ verifyJwtAndLoadUser: vi.fn() }));
-vi.mock('../../../src/nest/auth/jwt-verify', () => ({ verifyJwtAndLoadUser }));
+vi.mock('../../../src/nest/auth-core/jwt-verify', () => ({ verifyJwtAndLoadUser }));
 
 const { consumeEphemeralToken } = vi.hoisted(() => ({ consumeEphemeralToken: vi.fn() }));
-vi.mock('../../../src/nest/auth/ephemeral-tokens', () => ({ consumeEphemeralToken }));
+vi.mock('../../../src/nest/auth-core/ephemeral-tokens', () => ({ consumeEphemeralToken }));
 
 import type { Request } from 'express';
 import { resetTestDb } from '../../helpers/test-db';
@@ -75,7 +75,7 @@ import {
 } from '../../../src/nest/files/files.constants';
 import type { User } from '../../../src/types';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { EphemeralTokenService } from '../../../src/nest/auth/ephemeral-token.service';
+import { EphemeralTokenService } from '../../../src/nest/auth-core/ephemeral-token.service';
 import type { EntityManager } from '@mikro-orm/core';
 import { Users } from '../../../src/db/entities/Users.entity';
 import { UserSessions } from '../../../src/db/entities/UserSessions.entity';
