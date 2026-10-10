@@ -3,6 +3,7 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { OauthTokens } from '../../db/entities/OauthTokens.entity';
 import type { OauthTokensRepository } from '../../db/repositories/OauthTokens.repository';
 import { logError, logInfo } from '../audit/audit-log.logger';
+import { dbNow } from '../../db/types';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 
 /** How long a token is kept after its refresh token expired. */
@@ -30,7 +31,7 @@ export class OauthTokenRetentionJob implements OnApplicationBootstrap {
 
   async tick(now: Date = new Date()): Promise<void> {
     try {
-      const cutoff = new Date(now.getTime() - OAUTH_TOKEN_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+      const cutoff = dbNow(new Date(now.getTime() - OAUTH_TOKEN_RETENTION_DAYS * 24 * 60 * 60 * 1000));
       const removed = await this.tokens.deleteExpiredBefore(cutoff);
       if (removed > 0) logInfo(`OAuth token retention: removed ${removed} expired token(s)`);
     } catch (err: unknown) {

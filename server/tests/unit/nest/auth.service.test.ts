@@ -1105,6 +1105,18 @@ describe('resetPassword', () => {
       .toEqual({ error: 'Reset link has expired. Please request a new one.', status: 400 });
   });
 
+  it('AUTH-DB-083b: the reset link stores its expiry in the canonical UTC text and expires on it, not on local time', async () => {
+    const { user } = createUser(testDb);
+    const issued = await svc.requestPasswordReset(user.email, null);
+    const row = await findRow(orm, PasswordResetTokens, { user: user.id });
+    expect(row!.expires_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+
+    const aMinuteAgo = new Date(Date.now() - 60_000).toISOString().slice(0, 19).replace('T', ' ');
+    await updateRows(orm, PasswordResetTokens, { user: user.id }, { expires_at: aMinuteAgo });
+    expect(await svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' }))
+      .toEqual({ error: 'Reset link has expired. Please request a new one.', status: 400 });
+  });
+
   it('AUTH-DB-084: an MFA-enabled account demands a code, then consumes a backup code', async () => {
     const { user } = createUser(testDb);
     const secret = authenticator.generateSecret();

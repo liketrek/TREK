@@ -32,13 +32,35 @@ import {
   generateAccessToken,
   generateRefreshToken,
   hashToken,
-  parseSqliteUtc,
   redirectUriMatches,
   timingSafeEqualHex,
 } from './oauth.helpers';
+import { dbNow, parseDbTimestamp } from '../../db/types';
 import { AUTH_CODE_TTL_MS, PendingCodeStore, pendingCodesSlot, type PendingCode } from './oauth.pending-codes';
 
 export type { PendingCode } from './oauth.pending-codes';
+
+/**
+ * A stored expiry lies in the past. A value that does not parse counts as not
+ * expired, as the `new Date(value) < new Date()` this replaces did.
+ */
+function hasExpired(stored: string): boolean {
+  const at = parseDbTimestamp(stored);
+  return at !== null && at.getTime() < Date.now();
+}
+
+/**
+ * The session lists have always answered the two expiries in the ISO spelling
+ * the issuer used to store (`toISOString()`); the columns now hold the canonical
+ * text, so the lists turn it back. Seconds precision: the milliseconds are `.000`.
+ */
+function expiriesAsIso(row: { access_token_expires_at: string; refresh_token_expires_at: string }) {
+  const iso = (stored: string) => parseDbTimestamp(stored)?.toISOString() ?? stored;
+  return {
+    access_token_expires_at: iso(row.access_token_expires_at),
+    refresh_token_expires_at: iso(row.refresh_token_expires_at),
+  };
+}
 
 export interface OAuthTokenInfo {
   user: User;
@@ -307,8 +329,8 @@ export class OauthService {
       refresh_token_hash: refreshHash,
       scopes: JSON.stringify(scopes),
       audience,
-      access_token_expires_at: accessExpiry.toISOString(),
-      refresh_token_expires_at: refreshExpiry.toISOString(),
+      access_token_expires_at: dbNow(accessExpiry),
+      refresh_token_expires_at: dbNow(refreshExpiry),
       parent_token_id: parentTokenId,
     });
 
@@ -353,8 +375,8 @@ export class OauthService {
       refresh_token_hash: placeholderHash,
       scopes: JSON.stringify(scopes),
       audience,
-      access_token_expires_at: accessExpiry.toISOString(),
-      refresh_token_expires_at: now.toISOString(),
+      access_token_expires_at: dbNow(accessExpiry),
+      refresh_token_expires_at: dbNow(now),
       parent_token_id: null,
     });
 
@@ -389,7 +411,7 @@ export class OauthService {
 
     if (!row) return null;
     if (row.revoked_at) return null;
-    if (new Date(row.access_token_expires_at) < new Date()) return null;
+    if (hasExpired(row.access_token_expires_at)) return null;
 
     return {
       user: { id: row.user_id, username: row.username, email: row.email, role: row.role as 'admin' | 'user' },
@@ -432,7 +454,7 @@ export class OauthService {
    * has every child revoked with it, so neither can slip through here.
    */
   private async isConcurrentRotation(row: OauthTokenRefreshRow): Promise<boolean> {
-    const revokedAt = parseSqliteUtc(row.revoked_at);
+    const revokedAt = parseDbTimestamp(row.revoked_at);
     if (!revokedAt) return false;
     if (Date.now() - revokedAt.getTime() > REFRESH_ROTATION_GRACE_MS) return false;
     const successor = await this.tokens.findSuccessorAlive(row.id);
@@ -494,7 +516,7 @@ export class OauthService {
       return { error: 'invalid_grant', status: 400 };
     }
 
-    if (new Date(row.refresh_token_expires_at) < new Date()) return { error: 'invalid_grant', status: 400 };
+    if (hasExpired(row.refresh_token_expires_at)) return { error: 'invalid_grant', status: 400 };
 
     // Revoke old pair immediately (rotation) and issue new pair linked to old row.
     // Do NOT revoke active MCP sessions here: a legitimate refresh isn't a security
@@ -543,7 +565,7 @@ export class OauthService {
 
   async listOAuthSessions(userId: number): Promise<Record<string, unknown>[]> {
     const rows = await this.tokens.listActiveByUser(userId);
-    return rows.map(r => ({ ...r, scopes: JSON.parse(r.scopes) }));
+    return rows.map(r => ({ ...r, ...expiriesAsIso(r), scopes: JSON.parse(r.scopes) }));
   }
 
   async revokeSession(
@@ -712,7 +734,7 @@ export class OauthService {
       } catch {
         scopes = null;
       }
-      return { ...r, scopes };
+      return { ...r, ...expiriesAsIso(r), scopes };
     });
   }
 

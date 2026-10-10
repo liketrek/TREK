@@ -209,6 +209,21 @@ describe('collections CRUD + visibility', () => {
     try { await svc.getCollection(b.id, col.id); } catch (e) { expect((e as { status: number }).status).toBe(404); }
   });
 
+  it('COLLECTIONS-SVC-003b: an edit and a new cover stamp updated_at in the canonical timestamp text', async () => {
+    const a = createUser(testDb).user;
+    const col = await svc.createCollection(a.id, { name: 'Stamped' });
+    await updateRows(await orm(), Collections, { id: col.id }, { updated_at: '2000-01-01 00:00:00' });
+
+    const updated = await svc.updateCollection(a.id, col.id, { name: 'Renamed' });
+    expect(updated.updated_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+    expect(updated.updated_at).not.toBe('2000-01-01 00:00:00');
+
+    await updateRows(await orm(), Collections, { id: col.id }, { updated_at: '2000-01-01 00:00:00' });
+    const covered = await svc.setCollectionCover(a.id, col.id, '/uploads/covers/x.jpg');
+    expect(covered.updated_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+    expect(covered.updated_at).not.toBe('2000-01-01 00:00:00');
+  });
+
   it('COLLECTIONS-SVC-003: updateCollection renames; reorder only touches visible rows', async () => {
     const a = createUser(testDb).user;
     const col = await svc.createCollection(a.id, { name: 'Old' });

@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { User } from '../../types';
+import { utcSuffix } from '../../db/types';
 import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 
 /**
@@ -47,11 +48,6 @@ export const ADMIN_SETTINGS_KEYS = [
 // ---------------------------------------------------------------------------
 // Helpers (exported for route-level use where needed)
 // ---------------------------------------------------------------------------
-
-export function utcSuffix(ts: string | null | undefined): string | null {
-  if (!ts) return null;
-  return ts.endsWith('Z') ? ts : ts.replace(' ', 'T') + 'Z';
-}
 
 export function stripUserForClient(user: User): Record<string, unknown> {
   const {

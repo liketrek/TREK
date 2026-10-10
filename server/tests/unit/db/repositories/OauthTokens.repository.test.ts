@@ -10,6 +10,7 @@ import { deleteRows, findRow, findRows, insertRow, updateRows } from '../../../h
 import type { OauthTokensRepository } from '../../../../src/db/repositories/OauthTokens.repository';
 import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
+import { dbNow } from '../../../../src/db/types';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -83,8 +84,8 @@ describe('OauthTokensRepository', () => {
     it('OAUTHTOKREPO-001: writes exactly the given columns', async () => {
       const { user } = createUser(testDb);
       await seedClient(user.id, 'proto-1');
-      const accessExpiry = new Date(Date.now() + 3600_000).toISOString();
-      const refreshExpiry = new Date(Date.now() + 30 * 24 * 3600_000).toISOString();
+      const accessExpiry = dbNow(new Date(Date.now() + 3600_000));
+      const refreshExpiry = dbNow(new Date(Date.now() + 30 * 24 * 3600_000));
       await tokens.insertToken({
         client_id: 'proto-1',
         user_id: user.id,
@@ -115,7 +116,7 @@ describe('OauthTokensRepository', () => {
       const parentId = await seedToken({ clientId: 'proto-2', userId: user.id });
       await tokens.insertToken({
         client_id: 'proto-2', user_id: user.id, access_token_hash: 'a2', refresh_token_hash: 'r2', scopes: '[]', audience: null,
-        access_token_expires_at: new Date().toISOString(), refresh_token_expires_at: new Date().toISOString(), parent_token_id: parentId,
+        access_token_expires_at: dbNow(), refresh_token_expires_at: dbNow(), parent_token_id: parentId,
       });
       const row = await findRow(t, OauthTokens, { access_token_hash: 'a2' });
       expect(row?.parent_token_id).toBe(parentId);
@@ -557,8 +558,8 @@ describe('OauthTokensRepository', () => {
   });
 
   describe('deleteExpiredBefore (retention)', () => {
-    const longAgo = '2026-01-01T00:00:00.000Z';
-    const cutoff = '2026-06-01T00:00:00.000Z';
+    const longAgo = '2026-01-01 00:00:00';
+    const cutoff = dbNow(new Date('2026-06-01T00:00:00.000Z'));
     const ids = async () => (await findRows(t, OauthTokens, {}, { id: 'asc' })).map((r) => r.id);
 
     it('OAUTHTOKREPO-040: deletes a whole expired chain, parents after their children', async () => {

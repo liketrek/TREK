@@ -1,6 +1,7 @@
 import type { Collections } from '../entities/Collections.entity';
 import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { dbNow } from '../types';
 
 /** `collections` — every scalar column, `getCollectionRow`'s (CL14) `SELECT *` shape. */
 export interface CollectionRow {
@@ -198,7 +199,8 @@ export class CollectionsRepository extends TrekRepository<Collections> {
    * built (the service resolves `body.field !== undefined` itself, same
    * shape as every other repository's `presenceSet`-fed write) — an empty
    * `write` short-circuits before the `UPDATE`, matching the legacy
-   * `if (updates.length > 0)` guard.
+   * `if (updates.length > 0)` guard. `updated_at` is stamped with {@link dbNow},
+   * the same text `CURRENT_TIMESTAMP` writes (it used to be `toISOString()`).
    */
   async updateFields(
     id: number,
@@ -213,7 +215,7 @@ export class CollectionsRepository extends TrekRepository<Collections> {
     }>,
   ): Promise<void> {
     if (Object.keys(write).length === 0) return;
-    await this.readDb().updateTable('collections').set({ ...write, updated_at: new Date().toISOString() }).where('id', '=', id).execute();
+    await this.readDb().updateTable('collections').set({ ...write, updated_at: dbNow() }).where('id', '=', id).execute();
   }
 
   /** CL31 (`setCollectionCover`) — `SELECT cover_image FROM collections WHERE id=?`. */
@@ -222,9 +224,9 @@ export class CollectionsRepository extends TrekRepository<Collections> {
     return row?.cover_image;
   }
 
-  /** CL32 (`setCollectionCover`) — `UPDATE collections SET cover_image=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`. */
+  /** CL32 (`setCollectionCover`) — `UPDATE collections SET cover_image=?, updated_at=<dbNow()> WHERE id=?`. */
   async setCoverImage(id: number, coverUrl: string | null): Promise<void> {
-    await this.readDb().updateTable('collections').set({ cover_image: coverUrl, updated_at: new Date().toISOString() }).where('id', '=', id).execute();
+    await this.readDb().updateTable('collections').set({ cover_image: coverUrl, updated_at: dbNow() }).where('id', '=', id).execute();
   }
 
   /** CL35 (`deleteCollection`) — `DELETE FROM collections WHERE id=?` (CASCADE drops members + places + tags). */

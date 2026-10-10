@@ -907,7 +907,7 @@ services: the `auth.bridge` (`resolveAuthToggles`), `notifications.bridge`
 imports all became injections, while `PERMISSION_ACTIONS` stayed a plain const
 import and the `mcp/sessionManager` deep import kept its anti-cycle comment.
 The pure + module-scoped half moved to `admin.helpers.ts` — `compareVersions`,
-`utcSuffix`, `BCRYPT_COST`, the import-time `isDocker` probe (a documented
+`utcSuffix` (since moved to `db/types`, shared with `auth.helpers`), `BCRYPT_COST`, the import-time `isDocker` probe (a documented
 parity exception, auth.helpers precedent) and the 5-minute version cache, which
 stays module-scoped so the bridge instance and the container singleton share it.
 Ahead of the fold the 11 packing-template functions relocated to

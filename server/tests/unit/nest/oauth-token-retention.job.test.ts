@@ -28,7 +28,7 @@ describe('OauthTokenRetentionJob', () => {
     const del = vi.fn().mockResolvedValue(4);
     await make(del).job.tick(new Date('2026-10-07T00:00:00.000Z'));
     expect(OAUTH_TOKEN_RETENTION_DAYS).toBe(30);
-    expect(del).toHaveBeenCalledWith('2026-09-07T00:00:00.000Z');
+    expect(del).toHaveBeenCalledWith('2026-09-07 00:00:00');
     expect(logMock.logInfo).toHaveBeenCalledWith('OAuth token retention: removed 4 expired token(s)');
   });
 

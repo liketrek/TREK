@@ -1,6 +1,7 @@
 import type { PasswordResetTokens } from '../entities/PasswordResetTokens.entity';
 import type { AssertRowKeys } from './_shared/rows';
 import { currentTimestamp } from '../dialect/sql-functions';
+import type { DbTimestamp } from '../types';
 import { TrekRepository } from './_shared/trek-repository';
 
 /** A `password_reset_tokens` row as the API emits it. */
@@ -20,7 +21,7 @@ const _passwordResetTokenRowKeys: AssertRowKeys<PasswordResetTokenRow, PasswordR
 export interface NewPasswordResetTokenRow {
   user_id: number;
   token_hash: string;
-  expires_at: string;
+  expires_at: DbTimestamp;
   created_ip: string | null;
 }
 

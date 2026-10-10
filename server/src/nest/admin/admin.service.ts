@@ -62,11 +62,11 @@ import {
   compareVersions,
   isDocker,
   readVersionCache,
-  utcSuffix,
   writeVersionCache,
   type VersionInfo,
 } from './admin.helpers';
 import { MANAGED_FORBIDDEN_ERROR } from '../common/managed';
+import { utcSuffix } from '../../db/types';
 import { SessionsService } from '../sessions/sessions.service';
 
 /** Outbound GitHub calls: hard timeout and response-size cap (server/CLAUDE.md). */

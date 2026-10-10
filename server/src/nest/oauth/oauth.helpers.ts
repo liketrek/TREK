@@ -24,14 +24,6 @@ export const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days rolling
  */
 export const REFRESH_ROTATION_GRACE_MS = 30 * 1000;
 
-/** SQLite writes CURRENT_TIMESTAMP as UTC without a zone; JS would read it as local. */
-export function parseSqliteUtc(ts: string | null | undefined): Date | null {
-  if (!ts) return null;
-  const iso = ts.endsWith('Z') ? ts : ts.replace(' ', 'T') + 'Z';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
 // PKCE format (RFC 7636)
 export const CODE_CHALLENGE_RE = /^[A-Za-z0-9_-]{43}$/;
 export const CODE_VERIFIER_RE = /^[A-Za-z0-9\-._~]{43,128}$/;

@@ -8,7 +8,7 @@ import QRCode from 'qrcode';
 import { randomBytes, createHash } from 'crypto';
 import type { Request, Response } from 'express';
 import { WEB_PUSH_CHANNEL_ID } from '@trek/shared';
-import { readEnv } from '../../app-config';
+import { getAppUrl, readEnv } from '../../app-config';
 import { JWT_SECRET } from '../../config';
 import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -55,7 +55,7 @@ import { WebauthnConfigService } from './webauthn-config.service';
 import { setAuthCookie, clearAuthCookie } from '../common/cookie';
 import { MailerService } from '../notifications/mailer/mailer.service';
 import { AllowedFileTypesService } from '../files/allowed-file-types.service';
-import { getAppUrl } from '../../app-config';
+import { dbNow, parseDbTimestamp } from '../../db/types';
 import {
   ADMIN_SETTINGS_KEYS,
   BCRYPT_COST,
@@ -1006,7 +1006,7 @@ export class AuthService {
 
     const raw = randomBytes(PASSWORD_RESET_TOKEN_BYTES).toString('base64url');
     const token_hash = hashResetToken(raw);
-    const expires_at = new Date(Date.now() + PASSWORD_RESET_TTL_MS).toISOString();
+    const expires_at = dbNow(new Date(Date.now() + PASSWORD_RESET_TTL_MS));
     // Invalidate any prior unconsumed tokens for this user and issue the new one
     // together, so there is always exactly one live reset link in flight.
     await this.uow.transactional(async () => {
@@ -1042,7 +1042,7 @@ export class AuthService {
 
     if (!row) return { error: 'Invalid or expired reset link', status: 400 };
     if (row.consumed_at) return { error: 'This reset link has already been used', status: 400 };
-    if (new Date(row.expires_at).getTime() < Date.now()) {
+    if ((parseDbTimestamp(row.expires_at)?.getTime() ?? Number.NaN) < Date.now()) {
       return { error: 'Reset link has expired. Please request a new one.', status: 400 };
     }
 

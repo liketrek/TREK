@@ -64,7 +64,7 @@ import {
   sweepPendingCodes,
 } from '../../../src/nest/oauth/oauth.pending-codes';
 import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { insertRow, updateRows } from '../../helpers/factories/rows';
+import { findRow, insertRow, updateRows } from '../../helpers/factories/rows';
 import { dbNow } from '../../../src/db/types';
 import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
 import type { AuditLogRepository } from '../../../src/db/repositories/AuditLog.repository';
@@ -597,6 +597,34 @@ describe('listOAuthSessions + revokeSession', () => {
     const sessions = await listOAuthSessions(user.id);
     expect(sessions).toHaveLength(1);
     expect(sessions[0].client_id).toBe(clientId);
+  });
+
+  it('stores both expiries in the canonical text and lists them in the ISO spelling the API has always answered', async () => {
+    const { user } = createUser(testDb);
+    const created = await makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+
+    await issueTokens(clientId, user.id, ['trips:read']);
+    const row = await findRow(t, OauthTokens, { user: user.id });
+    expect(row!.access_token_expires_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+    expect(row!.refresh_token_expires_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+
+    const [session] = await listOAuthSessions(user.id);
+    expect(session.access_token_expires_at).toBe(`${row!.access_token_expires_at.replace(' ', 'T')}.000Z`);
+    expect(session.refresh_token_expires_at).toBe(`${row!.refresh_token_expires_at.replace(' ', 'T')}.000Z`);
+    const [adminRow] = (await svc.listAllOAuthSessions()) as Array<Record<string, unknown>>;
+    expect(adminRow.access_token_expires_at).toBe(session.access_token_expires_at);
+  });
+
+  it('a legacy ISO expiry still lists as stored', async () => {
+    const { user } = createUser(testDb);
+    const created = await makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+    await issueTokens(clientId, user.id, ['trips:read']);
+    await updateRows(t, OauthTokens, { user: user.id }, { access_token_expires_at: '2999-01-02T03:04:05.678Z', refresh_token_expires_at: '2999-01-02T03:04:05.678Z' });
+
+    const [session] = await listOAuthSessions(user.id);
+    expect(session.access_token_expires_at).toBe('2999-01-02T03:04:05.678Z');
   });
 
   it('revoked session is not listed', async () => {
@@ -1236,6 +1264,26 @@ describe('branches the legacy suite could not reach', () => {
     await updateRows(t, OauthTokens, {}, { access_token_expires_at: '2000-01-01T00:00:00.000Z' });
 
     expect(await getUserByAccessToken(tokens.access_token)).toBeNull();
+  });
+
+  it('rejects an access token whose canonical expiry passed earlier today (UTC, not local time)', async () => {
+    const { user } = createUser(testDb);
+    const created = await makeClient(user.id);
+    const clientId = (created.client as { client_id: string }).client_id;
+    const tokens = await issueTokens(clientId, user.id, ['trips:read']);
+    await updateRows(t, OauthTokens, {}, { access_token_expires_at: dbNow(new Date(Date.now() - 60_000)) });
+
+    expect(await getUserByAccessToken(tokens.access_token)).toBeNull();
+  });
+
+  it('refreshTokens rejects a refresh token whose canonical expiry passed', async () => {
+    const { user } = createUser(testDb);
+    const created = await makeClient(user.id);
+    const client = created.client as { client_id: string; client_secret: string };
+    const tokens = await issueTokens(client.client_id, user.id, ['trips:read']);
+    await updateRows(t, OauthTokens, {}, { refresh_token_expires_at: dbNow(new Date(Date.now() - 60_000)) });
+
+    expect(await refreshTokens(tokens.refresh_token, client.client_id, client.client_secret)).toEqual({ error: 'invalid_grant', status: 400 });
   });
 
   it('refreshTokens rejects an unknown client before touching the token', async () => {

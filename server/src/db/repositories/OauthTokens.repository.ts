@@ -3,6 +3,7 @@ import { type AssertRowKeys } from './_shared/rows';
 import { columnRef, currentTimestamp } from '../dialect/sql-functions';
 import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import type { DbTimestamp } from '../types';
 
 /**
  * The Kysely-side table shape `em.getKysely()` needs for `collectChainIds`'s
@@ -24,8 +25,8 @@ export interface NewOauthTokenRow {
   refresh_token_hash: string;
   scopes: string;
   audience: string | null;
-  access_token_expires_at: string;
-  refresh_token_expires_at: string;
+  access_token_expires_at: DbTimestamp;
+  refresh_token_expires_at: DbTimestamp;
   parent_token_id: number | null;
 }
 
@@ -356,12 +357,12 @@ export class OauthTokensRepository extends TrekRepository<OauthTokens> {
    * @txIndependent a retention sweep: every pass leaves a consistent table, and the
    * next sweep picks up what a failed one left.
    */
-  async deleteExpiredBefore(cutoffIso: string, maxPasses = 50): Promise<number> {
+  async deleteExpiredBefore(cutoff: DbTimestamp, maxPasses = 50): Promise<number> {
     let total = 0;
     for (let pass = 0; pass < maxPasses; pass++) {
       const result = await this.kysely<OauthTokensKyselyDB>()
         .deleteFrom('oauth_tokens')
-        .where('refresh_token_expires_at', '<', cutoffIso)
+        .where('refresh_token_expires_at', '<', cutoff)
         .where('id', 'not in', (eb) =>
           eb.selectFrom('oauth_tokens as child').select('child.parent_token_id').where('child.parent_token_id', 'is not', null),
         )

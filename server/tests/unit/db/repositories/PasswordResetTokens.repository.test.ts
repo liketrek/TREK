@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createHash } from 'crypto';
+import { dbNow } from '../../../../src/db/types';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
@@ -52,7 +53,7 @@ describe('PasswordResetTokensRepository', () => {
     it('PWDRESETREPO-001: writes the exact column set, hash-only (the raw token never appears)', async () => {
       const { user } = createUser(testDb);
       const tokenHash = hash('raw-token-value');
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      const expiresAt = dbNow(new Date(Date.now() + 60 * 60 * 1000));
 
       await tokens.insertToken({ user_id: user.id, token_hash: tokenHash, expires_at: expiresAt, created_ip: '1.2.3.4' });
 
@@ -63,7 +64,7 @@ describe('PasswordResetTokensRepository', () => {
     it('PWDRESETREPO-002: writes a NULL created_ip', async () => {
       const { user } = createUser(testDb);
       const tokenHash = hash('no-ip-token');
-      await tokens.insertToken({ user_id: user.id, token_hash: tokenHash, expires_at: new Date().toISOString(), created_ip: null });
+      await tokens.insertToken({ user_id: user.id, token_hash: tokenHash, expires_at: dbNow(), created_ip: null });
 
       const row = await findRow(t, PasswordResetTokens, { token_hash: tokenHash });
       expect(row?.created_ip).toBeNull();
