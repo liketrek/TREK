@@ -459,7 +459,7 @@ export class AuthService {
     }
 
     const pwCheck = validatePassword(password);
-    if (!pwCheck.ok) throw new DomainError(400, pwCheck.reason);
+    if (!pwCheck.ok) throw new DomainError(400, pwCheck.reason ?? '');
 
     if (!EMAIL_REGEX.test(email)) {
       throw new DomainError(400, 'Invalid email format');
@@ -638,7 +638,7 @@ export class AuthService {
     if (!new_password) throw new DomainError(400, 'New password is required');
 
     const pwCheck = validatePassword(new_password);
-    if (!pwCheck.ok) throw new DomainError(400, pwCheck.reason);
+    if (!pwCheck.ok) throw new DomainError(400, pwCheck.reason ?? '');
 
     const user = await this.usersRepo.getPasswordHashAndVersion(userId);
     if (!user || !bcrypt.compareSync(current_password, user.password_hash)) {

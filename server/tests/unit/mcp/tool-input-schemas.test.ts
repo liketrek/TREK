@@ -40,8 +40,10 @@ function methodNames(ctor: ClassRef): string[] {
 
 async function toolSchemas(): Promise<Map<string, Record<string, unknown>>> {
   const out = new Map<string, Record<string, unknown>>();
-  for (const file of mcpFiles(NEST_ROOT).sort()) {
-    const mod = (await import(file)) as Record<string, unknown>;
+  const files = mcpFiles(NEST_ROOT).sort();
+  const modules = (await Promise.all(files.map((file) => import(file)))) as Record<string, unknown>[];
+  for (const [index, mod] of modules.entries()) {
+    const file = files[index];
     for (const exported of Object.values(mod)) {
       if (!isMcpController(exported)) continue;
       for (const name of methodNames(exported)) {

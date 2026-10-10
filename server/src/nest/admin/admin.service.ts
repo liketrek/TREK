@@ -172,7 +172,7 @@ export class AdminService {
     }
 
     const pwCheck = validatePassword(password);
-    if (!pwCheck.ok) throw new DomainError(400, pwCheck.reason);
+    if (!pwCheck.ok) throw new DomainError(400, pwCheck.reason ?? '');
 
     if (data.role && !['user', 'admin'].includes(data.role)) {
       throw new DomainError(400, 'Invalid role');
@@ -236,7 +236,7 @@ export class AdminService {
 
     if (password) {
       const pwCheck = validatePassword(password);
-      if (!pwCheck.ok) throw new DomainError(400, pwCheck.reason);
+      if (!pwCheck.ok) throw new DomainError(400, pwCheck.reason ?? '');
     }
     const passwordHash = password ? bcrypt.hashSync(password, BCRYPT_COST) : null;
 

@@ -58,7 +58,6 @@
   "src/mcp/tools.ts": 1,
   "src/nest-mcp/registry.ts": 2,
   "src/nest/accommodations/accommodations.service.ts": 2,
-  "src/nest/admin/admin.controller.ts": 1,
   "src/nest/atlas/atlas-geo.ts": 2,
   "src/nest/auth/auth.service.ts": 1,
   "src/nest/budget/budget.service.ts": 2,
@@ -88,8 +87,7 @@
   "src/nest/packing/admin-packing-templates.controller.ts": 3,
   "src/nest/packing/packing.controller.ts": 1,
   "src/nest/packing/packing.dto.ts": 1,
-  "src/nest/packing/packing.mcp.ts": 1,
-  "src/nest/places/places.controller.ts": 2,
+  "src/nest/places/places.controller.ts": 1,
   "src/nest/places/places.mcp.ts": 5,
   "src/nest/platform/discovery-metadata.service.ts": 3,
   "src/nest/plugins/host/plugin-jobs.ts": 1,
@@ -103,7 +101,6 @@
   "src/nest/roadtrip/roadtrip-router.service.ts": 12,
   "src/nest/settings/settings.service.ts": 1,
   "src/nest/storage/drivers/s3.driver.ts": 1,
-  "src/nest/trips/trips.controller.ts": 2,
-  "src/nest/trips/trips.mcp.ts": 1,
+  "src/nest/trips/trips.controller.ts": 1,
   "src/nest/trips/trips.service.ts": 1
 }

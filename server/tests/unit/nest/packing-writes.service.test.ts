@@ -149,11 +149,14 @@ describe('packing item use cases: refusals', () => {
 
   it("PACK-UC-002: a missing item is REST's 404 and MCP's own sentence, for update and delete", async () => {
     const s = setup({ updateItem: vi.fn().mockResolvedValue(null), deleteItem: vi.fn().mockResolvedValue(null) });
-    for (const call of [
+    const calls = [
       (w: never) => s.writes.updateItem(5, 3, { name: 'x' }, ['name'], w),
       (w: never) => s.writes.deleteItem(5, 3, w),
-    ]) {
-      const err = (await s.run('mcp', call as never).catch((e: unknown) => e)) as DomainError;
+    ];
+    const errors = (await Promise.all(
+      calls.map((call) => s.run('mcp', call as never).catch((e: unknown) => e)),
+    )) as DomainError[];
+    for (const err of errors) {
       expect(err.toBody()).toEqual({ error: 'Item not found' });
       expect(mcpText(err)).toBe('Packing item not found.');
     }
@@ -164,11 +167,14 @@ describe('packing item use cases: refusals', () => {
       createItem: vi.fn().mockResolvedValue({ invalidBag: true }),
       updateItem: vi.fn().mockResolvedValue({ invalidBag: true }),
     });
-    for (const call of [
+    const calls = [
       (w: never) => s.writes.createItem(5, { name: 'x', bag_id: 99 }, w),
       (w: never) => s.writes.updateItem(5, 3, { bag_id: 99 }, ['bag_id'], w),
-    ]) {
-      const err = (await s.run('mcp', call as never).catch((e: unknown) => e)) as DomainError;
+    ];
+    const errors = (await Promise.all(
+      calls.map((call) => s.run('mcp', call as never).catch((e: unknown) => e)),
+    )) as DomainError[];
+    for (const err of errors) {
       expect(err.getStatus()).toBe(400);
       expect(err.toBody()).toEqual({ error: 'Bag not found' });
       expect(mcpText(err)).toBe('Bag not found.');

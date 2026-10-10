@@ -655,10 +655,11 @@ export class VacayMcp {
         text: JSON.stringify(data, null, 2),
       }],
     });
-    if (!plan.holidays_enabled || !plan.holidays_region) return json([]);
+    const region = plan.holidays_region;
+    if (!plan.holidays_enabled || !region) return json([]);
     const yearStr = Array.isArray(year) ? year[0] : year;
     // A failed fetch reads as no holidays here, as it always has.
-    const result = await catchDomainError(() => this.vacay.getHolidays(yearStr, plan.holidays_region));
+    const result = await catchDomainError(() => this.vacay.getHolidays(yearStr, region));
     return json(result instanceof DomainError ? [] : (result.data ?? []));
   }
 }

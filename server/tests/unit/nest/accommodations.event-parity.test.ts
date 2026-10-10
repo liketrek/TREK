@@ -182,8 +182,10 @@ describe('stay use cases: the shared gate and checks', () => {
 
   it('ACC-UC-006: an edit or a cancellation of a stay that is not on the trip is a 404', async () => {
     const svc = makeService({ broadcast: vi.fn() }, { getAccommodation: vi.fn().mockResolvedValue(undefined) });
-    for (const run of [() => svc.updateStay(5, 9, {}, writer()), () => svc.deleteStay(5, 9, writer())]) {
-      const err = (await run().catch((e: unknown) => e)) as DomainError;
+    const errors = (await Promise.all(
+      [svc.updateStay(5, 9, {}, writer()), svc.deleteStay(5, 9, writer())].map((p) => p.catch((e: unknown) => e)),
+    )) as DomainError[];
+    for (const err of errors) {
       expect(err.toBody()).toEqual({ error: 'Accommodation not found' });
       expect(err.mcpMessage).toBe('Accommodation not found.');
     }
