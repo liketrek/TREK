@@ -40,7 +40,8 @@ const ROW_ROUND = 'grid flex-none place-items-center rounded-full bg-surface-car
 const ROUTE_TOOL = 'bg-surface-card shadow-sm ring-1 ring-edge-faint'
 import { TypeTile } from './bookings/bookingParts'
 import { typeInfo } from './bookings/bookingsModel'
-import { isDayInAccommodationRange, getAccommodationAnchors, getDayBookendHotels, shouldDrawMorningLeg, shouldDrawEveningLeg, type CarrierEdge } from '../../utils/dayOrder'
+import { dayHeadStays } from './dayHeadStays'
+import { getAccommodationAnchors, getDayBookendHotels, shouldDrawMorningLeg, shouldDrawEveningLeg, type CarrierEdge } from '../../utils/dayOrder'
 import {
   TRANSPORT_TYPES, parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getDisplayTimeForDay, getTransportRouteEndpoints,
   getTransportForDay as _getTransportForDay, getMergedItems as _getMergedItems, isCarrierTransport, hasCarrierEndpointOnDay,
@@ -1600,19 +1601,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
           // silently showed another city's weather with nothing naming the place.
           const { lat: wLat, lng: wLng, name: weatherName } = dayWeatherAnchor(da, () => dayBookends.morning)
           const hasWeather = !!(day.date && wLat != null && wLng != null)
-          const dayAccs = accommodations.filter(a => isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days))
-            // Sort: check-out first, then ongoing stays, then check-in last
-            .sort((a, b) => {
-              const aIsOut = a.end_day_id === day.id && a.start_day_id !== day.id
-              const bIsOut = b.end_day_id === day.id && b.start_day_id !== day.id
-              const aIsIn = a.start_day_id === day.id
-              const bIsIn = b.start_day_id === day.id
-              if (aIsOut && !bIsOut) return -1
-              if (!aIsOut && bIsOut) return 1
-              if (aIsIn && !bIsIn) return 1
-              if (!aIsIn && bIsIn) return -1
-              return 0
-            })
+          const dayAccs = dayHeadStays(accommodations, day, days)
           const activeRentals = getActiveRentalsForDay(day.id)
           // A day with pills under its name keeps the name at the badge's top edge; a day
           // with only its name centres it on the badge instead of leaving it hanging high.
