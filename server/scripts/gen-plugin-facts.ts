@@ -20,8 +20,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   HOOK_PERMISSION, KNOWN_METHODS, KNOWN_PERMISSIONS, METHOD_PERMISSION,
-  EVENTS_PERMISSION, JOBS_PERMISSION, USER_DATA_PERMISSION, HTTP_OUTBOUND_PREFIX,
+  EVENTS_PERMISSION, JOBS_PERMISSION, USER_DATA_PERMISSION, HTTP_OUTBOUND_PREFIX, PLUGIN_API_VERSION,
 } from '../src/nest/plugins/protocol/envelope';
+import {
+  ACTIONS_MAX, ADDON_ID_RE, CAPABILITY_NAME_RE, EGRESS_HOST_RE, MCP_TOOLS_MAX, PLUGIN_CHANNEL_EVENTS, PLUGIN_ID_RE,
+  PLUGIN_SEMVER_RE, PLUGIN_TYPES, REPLACEABLE_TABS, RESERVED_PLUGIN_IDS, RESERVED_SETTING_KEYS, ROUTE_PROFILE_ID_RE,
+  ROUTE_PROFILES_MAX, SETTING_FIELD_KEYS, SETTING_KEY_RE, TOOL_NAME_RE, TRIP_PAGE_POSITION_MAX, WIDGET_SLOTS,
+} from '../src/nest/plugins/protocol/manifest-rules';
 import { SNAPSHOT_GRANT, ENTITY_ID_KEYS } from '../src/plugin-event-sink';
 import {
   PLUGIN_ENTITY_CONTRACT, PLUGIN_ENTITY_NESTED, PLUGIN_METHOD_OUTPUT, pluginEntityFields, type PluginEntityName,
@@ -40,6 +45,7 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const HEADER = [
   '// GENERATED — do not edit by hand.',
   '// Source: server/src/nest/plugins/protocol/envelope.ts + server/src/plugin-event-sink.ts',
+  '//         + server/src/nest/plugins/protocol/manifest-rules.ts',
   '//         + server/src/nest/plugins/protocol/output-contract.ts + server/src/addons.ts',
   '//         + shared/src/plugins/plugin-poi-facts.ts',
   '// Regenerate: node --import tsx server/scripts/gen-plugin-facts.ts',
@@ -165,6 +171,55 @@ ${ENTITY_NESTED}
 export const PLUGIN_METHOD_RESULT: Readonly<Record<string, string>> = {
 ${pairs(METHOD_RESULT)}
 };
+
+/**
+ * The plugin-API version this TREK implements. A manifest's \`apiVersion\` must be a
+ * positive integer no greater than this, or the install refuses it.
+ */
+export const PLUGIN_API_VERSION = ${PLUGIN_API_VERSION} as const;
+
+/**
+ * The manifest format rules TREK's install loader enforces
+ * (server/src/nest/plugins/protocol/manifest-rules.ts), so \`trek-plugin validate\`
+ * refuses exactly what an install refuses.
+ */
+export const MANIFEST_ID_RE = ${PLUGIN_ID_RE};
+export const MANIFEST_RESERVED_IDS: readonly string[] = [
+${list(RESERVED_PLUGIN_IDS)}
+];
+export const MANIFEST_SEMVER_RE = ${PLUGIN_SEMVER_RE};
+export const MANIFEST_TYPES: readonly string[] = [
+${list(PLUGIN_TYPES)}
+];
+export const MANIFEST_ADDON_ID_RE = ${ADDON_ID_RE};
+export const MANIFEST_HOST_RE = ${EGRESS_HOST_RE};
+export const MANIFEST_WIDGET_SLOTS: readonly string[] = [
+${list(WIDGET_SLOTS)}
+];
+export const MANIFEST_REPLACEABLE_TABS: readonly string[] = [
+${list(REPLACEABLE_TABS)}
+];
+export const MANIFEST_TRIP_PAGE_POSITION_MAX = ${TRIP_PAGE_POSITION_MAX};
+export const MANIFEST_ROUTE_PROFILES_MAX = ${ROUTE_PROFILES_MAX};
+export const MANIFEST_ROUTE_PROFILE_ID_RE = ${ROUTE_PROFILE_ID_RE};
+export const MANIFEST_CAPABILITY_NAME_RE = ${CAPABILITY_NAME_RE};
+export const MANIFEST_MCP_TOOLS_MAX = ${MCP_TOOLS_MAX};
+export const MANIFEST_TOOL_NAME_RE = ${TOOL_NAME_RE};
+export const MANIFEST_SETTING_KEY_RE = ${SETTING_KEY_RE};
+export const MANIFEST_RESERVED_SETTING_KEYS: readonly string[] = [
+${list(RESERVED_SETTING_KEYS)}
+];
+export const MANIFEST_ACTIONS_MAX = ${ACTIONS_MAX};
+
+/** Every attribute a settings-field object may carry; the host silently drops anything else. */
+export const SETTING_FIELD_KEYS = [
+${list(SETTING_FIELD_KEYS)}
+] as const;
+
+/** Events a plugin notification channel may carry. Admin-scoped and in-app-only events are excluded. */
+export const CHANNEL_EVENTS: string[] = [
+${list(PLUGIN_CHANNEL_EVENTS)}
+];
 `;
 
 const SHARED_FACTS = `${HEADER}

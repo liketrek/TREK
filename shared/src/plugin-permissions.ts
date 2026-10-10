@@ -1,5 +1,6 @@
 // GENERATED — do not edit by hand.
 // Source: server/src/nest/plugins/protocol/envelope.ts + server/src/plugin-event-sink.ts
+//         + server/src/nest/plugins/protocol/manifest-rules.ts
 //         + server/src/nest/plugins/protocol/output-contract.ts + server/src/addons.ts
 //         + shared/src/plugins/plugin-poi-facts.ts
 // Regenerate: node --import tsx server/scripts/gen-plugin-facts.ts

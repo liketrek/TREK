@@ -1,8 +1,7 @@
 /**
- * The plugin-author-facing SDK surface (#plugins, M1) — the minimal in-repo
- * version. The published `@trek/plugin-sdk` (M6) will re-export these types; for
- * now the runtime ships its own copy so the child has zero external deps.
- *
+ * The plugin API as the isolated child implements it: its own copy of the published
+ * trek-plugin-sdk types, so the child has zero external deps (plugin-sdk's
+ * test/host-types.test-d.ts holds the two to the same names and members).
  * PURE — no server imports. This runs inside the isolated child. Every ctx
  * method is plumbing that turns a call into an RPC message to the host; the
  * child holds no db handle, no secrets, no network by default.
@@ -338,6 +337,9 @@ export interface PluginRequest {
    * providers; never Cookie/Authorization/session). Empty on authenticated routes.
    * Verify a provider signature against a secret you hold in `ctx.config`/`ctx.settings`. */
   headers: Record<string, string>;
+  /** The RAW body, base64 — only on `auth:false` routes (webhooks), else null. Run an HMAC
+   * over this, never over the parsed `body` (re-serializing does not reproduce the bytes). */
+  rawBodyBase64?: string | null;
   user: { id: number; username: string; isAdmin: boolean } | null;
 }
 export interface PluginResponse {

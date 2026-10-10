@@ -8,8 +8,12 @@
 
 import type { PLUGIN_ENTITY_FIELDS } from './generated/host-facts.js';
 
-/** Bumped on any breaking change to the plugin API surface. Embed as `apiVersion` in your manifest. */
-export const PLUGIN_API_VERSION = 1 as const;
+/**
+ * Bumped on any breaking change to the plugin API surface. Embed as `apiVersion` in your
+ * manifest. Generated from TREK's protocol/envelope.ts, so it is the version the host
+ * implements, and `validate` refuses a manifest declaring a newer one.
+ */
+export { PLUGIN_API_VERSION } from './generated/host-facts.js';
 
 // Core entity shapes returned by ctx reads/writes. Only `id` is guaranteed; the rest
 // are the fields plugins most commonly use (typed for autocomplete), left optional.

@@ -18,8 +18,11 @@ import { z } from 'zod';
 
 import type { McpZodSchema } from '../../nest-mcp';
 
-/** Tools one plugin may advertise. A long list crowds out the built-ins. */
-export const MCP_TOOLS_MAX = 8;
+import { MCP_TOOLS_MAX, TOOL_NAME_RE } from './protocol/manifest-rules';
+
+// The per-plugin cap and the tool-name pattern are manifest rules: they live in
+// protocol/manifest-rules.ts, which gen-plugin-facts writes into the SDK.
+export { MCP_TOOLS_MAX, TOOL_NAME_RE };
 
 /**
  * Tools all plugins together may advertise.
@@ -29,9 +32,6 @@ export const MCP_TOOLS_MAX = 8;
  * degrades long before that. Truncation is logged, never silent.
  */
 export const MCP_TOOLS_TOTAL_MAX = 32;
-
-/** Plugin-local tool name. No dot or dash, so the advertised name parses apart. */
-export const TOOL_NAME_RE = /^[a-z0-9_]{1,48}$/;
 
 export const TOOL_TITLE_MAX = 80;
 export const TOOL_DESCRIPTION_MAX = 1024;

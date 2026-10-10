@@ -1,5 +1,6 @@
 // GENERATED — do not edit by hand.
 // Source: server/src/nest/plugins/protocol/envelope.ts + server/src/plugin-event-sink.ts
+//         + server/src/nest/plugins/protocol/manifest-rules.ts
 //         + server/src/nest/plugins/protocol/output-contract.ts + server/src/addons.ts
 //         + shared/src/plugins/plugin-poi-facts.ts
 // Regenerate: node --import tsx server/scripts/gen-plugin-facts.ts
@@ -1029,3 +1030,87 @@ export const PLUGIN_METHOD_RESULT: Readonly<Record<string, string>> = {
   'events.emit': 'host',
   'settings.get': 'host',
 };
+
+/**
+ * The plugin-API version this TREK implements. A manifest's `apiVersion` must be a
+ * positive integer no greater than this, or the install refuses it.
+ */
+export const PLUGIN_API_VERSION = 1 as const;
+
+/**
+ * The manifest format rules TREK's install loader enforces
+ * (server/src/nest/plugins/protocol/manifest-rules.ts), so `trek-plugin validate`
+ * refuses exactly what an install refuses.
+ */
+export const MANIFEST_ID_RE = /^[a-z][a-z0-9-]{2,39}$/;
+export const MANIFEST_RESERVED_IDS: readonly string[] = [
+  'registry',
+  'install',
+  'rescan',
+];
+export const MANIFEST_SEMVER_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+export const MANIFEST_TYPES: readonly string[] = [
+  'integration',
+  'page',
+  'widget',
+  'trip-page',
+];
+export const MANIFEST_ADDON_ID_RE = /^[a-z][a-z0-9_]{1,39}$/;
+export const MANIFEST_HOST_RE = /^(\*\.[a-z0-9-]+(\.[a-z0-9-]+)+|[a-z0-9-]+(\.[a-z0-9-]+)*)$/i;
+export const MANIFEST_WIDGET_SLOTS: readonly string[] = [
+  'sidebar',
+  'hero',
+  'place-detail',
+  'day-detail',
+  'reservation-detail',
+];
+export const MANIFEST_REPLACEABLE_TABS: readonly string[] = [
+  'transports',
+  'buchungen',
+  'listen',
+  'finanzplan',
+  'dateien',
+  'collab',
+];
+export const MANIFEST_TRIP_PAGE_POSITION_MAX = 50;
+export const MANIFEST_ROUTE_PROFILES_MAX = 3;
+export const MANIFEST_ROUTE_PROFILE_ID_RE = /^[a-z][a-z0-9-]{0,23}$/;
+export const MANIFEST_CAPABILITY_NAME_RE = /^[a-zA-Z][a-zA-Z0-9._-]{0,63}$/;
+export const MANIFEST_MCP_TOOLS_MAX = 8;
+export const MANIFEST_TOOL_NAME_RE = /^[a-z0-9_]{1,48}$/;
+export const MANIFEST_SETTING_KEY_RE = /^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$/;
+export const MANIFEST_RESERVED_SETTING_KEYS: readonly string[] = [
+  'constructor',
+  'prototype',
+  '__proto__',
+];
+export const MANIFEST_ACTIONS_MAX = 8;
+
+/** Every attribute a settings-field object may carry; the host silently drops anything else. */
+export const SETTING_FIELD_KEYS = [
+  'key',
+  'label',
+  'input_type',
+  'placeholder',
+  'hint',
+  'required',
+  'secret',
+  'scope',
+  'options',
+  'oauth',
+  'default',
+] as const;
+
+/** Events a plugin notification channel may carry. Admin-scoped and in-app-only events are excluded. */
+export const CHANNEL_EVENTS: string[] = [
+  'trip_invite',
+  'booking_change',
+  'trip_reminder',
+  'todo_due',
+  'vacay_invite',
+  'collection_invite',
+  'photos_shared',
+  'collab_message',
+  'packing_tagged',
+  'plugin_notification',
+];
