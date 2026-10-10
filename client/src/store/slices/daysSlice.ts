@@ -4,6 +4,7 @@ import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { Day } from '../../types'
 import { getApiErrorMessage } from '../../types'
+import { reorderedDayDates } from '@trek/shared'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
@@ -47,12 +48,12 @@ export const createDaysSlice = (set: SetState, get: GetState): DaysSlice => ({
   reorderDays: async (tripId, orderedIds) => {
     const prevDays = get().days
     const byId = new Map(prevDays.map(d => [d.id, d]))
-    const sortedDates = prevDays.map(d => d.date).filter((d): d is string => !!d).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+    const dates = reorderedDayDates(prevDays, orderedIds)
     const optimistic = orderedIds
       .map((id, i) => {
         const d = byId.get(id)
         if (!d) return null
-        return { ...d, day_number: i + 1, date: sortedDates.length ? (sortedDates[i] ?? null) : d.date }
+        return { ...d, day_number: i + 1, date: dates.get(id) ?? null }
       })
       .filter((d): d is NonNullable<typeof d> => d !== null)
 

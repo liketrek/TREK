@@ -66,6 +66,32 @@ export function planDatedAppend(
   return { date, fits: tripSpanDays(trip.start_date, date) <= MAX_TRIP_DAYS };
 }
 
+/**
+ * The date every day carries after the days are put in a new order. The dates stay
+ * with the positions, so content moves across the calendar, but only the dated days
+ * take part: a day without a date keeps none wherever it is moved, and the dated days
+ * take the trip's dates in ascending order as they now come. Handing out the dates by
+ * plain position instead gave a day added without a date the first date when it was
+ * moved to the front and took the date of the last dated day, so the undated row
+ * stayed at the end and the move looked as if nothing had happened.
+ */
+export function reorderedDayDates(
+  days: readonly { id: number; date?: string | null }[],
+  orderedIds: readonly number[],
+): Map<number, string | null> {
+  const dated = new Set(days.filter((d) => !!d.date).map((d) => d.id));
+  const sortedDates = days
+    .map((d) => d.date)
+    .filter((d): d is string => !!d)
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const result = new Map<number, string | null>();
+  let next = 0;
+  for (const id of orderedIds) {
+    result.set(id, dated.has(id) ? (sortedDates[next++] ?? null) : null);
+  }
+  return result;
+}
+
 /** The dates and day count an update leaves a trip with, and whether its day rows are rebuilt. */
 export interface DayGridRange {
   newStart: string | null | undefined;

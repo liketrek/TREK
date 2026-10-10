@@ -157,7 +157,7 @@ export class DaysMcp {
   @Tool({
     name: 'reorder_days',
     description:
-      'Reorder the days of a trip by listing every one of its day IDs in the desired order. This moves whole days of the itinerary; to move places around inside a single day use reorder_day_assignments instead. Each day keeps its places, notes, stays and bookings, and on a dated trip the calendar dates stay pinned to their slots, so the content moves across the dates.',
+      'Reorder the days of a trip by listing every one of its day IDs in the desired order. This moves whole days of the itinerary; to move places around inside a single day use reorder_day_assignments instead. Each day keeps its places, notes, stays and bookings, and on a dated trip the calendar dates stay pinned to their slots, so the content moves across the dates; a day without a date keeps none wherever it is moved.',
     inputSchema: {
       tripId: idSchema,
       orderedIds: dayReorderRequestSchema.shape.orderedIds

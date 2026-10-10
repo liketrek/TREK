@@ -28,7 +28,7 @@ import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
-import { addIsoDays, MAX_TRIP_DAYS, planDatedAppend } from '@trek/shared';
+import { addIsoDays, MAX_TRIP_DAYS, planDatedAppend, reorderedDayDates } from '@trek/shared';
 import type { RoadtripDayBoundary, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 
 type Trip = TripAccess;
@@ -594,12 +594,9 @@ export class DaysService {
     }
 
     const oldDateById = new Map(rows.map((r) => [r.id, r.date]));
-    // Dates stay pinned to slots: position i keeps the i-th date (ascending).
-    const sortedDates = rows
-      .map((r) => r.date)
-      .filter((d): d is string => !!d)
-      .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
-    const isDated = sortedDates.length > 0;
+    // Dates stay pinned to the slots of the dated days; a day without a date keeps none.
+    const newDates = reorderedDayDates(rows, orderedIds);
+    const isDated = rows.some((r) => !!r.date);
 
     await this.uow.transactional(async () => {
       // Two-phase renumber to dodge UNIQUE(trip_id, day_number) collisions —
@@ -610,7 +607,7 @@ export class DaysService {
       }
       const newDateById = new Map<number, string | null>();
       for (const [i, id] of orderedIds.entries()) {
-        const date = isDated ? (sortedDates[i] ?? null) : null;
+        const date = newDates.get(id) ?? null;
         await this.daysRepo.setDayNumberAndDate(id, i + 1, date);
         newDateById.set(id, date);
       }

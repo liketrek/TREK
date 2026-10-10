@@ -121,6 +121,18 @@ describe('reorderDays', () => {
     expect(r?.reservation_time).toBe('2026-03-01T19:00');
   });
 
+  it('moves a day without a date to the front of a dated trip without giving it a date', async () => {
+    const trip = createTrip(testDb, userId, { start_date: '2026-03-01', end_date: '2026-03-02' });
+    const [d1, d2] = await orderedDays(trip.id);
+    const extra = createDay(testDb, trip.id); // no date, appended as day 3
+
+    await reorderDays(trip.id, [extra.id, d1.id, d2.id]);
+
+    const after = await orderedDays(trip.id);
+    expect(after.map((d) => d.id)).toEqual([extra.id, d1.id, d2.id]);
+    expect(after.map((d) => d.date)).toEqual([null, '2026-03-01', '2026-03-02']);
+  });
+
   it('rejects an orderedIds list that is not a permutation of the trip days', async () => {
     const trip = createTrip(testDb, userId, { start_date: '2026-03-01', end_date: '2026-03-03' });
     const [d1, d2] = await orderedDays(trip.id);
