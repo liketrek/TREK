@@ -232,7 +232,6 @@
     "oauth.ts": { "marked": 17, "identical": 4 },
     "packing.ts": { "marked": 0, "identical": 1 },
     "pdf.ts": { "marked": 0, "identical": 1 },
-    "photos.ts": { "marked": 0, "identical": 1 },
     "places.ts": { "marked": 0, "identical": 8 },
     "planner.ts": { "marked": 0, "identical": 3 },
     "reservations.ts": { "marked": 0, "identical": 16 },

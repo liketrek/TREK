@@ -35,16 +35,13 @@ import oauth from './oauth';
 import packing from './packing';
 import pdf from './pdf';
 import perm from './perm';
-import photos from './photos';
 import places from './places';
 import planner from './planner';
-import register from './register';
 import roadtrip from './roadtrip';
 import reservations from './reservations';
 import settings from './settings';
 import share from './share';
 import shared from './shared';
-import stats from './stats';
 import storage from './storage';
 import system_notice from './system_notice';
 import todo from './todo';
@@ -67,7 +64,6 @@ const locale = {
   ...share,
   ...shared,
   ...login,
-  ...register,
   ...vacay,
   ...collection,
   ...atlas,
@@ -84,10 +80,8 @@ const locale = {
   ...members,
   ...categories,
   ...backup,
-  ...photos,
   ...pdf,
   ...planner,
-  ...stats,
   ...day,
   ...memories,
   ...collab,
