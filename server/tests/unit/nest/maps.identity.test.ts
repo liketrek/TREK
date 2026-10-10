@@ -20,11 +20,10 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
 }));
 
 import { OsmClient } from '../../../src/nest/maps/providers/osm.client';
-import { buildMapsService } from '../../helpers/maps-service';
-import { noGoogleQuota } from '../../helpers/google-quota';
+import { WikimediaClient } from '../../../src/nest/maps/providers/wikimedia.client';
 import { toWikiLang, haversineMetres, namesOverlap } from '../../../src/nest/maps/maps.helpers';
 
-const svcOf = () => buildMapsService({} as never, {} as never, {} as never, {} as never, {} as never, noGoogleQuota);
+const wikiOf = () => new WikimediaClient();
 const osmOf = () => new OsmClient();
 
 // The Brandenburg Gate and the underground station named after it, 250m apart.
@@ -201,7 +200,7 @@ describe('fetchWikidataSitelinks', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    const out = await svcOf().fetchWikidataSitelinks('Q1097', ['dewikivoyage', 'dewiki', 'enwiki']);
+    const out = await wikiOf().fetchWikidataSitelinks('Q1097', ['dewikivoyage', 'dewiki', 'enwiki']);
 
     expect(decodeURIComponent(String(fetchMock.mock.calls[0][0]))).toContain('sitefilter=dewikivoyage|dewiki|enwiki');
     expect(out).toEqual({ dewiki: 'Berlin Hauptbahnhof' });
@@ -211,16 +210,16 @@ describe('fetchWikidataSitelinks', () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
-    expect(await svcOf().fetchWikidataSitelinks('nope', ['enwiki'])).toEqual({});
-    expect(await svcOf().fetchWikidataSitelinks('Q1', [])).toEqual({});
+    expect(await wikiOf().fetchWikidataSitelinks('nope', ['enwiki'])).toEqual({});
+    expect(await wikiOf().fetchWikidataSitelinks('Q1', [])).toEqual({});
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('MAPS-173: yields an empty map on a bad response or a throw', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
-    expect(await svcOf().fetchWikidataSitelinks('Q1', ['enwiki'])).toEqual({});
+    expect(await wikiOf().fetchWikidataSitelinks('Q1', ['enwiki'])).toEqual({});
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
-    expect(await svcOf().fetchWikidataSitelinks('Q1', ['enwiki'])).toEqual({});
+    expect(await wikiOf().fetchWikidataSitelinks('Q1', ['enwiki'])).toEqual({});
   });
 });

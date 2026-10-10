@@ -23,10 +23,9 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   SsrfBlockedError: class extends Error {},
 }));
 
-import { buildMapsService } from '../../helpers/maps-service';
-import { noGoogleQuota } from '../../helpers/google-quota';
+import { WikimediaClient } from '../../../src/nest/maps/providers/wikimedia.client';
 
-const svcOf = () => buildMapsService({} as never, {} as never, {} as never, {} as never, {} as never, noGoogleQuota);
+const svcOf = () => new WikimediaClient();
 
 const filePage = (over: Record<string, unknown> = {}) => ({
   pageid: 4711,

@@ -33,6 +33,7 @@ import { PlaceEnrichmentModule } from '../../src/nest/place-enrichment/place-enr
 import { candidateKey } from '../../src/nest/place-enrichment/place-enrichment.service';
 import { MapsService } from '../../src/nest/maps/maps.service';
 import { OsmClient } from '../../src/nest/maps/providers/osm.client';
+import { WikimediaClient } from '../../src/nest/maps/providers/wikimedia.client';
 import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
 import { RateLimitService } from '../../src/nest/common/rate-limit.service';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
@@ -51,6 +52,7 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
   let app: Awaited<ReturnType<typeof build>>;
   let maps: MapsService;
   let osm: OsmClient;
+  let wiki: WikimediaClient;
   let orm: TestOrm;
 
   async function build() {
@@ -73,6 +75,7 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
 
     maps = app.get(MapsService);
     osm = app.get(OsmClient);
+    wiki = app.get(WikimediaClient);
     const photoCache = app.get(PlacePhotoCacheService);
     vi.spyOn(photoCache, 'get').mockReturnValue(null);
     vi.spyOn(photoCache, 'put').mockImplementation(async (key: string, _b: Buffer, attribution: string | null) => ({
@@ -93,19 +96,19 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
     await app.get(RateLimitService).reset('place_enrichment');
     // spyOn hands back the same spy on a second call, so the call counts carry
     // over between tests unless they are cleared explicitly.
-    vi.spyOn(maps, 'fetchCommonsCandidates').mockClear().mockResolvedValue([]);
-    vi.spyOn(maps, 'fetchWikiExtract').mockClear().mockResolvedValue(null);
-    vi.spyOn(maps, 'fetchCommonsCategoryCandidates').mockClear().mockResolvedValue([]);
+    vi.spyOn(wiki, 'fetchCommonsCandidates').mockClear().mockResolvedValue([]);
+    vi.spyOn(wiki, 'fetchWikiExtract').mockClear().mockResolvedValue(null);
+    vi.spyOn(wiki, 'fetchCommonsCategoryCandidates').mockClear().mockResolvedValue([]);
     vi.spyOn(maps, 'details').mockClear().mockResolvedValue({ place: null });
     // Every provider the service can reach has to be stubbed here, not just the
     // ones a given case cares about: anything left open goes out over the real
     // network from CI, which is both slow and rude to the provider.
     vi.spyOn(osm, 'resolveOsmIdentity').mockClear().mockResolvedValue(null);
-    vi.spyOn(maps, 'fetchWikidataSitelinks').mockClear().mockResolvedValue({});
-    vi.spyOn(maps, 'fetchWikiExtractFor').mockClear().mockResolvedValue(null);
-    vi.spyOn(maps, 'fetchWikidataCandidates').mockClear().mockResolvedValue({ candidates: [], commonsCategory: null });
-    vi.spyOn(maps, 'fetchWikiLeadImageName').mockClear().mockResolvedValue(null);
-    vi.spyOn(maps, 'fetchCommonsFilesByName').mockClear().mockResolvedValue(new Map());
+    vi.spyOn(wiki, 'fetchWikidataSitelinks').mockClear().mockResolvedValue({});
+    vi.spyOn(wiki, 'fetchWikiExtractFor').mockClear().mockResolvedValue(null);
+    vi.spyOn(wiki, 'fetchWikidataCandidates').mockClear().mockResolvedValue({ candidates: [], commonsCategory: null });
+    vi.spyOn(wiki, 'fetchWikiLeadImageName').mockClear().mockResolvedValue(null);
+    vi.spyOn(wiki, 'fetchCommonsFilesByName').mockClear().mockResolvedValue(new Map());
   });
 
   it('401 without a session cookie', async () => {
@@ -137,7 +140,7 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
   });
 
   it('200 with a Commons candidate carrying its licence', async () => {
-    vi.spyOn(maps, 'fetchCommonsCandidates').mockResolvedValue([
+    vi.spyOn(wiki, 'fetchCommonsCandidates').mockResolvedValue([
       {
         photoUrl: 'https://commons.org/thumb.jpg',
         attribution: 'Alice',
@@ -175,13 +178,13 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ photos: [], description: null, facts: [], disabled: true });
-    expect(maps.fetchCommonsCandidates).not.toHaveBeenCalled();
+    expect(wiki.fetchCommonsCandidates).not.toHaveBeenCalled();
   });
 
   it('stays enabled on an instance that has never seen the setting', async () => {
     const res = await request(server).post('/api/maps/enrichment').set('Cookie', sessionCookie(1)).send(BODY);
     expect(res.body.disabled).toBeUndefined();
-    expect(maps.fetchCommonsCandidates).toHaveBeenCalled();
+    expect(wiki.fetchCommonsCandidates).toHaveBeenCalled();
   });
 
   it('serves the second request for the same place from the row cache', async () => {

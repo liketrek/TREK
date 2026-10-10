@@ -232,7 +232,7 @@ const placesStub = {
 // through a repository stub that flows into the SAME mockDbGet/mockDbRun/
 // mockInstanceGet/mockProviderGet functions, so they keep firing exactly as
 // they did for the legacy module.
-const { svc, google, osm } = buildMapsParts(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
+const { svc, google, osm, wiki } = buildMapsParts(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
 
 /**
  * Switch the TREK Places index off for one case.
@@ -1094,7 +1094,7 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
         }),
       }),
     );
-    const result = await svc.fetchWikimediaPhoto(48.8, 2.3, 'Eiffel Tower');
+    const result = await wiki.fetchWikimediaPhoto(48.8, 2.3, 'Eiffel Tower');
     expect(result).toBeDefined();
     expect(result!.photoUrl).toBe('https://example.com/thumb.jpg');
     expect(result!.attribution).toBe('Wikipedia');
@@ -1117,7 +1117,7 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
       }),
     };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(wikiResponse).mockResolvedValueOnce(commonsResponse));
-    const result = await svc.fetchWikimediaPhoto(48.8, 2.3, 'Some Place');
+    const result = await wiki.fetchWikimediaPhoto(48.8, 2.3, 'Some Place');
     expect(result).toBeDefined();
     expect(result!.photoUrl).toBe('https://commons.org/img.jpg');
     expect(result!.attribution).toBe('Alice');
@@ -1145,7 +1145,7 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
       }),
     };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(wikiResponse).mockResolvedValueOnce(commonsResponse));
-    const result = await svc.fetchWikimediaPhoto(48.8, 2.3, 'Some Place');
+    const result = await wiki.fetchWikimediaPhoto(48.8, 2.3, 'Some Place');
     expect(result).toBeDefined();
     expect(result!.photoUrl).toBe('https://commons.org/thumb-400.jpg');
     expect(result!.attribution).toBe('Alice');
@@ -1159,7 +1159,7 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
         json: async () => ({ query: { pages: {} } }),
       }),
     );
-    const result = await svc.fetchWikimediaPhoto(48.8, 2.3);
+    const result = await wiki.fetchWikimediaPhoto(48.8, 2.3);
     expect(result).toBeNull();
   });
 
@@ -1170,7 +1170,7 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
       json: async () => ({ query: { pages: {} } }),
     });
     vi.stubGlobal('fetch', fetchMock);
-    await svc.fetchWikimediaPhoto(48.8, 2.3);
+    await wiki.fetchWikimediaPhoto(48.8, 2.3);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -1191,7 +1191,7 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
       'fetch',
       vi.fn().mockRejectedValueOnce(new Error('Wikipedia network error')).mockResolvedValueOnce(commonsResponse),
     );
-    const result = await svc.fetchWikimediaPhoto(48.8, 2.3, 'Some Place');
+    const result = await wiki.fetchWikimediaPhoto(48.8, 2.3, 'Some Place');
     expect(result).toBeDefined();
     expect(result!.photoUrl).toBe('https://commons.org/fallback.jpg');
     // no Artist in extmetadata -> attribution null
@@ -1219,7 +1219,7 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
       }),
     };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(wikiNotOk).mockResolvedValueOnce(commonsResponse));
-    const result = await svc.fetchWikimediaPhoto(48.8, 2.3, 'Some Place');
+    const result = await wiki.fetchWikimediaPhoto(48.8, 2.3, 'Some Place');
     expect(result).toBeDefined();
     // HTML tags stripped from attribution
     expect(result!.attribution).toBe('Bob');
@@ -1227,7 +1227,7 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
 
   it('MAPS-037e: returns null when Commons geosearch returns not ok', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
-    const result = await svc.fetchWikimediaPhoto(48.8, 2.3);
+    const result = await wiki.fetchWikimediaPhoto(48.8, 2.3);
     expect(result).toBeNull();
   });
 
@@ -1239,13 +1239,13 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
         json: async () => ({ query: {} }),
       }),
     );
-    const result = await svc.fetchWikimediaPhoto(48.8, 2.3);
+    const result = await wiki.fetchWikimediaPhoto(48.8, 2.3);
     expect(result).toBeNull();
   });
 
   it('MAPS-037g: returns null when Commons fetch throws', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Commons network error')));
-    const result = await svc.fetchWikimediaPhoto(48.8, 2.3);
+    const result = await wiki.fetchWikimediaPhoto(48.8, 2.3);
     expect(result).toBeNull();
   });
 
@@ -1265,7 +1265,7 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
         }),
       }),
     );
-    const result = await svc.fetchWikimediaPhoto(48.8, 2.3);
+    const result = await wiki.fetchWikimediaPhoto(48.8, 2.3);
     expect(result).toBeNull();
   });
 
@@ -1291,7 +1291,7 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
         }),
       }),
     );
-    const result = await svc.fetchWikimediaPhoto(48.8, 2.3);
+    const result = await wiki.fetchWikimediaPhoto(48.8, 2.3);
     expect(result!.photoUrl).toBe('https://commons.org/photo.png');
     expect(result!.attribution).toBe('Carol');
   });
@@ -1312,7 +1312,7 @@ describe('fetchWikimediaPhoto (fetch stubbed)', () => {
         }),
       }),
     );
-    const result = await svc.fetchWikimediaPhoto(48.8, 2.3);
+    const result = await wiki.fetchWikimediaPhoto(48.8, 2.3);
     expect(result!.attribution).toBeNull();
   });
 });
@@ -2946,7 +2946,7 @@ describe('fetchCommonsCandidates (fetch stubbed)', () => {
         json: async () => ({ query: { pages: { '1': page(), '2': page({ thumburl: 'https://commons.org/t2.jpg' }) } } }),
       }),
     );
-    const out = await svc.fetchCommonsCandidates(48.8, 2.3, 5);
+    const out = await wiki.fetchCommonsCandidates(48.8, 2.3, 5);
     expect(out).toHaveLength(2);
     expect(out[0]).toMatchObject({
       photoUrl: 'https://commons.org/thumb.jpg',
@@ -2976,7 +2976,7 @@ describe('fetchCommonsCandidates (fetch stubbed)', () => {
         }),
       }),
     );
-    const out = await svc.fetchCommonsCandidates(48.8, 2.3);
+    const out = await wiki.fetchCommonsCandidates(48.8, 2.3);
     expect(out[0].license).toBe('Public domain');
     expect(out[0].attribution).toBeNull();
     expect(out[0].licenseUrl).toBeNull();
@@ -3000,7 +3000,7 @@ describe('fetchCommonsCandidates (fetch stubbed)', () => {
         }),
       }),
     );
-    const out = await svc.fetchCommonsCandidates(48.8, 2.3);
+    const out = await wiki.fetchCommonsCandidates(48.8, 2.3);
     expect(out).toHaveLength(1);
     expect(out[0].photoUrl).toBe('https://commons.org/original.jpg');
   });
@@ -3016,25 +3016,25 @@ describe('fetchCommonsCandidates (fetch stubbed)', () => {
     // survey tiles and the building next door, and the ranker can only reject
     // from a pool. Geosearch bills the same for one result as for twenty, so
     // the whole pool comes back and gets cut after ranking, not before.
-    expect(await svc.fetchCommonsCandidates(48.8, 2.3, 2)).toHaveLength(3);
+    expect(await wiki.fetchCommonsCandidates(48.8, 2.3, 2)).toHaveLength(3);
     expect(String(fetchMock.mock.calls[0][0])).toContain('ggslimit=8');
 
-    await svc.fetchCommonsCandidates(48.8, 2.3, 0);
+    await wiki.fetchCommonsCandidates(48.8, 2.3, 0);
     expect(String(fetchMock.mock.calls[1][0])).toContain('ggslimit=8');
 
-    await svc.fetchCommonsCandidates(48.8, 2.3, 99);
+    await wiki.fetchCommonsCandidates(48.8, 2.3, 99);
     expect(String(fetchMock.mock.calls[2][0])).toContain('ggslimit=20');
   });
 
   it('MAPS-121: returns an empty list on a bad response, missing pages or a throw', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
-    expect(await svc.fetchCommonsCandidates(1, 2)).toEqual([]);
+    expect(await wiki.fetchCommonsCandidates(1, 2)).toEqual([]);
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ query: {} }) }));
-    expect(await svc.fetchCommonsCandidates(1, 2)).toEqual([]);
+    expect(await wiki.fetchCommonsCandidates(1, 2)).toEqual([]);
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
-    expect(await svc.fetchCommonsCandidates(1, 2)).toEqual([]);
+    expect(await wiki.fetchCommonsCandidates(1, 2)).toEqual([]);
   });
 });
 
@@ -3049,7 +3049,7 @@ describe('fetchWikiExtract (fetch stubbed)', () => {
     const fetchMock = vi.fn().mockResolvedValue(page('Museum Ludwig', '  Ein Museum in Köln.  '));
     vi.stubGlobal('fetch', fetchMock);
 
-    const out = await svc.fetchWikiExtract('de:Museum Ludwig');
+    const out = await wiki.fetchWikiExtract('de:Museum Ludwig');
     expect(out).toEqual({
       text: 'Ein Museum in Köln.',
       sourceUrl: 'https://de.wikivoyage.org/wiki/Museum%20Ludwig',
@@ -3067,7 +3067,7 @@ describe('fetchWikiExtract (fetch stubbed)', () => {
       .mockResolvedValueOnce(page('Museum Ludwig', 'Das Museum Ludwig ist ein Museum.'));
     vi.stubGlobal('fetch', fetchMock);
 
-    const out = await svc.fetchWikiExtract('de:Museum Ludwig');
+    const out = await wiki.fetchWikiExtract('de:Museum Ludwig');
     expect(out).toMatchObject({ source: 'wikipedia' });
     expect(String(fetchMock.mock.calls[1][0])).toContain('https://de.wikipedia.org/w/api.php');
   });
@@ -3076,36 +3076,36 @@ describe('fetchWikiExtract (fetch stubbed)', () => {
     const fetchMock = vi.fn().mockResolvedValue(page('X', 'Kurz.'));
     vi.stubGlobal('fetch', fetchMock);
 
-    await svc.fetchWikiExtract('de:X');
+    await wiki.fetchWikiExtract('de:X');
     expect(String(fetchMock.mock.calls[0][0])).toContain('exsentences=2');
   });
 
   it('MAPS-123: prefers the resolved title so a redirect links to where it landed', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(page('Eiffel Tower', 'A tower.')));
-    const out = await svc.fetchWikiExtract('en:Eiffelturm');
+    const out = await wiki.fetchWikiExtract('en:Eiffelturm');
     expect(out!.sourceUrl).toBe('https://en.wikivoyage.org/wiki/Eiffel%20Tower');
   });
 
   it('MAPS-124: returns null without calling out when the tag has no language', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    expect(await svc.fetchWikiExtract('Museum Ludwig')).toBeNull();
-    expect(await svc.fetchWikiExtract(null)).toBeNull();
+    expect(await wiki.fetchWikiExtract('Museum Ludwig')).toBeNull();
+    expect(await wiki.fetchWikiExtract(null)).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('MAPS-125: treats a miss on both wikis as no description', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(noArticle));
-    expect(await svc.fetchWikiExtract('de:X')).toBeNull();
+    expect(await wiki.fetchWikiExtract('de:X')).toBeNull();
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
-    expect(await svc.fetchWikiExtract('de:X')).toBeNull();
+    expect(await wiki.fetchWikiExtract('de:X')).toBeNull();
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
-    expect(await svc.fetchWikiExtract('de:X')).toBeNull();
+    expect(await wiki.fetchWikiExtract('de:X')).toBeNull();
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
-    expect(await svc.fetchWikiExtract('de:X')).toBeNull();
+    expect(await wiki.fetchWikiExtract('de:X')).toBeNull();
   });
 
   it('MAPS-125b: still tries Wikipedia after Wikivoyage threw', async () => {
@@ -3115,7 +3115,7 @@ describe('fetchWikiExtract (fetch stubbed)', () => {
       .mockResolvedValueOnce(page('X', 'Ein Ort.'));
     vi.stubGlobal('fetch', fetchMock);
 
-    expect(await svc.fetchWikiExtract('de:X')).toMatchObject({ source: 'wikipedia' });
+    expect(await wiki.fetchWikiExtract('de:X')).toMatchObject({ source: 'wikipedia' });
   });
 });
 
@@ -3143,7 +3143,7 @@ describe('fetchCommonsCategoryCandidates (fetch stubbed)', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    const out = await svc.fetchCommonsCategoryCandidates('Category:Museum Ludwig', 3);
+    const out = await wiki.fetchCommonsCategoryCandidates('Category:Museum Ludwig', 3);
     expect(out).toHaveLength(1);
     expect(out[0]).toMatchObject({ photoUrl: 'https://commons.org/t.jpg', attribution: 'Alice', license: 'CC BY 4.0' });
     // Ranked search, not the category listing: `categorymembers` orders by sort
@@ -3157,7 +3157,7 @@ describe('fetchCommonsCategoryCandidates (fetch stubbed)', () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ query: { pages: {} } }) });
     vi.stubGlobal('fetch', fetchMock);
 
-    await svc.fetchCommonsCategoryCandidates('Museum Ludwig');
+    await wiki.fetchCommonsCategoryCandidates('Museum Ludwig');
     expect(String(fetchMock.mock.calls[0][0])).toContain('incategory%3A%22Museum+Ludwig%22');
     // Empty search falls through to the category listing as a second chance.
     expect(String(fetchMock.mock.calls[1][0])).toContain('gcmtitle=Category%3AMuseum+Ludwig');
@@ -3170,7 +3170,7 @@ describe('fetchCommonsCategoryCandidates (fetch stubbed)', () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
-    expect(await svc.fetchCommonsCategoryCandidates('File:Museum Ludwig.jpg')).toEqual([]);
+    expect(await wiki.fetchCommonsCategoryCandidates('File:Museum Ludwig.jpg')).toEqual([]);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -3178,16 +3178,16 @@ describe('fetchCommonsCategoryCandidates (fetch stubbed)', () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ query: { pages: {} } }) });
     vi.stubGlobal('fetch', fetchMock);
 
-    await svc.fetchCommonsCategoryCandidates('Kategorie:Museum Ludwig');
+    await wiki.fetchCommonsCategoryCandidates('Kategorie:Museum Ludwig');
     expect(String(fetchMock.mock.calls[0][0])).toContain('incategory%3A%22Museum+Ludwig%22');
   });
 
   it('MAPS-125e: yields nothing on an error response or a throw', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
-    expect(await svc.fetchCommonsCategoryCandidates('Category:X')).toEqual([]);
+    expect(await wiki.fetchCommonsCategoryCandidates('Category:X')).toEqual([]);
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
-    expect(await svc.fetchCommonsCategoryCandidates('Category:X')).toEqual([]);
+    expect(await wiki.fetchCommonsCategoryCandidates('Category:X')).toEqual([]);
   });
 });
 

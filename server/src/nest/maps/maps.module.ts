@@ -5,6 +5,7 @@ import { MapsService } from './maps.service';
 import { MapsMcp } from './maps.mcp';
 import { GooglePlacesClient } from './providers/google-places.provider';
 import { OsmClient } from './providers/osm.client';
+import { WikimediaClient } from './providers/wikimedia.client';
 import { PlacePhotosModule } from '../place-photos/place-photos.module';
 import { StorageModule } from '../storage/storage.module';
 import { GoogleQuotaModule } from '../google-quota/google-quota.module';
@@ -30,7 +31,7 @@ import { Places } from '../../db/entities/Places.entity';
 @Module({
   imports: [PlacePhotosModule, StorageModule, GoogleQuotaModule, MikroOrmModule.forFeature([AppSettings, Users, PlaceDetailsCache, Places])],
   controllers: [MapsController],
-  providers: [MapsService, MapsMcp, GooglePlacesClient, OsmClient],
-  exports: [MapsService, GooglePlacesClient, OsmClient],
+  providers: [MapsService, MapsMcp, GooglePlacesClient, OsmClient, WikimediaClient],
+  exports: [MapsService, GooglePlacesClient, OsmClient, WikimediaClient],
 })
 export class MapsModule {}

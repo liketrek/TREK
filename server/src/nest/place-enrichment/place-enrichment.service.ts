@@ -29,6 +29,7 @@ import { buildOsmDetails, isGooglePlaceId, parseWikipediaTag, rankCommonsCandida
 import { trekPlacesById } from '../maps/trek-places.client';
 import { GooglePlacesClient } from '../maps/providers/google-places.provider';
 import { OsmClient } from '../maps/providers/osm.client';
+import { WikimediaClient } from '../maps/providers/wikimedia.client';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { readAppSetting } from '../common/app-settings.registry';
 
@@ -327,6 +328,7 @@ export class PlaceEnrichmentService {
     private readonly photoCache: PlacePhotoCacheService,
     private readonly googlePlaces: GooglePlacesClient,
     private readonly osm: OsmClient,
+    private readonly wiki: WikimediaClient,
   ) {}
 
   /**
@@ -490,21 +492,21 @@ export class PlaceEnrichmentService {
     let categoryName = identity.wikimedia_commons;
 
     if (wikidata) {
-      const fromWikidata = await this.maps.fetchWikidataCandidates(wikidata, COMMONS_CAP);
+      const fromWikidata = await this.wiki.fetchWikidataCandidates(wikidata, COMMONS_CAP);
       push(commonsPool, fromWikidata.candidates, 'wikidata');
       categoryName ??= fromWikidata.commonsCategory;
     }
 
     if (commonsPool.length < COMMONS_CAP && wikipedia) {
-      const leadName = await this.maps.fetchWikiLeadImageName(wikipedia);
+      const leadName = await this.wiki.fetchWikiLeadImageName(wikipedia);
       if (leadName) {
-        const byName = await this.maps.fetchCommonsFilesByName([leadName]);
+        const byName = await this.wiki.fetchCommonsFilesByName([leadName]);
         push(commonsPool, [...byName.values()], 'wikipedia');
       }
     }
 
     if (commonsPool.length < COMMONS_CAP && categoryName) {
-      push(commonsPool, await this.maps.fetchCommonsCategoryCandidates(categoryName, COMMONS_CAP), 'category');
+      push(commonsPool, await this.wiki.fetchCommonsCategoryCandidates(categoryName, COMMONS_CAP), 'category');
     }
 
     // Two is the bar: one curated picture plus the nearby noise reads worse
@@ -521,7 +523,7 @@ export class PlaceEnrichmentService {
     const skipNearby = nearbyWouldMislead(details) || nearbyWouldMislead(identity.osmTags);
     const nearbyPending =
       curated < 2 && !skipNearby
-        ? this.maps.fetchCommonsCandidates(req.lat, req.lng, COMMONS_CAP)
+        ? this.wiki.fetchCommonsCandidates(req.lat, req.lng, COMMONS_CAP)
         : Promise.resolve([]);
 
     const googleRefs = await googlePending;
@@ -787,21 +789,21 @@ export class PlaceEnrichmentService {
         { site: 'enwikivoyage', host: 'wikivoyage', lang: 'en' },
         { site: 'enwiki', host: 'wikipedia', lang: 'en' },
       ];
-      const sitelinks = await this.maps.fetchWikidataSitelinks(
+      const sitelinks = await this.wiki.fetchWikidataSitelinks(
         identity.wikidata,
         wanted.map((w) => w.site),
       );
       for (const { site, host, lang: hostLang } of wanted) {
         const title = sitelinks[site];
         if (!title) continue;
-        const hit = await this.maps.fetchWikiExtractFor(host, hostLang, title);
+        const hit = await this.wiki.fetchWikiExtractFor(host, hostLang, title);
         if (hit) return hit;
       }
     }
 
     // No Wikidata id, or its sitelinks led nowhere: fall back to the tag, which
     // names an article directly.
-    return identity.wikipedia ? this.maps.fetchWikiExtract(identity.wikipedia) : null;
+    return identity.wikipedia ? this.wiki.fetchWikiExtract(identity.wikipedia) : null;
   }
 
   /**

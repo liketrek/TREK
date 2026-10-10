@@ -102,6 +102,7 @@ export const PUBLIC_FILES = [
   // asks Google and Wikimedia directly instead of through a MapsService facade.
   'maps/providers/google-places.provider.ts',
   'maps/providers/osm.client.ts',
+  'maps/providers/wikimedia.client.ts',
 ];
 
 function walk(dir, files = []) {

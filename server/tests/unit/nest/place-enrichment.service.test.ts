@@ -53,10 +53,11 @@ import {
 import type { MapsService } from '../../../src/nest/maps/maps.service';
 import type { GooglePlacesClient } from '../../../src/nest/maps/providers/google-places.provider';
 import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';
+import type { WikimediaClient } from '../../../src/nest/maps/providers/wikimedia.client';
 
 /** Every seam enrichment reaches: the maps orchestrator and the outbound clients it injects beside it. */
 type Seams<T> = { [K in keyof T]: T[K] };
-type EnrichmentSeams = Seams<MapsService> & Seams<GooglePlacesClient> & Seams<OsmClient>;
+type EnrichmentSeams = Seams<MapsService> & Seams<GooglePlacesClient> & Seams<OsmClient> & Seams<WikimediaClient>;
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
@@ -109,7 +110,7 @@ function cacheStub(over: Record<string, unknown> = {}) {
 }
 
 function make(maps: EnrichmentSeams, cache: PlacePhotoCacheService) {
-  return new PlaceEnrichmentService(cacheRepoStub(), appSettingsStub(), maps as unknown as MapsService, cache, maps as unknown as GooglePlacesClient, maps as unknown as OsmClient);
+  return new PlaceEnrichmentService(cacheRepoStub(), appSettingsStub(), maps as unknown as MapsService, cache, maps as unknown as GooglePlacesClient, maps as unknown as OsmClient, maps as unknown as WikimediaClient);
 }
 
 let candidateSeq = 0;
