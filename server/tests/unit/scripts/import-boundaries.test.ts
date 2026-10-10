@@ -16,7 +16,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 const SCRIPT = path.join(__dirname, '../../../scripts/import-boundaries.mjs');
 
-const EMPTY = { fileCycles: [], domainCycles: [], sharedImportsDomain: [], domainInternals: [], dbImportsNest: [] };
+const EMPTY = { fileCycles: [], domainCycles: [], sharedImportsDomain: [], domainInternals: [], dbImportsNest: [], foreignRepositories: [] };
 
 interface ExecError {
   status: number | null;
@@ -224,6 +224,32 @@ describe('import-boundaries.mjs', () => {
     const res = run(broken);
     expect(res.status).toBe(1);
     expect(res.out).toContain('unresolved import x/a.ts -> ./missing');
+  });
+
+  it('BOUND-012: fails on a repository another domain owns, passes the owner and a baselined entry', () => {
+    const owners = JSON.stringify({ Trips: 'trips', Todos: 'todo' });
+    const files = {
+      'nest/trips/trips.service.ts': '@InjectRepository(Trips) class S {}\nexport { S };\n',
+      'nest/todo/todo.service.ts': '@InjectRepository(Todos) class T {}\n@InjectRepository(Trips) class U {}\nexport { T, U };\n',
+    };
+    const withOwners = (baseline: unknown) => {
+      const dir = serverRoot(files, baseline);
+      writeFileSync(path.join(dir, 'scripts/repository-owners.json'), owners);
+      return dir;
+    };
+    const bad = run(withOwners(EMPTY));
+    expect(bad.status).toBe(1);
+    expect(bad.out).toContain('FAIL  foreignRepositories: todo -> Trips (owned by trips)');
+    expect(bad.out).not.toContain('trips -> Trips');
+    expect(bad.out).not.toContain('todo -> Todos');
+    expect(run(withOwners({ ...EMPTY, foreignRepositories: ['todo -> Trips (owned by trips)'] })).status).toBe(0);
+  });
+
+  it('BOUND-013: fails closed on an injected entity without an owner', () => {
+    const dir = serverRoot({ 'nest/a/a.service.ts': '@InjectRepository(Mystery) class A {}\nexport { A };\n' });
+    const res = run(dir);
+    expect(res.status).toBe(1);
+    expect(res.out).toContain('no owner for injected entity Mystery (nest/a/a.service.ts)');
   });
 
   it('BOUND-010: resolves .js specifiers and index files', () => {

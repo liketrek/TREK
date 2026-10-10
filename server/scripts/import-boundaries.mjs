@@ -37,6 +37,15 @@
  *                   importing domain, so moving a file inside A changes nothing.
  *   dbImportsNest   a file under src/db/ importing from src/nest/. The data
  *                   layer sits below the domains, never the other way round.
+ *   foreignRepositories
+ *                   a class in src/nest/<A>/ injecting (@InjectRepository) the
+ *                   repository of an entity another domain owns. Ownership is
+ *                   the map in scripts/repository-owners.json (entity class ->
+ *                   owning domain folder); an injected entity missing from it
+ *                   stops the run. Keyed by domain and entity, so a second
+ *                   injection of an entity the domain already reads is not new.
+ *                   Asking the owner instead (a service such as
+ *                   trip-membership's TripAccessService) is what shrinks it.
  *
  * Each rule's baseline lists today's violations. A violation not in it fails
  * the check, and so does an entry that no longer occurs, until --update drops
@@ -56,7 +65,7 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
 
-export const RULES = ['fileCycles', 'domainCycles', 'sharedImportsDomain', 'domainInternals', 'dbImportsNest'];
+export const RULES = ['fileCycles', 'domainCycles', 'sharedImportsDomain', 'domainInternals', 'dbImportsNest', 'foreignRepositories'];
 
 /**
  * Folders under src/nest whose every file is shared infrastructure, open to all domains.
@@ -271,6 +280,48 @@ export function isPublic(target) {
   return PUBLIC_SUFFIXES.some((s) => target.endsWith(s));
 }
 
+/** Every @InjectRepository(Entity) under src/nest: { domain, entity, file }. */
+export function collectRepositoryInjections(serverDir) {
+  const src = join(serverDir, 'src');
+  const nest = join(src, 'nest');
+  if (!existsSync(nest)) return [];
+  const found = [];
+  for (const file of walk(nest)) {
+    const rel = relative(src, file).split(sep).join('/');
+    const domain = domainOf(rel);
+    if (!domain) continue;
+    for (const m of readFileSync(file, 'utf8').matchAll(/@InjectRepository\(\s*([A-Za-z_$][\w$]*)\s*\)/g)) {
+      found.push({ domain, entity: m[1], file: rel });
+    }
+  }
+  return found;
+}
+
+/** scripts/repository-owners.json: entity class -> owning domain. Missing is an empty map. */
+export function readOwners(path) {
+  if (!existsSync(path)) return {};
+  const parsed = JSON.parse(readFileSync(path, 'utf8'));
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('scripts/repository-owners.json must map each entity class to its owning domain');
+  }
+  return parsed;
+}
+
+/** foreignRepositories keys, plus the injected entities the owner map does not know. */
+export function analyseRepositories(injections, owners) {
+  const foreign = new Set();
+  const unowned = new Set();
+  for (const { domain, entity, file } of injections) {
+    const owner = owners[entity];
+    if (typeof owner !== 'string') {
+      unowned.add(`${entity} (${file})`);
+      continue;
+    }
+    if (owner !== domain) foreign.add(`${domain} -> ${entity} (owned by ${owner})`);
+  }
+  return { foreignRepositories: [...foreign].sort(), unowned: [...unowned].sort() };
+}
+
 /** The violations of every rule, each a sorted list of stable string keys. */
 export function analyse(edges) {
   const runtime = edges.filter((e) => e.runtime);
@@ -301,6 +352,7 @@ export function analyse(edges) {
     sharedImportsDomain: sorted(sharedImportsDomain),
     domainInternals: sorted(domainInternals),
     dbImportsNest: sorted(dbImportsNest),
+    foreignRepositories: [],
   };
 }
 
@@ -347,6 +399,8 @@ const HINTS = {
   sharedImportsDomain:
     'The shared kernel is imported by every domain, so it may not import one. Move the piece into the kernel, or inject it from the domain.',
   dbImportsNest: 'src/db sits below src/nest. Move what the data layer needs into src/db (or src/utils) instead.',
+  foreignRepositories:
+    "This injects the repository of a table another domain owns. Ask the owner's service instead (e.g. TripAccessService for trip visibility), or move the code to the owning domain.",
 };
 
 function main(argv) {
@@ -362,6 +416,16 @@ function main(argv) {
     return 1;
   }
   const found = analyse(edges);
+  const { foreignRepositories, unowned } = analyseRepositories(
+    collectRepositoryInjections(serverDir),
+    readOwners(join(serverDir, 'scripts', 'repository-owners.json')),
+  );
+  if (unowned.length) {
+    // An entity without an owner is an injection the rule cannot judge.
+    for (const u of unowned) console.error(`FAIL  no owner for injected entity ${u}: add it to scripts/repository-owners.json`);
+    return 1;
+  }
+  found.foreignRepositories = foreignRepositories;
   let baseline = readBaseline(baselinePath);
   if (update) {
     const now = Object.fromEntries(RULES.map((rule) => [rule, new Set(found[rule])]));
