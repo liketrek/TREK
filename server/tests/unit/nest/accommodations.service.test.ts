@@ -238,7 +238,8 @@ describe('updateAccommodation', () => {
     const before = await linkedReservation(accom.id);
     await updateRows(await orm(), Reservations, { id: before.id }, { metadata: '{not json' });
 
-    const existing = (await svc.getAccommodation(accom.id, trip.id))!;
+    const existing = await svc.getAccommodation(accom.id, trip.id);
+    if (!existing) throw new Error('accommodation not found');
     await svc.updateAccommodation(accom.id, existing as Parameters<typeof svc.updateAccommodation>[1], { check_in: '16:00' });
 
     expect(JSON.parse((await linkedReservation(accom.id)).metadata)).toEqual({ check_in_time: '16:00' });

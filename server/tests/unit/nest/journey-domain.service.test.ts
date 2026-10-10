@@ -2740,9 +2740,9 @@ describe('entry enrichment', () => {
 
     const names = (rows: Array<{ source_trip_id?: number | null; source_trip_name?: string | null }>) =>
       rows.map((e) => [e.source_trip_id ?? null, e.source_trip_name]).sort((x, y) => Number(x[0]) - Number(y[0]));
-    const listed = names((await svc.listEntries(journey.id, user.id))!);
+    const listed = names((await svc.listEntries(journey.id, user.id)) ?? []);
     expect(listed).toEqual([[null, null], [a.id, 'Alps'], [b.id, 'Baltic']].sort((x, y) => Number(x[0]) - Number(y[0])));
-    const full = (await svc.getJourneyFull(journey.id, user.id))! as unknown as { entries: Array<{ source_trip_id?: number | null; source_trip_name?: string | null }> };
+    const full = (await svc.getJourneyFull(journey.id, user.id)) as unknown as { entries: Array<{ source_trip_id?: number | null; source_trip_name?: string | null }> };
     expect(names(full.entries)).toEqual(listed);
   });
 

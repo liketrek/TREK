@@ -156,6 +156,6 @@ describe('MapsService.getPlaceDetails for a gers: id', () => {
     await expect(svc.getPlaceDetails(1, 'gers:abc-123')).resolves.toEqual({ place: null });
 
     expect(mockById).not.toHaveBeenCalled();
-    expect(osmOf.get(svc)!.resolveOsmIdentity).not.toHaveBeenCalled();
+    expect(osmOf.get(svc)?.resolveOsmIdentity).not.toHaveBeenCalled();
   });
 });

@@ -65,7 +65,6 @@ import { TripMembersService } from '../../../src/nest/trip-members/trip-members.
 import { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
 import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import { accommodationsOver, makeAccommodationsService } from '../../helpers/accommodations-service';
-import { MapsService } from '../../../src/nest/maps/maps.service';
 import { buildMapsService } from '../../helpers/maps-service';
 import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
 import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';

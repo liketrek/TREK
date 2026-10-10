@@ -60,7 +60,6 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
   trekPlacesSearch: vi.fn(async (): Promise<unknown[]> => []),
 }));
 
-import { MapsService } from '../../../src/nest/maps/maps.service';
 import { buildMapsService } from '../../helpers/maps-service';
 import { OsmClient } from '../../../src/nest/maps/providers/osm.client';
 import { trekPlacesSearch } from '../../../src/nest/maps/trek-places.client';

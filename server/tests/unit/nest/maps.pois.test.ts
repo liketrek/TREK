@@ -129,7 +129,9 @@ const osmOf = new WeakMap<MapsService, OsmClient>();
 // Overpass is the one network call this file must never make; stubbing it is
 // also what turns "dropped through" into something a case can assert.
 function stubOverpass(svc: MapsService) {
-  return vi.spyOn(osmOf.get(svc)!, 'searchOverpassPois').mockResolvedValue(OVERPASS_ANSWER);
+  const osm = osmOf.get(svc);
+  if (!osm) throw new Error('no OSM client recorded for this service');
+  return vi.spyOn(osm, 'searchOverpassPois').mockResolvedValue(OVERPASS_ANSWER);
 }
 
 function rows(n: number) {

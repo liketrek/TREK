@@ -10,9 +10,16 @@
  * so a tool declared `mode: 'write'` but annotated read-only (or the reverse)
  * fails here instead of slipping past the gate.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import { ADDON_IDS } from '../../../src/addons';
 import { db as testDb } from '../../../src/db/database';
+import { isDemoGatedTool, trekDemoToolGate } from '../../../src/mcp/nest-mcp-policy';
+import type { McpContext, McpRegistry, McpRegistryListing } from '../../../src/nest-mcp';
+import { createUser } from '../../helpers/factories';
+import { createMcpTestRegistry } from '../../helpers/mcp-test-controllers';
+import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 
 vi.mock('../../../src/db/database', async () => {
   const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
@@ -25,14 +32,10 @@ vi.mock('../../../src/config', () => ({
 }));
 vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
 
-import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { createMcpTestRegistry } from '../../helpers/mcp-test-controllers';
-import { ADDON_IDS } from '../../../src/addons';
-import { isDemoGatedTool, trekDemoToolGate } from '../../../src/mcp/nest-mcp-policy';
-import type { McpContext, McpRegistry, McpRegistryListing } from '../../../src/nest-mcp';
-
-const DEMO_REFUSAL = { content: [{ type: 'text', text: 'Write operations are disabled in demo mode.' }], isError: true };
+const DEMO_REFUSAL = {
+  content: [{ type: 'text', text: 'Write operations are disabled in demo mode.' }],
+  isError: true,
+};
 
 interface CapturedTool {
   annotations?: Record<string, unknown>;
@@ -43,7 +46,11 @@ interface CapturedTool {
 async function captureTools(registry: McpRegistry, ctx: McpContext): Promise<Map<string, CapturedTool>> {
   const tools = new Map<string, CapturedTool>();
   const server = {
-    registerTool: (name: string, config: { annotations?: Record<string, unknown> }, cb: (...a: unknown[]) => unknown) => {
+    registerTool: (
+      name: string,
+      config: { annotations?: Record<string, unknown> },
+      cb: (...a: unknown[]) => unknown,
+    ) => {
       // Arguments as a client would send nothing: the gate answers before
       // the handler ever reads them.
       tools.set(name, { annotations: config.annotations, call: async (args = {}) => cb(args, {}) });
@@ -84,9 +91,8 @@ describe('demo tool gate over the whole registry', () => {
 
     const writes = [...tools].filter(([, t]) => t.annotations?.readOnlyHint !== true);
     expect(writes.length).toBeGreaterThan(150);
-    for (const [name, tool] of writes) {
-      expect({ name, result: await tool.call() }).toEqual({ name, result: DEMO_REFUSAL });
-    }
+    const answers = await Promise.all(writes.map(async ([name, tool]) => ({ name, result: await tool.call() })));
+    expect(answers).toEqual(writes.map(([name]) => ({ name, result: DEMO_REFUSAL })));
   });
 
   it('DEMOGATE-002: no read-only tool is held back for the demo account', async () => {
@@ -98,9 +104,10 @@ describe('demo tool gate over the whole registry', () => {
 
     const reads = [...tools].filter(([, t]) => t.annotations?.readOnlyHint === true);
     expect(reads.length).toBeGreaterThan(80);
-    for (const [name, tool] of reads) {
-      expect({ name, refusal: await gate({ name, annotations: tool.annotations }, ctx) }).toEqual({ name, refusal: undefined });
-    }
+    const refusals = await Promise.all(
+      reads.map(async ([name, tool]) => ({ name, refusal: await gate({ name, annotations: tool.annotations }, ctx) })),
+    );
+    expect(refusals).toEqual(reads.map(([name]) => ({ name, refusal: undefined })));
   });
 
   it('DEMOGATE-003: an ordinary account reaches the write handlers in demo mode', async () => {
@@ -108,7 +115,10 @@ describe('demo tool gate over the whole registry', () => {
     const { user } = createUser(testDb, { email: 'alice@example.com' });
     const tools = await captureTools(registry, { userId: user.id, scopes: null, isStaticToken: false });
     // create_tag has no trip to check and no addon gate: it writes and answers.
-    const result = (await tools.get('create_tag')!.call({ name: 'Mine' })) as { isError?: boolean; content: { text: string }[] };
+    const result = (await tools.get('create_tag')?.call({ name: 'Mine' })) as {
+      isError?: boolean;
+      content: { text: string }[];
+    };
     expect(result.isError).toBeUndefined();
     expect(result.content[0].text).toContain('Mine');
   });
@@ -116,7 +126,7 @@ describe('demo tool gate over the whole registry', () => {
   it('DEMOGATE-004: outside demo mode the demo account is an ordinary account', async () => {
     const { user: demo } = createUser(testDb, { email: 'demo@trek.app' });
     const tools = await captureTools(registry, { userId: demo.id, scopes: null, isStaticToken: false });
-    const result = (await tools.get('create_tag')!.call({ name: 'Mine' })) as { isError?: boolean };
+    const result = (await tools.get('create_tag')?.call({ name: 'Mine' })) as { isError?: boolean };
     expect(result.isError).toBeUndefined();
   });
 
@@ -153,7 +163,9 @@ describe('trekDemoToolGate', () => {
 
   it('DEMOGATE-010: refuses a write tool for a demo account and asks with the caller id', async () => {
     const isDemo = vi.fn(async () => true);
-    expect(await trekDemoToolGate(isDemo)({ name: 'w', annotations: { readOnlyHint: false } }, ctx)).toEqual(DEMO_REFUSAL);
+    expect(await trekDemoToolGate(isDemo)({ name: 'w', annotations: { readOnlyHint: false } }, ctx)).toEqual(
+      DEMO_REFUSAL,
+    );
     expect(isDemo).toHaveBeenCalledWith(7);
   });
 

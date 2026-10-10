@@ -602,16 +602,17 @@ describe('listOAuthSessions + revokeSession', () => {
   it('stores both expiries in the canonical text and lists them in the ISO spelling the API has always answered', async () => {
     const { user } = createUser(testDb);
     const created = await makeClient(user.id);
-    const clientId = created.client!.client_id as string;
+    const clientId = created.client?.client_id as string;
 
     await issueTokens(clientId, user.id, ['trips:read']);
     const row = await findRow(t, OauthTokens, { user: user.id });
-    expect(row!.access_token_expires_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
-    expect(row!.refresh_token_expires_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+    if (!row) throw new Error('token row not stored');
+    expect(row.access_token_expires_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+    expect(row.refresh_token_expires_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
 
     const [session] = await listOAuthSessions(user.id);
-    expect(session.access_token_expires_at).toBe(`${row!.access_token_expires_at.replace(' ', 'T')}.000Z`);
-    expect(session.refresh_token_expires_at).toBe(`${row!.refresh_token_expires_at.replace(' ', 'T')}.000Z`);
+    expect(session.access_token_expires_at).toBe(`${row.access_token_expires_at.replace(' ', 'T')}.000Z`);
+    expect(session.refresh_token_expires_at).toBe(`${row.refresh_token_expires_at.replace(' ', 'T')}.000Z`);
     const [adminRow] = (await svc.listAllOAuthSessions()) as Array<Record<string, unknown>>;
     expect(adminRow.access_token_expires_at).toBe(session.access_token_expires_at);
   });
@@ -619,7 +620,7 @@ describe('listOAuthSessions + revokeSession', () => {
   it('a legacy ISO expiry still lists as stored', async () => {
     const { user } = createUser(testDb);
     const created = await makeClient(user.id);
-    const clientId = created.client!.client_id as string;
+    const clientId = created.client?.client_id as string;
     await issueTokens(clientId, user.id, ['trips:read']);
     await updateRows(t, OauthTokens, { user: user.id }, { access_token_expires_at: '2999-01-02T03:04:05.678Z', refresh_token_expires_at: '2999-01-02T03:04:05.678Z' });
 
@@ -1435,7 +1436,7 @@ describe('admin OAuth sessions', () => {
   it('a malformed consent row counts as consent to nothing, and a new grant replaces it', async () => {
     const { user } = createUser(testDb);
     const created = await makeClient(user.id);
-    const clientId = created.client!.client_id as string;
+    const clientId = created.client?.client_id as string;
     await saveConsent(clientId, user.id, ['trips:read']);
     await updateRows(t, OauthConsents, { user: user.id }, { scopes: '{broken' });
 
