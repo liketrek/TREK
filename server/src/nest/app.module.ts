@@ -1,4 +1,4 @@
-import { trekDemoToolGate, trekMcpAccessPolicy, trekMcpValidateAccess } from '../mcp/nest-mcp-policy';
+import { trekDemoToolGate, trekMcpAccessPolicy, trekMcpErrorMapper, trekMcpValidateAccess } from '../mcp/nest-mcp-policy';
 import mikroOrmConfig from '../mikro-orm.config';
 import { AppSettings } from '../db/entities/AppSettings.entity';
 import { Users } from '../db/entities/Users.entity';
@@ -108,6 +108,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
       accessPolicy: trekMcpAccessPolicy,
       validateAccess: trekMcpValidateAccess,
       toolGate: { inject: [DemoService], useFactory: (demo: DemoService) => trekDemoToolGate((id) => demo.isDemoUserId(id)) },
+      errorMapper: trekMcpErrorMapper,
     }),
     HealthModule,
     PlatformModule,

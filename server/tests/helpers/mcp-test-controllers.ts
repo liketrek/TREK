@@ -2,7 +2,7 @@ import { createTestRegistry, type McpRegistry } from '../../src/nest-mcp';
 import { SchoolHolidaysMcp } from '../../src/nest/school-holidays/school-holidays.mcp';
 import { SchoolHolidaysService } from '../../src/nest/school-holidays/school-holidays.service';
 import { db } from '../../src/db/database';
-import { trekDemoToolGate, trekMcpAccessPolicy, trekMcpValidateAccess } from '../../src/mcp/nest-mcp-policy';
+import { trekDemoToolGate, trekMcpAccessPolicy, trekMcpErrorMapper, trekMcpValidateAccess } from '../../src/mcp/nest-mcp-policy';
 import { AssignmentsMcp } from '../../src/nest/assignments/assignments.mcp';
 import { AssignmentsService } from '../../src/nest/assignments/assignments.service';
 import { AtlasMcp } from '../../src/nest/atlas/atlas.mcp';
@@ -504,6 +504,7 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
       validateAccess: trekMcpValidateAccess,
       // The same demo gate AppModule hands McpModule.forRoot.
       toolGate: trekDemoToolGate((id) => demoService.isDemoUserId(id)),
+      errorMapper: trekMcpErrorMapper,
     },
   );
 }

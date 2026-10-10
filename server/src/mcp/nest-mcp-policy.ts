@@ -1,12 +1,15 @@
 import {
   demoDenied,
+  errorResult,
   type McpAccessGroup,
   type McpAccessMode,
   type McpAccessPolicy,
   type McpAccessValidator,
+  type McpErrorMapper,
   type McpToolGate,
   type ToolOptions,
 } from '../nest-mcp';
+import { DomainError } from '../nest/common/domain-error';
 import { ALL_SCOPES, canRead, canWrite, type Scope, type ScopeGroup } from './scopes';
 
 /** The mode half of every scope: 'read' | 'write' | 'delete' | 'share'. */
@@ -76,3 +79,13 @@ export function isDemoGatedTool(tool: ToolOptions): boolean {
 export function trekDemoToolGate(isDemoUser: (userId: number) => Promise<boolean>): McpToolGate {
   return async (tool, ctx) => (isDemoGatedTool(tool) && (await isDemoUser(ctx.userId)) ? demoDenied() : undefined);
 }
+
+/**
+ * A service refusal (`DomainError`) thrown out of a tool answers the call with
+ * `errorResult(publicMessage)`: the same text REST sends as `{ error }`, and the
+ * same result the tools built by hand from a `{ error, status }` return. Any
+ * other error propagates as before. Given to McpModule.forRoot (AppModule) and
+ * to the MCP test registry.
+ */
+export const trekMcpErrorMapper: McpErrorMapper = (err) =>
+  err instanceof DomainError ? errorResult(err.publicMessage) : undefined;

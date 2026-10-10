@@ -8,6 +8,7 @@ import type {
   McpDynamicToolSource,
   McpEntry,
   McpEntryKind,
+  McpErrorMapper,
   McpRegistryListing,
   McpToolGate,
   PromptOptions,
@@ -40,6 +41,8 @@ export interface McpRegistryOptions {
   validateAccess?: McpAccessValidator;
   /** Runs before every registered tool handler; see `McpToolGate`. */
   toolGate?: McpToolGate;
+  /** Turns an error a registered tool handler threw into its result; see `McpErrorMapper`. */
+  errorMapper?: McpErrorMapper;
 }
 
 type AnyHandler = (this: unknown, ...handlerArgs: unknown[]) => unknown;
@@ -106,6 +109,7 @@ export class McpRegistry {
   private readonly accessPolicy?: McpAccessPolicy;
   private readonly validateAccess?: McpAccessValidator;
   private readonly toolGate?: McpToolGate;
+  private readonly errorMapper?: McpErrorMapper;
   /** Memoised `reservedNames()`; dropped by register() so it can never go stale. */
   private reserved?: ReadonlySet<string>;
 
@@ -113,6 +117,7 @@ export class McpRegistry {
     this.accessPolicy = options.accessPolicy;
     this.validateAccess = options.validateAccess;
     this.toolGate = options.toolGate;
+    this.errorMapper = options.errorMapper;
   }
 
   /**
@@ -145,7 +150,7 @@ export class McpRegistry {
       const handler = (instance as unknown as Record<string, AnyHandler>)[entry.methodName];
       switch (entry.kind) {
         case 'tool':
-          this.attachTool(registrar, entry.options, instance, this.gated(entry.options, handler, ctx), ctx, opts);
+          this.attachTool(registrar, entry.options, instance, this.mapped(this.gated(entry.options, handler, ctx)), ctx, opts);
           break;
         case 'resource':
           this.attachResource(registrar, entry.options, instance, handler, ctx, opts);
@@ -317,6 +322,25 @@ export class McpRegistry {
     return async function (this: unknown, ...handlerArgs: unknown[]) {
       const refusal = await gate(options, ctx);
       return refusal !== undefined ? refusal : handler.apply(this, handlerArgs);
+    };
+  }
+
+  /**
+   * The handler with the host's error mapper around it, when one is configured:
+   * an error the mapper recognises becomes the call's result, anything else
+   * propagates as before. Registered tools only, like the gate.
+   */
+  private mapped(handler: AnyHandler): AnyHandler {
+    const mapError = this.errorMapper;
+    if (!mapError) return handler;
+    return async function (this: unknown, ...handlerArgs: unknown[]) {
+      try {
+        return await handler.apply(this, handlerArgs);
+      } catch (err) {
+        const result = mapError(err);
+        if (result !== undefined) return result;
+        throw err;
+      }
     };
   }
 

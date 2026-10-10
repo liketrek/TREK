@@ -33,6 +33,7 @@ export {
   type McpDynamicToolSource,
   type McpEntry,
   type McpEntryKind,
+  type McpErrorMapper,
   type McpModuleOptions,
   type McpRegistryListing,
   type McpToolGate,

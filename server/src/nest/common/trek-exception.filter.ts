@@ -1,6 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
 import type { Response } from 'express';
 import { MulterError } from 'multer';
+import { DomainError } from './domain-error';
 import { ACCESS_LOG_ATTACHED, UNHANDLED_ERROR } from './request-correlation';
 
 /**
@@ -58,6 +59,16 @@ export class TrekExceptionFilter implements ExceptionFilter {
     if (exception instanceof MulterError) {
       const status = exception.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
       res.status(status).json({ error: exception.message });
+      return;
+    }
+
+    // A service refusal: its status and its body, verbatim, whatever the
+    // status (the `{ error }` HttpException it replaces was passed through the
+    // same way). Checked before the generic HttpException branch so the body
+    // never depends on that branch's shape sniffing.
+    if (exception instanceof DomainError) {
+      if (exception.getStatus() >= 500) handOverToAccessLog(res, exception);
+      res.status(exception.getStatus()).json(exception.toBody());
       return;
     }
 

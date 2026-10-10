@@ -268,6 +268,18 @@ export type McpAccessValidator = (access: McpDeclarativeAccess, entry: McpRegist
 export type McpToolGate = (tool: ToolOptions, ctx: McpContext) => unknown;
 
 /**
+ * Host-supplied translation of an error a registered tool handler threw into
+ * the tool's result. Return a result to answer the call with it, or undefined
+ * to let the error propagate unchanged. The package attaches no meaning to it;
+ * TREK maps its `DomainError` to an `errorResult` in `src/mcp/nest-mcp-policy.ts`,
+ * so a service refusal reaches MCP with the same text REST answers with.
+ *
+ * Registered entries only, like the tool gate: a dynamic tool's source owns
+ * its own failure handling.
+ */
+export type McpErrorMapper = (err: unknown) => unknown;
+
+/**
  * How the module builds its `McpToolGate`: a factory with the providers it
  * needs, resolved from the container like any other provider. A gate that
  * reads the database has to come from DI, and `forRoot` options are static.
@@ -283,6 +295,8 @@ export interface McpModuleOptions {
   accessPolicy?: McpAccessPolicy;
   validateAccess?: McpAccessValidator;
   toolGate?: McpToolGateProvider;
+  /** See `McpErrorMapper`. Static: it needs nothing from the container. */
+  errorMapper?: McpErrorMapper;
 }
 
 /** Injection token for the resolved `McpToolGate` (null when none was configured). */

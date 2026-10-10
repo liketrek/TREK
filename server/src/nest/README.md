@@ -167,6 +167,18 @@ it instead of leaning on the generic pipe envelope.
 - A guard with a constructor dependency has to be a registered provider
   wherever it is used, which is why the three auth guards stay dependency-free.
 
+## Refusals: one error, both channels
+
+A service refuses by throwing a `DomainError` (`common/domain-error.ts`) with
+the status and the exact text the client sees, `throw forbidden('Admin access
+required')`, never by returning `{ error, status }` for each caller to
+translate. The global filter writes it as `{ error, ...details }` at its status,
+and the MCP registry's error mapper (`trekMcpErrorMapper` in
+`src/mcp/nest-mcp-policy.ts`) answers the tool call with `errorResult` of the
+same text, so the controller and the tool need no branch of their own. A caller
+that has to act on a refusal before passing it on (an audit row, a timing pad)
+uses `catchDomainError`.
+
 ## Tests
 
 Every module ships two kinds of tests.
