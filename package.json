@@ -25,6 +25,7 @@
     "test:e2e": "npm run test:e2e --workspace=server",
     "test:ci-scripts": "node --test scripts/ci/*.test.mjs",
     "test:lib-scripts": "node --test scripts/lib/*.test.mjs",
+    "lint:knip": "node scripts/ci/knip-ratchet.mjs",
     "lint": "npm run lint --workspace=shared && npm run lint --workspace=server && npm run lint --workspace=client",
     "lint:fix": "npm run lint:fix --workspace=shared && npm run lint:fix --workspace=server",
     "format": "npm run format --workspace=shared && npm run format --workspace=server && npm run format --workspace=client",
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "concurrently": "^10.0.4",
+    "knip": "^6.38.0",
     "unrun": "^0.3.1"
   },
   "comment:scarfSettings": "swagger-ui-dist ships @scarf/scarf install-time analytics; TREK sends no telemetry, so it stays off.",

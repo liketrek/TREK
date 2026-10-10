@@ -52,6 +52,10 @@ describe('classify', () => {
     assert.deepEqual(classify(['scripts/lib/ratchet.mjs']), { code: true, image: false, deploy: false });
   });
 
+  it('runs the tests but not the image for a knip config change', () => {
+    assert.deepEqual(classify(['knip.jsonc']), { code: true, image: false, deploy: false });
+  });
+
   it('runs the image but not the tests for a .dockerignore change', () => {
     assert.deepEqual(classify(['.dockerignore']), { code: false, image: true, deploy: false });
   });

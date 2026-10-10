@@ -49,6 +49,8 @@ export const AREAS = {
     'package-lock.json',
     '.nvmrc',
     'sonar-project.properties',
+    // lint:knip in server-quality reads it.
+    'knip.jsonc',
     'Dockerfile',
     ...READ_BY_TESTS,
     ...ALWAYS,

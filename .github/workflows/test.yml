@@ -355,6 +355,14 @@ jobs:
         # unknown, passthrough, any) in shared's request schemas.
         run: cd shared && npm run contracts:open
 
+      - name: Unused code and dependencies check
+        # knip (knip.jsonc) over client, server and shared: unused files,
+        # exports, types and dependencies per file may not rise above
+        # scripts/ci/knip-baseline.json (scripts/ci/knip-ratchet.mjs). Here
+        # rather than in client-quality because it needs every workspace's
+        # dependencies, which only this job installs.
+        run: npm run lint:knip
+
   client-quality:
     name: Client Types & Lint
     needs: changes
