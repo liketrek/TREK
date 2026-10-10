@@ -50,6 +50,7 @@ import { findRow } from '../../helpers/factories/rows';
 import { makeTag } from '../../helpers/factories/places';
 import { Tags } from '../../../src/db/entities/Tags.entity';
 import { MapsService } from '../../../src/nest/maps/maps.service';
+import { OsmClient } from '../../../src/nest/maps/providers/osm.client';
 import { getWeather, getDetailedWeather } from '../../../src/nest/weather/weather.impl';
 
 // The geo tools live on the DI-discovered maps.mcp.ts since the maps fold; the
@@ -67,7 +68,7 @@ vi.spyOn(MapsService.prototype, 'getPlaceDetailsExpanded').mockResolvedValue({
 } as never);
 // Overpass is stubbed one level below the facade so MapsService.pois() itself
 // still runs, the way the geo tools reach it.
-vi.spyOn(MapsService.prototype, 'searchOverpassPois').mockResolvedValue({
+vi.spyOn(OsmClient.prototype, 'searchOverpassPois').mockResolvedValue({
   pois: [{ osm_id: 'node:1', name: 'Chez Nous', lat: 48.86, lng: 2.34, category: 'restaurant' }],
   source: 'openstreetmap',
   truncated: false,
@@ -458,7 +459,7 @@ describe('Tool: search_pois', () => {
   // back as an empty POI list.
   it('returns the POIs of a category inside the bbox', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(MapsService.prototype.searchOverpassPois).mockClear();
+    vi.mocked(OsmClient.prototype.searchOverpassPois).mockClear();
     trekNearbyMock.mockClear();
 
     await withHarness(user.id, async (h) => {
@@ -472,7 +473,7 @@ describe('Tool: search_pois', () => {
       expect(data.source).toBe('openstreetmap');
       expect(trekNearbyMock).toHaveBeenCalled();
       // The caller's per-category budget rides along on the fallback too.
-      expect(MapsService.prototype.searchOverpassPois).toHaveBeenCalledWith('restaurant', BBOX, 'fr', 60);
+      expect(OsmClient.prototype.searchOverpassPois).toHaveBeenCalledWith('restaurant', BBOX, 'fr', 60);
     });
   });
 
@@ -481,7 +482,7 @@ describe('Tool: search_pois', () => {
   // places; where they were read is this method's business, not the pill's.
   it('answers from the TREK Places index and leaves Overpass alone', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(MapsService.prototype.searchOverpassPois).mockClear();
+    vi.mocked(OsmClient.prototype.searchOverpassPois).mockClear();
     trekNearbyMock.mockClear();
     trekNearbyMock.mockResolvedValueOnce([
       {
@@ -514,7 +515,7 @@ describe('Tool: search_pois', () => {
       expect(data.source).toBe('trek-places');
       expect(data.pois[0].source).toBe('trek-places');
       expect(data.clamped).toBe(false);
-      expect(MapsService.prototype.searchOverpassPois).not.toHaveBeenCalled();
+      expect(OsmClient.prototype.searchOverpassPois).not.toHaveBeenCalled();
 
       // The bbox becomes a centre plus half its diagonal, and the category
       // becomes the Overture terms it maps to.
@@ -554,12 +555,12 @@ describe('Tool: search_pois', () => {
 
   it('passes no language through when none is given', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(MapsService.prototype.searchOverpassPois).mockClear();
+    vi.mocked(OsmClient.prototype.searchOverpassPois).mockClear();
     trekNearbyMock.mockClear();
 
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'search_pois', arguments: { category: 'museum', bbox: BBOX } });
-      expect(MapsService.prototype.searchOverpassPois).toHaveBeenCalledWith('museum', BBOX, undefined, 60);
+      expect(OsmClient.prototype.searchOverpassPois).toHaveBeenCalledWith('museum', BBOX, undefined, 60);
     });
   });
 
@@ -567,7 +568,7 @@ describe('Tool: search_pois', () => {
   // mapping never reaches Overpass in the first place.
   it('refuses a category that has no OSM mapping', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(MapsService.prototype.searchOverpassPois).mockClear();
+    vi.mocked(OsmClient.prototype.searchOverpassPois).mockClear();
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -575,13 +576,13 @@ describe('Tool: search_pois', () => {
         arguments: { category: 'dentist', bbox: BBOX },
       });
       expect(result.isError).toBe(true);
-      expect(MapsService.prototype.searchOverpassPois).not.toHaveBeenCalled();
+      expect(OsmClient.prototype.searchOverpassPois).not.toHaveBeenCalled();
     });
   });
 
   it('refuses a bbox edge outside the coordinate range', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(MapsService.prototype.searchOverpassPois).mockClear();
+    vi.mocked(OsmClient.prototype.searchOverpassPois).mockClear();
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -589,13 +590,13 @@ describe('Tool: search_pois', () => {
         arguments: { category: 'cafe', bbox: { ...BBOX, north: 118 } },
       });
       expect(result.isError).toBe(true);
-      expect(MapsService.prototype.searchOverpassPois).not.toHaveBeenCalled();
+      expect(OsmClient.prototype.searchOverpassPois).not.toHaveBeenCalled();
     });
   });
 
   it('answers isError when every Overpass mirror is unreachable', async () => {
     const { user } = createUser(testDb);
-    vi.mocked(MapsService.prototype.searchOverpassPois).mockRejectedValueOnce(new Error('all mirrors failed'));
+    vi.mocked(OsmClient.prototype.searchOverpassPois).mockRejectedValueOnce(new Error('all mirrors failed'));
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'search_pois', arguments: { category: 'bar', bbox: BBOX } });
@@ -611,7 +612,7 @@ describe('Tool: search_pois', () => {
     const { user } = createUser(testDb);
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     trekNearbyMock.mockRejectedValueOnce(new Error('index down'));
-    vi.mocked(MapsService.prototype.searchOverpassPois).mockRejectedValueOnce(new Error('all mirrors failed'));
+    vi.mocked(OsmClient.prototype.searchOverpassPois).mockRejectedValueOnce(new Error('all mirrors failed'));
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'search_pois', arguments: { category: 'bar', bbox: BBOX } });

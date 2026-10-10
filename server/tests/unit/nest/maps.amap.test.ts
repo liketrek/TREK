@@ -62,6 +62,7 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
 
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import { buildMapsService } from '../../helpers/maps-service';
+import { OsmClient } from '../../../src/nest/maps/providers/osm.client';
 import { trekPlacesSearch } from '../../../src/nest/maps/trek-places.client';
 import {
   AmapPlacesProvider,
@@ -948,7 +949,7 @@ describe('MapsService: Amap first inside China when picked outright (#1636)', ()
     vi.mocked(trekPlacesSearch).mockClear();
   });
   function osmAnswers(places: Record<string, unknown>[]) {
-    const spy = vi.spyOn(svc, 'searchNominatim').mockResolvedValue(places as never);
+    const spy = vi.spyOn(OsmClient.prototype, 'searchNominatim').mockResolvedValue(places as never);
     spies.push(spy);
     return spy;
   }

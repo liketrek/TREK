@@ -18,7 +18,8 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
 vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
 
 import { MapsService } from '../../../src/nest/maps/maps.service';
-import { buildMapsService } from '../../helpers/maps-service';
+import { buildMapsParts } from '../../helpers/maps-service';
+import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import { noGoogleQuota } from '../../helpers/google-quota';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
@@ -45,9 +46,13 @@ const PLACE = {
   hours: null as { osm: string } | null,
 };
 
+/** The OSM client each service was built with, so a case can assert on what it was asked. */
+const osmOf = new WeakMap<MapsService, OsmClient>();
+
 function make(osmTags: Record<string, string> | null) {
-  const svc = buildMapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
-  vi.spyOn(svc, 'resolveOsmIdentity').mockResolvedValue(
+  const { svc, osm } = buildMapsParts({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
+  osmOf.set(svc, osm);
+  vi.spyOn(osm, 'resolveOsmIdentity').mockResolvedValue(
     osmTags ? { tags: osmTags, osmUrl: 'https://www.openstreetmap.org/node/1', matchedName: "L'Osteria" } : null,
   );
   return svc;
@@ -111,8 +116,8 @@ describe('MapsService.getPlaceDetails for a gers: id', () => {
     // only adds what OSM knows about the same building. Letting its failure
     // through would turn a working answer into an error for the one user whose
     // details request happened to land while Overpass was unreachable.
-    const svc = buildMapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
-    vi.spyOn(svc, 'resolveOsmIdentity').mockRejectedValue(new Error('overpass down'));
+    const { svc, osm } = buildMapsParts({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
+    vi.spyOn(osm, 'resolveOsmIdentity').mockRejectedValue(new Error('overpass down'));
     mockById.mockResolvedValue({ ...PLACE, hours: { osm: 'Mo-Su 12:00-22:00' } });
 
     const out = await svc.getPlaceDetails(1, 'gers:abc-123');
@@ -151,6 +156,6 @@ describe('MapsService.getPlaceDetails for a gers: id', () => {
     await expect(svc.getPlaceDetails(1, 'gers:abc-123')).resolves.toEqual({ place: null });
 
     expect(mockById).not.toHaveBeenCalled();
-    expect(svc.resolveOsmIdentity).not.toHaveBeenCalled();
+    expect(osmOf.get(svc)!.resolveOsmIdentity).not.toHaveBeenCalled();
   });
 });

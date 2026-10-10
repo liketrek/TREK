@@ -28,6 +28,7 @@ import {
 import { buildOsmDetails, isGooglePlaceId, parseWikipediaTag, rankCommonsCandidates, toWikiLang } from '../maps/maps.helpers';
 import { trekPlacesById } from '../maps/trek-places.client';
 import { GooglePlacesClient } from '../maps/providers/google-places.provider';
+import { OsmClient } from '../maps/providers/osm.client';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { readAppSetting } from '../common/app-settings.registry';
 
@@ -325,6 +326,7 @@ export class PlaceEnrichmentService {
     private readonly maps: MapsService,
     private readonly photoCache: PlacePhotoCacheService,
     private readonly googlePlaces: GooglePlacesClient,
+    private readonly osm: OsmClient,
   ) {}
 
   /**
@@ -442,7 +444,7 @@ export class PlaceEnrichmentService {
     };
     if (carried.wikipedia || carried.wikidata || carried.wikimedia_commons) return carried;
 
-    const resolved = await this.maps.resolveOsmIdentity(req.name, req.lat, req.lng, { lang: req.lang });
+    const resolved = await this.osm.resolveOsmIdentity(req.name, req.lat, req.lng, { lang: req.lang });
     if (!resolved) return carried;
     const brand = readBrandIdentity(resolved.tags);
     return {

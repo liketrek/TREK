@@ -173,6 +173,7 @@ const photoCacheStub = {
 } as unknown as PlacePhotoCacheService;
 
 import { MapsService, withPhotoFetchSlot, readWikiIdentity } from '../../../src/nest/maps/maps.service';
+import { OsmClient } from '../../../src/nest/maps/providers/osm.client';
 import { buildMapsParts, buildMapsService } from '../../helpers/maps-service';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
@@ -231,7 +232,7 @@ const placesStub = {
 // through a repository stub that flows into the SAME mockDbGet/mockDbRun/
 // mockInstanceGet/mockProviderGet functions, so they keep firing exactly as
 // they did for the legacy module.
-const { svc, google } = buildMapsParts(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
+const { svc, google, osm } = buildMapsParts(photoCacheStub, appSettingsStub, usersStub, placeDetailsCacheStub, placesStub, noGoogleQuota);
 
 /**
  * Switch the TREK Places index off for one case.
@@ -882,7 +883,7 @@ describe('searchNominatim (fetch stubbed)', () => {
         ],
       }),
     );
-    const results = await svc.searchNominatim('Paris');
+    const results = await osm.searchNominatim('Paris');
     expect(results).toHaveLength(1);
     expect((results[0] as any).address).toBe('Paris, France');
     expect((results[0] as any).source).toBe('openstreetmap');
@@ -890,7 +891,7 @@ describe('searchNominatim (fetch stubbed)', () => {
 
   it('MAPS-030: throws on fetch failure', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
-    await expect(svc.searchNominatim('fail')).rejects.toThrow();
+    await expect(osm.searchNominatim('fail')).rejects.toThrow();
   });
 
   it('MAPS-030b: throws when nominatim response is not ok', async () => {
@@ -903,7 +904,7 @@ describe('searchNominatim (fetch stubbed)', () => {
         text: async () => '',
       }),
     );
-    await expect(svc.searchNominatim('fail')).rejects.toThrow('Nominatim API error');
+    await expect(osm.searchNominatim('fail')).rejects.toThrow('Nominatim API error');
   });
 
   it('MAPS-030c: falls back to display_name split when name is absent', async () => {
@@ -914,7 +915,7 @@ describe('searchNominatim (fetch stubbed)', () => {
         json: async () => [{ osm_type: 'node', osm_id: '2', lat: '51.5', lon: '-0.1', display_name: 'London, UK' }],
       }),
     );
-    const results = await svc.searchNominatim('London');
+    const results = await osm.searchNominatim('London');
     expect((results[0] as any).name).toBe('London');
   });
 
@@ -929,7 +930,7 @@ describe('searchNominatim (fetch stubbed)', () => {
         ],
       }),
     );
-    const results = await svc.searchNominatim('null island');
+    const results = await osm.searchNominatim('null island');
     expect((results[0] as any).lat).toBe(0);
     expect((results[0] as any).lng).toBe(0);
     expect((results[1] as any).lat).toBeNull();
@@ -949,7 +950,7 @@ describe('searchNominatim (fetch stubbed)', () => {
         ],
       }),
     );
-    const results = await svc.searchNominatim('x');
+    const results = await osm.searchNominatim('x');
     expect(results.map((r: any) => r.category)).toEqual(['hotel', 'shop_bakery', null, null]);
   });
 });
@@ -965,13 +966,13 @@ describe('fetchOverpassDetails (fetch stubbed)', () => {
         json: async () => ({ elements: [{ tags: { name: 'Eiffel Tower', website: 'https://eiffel.com' } }] }),
       }),
     );
-    const result = await svc.fetchOverpassDetails('way', '12345');
+    const result = await osm.fetchOverpassDetails('way', '12345');
     expect(result).toBeDefined();
     expect((result as any).tags.name).toBe('Eiffel Tower');
   });
 
   it('MAPS-032: returns null for unknown osmType', async () => {
-    const result = await svc.fetchOverpassDetails('unknown', '12345');
+    const result = await osm.fetchOverpassDetails('unknown', '12345');
     expect(result).toBeNull();
   });
 
@@ -983,20 +984,20 @@ describe('fetchOverpassDetails (fetch stubbed)', () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     for (const bad of ['1);nwr["amenity"](-90,-180,90,180', '12345;out geom', '', ' 1', '1e3', '-5']) {
-      expect(await svc.fetchOverpassDetails('node', bad), bad).toBeNull();
+      expect(await osm.fetchOverpassDetails('node', bad), bad).toBeNull();
     }
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('MAPS-033: returns null when fetch throws', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
-    const result = await svc.fetchOverpassDetails('node', '99999');
+    const result = await osm.fetchOverpassDetails('node', '99999');
     expect(result).toBeNull();
   });
 
   it('MAPS-034: returns null when response is not ok', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
-    const result = await svc.fetchOverpassDetails('node', '99999');
+    const result = await osm.fetchOverpassDetails('node', '99999');
     expect(result).toBeNull();
   });
 
@@ -1008,7 +1009,7 @@ describe('fetchOverpassDetails (fetch stubbed)', () => {
         json: async () => ({ elements: [] }),
       }),
     );
-    const result = await svc.fetchOverpassDetails('node', '1');
+    const result = await osm.fetchOverpassDetails('node', '1');
     expect(result).toBeNull();
   });
 });
@@ -1038,19 +1039,19 @@ describe('searchOverpassPois localized names (#1655)', () => {
 
   it('prefers name:<lang> for the user language over the native name', async () => {
     stubOverpass(tags);
-    const { pois } = await svc.searchOverpassPois('sights', bbox(1), 'en-US');
+    const { pois } = await osm.searchOverpassPois('sights', bbox(1), 'en-US');
     expect(pois[0].name).toBe('Elephant and Obelisk');
   });
 
   it('localizes to a non-English language too', async () => {
     stubOverpass(tags);
-    const { pois } = await svc.searchOverpassPois('sights', bbox(2), 'de-DE');
+    const { pois } = await osm.searchOverpassPois('sights', bbox(2), 'de-DE');
     expect(pois[0].name).toBe('Minerva-Obelisk');
   });
 
   it('falls back to int_name when the language tag is absent', async () => {
     stubOverpass({ name: tags.name, int_name: tags.int_name, tourism: 'attraction' });
-    const { pois } = await svc.searchOverpassPois('sights', bbox(3), 'fr-FR');
+    const { pois } = await osm.searchOverpassPois('sights', bbox(3), 'fr-FR');
     expect(pois[0].name).toBe('Elephant Obelisk');
   });
 
@@ -1069,13 +1070,13 @@ describe('searchOverpassPois localized names (#1655)', () => {
         }),
       }),
     );
-    const { pois } = await svc.searchOverpassPois('sights', bbox(5), 'en-US');
+    const { pois } = await osm.searchOverpassPois('sights', bbox(5), 'en-US');
     expect(pois.map((p: any) => p.name)).toEqual(['Open For Business']);
   });
 
   it('falls back to the native name when no localized tag exists', async () => {
     stubOverpass({ name: tags.name, tourism: 'attraction' });
-    const { pois } = await svc.searchOverpassPois('sights', bbox(4), 'fr-FR');
+    const { pois } = await osm.searchOverpassPois('sights', bbox(4), 'fr-FR');
     expect(pois[0].name).toBe('Obelisco della Minerva');
   });
 });
@@ -2680,11 +2681,11 @@ describe('searchOverpassPois multi-category', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     // One category first, to learn what a single box costs (the service races mirrors).
-    await svc.searchOverpassPois('fuel', bbox(9), 'en-US');
+    await osm.searchOverpassPois('fuel', bbox(9), 'en-US');
     const single = fetchMock.mock.calls.length;
     fetchMock.mockClear();
 
-    const { pois } = await svc.searchOverpassPois('fuel,charging,rest_area', bbox(1), 'en-US');
+    const { pois } = await osm.searchOverpassPois('fuel,charging,rest_area', bbox(1), 'en-US');
 
     // Three categories cost exactly what one does — the whole point of the batching.
     expect(fetchMock.mock.calls.length).toBe(single);
@@ -2704,7 +2705,7 @@ describe('searchOverpassPois multi-category', () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(svc.searchOverpassPois('fuel,unicorns', bbox(2))).rejects.toMatchObject({ status: 400 });
+    await expect(osm.searchOverpassPois('fuel,unicorns', bbox(2))).rejects.toMatchObject({ status: 400 });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -2715,9 +2716,9 @@ describe('searchOverpassPois multi-category', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    await svc.searchOverpassPois('fuel,campsite', bbox(3), 'en-US');
+    await osm.searchOverpassPois('fuel,campsite', bbox(3), 'en-US');
     const asked = fetchMock.mock.calls.length;
-    await svc.searchOverpassPois('campsite,fuel', bbox(3), 'en-US');
+    await osm.searchOverpassPois('campsite,fuel', bbox(3), 'en-US');
 
     // Same set, written the other way round: the second ask costs nothing.
     expect(fetchMock.mock.calls.length).toBe(asked);
@@ -2732,7 +2733,7 @@ describe('searchOverpassPois all-endpoints-down', () => {
   it('MAPS-102: surfaces a 502 with a clear message when every Overpass endpoint fails', async () => {
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED')));
-    await expect(svc.searchOverpassPois('restaurant', bbox)).rejects.toMatchObject({
+    await expect(osm.searchOverpassPois('restaurant', bbox)).rejects.toMatchObject({
       status: 502,
       message: 'Could not reach any Overpass endpoint',
     });
@@ -2742,7 +2743,7 @@ describe('searchOverpassPois all-endpoints-down', () => {
   it('MAPS-103: logs each endpoint failure so an operator can diagnose blocked egress', async () => {
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED')));
-    await expect(svc.searchOverpassPois('bar', bbox)).rejects.toThrow();
+    await expect(osm.searchOverpassPois('bar', bbox)).rejects.toThrow();
     expect(errSpy).toHaveBeenCalledWith(expect.stringContaining('[Overpass] all'));
     expect(errSpy).toHaveBeenCalledWith(expect.stringContaining('ECONNREFUSED'));
     errSpy.mockRestore();
@@ -2815,7 +2816,7 @@ describe('controller-facing wrappers delegate to the folded methods', () => {
       getPlacePhoto: vi.spyOn(MapsService.prototype, 'getPlacePhoto').mockResolvedValue({ photoUrl: null, attribution: null }),
       reverseGeocode: vi.spyOn(MapsService.prototype, 'reverseGeocode').mockResolvedValue({ name: null, address: null }),
       resolveGoogleMapsUrl: vi.spyOn(MapsService.prototype, 'resolveGoogleMapsUrl').mockResolvedValue({ lat: 1, lng: 2, name: null, address: null, google_ftid: null }),
-      searchOverpassPois: vi.spyOn(MapsService.prototype, 'searchOverpassPois').mockResolvedValue({ pois: [], source: 'openstreetmap', truncated: false, clamped: false }),
+      searchOverpassPois: vi.spyOn(OsmClient.prototype, 'searchOverpassPois').mockResolvedValue({ pois: [], source: 'openstreetmap', truncated: false, clamped: false }),
     };
     try {
       const circleBias = { lat: 1, lng: 2, radius: 5 };
@@ -3646,7 +3647,7 @@ describe('websites from the map sources (#2483)', () => {
         }),
       }),
     );
-    const { pois } = await svc.searchOverpassPois('sights', { south: 48.0, west: -3.6, north: 48.1, east: -3.4 }, 'fr-FR');
+    const { pois } = await osm.searchOverpassPois('sights', { south: 48.0, west: -3.6, north: 48.1, east: -3.4 }, 'fr-FR');
     expect(pois.map((p) => p.website)).toEqual([
       'https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët',
       'https://www.example.fr',

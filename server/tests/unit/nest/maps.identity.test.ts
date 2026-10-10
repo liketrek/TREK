@@ -19,11 +19,13 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   SsrfBlockedError: class extends Error {},
 }));
 
+import { OsmClient } from '../../../src/nest/maps/providers/osm.client';
 import { buildMapsService } from '../../helpers/maps-service';
-import { toWikiLang, haversineMetres, namesOverlap } from '../../../src/nest/maps/maps.helpers';
 import { noGoogleQuota } from '../../helpers/google-quota';
+import { toWikiLang, haversineMetres, namesOverlap } from '../../../src/nest/maps/maps.helpers';
 
 const svcOf = () => buildMapsService({} as never, {} as never, {} as never, {} as never, {} as never, noGoogleQuota);
+const osmOf = () => new OsmClient();
 
 // The Brandenburg Gate and the underground station named after it, 250m apart.
 const GATE = { lat: 52.5163, lng: 13.3777 };
@@ -120,7 +122,7 @@ describe('resolveOsmIdentity', () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
     vi.stubGlobal('fetch', fetchMock);
 
-    await svcOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng, { lang: 'de' });
+    await osmOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng, { lang: 'de' });
 
     const url = decodeURIComponent(String(fetchMock.mock.calls[0][0]));
     // Without bounded+viewbox, Nominatim answers with the most famous place on
@@ -133,7 +135,7 @@ describe('resolveOsmIdentity', () => {
   it('MAPS-166: hands back the tags of the best local match', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [hit()] }));
 
-    const out = await svcOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng);
+    const out = await osmOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng);
 
     expect(out?.tags.wikidata).toBe('Q82425');
     expect(out?.osmUrl).toBe('https://www.openstreetmap.org/way/518071791');
@@ -152,7 +154,7 @@ describe('resolveOsmIdentity', () => {
     });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [station, hit()] }));
 
-    const out = await svcOf().resolveOsmIdentity('Brandenburger Tor', 52.5166, 13.3809);
+    const out = await osmOf().resolveOsmIdentity('Brandenburger Tor', 52.5166, 13.3809);
 
     expect(out?.tags.wikidata).toBe('Q82425');
   });
@@ -161,7 +163,7 @@ describe('resolveOsmIdentity', () => {
     const faraway = hit({ lat: '48.8584', lon: '2.2945' }); // Paris
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [faraway] }));
 
-    expect(await svcOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng)).toBeNull();
+    expect(await osmOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng)).toBeNull();
   });
 
   it('MAPS-169: refuses a match that shares no word with the name', async () => {
@@ -170,24 +172,24 @@ describe('resolveOsmIdentity', () => {
     const neighbour = hit({ name: 'Hotel Adlon', display_name: 'Hotel Adlon, Berlin' });
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [neighbour] }));
 
-    expect(await svcOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng)).toBeNull();
+    expect(await osmOf().resolveOsmIdentity('Brandenburger Tor', GATE.lat, GATE.lng)).toBeNull();
   });
 
   it('MAPS-170: survives an empty name, a bad response, a throw and a non-array body', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    expect(await svcOf().resolveOsmIdentity('', GATE.lat, GATE.lng)).toBeNull();
+    expect(await osmOf().resolveOsmIdentity('', GATE.lat, GATE.lng)).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => [] }));
-    expect(await svcOf().resolveOsmIdentity('X Tor', GATE.lat, GATE.lng)).toBeNull();
+    expect(await osmOf().resolveOsmIdentity('X Tor', GATE.lat, GATE.lng)).toBeNull();
 
     // Nominatim answers rate limiting in plain text, not JSON.
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => 'Bandwidth limit exceeded' }));
-    expect(await svcOf().resolveOsmIdentity('X Tor', GATE.lat, GATE.lng)).toBeNull();
+    expect(await osmOf().resolveOsmIdentity('X Tor', GATE.lat, GATE.lng)).toBeNull();
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
-    expect(await svcOf().resolveOsmIdentity('X Tor', GATE.lat, GATE.lng)).toBeNull();
+    expect(await osmOf().resolveOsmIdentity('X Tor', GATE.lat, GATE.lng)).toBeNull();
   });
 });
 

@@ -32,6 +32,7 @@ vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: (
 import { PlaceEnrichmentModule } from '../../src/nest/place-enrichment/place-enrichment.module';
 import { candidateKey } from '../../src/nest/place-enrichment/place-enrichment.service';
 import { MapsService } from '../../src/nest/maps/maps.service';
+import { OsmClient } from '../../src/nest/maps/providers/osm.client';
 import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
 import { RateLimitService } from '../../src/nest/common/rate-limit.service';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
@@ -49,6 +50,7 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
   let maps: MapsService;
+  let osm: OsmClient;
   let orm: TestOrm;
 
   async function build() {
@@ -70,6 +72,7 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
     server = app.getHttpServer();
 
     maps = app.get(MapsService);
+    osm = app.get(OsmClient);
     const photoCache = app.get(PlacePhotoCacheService);
     vi.spyOn(photoCache, 'get').mockReturnValue(null);
     vi.spyOn(photoCache, 'put').mockImplementation(async (key: string, _b: Buffer, attribution: string | null) => ({
@@ -97,7 +100,7 @@ describe('Place enrichment e2e (real auth guard + real validation pipe)', () => 
     // Every provider the service can reach has to be stubbed here, not just the
     // ones a given case cares about: anything left open goes out over the real
     // network from CI, which is both slow and rude to the provider.
-    vi.spyOn(maps, 'resolveOsmIdentity').mockClear().mockResolvedValue(null);
+    vi.spyOn(osm, 'resolveOsmIdentity').mockClear().mockResolvedValue(null);
     vi.spyOn(maps, 'fetchWikidataSitelinks').mockClear().mockResolvedValue({});
     vi.spyOn(maps, 'fetchWikiExtractFor').mockClear().mockResolvedValue(null);
     vi.spyOn(maps, 'fetchWikidataCandidates').mockClear().mockResolvedValue({ candidates: [], commonsCategory: null });

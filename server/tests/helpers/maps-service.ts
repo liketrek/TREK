@@ -1,5 +1,6 @@
 import { MapsService } from '../../src/nest/maps/maps.service';
 import { GooglePlacesClient } from '../../src/nest/maps/providers/google-places.provider';
+import { OsmClient } from '../../src/nest/maps/providers/osm.client';
 import type { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
 import type { AppSettingsRepository } from '../../src/db/repositories/AppSettings.repository';
 import type { UsersRepository } from '../../src/db/repositories/Users.repository';
@@ -12,6 +13,7 @@ import { noGoogleQuota } from './google-quota';
 export interface MapsParts {
   svc: MapsService;
   google: GooglePlacesClient;
+  osm: OsmClient;
 }
 
 /**
@@ -29,8 +31,9 @@ export function buildMapsParts(
   googleQuota: GoogleQuotaService = noGoogleQuota,
 ): MapsParts {
   const google = new GooglePlacesClient(googleQuota);
-  const svc = new MapsService(photoCache, appSettings, users, placeDetailsCache, places, googleQuota, google);
-  return { svc, google };
+  const osm = new OsmClient();
+  const svc = new MapsService(photoCache, appSettings, users, placeDetailsCache, places, googleQuota, google, osm);
+  return { svc, google, osm };
 }
 
 export function buildMapsService(

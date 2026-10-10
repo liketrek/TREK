@@ -27,7 +27,7 @@ describe('GooglePlacesProvider', () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     const { client: c } = client();
-    expect(await c.provider({ key: 'k', source: 'env', userId: 1 }).reverse()).toBeNull();
+    expect(await c.provider({ key: 'k', source: 'instance', userId: 1 }).reverse()).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

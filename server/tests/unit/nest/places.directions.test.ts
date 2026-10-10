@@ -35,6 +35,7 @@ import { PermissionsService } from '../../../src/nest/permissions/permissions.se
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
 import type { MapsService } from '../../../src/nest/maps/maps.service';
+import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';
 import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
 import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
@@ -61,7 +62,7 @@ const hit = (name: string, lat: number, lng: number) => ({
   lat, lng, rating: null, website: null, phone: null, source: 'openstreetmap' as const,
 });
 
-async function svc(searchNominatim: MapsService['searchNominatim']): Promise<PlacesService> {
+async function svc(searchNominatim: OsmClient['searchNominatim']): Promise<PlacesService> {
   return new PlacesService(
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     new RealtimeService(),
@@ -112,7 +113,7 @@ const geocoder = () => vi.fn(async (query: string) => {
   };
   const found = known[query];
   return found ? [hit(query, found[0], found[1])] : [];
-}) as unknown as MapsService['searchNominatim'];
+}) as unknown as OsmClient['searchNominatim'];
 
 let tripId: string;
 
@@ -176,7 +177,7 @@ describe('PlacesService.importGoogleDirections', () => {
     const search = vi.fn(async (query: string) => {
       if (query === 'Dresden') throw new Error('Nominatim 429');
       return [hit(query, 52.52, 13.405)];
-    }) as unknown as MapsService['searchNominatim'];
+    }) as unknown as OsmClient['searchNominatim'];
     const result = await (await svc(search)).importGoogleDirections(tripId, 'https://www.google.com/maps/dir/Berlin/Dresden/Prague');
 
     expect('error' in result).toBe(false);
@@ -233,7 +234,7 @@ describe('PlacesService.importGoogleDirections', () => {
     // each Nominatim call taking the next slot on a 1.1 s process-wide throttle,
     // so on the interactive lane one pasted link made everybody else's place
     // search queue behind it for half a minute. An index hit costs no slot.
-    const nominatim = vi.fn(async () => [{ lat: 52.52, lng: 13.405 }]) as unknown as MapsService['searchNominatim'];
+    const nominatim = vi.fn(async () => [{ lat: 52.52, lng: 13.405 }]) as unknown as OsmClient['searchNominatim'];
     const geocode = vi.fn(async () => ({ lat: 52.52, lng: 13.405 }));
     const service = await svc(nominatim);
     (service as unknown as { maps: Partial<MapsService> }).maps.geocodeQuery =
@@ -270,7 +271,7 @@ describe('PlacesService.importGoogleDirections', () => {
   });
 
   it('PLACES-DIR-010: a route where only one stop can be placed is not half an import', async () => {
-    const search = vi.fn(async () => []) as unknown as MapsService['searchNominatim'];
+    const search = vi.fn(async () => []) as unknown as OsmClient['searchNominatim'];
     const url = 'https://www.google.com/maps/dir/52.52,13.405/Nowhere/Nowhere+Else';
     const result = await (await svc(search)).importGoogleDirections(tripId, url);
     expect(result).toEqual({ error: 'None of the stops in that link could be placed on the map.', status: 400 });

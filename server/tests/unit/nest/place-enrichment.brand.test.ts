@@ -33,10 +33,11 @@ import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place
 import { readBrandIdentity } from '../../../src/nest/maps/maps.service';
 import type { MapsService } from '../../../src/nest/maps/maps.service';
 import type { GooglePlacesClient } from '../../../src/nest/maps/providers/google-places.provider';
+import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';
 
 /** Every seam enrichment reaches: the maps orchestrator and the outbound clients it injects beside it. */
 type Seams<T> = { [K in keyof T]: T[K] };
-type EnrichmentSeams = Seams<MapsService> & Seams<GooglePlacesClient>;
+type EnrichmentSeams = Seams<MapsService> & Seams<GooglePlacesClient> & Seams<OsmClient>;
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
@@ -89,7 +90,7 @@ function cacheRepoStub(): PlaceDetailsCacheRepository {
   return { findEntry: mockFindEntry, upsertEntry: mockUpsertEntry } as unknown as PlaceDetailsCacheRepository;
 }
 
-const make = (maps: EnrichmentSeams) => new PlaceEnrichmentService(cacheRepoStub(), appSettingsStub(), maps as unknown as MapsService, cacheStub(), maps as unknown as GooglePlacesClient);
+const make = (maps: EnrichmentSeams) => new PlaceEnrichmentService(cacheRepoStub(), appSettingsStub(), maps as unknown as MapsService, cacheStub(), maps as unknown as GooglePlacesClient, maps as unknown as OsmClient);
 
 /** A place whose own identity is empty but that belongs to a chain. */
 const branchOfAChain = (over: Partial<Record<keyof EnrichmentSeams, unknown>> = {}) =>

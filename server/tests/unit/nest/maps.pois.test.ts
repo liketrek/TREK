@@ -26,7 +26,8 @@ vi.mock('../../../src/nest/maps/trek-places.client', async (importOriginal) => (
 vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
 
 import { MapsService } from '../../../src/nest/maps/maps.service';
-import { buildMapsService } from '../../helpers/maps-service';
+import { buildMapsParts } from '../../helpers/maps-service';
+import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';
 import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
 import { noGoogleQuota } from '../../helpers/google-quota';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
@@ -117,13 +118,18 @@ afterEach(() => {
 function make(enabled = true) {
   if (enabled) delete process.env.TREK_PLACES_ENABLED;
   else process.env.TREK_PLACES_ENABLED = 'false';
-  return buildMapsService({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
+  const { svc, osm } = buildMapsParts({} as PlacePhotoCacheService, noAppSettings, noUsers, {} as never, {} as never, noGoogleQuota);
+  osmOf.set(svc, osm);
+  return svc;
 }
+
+/** The OSM client each service was built with: Overpass is asked through it. */
+const osmOf = new WeakMap<MapsService, OsmClient>();
 
 // Overpass is the one network call this file must never make; stubbing it is
 // also what turns "dropped through" into something a case can assert.
 function stubOverpass(svc: MapsService) {
-  return vi.spyOn(svc, 'searchOverpassPois').mockResolvedValue(OVERPASS_ANSWER);
+  return vi.spyOn(osmOf.get(svc)!, 'searchOverpassPois').mockResolvedValue(OVERPASS_ANSWER);
 }
 
 function rows(n: number) {

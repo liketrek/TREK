@@ -101,6 +101,7 @@ export const PUBLIC_FILES = [
   // The maps domain's outbound clients. MapsModule exports them so enrichment
   // asks Google and Wikimedia directly instead of through a MapsService facade.
   'maps/providers/google-places.provider.ts',
+  'maps/providers/osm.client.ts',
 ];
 
 function walk(dir, files = []) {
