@@ -3,7 +3,7 @@ import {
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   ok,
 } from '../../nest-mcp';
-import { z } from 'zod';
+import { idSchema } from '@trek/shared';
 import { getAppUrl } from '../../app-config';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Trips } from '../../db/entities/Trips.entity';
@@ -68,7 +68,7 @@ export class FeedsMcp {
     name: 'get_trip_calendar_feed',
     description: 'Get the subscribable calendar feed URL of one trip, or null when the feed is switched off. This is a live subscription a calendar app re-reads hourly, so it keeps up with the itinerary. Prefer export_trip_ics when the user wants a one-off .ics file to import once and be done.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'trips', mode: 'share' },
@@ -83,7 +83,7 @@ export class FeedsMcp {
     name: 'enable_trip_calendar_feed',
     description: 'Switch on the subscribable calendar feed of one trip and return its URL. Safe to repeat: a trip that already has a feed keeps the URL it has, so subscriptions somebody already set up survive. The URL carries a secret token and asks for no login, so whoever holds it can read the trip\'s dates.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'trips', mode: 'share' },
@@ -98,7 +98,7 @@ export class FeedsMcp {
     name: 'rotate_trip_calendar_feed',
     description: 'Issue a fresh URL for one trip\'s calendar feed. Every calendar subscribed to the old URL silently stops updating, so use this when the old link leaked or the user asked to cut it off, not to switch the feed on: enable_trip_calendar_feed does that without breaking anything.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'trips', mode: 'share' },
@@ -113,7 +113,7 @@ export class FeedsMcp {
     name: 'disable_trip_calendar_feed',
     description: 'Switch off one trip\'s calendar feed. The URL stops resolving and every subscription to it breaks. Calling enable_trip_calendar_feed afterwards hands out a different URL, so everybody has to subscribe again.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'trips', mode: 'share' },

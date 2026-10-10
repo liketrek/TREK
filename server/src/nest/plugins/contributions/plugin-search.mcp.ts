@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { idSchema } from '@trek/shared';
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext, type McpTextResult } from '../../../nest-mcp';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
@@ -38,7 +39,7 @@ export class PluginSearchMcp {
         .optional()
         .describe('Centre the search on a coordinate. Pass it whenever the trip has a destination: a bare name like "Central Station" otherwise resolves wherever the provider guesses'),
       lang: z.string().max(20).optional().describe('BCP 47 language for the result names, e.g. "de" or "ja"'),
-      limit: z.number().int().positive().max(20).optional().describe('How many results per provider (default 10, capped at 20)'),
+      limit: idSchema.max(20).optional().describe('How many results per provider (default 10, capped at 20)'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'places', mode: 'read' },

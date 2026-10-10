@@ -11,6 +11,7 @@ import {
   vacayAddHolidayCalendarRequestSchema,
   vacayToggleEntryRequestSchema,
   vacayUpdatePlanRequestSchema,
+  idSchema,
 } from '@trek/shared';
 import type { VacayUpdatePlanRequest } from '@trek/shared';
 import { InjectRepository } from '@mikro-orm/nestjs';
@@ -176,7 +177,7 @@ export class VacayMcp {
     name: 'send_vacay_invite',
     description: 'Invite a user to join the vacation plan by their user ID.',
     inputSchema: {
-      targetUserId: z.number().int().positive(),
+      targetUserId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: vacayAddonOn,
@@ -194,7 +195,7 @@ export class VacayMcp {
     name: 'accept_vacay_invite',
     description: "Accept a pending invitation to join another user's vacation plan.",
     inputSchema: {
-      planId: z.number().int().positive(),
+      planId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: vacayAddonOn,
@@ -209,7 +210,7 @@ export class VacayMcp {
     name: 'decline_vacay_invite',
     description: 'Decline a pending vacation plan invitation.',
     inputSchema: {
-      planId: z.number().int().positive(),
+      planId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: vacayAddonOn,
@@ -224,7 +225,7 @@ export class VacayMcp {
     name: 'cancel_vacay_invite',
     description: 'Cancel an outgoing invitation (owner cancels invite they sent).',
     inputSchema: {
-      targetUserId: z.number().int().positive(),
+      targetUserId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: vacayAddonOn,
@@ -318,7 +319,7 @@ export class VacayMcp {
       date: z.string().describe('ISO date YYYY-MM-DD'),
       fraction: vacayToggleEntryRequestSchema.shape.fraction.describe('0.5 for a half day, 1 (the default) for a full day'),
       kind: vacayToggleEntryRequestSchema.shape.kind.describe("'comp' for a flex/comp day, which does not draw on the entitlement; 'vacation' is the default"),
-      targetUserId: z.number().int().positive().optional().describe('Log the day for another member of the shared plan instead of the caller'),
+      targetUserId: idSchema.optional().describe('Log the day for another member of the shared plan instead of the caller'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: vacayAddonOn,
@@ -423,7 +424,7 @@ export class VacayMcp {
     name: 'update_holiday_calendar',
     description: 'Update label or color for a holiday calendar.',
     inputSchema: {
-      calendarId: z.number().int().positive(),
+      calendarId: idSchema,
       label: z.string().nullable().optional(),
       color: z.string().optional(),
     },
@@ -445,7 +446,7 @@ export class VacayMcp {
     name: 'delete_holiday_calendar',
     description: 'Remove a holiday calendar from the vacation plan.',
     inputSchema: {
-      calendarId: z.number().int().positive(),
+      calendarId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: vacayAddonOn,
@@ -550,7 +551,7 @@ export class VacayMcp {
     name: 'share_vacay_calendar',
     description: "Share the current user's vacation calendar with another user (view only, no merge).",
     inputSchema: {
-      targetUserId: z.number().int().positive(),
+      targetUserId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: vacayAddonOn,
@@ -567,7 +568,7 @@ export class VacayMcp {
     name: 'unshare_vacay_calendar',
     description: 'Remove a read-only calendar share the current user is part of (revoke as owner, or remove a calendar shared with them).',
     inputSchema: {
-      shareId: z.number().int().positive(),
+      shareId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: vacayAddonOn,

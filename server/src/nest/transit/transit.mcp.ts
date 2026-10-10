@@ -5,6 +5,7 @@ import {
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
+import { idSchema } from '@trek/shared';
 import {
   buildTransitReservationParts,
   cleanTransitItineraryNames,
@@ -166,8 +167,8 @@ export class TransitMcp {
     description:
       'Add one itinerary returned by search_transit_routes to a trip day as a first-class automated public-transit journey.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      dayId: z.number().int().positive().describe('Trip day on which the journey departs'),
+      tripId: idSchema,
+      dayId: idSchema.describe('Trip day on which the journey departs'),
       from: transitPlaceInput,
       to: transitPlaceInput,
       itinerary: transitItinerarySchema,

@@ -6,6 +6,7 @@ import {
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
+import { idSchema } from '@trek/shared';
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { TodoService } from './todo.service';
@@ -41,7 +42,7 @@ export class TodoMcp {
     name: 'list_todos',
     description: 'List all to-do items for a trip, ordered by position.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: packingAddonOn,
@@ -57,12 +58,12 @@ export class TodoMcp {
     name: 'create_todo',
     description: 'Create a new to-do item for a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       name: z.string().min(1).max(500).describe('To-do item name'),
       category: z.string().max(100).optional().describe('Category (e.g. "Logistics", "Booking")'),
       due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Due date (YYYY-MM-DD)'),
       description: z.string().max(2000).optional().describe('Additional description'),
-      assigned_user_id: z.number().int().positive().optional().describe('User ID to assign this task to'),
+      assigned_user_id: idSchema.optional().describe('User ID to assign this task to'),
       priority: z.number().int().min(0).max(3).optional().describe('Priority: 0=none, 1=P1 (highest), 2=P2, 3=P3 (lowest)'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -86,13 +87,13 @@ export class TodoMcp {
     name: 'update_todo',
     description: 'Update an existing to-do item. Only provided fields are changed; omitted fields stay as-is. Pass null to clear a nullable field.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
+      tripId: idSchema,
+      itemId: idSchema,
       name: z.string().min(1).max(500).optional(),
       category: z.string().max(100).optional(),
       due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional().describe('Set to null to clear the due date'),
       description: z.string().max(2000).nullable().optional().describe('Set to null to clear'),
-      assigned_user_id: z.number().int().positive().nullable().optional().describe('Set to null to unassign'),
+      assigned_user_id: idSchema.nullable().optional().describe('Set to null to unassign'),
       priority: z.number().int().min(0).max(3).nullable().optional().describe('Priority: 0=none, 1=P1 (highest), 2=P2, 3=P3 (lowest); null clears it'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -123,8 +124,8 @@ export class TodoMcp {
     name: 'toggle_todo',
     description: 'Mark a to-do item as checked (done) or unchecked.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
+      tripId: idSchema,
+      itemId: idSchema,
       checked: z.boolean().describe('True to mark done, false to uncheck'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -144,8 +145,8 @@ export class TodoMcp {
     name: 'delete_todo',
     description: 'Delete a to-do item.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
+      tripId: idSchema,
+      itemId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: packingAddonOn,
@@ -164,8 +165,8 @@ export class TodoMcp {
     name: 'reorder_todos',
     description: 'Reorder to-do items within a trip by providing a new ordered list of item IDs.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      orderedIds: z.array(z.number().int().positive()).min(1).describe('All item IDs in the desired order'),
+      tripId: idSchema,
+      orderedIds: z.array(idSchema).min(1).describe('All item IDs in the desired order'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
@@ -182,7 +183,7 @@ export class TodoMcp {
     name: 'get_todo_category_assignees',
     description: 'Get the default assignees configured per to-do category for a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: packingAddonOn,
@@ -198,9 +199,9 @@ export class TodoMcp {
     name: 'set_todo_category_assignees',
     description: 'Set the default assignees for a to-do category on a trip. Pass an empty array to clear.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       categoryName: z.string().min(1).max(100).describe('Category name'),
-      userIds: z.array(z.number().int().positive()).describe('User IDs to assign as defaults for this category'),
+      userIds: z.array(idSchema).describe('User IDs to assign as defaults for this category'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,

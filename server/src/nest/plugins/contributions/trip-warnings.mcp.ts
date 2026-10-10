@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { idSchema } from '@trek/shared';
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext, type McpTextResult } from '../../../nest-mcp';
 import { noAccess } from '../../../mcp/tools/_shared';
 import { pluginsEnabled } from '../kill-switch';
@@ -47,7 +47,7 @@ export class TripWarningsMcp {
     name: 'get_trip_warnings',
     description: 'Problems installed plugins report about a trip: a plugin flagging that something is wrong with the itinerary, such as an accommodation with no check-out, a day that cannot be travelled in the time it allows, or a place closed on the day it is planned for. get_trip_summary returns the trip\'s stored data and never these verdicts, so call this as well before reviewing a trip, reporting on it, or telling the user it looks fine. Returns an empty list when no installed plugin contributes warnings, which is the normal case.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'trips', mode: 'read' },

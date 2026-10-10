@@ -5,6 +5,7 @@ import {
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
+import { idSchema } from '@trek/shared';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { canShareTrips } from '../../mcp/scopes';
 import { ShareService } from './share.service';
@@ -28,7 +29,7 @@ export class ShareMcp {
     name: 'get_share_link',
     description: 'Get the current public share link for a trip, including its permission flags. Returns null if no share link exists.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: (ctx) => canShareTrips(ctx.scopes),
@@ -48,7 +49,7 @@ export class ShareMcp {
     name: 'create_share_link',
     description: 'Create or update the public share link for a trip. Set permission flags to control what is visible to guests.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       share_map: z.boolean().optional().default(true).describe('Share the map and places'),
       share_bookings: z.boolean().optional().default(true).describe('Share reservations'),
       share_packing: z.boolean().optional().default(false).describe('Share packing list'),
@@ -81,7 +82,7 @@ export class ShareMcp {
     name: 'delete_share_link',
     description: 'Revoke the public share link for a trip. Guests will no longer be able to access the shared view.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: (ctx) => canShareTrips(ctx.scopes),

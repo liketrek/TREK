@@ -4,8 +4,7 @@ import {
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult, ok,
 } from '../../nest-mcp';
-import { z } from 'zod';
-import { createCategoryRequestSchema, updateCategoryRequestSchema } from '@trek/shared';
+import { idSchema, createCategoryRequestSchema, updateCategoryRequestSchema } from '@trek/shared';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { adminRequired } from '../../mcp/tools/_shared';
@@ -70,7 +69,7 @@ export class CategoriesMcp {
     name: 'update_category',
     description: 'Rename an existing place category or change its colour or icon. Admin only. Every place already carrying the category follows the change, so use this to fix a palette entry rather than to reclassify places.',
     inputSchema: {
-      categoryId: z.number().int().positive().describe('Category ID from list_categories'),
+      categoryId: idSchema.describe('Category ID from list_categories'),
       name: updateCategoryRequestSchema.shape.name,
       color: updateCategoryRequestSchema.shape.color.describe('Hex colour for the map marker'),
       icon: updateCategoryRequestSchema.shape.icon.describe('Emoji shown on the marker'),
@@ -89,7 +88,7 @@ export class CategoriesMcp {
     name: 'delete_category',
     description: 'Remove a place category from the instance-wide palette. Admin only. Places keep their data but lose the category, across every trip on the instance. Use update_category when the entry only needs fixing.',
     inputSchema: {
-      categoryId: z.number().int().positive().describe('Category ID from list_categories'),
+      categoryId: idSchema.describe('Category ID from list_categories'),
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'places', mode: 'write' },

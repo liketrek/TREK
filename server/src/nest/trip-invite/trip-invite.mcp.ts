@@ -3,14 +3,13 @@ import {
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   ok,
 } from '../../nest-mcp';
-import { z } from 'zod';
 import { getAppUrl } from '../../app-config';
 import { AuditService } from '../audit/audit.service';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { canShareTrips, canWrite } from '../../mcp/scopes';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { tripInviteLinkCreateRequestSchema } from '@trek/shared';
+import { idSchema, tripInviteLinkCreateRequestSchema } from '@trek/shared';
 import type { TripInviteLinkCreateRequest } from '@trek/shared';
 import { TripInviteService, type TripInviteInfo } from './trip-invite.service';
 
@@ -53,7 +52,7 @@ export class TripInviteMcp {
     name: 'get_trip_invite_link',
     description: 'Get the trip\'s current invite link, the one that adds whoever opens it to the trip as a member. Returns null when the trip has none. This is not the read-only public view link: get_share_link is that one.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: (ctx) => canShareTrips(ctx.scopes) && canWrite(ctx.scopes, 'trips'),
@@ -69,7 +68,7 @@ export class TripInviteMcp {
     name: 'create_trip_invite_link',
     description: 'Create the trip\'s invite link, or rotate it: a trip has exactly one, so calling this again issues a fresh token and the previous link stops working immediately. Anyone with a TREK account who opens the link and signs in becomes a member of the trip, which makes it a different and far stronger thing than create_share_link, whose link only shows a read-only public view. Use add_trip_member instead when the person already has an account and is known by name or email.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       expires_in_days: tripInviteLinkCreateRequestSchema.shape.expires_in_days
         .describe('Days until the link stops working; omit, null or 0 leaves it valid until it is rotated or deleted'),
     },
@@ -107,7 +106,7 @@ export class TripInviteMcp {
     name: 'delete_trip_invite_link',
     description: 'Revoke the trip\'s invite link. The URL stops working at once, so nobody else can join through it. Members who already joined stay on the trip: remove_trip_member is what takes somebody off it.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: (ctx) => canShareTrips(ctx.scopes) && canWrite(ctx.scopes, 'trips'),

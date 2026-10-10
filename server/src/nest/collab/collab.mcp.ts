@@ -6,6 +6,7 @@ import {
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
+import { idSchema } from '@trek/shared';
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { CollabService } from './collab.service';
@@ -74,7 +75,7 @@ export class CollabMcp {
     name: 'create_collab_note',
     description: 'Create a shared collaborative note on a trip (visible to all trip members in the Collab tab).',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       title: z.string().min(1).max(200),
       content: z.string().max(10000).optional(),
       category: z.string().max(100).optional().describe('Note category (e.g. "Ideas", "To-do", "General")'),
@@ -103,8 +104,8 @@ export class CollabMcp {
     name: 'update_collab_note',
     description: 'Edit an existing collaborative note on a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      noteId: z.number().int().positive(),
+      tripId: idSchema,
+      noteId: idSchema,
       title: z.string().min(1).max(200).optional(),
       content: z.string().max(10000).optional(),
       category: z.string().max(100).optional(),
@@ -134,8 +135,8 @@ export class CollabMcp {
     name: 'delete_collab_note',
     description: 'Delete a collaborative note from a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      noteId: z.number().int().positive(),
+      tripId: idSchema,
+      noteId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: collabNotesOn,
@@ -156,7 +157,7 @@ export class CollabMcp {
     name: 'list_collab_polls',
     description: 'List all polls for a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: collabPollsOn,
@@ -172,7 +173,7 @@ export class CollabMcp {
     name: 'create_collab_poll',
     description: 'Create a new poll in the collab panel.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       question: z.string().min(1),
       options: z.array(z.string()).min(2).describe('Poll answer options (at least 2)'),
       multiple: z.boolean().optional().describe('Allow multiple choice'),
@@ -199,8 +200,8 @@ export class CollabMcp {
     name: 'vote_collab_poll',
     description: 'Vote on a poll option (or remove vote if already voted for that option).',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      pollId: z.number().int().positive(),
+      tripId: idSchema,
+      pollId: idSchema,
       optionIndex: z.number().int().min(0).describe('Zero-based index of the option to vote for'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -220,8 +221,8 @@ export class CollabMcp {
     name: 'close_collab_poll',
     description: 'Close a poll so no more votes can be cast.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      pollId: z.number().int().positive(),
+      tripId: idSchema,
+      pollId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collabPollsOn,
@@ -240,8 +241,8 @@ export class CollabMcp {
     name: 'delete_collab_poll',
     description: 'Delete a poll and all its votes.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      pollId: z.number().int().positive(),
+      tripId: idSchema,
+      pollId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: collabPollsOn,
@@ -260,8 +261,8 @@ export class CollabMcp {
     name: 'list_collab_messages',
     description: 'List chat messages for a trip (most recent 100, oldest-first).',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      before: z.number().int().positive().optional().describe('Load messages with ID less than this (pagination)'),
+      tripId: idSchema,
+      before: idSchema.optional().describe('Load messages with ID less than this (pagination)'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: collabChatOn,
@@ -277,9 +278,9 @@ export class CollabMcp {
     name: 'send_collab_message',
     description: "Send a chat message to a trip's collab channel.",
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       text: z.string().min(1),
-      replyTo: z.number().int().positive().optional().describe('Reply to a specific message ID'),
+      replyTo: idSchema.optional().describe('Reply to a specific message ID'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: collabChatOn,
@@ -298,8 +299,8 @@ export class CollabMcp {
     name: 'delete_collab_message',
     description: 'Delete a chat message (only the message owner can delete their own messages).',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      messageId: z.number().int().positive(),
+      tripId: idSchema,
+      messageId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: collabChatOn,
@@ -318,8 +319,8 @@ export class CollabMcp {
     name: 'react_collab_message',
     description: 'Toggle a reaction emoji on a chat message (adds if not present, removes if already reacted).',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      messageId: z.number().int().positive(),
+      tripId: idSchema,
+      messageId: idSchema,
       emoji: z.string().describe('Single emoji character'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,

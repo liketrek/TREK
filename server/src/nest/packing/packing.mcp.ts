@@ -17,6 +17,7 @@ import {
   packingUpdateBagRequestSchema,
   packingUpdateItemRequestSchema,
   type PackingVisibility,
+  idSchema,
 } from '@trek/shared';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
@@ -60,7 +61,7 @@ export class PackingMcp {
     name: 'create_packing_item',
     description: 'Add an item to the packing checklist for a trip. It lands on the common list everyone shares unless visibility says otherwise; use set_packing_item_sharing to move an existing item between those tiers.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       name: z.string().min(1).max(200),
       category: z.string().max(100).optional().describe('Packing category (e.g. Clothes, Electronics)'),
       bag_id: packingCreateItemRequestSchema.shape.bag_id.describe('Bag to pack the item into (ids come from list_packing_bags)'),
@@ -98,8 +99,8 @@ export class PackingMcp {
     name: 'toggle_packing_item',
     description: 'Check or uncheck a packing item.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
+      tripId: idSchema,
+      itemId: idSchema,
       checked: z.boolean(),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -117,8 +118,8 @@ export class PackingMcp {
     name: 'delete_packing_item',
     description: 'Remove an item from the packing checklist.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
+      tripId: idSchema,
+      itemId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: packingAddonOn,
@@ -135,8 +136,8 @@ export class PackingMcp {
     name: 'update_packing_item',
     description: 'Change a packing item: rename it, recategorise it, move it into a bag, set how many are needed, count how many are already packed, record its weight, or flip it between the common list and your own. Ticking it off is toggle_packing_item; choosing who a private item is shared with is set_packing_item_sharing.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
+      tripId: idSchema,
+      itemId: idSchema,
       name: z.string().min(1).max(200).optional(),
       category: z.string().max(100).optional(),
       bag_id: packingUpdateItemRequestSchema.shape.bag_id.describe('Bag to pack the item into (ids come from list_packing_bags); null takes it out of its bag'),
@@ -165,8 +166,8 @@ export class PackingMcp {
     name: 'set_packing_item_sharing',
     description: 'Move an existing packing item between the three sharing tiers: the common list the whole trip pools into, the owner\'s own list, or shared with named trip members. Only the item\'s owner may change this. Everything else about an item is update_packing_item.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
+      tripId: idSchema,
+      itemId: idSchema,
       visibility: packingSetSharingRequestSchema.shape.visibility.describe("'common' puts the item in the group pool, 'personal' keeps it to the owner, 'shared' covers the people in recipient_ids"),
       recipient_ids: packingSetSharingRequestSchema.shape.recipient_ids.describe("For 'shared': the trip members the item is brought for. Ids outside the trip roster are dropped, and any previous recipients are replaced"),
     },
@@ -197,8 +198,8 @@ export class PackingMcp {
     name: 'reorder_packing_items',
     description: 'Set the display order of packing items within a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      orderedIds: z.array(z.number().int().positive()).describe('Packing item IDs in desired order'),
+      tripId: idSchema,
+      orderedIds: z.array(idSchema).describe('Packing item IDs in desired order'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
@@ -216,7 +217,7 @@ export class PackingMcp {
     name: 'list_packing_bags',
     description: 'List all packing bags for a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: packingAddonOn,
@@ -232,7 +233,7 @@ export class PackingMcp {
     name: 'create_packing_bag',
     description: 'Create a new packing bag (e.g. "Carry-on", "Checked bag").',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       name: z.string().min(1).max(100),
       color: z.string().optional(),
       weight_limit_grams: packingCreateBagRequestSchema.shape.weight_limit_grams.describe('Allowance in grams the bag is measured against (the fill bar)'),
@@ -255,8 +256,8 @@ export class PackingMcp {
     name: 'update_packing_bag',
     description: 'Rename or recolor a packing bag, give it a weight limit, or hand it to one traveller. Who else packs into it is set_bag_members.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      bagId: z.number().int().positive(),
+      tripId: idSchema,
+      bagId: idSchema,
       name: z.string().optional(),
       color: z.string().optional(),
       weight_limit_grams: packingUpdateBagRequestSchema.shape.weight_limit_grams.describe('Allowance in grams the bag is measured against (the fill bar); null lifts the limit'),
@@ -292,8 +293,8 @@ export class PackingMcp {
     name: 'delete_packing_bag',
     description: 'Delete a packing bag (items in the bag are unassigned, not deleted).',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      bagId: z.number().int().positive(),
+      tripId: idSchema,
+      bagId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: packingAddonOn,
@@ -316,9 +317,9 @@ export class PackingMcp {
     name: 'set_bag_members',
     description: 'Assign trip members to a packing bag (determines who packs what bag).',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      bagId: z.number().int().positive(),
-      userIds: z.array(z.number().int().positive()),
+      tripId: idSchema,
+      bagId: idSchema,
+      userIds: z.array(idSchema),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
@@ -337,7 +338,7 @@ export class PackingMcp {
     name: 'get_packing_category_assignees',
     description: 'Get which trip members are assigned to each packing category.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: packingAddonOn,
@@ -353,9 +354,9 @@ export class PackingMcp {
     name: 'set_packing_category_assignees',
     description: 'Assign trip members to a packing category.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       categoryName: z.string().min(1).max(100),
-      userIds: z.array(z.number().int().positive()),
+      userIds: z.array(idSchema),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
@@ -373,8 +374,8 @@ export class PackingMcp {
     name: 'apply_packing_template',
     description: 'Apply a packing template to a trip (adds items from the template).',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      templateId: z.number().int().positive(),
+      tripId: idSchema,
+      templateId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: packingAddonOn,
@@ -394,7 +395,7 @@ export class PackingMcp {
     name: 'list_packing_templates',
     description: 'List the reusable packing templates (id, name, item count) so one can be applied with apply_packing_template.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: packingAddonOn,
@@ -409,7 +410,7 @@ export class PackingMcp {
     name: 'save_packing_template',
     description: 'Save the current packing list as a reusable template. Returns the new template (id, name, category/item counts). Admin only.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       templateName: z.string().min(1).max(100),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -430,7 +431,7 @@ export class PackingMcp {
     name: 'delete_packing_template',
     description: 'Delete a reusable packing template. Templates are global, so deletion is admin only.',
     inputSchema: {
-      templateId: z.number().int().positive(),
+      templateId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: packingAddonOn,
@@ -448,11 +449,11 @@ export class PackingMcp {
     name: 'bulk_import_packing',
     description: 'Import multiple packing items at once from a list. Optionally assign each to a bag (by name — created if missing), set its weight, or pre-check it.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       items: z.array(z.strictObject({
         name: z.string().min(1).max(200),
         category: z.string().optional(),
-        quantity: z.number().int().positive().optional(),
+        quantity: idSchema.optional(),
         bag: z.string().max(100).optional().describe('Bag name to assign the item to; created if it does not exist'),
         weight_grams: z.number().nonnegative().optional(),
         checked: z.boolean().optional(),

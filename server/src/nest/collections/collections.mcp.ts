@@ -18,6 +18,7 @@ import {
   collectionInviteRequestSchema, collectionSetStatusFromTripRequestSchema,
   collectionLinkSchema,
   COLLECTION_STATUSES, COLLECTION_ROLES,
+  idSchema,
 } from '@trek/shared';
 import type {
   CollectionCreateRequest, CollectionUpdateRequest, CollectionSavePlaceRequest,
@@ -83,7 +84,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'get_collection',
     description: 'Get one collection with its members, labels, and all saved places. Each place includes rating_avg / rating_count and the per-member ratings (#1435) so you can plan around highly-rated spots.',
-    inputSchema: { collectionId: z.number().int().positive() },
+    inputSchema: { collectionId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'read' },
@@ -95,7 +96,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'available_collection_users',
     description: 'List users who can still be invited to a collection (excludes current members and guests). Use the returned ids with invite_to_collection.',
-    inputSchema: { collectionId: z.number().int().positive() },
+    inputSchema: { collectionId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'read' },
@@ -150,7 +151,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'update_collection',
     description: 'Update a collection\'s name, description, colour, icon, cover, links, or sort order. Owner/admin only.',
-    inputSchema: { collectionId: z.number().int().positive(), ...collectionUpdateRequestSchema.shape, links: linksInput },
+    inputSchema: { collectionId: idSchema, ...collectionUpdateRequestSchema.shape, links: linksInput },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
@@ -162,7 +163,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'delete_collection',
     description: 'Permanently delete a collection and all its saved places. Owner only. This cannot be undone.',
-    inputSchema: { collectionId: z.number().int().positive() },
+    inputSchema: { collectionId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
@@ -174,7 +175,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'reorder_collections',
     description: 'Reorder the user\'s collections. Pass every collection id in the desired order.',
-    inputSchema: { orderedIds: z.array(z.number().int().positive()).min(1) },
+    inputSchema: { orderedIds: z.array(idSchema).min(1) },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
@@ -201,9 +202,9 @@ export class CollectionsMcp {
     name: 'save_trip_places_to_collection',
     description: 'Copy one or more existing trip places into a collection (the server reads each place). Their star ratings (#1435) travel along for members shared on both. Duplicates are skipped unless force is true.',
     inputSchema: {
-      collectionId: z.number().int().positive(),
-      tripId: z.number().int().positive(),
-      placeIds: z.array(z.number().int().positive()).min(1).max(1000),
+      collectionId: idSchema,
+      tripId: idSchema,
+      placeIds: z.array(idSchema).min(1).max(1000),
       force: z.boolean().optional(),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -220,7 +221,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'update_collection_place',
     description: 'Update a saved place\'s name, address, coordinates (lat/lng), description, notes, status, category, links, tags, labels, image, or move it to another collection (set collection_id).',
-    inputSchema: { placeId: z.number().int().positive(), ...collectionPlaceUpdateRequestSchema.shape, links: linksInput },
+    inputSchema: { placeId: idSchema, ...collectionPlaceUpdateRequestSchema.shape, links: linksInput },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
@@ -232,7 +233,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'set_collection_place_status',
     description: 'Set a saved place\'s status: idea, want, or visited.',
-    inputSchema: { placeId: z.number().int().positive(), status: z.enum(COLLECTION_STATUSES) },
+    inputSchema: { placeId: idSchema, status: z.enum(COLLECTION_STATUSES) },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
@@ -260,7 +261,7 @@ export class CollectionsMcp {
     name: 'rate_collection_place',
     description: "Set or clear the current user's 1-5 star rating on a saved collection place (#1435). Every member rates independently; the place shows the average. Pass null (or omit rating) to remove the user's vote. Ratings a member casts here follow the place into any trip it is later copied to. Use the ratings to capture the user's preferences.",
     inputSchema: {
-      placeId: z.number().int().positive(),
+      placeId: idSchema,
       rating: z.number().int().min(1).max(5).nullable().optional().describe('1-5 stars; null/omitted clears the vote'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -274,7 +275,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'delete_collection_place',
     description: 'Remove a saved place from its collection. Requires delete permission on the list.',
-    inputSchema: { placeId: z.number().int().positive() },
+    inputSchema: { placeId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
@@ -312,7 +313,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'update_collection_label',
     description: 'Rename or recolour a collection label, or change its sort order.',
-    inputSchema: { labelId: z.number().int().positive(), ...collectionLabelUpdateRequestSchema.shape },
+    inputSchema: { labelId: idSchema, ...collectionLabelUpdateRequestSchema.shape },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
@@ -324,7 +325,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'delete_collection_label',
     description: 'Delete a collection label; its assignments on places are cleared.',
-    inputSchema: { labelId: z.number().int().positive() },
+    inputSchema: { labelId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
@@ -372,8 +373,8 @@ export class CollectionsMcp {
     name: 'set_collection_member_role',
     description: 'Change an accepted member\'s permission role (viewer, editor, or admin). Owner only.',
     inputSchema: {
-      collectionId: z.number().int().positive(),
-      userId: z.number().int().positive(),
+      collectionId: idSchema,
+      userId: idSchema,
       role: z.enum(COLLECTION_ROLES),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -390,7 +391,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'remove_collection_member',
     description: 'Remove an accepted member from a shared collection (a kick). Owner only.',
-    inputSchema: { collectionId: z.number().int().positive(), userId: z.number().int().positive() },
+    inputSchema: { collectionId: idSchema, userId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
@@ -405,7 +406,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'cancel_collection_invite',
     description: 'Cancel a pending invite you sent to a user for a collection. Owner only.',
-    inputSchema: { collectionId: z.number().int().positive(), userId: z.number().int().positive() },
+    inputSchema: { collectionId: idSchema, userId: idSchema },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
@@ -420,7 +421,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'accept_collection_invite',
     description: 'Accept a pending invite to join a shared collection.',
-    inputSchema: { collectionId: z.number().int().positive() },
+    inputSchema: { collectionId: idSchema },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
@@ -436,7 +437,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'decline_collection_invite',
     description: 'Decline a pending invite to a shared collection.',
-    inputSchema: { collectionId: z.number().int().positive() },
+    inputSchema: { collectionId: idSchema },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },
@@ -448,7 +449,7 @@ export class CollectionsMcp {
   @Tool({
     name: 'leave_collection',
     description: 'Leave a shared collection you are a member of. The owner cannot leave (delete the list instead).',
-    inputSchema: { collectionId: z.number().int().positive() },
+    inputSchema: { collectionId: idSchema },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collectionsAddonOn,
     access: { group: 'collections', mode: 'write' },

@@ -5,6 +5,7 @@ import {
   errorResult, ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
+import { idSchema } from '@trek/shared';
 import { TagsService } from './tags.service';
 
 /**
@@ -48,7 +49,7 @@ export class TagsMcp {
     name: 'update_tag',
     description: 'Update the name or color of an existing tag.',
     inputSchema: {
-      tagId: z.number().int().positive(),
+      tagId: idSchema,
       name: z.string().optional(),
       color: z.string().optional(),
     },
@@ -66,7 +67,7 @@ export class TagsMcp {
     name: 'delete_tag',
     description: 'Delete a tag (removes it from all places it was attached to).',
     inputSchema: {
-      tagId: z.number().int().positive(),
+      tagId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'places', mode: 'write' },

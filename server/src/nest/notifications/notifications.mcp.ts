@@ -4,6 +4,7 @@ import {
   ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
+import { idSchema } from '@trek/shared';
 import { NotificationsService } from './notifications.service';
 
 function jsonContent(uri: string, data: unknown) {
@@ -38,7 +39,7 @@ export class NotificationsMcp {
     name: 'list_notifications',
     description: 'List in-app notifications for the current user.',
     inputSchema: {
-      limit: z.number().int().positive().optional().default(20),
+      limit: idSchema.optional().default(20),
       offset: z.number().int().min(0).optional().default(0),
       unread_only: z.boolean().optional().default(false),
     },
@@ -69,7 +70,7 @@ export class NotificationsMcp {
     name: 'mark_notification_read',
     description: 'Mark a single notification as read.',
     inputSchema: {
-      notificationId: z.number().int().positive(),
+      notificationId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'notifications', mode: 'write' },
@@ -84,7 +85,7 @@ export class NotificationsMcp {
     name: 'mark_notification_unread',
     description: 'Mark a single notification as unread.',
     inputSchema: {
-      notificationId: z.number().int().positive(),
+      notificationId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'notifications', mode: 'write' },

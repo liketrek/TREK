@@ -4,7 +4,7 @@ import {
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   errorResult, ok,
 } from '../../nest-mcp';
-import { fileLinkRequestSchema, fileUpdateRequestSchema } from '@trek/shared';
+import { idSchema, fileLinkRequestSchema, fileUpdateRequestSchema } from '@trek/shared';
 import type { FileLinkRequest, FileUpdateRequest } from '@trek/shared';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
@@ -70,7 +70,7 @@ export class FilesMcp {
     name: 'list_trip_files',
     description: 'List the documents on a trip: name, type, size, who uploaded it, what it is attached to, whether it is starred, and when it was moved to the trash. This is the way to find a file ID; to read what is inside one, follow up with read_trip_file. Set trash to true to list the trip\'s deleted files instead of its live ones.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       trash: z.boolean().optional().default(false).describe('List the trash instead of the live files'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
@@ -85,8 +85,8 @@ export class FilesMcp {
     name: 'read_trip_file',
     description: `Read what is inside one uploaded document, e.g. a booking confirmation or a ticket. Text files come back as readable text, anything else base64-encoded, with "encoding" saying which. Files over ${CONTENT_MAX_MB} MB are refused outright, so point the user at the file in TREK rather than retrying. Reading contents is a separate permission from listing files, so this can be refused on a trip where list_trip_files works.`,
     inputSchema: {
-      tripId: z.number().int().positive(),
-      fileId: z.number().int().positive().describe('File ID from list_trip_files'),
+      tripId: idSchema,
+      fileId: idSchema.describe('File ID from list_trip_files'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     // Not files:read. Listing what a trip carries and reading the bytes of a
@@ -119,12 +119,12 @@ export class FilesMcp {
     name: 'upload_trip_file',
     description: `Add a document to a trip, e.g. a booking confirmation PDF or a ticket, and optionally attach it to a booking or a place in the same call. Pass the bytes base64-encoded in content, up to ${UPLOAD_MAX_MB} MB decoded. The file name has to carry an extension the trip's file manager accepts; the type is derived from it. Returns the new file, whose ID works with read_trip_file and link_trip_file.`,
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       filename: z.string().trim().min(1).max(255).describe('File name including its extension, e.g. "hotel-confirmation.pdf"'),
       content: z.string().min(1).max(Math.ceil(UPLOAD_MAX / 3) * 4).describe('The file bytes, base64-encoded'),
       description: z.string().max(1000).optional().describe('Free-text description'),
-      reservation_id: z.number().int().positive().optional().describe('Booking on the same trip to attach the file to'),
-      place_id: z.number().int().positive().optional().describe('Place on the same trip to attach the file to'),
+      reservation_id: idSchema.optional().describe('Booking on the same trip to attach the file to'),
+      place_id: idSchema.optional().describe('Place on the same trip to attach the file to'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'files', mode: 'write' },
@@ -163,8 +163,8 @@ export class FilesMcp {
     name: 'update_trip_file',
     description: 'Set a file\'s description and attach it to a booking or a place. Fields left out keep their current value, null detaches. place_id and reservation_id are the file\'s primary attachment, the one the file manager shows next to it. To attach one document to several bookings or places at once, use link_trip_file instead.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      fileId: z.number().int().positive(),
+      tripId: idSchema,
+      fileId: idSchema,
       description: fileUpdateRequestSchema.shape.description.describe('Free-text description, or an empty string to clear it'),
       place_id: fileUpdateRequestSchema.shape.place_id.describe('Place on the same trip to attach the file to, or null to detach it'),
       reservation_id: fileUpdateRequestSchema.shape.reservation_id.describe('Booking on the same trip to attach the file to, or null to detach it'),
@@ -202,8 +202,8 @@ export class FilesMcp {
     name: 'link_trip_file',
     description: 'Attach a file to one more booking, place or day assignment on the same trip, keeping every attachment it already has. Prefer update_trip_file when the document belongs to a single booking or place; use this one for a document that covers several, such as one group ticket or one rental agreement. Returns every link the file now carries.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      fileId: z.number().int().positive(),
+      tripId: idSchema,
+      fileId: idSchema,
       reservation_id: fileLinkRequestSchema.shape.reservation_id.describe('Booking on the same trip'),
       assignment_id: fileLinkRequestSchema.shape.assignment_id.describe('Day assignment (a place scheduled on a specific day) on the same trip'),
       place_id: fileLinkRequestSchema.shape.place_id.describe('Place on the same trip'),
@@ -235,9 +235,9 @@ export class FilesMcp {
     name: 'unlink_trip_file',
     description: 'Remove one attachment between a file and a booking, place or day assignment. The file itself stays on the trip and its other attachments are untouched. Take linkId from list_trip_file_links, it is not the booking or place ID.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      fileId: z.number().int().positive(),
-      linkId: z.number().int().positive().describe('Link ID from list_trip_file_links'),
+      tripId: idSchema,
+      fileId: idSchema,
+      linkId: idSchema.describe('Link ID from list_trip_file_links'),
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'files', mode: 'write' },
@@ -260,8 +260,8 @@ export class FilesMcp {
     name: 'list_trip_file_links',
     description: 'List everything one file is attached to: bookings (with their title), places and day assignments, each with the linkId that unlink_trip_file needs. list_trip_files already reports the linked booking and place IDs, so reach for this one when you need the link IDs themselves.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      fileId: z.number().int().positive(),
+      tripId: idSchema,
+      fileId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'files', mode: 'read' },

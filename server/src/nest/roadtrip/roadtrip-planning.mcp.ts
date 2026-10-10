@@ -9,6 +9,7 @@ import {
   roadtripCorridorRequestSchema,
   type RoadtripPlanRequest,
   type RoadtripCorridorRequest,
+  idSchema,
 } from '@trek/shared';
 import {
   corridorTiles,
@@ -21,7 +22,6 @@ import {
 } from '@trek/shared/roadtrip';
 import { answeringRefusals } from './roadtrip-mcp.helpers';
 
-import { z } from 'zod';
 
 const when = addonGate(ADDON_IDS.ROADTRIP);
 
@@ -37,7 +37,7 @@ export class RoadtripPlanningMcp {
     name: 'get_roadtrip_context',
     description:
       'Read the saved roadtrip days, visits, pinned times, end times (when the drive leaves a visit), stays, stop types, fill levels, travel modes, via points, followed tracks, manual day endings and the carrier bookings (flight, train, ferry, cruise, bus) that seam the drive at their terminals, plus the hire cars whose pick-up and return desks stand on it. stays lists every booked stay with its check-in and check-out day, its place and the earliest linked reservation (reservation_id). Includes the shared driving preferences for this trip. No routing request and no browser needed. Coordinates missing from a visit prevent it from being routed. Use calculate_roadtrip to get the derived day layout. Edit visits with the existing place and assignment tools; change their saved order with reorder_day_assignments. Settings, visits and manual boundaries all belong to the shared trip.',
-    inputSchema: { tripId: z.number().int().positive() },
+    inputSchema: { tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'trips', mode: 'read' },
     when,

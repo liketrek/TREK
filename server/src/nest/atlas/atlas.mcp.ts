@@ -5,6 +5,7 @@ import {
   errorResult, ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
+import { idSchema } from '@trek/shared';
 import { ADDON_IDS } from '../../addons';
 import { AtlasService, BucketItemExistsError } from './atlas.service';
 import { addonGate } from '../addons/addon-gate';
@@ -102,7 +103,7 @@ export class AtlasMcp {
     name: 'delete_bucket_list_item',
     description: 'Remove an item from your travel bucket list.',
     inputSchema: {
-      itemId: z.number().int().positive(),
+      itemId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: atlasAddonOn,
@@ -275,7 +276,7 @@ export class AtlasMcp {
     name: 'update_bucket_list_item',
     description: 'Update a bucket list item (notes, name, target date, location).',
     inputSchema: {
-      itemId: z.number().int().positive(),
+      itemId: idSchema,
       name: z.string().optional(),
       notes: z.string().optional(),
       lat: z.number().nullable().optional(),

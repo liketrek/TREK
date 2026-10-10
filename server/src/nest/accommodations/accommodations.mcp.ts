@@ -4,7 +4,7 @@ import {
   ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { placeWebsiteSchema } from '@trek/shared';
+import { idSchema, placeWebsiteSchema } from '@trek/shared';
 import { z } from 'zod';
 import { PlacesService } from '../places/places.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
@@ -47,10 +47,10 @@ export class AccommodationsMcp {
     name: 'create_accommodation',
     description: 'Add an accommodation (hotel, Airbnb, etc.) to a trip, linked to a place and a date range. This also puts the place on its check-in day, so the stay shows up as a stop on the route.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      place_id: z.number().int().positive().describe('The place to use as the accommodation'),
-      start_day_id: z.number().int().positive().describe('Check-in day ID'),
-      end_day_id: z.number().int().positive().describe('Check-out day ID'),
+      tripId: idSchema,
+      place_id: idSchema.describe('The place to use as the accommodation'),
+      start_day_id: idSchema.describe('Check-in day ID'),
+      end_day_id: idSchema.describe('Check-out day ID'),
       check_in: z.string().max(10).optional().describe('Check-in time e.g. "15:00"'),
       check_in_end: z.string().max(10).optional().describe('Check-in window end time e.g. "20:00"'),
       check_out: z.string().max(10).optional().describe('Check-out time e.g. "11:00"'),
@@ -76,21 +76,21 @@ export class AccommodationsMcp {
     name: 'create_place_accommodation',
     description: 'Create a new place, set it as an accommodation for a date range and put it on its check-in day, in one atomic operation. Use place details from search_place results. Only use when the place does not yet exist — if it already exists, use create_accommodation directly. Set price + currency to record the accommodation cost so it shows on the item.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       name: z.string().min(1).max(200),
       description: z.string().max(2000).optional(),
       lat: z.number().optional(),
       lng: z.number().optional(),
       address: z.string().max(500).optional(),
-      category_id: z.number().int().positive().optional().describe('Category ID — use list_categories to see available options'),
+      category_id: idSchema.optional().describe('Category ID — use list_categories to see available options'),
       google_place_id: z.string().optional().describe('Google Place ID from search_place — enables opening hours display'),
       google_ftid: z.string().optional().describe('Google Maps feature ID from search_place — enables direct Google Maps links'),
       osm_id: z.string().optional().describe('OpenStreetMap ID from search_place (e.g. "way:12345")'),
       place_notes: z.string().max(2000).optional().describe('Notes for the place'),
       website: z.string().max(500).optional(),
       phone: z.string().max(50).optional(),
-      start_day_id: z.number().int().positive().describe('Check-in day ID'),
-      end_day_id: z.number().int().positive().describe('Check-out day ID'),
+      start_day_id: idSchema.describe('Check-in day ID'),
+      end_day_id: idSchema.describe('Check-out day ID'),
       check_in: z.string().max(10).optional().describe('Check-in time e.g. "15:00"'),
       check_in_end: z.string().max(10).optional().describe('Check-in window end time e.g. "20:00"'),
       check_out: z.string().max(10).optional().describe('Check-out time e.g. "11:00"'),
@@ -143,11 +143,11 @@ export class AccommodationsMcp {
     name: 'update_accommodation',
     description: 'Update fields on an existing accommodation. Moving it to another check-in day or place moves the stop it put on the route with it.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      accommodationId: z.number().int().positive(),
-      place_id: z.number().int().positive().optional(),
-      start_day_id: z.number().int().positive().optional(),
-      end_day_id: z.number().int().positive().optional(),
+      tripId: idSchema,
+      accommodationId: idSchema,
+      place_id: idSchema.optional(),
+      start_day_id: idSchema.optional(),
+      end_day_id: idSchema.optional(),
       check_in: z.string().max(10).optional(),
       check_in_end: z.string().max(10).optional().describe('Check-in window end time e.g. "20:00"'),
       check_out: z.string().max(10).optional(),
@@ -175,8 +175,8 @@ export class AccommodationsMcp {
     name: 'delete_accommodation',
     description: 'Delete an accommodation from a trip. The stop this booking put on its check-in day goes with it; a stop that was already there stays.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      accommodationId: z.number().int().positive(),
+      tripId: idSchema,
+      accommodationId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'trips', mode: 'write' },

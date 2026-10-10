@@ -6,6 +6,7 @@ import {
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
+import { idSchema } from '@trek/shared';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
@@ -32,13 +33,13 @@ const budgetAddonOn = addonGate(ADDON_IDS.BUDGET);
  * of a refund recorded as a negative expense.
  */
 const payersSchema = z.array(z.strictObject({
-  user_id: z.number().int().positive(),
+  user_id: idSchema,
   amount: z.number(),
 })).describe('Who actually paid, and how much each paid, in the expense currency. Ask the user; do not guess.');
 
 /** Reusable Zod shape for an unequal split: what each participant owes. Signed, like the REST contract (#2176). */
 const splitMembersSchema = z.array(z.strictObject({
-  user_id: z.number().int().positive(),
+  user_id: idSchema,
   amount: z.number(),
 })).describe('Unequal split: what each participant owes, in the expense currency. The amounts must add up to the expense total. Ask the user; do not guess.');
 
@@ -186,16 +187,16 @@ export class BudgetMcp {
     name: 'create_budget_item',
     description: 'Add a budget/expense item to a trip. The cost is split equally among member_ids (omit to split across all trip members, or pass [] for a planning-only entry with no split); for an uneven split, give `members` the amount each participant owes instead. Use `payers` to record who actually paid and how much. Ask the user which trip members share this expense and who paid (resolve user IDs with list_trip_members) rather than guessing. A foreign currency is frozen at the exchange rate the server quotes today; when the server has none, the expense counts in no balance or total and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       name: z.string().min(1).max(200),
       category: z.string().max(100).optional().describe('Budget category (e.g. Accommodation, Food, Transport)'),
       total_price: z.number().describe('Signed: a negative total records a refund/partial reimbursement (#2176)'),
       currency: z.string().max(10).nullable().optional().describe('ISO currency code (e.g. "EUR"); defaults to the trip currency'),
-      member_ids: z.array(z.number().int().positive()).optional().describe('Trip member user IDs splitting this expense equally. Omit to split across all trip members (owner + members); pass [] for no split.'),
+      member_ids: z.array(idSchema).optional().describe('Trip member user IDs splitting this expense equally. Omit to split across all trip members (owner + members); pass [] for no split.'),
       members: splitMembersSchema.optional().describe('Uneven split: what each participant owes, in the expense currency. The amounts must add up to the expense total. Use this instead of member_ids, never alongside it.'),
       payers: payersSchema.optional().describe('Who paid how much, in the expense currency. When given, total_price is derived from the sum. Ask the user; do not guess.'),
       expense_date: z.string().max(40).nullable().optional().describe('Date the expense occurred, YYYY-MM-DD'),
-      place_id: z.number().int().positive().optional().describe('Place on this trip the expense belongs to (the museum ticket for that museum), linking it in the planner'),
+      place_id: idSchema.optional().describe('Place on this trip the expense belongs to (the museum ticket for that museum), linking it in the planner'),
       note: z.string().max(500).optional(),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -234,8 +235,8 @@ export class BudgetMcp {
     name: 'delete_budget_item',
     description: 'Delete a budget item from a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
+      tripId: idSchema,
+      itemId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: budgetAddonOn,
@@ -256,21 +257,21 @@ export class BudgetMcp {
     name: 'update_budget_item',
     description: 'Update an existing budget/expense item in a trip. You can also re-split it (equally via member_ids, unevenly via members), change the currency it was entered in, move it to another date, and record who actually paid via payers (amounts in the expense currency). When changing who shares an expense or who paid, ask the user rather than guessing; resolve user IDs with list_trip_members. A foreign currency is frozen at the exchange rate the server quotes today; when the server has none, the expense counts in no balance or total and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
+      tripId: idSchema,
+      itemId: idSchema,
       name: z.string().min(1).max(200).optional(),
       category: z.string().max(100).optional(),
       total_price: z.number().optional(),
       currency: z.string().max(10).nullable().optional().describe('ISO currency code the expense is in (e.g. "USD"); null puts it back in the trip currency. Changing it re-freezes the FX rate at today\'s rate.'),
-      member_ids: z.array(z.number().int().positive()).optional().describe('Trip member user IDs splitting this expense equally; replaces the current split. Omit to leave unchanged, pass [] for no split.'),
+      member_ids: z.array(idSchema).optional().describe('Trip member user IDs splitting this expense equally; replaces the current split. Omit to leave unchanged, pass [] for no split.'),
       members: splitMembersSchema.optional().describe('Uneven split: what each participant owes, in the expense currency; replaces the current split. The amounts must add up to the expense total. Use this instead of member_ids, never alongside it.'),
       payers: payersSchema.optional().describe('Replaces who paid how much, in the expense currency. Omit to leave unchanged. Ask the user; do not guess.'),
-      persons: z.number().int().positive().nullable().optional(),
-      days: z.number().int().positive().nullable().optional(),
+      persons: idSchema.nullable().optional(),
+      days: idSchema.nullable().optional(),
       expense_date: z.string().max(40).nullable().optional().describe('Date the expense occurred, YYYY-MM-DD; null clears it. Omit to leave unchanged.'),
       note: z.string().max(500).nullable().optional(),
-      reservation_id: z.number().int().positive().nullable().optional().describe('Booking or transport on this trip to link the expense to (a booking can carry several); null unlinks it and keeps the expense. Omit to leave unchanged.'),
-      place_id: z.number().int().positive().nullable().optional().describe('Place on this trip to link the expense to; null unlinks it and keeps the expense. Omit to leave unchanged.'),
+      reservation_id: idSchema.nullable().optional().describe('Booking or transport on this trip to link the expense to (a booking can carry several); null unlinks it and keeps the expense. Omit to leave unchanged.'),
+      place_id: idSchema.nullable().optional().describe('Place on this trip to link the expense to; null unlinks it and keeps the expense. Omit to leave unchanged.'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: budgetAddonOn,
@@ -314,13 +315,13 @@ export class BudgetMcp {
     name: 'create_budget_item_with_members',
     description: 'Create a budget/expense item and set the trip members splitting it equally in one atomic operation. If userIds is omitted, the cost is split across all trip members; pass an explicit list to split among a subset, or an empty array for a planning-only entry with no split. Ask the user which members share this expense rather than guessing; resolve user IDs with list_trip_members. Only use when the item does not yet exist; if it already exists, use set_budget_item_members directly. For an uneven split, a foreign currency or a date, use create_budget_item instead.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       name: z.string().min(1).max(200),
       category: z.string().max(100).optional().describe('Budget category (e.g. Accommodation, Food, Transport)'),
       total_price: z.number().describe('Signed: a negative total records a refund/partial reimbursement (#2176)'),
       note: z.string().max(500).optional(),
-      userIds: z.array(z.number().int().positive()).optional().describe('User IDs splitting this item; omit to split across all trip members, or pass an empty array for no split'),
-      place_id: z.number().int().positive().optional().describe('Place on this trip the expense belongs to (the museum ticket for that museum), linking it in the planner'),
+      userIds: z.array(idSchema).optional().describe('User IDs splitting this item; omit to split across all trip members, or pass an empty array for no split'),
+      place_id: idSchema.optional().describe('Place on this trip the expense belongs to (the museum ticket for that museum), linking it in the planner'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: budgetAddonOn,
@@ -354,9 +355,9 @@ export class BudgetMcp {
     name: 'set_budget_item_members',
     description: 'Set which trip members are splitting a budget item (replaces current member list). Ask the user which members share the expense; resolve user IDs with list_trip_members.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
-      userIds: z.array(z.number().int().positive()).describe('User IDs splitting this item; empty array clears all'),
+      tripId: idSchema,
+      itemId: idSchema,
+      userIds: z.array(idSchema).describe('User IDs splitting this item; empty array clears all'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: budgetAddonOn,
@@ -376,9 +377,9 @@ export class BudgetMcp {
     name: 'toggle_budget_member_paid',
     description: 'Mark or unmark a member as having paid their share of a budget item.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
-      memberId: z.number().int().positive().describe('User ID of the member'),
+      tripId: idSchema,
+      itemId: idSchema,
+      memberId: idSchema.describe('User ID of the member'),
       paid: z.boolean(),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -399,7 +400,7 @@ export class BudgetMcp {
     name: 'get_settlement_summary',
     description: "See each member's net balance, the suggested payments to settle shared expenses, and what the trip finally costs each member once every reimbursement is accounted for (`finalBudgets`, each figure with the rows it is made of under `sources`). Amounts are in `summary.currency`: the `base` asked for when the server can quote it, otherwise the trip's base currency. An expense or payment in a foreign currency with no exchange rate is left out of every figure and listed under `summary.unconverted` (item_ids, settlement_ids, currencies); freeze_budget_rates pins today's rate on those. Call this before recording a settlement so you know who should pay whom and how much.",
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       base: z.string().max(10).optional().describe('ISO currency code to compute balances in; defaults to the trip currency'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
@@ -419,7 +420,7 @@ export class BudgetMcp {
     name: 'list_settlements',
     description: 'List the recorded settle-up payments for a trip (who paid whom, how much, when).',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: budgetAddonOn,
@@ -434,9 +435,9 @@ export class BudgetMcp {
     name: 'create_settlement',
     description: "Record a settle-up payment: from_user_id paid to_user_id the given amount to settle shared expenses, optionally with a note. The amount is in the trip's base currency unless `currency` says otherwise. Use get_settlement_summary first to find who owes whom and how much. When the server has no exchange rate for a foreign `currency`, the payment counts in no balance and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.",
     inputSchema: {
-      tripId: z.number().int().positive(),
-      from_user_id: z.number().int().positive().describe('User ID of the member who paid'),
-      to_user_id: z.number().int().positive().describe('User ID of the member who received the payment'),
+      tripId: idSchema,
+      from_user_id: idSchema.describe('User ID of the member who paid'),
+      to_user_id: idSchema.describe('User ID of the member who received the payment'),
       amount: z.number().positive().describe('Amount paid, in `currency`'),
       currency: z.string().max(10).nullable().optional().describe("ISO currency code the payment was made in (e.g. \"USD\"); defaults to the trip currency. Its FX rate is frozen now, so the transfer keeps cancelling its expense when live rates drift."),
       settled_at: z.string().max(40).nullable().optional().describe('Day the payment actually happened, YYYY-MM-DD. Omitted means no day is stored and the ledger files the payment under the day it was recorded.'),
@@ -464,10 +465,10 @@ export class BudgetMcp {
     name: 'update_settlement',
     description: 'Update a recorded settle-up payment (who paid, who received, the amount, the currency it was made in and its note). Every field is a full replace, so restate the ones that stay the same. When the server has no exchange rate for a foreign `currency`, the payment counts in no balance and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      settlementId: z.number().int().positive(),
-      from_user_id: z.number().int().positive().describe('User ID of the member who paid'),
-      to_user_id: z.number().int().positive().describe('User ID of the member who received the payment'),
+      tripId: idSchema,
+      settlementId: idSchema,
+      from_user_id: idSchema.describe('User ID of the member who paid'),
+      to_user_id: idSchema.describe('User ID of the member who received the payment'),
       amount: z.number().positive().describe('Amount paid, in `currency`'),
       currency: z.string().max(10).nullable().optional().describe('ISO currency code the payment was made in (e.g. "USD"); null puts it back in the trip currency. Omit to leave it as recorded, which also keeps the rate frozen at settle time.'),
       settled_at: z.string().max(40).nullable().optional().describe('Date the payment actually happened, YYYY-MM-DD. Omit to leave it as recorded.'),
@@ -495,8 +496,8 @@ export class BudgetMcp {
     name: 'delete_settlement',
     description: 'Delete a recorded settle-up payment. This is the undo for create_settlement and restores the affected balances.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      settlementId: z.number().int().positive(),
+      tripId: idSchema,
+      settlementId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: budgetAddonOn,
@@ -517,7 +518,7 @@ export class BudgetMcp {
     name: 'freeze_budget_rates',
     description: "Pin today's server exchange rate on every expense and settle-up payment of a trip that is in a foreign currency and has no rate frozen yet. That takes in the rows get_settlement_summary lists under `unconverted`, which count in no balance or total until then, and also foreign rows it still converts at today's live rate. Rows that already carry a frozen rate, rows in the trip currency and rows without a currency are never touched, and no rate is taken from the caller. Returns the rows it froze (`items`, `settlements`) and the currencies the server could not quote (`unresolved`), whose rows stay unfrozen.",
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: budgetAddonOn,

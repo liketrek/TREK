@@ -6,7 +6,7 @@ import {
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
-import { assignmentEndDayRequestSchema, type AssignmentEndDayRequest } from '@trek/shared';
+import { idSchema, assignmentEndDayRequestSchema, type AssignmentEndDayRequest } from '@trek/shared';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { AssignmentsService } from './assignments.service';
 import { DaysService } from '../days/days.service';
@@ -32,9 +32,9 @@ export class AssignmentsMcp {
     name: 'assign_place_to_day',
     description: 'Assign a place to a specific day in a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      dayId: z.number().int().positive(),
-      placeId: z.number().int().positive(),
+      tripId: idSchema,
+      dayId: idSchema,
+      placeId: idSchema,
       notes: z.string().max(500).optional(),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -58,8 +58,8 @@ export class AssignmentsMcp {
     name: 'set_assignment_end_day',
     description: 'End the travel day after this visit and its stay. Applies only with daily travel times enabled. Pass false to follow the default again.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      assignmentId: z.number().int().positive(),
+      tripId: idSchema,
+      assignmentId: idSchema,
       ...assignmentEndDayRequestSchema.shape,
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -81,9 +81,9 @@ export class AssignmentsMcp {
     name: 'unassign_place',
     description: 'Remove a place assignment from a day.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      dayId: z.number().int().positive(),
-      assignmentId: z.number().int().positive(),
+      tripId: idSchema,
+      dayId: idSchema,
+      assignmentId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'places', mode: 'write' },
@@ -106,8 +106,8 @@ export class AssignmentsMcp {
     name: 'clear_day_assignments',
     description: 'Remove every place from one day in a single step. The day itself, its notes and its bookings stay; the places stay in the trip and can be planned again. Returns the removed assignment ids.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      dayId: z.number().int().positive(),
+      tripId: idSchema,
+      dayId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'places', mode: 'write' },
@@ -129,8 +129,8 @@ export class AssignmentsMcp {
     name: 'update_assignment_time',
     description: 'Set the start and/or end time for a place assignment on a day (e.g. "09:00", "11:30"). Pass null to clear a time.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      assignmentId: z.number().int().positive(),
+      tripId: idSchema,
+      assignmentId: idSchema,
       place_time: z.string().max(50).nullable().optional().describe('Start time (e.g. "09:00"), or null to clear'),
       end_time: z.string().max(50).nullable().optional().describe('End time (e.g. "11:00"), or null to clear'),
     },
@@ -164,8 +164,8 @@ export class AssignmentsMcp {
     name: 'update_assignment_notes',
     description: 'Set or clear the day-specific note on a place assignment (the note assign_place_to_day and create_and_assign_place accept at creation). Pass null or an empty string to clear it.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      assignmentId: z.number().int().positive(),
+      tripId: idSchema,
+      assignmentId: idSchema,
       // Mirrors the REST contract (assignmentNotesRequestSchema): uncapped on
       // purpose, unlike the create tools' max(500) — a longer note written
       // through REST or the plugin RPC must stay editable here (#2163).
@@ -190,8 +190,8 @@ export class AssignmentsMcp {
     name: 'set_leg_transport_mode',
     description: 'Set the travel mode of a route leg for a place assignment. Use direction "outgoing" (default) for the common case: the leg leaving this stop toward the next. Use direction "incoming" ONLY when this stop\'s arriving leg originates from something that is not itself a place assignment (e.g. a flight/train booking arrival, or a morning hotel departure) – setting "incoming" on an ordinary place-to-place leg is stored but has no effect on route rendering, because it targets a column that is only read for non-place origins. transport_mode is a route profile key: "driving", "walking", "cycling", or a plugin profile written as "plugin:<pluginId>/<profileId>". Any other value is stored but drawn as a driving route. null clears it so the leg inherits the day default.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      assignmentId: z.number().int().positive(),
+      tripId: idSchema,
+      assignmentId: idSchema,
       transport_mode: z.string().nullable().optional().describe('Route profile key (e.g. "driving"), or null to inherit the day default'),
       direction: z.enum(['outgoing', 'incoming']).default('outgoing').describe('Which leg to set: "outgoing" (leaving this stop, default) or "incoming" (arriving at it)'),
     },
@@ -218,8 +218,8 @@ export class AssignmentsMcp {
     name: 'set_assignment_route_excluded',
     description: 'Keep a place on its day but leave it out of that day route, or put it back. An excluded stop still shows in the day plan and on the map, and the route runs from the stop before it straight to the one after. Use it for a place only visited on foot from somewhere nearby, or one that is just a point of interest.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      assignmentId: z.number().int().positive(),
+      tripId: idSchema,
+      assignmentId: idSchema,
       excluded: z.boolean().describe('true leaves the stop out of the route, false routes it again'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -241,10 +241,10 @@ export class AssignmentsMcp {
     name: 'move_assignment',
     description: 'Move a place assignment to a different day.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      assignmentId: z.number().int().positive(),
-      newDayId: z.number().int().positive(),
-      oldDayId: z.number().int().positive().optional().describe('Deprecated and ignored — the server derives the source day from the assignment'),
+      tripId: idSchema,
+      assignmentId: idSchema,
+      newDayId: idSchema,
+      oldDayId: idSchema.optional().describe('Deprecated and ignored — the server derives the source day from the assignment'),
       orderIndex: z.number().int().min(0).optional().default(0),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -273,8 +273,8 @@ export class AssignmentsMcp {
     name: 'get_assignment_participants',
     description: 'Get the list of users participating in a specific place assignment.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      assignmentId: z.number().int().positive(),
+      tripId: idSchema,
+      assignmentId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'places', mode: 'read' },
@@ -293,9 +293,9 @@ export class AssignmentsMcp {
     name: 'set_assignment_participants',
     description: 'Set the participants for a place assignment (replaces current list).',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      assignmentId: z.number().int().positive(),
-      userIds: z.array(z.number().int().positive()).describe('User IDs to set as participants; empty array clears all'),
+      tripId: idSchema,
+      assignmentId: idSchema,
+      userIds: z.array(idSchema).describe('User IDs to set as participants; empty array clears all'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'places', mode: 'write' },
@@ -316,9 +316,9 @@ export class AssignmentsMcp {
     name: 'reorder_day_assignments',
     description: 'Reorder places within a day by providing the assignment IDs in the desired order.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      dayId: z.number().int().positive(),
-      assignmentIds: z.array(z.number().int().positive()).min(1).max(200).describe('Assignment IDs in desired display order'),
+      tripId: idSchema,
+      dayId: idSchema,
+      assignmentIds: z.array(idSchema).min(1).max(200).describe('Assignment IDs in desired display order'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'places', mode: 'write' },

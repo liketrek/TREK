@@ -76,7 +76,7 @@ export class SchoolHolidaysMcp {
   @Tool({
     name: 'delete_manual_school_holiday_region',
     description: 'Admin only. Delete a global manual school region and its periods using the current revision. Regions selected by a vacation calendar cannot be deleted.',
-    inputSchema: { regionId: idSchema, revision: z.number().int().positive() },
+    inputSchema: { regionId: idSchema, revision: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE, access: { group: 'vacay', mode: 'write' },
   })
   async deleteRegion({ regionId, revision }: { regionId: number; revision: number }, ctx: McpContext) {

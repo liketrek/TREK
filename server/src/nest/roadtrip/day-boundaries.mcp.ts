@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MAX_TRIP_DAYS, roadtripDayBoundarySchema, type RoadtripDayBoundary } from '@trek/shared';
+import { idSchema, MAX_TRIP_DAYS, roadtripDayBoundarySchema, type RoadtripDayBoundary } from '@trek/shared';
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, ok, type McpContext } from '../../nest-mcp';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
@@ -25,7 +25,7 @@ export class DayBoundariesMcp {
 
   @Tool({
     name: 'list_day_boundaries', description: 'List manual road trip day endings. They apply only with daily travel times enabled.',
-    inputSchema: { tripId: z.number().int().positive() },
+    inputSchema: { tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY, access: { group: 'trips', mode: 'read' }, when,
   })
   async list({ tripId }: { tripId: number }, ctx: McpContext) {
@@ -36,7 +36,7 @@ export class DayBoundariesMcp {
   @Tool({
     name: 'set_day_boundary',
     description: 'Override a road trip day ending at a visit or a fraction along the driving leg between consecutive visits. Daily travel times must be enabled in the planner. Fixed visit times stay protected and conflicts are shown. With roadtrip_hotel_bookends on, a boundary between two stops a booked night separates is ignored: the night ends the day. Pass null to restore the automatic day ending.',
-    inputSchema: { tripId: z.number().int().positive(), dayNumber: z.number().int().min(1).max(MAX_TRIP_DAYS), boundary: roadtripDayBoundarySchema.nullable() },
+    inputSchema: { tripId: idSchema, dayNumber: z.number().int().min(1).max(MAX_TRIP_DAYS), boundary: roadtripDayBoundarySchema.nullable() },
     annotations: TOOL_ANNOTATIONS_WRITE, access: { group: 'trips', mode: 'write' }, when,
   })
   async save({ tripId, dayNumber, boundary }: { tripId: number; dayNumber: number; boundary: RoadtripDayBoundary | null }, ctx: McpContext) {

@@ -5,7 +5,7 @@ import {
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
-import { NOTE_COLORS, type NoteColor } from '@trek/shared';
+import { idSchema, NOTE_COLORS, type NoteColor } from '@trek/shared';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { DayNotesService } from './day-notes.service';
 
@@ -48,8 +48,8 @@ export class DayNotesMcp {
     name: 'create_day_note',
     description: 'Add a note to a specific day in a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      dayId: z.number().int().positive(),
+      tripId: idSchema,
+      dayId: idSchema,
       text: z.string().min(1).max(500),
       time: z.string().max(250).optional().describe('Time label (e.g. "09:00" or "Morning")'),
       icon: z.string().max(64).optional().describe('Emoji icon for the note'),
@@ -77,9 +77,9 @@ export class DayNotesMcp {
     name: 'update_day_note',
     description: 'Edit an existing note on a specific day.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      dayId: z.number().int().positive(),
-      noteId: z.number().int().positive(),
+      tripId: idSchema,
+      dayId: idSchema,
+      noteId: idSchema,
       text: z.string().min(1).max(500).optional(),
       time: z.string().max(250).nullable().optional().describe('Time label (e.g. "09:00" or "Morning"), or null to clear'),
       icon: z.string().max(64).optional().describe('Emoji icon for the note'),
@@ -108,9 +108,9 @@ export class DayNotesMcp {
     name: 'delete_day_note',
     description: 'Delete a note from a specific day.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      dayId: z.number().int().positive(),
-      noteId: z.number().int().positive(),
+      tripId: idSchema,
+      dayId: idSchema,
+      noteId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'trips', mode: 'write' },

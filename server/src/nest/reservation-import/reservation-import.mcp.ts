@@ -3,8 +3,7 @@ import {
   TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT,
   errorResult, ok,
 } from '../../nest-mcp';
-import { z } from 'zod';
-import { airtrailImportSchema } from '@trek/shared';
+import { idSchema, airtrailImportSchema } from '@trek/shared';
 import { ADDON_IDS } from '../../addons';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
@@ -53,7 +52,7 @@ export class ReservationImportMcp {
     name: 'import_airtrail_flights',
     description: 'Import flights from the caller\'s connected AirTrail account into a trip as flight bookings, keeping them linked to AirTrail for two-way sync. Get the ids from list_airtrail_flights first; this tool only accepts ids that account already holds, so it cannot invent a flight. Prefer it over create_transport whenever the flight is already recorded in AirTrail: the route, times, airline and aircraft come across without retyping. Flights already on the trip are reported as skipped rather than duplicated.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       flightIds: airtrailImportSchema.shape.flightIds
         .describe(`AirTrail flight ids from list_airtrail_flights, at most ${MAX_MCP_AIRTRAIL_FLIGHTS} per call`),
       connections: airtrailImportSchema.shape.connections

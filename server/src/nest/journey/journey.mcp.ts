@@ -5,6 +5,7 @@ import {
   ok, type McpContext,
 } from '../../nest-mcp';
 import { z } from 'zod';
+import { idSchema } from '@trek/shared';
 import { ADDON_IDS } from '../../addons';
 import { JourneyDomainService } from './journey-domain.service';
 import { JourneyShareService } from './journey-share.service';
@@ -128,7 +129,7 @@ export class JourneyMcp {
   @Tool({
     name: 'get_journey',
     description: 'Get a full journey including entries, contributors, and linked trips.',
-    inputSchema: { journeyId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'read' },
@@ -143,7 +144,7 @@ export class JourneyMcp {
     name: 'get_journey_stats',
     description: 'What a journey adds up to: distance travelled in metres, calendar days spanned, countries in visit order, the furthest point reached, and entry, photo and place counts. Stops the traveller switched off with update_journey_entry count towards none of those and are listed under excluded instead. Prefer this over get_journey whenever the question is about totals, since the stats get_journey carries are three counts and nothing else.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
+      journeyId: idSchema,
       include_route: z.boolean().optional().describe('Also return the route itself, up to 400 stops with coordinates. Off by default: the totals and the country list do not need it.'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
@@ -164,7 +165,7 @@ export class JourneyMcp {
   @Tool({
     name: 'list_journey_entries',
     description: 'List all entries in a journey.',
-    inputSchema: { journeyId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'read' },
@@ -177,7 +178,7 @@ export class JourneyMcp {
   @Tool({
     name: 'list_journey_contributors',
     description: 'List all contributors (owner and collaborators) of a journey.',
-    inputSchema: { journeyId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'read' },
@@ -220,7 +221,7 @@ export class JourneyMcp {
     inputSchema: {
       title: z.string().min(1).max(200),
       subtitle: z.string().max(300).optional(),
-      trip_ids: z.array(z.number().int().positive()).optional(),
+      trip_ids: z.array(idSchema).optional(),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
@@ -240,7 +241,7 @@ export class JourneyMcp {
     name: 'update_journey',
     description: "Update an existing journey's title, subtitle, cover, or status. Owner only. status_override sets the state shown for the journey (draft, live, completed) instead of deriving it from the linked trips' dates; null goes back to the dates.",
     inputSchema: {
-      journeyId: z.number().int().positive(),
+      journeyId: idSchema,
       title: z.string().min(1).max(200).optional(),
       subtitle: z.string().max(300).optional(),
       status: z.enum(['draft', 'active', 'completed', 'archived']).optional(),
@@ -270,7 +271,7 @@ export class JourneyMcp {
     name: 'restore_journey_suggestions',
     description: 'Bring back every trip-derived suggestion that was dismissed from this journey. Answers with how many came back.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
+      journeyId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
@@ -285,7 +286,7 @@ export class JourneyMcp {
   @Tool({
     name: 'delete_journey',
     description: 'Delete a journey. Owner only — this cannot be undone.',
-    inputSchema: { journeyId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
@@ -298,7 +299,7 @@ export class JourneyMcp {
   @Tool({
     name: 'add_journey_trip',
     description: 'Link a trip to a journey. Syncs skeleton entries for all places in the trip.',
-    inputSchema: { journeyId: z.number().int().positive(), tripId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema, tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
@@ -311,7 +312,7 @@ export class JourneyMcp {
   @Tool({
     name: 'remove_journey_trip',
     description: 'Unlink a trip from a journey. Owner only.',
-    inputSchema: { journeyId: z.number().int().positive(), tripId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema, tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
@@ -326,7 +327,7 @@ export class JourneyMcp {
     name: 'create_journey_entry',
     description: 'Create a new entry in a journey. Give location_lat/location_lng whenever the place is known, otherwise the entry is text-only and never appears on the journey map or in its distance.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
+      journeyId: idSchema,
       entry_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe('Entry date (YYYY-MM-DD)'),
       title: z.string().max(300).optional(),
       story: z.string().optional(),
@@ -367,7 +368,7 @@ export class JourneyMcp {
     name: 'update_journey_entry',
     description: 'Update an existing journey entry: its text, date, place, coordinates, weather, tags, verdict, visibility, whether it is a draft, or whether it counts as a stop. Fields left out keep their value; pass null to clear one. To move an entry within its day use reorder_journey_entries rather than setting sort_order here.',
     inputSchema: {
-      entryId: z.number().int().positive(),
+      entryId: idSchema,
       title: z.string().max(300).nullable().optional(),
       story: z.string().nullable().optional(),
       entry_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -411,7 +412,7 @@ export class JourneyMcp {
   @Tool({
     name: 'delete_journey_entry',
     description: 'Delete a journey entry.',
-    inputSchema: { entryId: z.number().int().positive() },
+    inputSchema: { entryId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'write' },
@@ -425,8 +426,8 @@ export class JourneyMcp {
     name: 'reorder_journey_entries',
     description: 'Reorder entries within a journey by providing the desired order of entry IDs.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
-      orderedIds: z.array(z.number().int().positive()),
+      journeyId: idSchema,
+      orderedIds: z.array(idSchema),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
@@ -442,8 +443,8 @@ export class JourneyMcp {
     name: 'reorder_journey_entry_photos',
     description: 'Put the photos of one journey entry in a new order. Pass every photo id the entry holds (the journey photo ids list_journey_entries returns), each once, first photo first. The first one is the entry cover.',
     inputSchema: {
-      entryId: z.number().int().positive(),
-      orderedIds: z.array(z.number().int().positive()).min(1).max(500),
+      entryId: idSchema,
+      orderedIds: z.array(idSchema).min(1).max(500),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
@@ -460,8 +461,8 @@ export class JourneyMcp {
     name: 'add_journey_contributor',
     description: 'Add a contributor to a journey. Owner only.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
-      targetUserId: z.number().int().positive(),
+      journeyId: idSchema,
+      targetUserId: idSchema,
       role: z.enum(['editor', 'viewer']),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -480,8 +481,8 @@ export class JourneyMcp {
     name: 'update_journey_contributor_role',
     description: 'Update the role of a journey contributor. Owner only.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
-      targetUserId: z.number().int().positive(),
+      journeyId: idSchema,
+      targetUserId: idSchema,
       role: z.enum(['editor', 'viewer']),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -500,8 +501,8 @@ export class JourneyMcp {
     name: 'remove_journey_contributor',
     description: 'Remove a contributor from a journey. Owner only.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
-      targetUserId: z.number().int().positive(),
+      journeyId: idSchema,
+      targetUserId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: journeyAddonOn,
@@ -516,7 +517,7 @@ export class JourneyMcp {
     name: 'update_journey_preferences',
     description: 'Update per-user preferences for a journey (e.g. hide skeleton entries).',
     inputSchema: {
-      journeyId: z.number().int().positive(),
+      journeyId: idSchema,
       hide_skeletons: z.boolean().optional(),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -537,8 +538,8 @@ export class JourneyMcp {
     name: 'add_journey_provider_photos',
     description: 'Attach photos from a connected library (Immich or Synology Photos) to a journey: to one entry when entryId is given, otherwise to the journey gallery only. Find the asset ids first with search_provider_photos or list_provider_album_photos. No image data passes through here, the journey stores a reference and the app fetches the picture, so this also works for photos far too large to hand to a model. An asset already attached is skipped rather than duplicated, which makes re-running the same call safe.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
-      entryId: z.number().int().positive().optional().describe('Attach to this entry, which must belong to journeyId. The photo lands in the journey gallery either way; omitting this adds it to the gallery alone'),
+      journeyId: idSchema,
+      entryId: idSchema.optional().describe('Attach to this entry, which must belong to journeyId. The photo lands in the journey gallery either way; omitting this adds it to the gallery alone'),
       provider: PHOTO_PROVIDER.describe('The library the asset ids came from'),
       asset_ids: z.array(z.string().min(1)).min(1).max(MAX_PROVIDER_PHOTOS_PER_CALL).describe('Provider asset ids, as returned by the search and album tools'),
       media_types: z.array(z.enum(['image', 'video'])).optional().describe('Parallel to asset_ids; anything not named here counts as an image'),
@@ -591,7 +592,7 @@ export class JourneyMcp {
   @Tool({
     name: 'get_journey_share_link',
     description: 'Get the current public share link for a journey. Owner only. Returns null if none exists.',
-    inputSchema: { journeyId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'share' },
@@ -608,7 +609,7 @@ export class JourneyMcp {
     name: 'create_journey_share_link',
     description: 'Create or update the public share link for a journey. Owner only. Flags left out keep their current value on an existing link; a new link defaults to timeline/gallery/map on.',
     inputSchema: {
-      journeyId: z.number().int().positive(),
+      journeyId: idSchema,
       share_timeline: z.boolean().optional(),
       share_gallery: z.boolean().optional(),
       share_map: z.boolean().optional(),
@@ -627,7 +628,7 @@ export class JourneyMcp {
   @Tool({
     name: 'delete_journey_share_link',
     description: 'Revoke the public share link for a journey. Owner only.',
-    inputSchema: { journeyId: z.number().int().positive() },
+    inputSchema: { journeyId: idSchema },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: journeyAddonOn,
     access: { group: 'journey', mode: 'share' },

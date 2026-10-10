@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { idSchema } from '@trek/shared';
 import { ADDON_IDS } from '../../addons';
 import { noAccess } from '../../mcp/tools/_shared';
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext } from '../../nest-mcp';
@@ -13,7 +13,7 @@ export class RoadtripHazardsMcp {
   @Tool({
     name: 'get_roadtrip_hazards',
     description: 'Read current DWD and GDACS hazard notices, geometry, source timestamps and feed availability. These are current notices, not forecasts for the trip dates or confirmed road closures. A point means no affected-area polygon is available. Coverage can be incomplete. This does not change routes. The shared roadtrip_show_hazards preference controls map display.',
-    inputSchema: { tripId: z.number().int().positive() },
+    inputSchema: { tripId: idSchema },
     annotations: TOOL_ANNOTATIONS_READONLY, access: { group: 'trips', mode: 'read' }, when: addonGate(ADDON_IDS.ROADTRIP),
   })
   async read({ tripId }: { tripId: number }, ctx: McpContext) {

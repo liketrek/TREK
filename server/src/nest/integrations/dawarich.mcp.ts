@@ -6,6 +6,7 @@ import {
   errorResult, ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
+import { idSchema } from '@trek/shared';
 import { ADDON_IDS } from '../../addons';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
@@ -57,7 +58,7 @@ export class DawarichMcp {
     description:
       "List the stays TREK pulled from the caller's connected Dawarich instance and is holding for review: where they were, when they arrived and left, how long they stayed, and which trip the stay falls into. Each entry carries the id the accept tools take. Use it to answer what someone actually did on a trip, or to fill a travel journal from what was recorded rather than from memory. Nothing here has been added to a trip yet — accepting is a separate, explicit step.",
     inputSchema: {
-      tripId: z.number().int().positive().optional().describe('Only stays that fall inside this trip'),
+      tripId: idSchema.optional().describe('Only stays that fall inside this trip'),
       state: z.enum(['new', 'accepted', 'dismissed']).optional()
         .describe('Default: every state. "new" is the review backlog.'),
       limit: z.number().int().min(1).max(MAX_LIMIT).optional()
@@ -90,9 +91,9 @@ export class DawarichMcp {
     description:
       'Turn a reviewed Dawarich stay into a place on a trip, optionally pinned to one of its days. Call list_dawarich_suggestions first for the id. Correct the name or the coordinates in the same call if the detector got them wrong — that is what the review step is for. Use this when the stay is somewhere worth having on the itinerary; use accept_dawarich_suggestion_as_journal_entry when it is a moment worth writing about instead.',
     inputSchema: {
-      suggestionId: z.number().int().positive(),
-      tripId: z.number().int().positive().optional().describe('Defaults to the trip the stay fell into'),
-      dayId: z.number().int().positive().optional().describe('Pin it to this day; omitted leaves it unplanned'),
+      suggestionId: idSchema,
+      tripId: idSchema.optional().describe('Defaults to the trip the stay fell into'),
+      dayId: idSchema.optional().describe('Pin it to this day; omitted leaves it unplanned'),
       name: z.string().trim().min(1).max(255).optional(),
       notes: z.string().max(5000).optional(),
       lat: z.number().min(-90).max(90).optional(),
@@ -115,8 +116,8 @@ export class DawarichMcp {
     description:
       "Turn a reviewed Dawarich stay into a dated entry in a travel journal. Call list_dawarich_suggestions first for the id. The stay's own date, arrival time, name and coordinates prefill the entry; pass a title or a story to write it properly rather than leaving the detector's label. Use this to fill in a journal after a trip from what was actually recorded.",
     inputSchema: {
-      suggestionId: z.number().int().positive(),
-      journalId: z.number().int().positive().describe('The journey the entry is added to'),
+      suggestionId: idSchema,
+      journalId: idSchema.describe('The journey the entry is added to'),
       name: z.string().trim().min(1).max(255).optional().describe('Entry title; defaults to the stay name'),
       notes: z.string().max(5000).optional().describe('The story text'),
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -139,8 +140,8 @@ export class DawarichMcp {
     description:
       "Tick a bucket-list wish off because a recorded stay proves the caller got there. Call list_dawarich_suggestions first: a stay that sits on top of a wish already carries its id as matchedBucketListItemId. Use it when someone asks which of the places they wanted to see they have actually reached.",
     inputSchema: {
-      suggestionId: z.number().int().positive(),
-      bucketListItemId: z.number().int().positive().optional()
+      suggestionId: idSchema,
+      bucketListItemId: idSchema.optional()
         .describe('Defaults to the wish the stay was matched to'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -161,7 +162,7 @@ export class DawarichMcp {
     description:
       'Take a Dawarich stay out of the review list without adding it anywhere, or put a dismissed one back. Use it for the stays a detector produces that are not places anyone went — a traffic jam, a car park, the office.',
     inputSchema: {
-      suggestionId: z.number().int().positive(),
+      suggestionId: idSchema,
       state: z.enum(['dismissed', 'new']).optional().describe('Default: dismissed'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -182,7 +183,7 @@ export class DawarichMcp {
     description:
       "Fetch the route actually recorded during a trip, grouped by local day, straight from the caller's Dawarich instance. Each day carries its segments with start and end times and, where Dawarich classified it, how it was travelled. Use it to answer what route someone really took, or how a day's movement compares with what was planned. Nothing is stored in TREK — this is a live read of the recording.",
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Narrow to this first day'),
       to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Narrow to this last day'),
     },

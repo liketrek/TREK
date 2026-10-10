@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { idSchema } from '@trek/shared';
 import {
   McpController,
   Tool,
@@ -45,7 +46,7 @@ export class DocSyncMcp {
     description:
       'Show whether this trip\'s documents are synced with an external document store (Paperless-ngx, Papra, Nextcloud, OpenCloud or a Synology NAS), which folder or tag they are bound to, when the last run happened, and how many documents are waiting, in conflict or missing at the provider. Use this before telling someone where their documents live.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'files', mode: 'read' },
@@ -61,7 +62,7 @@ export class DocSyncMcp {
     description:
       'List the documents that need a person to look at them: conflicts where both copies changed, documents the provider refused because of their type or size, and documents that disappeared at the provider. Returns an empty list when everything is in step.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'files', mode: 'read' },
@@ -79,7 +80,7 @@ export class DocSyncMcp {
     description:
       'Run the document sync for this trip now instead of waiting for the next scheduled check. Reports how many documents were pulled in from the provider, pushed out to it, and how many are in conflict. Safe to call repeatedly: a run that is already in progress is not started twice.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       full: z
         .boolean()
         .optional()

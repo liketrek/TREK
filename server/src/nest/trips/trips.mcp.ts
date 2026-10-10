@@ -14,7 +14,7 @@ import { TripReadModelService } from '../trip-read-model/trip-read-model.service
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { canRead, canReadTrips, canDeleteTrips } from '../../mcp/scopes';
-import { MAX_TRIP_DAYS } from '@trek/shared';
+import { idSchema, MAX_TRIP_DAYS } from '@trek/shared';
 import { TripsService, NotFoundError, ValidationError } from './trips.service';
 import { TodoService } from '../todo/todo.service';
 import { CollabService } from '../collab/collab.service';
@@ -129,7 +129,7 @@ export class TripsMcp {
     name: 'update_trip',
     description: 'Update an existing trip\'s details. Shortening a dated trip deletes its last days by position, with their planned places, notes and any stay that checks in or out on them; day plans move with the dates, so a later start with the same end also takes the last days. When a change removed days, the result lists them in removed_days (id, day_number and date as they stood before; reason overflow for a day past the new range, spare for an empty one).',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       title: z.string().min(1).max(200).optional(),
       description: z.string().max(2000).nullable().optional().describe('Trip description; null removes it'),
       start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -217,7 +217,7 @@ export class TripsMcp {
     name: 'delete_trip',
     description: 'Delete a trip. Only the trip owner can delete it.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: (ctx) => canDeleteTrips(ctx.scopes),
@@ -257,7 +257,7 @@ export class TripsMcp {
     name: 'get_trip_summary',
     description: 'Get a full denormalized summary of a trip in a single call: metadata, members, days with assignments and notes, accommodations, budget line items (when enabled), packing list (when enabled), reservations, collab notes and poll/message counts (when enabled), and to-do items (when enabled). Use this as a context loader before planning or modifying a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
   })
@@ -325,7 +325,7 @@ export class TripsMcp {
     name: 'list_trip_members',
     description: 'List all members of a trip (owner + collaborators).',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: (ctx) => canReadTrips(ctx.scopes),
@@ -342,7 +342,7 @@ export class TripsMcp {
     name: 'add_trip_member',
     description: 'Add a user to a trip by their username or email address. Needs the member_manage permission, which by default only the trip owner holds. Use create_trip_guest instead for a companion who has no TREK account.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       identifier: z.string().min(1).describe('Username or email of the user to add'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -370,8 +370,8 @@ export class TripsMcp {
     name: 'remove_trip_member',
     description: 'Remove somebody else from a trip. Needs the member_manage permission, which by default only the trip owner holds. When the user means themselves, prefer leave_trip: it says so plainly and needs no permission.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      memberId: z.number().int().positive().describe('User ID of the member to remove'),
+      tripId: idSchema,
+      memberId: idSchema.describe('User ID of the member to remove'),
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'trips', mode: 'write' },
@@ -391,7 +391,7 @@ export class TripsMcp {
     name: 'leave_trip',
     description: 'Leave a trip you were invited to, giving up your own access to it. Prefer this over remove_trip_member whenever the user means themselves. The owner cannot leave their own trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'trips', mode: 'write' },
@@ -423,7 +423,7 @@ export class TripsMcp {
     name: 'create_trip_guest',
     description: 'Add a travelling companion who has no TREK account to a trip. Use this when the person cannot be found by username or email. A guest can be assigned to budget splits, packing items, to-dos and day participants like any member, but never signs in and is never emailed. Only the trip owner can do this.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       name: z.string().min(1).max(50).describe('Display name of the guest, e.g. "Anna"'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -449,8 +449,8 @@ export class TripsMcp {
     name: 'rename_trip_guest',
     description: 'Rename a guest on a trip. Only the trip owner can do this.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      guestId: z.number().int().positive().describe('User ID of the guest, from list_trip_members'),
+      tripId: idSchema,
+      guestId: idSchema.describe('User ID of the guest, from list_trip_members'),
       name: z.string().min(1).max(50).describe('New display name'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -475,8 +475,8 @@ export class TripsMcp {
     name: 'delete_trip_guest',
     description: 'Remove a guest from a trip. This deletes the guest outright (they exist only for this trip) and re-splits any expenses they were part of. Only the trip owner can do this.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      guestId: z.number().int().positive().describe('User ID of the guest, from list_trip_members'),
+      tripId: idSchema,
+      guestId: idSchema.describe('User ID of the guest, from list_trip_members'),
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'trips', mode: 'write' },
@@ -496,7 +496,7 @@ export class TripsMcp {
     name: 'copy_trip',
     description: 'Duplicate a trip (all days, places, itinerary, packing, budget, reservations, day notes). Packing items and to-dos are reset to unchecked. Returns the new trip.',
     inputSchema: {
-      tripId: z.number().int().positive().describe('Source trip ID to duplicate'),
+      tripId: idSchema.describe('Source trip ID to duplicate'),
       title: z.string().min(1).max(200).optional().describe('Title for the new trip (defaults to source title)'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -517,7 +517,7 @@ export class TripsMcp {
     name: 'export_trip_ics',
     description: 'Export a trip\'s itinerary and reservations as iCalendar (.ics) format text. Useful for importing into calendar apps.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: (ctx) => canReadTrips(ctx.scopes),
