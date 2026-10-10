@@ -187,6 +187,7 @@ The `@trek/shared` package is the single source of truth for code shared between
 | `npm run check:db-types`     | Verify the generated Kysely table types match the migrations (CI gate) |
 | `npm run probe:pg`           | Run the dialect helpers and repository statements against Postgres (CI job, needs `TREK_PG_PROBE_URL`) |
 | `npm run lint:format`        | Every file outside the shrinking baseline is Prettier-formatted (CI gate) |
+| `npm run lint:strict`        | Strict type errors per file may not grow past their baseline; a new file has none (CI gate) |
 | `npm run format`             | Format source                            |
 
 ### Client (`/client`)

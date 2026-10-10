@@ -18,6 +18,7 @@
     "lint:size": "node scripts/size-lint.mjs",
     "lint:warnings": "node scripts/eslint-ratchet.mjs",
     "lint:format": "node scripts/format-lint.mjs",
+    "lint:strict": "node scripts/strict-lint.mjs",
     "lint:boundaries": "node scripts/import-boundaries.mjs",
     "lint:dialect": "node scripts/dialect-lint.mjs",
     "lint:tx": "node scripts/tx-writes.mjs",

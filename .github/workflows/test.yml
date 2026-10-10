@@ -228,6 +228,12 @@ jobs:
       - name: Typecheck
         run: cd server && npm run typecheck
 
+      - name: Strict type errors may only shrink
+        # tsconfig.strict.json is the build config plus strictNullChecks and
+        # noImplicitAny. Its errors per file are held to
+        # scripts/strict-baseline.json; a new file starts at none.
+        run: cd server && npm run lint:strict
+
       - name: Typecheck tests
         # tests/ is outside the build tsconfig, so a service that grows a
         # constructor parameter does not break its hand-wired call sites at
