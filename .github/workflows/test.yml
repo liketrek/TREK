@@ -92,6 +92,14 @@ jobs:
       - name: Test the classifier
         run: npm run test:ci-scripts
 
+      - name: Guides only name paths that exist
+        # Every backtick path in the CLAUDE.md files, the root README, the Nest
+        # blueprint and the wiki has to resolve to a tracked file; the ones
+        # already missing are listed in scripts/ci/doc-paths-baseline.json,
+        # which only shrinks. Here rather than in a code job, so a docs-only
+        # change is checked too.
+        run: node scripts/ci/doc-paths.mjs
+
       - name: List the changed files
         id: list
         env:

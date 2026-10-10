@@ -10,7 +10,7 @@ Each addon extends TREK with functionality beyond the core trip-planning feature
 
 ## Addon list
 
-The following addons are registered in the system (defined in `server/src/db/seeds.ts`; the TypeScript constant `ADDON_IDS` in `server/src/addons.ts` covers all addons except `naver_list_import`):
+The following addons are registered in the system (defined in `server/src/db/seeders/AddonSeeder.ts`; the TypeScript constant `ADDON_IDS` in `server/src/addons.ts` covers all addons except `naver_list_import`):
 
 | Addon ID | Type | Description |
 |---|---|---|

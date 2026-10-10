@@ -212,7 +212,7 @@ The `@trek/shared` package is the single source of truth for code shared between
 | `npm run theme:lint`       | Flag styling that bypasses the appearance tokens (not run in CI) |
 | `npm run check:gl-split`   | Fail when one built chunk carries both map engines (MapLibre and Mapbox); run after a build |
 | `npm run build:analyze`    | Production build with the bundle analyzer            |
-| `npm run e2e`              | Playwright end-to-end tests (local only, not in CI)  |
+| `npm run e2e`              | Playwright end-to-end tests; CI runs the public and app projects in Chromium and WebKit, the screenshot and help-media projects are local only |
 | `npm run shots`            | Capture the wiki screenshots with Playwright         |
 | `npm run shots:promote`    | Downscale the captured screenshots and move them into `wiki/assets/` |
 | `npm run help:media`       | Record the help-center pictures against the real app on its own ports, so `npm run dev` can keep running |
