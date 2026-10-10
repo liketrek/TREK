@@ -37,12 +37,14 @@ export const AREAS = {
   // The type, lint, test, coverage, bundle and end-to-end jobs. npm workspaces
   // hoist every dependency into the root lockfile, so a dependency bump touches
   // none of the package directories. The Dockerfile and the entrypoint script
-  // are pinned by server/tests/unit/docker-entrypoint.test.ts.
+  // are pinned by server/tests/unit/docker-entrypoint.test.ts. scripts/lib/
+  // holds the ratchet code the server and shared gates run.
   code: [
     'server/',
     'client/',
     'shared/',
     'plugin-sdk/',
+    'scripts/lib/',
     'package.json',
     'package-lock.json',
     '.nvmrc',

@@ -24,6 +24,7 @@
     "test:cov": "npm run test:coverage --workspace=shared && npm run test:coverage --workspace=server && npm run test:coverage --workspace=client && npm run test:coverage --prefix plugin-sdk",
     "test:e2e": "npm run test:e2e --workspace=server",
     "test:ci-scripts": "node --test scripts/ci/*.test.mjs",
+    "test:lib-scripts": "node --test scripts/lib/*.test.mjs",
     "lint": "npm run lint --workspace=shared && npm run lint --workspace=server && npm run lint --workspace=client",
     "format": "npm run format --workspace=shared && npm run format --workspace=server && npm run format --workspace=client",
     "format:check": "npm run format:check --workspace=shared && npm run format:check --workspace=server && npm run format:check --workspace=client"

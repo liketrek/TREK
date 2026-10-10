@@ -48,6 +48,10 @@ describe('classify', () => {
     assert.deepEqual(classify(['plugin-sdk/src/index.ts']), { code: true, image: false, deploy: false });
   });
 
+  it('runs the tests but not the image for a change to the shared ratchet code', () => {
+    assert.deepEqual(classify(['scripts/lib/ratchet.mjs']), { code: true, image: false, deploy: false });
+  });
+
   it('runs the image but not the tests for a .dockerignore change', () => {
     assert.deepEqual(classify(['.dockerignore']), { code: false, image: true, deploy: false });
   });

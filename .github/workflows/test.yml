@@ -259,6 +259,11 @@ jobs:
         # wrapped), so a big service is split by concern instead of growing.
         run: cd server && npm run lint:size
 
+      - name: Shared ratchet code
+        # scripts/lib/ at the root holds the baseline handling, the warning
+        # tally and the format comparison the server and shared gates run.
+        run: npm run test:lib-scripts
+
       - name: Import boundaries and cycles
         # No new load-time cycle, no new reach into another domain's
         # internals, src/db stays below src/nest. Today's violations sit in

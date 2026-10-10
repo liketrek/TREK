@@ -25,121 +25,85 @@
  *                                  that is back under the limit
  *
  * --dir=<path> points the check at another server root (the unit tests use it).
+ * Walking the tree and handling the baseline live in scripts/lib/ratchet.mjs
+ * at the repository root.
  */
-import { existsSync, readdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  listFiles,
+  lowerCounts,
+  RatchetError,
+  readBaseline,
+  readText,
+  runCli,
+  staleCounts,
+  toKey,
+  writeBaseline,
+} from '../../scripts/lib/ratchet.mjs';
 
 /** The most lines a file without a baseline entry may hold. */
-export const LIMIT = 1000;
+const LIMIT = 1000;
 
 /** prettier's printWidth for the server: a line past it counts once per width it spans. */
-export const LINE_WIDTH = 120;
+const LINE_WIDTH = 120;
 
 /** The trees the check walks, relative to the server root. Each one must exist. */
-export const ROOTS = ['src', 'scripts'];
+const ROOTS = ['src', 'scripts'];
 
 const SOURCE = /\.(?:[cm]?[jt]s)$/;
 const TEST = /\.(?:test|spec)\./;
 
+const accepts = (key) => {
+  const name = key.slice(key.lastIndexOf('/') + 1);
+  return SOURCE.test(name) && !TEST.test(name);
+};
+
 /**
  * Lines as an editor numbers them (a final newline does not start another),
  * with every line longer than LINE_WIDTH weighted by the widths it spans.
- * A CRLF checkout counts the same as an LF one.
  */
-export function lineCount(text) {
+function lineCount(text) {
   if (text === '') return 0;
-  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  const lines = text.split('\n');
   if (lines[lines.length - 1] === '') lines.pop();
   let total = 0;
   for (const line of lines) total += Math.max(1, Math.ceil(line.length / LINE_WIDTH));
   return total;
 }
 
-function walk(dir, files = []) {
-  for (const name of readdirSync(dir)) {
-    if (name === 'node_modules') continue;
-    const path = join(dir, name);
-    if (statSync(path).isDirectory()) walk(path, files);
-    else if (SOURCE.test(name) && !TEST.test(name)) files.push(path);
-  }
-  return files;
-}
-
 /** Weighted line counts keyed by the server-relative POSIX path. A missing root is an error. */
-export function scan(serverDir) {
+function scan(serverDir) {
   const counts = {};
-  for (const root of ROOTS) {
-    const dir = join(serverDir, root);
-    if (!existsSync(dir) || !statSync(dir).isDirectory()) {
-      throw new Error(`${root}/ does not exist under ${serverDir}: the check would pass without looking at anything`);
-    }
-    for (const path of walk(dir)) {
-      counts[relative(serverDir, path).split('\\').join('/')] = lineCount(readFileSync(path, 'utf8'));
-    }
-  }
+  for (const path of listFiles(serverDir, ROOTS, accepts)) counts[toKey(serverDir, path)] = lineCount(readText(path));
   return counts;
 }
 
-/**
- * The baseline as committed. Missing, unreadable or malformed stops the run: read as
- * empty, every long file would fail with no hint at the cause, and --update would
- * replace it with an empty one.
- */
-export function readBaseline(path) {
-  let parsed;
-  try {
-    parsed = JSON.parse(readFileSync(path, 'utf8'));
-  } catch (err) {
-    throw new Error(`scripts/size-baseline.json cannot be read: ${err.message}`);
+/** Every entry must be a whole number above the limit: anything else is a hand edit gone wrong. */
+function sizeEntries(value) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return 'it must be an object of file paths to line counts';
   }
-  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('scripts/size-baseline.json must be an object of file paths to line counts');
+  for (const [file, n] of Object.entries(value)) {
+    if (!Number.isInteger(n) || n <= LIMIT) return `${file} holds ${JSON.stringify(n)}, expected an integer above ${LIMIT}`;
   }
-  for (const [file, n] of Object.entries(parsed)) {
-    if (!Number.isInteger(n) || n <= LIMIT) {
-      throw new Error(`scripts/size-baseline.json: ${file} holds ${JSON.stringify(n)}, expected an integer above ${LIMIT}`);
-    }
-  }
-  return parsed;
+  return null;
 }
 
-/** The baseline lowered to what the files hold now. Never raises an entry, never adds one. */
-export function lowerBaseline(baseline, counts) {
-  const lowered = {};
-  for (const [file, allowed] of Object.entries(baseline)) {
-    const now = counts[file] ?? 0;
-    if (now > LIMIT) lowered[file] = Math.min(allowed, now);
-  }
-  return Object.fromEntries(Object.entries(lowered).sort(([a], [b]) => a.localeCompare(b)));
-}
-
-/**
- * Files over their allowance, and the baseline entries that allow more than
- * their file holds now (shrunk, back under the limit, or gone): exactly the
- * entries lowerBaseline would lower or drop.
- */
-export function compare(baseline, counts) {
-  const grown = Object.entries(counts).filter(([file, n]) => n > Math.max(baseline[file] ?? 0, LIMIT));
-  const lowered = lowerBaseline(baseline, counts);
-  const stale = Object.entries(baseline).filter(([file, n]) => lowered[file] !== n);
-  return { grown, stale };
-}
-
-function main(argv) {
+function check(argv) {
   const dirArg = argv.find((a) => a.startsWith('--dir='));
   const serverDir = dirArg ? resolve(dirArg.slice('--dir='.length)) : fileURLToPath(new URL('..', import.meta.url));
   const baselinePath = join(serverDir, 'scripts', 'size-baseline.json');
-  const update = argv.includes('--update');
 
   const counts = scan(serverDir);
-  let baseline = readBaseline(baselinePath);
-  if (update) {
-    baseline = lowerBaseline(baseline, counts);
-    writeFileSync(baselinePath, JSON.stringify(baseline, null, 2) + '\n');
+  let baseline = readBaseline(baselinePath, sizeEntries);
+  if (argv.includes('--update')) {
+    baseline = lowerCounts(baseline, counts, LIMIT);
+    writeBaseline(baselinePath, baseline);
   }
 
-  const { grown, stale } = compare(baseline, counts);
+  const grown = Object.entries(counts).filter(([file, n]) => n > Math.max(baseline[file] ?? 0, LIMIT));
+  const stale = staleCounts(baseline, counts, LIMIT);
   for (const [file, n] of grown) {
     const entry = baseline[file];
     console.error(
@@ -148,10 +112,10 @@ function main(argv) {
         'Split a concern into a service, helper or module of its own instead of growing the file.',
     );
   }
-  for (const [file, entry] of stale) {
+  for (const { key, entry } of stale) {
     console.error(
-      `FAIL  ${file} is held at ${entry} in scripts/size-baseline.json, ` +
-        (file in counts ? `but it has ${counts[file]} lines now.` : 'but the file is gone.'),
+      `FAIL  ${key} is held at ${entry} in scripts/size-baseline.json, ` +
+        (key in counts ? `but it has ${counts[key]} lines now.` : 'but the file is gone.'),
     );
   }
   if (stale.length) {
@@ -166,14 +130,12 @@ function main(argv) {
   return grown.length || stale.length ? 1 : 0;
 }
 
-// Compared by real path, so the check still runs when the script is started through a symlink.
-const isCli =
-  Boolean(process.argv[1]) && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
-if (isCli) {
+await runCli('lint:size', (argv) => {
   try {
-    process.exitCode = main(process.argv.slice(2));
+    return check(argv);
   } catch (err) {
-    console.error(`FAIL  ${err.message}`);
-    process.exitCode = 1;
+    // A scan or baseline problem the lib reports as a plain Error is still a failure of the check itself.
+    if (err instanceof RatchetError) throw err;
+    throw new RatchetError(err.message);
   }
-}
+});
