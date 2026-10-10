@@ -15,6 +15,8 @@ import { findByIata } from '../airports/airports.data';
 import type { EndpointInput } from './reservations.service';
 import { AssignmentsService } from '../assignments/assignments.service';
 import { transportLegInputSchema, reservationUrlSchema, type TransportLegInput } from '@trek/shared';
+import { RESERVATION_METADATA } from '../../db/json-columns';
+import { decodeJson } from '../../utils/json-column';
 
 // What counts as a transport booking, for the update_transport gate. Every value
 // ReservationsPanel renders with a transport icon, so a stored `transit` row is
@@ -138,14 +140,7 @@ type MetaRecord = Record<string, unknown>;
  * still has to accept a legs update.
  */
 function parseStoredMetadata(raw: unknown): MetaRecord {
-  if (typeof raw !== 'string' || !raw) return {};
-  try {
-    let parsed: unknown = JSON.parse(raw);
-    if (typeof parsed === 'string') parsed = JSON.parse(parsed);
-    return typeof parsed === 'object' && parsed !== null ? parsed as MetaRecord : {};
-  } catch {
-    return {};
-  }
+  return typeof raw === 'string' ? decodeJson(RESERVATION_METADATA, raw) : {};
 }
 
 interface LegPlan {

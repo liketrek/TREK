@@ -12,6 +12,8 @@ import { DayNotes } from '../../db/entities/DayNotes.entity';
 import type { DayNotesRepository } from '../../db/repositories/DayNotes.repository';
 import { Reservations } from '../../db/entities/Reservations.entity';
 import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
+import { RESERVATION_METADATA } from '../../db/json-columns';
+import { decodeJson } from '../../utils/json-column';
 
 /** The VCALENDAR preamble every TREK calendar starts with, single-trip or merged. */
 export const CALENDAR_HEADER =
@@ -613,7 +615,7 @@ export class CalendarService {
     interface LegTimes { from: string | null; to: string | null; label: string | null; confirmation: string | null; dep: { date: string; time: string; zone: string | null }; arr: { date: string; time: string; zone: string | null } | null }
     const legsOf = (r: any): LegTimes[] | null => {
       if (r.type !== 'flight' && r.type !== 'train' && r.type !== 'cruise') return null;
-      const meta = r.metadata ? (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata) : {};
+      const meta = decodeJson(RESERVATION_METADATA, r.metadata, `reservation ${r.id}`);
       const legs = Array.isArray(meta.legs) ? meta.legs : [];
       if (legs.length < 2) return null;
       const eps = endpointsMap.get(r.id);
@@ -681,7 +683,7 @@ export class CalendarService {
     // lines: dropping the block must not drop the route or the confirmation with
     // it (#2068).
     function describeReservation(r: any): string {
-      const meta = r.metadata ? (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata) : {};
+      const meta = decodeJson(RESERVATION_METADATA, r.metadata, `reservation ${r.id}`);
       let desc = r.type ? `Type: ${r.type}` : '';
       if (r.confirmation_number) desc += `\nConfirmation: ${r.confirmation_number}`;
       if (meta.airline) desc += `\nAirline: ${meta.airline}`;

@@ -523,6 +523,18 @@ describe('exportICS', () => {
     expect(ics).not.toContain('DESCRIPTION');
   });
 
+  it('CAL-017b: a booking whose metadata is not JSON still exports, without the metadata lines', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Broken' });
+    const reservation = createReservation(testDb, trip.id, { title: 'Garbled Flight', type: 'flight' });
+    await updateRows(orm, Reservations, { id: reservation.id }, { reservation_time: '2025-06-02T09:00', metadata: '{not json' });
+
+    const { ics } = await svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Garbled Flight');
+    expect(ics).toContain('DESCRIPTION:Type: flight\r\n');
+  });
+
   it('CAL-018: flight metadata with only one airport emits only that side of the route', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Half Routes' });

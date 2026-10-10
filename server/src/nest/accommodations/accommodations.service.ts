@@ -24,6 +24,8 @@ import { BudgetItems } from '../../db/entities/BudgetItems.entity';
 import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
 import { carryViasWith, locatedStopIdsWith, reseatOwnStopWith, seatHolds, seatIndexAmong, seatIndexWith, type Night } from './night-seat';
 import type { User } from '../../types';
+import { RESERVATION_METADATA } from '../../db/json-columns';
+import { decodeJson, encodeJson } from '../../utils/json-column';
 
 type Trip = TripAccess;
 
@@ -587,7 +589,7 @@ export class AccommodationsService {
         confirmation_number: confirmation || null,
         notes: notes || null,
         accommodation_id: legacyBoundIntegerText(newId),
-        metadata: Object.keys(meta).length > 0 ? JSON.stringify(meta) : null,
+        metadata: Object.keys(meta).length > 0 ? encodeJson(RESERVATION_METADATA, meta) : null,
       });
 
       return { accommodationId: newId, mirror: await this.mirrorStay(newId, place_id ?? null, start_day_id, check_in) };
@@ -646,11 +648,11 @@ export class AccommodationsService {
       // would silently leave the others on the old times.
       const linkedRes = await this.reservationsRepo.listIdMetadataByStay(existing.id);
       for (const res of linkedRes) {
-        const meta = res.metadata ? JSON.parse(res.metadata) : {};
+        const meta = decodeJson(RESERVATION_METADATA, res.metadata, `reservation ${res.id}`);
         if (newCheckIn) meta.check_in_time = newCheckIn;
         if (newCheckInEnd) meta.check_in_end_time = newCheckInEnd;
         if (newCheckOut) meta.check_out_time = newCheckOut;
-        await this.reservationsRepo.setMetadataAndConfirmation(res.id, JSON.stringify(meta), newConfirmation || null);
+        await this.reservationsRepo.setMetadataAndConfirmation(res.id, encodeJson(RESERVATION_METADATA, meta), newConfirmation || null);
       }
       return moved;
     });

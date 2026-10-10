@@ -26,6 +26,8 @@ import { Trips } from '../../db/entities/Trips.entity';
 import type { TripsRepository, TripAccess } from '../../db/repositories/Trips.repository';
 import { TripMembers } from '../../db/entities/TripMembers.entity';
 import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
+import { RESERVATION_METADATA } from '../../db/json-columns';
+import { decodeJson, encodeJson } from '../../utils/json-column';
 
 type Trip = TripAccess;
 
@@ -926,19 +928,16 @@ export class BudgetService {
     await this.syncReservationPrice(String(tripId), reservationId, total, socketId, allInTripCurrency ? null : codeOf(linked[0].currency) || null);
   }
 
-  /**
-   * The counterpart to syncReservationPrice: take the mirrored total back off
-   * the booking. Non-fatal, exactly like the writer.
-   */
+  /** The counterpart to syncReservationPrice: take the mirrored total back off the booking. Non-fatal, like the writer. */
   private async clearReservationPrice(tripId: string | number, reservationId: number): Promise<void> {
     try {
       const reservation = await this.reservationsRepo.getIdAndMetadata(reservationId, tripId);
       if (!reservation?.metadata) return;
-      const meta = JSON.parse(reservation.metadata);
-      if (!meta || typeof meta !== 'object' || meta.price === undefined) return;
+      const meta = decodeJson(RESERVATION_METADATA, reservation.metadata, `reservation ${reservation.id}`);
+      if (meta.price === undefined) return;
       delete meta.price;
       delete meta.priceCurrency;
-      await this.reservationsRepo.setMetadata(reservation.id, JSON.stringify(meta));
+      await this.reservationsRepo.setMetadata(reservation.id, encodeJson(RESERVATION_METADATA, meta));
       const updatedRes = await this.reservationsRepo.getFull(reservation.id);
       this.realtime.broadcast(String(tripId), 'reservation:updated', { reservation: updatedRes }, undefined);
     } catch (err) {
@@ -1637,7 +1636,7 @@ export class BudgetService {
     try {
       const reservation = await this.reservationsRepo.getIdAndMetadata(reservationId, tripId);
       if (!reservation) return;
-      const meta = reservation.metadata ? JSON.parse(reservation.metadata) : {};
+      const meta = decodeJson(RESERVATION_METADATA, reservation.metadata, `reservation ${reservation.id}`);
       // Cent-clean, so a booking never inherits float noise from the expense
       // it is linked to — and so a row stamped before #1964 heals on the next
       // edit. The panels print this string as it stands.
@@ -1648,7 +1647,7 @@ export class BudgetService {
         if (currency) meta.priceCurrency = currency.toUpperCase();
         else delete meta.priceCurrency;
       }
-      await this.reservationsRepo.setMetadata(reservation.id, JSON.stringify(meta));
+      await this.reservationsRepo.setMetadata(reservation.id, encodeJson(RESERVATION_METADATA, meta));
       const updatedRes = await this.reservationsRepo.getFull(reservation.id);
       this.realtime.broadcast(tripId, 'reservation:updated', { reservation: updatedRes }, socketId);
     } catch (err) {

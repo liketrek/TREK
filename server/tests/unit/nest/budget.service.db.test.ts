@@ -974,6 +974,17 @@ describe('linking existing expenses to bookings and places (#2084)', () => {
     expect(await metadataOf(reservationId)).toEqual({ seat: '12A', price: '30.3', priceCurrency: 'USD' });
   });
 
+  it('BUDGET-SVC-DB-072b: a booking whose metadata is not JSON gets the mirrored price instead of a logged failure', async () => {
+    const { trip, reservationId } = await tripWithBooking();
+    await updateRows(await orm(), Reservations, { id: reservationId }, { metadata: '{not json' });
+    const item = await budget.createBudgetItem(trip.id, { name: 'Fare', total_price: 42, currency: 'usd' });
+    await linkItems(reservationId, [item.id]);
+
+    await budget.resyncReservationPrice(trip.id, reservationId);
+
+    expect(await metadataOf(reservationId)).toEqual({ price: '42', priceCurrency: 'USD' });
+  });
+
   it('BUDGET-SVC-DB-052: an expense without a currency and one in the trip currency by code add up', async () => {
     // No currency means the trip's; the two rows are in the same money and the
     // booking shows their sum, not the first one alone.

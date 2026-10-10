@@ -1,3 +1,6 @@
+import { RESERVATION_METADATA } from '../../db/json-columns';
+import { decodeJsonResult, logJsonFailure } from '../../utils/json-column';
+
 /**
  * Metadata keys on a reservation that the booking forms do not own.
  *
@@ -14,15 +17,10 @@
 
 /** Read a stored metadata column into an object, or null if it is not one. */
 function parseStored(stored: string | null | undefined): Record<string, unknown> | null {
-  if (!stored) return null;
-  try {
-    const parsed: unknown = JSON.parse(stored);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : null;
-  } catch {
-    return null;
-  }
+  const decoded = decodeJsonResult(RESERVATION_METADATA, stored);
+  if (decoded.ok) return decoded.value;
+  if (decoded.reason !== 'empty') logJsonFailure(RESERVATION_METADATA, decoded.reason);
+  return null;
 }
 
 /**

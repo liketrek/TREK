@@ -8,6 +8,8 @@ import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.ent
 import { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 import { UnitOfWork } from '../database/unit-of-work';
+import { RESERVATION_METADATA } from '../../db/json-columns';
+import { decodeJsonResult, logJsonFailure } from '../../utils/json-column';
 
 /**
  * The in-container face of the airport dataset, plus the flight-endpoint
@@ -96,8 +98,13 @@ export class AirportsService implements OnApplicationBootstrap {
   /** One flight's endpoints, or its review flag. True when it was filled. */
   private async backfillOne(r: { id: number; metadata: string | null; reservation_time: string | null; reservation_end_time: string | null }): Promise<boolean> {
     if (!r.metadata) { await this.reservationsRepo.markNeedsReview(r.id); return false; }
-    let meta: any;
-    try { meta = JSON.parse(r.metadata); } catch { await this.reservationsRepo.markNeedsReview(r.id); return false; }
+    const decoded = decodeJsonResult(RESERVATION_METADATA, r.metadata);
+    if (!decoded.ok) {
+      logJsonFailure(RESERVATION_METADATA, decoded.reason, `reservation ${r.id}`);
+      await this.reservationsRepo.markNeedsReview(r.id);
+      return false;
+    }
+    const meta = decoded.value;
 
     const dep = meta.departure_airport ? findByIata(String(meta.departure_airport).slice(0, 3)) : null;
     const arr = meta.arrival_airport ? findByIata(String(meta.arrival_airport).slice(0, 3)) : null;

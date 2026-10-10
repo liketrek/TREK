@@ -1,6 +1,8 @@
 import { entityCode } from './airtrail.mapper';
 import { flightPassengers, ownPassenger } from './airtrail.client';
 import type { AirtrailFlightRaw, AirtrailPassengerWrite, AirtrailSavePayload } from './airtrail.client';
+import { RESERVATION_METADATA } from '../../db/json-columns';
+import { decodeJson } from '../../utils/json-column';
 
 /**
  * The pure half of the AirTrail push: turning a TREK reservation plus the flight
@@ -27,12 +29,7 @@ function splitLocal(dt: string | null | undefined): { date: string | null; time:
  * (#1240).
  */
 export function buildSavePayload(reservation: any, existing: AirtrailFlightRaw): AirtrailSavePayload | null {
-  let meta: Record<string, any>;
-  try {
-    meta = reservation.metadata ? JSON.parse(reservation.metadata) : {};
-  } catch {
-    meta = {};
-  }
+  const meta = decodeJson(RESERVATION_METADATA, reservation.metadata, `reservation ${reservation.id}`);
   const endpoints: any[] = reservation.endpoints || [];
   const fromEp = endpoints.find((e) => e.role === 'from');
   const toEp = endpoints.find((e) => e.role === 'to');

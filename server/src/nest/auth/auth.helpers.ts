@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { User } from '../../types';
 import { utcSuffix } from '../../db/types';
+import { USER_MFA_BACKUP_CODES } from '../../db/json-columns';
+import { decodeJson } from '../../utils/json-column';
 import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 
 /**
@@ -140,11 +142,5 @@ export function generateBackupCodes(count = MFA_BACKUP_CODE_COUNT): string[] {
 }
 
 export function parseBackupCodeHashes(raw: string | null | undefined): string[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(v => typeof v === 'string') : [];
-  } catch {
-    return [];
-  }
+  return decodeJson(USER_MFA_BACKUP_CODES, raw).filter((v): v is string => typeof v === 'string');
 }

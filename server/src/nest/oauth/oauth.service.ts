@@ -36,6 +36,13 @@ import {
   timingSafeEqualHex,
 } from './oauth.helpers';
 import { dbNow, parseDbTimestamp } from '../../db/types';
+import {
+  OAUTH_CLIENT_ALLOWED_SCOPES,
+  OAUTH_CLIENT_REDIRECT_URIS,
+  OAUTH_CONSENT_SCOPES,
+  OAUTH_TOKEN_SCOPES,
+} from '../../db/json-columns';
+import { decodeJson, decodeJsonResult, encodeJson, logJsonFailure } from '../../utils/json-column';
 import { AUTH_CODE_TTL_MS, PendingCodeStore, pendingCodesSlot, type PendingCode } from './oauth.pending-codes';
 
 export type { PendingCode } from './oauth.pending-codes';
@@ -129,8 +136,8 @@ export class OauthService {
       ...r,
       is_public: Boolean(r.is_public),
       allows_client_credentials: Boolean(r.allows_client_credentials),
-      redirect_uris: JSON.parse(r.redirect_uris),
-      allowed_scopes: JSON.parse(r.allowed_scopes),
+      redirect_uris: decodeJson(OAUTH_CLIENT_REDIRECT_URIS, r.redirect_uris, `client ${r.client_id}`),
+      allowed_scopes: decodeJson(OAUTH_CLIENT_ALLOWED_SCOPES, r.allowed_scopes, `client ${r.client_id}`),
     }));
   }
 
@@ -187,8 +194,8 @@ export class OauthService {
       name: name.trim(),
       client_id: clientId,
       client_secret_hash: secretHash,
-      redirect_uris: JSON.stringify(redirectUris),
-      allowed_scopes: JSON.stringify(allowedScopes),
+      redirect_uris: encodeJson(OAUTH_CLIENT_REDIRECT_URIS, redirectUris),
+      allowed_scopes: encodeJson(OAUTH_CLIENT_ALLOWED_SCOPES, allowedScopes),
       is_public: isPublic ? 1 : 0,
       created_via: createdVia,
       allows_client_credentials: isMachineClient ? 1 : 0,
@@ -202,8 +209,8 @@ export class OauthService {
         user_id: row.user_id,
         name: row.name,
         client_id: row.client_id,
-        redirect_uris: JSON.parse(row.redirect_uris),
-        allowed_scopes: JSON.parse(row.allowed_scopes),
+        redirect_uris: decodeJson(OAUTH_CLIENT_REDIRECT_URIS, row.redirect_uris, `client ${row.client_id}`),
+        allowed_scopes: decodeJson(OAUTH_CLIENT_ALLOWED_SCOPES, row.allowed_scopes, `client ${row.client_id}`),
         created_at: row.created_at,
         is_public: Boolean(row.is_public),
         allows_client_credentials: Boolean(row.allows_client_credentials),
@@ -281,14 +288,14 @@ export class OauthService {
 
   async getConsent(clientId: string, userId: number): Promise<string[] | null> {
     const row = await this.consents.findScopes(clientId, userId);
-    return row ? JSON.parse(row.scopes) : null;
+    return row ? decodeJson(OAUTH_CONSENT_SCOPES, row.scopes, `client ${clientId} user ${userId}`) : null;
   }
 
   async saveConsent(clientId: string, userId: number, scopes: string[], ip?: string | null): Promise<void> {
     // Union existing consent with newly approved scopes (M5: never narrow stored consent)
     const existing = (await this.getConsent(clientId, userId)) ?? [];
     const merged = Array.from(new Set([...existing, ...scopes]));
-    await this.consents.upsertGrant(clientId, userId, JSON.stringify(merged));
+    await this.consents.upsertGrant(clientId, userId, encodeJson(OAUTH_CONSENT_SCOPES, merged));
     await this.audit.writeAudit({ userId, action: 'oauth.consent.grant', details: { client_id: clientId, scopes: merged }, ip });
   }
 
@@ -327,7 +334,7 @@ export class OauthService {
       user_id: userId,
       access_token_hash: accessHash,
       refresh_token_hash: refreshHash,
-      scopes: JSON.stringify(scopes),
+      scopes: encodeJson(OAUTH_TOKEN_SCOPES, scopes),
       audience,
       access_token_expires_at: dbNow(accessExpiry),
       refresh_token_expires_at: dbNow(refreshExpiry),
@@ -373,7 +380,7 @@ export class OauthService {
       user_id: userId,
       access_token_hash: accessHash,
       refresh_token_hash: placeholderHash,
-      scopes: JSON.stringify(scopes),
+      scopes: encodeJson(OAUTH_TOKEN_SCOPES, scopes),
       audience,
       access_token_expires_at: dbNow(accessExpiry),
       refresh_token_expires_at: dbNow(now),
@@ -415,7 +422,7 @@ export class OauthService {
 
     return {
       user: { id: row.user_id, username: row.username, email: row.email, role: row.role as 'admin' | 'user' },
-      scopes: JSON.parse(row.scopes),
+      scopes: decodeJson(OAUTH_TOKEN_SCOPES, row.scopes, `client ${row.client_id} user ${row.user_id}`),
       clientId: row.client_id,
       audience: row.audience ?? null,
     };
@@ -489,7 +496,7 @@ export class OauthService {
       // to take the whole chain down with it. Issue a sibling pair off the same
       // parent so each client walks away with its own token.
       if (await this.isConcurrentRotation(row)) {
-        const tokens = await this.issueTokens(clientId, row.user_id, JSON.parse(row.scopes), row.id, row.audience ?? null);
+        const tokens = await this.issueTokens(clientId, row.user_id, decodeJson(OAUTH_TOKEN_SCOPES, row.scopes, `token ${row.id}`), row.id, row.audience ?? null);
         await this.audit.writeAudit({
           userId: row.user_id,
           action: 'oauth.token.refresh',
@@ -529,7 +536,7 @@ export class OauthService {
     // to leave the old token revoked with no successor, logging the client out.
     const tokens = await this.uow.transactional(async () => {
       await this.tokens.revokeById(row.id);
-      return await this.issueTokens(clientId, row.user_id, JSON.parse(row.scopes), row.id, row.audience ?? null);
+      return await this.issueTokens(clientId, row.user_id, decodeJson(OAUTH_TOKEN_SCOPES, row.scopes, `token ${row.id}`), row.id, row.audience ?? null);
     });
     await this.audit.writeAudit({ userId: row.user_id, action: 'oauth.token.refresh', details: { client_id: clientId }, ip });
 
@@ -565,7 +572,7 @@ export class OauthService {
 
   async listOAuthSessions(userId: number): Promise<Record<string, unknown>[]> {
     const rows = await this.tokens.listActiveByUser(userId);
-    return rows.map(r => ({ ...r, ...expiriesAsIso(r), scopes: JSON.parse(r.scopes) }));
+    return rows.map(r => ({ ...r, ...expiriesAsIso(r), scopes: decodeJson(OAUTH_TOKEN_SCOPES, r.scopes, `token ${r.id}`) }));
   }
 
   async revokeSession(
@@ -628,7 +635,7 @@ export class OauthService {
       return { valid: false, error: 'invalid_client', error_description: 'Unknown client_id' };
     }
 
-    const allowedUris: string[] = JSON.parse(client.redirect_uris);
+    const allowedUris = decodeJson(OAUTH_CLIENT_REDIRECT_URIS, client.redirect_uris, `client ${client.client_id}`);
     // Exact match except for the loopback port, which RFC 8252 §7.3 leaves to
     // the OS, and which the SDK's authorize handler already relaxes, so a
     // native client got a 302 to consent and an invalid_redirect_uri from this
@@ -658,7 +665,7 @@ export class OauthService {
       return { valid: false, error: 'invalid_scope', error_description: 'At least one scope is required' };
     }
 
-    const allowedScopes: string[] = JSON.parse(client.allowed_scopes);
+    const allowedScopes = decodeJson(OAUTH_CLIENT_ALLOWED_SCOPES, client.allowed_scopes, `client ${client.client_id}`);
     // Narrow to the intersection: drop scopes the client isn't permitted for rather
     // than rejecting the whole request (per OAuth 2.0 §3.3 scope narrowing).
     const grantedScopes = requestedScopes.filter(s => allowedScopes.includes(s));
@@ -728,12 +735,10 @@ export class OauthService {
     const rows = await this.tokens.listAllActiveWithClientAndUser();
     // One malformed row must not 500 the whole admin OAuth-sessions panel.
     return rows.map((r) => {
-      let scopes: unknown;
-      try {
-        scopes = JSON.parse(r.scopes);
-      } catch {
-        scopes = null;
-      }
+      // The admin panel has always shown null for a row it cannot read.
+      const decoded = decodeJsonResult(OAUTH_TOKEN_SCOPES, r.scopes);
+      if (!decoded.ok && decoded.reason !== 'empty') logJsonFailure(OAUTH_TOKEN_SCOPES, decoded.reason, `token ${r.id}`);
+      const scopes = decoded.ok ? decoded.value : null;
       return { ...r, ...expiriesAsIso(r), scopes };
     });
   }

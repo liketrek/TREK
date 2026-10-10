@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import type { TripAccess } from '../../db/repositories/Trips.repository';
+import type { TripAccess, TripsRepository } from '../../db/repositories/Trips.repository';
 import { UnitOfWork } from '../database/unit-of-work';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -36,8 +36,9 @@ import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { Trips } from '../../db/entities/Trips.entity';
 import { BudgetItems } from '../../db/entities/BudgetItems.entity';
 import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
-import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { appClock } from '../common/timezoneService';
+import { RESERVATION_METADATA } from '../../db/json-columns';
+import { decodeJson } from '../../utils/json-column';
 
 type Trip = TripAccess;
 type BudgetEntry = { total_price?: number; category?: string; currency?: string | null; exchange_rate?: number } | undefined;
@@ -787,7 +788,7 @@ export class ReservationsService {
     // whose accommodation was just auto-created above never received its
     // metadata check-in/out times or confirmation.
     if (resolvedAccommodationId && metadata) {
-      const meta = (typeof metadata === 'string' ? JSON.parse(metadata) : metadata) as AccommodationTimesMeta;
+      const meta = decodeJson(RESERVATION_METADATA, metadata) as AccommodationTimesMeta;
       if (meta.check_in_time || meta.check_in_end_time || meta.check_out_time) {
         await this.dayAccommodationsRepo.patchTimes(
           resolvedAccommodationId, meta.check_in_time || null, meta.check_in_end_time || null, meta.check_out_time || null,
@@ -1036,9 +1037,9 @@ export class ReservationsService {
     }
 
     // Sync check-in/out to accommodation if linked
-    const resolvedMeta = nextMetadata !== undefined ? nextMetadata : (current.metadata ? JSON.parse(current.metadata as string) : null);
+    const resolvedMeta = nextMetadata !== undefined ? nextMetadata : (current.metadata ? decodeJson(RESERVATION_METADATA, current.metadata, `reservation ${idNum}`) : null);
     if (resolvedAccId && resolvedMeta) {
-      const meta = (typeof resolvedMeta === 'string' ? JSON.parse(resolvedMeta) : resolvedMeta) as AccommodationTimesMeta;
+      const meta = decodeJson(RESERVATION_METADATA, resolvedMeta) as AccommodationTimesMeta;
       const resolvedAccIdNum = accIdForRead(resolvedAccId)!;
       if (meta.check_in_time || meta.check_in_end_time || meta.check_out_time) {
         await this.dayAccommodationsRepo.patchTimes(

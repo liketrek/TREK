@@ -227,6 +227,23 @@ describe('updateAccommodation', () => {
     spy.mockRestore();
   });
 
+  it('DAY-SVC-023b — a linked booking with unreadable metadata no longer fails the update; it gets the new times', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id) as { id: number };
+    const place = createPlace(testDb, trip.id, { name: 'Hotel' }) as { id: number };
+    const { accommodation: accom } = (await svc.createAccommodation(trip.id, {
+      place_id: place.id, start_day_id: day.id, end_day_id: day.id,
+    })) as { accommodation: { id: number } };
+    const before = await linkedReservation(accom.id);
+    await updateRows(await orm(), Reservations, { id: before.id }, { metadata: '{not json' });
+
+    const existing = (await svc.getAccommodation(accom.id, trip.id))!;
+    await svc.updateAccommodation(accom.id, existing as Parameters<typeof svc.updateAccommodation>[1], { check_in: '16:00' });
+
+    expect(JSON.parse((await linkedReservation(accom.id)).metadata)).toEqual({ check_in_time: '16:00' });
+  });
+
   it('DAY-SVC-023 — updates check-in and check-out times', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);

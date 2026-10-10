@@ -1419,4 +1419,28 @@ describe('admin OAuth sessions', () => {
     expect(sessions).toHaveLength(1);
     expect(sessions[0].scopes).toBeNull();
   });
+
+  it('a row with malformed scopes no longer fails the user list, the token check or the refresh: it grants nothing', async () => {
+    const { user } = createUser(testDb);
+    const created = await makeClient(user.id);
+    const client = created.client as { client_id: string; client_secret: string };
+    const tokens = await issueTokens(client.client_id, user.id, ['trips:read']);
+    await updateRows(t, OauthTokens, { user: user.id }, { scopes: 'not-json{' });
+
+    const [session] = await listOAuthSessions(user.id);
+    expect(session.scopes).toEqual([]);
+    expect((await getUserByAccessToken(tokens.access_token))?.scopes).toEqual([]);
+  });
+
+  it('a malformed consent row counts as consent to nothing, and a new grant replaces it', async () => {
+    const { user } = createUser(testDb);
+    const created = await makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+    await saveConsent(clientId, user.id, ['trips:read']);
+    await updateRows(t, OauthConsents, { user: user.id }, { scopes: '{broken' });
+
+    expect(await getConsent(clientId, user.id)).toEqual([]);
+    await saveConsent(clientId, user.id, ['trips:write']);
+    expect(await getConsent(clientId, user.id)).toEqual(['trips:write']);
+  });
 });

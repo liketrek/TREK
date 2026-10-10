@@ -78,6 +78,7 @@ import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import { createTestUnitOfWork, createTestAppSettingsRepo, createTestTripsRepo, sharedTestOrm } from '../../helpers/test-uow';
 import type { TestOrm } from '../../helpers/test-orm';
 import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import { CollabPolls } from '../../../src/db/entities/CollabPolls.entity';
 import { dbNow } from '../../../src/db/types/db-timestamp.type';
 import { CollabMessageReactions } from '../../../src/db/entities/CollabMessageReactions.entity';
 import { CollabMessages } from '../../../src/db/entities/CollabMessages.entity';
@@ -219,6 +220,16 @@ describe('votePoll', () => {
 
     const result = await svc.votePoll(trip.id, poll!.id, user1.id, 5);
     expect(result.error).toBe('invalid_index');
+  });
+
+  it('COLLAB-SVC-006b: a poll whose stored options are not JSON lists with no options and refuses every vote', async () => {
+    const { user1, trip } = setup();
+    const poll = await svc.createPoll(trip.id, user1.id, { question: 'Q?', options: ['A', 'B'] });
+    await updateRows(orm, CollabPolls, { id: poll!.id }, { options: '{broken' });
+
+    const [listed] = (await svc.listPolls(trip.id)) as Array<{ options: unknown[] }>;
+    expect(listed.options).toEqual([]);
+    expect((await svc.votePoll(trip.id, poll!.id, user1.id, 0)).error).toBe('invalid_index');
   });
 
   it('COLLAB-SVC-007: returns error "not_found" for nonexistent poll', async () => {

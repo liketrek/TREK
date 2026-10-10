@@ -28,6 +28,8 @@ import { CollabMessages } from '../../db/entities/CollabMessages.entity';
 import type { CollabMessagesRepository, CollabMessageJoinRow } from '../../db/repositories/CollabMessages.repository';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import { COLLAB_POLL_OPTIONS } from '../../db/json-columns';
+import { decodeJson } from '../../utils/json-column';
 
 type Trip = TripAccess;
 
@@ -366,7 +368,7 @@ export class CollabService {
     const poll = await this.pollsRepo.findWithUser(pollId);
     if (!poll) return null;
 
-    const options: (string | { label: string })[] = JSON.parse(poll.options);
+    const options = decodeJson(COLLAB_POLL_OPTIONS, poll.options, `poll ${poll.id}`) as (string | { label: string })[];
 
     const votes = await this.pollVotesRepo.listForPoll(poll.id);
 
@@ -419,7 +421,7 @@ export class CollabService {
     if (!poll) return { error: 'not_found' };
     if (poll.closed) return { error: 'closed' };
 
-    const options = JSON.parse(poll.options);
+    const options = decodeJson(COLLAB_POLL_OPTIONS, poll.options, `poll ${poll.id}`);
     if (!Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex >= options.length) {
       return { error: 'invalid_index' };
     }

@@ -10,6 +10,8 @@ import { classifyRedirectUri } from './oauth.helpers';
 import { AuditService } from '../audit/audit.service';
 import { ALL_SCOPES, DEFAULT_CLIENT_SCOPES } from '../../mcp/scopes';
 import { getMcpSafeUrl } from '../../app-config';
+import { OAUTH_CLIENT_ALLOWED_SCOPES, OAUTH_CLIENT_REDIRECT_URIS } from '../../db/json-columns';
+import { decodeJson } from '../../utils/json-column';
 
 /**
  * TREK's adapters behind the MCP SDK's OAuth server interfaces, wrapping the
@@ -48,8 +50,8 @@ function rowToInfo(row: NonNullable<Awaited<ReturnType<OauthService['getSdkClien
     return {
         client_id: row.client_id,
         client_name: row.name,
-        redirect_uris: JSON.parse(row.redirect_uris) as string[],
-        scope: (JSON.parse(row.allowed_scopes) as string[]).join(' '),
+        redirect_uris: decodeJson(OAUTH_CLIENT_REDIRECT_URIS, row.redirect_uris, `client ${row.client_id}`),
+        scope: decodeJson(OAUTH_CLIENT_ALLOWED_SCOPES, row.allowed_scopes, `client ${row.client_id}`).join(' '),
         token_endpoint_auth_method: row.is_public ? 'none' : 'client_secret_post',
         grant_types: ['authorization_code', 'refresh_token'],
         response_types: ['code'],

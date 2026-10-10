@@ -17,6 +17,8 @@ import { toRowId } from '../common/row-id';
 // every consumer of this module — a nest→mcp→nest module cycle.
 import { revokeUserSessions } from '../../mcp/sessionManager';
 import { User } from '../../types';
+import { MCP_TOKEN_API_SCOPES } from '../../db/json-columns';
+import { decodeJson } from '../../utils/json-column';
 
 /**
  * What a token is allowed to drive. Stored on the row so each surface can accept
@@ -321,13 +323,7 @@ function sanitizeScopes(scopes: readonly string[] | undefined): PublicApiScope[]
  */
 function resolveGrant(mode: string | null, raw: string | null): PublicApiGrant {
   if (mode !== 'limited') return { mode: 'all', scopes: [...PUBLIC_API_SCOPES] };
-  let parsed: unknown;
-  try {
-    parsed = raw ? JSON.parse(raw) : null;
-  } catch {
-    parsed = null;
-  }
-  if (!Array.isArray(parsed)) return { mode: 'limited', scopes: [] };
+  const parsed = decodeJson(MCP_TOKEN_API_SCOPES, raw);
   const kept = sanitizeScopes(parsed.filter((value): value is string => typeof value === 'string'));
   return { mode: 'limited', scopes: kept ?? [] };
 }

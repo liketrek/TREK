@@ -16,6 +16,8 @@ import { AirtrailClient } from './airtrail.client';
 import { AirtrailService } from './airtrail.service';
 import { canonicalHash } from './airtrail.mapper';
 import { buildSavePayload } from './airtrail-sync.helpers';
+import { RESERVATION_METADATA } from '../../db/json-columns';
+import { decodeJson } from '../../utils/json-column';
 
 /**
  * The AirTrail link lifecycle — the enablement gate, the detach policy, the
@@ -70,12 +72,9 @@ export class AirtrailLinkService {
    * AirTrail flight to span the whole route (#1535).
    */
   async hasLocalMultiLegShape(reservationId: number, metadataJson: string | null | undefined): Promise<boolean> {
-    try {
-      const meta = metadataJson ? JSON.parse(metadataJson) : {};
-      if (Array.isArray(meta?.legs) && meta.legs.length > 1) return true;
-    } catch {
-      /* malformed metadata — fall through to the endpoint count */
-    }
+    // Malformed metadata falls through to the endpoint count.
+    const legs = decodeJson(RESERVATION_METADATA, metadataJson, `reservation ${reservationId}`).legs;
+    if (Array.isArray(legs) && legs.length > 1) return true;
     const n = await this.endpointsRepo.count({ reservation: reservationId });
     return n > 2;
   }

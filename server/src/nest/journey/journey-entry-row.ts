@@ -1,4 +1,6 @@
 import type { JourneyEntry } from '../../types';
+import { JOURNEY_ENTRY_PROS_CONS, JOURNEY_ENTRY_TAGS } from '../../db/json-columns';
+import { decodeJson } from '../../utils/json-column';
 
 /**
  * A journey entry on the way out.
@@ -39,8 +41,8 @@ export function decodeEntryRow(row: JourneyEntry): JourneyEntryWire {
   const { tags, pros_cons, stats_excluded, dismissed, is_draft, ...rest } = row;
   return {
     ...rest,
-    tags: tags ? JSON.parse(tags) : [],
-    pros_cons: pros_cons ? JSON.parse(pros_cons) : null,
+    tags: decodeJson(JOURNEY_ENTRY_TAGS, tags, `journey entry ${row.id}`),
+    pros_cons: decodeJson(JOURNEY_ENTRY_PROS_CONS, pros_cons, `journey entry ${row.id}`) as JourneyEntryWire['pros_cons'],
     stats_excluded: !!stats_excluded,
     dismissed: !!dismissed,
     is_draft: !!is_draft,

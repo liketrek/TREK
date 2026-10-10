@@ -14,6 +14,8 @@ import { AirtrailRequestError, type AirtrailFlightRaw } from './airtrail.client'
 import { AirtrailClient } from './airtrail.client';
 import { AirtrailService } from './airtrail.service';
 import { canonicalHash, mapFlightToReservation, mapFlightsToMultiLegReservation, normalizeFlight } from './airtrail.mapper';
+import { RESERVATION_METADATA } from '../../db/json-columns';
+import { decodeJson } from '../../utils/json-column';
 
 interface ExistingFlightRow {
   id: number;
@@ -165,12 +167,8 @@ export class AirtrailImportService {
     const linkedRows = await this.reservationsRepo.listAirtrailLinkedForTrip(tripIdNum);
     for (const row of linkedRows) {
       if (row.external_id) linkedIds.add(row.external_id);
-      try {
-        const ids = row.metadata ? JSON.parse(row.metadata).airtrail_ids : null;
-        if (Array.isArray(ids)) for (const id of ids) linkedIds.add(String(id));
-      } catch {
-        /* malformed metadata — ignore */
-      }
+      const ids = decodeJson(RESERVATION_METADATA, row.metadata, `airtrail ${row.external_id}`).airtrail_ids;
+      if (Array.isArray(ids)) for (const id of ids) linkedIds.add(String(id));
     }
 
     const existing = await this.reservationsRepo.listFlightReservationsForTrip(tripIdNum);
@@ -194,12 +192,7 @@ export class AirtrailImportService {
 
     const existingSigs = new Set<string>();
     for (const row of existing) {
-      let meta: Record<string, any> = {};
-      try {
-        meta = row.metadata ? JSON.parse(row.metadata) : {};
-      } catch {
-        /* malformed metadata — ignore */
-      }
+      const meta = decodeJson(RESERVATION_METADATA, row.metadata, `reservation ${row.id}`);
       const eps = endpointsByReservation.get(row.id) ?? [];
       const legs: any[] | null = Array.isArray(meta.legs) ? meta.legs : null;
       if (legs && legs.length > 1) {
@@ -218,7 +211,7 @@ export class AirtrailImportService {
       } else {
         const from = eps[0]?.code ?? null;
         const to = eps.length > 1 ? eps[eps.length - 1].code : null;
-        const sig = softSignature(depDate(row.reservation_time), meta.flight_number ?? null, from, to);
+        const sig = softSignature(depDate(row.reservation_time), (meta.flight_number as string | null | undefined) ?? null, from, to);
         if (sig) existingSigs.add(sig);
       }
     }
