@@ -118,6 +118,19 @@ describe('test-sql-ratchet.mjs', () => {
     expect(run(serverRoot({ 'tests/a.test.ts': text })).status).toBe(0);
   });
 
+  it('TSQL-005b: a marker covers a statement broken into a method chain, and no further', () => {
+    const chained =
+      `// test-sql-allow: the raw statement is the legacy oracle\n` +
+      `const legacy = testDb\n  ${CALL}'SELECT 1')\n  .all();\n`;
+    expect(run(serverRoot({ 'tests/a.test.ts': chained })).status).toBe(0);
+
+    // The chain ends at the first line that does not start with a dot.
+    const past = `${chained}const other = testDb\n  ${CALL}'SELECT 2')\n  .all();\n`;
+    const { status, out } = run(serverRoot({ 'tests/b.test.ts': past }));
+    expect(status).toBe(1);
+    expect(out).toContain('tests/b.test.ts: 1 raw statement(s)');
+  });
+
   it('TSQL-006: a marker without a reason, or two lines up, does not count', () => {
     const bare = run(serverRoot({ 'tests/a.test.ts': `// test-sql-allow:\n${stmt(1)}` }));
     expect(bare.status).toBe(1);

@@ -21,8 +21,9 @@
  *     `exempt` with the reason; it is not counted, and an exemption for a
  *     file that is gone fails;
  *   - a single statement that has to stay raw carries a comment with
- *     `test-sql-allow:` and a reason, on its own line or the line above.
- *     A marker with no reason does not count.
+ *     `test-sql-allow:` and a reason, on its own line or the line above
+ *     (a statement broken into a method chain stays covered on the chain
+ *     lines that continue it). A marker with no reason does not count.
  *
  *   npm run lint:test-sql              check against the baseline (CI)
  *   npm run lint:test-sql -- --update  lower the counts to what the files hold now;
@@ -45,17 +46,39 @@ const SOURCE = /\.(?:[cm]?[jt]s)$/;
 const PREPARE = /\.prepare\(/g;
 const ALLOW = /test-sql-allow:\s*\S/;
 
+/** A line that continues the method chain of the line above it (`.prepare(...)` below `db`). */
+const CHAIN = /^\s*\./;
+
+/**
+ * The lines an allow marker covers: its own, the line right below it, and the
+ * method-chain lines that continue that statement. Prettier breaks a long
+ * `db.prepare('...').all()` into `db` on one line and `.prepare(` on the next,
+ * which puts the call two lines below the marker without changing what the
+ * marker is about.
+ */
+function allowedLines(lines) {
+  const allowed = new Set();
+  lines.forEach((line, i) => {
+    if (!ALLOW.test(line)) return;
+    allowed.add(i);
+    allowed.add(i + 1);
+    for (let j = i + 2; j < lines.length && CHAIN.test(lines[j]); j++) allowed.add(j);
+  });
+  return allowed;
+}
+
 /**
  * The raw statements in one file's text: every `.prepare(` except those on a
- * line that carries an allow marker with a reason, or right below one.
+ * line that carries an allow marker with a reason, or in the statement right
+ * below one (its first line and the chain lines that continue it).
  */
 export function countPrepares(text) {
   const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  const allowed = allowedLines(lines);
   let total = 0;
   lines.forEach((line, i) => {
     const hits = line.match(PREPARE)?.length ?? 0;
-    if (hits === 0) return;
-    if (ALLOW.test(line) || (i > 0 && ALLOW.test(lines[i - 1]))) return;
+    if (hits === 0 || allowed.has(i)) return;
     total += hits;
   });
   return total;
