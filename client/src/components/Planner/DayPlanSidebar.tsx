@@ -1614,6 +1614,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
               return 0
             })
           const activeRentals = getActiveRentalsForDay(day.id)
+          // A day with pills under its name keeps the name at the badge's top edge; a day
+          // with only its name centres it on the badge instead of leaving it hanging high.
+          const hasDayPills = dayAccs.length > 0 || activeRentals.length > 0 || !!dayTint?.label
           // Everything a day can be given, behind one "+" rather than a grid of four icons.
           const addItems = [
             onCreatePlaceForDay && { label: t('dayplan.addPlaceHere'), icon: MapPin, onClick: () => onCreatePlaceForDay(day.id) },
@@ -1664,7 +1667,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                 onDrop={e => handleDropOnDay(e, day.id)}
                 onContextMenu={canEditDays ? e => ctxMenu.open(e, dayMenuItems) : undefined}
                 style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 10,
+                  display: 'flex', alignItems: hasDayPills ? 'flex-start' : 'center', gap: 10,
                   paddingBlock: 10, paddingInlineEnd: 8, paddingInlineStart: 10,
                   cursor: 'pointer',
                   background: isDragTarget ? DAY_HEAD_DROP : (isSelected ? DAY_HEAD_SELECTED : headerTintBg),
@@ -1708,7 +1711,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                   )}
                 </div>
 
-                <div className="min-w-0 flex-1 pt-px">
+                <div className={`min-w-0 flex-1 ${hasDayPills ? 'pt-px' : ''}`}>
                   <div className="flex min-w-0 items-baseline gap-2">
                     <span className="min-w-0 truncate font-bold text-content" style={fs(13.5, 'body')}>
                       {heading.primary}
@@ -1719,7 +1722,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                       </span>
                     )}
                   </div>
-                  {(dayAccs.length > 0 || activeRentals.length > 0 || dayTint?.label) && (
+                  {hasDayPills && (
                     <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1">
                       {dayAccs.map(acc => {
                         const isCheckIn = acc.start_day_id === day.id

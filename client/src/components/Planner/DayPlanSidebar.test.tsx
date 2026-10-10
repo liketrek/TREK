@@ -4464,6 +4464,21 @@ describe('DayPlanSidebar', () => {
     expect(onPlaceClick).toHaveBeenCalledWith(8)
   })
 
+  it('FE-PLANNER-DAYPLAN-176c: a day without a stay centres its name on the badge, a day with one keeps it at the top', () => {
+    const days = [
+      buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' }),
+      buildDay({ id: 11, date: '2025-06-02', title: 'Day 2' }),
+      buildDay({ id: 12, date: '2025-06-03', title: 'Day 3' }),
+    ]
+    const accommodations: Accommodation[] = [
+      { id: 1, trip_id: 1, start_day_id: 11, end_day_id: 12, place_id: 9, place_lat: 51.5, place_lng: -0.12, place_name: 'Hotel' },
+    ]
+    render(<DayPlanSidebar {...makeDefaultProps({ days, accommodations })} />)
+    expect(dayHeader('Day 1').style.alignItems).toBe('center')
+    expect(dayHeader('Day 1').querySelector('[data-dp="day-pill"]')).toBeNull()
+    expect(dayHeader('Day 2').style.alignItems).toBe('flex-start')
+  })
+
   it('FE-PLANNER-DAYPLAN-176b: a booked stay opens its booking from the pill, the name still opens the place (#2363)', async () => {
     const user = userEvent.setup()
     const days = [
