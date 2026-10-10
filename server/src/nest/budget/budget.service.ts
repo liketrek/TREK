@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import type { BudgetFallbackFx, BudgetParticipantFinal, BudgetUnconverted, TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+import { splitEqualShares, sumMinor, toMinor } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { avatarUrl } from '../common/avatarUrl';
@@ -97,7 +98,7 @@ export function splitLegacyTicketNote(
  * (toTripCents), applied to the one arithmetic that had been left in euros.
  */
 function sumMoney(amounts: number[]): number {
-  return amounts.reduce((a, v) => a + Math.round(v * 100), 0) / 100;
+  return sumMinor(amounts) / 100;
 }
 
 /**
@@ -1043,10 +1044,10 @@ export class BudgetService {
       // A foreign row nothing can convert counts for nobody, as in the settlement.
       const convert = tripConverter(item.currency, item.exchange_rate, tripCurrency, rates);
       if (!convert) continue;
-      const toTripCents = (amount: number) => Math.round(convert(amount) * 100);
+      const toTripCents = (amount: number) => toMinor(convert(amount));
       // A member with an amount of their own owes exactly that; the rest split the
       // total evenly, as the query this replaces did.
-      const equal = this.splitEqualShares(toTripCents(item.total_price || 0), own, item.id);
+      const equal = splitEqualShares(toTripCents(item.total_price || 0), own, item.id);
       for (const m of own) {
         const share = m.amount !== null && m.amount !== undefined ? toTripCents(m.amount) : (equal[m.user_id] || 0);
         let p = people.get(m.user_id);
@@ -1089,7 +1090,7 @@ export class BudgetService {
         unconverted.push(r.id);
         continue;
       }
-      const cents = Math.round(convert(r.total_price || 0) * 100);
+      const cents = toMinor(convert(r.total_price || 0));
       total += cents;
       const cat = r.category || '';
       byCategory[cat] = (byCategory[cat] || 0) + cents;
@@ -1110,41 +1111,6 @@ export class BudgetService {
     const trip = (tripCurrency || 'EUR').toUpperCase();
     const unbooked = await this.budgetItemsRepo.hasUnfrozenForeign(tripId, trip);
     return unbooked ? this.exchangeRates.getRates(trip) : null;
-  }
-
-  /**
-   * Largest-remainder split of an expense across its participants. Takes and
-   * returns **whole cents**, so the shares add back up to the input exactly —
-   * the settlement ledger is netted in integer cents (#1382).
-   *
-   * The remainder cent rotates with the item id rather than always landing on the
-   * first member, so across several expenses the rounding evens out instead of
-   * always favouring the same person.
-   *
-   * Floor-based (`totalCents - baseCents * n`, never `%`), so a negative total —
-   * a refund split across its beneficiaries (#2176) — still yields a remainder
-   * in [0, n) and shares that sum back to the total exactly. The client mirror
-   * (CostsPanel.helpers.splitEqualShares) must stay share-for-share identical;
-   * the parity fixture in budget.service.calc.test.ts pins both sides.
-   */
-  private splitEqualShares(totalCents: number, members: { user_id: number }[], itemId: number): Record<number, number> {
-    const n = members.length;
-    if (n === 0) return {};
-
-    const baseCents = Math.floor(totalCents / n);
-    const remainder = totalCents - baseCents * n;
-
-    const shares: Record<number, number> = {};
-    const sortedMembers = [...members].sort((a, b) => a.user_id - b.user_id);
-    const startIndex = itemId % n;
-
-    for (let i = 0; i < n; i++) {
-      const member = sortedMembers[i];
-      const hasExtraCent = ((i - startIndex + n) % n) < remainder;
-      shares[member.user_id] = baseCents + (hasExtraCent ? 1 : 0);
-    }
-
-    return shares;
   }
 
   /**
@@ -1267,7 +1233,7 @@ export class BudgetService {
         unconvertedCurrencies.add((item.currency || '').toUpperCase());
         continue;
       }
-      const toTripCents = (amount: number): number => Math.round(convert(amount) * 100);
+      const toTripCents = (amount: number): number => toMinor(convert(amount));
       const members = allMembers.filter(m => m.budget_item_id === item.id);
       const payers = allPayers.filter(p => p.budget_item_id === item.id);
       if (members.length === 0) continue; // planning-only entry → doesn't affect balances
@@ -1314,7 +1280,7 @@ export class BudgetService {
       // here since #2225. An item whose payers net to exactly zero still does, and
       // divides zero, which is what it is worth.
       const hasCustomSplit = members.some(m => m.amount !== null && m.amount !== undefined);
-      const equalShares = !hasCustomSplit ? this.splitEqualShares(creditCents, members, item.id) : {};
+      const equalShares = !hasCustomSplit ? splitEqualShares(creditCents, members, item.id) : {};
       for (const m of members) {
         const memberShare = hasCustomSplit && m.amount !== null && m.amount !== undefined
           ? toTripCents(m.amount)

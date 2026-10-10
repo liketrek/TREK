@@ -60,3 +60,7 @@ The parity rule governs **existing** routes; it is not a license to mint new deb
 ## Sanitization (`src/sanitize/sanitize.ts`)
 
 `isomorphic-dompurify` with a minimal inline-only allow-list (a rich-text variant already exists there for when rich text ships). `sanitizeInlineHtml` backs the client's HTML translation path; `escapeHtml` is used wherever the client builds markup from user strings (map popups, account screens). This is meant to be the one home for escaping. No lint rule enforces that yet and a handful of client files still carry a local `escapeHtml` — that is debt to fold in, not a pattern to copy.
+
+## Money (`src/money/money.ts`)
+
+`toMinor`, `sumMinor`, `splitEqualShares` and `currencyDecimals` are the budget arithmetic both sides must agree on to the cent: amounts are netted in whole hundredths, equal splits hand the leftover hundredths out by rotation from `itemId % n`, and the shares always sum back to the total. The server's settlement uses these directly; `money.spec.ts` holds the share table that used to be duplicated between the server and client tests. The client still carries its own `splitEqualShares` (in euros, `CostsPanel.helpers.ts`) and `currencyDecimals` (`utils/formatters.ts`); folding them onto these is client work, not a second implementation to copy.

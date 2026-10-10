@@ -108,3 +108,6 @@ export * from './roadtrip/google-import.schema';
 export * from './roadtrip/charging.schema';
 
 export * from './vacay/school-holiday-catalog.schema';
+
+// Money arithmetic in whole hundredths (sums, equal splits, currency precision).
+export * from './money/money';

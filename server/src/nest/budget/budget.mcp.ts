@@ -6,7 +6,7 @@ import {
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
-import { idSchema } from '@trek/shared';
+import { idSchema, sumMinor, toMinor } from '@trek/shared';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
@@ -48,14 +48,6 @@ function parseId(value: string | string[]): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-/** Money is compared in whole cents, never in floats (the budget money rule). */
-function toCents(amount: number): number {
-  return Math.round(amount * 100);
-}
-
-function sumCents(amounts: number[]): number {
-  return amounts.reduce((sum, a) => sum + toCents(a), 0);
-}
 
 function formatCents(cents: number): string {
   return (cents / 100).toFixed(2);
@@ -131,9 +123,9 @@ export class BudgetMcp {
     // Negative payers count with their sign (#2176) — the write path stores them.
     if (payers !== undefined) {
       const roster = await this.tripMembers.rosterUserIds(tripId);
-      return sumCents(payers.filter(p => p.amount !== 0 && roster.has(p.user_id)).map(p => p.amount));
+      return sumMinor(payers.filter(p => p.amount !== 0 && roster.has(p.user_id)).map(p => p.amount));
     }
-    if (total_price !== undefined) return toCents(total_price);
+    if (total_price !== undefined) return toMinor(total_price);
     return fallbackCents;
   }
 
@@ -169,7 +161,7 @@ export class BudgetMcp {
         return `payers contains user IDs that are not on this trip: ${payerStrangers.join(', ')}. Resolve them with list_trip_members.`;
       }
     }
-    const splitCents = sumCents(members.map(m => m.amount));
+    const splitCents = sumMinor(members.map(m => m.amount));
     if (splitCents !== totalCents) {
       return `The split does not add up: the member amounts total ${formatCents(splitCents)} but the expense total is ${formatCents(totalCents)}. Adjust the amounts so they sum to the expense total.`;
     }
@@ -216,7 +208,7 @@ export class BudgetMcp {
     if (members !== undefined && member_ids !== undefined) return errorResult('Pass either members (uneven split) or member_ids (equal split), not both.');
     if (place_id != null && !(await this.placeOnTrip(tripId, place_id))) return errorResult('place_id does not belong to this trip.');
     if (members !== undefined) {
-      const refusal = await this.splitRefusal(tripId, members, await this.settledTotalCents(tripId, payers, total_price, toCents(total_price)), payers);
+      const refusal = await this.splitRefusal(tripId, members, await this.settledTotalCents(tripId, payers, total_price, toMinor(total_price)), payers);
       if (refusal) return errorResult(refusal);
     }
     // The split participants are the members of an uneven split; the equal-split
@@ -296,7 +288,7 @@ export class BudgetMcp {
       // the stored figure stands in when the call does not restate one.
       const existing = await this.budget.getBudgetItem(itemId, tripId);
       if (!existing) return errorResult('Budget item not found.');
-      const refusal = await this.splitRefusal(tripId, members, await this.settledTotalCents(tripId, payers, total_price, toCents(existing.total_price)), payers);
+      const refusal = await this.splitRefusal(tripId, members, await this.settledTotalCents(tripId, payers, total_price, toMinor(existing.total_price)), payers);
       if (refusal) return errorResult(refusal);
     }
     // Freeze-then-write composite: a currency change re-freezes the rate at entry

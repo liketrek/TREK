@@ -538,23 +538,6 @@ describe('calculateSettlement — negative amounts (#2176)', () => {
   });
 });
 
-// ── Client/server share parity (#2176) ───────────────────────────────────────
-//
-// splitEqualShares exists twice: here (netting the settlement in cents) and on
-// the client (previewing the split in euros — CostsPanel.helpers.ts). This
-// fixture is duplicated verbatim in
-// client/src/components/Budget/CostsPanel.helpers.test.ts; if either
-// implementation drifts — sign handling included — its copy of the table fails.
-const SHARE_PARITY_FIXTURE: { totalCents: number; users: number[]; itemId: number; expected: Record<number, number> }[] = [
-  { totalCents: 10000, users: [1, 2, 3], itemId: 0, expected: { 1: 3334, 2: 3333, 3: 3333 } },
-  { totalCents: 10000, users: [1, 2, 3], itemId: 1, expected: { 1: 3333, 2: 3334, 3: 3333 } },
-  { totalCents: -10000, users: [1, 2, 3], itemId: 0, expected: { 1: -3333, 2: -3333, 3: -3334 } },
-  { totalCents: -10000, users: [1, 2, 3], itemId: 1, expected: { 1: -3334, 2: -3333, 3: -3333 } },
-  { totalCents: -101, users: [1, 2], itemId: 0, expected: { 1: -50, 2: -51 } },
-  { totalCents: -101, users: [1, 2], itemId: 1, expected: { 1: -51, 2: -50 } },
-  { totalCents: -1, users: [1, 2, 3], itemId: 0, expected: { 1: 0, 2: 0, 3: -1 } },
-];
-
 // ── Final budget per participant ──────────────────────────────────────────
 
 describe('calculateSettlement — finalBudgets', () => {
@@ -779,26 +762,6 @@ describe('calculateSettlement — finalBudgets', () => {
       expect(Math.abs(alice.sources.fronted[1].cents - Math.round(33.33 / 1.1 * 100) / eurPerGbp)).toBeLessThan(1);
     }
   });
-});
-
-describe('splitEqualShares — client parity (#2176)', () => {
-  // Private on purpose (only the settlement calls it); the parity pin reaches
-  // through so the fixture exercises the real implementation, not a re-model.
-  // `budget` isn't built until `beforeAll` runs, so this resolves it lazily at
-  // call time rather than binding it during collection (still undefined then).
-  const split = (totalCents: number, members: { user_id: number }[], itemId: number): Record<number, number> =>
-    (budget as unknown as {
-      splitEqualShares(totalCents: number, members: { user_id: number }[], itemId: number): Record<number, number>;
-    }).splitEqualShares(totalCents, members, itemId);
-
-  it.each(SHARE_PARITY_FIXTURE)(
-    'splits $totalCents cents across $users.length members (item $itemId) exactly like the client',
-    ({ totalCents, users, itemId, expected }) => {
-      const shares = split(totalCents, users.map(user_id => ({ user_id })), itemId);
-      expect(shares).toEqual(expected);
-      expect((Object.values(shares) as number[]).reduce((a, b) => a + b, 0)).toBe(totalCents);
-    },
-  );
 });
 
 // ── #1382: balances and flows have to tell the same story ────────────────────

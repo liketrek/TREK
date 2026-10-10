@@ -8,7 +8,7 @@
   "src/nest/atlas/atlas-geo.ts": 1005,
   "src/nest/atlas/atlas.service.ts": 1182,
   "src/nest/auth/auth.service.ts": 1143,
-  "src/nest/budget/budget.service.ts": 1702,
+  "src/nest/budget/budget.service.ts": 1668,
   "src/nest/collections/collections.service.ts": 1483,
   "src/nest/doc-sync/doc-sync.service.ts": 1060,
   "src/nest/doc-sync/providers/synology-drive.client.ts": 1160,
