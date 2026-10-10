@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -30,7 +30,7 @@ import {
   userOf,
   type TrekWebSocket,
 } from './ws-state';
-import { JourneyDomainService } from '../journey/journey-domain.service';
+import { JOURNEY_ACCESS, type JourneyAccess } from './journey-access.types';
 import { readAppSetting } from '../common/app-settings.registry';
 import { runningVersion } from '../../app-config';
 
@@ -71,9 +71,10 @@ export class RealtimeGateway
     /*
      * For the book rooms, and injected rather than reimplemented: who may open
      * a journey is one question with one answer, and a second copy of it here
-     * is a second thing to keep in step with the REST routes.
+     * is a second thing to keep in step with the REST routes. Behind a port
+     * (journey-access.types.ts) so realtime does not import the journey domain.
      */
-    private readonly journeys: JourneyDomainService,
+    @Inject(JOURNEY_ACCESS) private readonly journeys: JourneyAccess,
     @InjectRepository(Users) private readonly users: UsersRepository,
     @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
     // Room membership, behind its port. The container's provider, which

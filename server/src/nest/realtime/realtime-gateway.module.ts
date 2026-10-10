@@ -2,7 +2,6 @@ import { Module, type OnModuleDestroy } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { RealtimeGateway } from './realtime.gateway';
 import { EphemeralTokenModule } from '../auth-core/ephemeral-token.module';
-import { JourneyDomainModule } from '../journey/journey-domain.module';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { Users } from '../../db/entities/Users.entity';
 import { Trips } from '../../db/entities/Trips.entity';
@@ -23,13 +22,13 @@ import { processRooms, RoomRegistry, roomsSlot } from './ws-state';
  * TrekWsAdapter already registered.
  */
 @Module({
-  // JourneyDomainModule for the book rooms: who may open a journey is asked
-  // of the same service the REST routes ask. Users/AppSettings: Plan 4 Task
+  // The book rooms ask JOURNEY_ACCESS, bound globally by JourneyAccessModule
+  // to the same service the REST routes ask. Users/AppSettings: Plan 4 Task
   // 1 — the handshake's password-version and require_mfa reads, moved off
   // DatabaseService onto UsersRepository/AppSettingsRepository. Trips: Plan 4
   // Task 2 — handleJoin's own canAccessTrip delegate, now TripsRepository
   // directly.
-  imports: [EphemeralTokenModule, JourneyDomainModule, MikroOrmModule.forFeature([Users, AppSettings, Trips])],
+  imports: [EphemeralTokenModule, MikroOrmModule.forFeature([Users, AppSettings, Trips])],
   // The room registry is the process-wide in-memory one; the constructor
   // below hands whichever one the container resolved to the broadcast
   // functions, so the gateway and the broadcasts never use two registries.

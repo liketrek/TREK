@@ -64,6 +64,7 @@ import { SpaFallbackFilter } from './platform/spa-fallback.filter';
 import { PluginsModule } from './plugins/plugins.module';
 import { PublicApiModule } from './public-api/public-api.module';
 import { RealtimeGatewayModule } from './realtime/realtime-gateway.module';
+import { JourneyAccessModule } from './journey/journey-access.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { ReceiptScanModule } from './receipt-scan/receipt-scan.module';
 import { ReservationImportModule } from './reservation-import/reservation-import.module';
@@ -100,6 +101,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     DemoModule,
     RealtimeModule,
     RealtimeGatewayModule,
+    JourneyAccessModule,
     SchedulingModule,
     McpModule.forRoot({
       accessPolicy: trekMcpAccessPolicy,
