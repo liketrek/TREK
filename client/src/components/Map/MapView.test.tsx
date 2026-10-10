@@ -209,6 +209,7 @@ vi.mock('./gcj02Crs', () => ({
 }))
 
 import { MapView } from './MapView'
+import type { RouteVia } from '../../types'
 
 // Helper: build a place with the extra fields MapView uses (category_name/color/icon)
 // that exist on joined DB rows but are not in the base Place TypeScript type.
@@ -1025,7 +1026,9 @@ describe('MapView explore POIs', () => {
 })
 
 describe('MapView plugin route vias', () => {
-  const via = (overrides: Record<string, any> = {}) => ({ lat: 48.5, lng: 2.5, tone: 'default', ...overrides })
+  // Cast, not typed: one case hands in a tone outside RouteVia's union on purpose.
+  const via = (overrides: Partial<Record<keyof RouteVia, unknown>> = {}) =>
+    ({ lat: 48.5, lng: 2.5, tone: 'default', ...overrides }) as RouteVia
 
   it('FE-COMP-MAPVIEW-037: draws a tone dot for each via point', () => {
     render(<MapView routeVias={[via({ tone: 'success' }), via({ tone: 'danger', lat: 48.7 })]} />)

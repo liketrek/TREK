@@ -1,6 +1,6 @@
 {
   "src": {
-    "@typescript-eslint/no-explicit-any": 155,
+    "@typescript-eslint/no-explicit-any": 154,
     "@typescript-eslint/no-unused-expressions": 2,
     "@typescript-eslint/no-unused-vars": 155,
     "no-empty": 19,
@@ -12,14 +12,14 @@
     "unused-disable-directive": 6
   },
   "suppressed": {
-    "@typescript-eslint/no-explicit-any": 44,
+    "@typescript-eslint/no-explicit-any": 40,
     "react-hooks/exhaustive-deps": 46
   },
   "tests": {
-    "@typescript-eslint/no-explicit-any": 492,
+    "@typescript-eslint/no-explicit-any": 491,
     "@typescript-eslint/no-this-alias": 1,
     "@typescript-eslint/no-unsafe-function-type": 2,
-    "@typescript-eslint/no-unused-vars": 53,
+    "@typescript-eslint/no-unused-vars": 52,
     "react-refresh/only-export-components": 1
   }
 }

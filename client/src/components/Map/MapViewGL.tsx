@@ -1,9 +1,7 @@
 import { useEffect, useRef, useMemo, useState, createElement, useCallback } from 'react'
 import { makeMarkerDraggable, makePoiDraggable, draggedPoiId } from './markerDrag'
-import type { DawarichTrack, RoadtripVia } from '@trek/shared'
 import { useStableVias } from './viaMarkerState'
 import { ALT_CASING, ALT_LABEL_TEXT } from '../Roadtrip/alternativeColors'
-import type { AlternativeOverlay } from '../Roadtrip/alternativeOverlays'
 import { serviceMarkerHtml, serviceMarkerOuter } from '../Roadtrip/serviceMarker'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import type mapboxgl from 'mapbox-gl'
@@ -28,24 +26,24 @@ import { useIsPhone } from '../../mobile/useIsPhone'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import type { Day, Place, Reservation, RouteVia } from '../../types'
 import type { MapHoverInfo } from './mapHover'
+import type { MapViewProps, RouteSegment } from './mapViewContract'
 import { nightPauseMarker, NIGHT_PAUSE_MIN_ZOOM } from './nightPauseMarker'
 import { clusterPois, poiClusterMarkup, poiClusterList, POI_CLUSTER_DETAIL_ZOOM } from './poiClusters'
 import { groupCoincidentPlaces } from './coincidentPlaces'
-import type { RoadtripHazard } from '@trek/shared'
 import { useHazardLayerGL } from './useHazardLayerGL'
 import { useDawarichTrailGL } from './useDawarichTrailGL'
-import { bindDayBoundaryDrag, type DayBoundaryControls } from './dayBoundaryDrag'
+import { bindDayBoundaryDrag } from './dayBoundaryDrag'
 import NightPauseTooltip from './NightPauseTooltip'
 import PlaceHoverCard from './PlaceHoverCard'
 import { ratingBadgeHtml } from './ratingBadge'
 import type { Poi } from './poiCategories'
 import { poiPinParts } from './poiMarker'
 import { resolveTrackColor, hasManualTrackColor } from './trackColors'
-import { parseRenderableRouteGeometry, type RouteProfileFocus } from '../../utils/routeGeometry'
+import { parseRenderableRouteGeometry } from '../../utils/routeGeometry'
 import { buildPoiPopupHtml } from './placePopup'
 import { pluginsApi, type PluginMapMarker, type PluginMapLayer } from '../../api/client'
 import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, SATELLITE_TILE_URL, SATELLITE_TILE_ATTRIBUTION, SATELLITE_TILE_MAXZOOM } from '../../constants/mapDefaults'
-import { computeMapViewport, TILE_SIZE_GL, type ViewportPadding } from '../../utils/mapViewport'
+import { computeMapViewport, TILE_SIZE_GL } from '../../utils/mapViewport'
 import { selectedPlaceTarget } from './selectedPlaceTarget'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
@@ -107,13 +105,6 @@ function buildPlaceClusterData(places: Place[]) {
   }
 }
 
-interface RouteSegment {
-  mid: [number, number]
-  from: [number, number]
-  to: [number, number]
-  walkingText?: string
-  drivingText?: string
-}
 
 // Stable identities for the omitted collection props. An inline `= []` / `= {}`
 // default allocates a fresh object on every render, and these props sit in the
@@ -132,120 +123,8 @@ const NO_CONNECTION_IDS: number[] = []
 const NO_POIS: Poi[] = []
 const NO_DAYS: Day[] = []
 
-interface Props {
-  places: Place[]
-  dayPlaces?: Place[]
-  // Enables the plugin map contributions (markers + layers). Absent on surfaces
-  // without a trip (CollectionMap), which naturally excludes them — same rule as
-  // the Leaflet MapPluginMarkers.
-  tripId?: number | string
-  // Charging stops / rest areas a plugin route places on the drawn day route.
-  routeVias?: RouteVia[]
-  dayBoundaryControls?: DayBoundaryControls
-  /** The dashed last bit to a place the road network does not reach. */
-  accessLines?: { line: [[number, number], [number, number]]; meters: number }[]
-  route?: [number, number][][] | null
-  /**
-   * One colour pair per entry of `route`, or absent for the blue the route has always
-   * been. Only the road trip passes these, and only while colouring by day is on.
-   */
-  routeColors?: ({ line: string; casing: string } | undefined)[] | null
-  /** One flag per entry of `route`: true where the stretch is walked, drawn dashed (#2532). */
-  routeWalking?: boolean[] | null
-  /** False while the map is locked (#2010): picking a place leaves the view alone. */
-  followSelection?: boolean
-  /** Given, the lock that sets followSelection sits above the layer switcher. */
-  onToggleFollow?: () => void
-  routeSegments?: RouteSegment[]
-  selectedPlaceId?: number | null
-  /** The selected place itself, for when no pin on this map stands for it. */
-  selectedPlace?: Place | null
-  onMarkerClick?: (id: number) => void
-  hoverDisabled?: boolean
-  onMapClick?: (info: { latlng: { lat: number; lng: number } }) => void
-  onMapContextMenu?: ((e: { latlng: { lat: number; lng: number }; originalEvent: MouseEvent | TouchEvent }) => void) | null
-  center?: [number, number]
-  zoom?: number
-  fitKey?: number | null
-  dayOrderMap?: Record<number, number[] | null>
-  leftWidth?: number
-  rightWidth?: number
-  hasInspector?: boolean
-  hasDayDetail?: boolean
-  reservations?: Reservation[]
-  visibleConnectionIds?: number[]
-  showTransitRoutes?: boolean
-  days?: Day[]
-  selectedDayId?: number | null
-  /**
-   * Whether a booking switched on by hand also has to run on the selected day to be
-   * drawn. Only the phone's plan map asks for it; see RouteVisibilityOptions.
-   */
-  scopeConnectionsToDay?: boolean
-  showReservationStats?: boolean
-  onReservationClick?: (reservationId: number) => void
-  pois?: Poi[]
-  onPoiClick?: (poi: Poi) => void
-  /**
-   * A corridor hit dropped somewhere on the map, with the coordinate it landed on.
-   * The caller decides whether that point is near enough to the drive to mean anything.
-   */
-  onPoiDropOnRoute?: (osmId: string, lat: number, lng: number) => void
-  /** A click on the drawn route, for putting a via point there (#1797). */
-  onRouteClick?: (lat: number, lng: number) => void
-  /** The ways of driving one leg, drawn while the picker is open. */
-  alternativeRoutes?: AlternativeOverlay[]
-  /** Which option is being considered, so it can be lit up in its own colour. */
-  activeAlternative?: number | null
-  onChooseAlternative?: (index: number) => void
-  /** Reports which option the pointer is over, so the list and the map agree. */
-  onHighlightAlternative?: (index: number | null) => void
-  /** Generic numbered control points for list-first route editors. */
-  plannerWaypoints?: Array<{ id: string; lat: number; lng: number }>
-  selectedPlannerWaypointId?: string | null
-  onPlannerWaypointClick?: (id: string) => void
-  routeProfileFocus?: RouteProfileFocus | null
-  viewBaseLayer?: TourBaseLayer
-  onViewBaseLayerChange?: (layer: TourBaseLayer) => void
-  /**
-   * An explicit stretch of map to frame, independent of the day being shown.
-   *
-   * `fitKey` cannot express this: it carries no coordinates, and each renderer decides
-   * for itself that it means "the selected day". Weighing the ways of driving one leg
-   * needs that leg on screen, which is neither the day nor the trip.
-   */
-  focusPoints?: [number, number][]
-  /** Changes only when the caller intentionally wants a new initial frame. */
-  focusKey?: number
-  /**
-   * What the caller's own chrome covers while `focusPoints` is framed, in pixels per edge.
-   *
-   * The default padding knows this component's panels and nothing else, and on a phone it
-   * is a flat margin. A shell that lays its own bars over the map passes what they cover,
-   * so the frame lands in the part still visible. Only the fit on `focusPoints` reads it.
-   * Compared by value: the same numbers in a new object do not refit, while new numbers
-   * refit the points already handed over, because the chrome they must clear has moved.
-   */
-  fitPadding?: ViewportPadding
-  /**
-   * Let markers stay apart longer than usual.
-   *
-   * A road trip is read along a line: two stops fifty kilometres apart on the same
-   * motorway are the shape of the day, and merging them into one dot hides it.
-   */
-  clusterLoosely?: boolean
-  hazards?: RoadtripHazard[]
-  /** The route recorded in Dawarich, already fetched by MapViewAuto (#2279). */
-  dawarichTrack?: DawarichTrack | null
-  /** Draw only this local day of the recording. */
-  dawarichSelectedDate?: string | null
-  /** Local dates whose day is collapsed in the day plan; their recording is not drawn. */
-  dawarichHiddenDates?: ReadonlySet<string> | null
-  /** Via points to draw as draggable handles, keyed by day (#1797). */
-  roadtripVias?: Record<number, RoadtripVia[]>
-  onMoveVia?: (dayId: number, id: number, lat: number, lng: number) => void
-  onRemoveVia?: (dayId: number, id: number) => void
-  onViewportChange?: (bbox: { south: number; west: number; north: number; east: number }) => void
+/** The GL renderer: the shared map contract plus the engine it is bound to. */
+interface Props extends MapViewProps {
   glProvider?: GlMapProvider
   /**
    * The GL engine, injected instead of imported. Both SDKs used to be pulled in
@@ -254,8 +133,6 @@ interface Props {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   gl: any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onMapReady?: (map: any | null) => void
 }
 
 /**

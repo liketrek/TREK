@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo, useCallback, createElement, memo } from 'react'
+import { useEffect, useRef, useState, useMemo, useCallback, createElement, memo, type ComponentType } from 'react'
 import DOM from 'react-dom'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, Circle, useMap, Tooltip } from 'react-leaflet'
@@ -48,7 +48,7 @@ import { visibleRouteReservations } from '../../utils/reservationRoutes'
 import { safeHexColor } from '../../utils/safeColor'
 import { placeMarkerLook } from './markerLook'
 import { escapeHtml } from '@trek/shared'
-import type { Day, Reservation, RouteVia } from '../../types'
+import type { Day, Place, Reservation, RouteVia } from '../../types'
 import type { MapHoverInfo } from './mapHover'
 import { nightPauseMarker, NIGHT_PAUSE_MIN_ZOOM } from './nightPauseMarker'
 import NightPauseTooltip from './NightPauseTooltip'
@@ -75,7 +75,7 @@ function categoryIconSvg(iconName: string | null | undefined, size: number): str
     return renderIconMarkup(createElement(IconComponent, { size, color: 'white', strokeWidth: 2.5 }))
   } catch { return '' }
 }
-import type { Place } from '../../types'
+import type { MapViewProps } from './mapViewContract'
 
 // Fix default marker icons for vite. `_getIconUrl` is a Leaflet-internal field
 // not present in the public typings, so narrow to delete it.
@@ -839,7 +839,7 @@ export const MapView = memo(function MapView({
   routeProfileFocus = null,
   viewBaseLayer,
   onViewBaseLayerChange,
-}: any) {
+}: MapViewProps) {
   const globalBaseLayer = useSettingsStore(s => s.settings.map_base_layer) || 'default'
   const updateSetting = useSettingsStore(s => s.updateSetting)
   const baseLayer = (viewBaseLayer ?? globalBaseLayer) as TourBaseLayer
@@ -1415,4 +1415,4 @@ export const MapView = memo(function MapView({
     )}
     </>
   )
-})
+}) satisfies ComponentType<MapViewProps>
