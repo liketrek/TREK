@@ -25,7 +25,7 @@ import {
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { AdminGuard } from '../auth-core/admin.guard';
 import { NotificationPreferencesService } from './notification-preferences.service';
-import { AdminNotificationPreferencesDto, NotificationDefaultsUpdateDto } from '../admin/admin.dto';
+import { AdminNotificationPreferencesDto, NotificationDefaultsUpdateDto } from './notifications.dto';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { ManagedForbidden } from '../common/managed';
 

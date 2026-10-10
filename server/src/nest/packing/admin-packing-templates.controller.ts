@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpException, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { PackingService } from './packing.service';
-import { AdminTemplateNameDto } from '../admin/admin.dto';
+import { AdminTemplateNameDto } from './packing.dto';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { AdminGuard } from '../auth-core/admin.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';

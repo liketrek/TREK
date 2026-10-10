@@ -12,12 +12,8 @@ import {
   AdminPermissionsDto,
   AdminInviteCreateDto,
   AdminFeatureToggleDto,
-  AdminTemplateNameDto,
-  AdminOidcUpdateDto,
   AdminAddonUpdateDto,
   AdminCollabFeaturesDto,
-  AdminNotificationPreferencesDto,
-  AdminDefaultUserSettingsDto,
   AdminTestNotificationDto,
   AdminTransitProviderDto,
 } from './admin.dto';

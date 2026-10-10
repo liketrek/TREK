@@ -1,5 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import {
+  adminTemplateNameRequestSchema,
   packingCreateItemRequestSchema,
   packingUpdateItemRequestSchema,
   packingSetSharingRequestSchema,
@@ -30,3 +31,6 @@ export class PackingBagMembersDto extends createZodDto(packingBagMembersRequestS
 export class PackingSaveTemplateDto extends createZodDto(packingSaveTemplateRequestSchema) {}
 export class PackingApplyTemplateDto extends createZodDto(packingApplyTemplateRequestSchema) {}
 export class PackingCategoryAssigneesDto extends createZodDto(packingCategoryAssigneesRequestSchema) {}
+
+/** The six packing-template create/update routes of AdminPackingTemplatesController share this body. */
+export class AdminTemplateNameDto extends createZodDto(adminTemplateNameRequestSchema) {}

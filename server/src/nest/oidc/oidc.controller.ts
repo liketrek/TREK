@@ -10,7 +10,7 @@ import { CurrentUser } from '../auth-core/current-user.decorator';
 import type { User } from '../../types';
 import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
-import { AdminOidcUpdateDto } from '../admin/admin.dto';
+import { AdminOidcUpdateDto } from './oidc.dto';
 import { Public } from '../auth-core/public.decorator';
 import { ManagedForbidden } from '../common/managed';
 import { sessionClientFrom } from '../sessions/sessions.service';

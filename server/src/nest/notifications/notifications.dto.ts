@@ -1,5 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import {
+  adminNotificationPreferencesRequestSchema,
+  notificationDefaultsUpdateRequestSchema,
   preferencesUpdateRequestSchema,
   testSmtpRequestSchema,
   testWebhookRequestSchema,
@@ -23,3 +25,7 @@ export class TestNtfyDto extends createZodDto(testNtfyRequestSchema) {}
 export class NotificationRespondDto extends createZodDto(notificationRespondRequestSchema) {}
 export class PushSubscribeDto extends createZodDto(pushSubscribeRequestSchema) {}
 export class PushUnsubscribeDto extends createZodDto(pushUnsubscribeRequestSchema) {}
+
+/** The admin-side notification routes NotificationsController serves. */
+export class AdminNotificationPreferencesDto extends createZodDto(adminNotificationPreferencesRequestSchema) {}
+export class NotificationDefaultsUpdateDto extends createZodDto(notificationDefaultsUpdateRequestSchema) {}
