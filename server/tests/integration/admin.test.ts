@@ -19,7 +19,7 @@ import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { FactoryOrm } from '../helpers/factories/context';
 import { createUser, createAdmin, createInviteToken, createTrip, createBudgetItem, createJourney, createJourneyEntry, addJourneyContributor, addTripPhoto, createCategory, createTag, createTodoItem, createMcpToken, createBucketListItem, createVisitedCountry, createCollabNote, addTripMember } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
-import { findRow, insertRow, insertRowIgnoringConflict, updateRows } from '../helpers/factories/rows';
+import { countRows, findRow, insertRow, insertRowIgnoringConflict, updateRows } from '../helpers/factories/rows';
 import { makeShareToken } from '../helpers/factories/trips';
 import { makeVacayPlan } from '../helpers/factories/vacay';
 import { readUser } from '../helpers/factories/users';
@@ -546,6 +546,19 @@ describe('Invite token management', () => {
       .send({ max_uses: 5 });
     expect(res.status).toBe(201);
     expect(res.body.invite.token).toBeDefined();
+  });
+
+  it('ADMIN-013b — POST /admin/invites with a trip that does not exist answers 404 and writes nothing', async () => {
+    const { user: admin } = createAdmin(testDb);
+
+    const res = await request(app)
+      .post('/api/admin/invites')
+      .set('Cookie', authCookie(admin.id))
+      .send({ max_uses: 1, trip_id: 99999 });
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Trip not found' });
+    expect(await countRows(orm, InviteTokens, {})).toBe(0);
+    expect(await countRows(orm, AuditLog, { action: 'admin.invite_create' })).toBe(0);
   });
 
   it('ADMIN-014 — DELETE /admin/invites/:id removes invite', async () => {

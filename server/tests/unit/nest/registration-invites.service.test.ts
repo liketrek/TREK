@@ -84,8 +84,8 @@ describe('Invites', () => {
 describe('Invites — trip binding', () => {
   it('ADMIN-SVC-073 — createInvite 404s on a trip_id that does not resolve', async () => {
     const { user: admin } = createAdmin(testDb);
-    expect(await svc.createInvite(admin.id, { trip_id: 99999 }) as any).toMatchObject({ status: 404, error: 'Trip not found' });
-    expect(await svc.createInvite(admin.id, { trip_id: 'not-a-number' }) as any).toMatchObject({ status: 404 });
+    await expect(svc.createInvite(admin.id, { trip_id: 99999 })).rejects.toMatchObject({ status: 404, publicMessage: 'Trip not found' });
+    await expect(svc.createInvite(admin.id, { trip_id: 'not-a-number' })).rejects.toMatchObject({ status: 404 });
     expect(await countRows(await sharedTestOrm(testDb), InviteTokens)).toBe(0);
     // An absent/blank binding is still a plain registration invite.
     expect((await svc.createInvite(admin.id, {}) as any).tripId).toBeNull();

@@ -70,8 +70,9 @@ export class RegistrationInvitesService {
       const parsed = Number.parseInt(String(data.trip_id));
       if (!Number.isInteger(parsed) || !(await this.trips.existsById(parsed))) {
         // Used to bind null silently, handing back a plain registration invite
-        // the admin never asked for.
-        return { error: 'Trip not found', status: 404 };
+        // the admin never asked for. Thrown, so the controller writes neither
+        // the invite nor its audit row and the admin sees the 404.
+        throw new DomainError(404, 'Trip not found');
       }
       tripId = parsed;
     }

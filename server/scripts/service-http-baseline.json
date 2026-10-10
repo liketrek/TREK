@@ -4,7 +4,6 @@
     "src/nest/auth/auth.service.ts": 5,
     "src/nest/auth/passkey.controller.ts": 1,
     "src/nest/auth/passkey.service.ts": 2,
-    "src/nest/auth/registration-invites.service.ts": 1,
     "src/nest/backup/backup-archive.ts": 8,
     "src/nest/backup/backup.impl.ts": 1,
     "src/nest/collab/collab.controller.ts": 7,
