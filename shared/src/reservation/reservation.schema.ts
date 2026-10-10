@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { RESERVATION_STATUSES, RESERVATION_TYPE_KEYS } from './reservation-types';
 
 /**
  * Reservation + accommodation API contract — single source of truth for the
@@ -14,6 +15,23 @@ import { z } from 'zod';
  */
 
 const open = z.record(z.string(), z.unknown());
+
+/**
+ * A reservation's `type` as the API returns it: one of the catalog's types
+ * (`RESERVATION_TYPES`), or whatever free text an older row or an import
+ * stored, which is passed through as it is.
+ */
+export const reservationTypeSchema = z.enum(RESERVATION_TYPE_KEYS).or(z.string());
+
+/** A reservation's `status` as the API returns it: a known status, or a stored value outside them. */
+export const reservationStatusSchema = z.enum(RESERVATION_STATUSES).or(z.string());
+
+// Inside reservationSchema the two fields stay z.string(), described by the
+// catalog. Zod 4 types a union field as optional for a consumer compiled
+// without strictNullChecks (the client), so the union there would loosen the
+// inferred Reservation type; the runtime answer is the same, any string.
+const reservationTypeField = z.string().describe('One of RESERVATION_TYPES, or free text an older row stored');
+const reservationStatusField = z.string().describe('One of RESERVATION_STATUSES, or a value an older row stored');
 
 /**
  * A reservation endpoint (flight/train leg terminal) — row of the
@@ -148,8 +166,8 @@ export const reservationSchema = z.object({
   confirmation_number: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   url: z.string().nullable().optional(),
-  status: z.string(),
-  type: z.string(),
+  status: reservationStatusField,
+  type: reservationTypeField,
   accommodation_id: z.union([z.number(), z.string()]).nullable().optional(),
   metadata: z.string().nullable().optional(),
   needs_review: z.number().optional(),

@@ -7,6 +7,7 @@ import { publicReservationExpr, publicStayExists, type ReservationVisibilityKyse
 import type { DayAssignmentRow } from './DayAssignments.repository';
 import { TrekRepository } from './_shared/trek-repository';
 import type { DB } from '../kysely/db';
+import { ROADTRIP_RESERVATION_TYPES } from '@trek/shared';
 
 /**
  * RS18/RR1's shared joined projection — `SELECT r.*, d.day_number, p.name as
@@ -1558,13 +1559,12 @@ export class ReservationsRepository extends TrekRepository<Reservations> {
    * RPL4 (`RoadtripPlanService.carriers`) — `SELECT id, type, title, day_id,
    * end_day_id, reservation_time, reservation_end_time, metadata,
    * day_plan_position FROM reservations WHERE trip_id = ? AND type IN
-   * ('flight', 'train', 'ferry', 'cruise', 'bus', 'car') AND day_id IS NOT
-   * NULL`: the bookings that seam the drive, and the hire cars whose desks
-   * stand on it.
+   * (ROADTRIP_RESERVATION_TYPES) AND day_id IS NOT NULL`: the bookings that
+   * seam the drive, and the hire cars whose desks stand on it.
    */
   async listRoadtripCarriers(trip_id: number): Promise<RoadtripCarrierRow[]> {
     return this.roadtripCarrierQuery()
-      .where({ trip: trip_id, type: { $in: ['flight', 'train', 'ferry', 'cruise', 'bus', 'car'] }, day: { $ne: null } })
+      .where({ trip: trip_id, type: { $in: [...ROADTRIP_RESERVATION_TYPES] }, day: { $ne: null } })
       .execute<RoadtripCarrierRow[]>('all', false);
   }
 

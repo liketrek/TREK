@@ -13,14 +13,21 @@ import { DaysService } from '../days/days.service';
 import { findByIata } from '../airports/airports.data';
 import type { EndpointInput } from './reservations.service';
 import { AssignmentsService } from '../assignments/assignments.service';
-import { idSchema, transportLegInputSchema, reservationUrlSchema, type TransportLegInput } from '@trek/shared';
+import {
+  idSchema, transportLegInputSchema, reservationUrlSchema, type TransportLegInput,
+  TRANSPORT_RESERVATION_TYPES, MCP_CREATABLE_TRANSPORT_TYPES, LEG_RESERVATION_TYPES, BOOKING_RESERVATION_TYPES,
+  RESERVATION_STATUSES, type ReservationStatus,
+} from '@trek/shared';
 import { RESERVATION_METADATA } from '../../db/json-columns';
 import { decodeJson } from '../../utils/json-column';
 
-// What counts as a transport booking, for the update_transport gate. Every value
-// ReservationsPanel renders with a transport icon, so a stored `transit` row is
-// editable through the transport tools like any other.
-const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transit', 'transport_other'] as const;
+// The type lists come from the shared reservation catalog (RESERVATION_TYPES),
+// in the pickers' order, so the enums below list their values as the UI does.
+//
+// TRANSPORT_TYPES is what counts as a transport booking, for the update_transport
+// gate: every value ReservationsPanel renders with a transport icon, so a stored
+// `transit` row is editable through the transport tools like any other.
+const TRANSPORT_TYPES = TRANSPORT_RESERVATION_TYPES;
 // What a caller may ASK for, which is the transport form's own picker
 // (client/src/components/Planner/TransportModal.tsx), in its order. The tools
 // below used to accept four of these nine, so a bus or a ferry could be planned
@@ -30,11 +37,11 @@ const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cr
 // booking carries a provider itinerary in metadata.transit, and create_transit_journey
 // is what writes one. A hand-made `transit` row would be a shape the transit UI
 // does not expect.
-const CREATABLE_TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transport_other'] as const;
+const CREATABLE_TRANSPORT_TYPES = MCP_CREATABLE_TRANSPORT_TYPES;
 /** Only these two carry per-segment detail: the transport form writes metadata.legs for a flight or a train and for nothing else. */
-const LEG_TRANSPORT_TYPES = ['flight', 'train'] as const;
+const LEG_TRANSPORT_TYPES = LEG_RESERVATION_TYPES;
 /** Everything the picker offers that is not a transport: create_reservation's half. */
-const BOOKING_TYPES = ['hotel', 'restaurant', 'event', 'tour', 'activity', 'parking', 'other'] as const;
+const BOOKING_TYPES = BOOKING_RESERVATION_TYPES;
 
 /**
  * The booking link. Same refinement the REST contract applies
@@ -412,7 +419,7 @@ export class ReservationsMcp {
       location: z.string().max(500).optional(),
       confirmation_number: z.string().max(100).optional(),
       notes: z.string().max(1000).optional(),
-      status: z.enum(['pending', 'confirmed', 'cancelled']).optional().describe('Reservation status: "pending", "confirmed", or "cancelled"'),
+      status: z.enum(RESERVATION_STATUSES).optional().describe('Reservation status: "pending", "confirmed", or "cancelled"'),
       place_id: idSchema.nullable().optional().describe('Link to a place (use for hotel type), or null to unlink'),
       assignment_id: idSchema.nullable().optional().describe('Link to a day assignment (use for restaurant, train, car, cruise, event, tour, activity, other), or null to unlink'),
     },
@@ -424,7 +431,7 @@ export class ReservationsMcp {
       tripId: number; reservationId: number; title?: string;
       type?: BookingType;
       reservation_time?: string; reservation_end_time?: string; url?: string; location?: string; confirmation_number?: string; notes?: string;
-      status?: 'pending' | 'confirmed' | 'cancelled'; place_id?: number | null; assignment_id?: number | null;
+      status?: ReservationStatus; place_id?: number | null; assignment_id?: number | null;
     },
     ctx: McpContext,
   ) {
@@ -657,7 +664,7 @@ export class ReservationsMcp {
       tripId: idSchema,
       type: z.enum(CREATABLE_TRANSPORT_TYPES),
       title: z.string().min(1).max(200),
-      status: z.enum(['pending', 'confirmed', 'cancelled']).optional().default('pending'),
+      status: z.enum(RESERVATION_STATUSES).optional().default('pending'),
       start_day_id: idSchema.optional().describe('Departure day'),
       end_day_id: idSchema.optional().describe('Arrival day (if different from departure)'),
       reservation_time: z.string().optional().describe('ISO 8601 datetime or time string for departure'),
@@ -678,7 +685,7 @@ export class ReservationsMcp {
   async createTransport(
     { tripId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, url, notes, metadata, endpoints, legs, needs_review, price, budget_category }: {
       tripId: number; type: TransportType; title: string;
-      status?: 'pending' | 'confirmed' | 'cancelled'; start_day_id?: number; end_day_id?: number;
+      status?: ReservationStatus; start_day_id?: number; end_day_id?: number;
       reservation_time?: string; reservation_end_time?: string; confirmation_number?: string; url?: string; notes?: string;
       metadata?: Record<string, string>; endpoints?: TransportEndpoint[]; legs?: TransportLegInput[]; needs_review?: boolean;
       price?: number; budget_category?: string;
@@ -759,7 +766,7 @@ export class ReservationsMcp {
       reservationId: idSchema,
       type: z.enum(CREATABLE_TRANSPORT_TYPES).optional(),
       title: z.string().min(1).max(200).optional(),
-      status: z.enum(['pending', 'confirmed', 'cancelled']).optional(),
+      status: z.enum(RESERVATION_STATUSES).optional(),
       start_day_id: idSchema.optional().describe('Departure day'),
       end_day_id: idSchema.optional().describe('Arrival day (if different from departure)'),
       reservation_time: z.string().optional().describe('ISO 8601 datetime or time string for departure'),
@@ -778,7 +785,7 @@ export class ReservationsMcp {
   async updateTransport(
     { tripId, reservationId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, url, notes, metadata, endpoints, legs, needs_review }: {
       tripId: number; reservationId: number; type?: TransportType; title?: string;
-      status?: 'pending' | 'confirmed' | 'cancelled'; start_day_id?: number; end_day_id?: number;
+      status?: ReservationStatus; start_day_id?: number; end_day_id?: number;
       reservation_time?: string; reservation_end_time?: string; confirmation_number?: string; url?: string; notes?: string;
       metadata?: Record<string, string>; endpoints?: TransportEndpoint[]; legs?: TransportLegInput[]; needs_review?: boolean;
     },

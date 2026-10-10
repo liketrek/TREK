@@ -32,6 +32,7 @@ export * from './todo/todo.schema';
 export * from './budget/budget.schema';
 export * from './budget/receipt-scan.schema';
 export * from './reservation/reservation.schema';
+export * from './reservation/reservation-types';
 export * from './reservation/ki-reservation.schema';
 export * from './datetime/datetime-normalize';
 export * from './airtrail/airtrail.schema';

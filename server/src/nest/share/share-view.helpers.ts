@@ -1,13 +1,12 @@
+import { TRAVEL_RESERVATION_TYPES } from '@trek/shared';
+
 /**
  * The two narrowing options of a public share link (#1712), as pure functions over
  * the snapshot the service has already read, so they can be tested apart from SQL.
  */
 
-/** Getting there and sleeping there: every transport type, and the hotel. */
-const TRAVEL_BOOKING_TYPES = new Set([
-  'flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transit', 'transport_other',
-  'hotel',
-]);
+/** Getting there and sleeping there: every transport type, and the hotel (the shared catalog's travel set). */
+const TRAVEL_BOOKING_TYPES: ReadonlySet<string> = new Set(TRAVEL_RESERVATION_TYPES);
 
 export function isTravelBooking(type: unknown): boolean {
   return typeof type === 'string' && TRAVEL_BOOKING_TYPES.has(type);
