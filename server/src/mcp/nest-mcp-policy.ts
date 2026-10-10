@@ -58,15 +58,32 @@ export const trekMcpValidateAccess: McpAccessValidator = ({ group, mode }) =>
   VALID_GROUP_MODES.has(`${group}:${mode}`) ? null : `no '${group}:${mode}' scope in SCOPES`;
 
 /**
+ * Write tools a demo account has always been able to call: none of them ever
+ * carried a demo check of its own, so the central gate lets them through to
+ * keep that. Taking one off this list blocks it for demo accounts, which is a
+ * behaviour change of its own. tests/unit/mcp/demo-tool-gate.test.ts pins the
+ * list.
+ */
+export const DEMO_UNGATED_WRITE_TOOLS: ReadonlySet<string> = new Set([
+  'sync_trip_documents',
+  'create_manual_school_holiday_country',
+  'create_manual_school_holiday_region',
+  'update_manual_school_holiday_region',
+  'delete_manual_school_holiday_region',
+  'delete_manual_school_holiday_country',
+]);
+
+/**
  * True for a tool the demo gate holds back: every tool that does not declare
- * itself read-only. The annotation, not `access.mode`, is the signal, because
- * the share/content scopes cover reads too (get_share_link,
- * get_trip_calendar_feed, read_trip_file) and the predicate-gated tools carry
- * no mode at all. tests/unit/mcp/demo-tool-gate.test.ts holds the two in step:
- * every `mode: 'read'` tool is read-only and every `mode: 'write'` one is not.
+ * itself read-only, except the ones in DEMO_UNGATED_WRITE_TOOLS. The
+ * annotation, not `access.mode`, is the signal, because the share/content
+ * scopes cover reads too (get_share_link, get_trip_calendar_feed,
+ * read_trip_file) and the predicate-gated tools carry no mode at all.
+ * tests/unit/mcp/demo-tool-gate.test.ts holds the two in step: every
+ * `mode: 'read'` tool is read-only and every `mode: 'write'` one is not.
  */
 export function isDemoGatedTool(tool: ToolOptions): boolean {
-  return tool.annotations?.readOnlyHint !== true;
+  return tool.annotations?.readOnlyHint !== true && !DEMO_UNGATED_WRITE_TOOLS.has(tool.name);
 }
 
 /**

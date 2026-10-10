@@ -12,7 +12,7 @@
  */
 import { ADDON_IDS } from '../../../src/addons';
 import { db as testDb } from '../../../src/db/database';
-import { isDemoGatedTool, trekDemoToolGate } from '../../../src/mcp/nest-mcp-policy';
+import { DEMO_UNGATED_WRITE_TOOLS, isDemoGatedTool, trekDemoToolGate } from '../../../src/mcp/nest-mcp-policy';
 import type { McpContext, McpRegistry, McpRegistryListing } from '../../../src/nest-mcp';
 import { withRequestContext } from '../../../src/nest/database/request-context';
 import { createUser } from '../../helpers/factories';
@@ -93,10 +93,40 @@ describe('demo tool gate over the whole registry', () => {
     const { user: demo } = createUser(testDb, { email: 'demo@trek.app' });
     const tools = await captureTools(registry, { userId: demo.id, scopes: null, isStaticToken: false });
 
-    const writes = [...tools].filter(([, t]) => t.annotations?.readOnlyHint !== true);
+    const writes = [...tools].filter(
+      ([name, t]) => t.annotations?.readOnlyHint !== true && !DEMO_UNGATED_WRITE_TOOLS.has(name),
+    );
     expect(writes.length).toBeGreaterThan(150);
     const answers = await Promise.all(writes.map(async ([name, tool]) => ({ name, result: await tool.call() })));
     expect(answers).toEqual(writes.map(([name]) => ({ name, result: DEMO_REFUSAL })));
+  });
+
+  it('DEMOGATE-007: the write tools that never had a demo check stay open to the demo account', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { user: demo } = createUser(testDb, { email: 'demo@trek.app' });
+    const ctx: McpContext = { userId: demo.id, scopes: null, isStaticToken: false };
+    const tools = await captureTools(registry, ctx);
+    const gate = trekDemoToolGate(async () => true);
+    const open = [...DEMO_UNGATED_WRITE_TOOLS].sort();
+    expect(open).toEqual([
+      'create_manual_school_holiday_country',
+      'create_manual_school_holiday_region',
+      'delete_manual_school_holiday_country',
+      'delete_manual_school_holiday_region',
+      'sync_trip_documents',
+      'update_manual_school_holiday_region',
+    ]);
+    for (const name of open) {
+      expect(tools.get(name), name).toBeDefined();
+      expect(tools.get(name)?.annotations?.readOnlyHint, name).not.toBe(true);
+    }
+    const refusals = await Promise.all(
+      open.map(async (name) => ({
+        name,
+        refusal: await gate({ name, annotations: tools.get(name)?.annotations }, ctx),
+      })),
+    );
+    expect(refusals).toEqual(open.map((name) => ({ name, refusal: undefined })));
   });
 
   it('DEMOGATE-002: no read-only tool is held back for the demo account', async () => {
@@ -181,6 +211,14 @@ describe('trekDemoToolGate', () => {
     const isDemo = vi.fn(async () => true);
     expect(await trekDemoToolGate(isDemo)({ name: 'r', annotations: { readOnlyHint: true } }, ctx)).toBeUndefined();
     expect(isDemo).not.toHaveBeenCalled();
+  });
+
+  it('DEMOGATE-014: a listed write tool passes the gate without asking about the caller', async () => {
+    const isDemo = vi.fn(async () => true);
+    const gate = trekDemoToolGate(isDemo);
+    expect(await gate({ name: 'sync_trip_documents', annotations: { readOnlyHint: false } }, ctx)).toBeUndefined();
+    expect(isDemo).not.toHaveBeenCalled();
+    expect(isDemoGatedTool({ name: 'delete_manual_school_holiday_country' })).toBe(false);
   });
 
   it('DEMOGATE-013: a tool without annotations counts as a write', () => {

@@ -83,7 +83,8 @@ createTestRegistry(instances, { accessPolicy, toolGate: (tool, ctx) => undefined
 The gate is built from the container (`imports`/`inject`/`useFactory`), because
 a check that reads the database cannot live in static `forRoot` options. TREK's
 is `trekDemoToolGate` in `src/mcp/nest-mcp-policy.ts`: a demo account calling a
-tool not annotated `readOnlyHint: true` gets `demoDenied()`. Tools therefore
+tool not annotated `readOnlyHint: true` gets `demoDenied()`, except the few
+write tools in `DEMO_UNGATED_WRITE_TOOLS` that never had a demo check. Tools therefore
 never check demo mode themselves; ESLint refuses `isDemoUser`/`isDemoUserId`/
 `demoDenied()` in `*.mcp.ts`.
 
