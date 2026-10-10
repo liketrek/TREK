@@ -1,6 +1,12 @@
 import { Body, Controller, Get, HttpCode, HttpException, Post, Put, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { MASKED_SETTING_VALUE } from '@trek/shared';
+import {
+  MASKED_SETTING_VALUE,
+  adminDefaultUserSettingsResponseSchema,
+  settingUpsertResponseSchema,
+  settingsBulkResponseSchema,
+  settingsListResponseSchema,
+} from '@trek/shared';
 import type { User } from '../../types';
 import { SettingsService, isAdminOnlyEndpointSetting } from './settings.service';
 import { AdminDefaultUserSettingsDto, SettingUpsertDto, SettingsBulkDto } from './settings.dto';
@@ -11,6 +17,7 @@ import { getClientIp } from '../audit/client-ip';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { isManagedLockedKey, splitManagedKeys } from '../common/managed';
+import { ResponseContract } from '../common/response-contract';
 
 /**
  * /api/settings — per-user key/value preferences: get-all, single upsert
@@ -54,11 +61,13 @@ export class SettingsController {
   }
 
   @Get()
+  @ResponseContract(settingsListResponseSchema)
   async list(@CurrentUser() user: User) {
     return { settings: await this.settings.getUserSettings(user.id) };
   }
 
   @Put()
+  @ResponseContract(settingUpsertResponseSchema)
   async upsert(@CurrentUser() user: User, @Body() body: SettingUpsertDto) {
     this.assertMayWriteInstanceEndpoint({ [body.key]: body.value });
     // assertMayWriteInstanceEndpoint only covers llm_base_url and provider 'local'.
@@ -77,6 +86,7 @@ export class SettingsController {
 
   @Post('bulk')
   @HttpCode(200) // Express answers bulk with res.json (200), not the POST-default 201.
+  @ResponseContract(settingsBulkResponseSchema)
   async bulk(@CurrentUser() user: User, @Body() body: SettingsBulkDto) {
     this.assertMayWriteInstanceEndpoint(body.settings);
     const { allowed, blocked } = splitManagedKeys(body.settings, this.env.isManaged());
@@ -107,11 +117,13 @@ export class AdminDefaultUserSettingsController {
   ) {}
 
   @Get()
+  @ResponseContract(adminDefaultUserSettingsResponseSchema)
   async get() {
     return this.settings.getAdminUserDefaults();
   }
 
   @Put()
+  @ResponseContract(adminDefaultUserSettingsResponseSchema)
   async update(@CurrentUser() user: User, @Body() body: AdminDefaultUserSettingsDto, @Req() req: Request) {
     try {
       // Deliberately no managed_keys in the response here: the route answers

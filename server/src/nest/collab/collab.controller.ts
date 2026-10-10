@@ -37,6 +37,21 @@ import { CurrentUser } from '../auth-core/current-user.decorator';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { BLOCKED_EXTENSIONS, MAX_FILE_SIZE } from '../files/files.constants';
 import { SpoolCleanupInterceptor } from '../common/spool-cleanup.interceptor';
+import { ResponseContract } from '../common/response-contract';
+import {
+  collabLinkPreviewResponseSchema,
+  collabLinkResponseSchema,
+  collabLinksResponseSchema,
+  collabMessageResponseSchema,
+  collabMessagesResponseSchema,
+  collabNoteFileResponseSchema,
+  collabNoteResponseSchema,
+  collabNotesResponseSchema,
+  collabPollResponseSchema,
+  collabPollsResponseSchema,
+  collabReactionsResponseSchema,
+  successResponseSchema,
+} from '@trek/shared';
 
 // Note attachments follow the same limit as the file manager (#1364).
 export const MAX_NOTE_FILE_SIZE = MAX_FILE_SIZE;
@@ -128,6 +143,7 @@ export class CollabController {
   // ── Notes ───────────────────────────────────────────────────────────────
   @UseGuards(TripAccessGuard)
   @Get('notes')
+  @ResponseContract(collabNotesResponseSchema)
   async listNotes(@CurrentUser() user: User, @Param('tripId') tripId: string) {
     return { notes: await this.collab.listNotes(tripId) };
   }
@@ -135,6 +151,7 @@ export class CollabController {
   @UseGuards(TripAccessGuard)
   @RequirePermission('collab_edit')
   @Post('notes')
+  @ResponseContract(collabNoteResponseSchema)
   async createNote(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body() body: CollabNoteCreateDto, @Headers('x-socket-id') socketId?: string) {
     const note = await this.collab.createNote(tripId, user.id, {
       title: body.title,
@@ -151,6 +168,7 @@ export class CollabController {
   @UseGuards(TripAccessGuard)
   @RequirePermission('collab_edit')
   @Put('notes/:id')
+  @ResponseContract(collabNoteResponseSchema)
   async updateNote(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Body() body: CollabNoteUpdateDto, @Headers('x-socket-id') socketId?: string) {
     const note = await this.collab.updateNote(tripId, id, {
       title: body.title,
@@ -170,6 +188,7 @@ export class CollabController {
   @UseGuards(TripAccessGuard)
   @RequirePermission('collab_edit')
   @Delete('notes/:id')
+  @ResponseContract(successResponseSchema)
   async deleteNote(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
     if (!(await this.collab.deleteNote(tripId, id))) {
       throw new HttpException({ error: 'Note not found' }, 404);
@@ -180,6 +199,7 @@ export class CollabController {
 
   @Post('notes/:id/files')
   @UseInterceptors(FileInterceptor('file'))
+  @ResponseContract(collabNoteFileResponseSchema)
   async addNoteFile(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined, @Headers('x-socket-id') socketId?: string) {
     // multer has already written the upload to the spool dir by the time any of
     // these checks run, and nothing sweeps orphans, so every refusal takes the
@@ -215,6 +235,7 @@ export class CollabController {
   @UseGuards(TripAccessGuard)
   @RequirePermission('collab_edit')
   @Delete('notes/:id/files/:fileId')
+  @ResponseContract(successResponseSchema)
   async deleteNoteFile(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Param('fileId') fileId: string, @Headers('x-socket-id') socketId?: string) {
     if (!(await this.collab.deleteNoteFile(tripId, id, fileId))) {
       throw new HttpException({ error: 'File not found' }, 404);
@@ -226,6 +247,7 @@ export class CollabController {
   // ── Shared links ────────────────────────────────────────────────────────
   @UseGuards(TripAccessGuard)
   @Get('links')
+  @ResponseContract(collabLinksResponseSchema)
   async listLinks(@CurrentUser() user: User, @Param('tripId') tripId: string) {
     return { links: await this.collab.listLinks(tripId) };
   }
@@ -233,6 +255,7 @@ export class CollabController {
   @UseGuards(TripAccessGuard)
   @RequirePermission('collab_edit')
   @Post('links')
+  @ResponseContract(collabLinkResponseSchema)
   async createLink(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body() body: CollabLinkCreateDto, @Headers('x-socket-id') socketId?: string) {
     const link = await this.collab.createLink(tripId, user.id, { title: body.title, url: body.url, pinned: Boolean(body.pinned) });
     this.collab.broadcast(tripId, 'collab:link:created', { link }, socketId);
@@ -242,6 +265,7 @@ export class CollabController {
   @UseGuards(TripAccessGuard)
   @RequirePermission('collab_edit')
   @Put('links/:id')
+  @ResponseContract(collabLinkResponseSchema)
   async updateLink(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Body() body: CollabLinkUpdateDto, @Headers('x-socket-id') socketId?: string) {
     const link = await this.collab.updateLink(tripId, id, {
       title: body.title,
@@ -256,6 +280,7 @@ export class CollabController {
   @UseGuards(TripAccessGuard)
   @RequirePermission('collab_edit')
   @Delete('links/:id')
+  @ResponseContract(successResponseSchema)
   async deleteLink(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
     if (!(await this.collab.deleteLink(tripId, id))) throw new HttpException({ error: 'Link not found' }, 404);
     this.collab.broadcast(tripId, 'collab:link:deleted', { linkId: Number(id) }, socketId);
@@ -265,6 +290,7 @@ export class CollabController {
   // ── Polls ───────────────────────────────────────────────────────────────
   @UseGuards(TripAccessGuard)
   @Get('polls')
+  @ResponseContract(collabPollsResponseSchema)
   async listPolls(@CurrentUser() user: User, @Param('tripId') tripId: string) {
     return { polls: await this.collab.listPolls(tripId) };
   }
@@ -272,6 +298,7 @@ export class CollabController {
   @UseGuards(TripAccessGuard)
   @RequirePermission('collab_edit')
   @Post('polls')
+  @ResponseContract(collabPollResponseSchema)
   async createPoll(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body() body: CollabPollCreateDto, @Headers('x-socket-id') socketId?: string) {
     const poll = await this.collab.createPoll(tripId, user.id, {
       question: body.question,
@@ -288,6 +315,7 @@ export class CollabController {
   @RequirePermission('collab_edit')
   @Post('polls/:id/vote')
   @HttpCode(200)
+  @ResponseContract(collabPollResponseSchema)
   async votePoll(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Body() body: CollabPollVoteDto, @Headers('x-socket-id') socketId?: string) {
     const result = await this.collab.votePoll(tripId, id, user.id, body.option_index);
     if (result.error === 'not_found') throw new HttpException({ error: 'Poll not found' }, 404);
@@ -300,6 +328,7 @@ export class CollabController {
   @UseGuards(TripAccessGuard)
   @RequirePermission('collab_edit')
   @Put('polls/:id/close')
+  @ResponseContract(collabPollResponseSchema)
   async closePoll(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
     const poll = await this.collab.closePoll(tripId, id);
     if (!poll) {
@@ -312,6 +341,7 @@ export class CollabController {
   @UseGuards(TripAccessGuard)
   @RequirePermission('collab_edit')
   @Delete('polls/:id')
+  @ResponseContract(successResponseSchema)
   async deletePoll(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
     if (!(await this.collab.deletePoll(tripId, id))) {
       throw new HttpException({ error: 'Poll not found' }, 404);
@@ -323,6 +353,7 @@ export class CollabController {
   // ── Messages ────────────────────────────────────────────────────────────
   @UseGuards(TripAccessGuard)
   @Get('messages')
+  @ResponseContract(collabMessagesResponseSchema)
   async listMessages(@CurrentUser() user: User, @Param('tripId') tripId: string, @Query('before') before?: string) {
     return { messages: await this.collab.listMessages(tripId, before) };
   }
@@ -340,6 +371,7 @@ export class CollabController {
     FilesInterceptor('images', MAX_CHAT_IMAGES, { fileFilter: collabChatImageFilter, limits: { files: MAX_CHAT_IMAGES, fileSize: 10 * 1024 * 1024 } }),
     SpoolCleanupInterceptor,
   )
+  @ResponseContract(collabMessageResponseSchema)
   async createMessage(@CurrentUser() user: User, @Param('tripId') tripId: string, @Body() body: CollabMessageCreateDto, @UploadedFiles() files: Express.Multer.File[] | undefined, @Headers('x-socket-id') socketId?: string) {
     const uploaded = files || [];
     const cleanupSpool = () => uploaded.forEach(file => { if (file.path) { try { fs.unlinkSync(file.path); } catch { /* best-effort */ } } });
@@ -398,6 +430,7 @@ export class CollabController {
   @RequirePermission('collab_edit')
   @Post('messages/:id/react')
   @HttpCode(200)
+  @ResponseContract(collabReactionsResponseSchema)
   async react(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Body() body: CollabReactionDto, @Headers('x-socket-id') socketId?: string) {
     const result = await this.collab.reactMessage(id, tripId, user.id, body.emoji);
     if (!result.found) {
@@ -410,6 +443,7 @@ export class CollabController {
   @UseGuards(TripAccessGuard)
   @RequirePermission('collab_edit')
   @Delete('messages/:id')
+  @ResponseContract(successResponseSchema)
   async deleteMessage(@CurrentUser() user: User, @Param('tripId') tripId: string, @Param('id') id: string, @Headers('x-socket-id') socketId?: string) {
     const result = await this.collab.deleteMessage(tripId, id, user.id);
     if (result.error === 'not_found') throw new HttpException({ error: 'Message not found' }, 404);
@@ -428,6 +462,7 @@ export class CollabController {
   // inside the service, not a write permission.
   @UseGuards(TripAccessGuard)
   @Get('link-preview')
+  @ResponseContract(collabLinkPreviewResponseSchema)
   async linkPreview(@CurrentUser() user: User, @Param('tripId') tripId: string, @Query('url') url?: string) {
     // Unlike the legacy route, this verifies trip access — any authed user
     // could otherwise drive the SSRF-guarded fetcher through arbitrary trip URLs.

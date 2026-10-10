@@ -34,3 +34,35 @@ export const weekStartSchema = z.enum(WEEK_START_VALUES);
 export const DEFAULT_WEEK_START: WeekStart = 'monday';
 /** Date#getDay() of each value, the number a calendar grid computes with. */
 export const WEEK_START_DAY: Record<WeekStart, number> = { monday: 1, sunday: 0, saturday: 6 };
+
+// ── Responses ───────────────────────────────────────────────────────────────
+
+/** GET /api/settings: the user's preferences by key, each value as getUserSettings parsed it (secrets masked). */
+export const settingsListResponseSchema = z.object({ settings: z.record(z.string(), z.unknown()) });
+export type SettingsListResponse = z.infer<typeof settingsListResponseSchema>;
+
+/**
+ * PUT /api/settings: the key echoed back with what happened to it. `value` when it was
+ * written, `unchanged` when the masked secret came back as it was, `managed` when a
+ * managed install keeps the key.
+ */
+export const settingUpsertResponseSchema = z.object({
+  success: z.literal(true),
+  key: z.string(),
+  value: z.unknown().optional(),
+  unchanged: z.literal(true).optional(),
+  managed: z.literal(true).optional(),
+});
+export type SettingUpsertResponse = z.infer<typeof settingUpsertResponseSchema>;
+
+/** POST /api/settings/bulk: how many keys were written, and the managed keys left alone (only when there were any). */
+export const settingsBulkResponseSchema = z.object({
+  success: z.literal(true),
+  updated: z.number(),
+  managed_keys: z.array(z.string()).optional(),
+});
+export type SettingsBulkResponse = z.infer<typeof settingsBulkResponseSchema>;
+
+/** GET/PUT /api/admin/default-user-settings: the stored defaults a new account starts with, by key. */
+export const adminDefaultUserSettingsResponseSchema = z.record(z.string(), z.unknown());
+export type AdminDefaultUserSettingsResponse = z.infer<typeof adminDefaultUserSettingsResponseSchema>;

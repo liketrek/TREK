@@ -17,6 +17,14 @@ import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { toRowId } from '../common/row-id';
+import { ResponseContract } from '../common/response-contract';
+import {
+  successResponseSchema,
+  todoCategoryAssigneesResponseSchema,
+  todoCategoryAssigneesUpdateResponseSchema,
+  todoItemResponseSchema,
+  todoListResponseSchema,
+} from '@trek/shared';
 
 /**
  * /api/trips/:tripId/todo — trip-scoped task list.
@@ -40,12 +48,14 @@ export class TodoController {
 
 
   @Get()
+  @ResponseContract(todoListResponseSchema)
   async list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
     return { items: await this.todo.listItems(tripId) };
   }
 
   @RequirePermission('packing_edit')
   @Post()
+  @ResponseContract(todoItemResponseSchema)
   async create(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
@@ -60,6 +70,7 @@ export class TodoController {
 
   @RequirePermission('packing_edit')
   @Put('reorder')
+  @ResponseContract(successResponseSchema)
   async reorder(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
@@ -71,6 +82,7 @@ export class TodoController {
 
   @RequirePermission('packing_edit')
   @Put(':id')
+  @ResponseContract(todoItemResponseSchema)
   async update(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
@@ -105,6 +117,7 @@ export class TodoController {
 
   @RequirePermission('packing_edit')
   @Delete(':id')
+  @ResponseContract(successResponseSchema)
   async remove(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
@@ -124,12 +137,14 @@ export class TodoController {
   }
 
   @Get('category-assignees')
+  @ResponseContract(todoCategoryAssigneesResponseSchema)
   async categoryAssignees(@CurrentUser() user: User, @Param('tripId') tripId: string) {
     return { assignees: await this.todo.getCategoryAssignees(tripId) };
   }
 
   @RequirePermission('packing_edit')
   @Put('category-assignees/:categoryName')
+  @ResponseContract(todoCategoryAssigneesUpdateResponseSchema)
   async updateCategoryAssignees(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,

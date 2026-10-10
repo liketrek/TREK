@@ -24,6 +24,7 @@ export class FilesDownloadController {
     private readonly storage: StorageService,
   ) {}
 
+  // response-contract-exempt: streams the file through @Res(), there is no JSON body to check.
   @Get(':id/download')
   async download(
     @Req() req: Request,

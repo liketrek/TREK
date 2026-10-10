@@ -36,7 +36,7 @@ const { db } = vi.hoisted(() => {
   tmp.exec(`CREATE TABLE trip_files (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
     place_id INTEGER, reservation_id INTEGER, message_id INTEGER, filename TEXT NOT NULL,
     original_name TEXT NOT NULL, file_size INTEGER, mime_type TEXT, description TEXT,
-    uploaded_by INTEGER, starred INTEGER DEFAULT 0,
+    note_id INTEGER, uploaded_by INTEGER, starred INTEGER DEFAULT 0,
     deleted_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   tmp.exec(`CREATE TABLE file_links (id INTEGER PRIMARY KEY AUTOINCREMENT, file_id INTEGER NOT NULL,
     reservation_id INTEGER, assignment_id INTEGER, place_id INTEGER, budget_item_id INTEGER,
