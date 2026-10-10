@@ -31,6 +31,8 @@ import {
   haversineMetres,
   namesOverlap,
   readChargingInfo,
+  buildOsmDetails,
+  OSM_PLACE_ID,
   type OverpassPoi,
 } from '../maps.helpers';
 import { nearbyOverpassQuery, overpassNearbyRecords } from '../maps-nearby.helpers';
@@ -444,6 +446,46 @@ export class OsmClient {
       { timeoutMs: 8000 },
     );
     return res.ok ? ((await res.json()) as NominatimReverse) : {};
+  }
+
+  /**
+   * The details record of an OpenStreetMap element id (`node:123`, `way:4`,
+   * `relation:5`), or null for anything else with a colon in it.
+   */
+  async elementDetails(placeId: string, lang?: string): Promise<Record<string, unknown> | null> {
+    // Only an element type with a numeric id is looked up. The id is written
+    // into an Overpass query and a Nominatim lookup as it came in, and nothing
+    // else with a colon in it (a legacy image URL, a coordinate pseudo-id) has
+    // a details source: answering those with an empty record cost two
+    // requests that could not succeed, and let anything after the colon be
+    // sent as a query of its own.
+    if (!OSM_PLACE_ID.test(placeId)) return null;
+    const [osmType, osmId] = placeId.split(':');
+    // buildOsmDetails never yields name/address/coordinates — Nominatim is
+    // always the source for those (Overpass contributes the tag-derived rest).
+    const [element, nominatim] = await Promise.all([
+      this.fetchOverpassDetails(osmType, osmId),
+      this.lookupNominatim(osmType, osmId, lang),
+    ]);
+    // Overpass has the fuller tag set and wins where both answer, but it is
+    // also the one that goes down — overpass-api.de is regularly overloaded.
+    // Nominatim's extratags carry the wikidata/wikipedia/commons tags too, so
+    // a place keeps its pictures and its description when Overpass times out
+    // instead of falling back to "photographed within 300m".
+    const details = buildOsmDetails(
+      { ...(nominatim?.extratags ?? {}), ...(element?.tags ?? {}) },
+      osmType,
+      osmId,
+    );
+
+    return {
+      ...details,
+      name: nominatim?.name || element?.tags?.name || '',
+      address: nominatim?.address || '',
+      lat: nominatim?.lat ?? null,
+      lng: nominatim?.lng ?? null,
+      osm_id: placeId,
+    };
   }
 
   // ── Overpass API (OSM details) ─────────────────────────────────────────────

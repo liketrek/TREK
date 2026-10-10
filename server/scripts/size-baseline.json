@@ -13,7 +13,6 @@
   "src/nest/doc-sync/doc-sync.service.ts": 1060,
   "src/nest/doc-sync/providers/synology-drive.client.ts": 1160,
   "src/nest/journey/journey-domain.service.ts": 1799,
-  "src/nest/maps/maps.service.ts": 3252,
   "src/nest/places/places.service.ts": 2020,
   "src/nest/plugins/plugin-runtime.service.ts": 1463,
   "src/nest/plugins/runtime/plugin-sdk.ts": 1094,

@@ -6,6 +6,10 @@ import { MapsMcp } from './maps.mcp';
 import { GooglePlacesClient } from './providers/google-places.provider';
 import { OsmClient } from './providers/osm.client';
 import { WikimediaClient } from './providers/wikimedia.client';
+import { PlacesProviderSelector } from './places-provider.selector';
+import { PlacePhotoResolver } from './place-photo.resolver';
+import { MapsUrlResolver } from './maps-url.resolver';
+import { PlaceDetailsResolver } from './place-details.resolver';
 import { PlacePhotosModule } from '../place-photos/place-photos.module';
 import { StorageModule } from '../storage/storage.module';
 import { GoogleQuotaModule } from '../google-quota/google-quota.module';
@@ -15,23 +19,37 @@ import { PlaceDetailsCache } from '../../db/entities/PlaceDetailsCache.entity';
 import { Places } from '../../db/entities/Places.entity';
 
 /**
- * Maps / geo domain (L3 leaf module). Registered in AppModule. Exports
- * MapsService for the in-container consumers (BookingImportModule's Nominatim
- * geocoding, PlacesModule's search_place tool and list-import enrichment).
- * Nothing outside the container consumes this domain, so there is no bridge.
+ * Maps / geo domain (L3 leaf module). Registered in AppModule.
  *
- * MikroOrmModule.forFeature([AppSettings, Users, PlaceDetailsCache, Places]):
- * MapsService passes its own AppSettingsRepository/UsersRepository to
- * instance-api-keys.ts's resolveApiKey (Plan 3a Task 5). Plan 3h Task 4 (R8)
- * adds `PlaceDetailsCache` (MAP3-8 reuse `PlaceDetailsCacheRepository`, built
- * for `place-enrichment.service.ts` — only the entity class is imported
- * here, not that domain's own Nest module, so there is no new module edge/
- * cycle risk) and `Places` (MAP9's additive `setImageUrlIfUnset`).
+ * MapsService is the orchestrator every consumer injects (BookingImportModule's
+ * geocoding, PlacesModule's search_place tool and list-import enrichment, the
+ * road trip search). Behind it sit one provider per outbound source
+ * (GooglePlacesClient, OsmClient, WikimediaClient; Amap is built per request by
+ * PlacesProviderSelector) and the resolvers it delegates to. The three clients
+ * are exported too, so the enrichment column asks Google, OpenStreetMap and
+ * Wikimedia directly rather than through a MapsService facade. Nothing outside
+ * the container consumes this domain, so there is no bridge.
+ *
+ * MikroOrmModule.forFeature: AppSettings and Users for the key chain
+ * (instance-api-keys.ts's resolveApiKey) and the kill switches,
+ * PlaceDetailsCache for the details cache (the entity only, not
+ * place-enrichment's module, so there is no new module edge) and Places for the
+ * marker photo's `setImageUrlIfUnset`.
  */
 @Module({
   imports: [PlacePhotosModule, StorageModule, GoogleQuotaModule, MikroOrmModule.forFeature([AppSettings, Users, PlaceDetailsCache, Places])],
   controllers: [MapsController],
-  providers: [MapsService, MapsMcp, GooglePlacesClient, OsmClient, WikimediaClient],
+  providers: [
+    MapsService,
+    MapsMcp,
+    GooglePlacesClient,
+    OsmClient,
+    WikimediaClient,
+    PlacesProviderSelector,
+    PlacePhotoResolver,
+    MapsUrlResolver,
+    PlaceDetailsResolver,
+  ],
   exports: [MapsService, GooglePlacesClient, OsmClient, WikimediaClient],
 })
 export class MapsModule {}
