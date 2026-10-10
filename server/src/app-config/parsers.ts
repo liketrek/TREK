@@ -1,7 +1,6 @@
 /**
  * Pure env-string coercion helpers shared by the whole config layer (derive.ts,
- * env.schema.ts) and — until their call sites migrate — by legacy readers like
- * src/mcp/config.ts. Kept free of imports so units can test them in isolation.
+ * env.schema.ts). Kept free of imports so units can test them in isolation.
  *
  * Each helper reproduces a coercion family that already exists in the codebase.
  * Parity is law: do NOT "fix" a family's quirks here (e.g. `numberOr` treating
@@ -102,7 +101,6 @@ export function parseDurationMs(value: string): number | null {
 /**
  * Session idle TTL in SECONDS via MCP_SESSION_TTL, default 1 hour, clamped to
  * 24h so a milliseconds-value typo can't produce a 1000-hour session.
- * (Same contract as src/mcp/config.ts, which commit 7 retires in favor of this.)
  */
 export function resolveSessionTtlMs(raw: string | undefined): number {
   const parsed = Number.parseInt(raw ?? '');
