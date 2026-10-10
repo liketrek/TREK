@@ -31,6 +31,7 @@ vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.
 import { db as testDb } from '../../src/db/database';
 import { MikroORM } from '@mikro-orm/core';
 import { buildApp } from '../../src/bootstrap';
+import { DomainError } from '../../src/nest/common/domain-error';
 import { resetTestDb, resetRateLimits } from '../helpers/test-db';
 import type { FactoryOrm } from '../helpers/factories/context';
 import { createUser, createAdmin, createTrip, createPlace, addTripMember } from '../helpers/factories';
@@ -903,10 +904,8 @@ describe('Google Maps list import', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    importGoogleList.mockResolvedValueOnce({
-      error: 'Invalid list URL',
-      status: 422,
-    } as any);
+    // The service refuses by throwing a DomainError; the controller passes it through.
+    importGoogleList.mockRejectedValueOnce(new DomainError(422, 'Invalid list URL'));
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/places/import/google-list`)
@@ -956,10 +955,7 @@ describe('Place image search', () => {
     const trip = createTrip(testDb, user.id);
     const place = createPlace(testDb, trip.id, { name: 'Tower' });
 
-    searchPlaceImage.mockResolvedValueOnce({
-      error: 'No images found',
-      status: 404,
-    } as any);
+    searchPlaceImage.mockRejectedValueOnce(new DomainError(404, 'No images found'));
 
     const res = await request(app)
       .get(`/api/trips/${trip.id}/places/${place.id}/image`)
