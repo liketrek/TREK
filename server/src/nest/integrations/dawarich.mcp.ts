@@ -3,13 +3,12 @@ import {
   TOOL_ANNOTATIONS_READONLY,
   TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
+  errorResult, ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
 import { ADDON_IDS } from '../../addons';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
-import { AuthService } from '../auth/auth.service';
 import { AcceptError, DawarichSuggestionsService } from './dawarich-suggestions.service';
 import { DawarichTracksService } from './dawarich-tracks.service';
 
@@ -50,7 +49,6 @@ export class DawarichMcp {
   constructor(
     private readonly suggestions: DawarichSuggestionsService,
     private readonly tracks: DawarichTracksService,
-    private readonly auth: AuthService,
     readonly addons: AddonsService,
   ) {}
 
@@ -108,7 +106,6 @@ export class DawarichMcp {
     args: { suggestionId: number; tripId?: number; dayId?: number; name?: string; notes?: string; lat?: number; lng?: number },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const { suggestionId, ...rest } = args;
     return this.run(() => this.suggestions.accept(ctx.userId, suggestionId, { target: 'place', ...rest }));
   }
@@ -133,7 +130,6 @@ export class DawarichMcp {
     args: { suggestionId: number; journalId: number; name?: string; notes?: string; date?: string; time?: string },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const { suggestionId, ...rest } = args;
     return this.run(() => this.suggestions.accept(ctx.userId, suggestionId, { target: 'journal', ...rest }));
   }
@@ -155,7 +151,6 @@ export class DawarichMcp {
     { suggestionId, bucketListItemId }: { suggestionId: number; bucketListItemId?: number },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     return this.run(() =>
       this.suggestions.accept(ctx.userId, suggestionId, { target: 'bucket_list', bucketListItemId }),
     );
@@ -177,7 +172,6 @@ export class DawarichMcp {
     { suggestionId, state }: { suggestionId: number; state?: 'dismissed' | 'new' },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const updated = await this.suggestions.setState(ctx.userId, suggestionId, state ?? 'dismissed');
     if (!updated) return errorResult('Suggestion not found');
     return ok({ suggestion: updated });

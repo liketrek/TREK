@@ -9,7 +9,6 @@ import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { AuditModule } from '../audit/audit.module';
-import { AuthModule } from '../auth/auth.module';
 import { AddonsModule } from '../addons/addons.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
@@ -33,7 +32,7 @@ import { TripMembers } from '../../db/entities/TripMembers.entity';
     // "registered here only for one read, never the owning module" shape
     // `CollabModule`'s own forFeature list documents).
     MikroOrmModule.forFeature([PackingItems, PackingItemContributors, PackingBags, PackingCategoryAssignees, PackingTemplates, PackingTemplateCategories, PackingTemplateItems, Trips, TripMembers]),
-    McpSharedModule, NotificationsModule, PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule, AddonsModule, AuditModule],
+    McpSharedModule, NotificationsModule, PermissionsModule, RealtimeModule, PluginGuardsModule, AddonsModule, AuditModule],
   controllers: [PackingController, AdminPackingTemplatesController],
   providers: [PackingService, PackingMcp, PackingRpc],
   exports: [PackingService],

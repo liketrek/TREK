@@ -5,7 +5,6 @@ import { FilesDownloadController } from './files-download.controller';
 import { FilesService } from './files.service';
 import { FilesRpc } from './files.rpc';
 import { FilesMcp } from './files.mcp';
-import { AuthModule } from '../auth/auth.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
@@ -53,10 +52,8 @@ import { Trips } from '../../db/entities/Trips.entity';
     // classes only, never the owning module — the `AccommodationsDomainModule`
     // precedent).
     MikroOrmModule.forFeature([TripFiles, FileLinks, Reservations, Places, DayAssignments, BudgetItems, Users, Trips]),
-    // AuthModule + McpSharedModule feed FilesMcp's demo and RBAC guards. Neither is
-    // @Global, and AuthModule reaches this domain only through the leaf
-    // AllowedFileTypesModule, so importing it here stays cycle-free.
-    EphemeralTokenModule, PermissionsModule, AppConfigModule, RealtimeModule, PluginGuardsModule, AuthModule, McpSharedModule,
+    // McpSharedModule feeds FilesMcp's RBAC guards; it is not @Global.
+    EphemeralTokenModule, PermissionsModule, AppConfigModule, RealtimeModule, PluginGuardsModule, McpSharedModule,
     // FilesMcp's upload tool checks the same extension list as the multipart filter.
     AllowedFileTypesModule],
   controllers: [FilesController, FilesDownloadController],

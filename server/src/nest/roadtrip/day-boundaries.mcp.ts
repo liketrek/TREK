@@ -1,11 +1,10 @@
 import { z } from 'zod';
 import { MAX_TRIP_DAYS, roadtripDayBoundarySchema, type RoadtripDayBoundary } from '@trek/shared';
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, ok, type McpContext } from '../../nest-mcp';
-import { demoDenied, noAccess, permissionDenied } from '../../mcp/tools/_shared';
+import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
-import { AuthService } from '../auth/auth.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { AddonsService } from '../addons/addons.service';
@@ -21,7 +20,6 @@ export class DayBoundariesMcp {
   constructor(
     private readonly boundaries: DayBoundariesService,
     @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
-    private readonly auth: AuthService,
     private readonly guards: McpToolGuardsService,
     private readonly realtime: RealtimeService,
     readonly addons: AddonsService,
@@ -44,7 +42,6 @@ export class DayBoundariesMcp {
     annotations: TOOL_ANNOTATIONS_WRITE, access: { group: 'trips', mode: 'write' }, when,
   })
   async save({ tripId, dayNumber, boundary }: { tripId: number; dayNumber: number; boundary: RoadtripDayBoundary | null }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     // A stop from another trip is refused by the service, with the reason.

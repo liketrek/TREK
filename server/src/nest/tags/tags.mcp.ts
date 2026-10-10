@@ -2,10 +2,9 @@ import {
   McpController, Tool, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
+  errorResult, ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { TagsService } from './tags.service';
 
 /**
@@ -16,7 +15,7 @@ import { TagsService } from './tags.service';
  */
 @McpController()
 export class TagsMcp {
-  constructor(private readonly tags: TagsService, private readonly auth: AuthService) {}
+  constructor(private readonly tags: TagsService) {}
 
   @Tool({
     name: 'list_tags',
@@ -41,7 +40,6 @@ export class TagsMcp {
     access: { group: 'places', mode: 'write' },
   })
   async createTag({ name, color }: { name: string; color?: string }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const tag = await this.tags.create(ctx.userId, name, color);
     return ok({ tag });
   }
@@ -58,7 +56,6 @@ export class TagsMcp {
     access: { group: 'places', mode: 'write' },
   })
   async updateTag({ tagId, name, color }: { tagId: number; name?: string; color?: string }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.tags.getByIdAndUser(tagId, ctx.userId))) return errorResult('Tag not found.');
     const tag = await this.tags.update(tagId, name, color);
     if (!(await tag)) return errorResult('Tag not found.');
@@ -75,7 +72,6 @@ export class TagsMcp {
     access: { group: 'places', mode: 'write' },
   })
   async deleteTag({ tagId }: { tagId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.tags.getByIdAndUser(tagId, ctx.userId))) return errorResult('Tag not found.');
     await this.tags.remove(tagId);
     return ok({ success: true });

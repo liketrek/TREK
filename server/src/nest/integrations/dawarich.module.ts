@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { AddonsModule } from '../addons/addons.module';
 import { AuditModule } from '../audit/audit.module';
-import { AuthModule } from '../auth/auth.module';
 import { AtlasModule } from '../atlas/atlas.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { PlacesModule } from '../places/places.module';
@@ -61,7 +60,7 @@ import { DawarichTracksService } from './dawarich-tracks.service';
     AuditModule,
     // The MCP tools ask AuthService whether the caller is the demo user, the
     // same gate every other write tool carries.
-    AuthModule,
+    
     AtlasModule,
     // Accepting a stay writes a place and a day assignment, so it asks the same
     // permissions the planner asks before doing either.

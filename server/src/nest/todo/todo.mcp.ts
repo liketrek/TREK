@@ -2,11 +2,10 @@ import {
   McpController, Tool, ResourceTemplate, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
+  errorResult, ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { TodoService } from './todo.service';
@@ -34,7 +33,6 @@ function parseId(value: string | string[]): number | null {
 export class TodoMcp {
   constructor(
     private readonly todos: TodoService,
-    private readonly auth: AuthService,
     readonly addons: AddonsService,
     private readonly guards: McpToolGuardsService,
   ) {}
@@ -77,7 +75,6 @@ export class TodoMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
     const item = await this.todos.createItem(tripId, { name, category, due_date, description, assigned_user_id, priority });
@@ -108,7 +105,6 @@ export class TodoMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
     // Build bodyKeys to signal which nullable fields were explicitly provided
@@ -136,7 +132,6 @@ export class TodoMcp {
     access: { group: 'todos', mode: 'write' },
   })
   async toggleTodo({ tripId, itemId, checked }: { tripId: number; itemId: number; checked: boolean }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
     const item = await this.todos.updateItem(tripId, itemId, { checked: checked ? 1 : 0 }, []);
@@ -157,7 +152,6 @@ export class TodoMcp {
     access: { group: 'todos', mode: 'write' },
   })
   async deleteTodo({ tripId, itemId }: { tripId: number; itemId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
     const deleted = await this.todos.deleteItem(tripId, itemId);
@@ -178,7 +172,6 @@ export class TodoMcp {
     access: { group: 'todos', mode: 'write' },
   })
   async reorderTodos({ tripId, orderedIds }: { tripId: number; orderedIds: number[] }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
     await this.todos.reorderItems(tripId, orderedIds);
@@ -214,7 +207,6 @@ export class TodoMcp {
     access: { group: 'todos', mode: 'write' },
   })
   async setTodoCategoryAssignees({ tripId, categoryName, userIds }: { tripId: number; categoryName: string; userIds: number[] }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
     const assignees = await this.todos.updateCategoryAssignees(tripId, categoryName, userIds);

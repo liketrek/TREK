@@ -6,7 +6,6 @@ import { BookingImportModule } from '../booking-import/booking-import.module';
 import { AirtrailModule } from '../integrations/airtrail.module';
 import { AddonsModule } from '../addons/addons.module';
 import { PermissionsModule } from '../permissions/permissions.module';
-import { AuthModule } from '../auth/auth.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { Trips } from '../../db/entities/Trips.entity';
 
@@ -19,11 +18,11 @@ import { Trips } from '../../db/entities/Trips.entity';
  * both declaring separately. ReservationImportMcp is the second surface over
  * the same prefix, so it lives with the controller for the same reason.
  *
- * AuthModule and McpSharedModule are the tool's demo check and its
- * permission/broadcast guards; neither is @Global, so both are named here.
+ * McpSharedModule holds the tool's permission/broadcast guards; it is not
+ * @Global, so it is named here.
  */
 @Module({
-  imports: [BookingImportModule, AirtrailModule, AddonsModule, PermissionsModule, AuthModule, McpSharedModule, MikroOrmModule.forFeature([Trips])],
+  imports: [BookingImportModule, AirtrailModule, AddonsModule, PermissionsModule, McpSharedModule, MikroOrmModule.forFeature([Trips])],
   controllers: [ReservationImportController],
   providers: [ReservationImportMcp],
 })

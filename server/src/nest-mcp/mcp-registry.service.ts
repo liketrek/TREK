@@ -1,6 +1,6 @@
 import { isMcpController } from './metadata';
 import { McpRegistry } from './registry';
-import { MCP_MODULE_OPTIONS, type McpModuleOptions } from './types';
+import { MCP_MODULE_OPTIONS, MCP_TOOL_GATE, type McpModuleOptions, type McpToolGate } from './types';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { DiscoveryService, MetadataScanner } from '@nestjs/core';
 
@@ -15,8 +15,9 @@ export class McpRegistryService extends McpRegistry implements OnModuleInit {
     private readonly discovery: DiscoveryService,
     private readonly scanner: MetadataScanner,
     @Inject(MCP_MODULE_OPTIONS) options: McpModuleOptions,
+    @Inject(MCP_TOOL_GATE) toolGate: McpToolGate | null,
   ) {
-    super(options);
+    super({ accessPolicy: options.accessPolicy, validateAccess: options.validateAccess, toolGate: toolGate ?? undefined });
   }
 
   onModuleInit(): void {

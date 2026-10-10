@@ -7,7 +7,6 @@ import { TodoRpc } from './todo.rpc';
 import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
-import { AuthModule } from '../auth/auth.module';
 import { AddonsModule } from '../addons/addons.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { TodoItems } from '../../db/entities/TodoItems.entity';
@@ -24,7 +23,7 @@ import { TripMembers } from '../../db/entities/TripMembers.entity';
  *  (Plan 4 Task 2): `verifyTripAccess`'s own canAccessTrip delegate, now
  *  TripsRepository directly. */
 @Module({
-  imports: [MikroOrmModule.forFeature([TodoItems, TodoCategoryAssignees, Trips, TripMembers]), McpSharedModule, PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule, AddonsModule],
+  imports: [MikroOrmModule.forFeature([TodoItems, TodoCategoryAssignees, Trips, TripMembers]), McpSharedModule, PermissionsModule, RealtimeModule, PluginGuardsModule, AddonsModule],
   controllers: [TodoController],
   providers: [TodoService, TodoMcp, TodoRpc],
   exports: [TodoService],

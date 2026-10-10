@@ -130,6 +130,16 @@ const APP_SETTING_SELECTORS = [
   { selector: "CallExpression[callee.property.name='getValue'] > TemplateLiteral.arguments:first-child[expressions.length=0]", message: APP_SETTING_MESSAGE },
 ];
 
+// The demo-mode write block runs once, in the MCP registry (trekDemoToolGate in
+// src/mcp/nest-mcp-policy.ts). A tool asking for itself again is a second copy
+// that drifts: it was 196 of them before the gate moved.
+const DEMO_GATE_MESSAGE =
+  'MCP tools do not check demo mode themselves: the registry gate (trekDemoToolGate) refuses every tool not annotated read-only. Annotate the tool instead.';
+const MCP_DEMO_SELECTORS = [
+  { selector: "CallExpression[callee.property.name=/^isDemoUser(Id)?$/]", message: DEMO_GATE_MESSAGE },
+  { selector: "CallExpression[callee.name='demoDenied']", message: DEMO_GATE_MESSAGE },
+];
+
 export default tseslint.config(
   gitignore({ strict: false }),
   {
@@ -245,6 +255,15 @@ export default tseslint.config(
     ],
     rules: {
       'no-restricted-syntax': ['error', ...ENV_SELECTORS, ...FETCH_SELECTORS, ...APP_SETTING_SELECTORS],
+    },
+  },
+  {
+    // Restates the config-access and app-setting guards above for *.mcp.ts
+    // (a later block's options replace an earlier one's) and adds the
+    // demo-gate wall.
+    files: ['src/**/*.mcp.ts'],
+    rules: {
+      'no-restricted-syntax': ['error', ...ENV_SELECTORS, ...FETCH_SELECTORS, ...APP_SETTING_SELECTORS, ...MCP_DEMO_SELECTORS],
     },
   },
   {

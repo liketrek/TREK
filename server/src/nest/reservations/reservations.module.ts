@@ -13,7 +13,6 @@ import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { ReservationsMcp } from './reservations.mcp';
 import { UpcomingReservationsController } from './upcoming-reservations.controller';
-import { AuthModule } from '../auth/auth.module';
 import { AssignmentsModule } from '../assignments/assignments.module';
 import { AccommodationsModule } from '../accommodations/accommodations.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -53,7 +52,7 @@ import { Trips } from '../../db/entities/Trips.entity';
   // that stay owes the day plan the same stop one entered under Days does. No edge
   // back — accommodations reaches neither days nor reservations (ACC-002).
   imports: [
-    McpSharedModule, NotificationsModule, DaysModule, AssignmentsModule, AccommodationsModule, PermissionsModule, BudgetModule, AuthModule, RealtimeModule, PluginGuardsModule, ReservationsReadModule, AirtrailCoreModule,
+    McpSharedModule, NotificationsModule, DaysModule, AssignmentsModule, AccommodationsModule, PermissionsModule, BudgetModule, RealtimeModule, PluginGuardsModule, ReservationsReadModule, AirtrailCoreModule,
     MikroOrmModule.forFeature([Reservations, ReservationEndpoints, ReservationTravelers, ReservationDayPositions, DayAccommodations, Days, Places, DayAssignments, TripMembers, Users, Trips, BudgetItems]),
   ],
   controllers: [ReservationsController, UpcomingReservationsController],

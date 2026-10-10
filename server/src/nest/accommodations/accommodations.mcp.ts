@@ -1,12 +1,11 @@
 import {
   McpController, Tool, ResourceTemplate, type McpContext,
   TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, ok,
+  ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { placeWebsiteSchema } from '@trek/shared';
 import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { PlacesService } from '../places/places.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { UnitOfWork } from '../database/unit-of-work';
@@ -40,7 +39,6 @@ export class AccommodationsMcp {
   constructor(
     private readonly accommodations: AccommodationsService,
     private readonly places: PlacesService,
-    private readonly auth: AuthService,
     private readonly guards: McpToolGuardsService,
     private readonly uow: UnitOfWork,
   ) {}
@@ -75,7 +73,6 @@ export class AccommodationsMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.accommodations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     const errors = await this.accommodations.validateAccommodationRefs(tripId, place_id, start_day_id, end_day_id);
@@ -126,7 +123,6 @@ export class AccommodationsMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.accommodations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     const dayErrors = await this.accommodations.validateAccommodationRefs(tripId, undefined, start_day_id, end_day_id);
@@ -178,7 +174,6 @@ export class AccommodationsMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.accommodations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     const existing = await this.accommodations.getAccommodation(accommodationId, tripId);
@@ -202,7 +197,6 @@ export class AccommodationsMcp {
     access: { group: 'trips', mode: 'write' },
   })
   async deleteAccommodation({ tripId, accommodationId }: { tripId: number; accommodationId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.accommodations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.accommodations.getAccommodation(accommodationId, tripId))) return { content: [{ type: 'text' as const, text: 'Accommodation not found.' }], isError: true };

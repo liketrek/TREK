@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { AddonsModule } from '../addons/addons.module';
-import { AuthModule } from '../auth/auth.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { FilesModule } from '../files/files.module';
 import { AllowedFileTypesModule } from '../files/allowed-file-types.module';
@@ -68,7 +67,7 @@ import { WebdavClient } from './providers/webdav.client';
     RealtimeModule,
     SchedulingModule,
     AddonsModule,
-    AuthModule,
+    
     McpSharedModule,
     MikroOrmModule.forFeature([
       DocumentConnections,

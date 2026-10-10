@@ -20,7 +20,6 @@ import { AppConfigModule } from '../app-config/app-config.module';
 import { CollectionsMcp } from './collections.mcp';
 import { AddonsModule } from '../addons/addons.module';
 import { PermissionsModule } from '../permissions/permissions.module';
-import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { StorageModule } from '../storage/storage.module';
@@ -48,7 +47,7 @@ import { MAX_COVER_SIZE } from './collections.controller';
         }),
     }),
     StorageModule,
-    NotificationsModule, AddonsModule, PermissionsModule, AuthModule, AppConfigModule, PluginGuardsModule,
+    NotificationsModule, AddonsModule, PermissionsModule, AppConfigModule, PluginGuardsModule,
     MikroOrmModule.forFeature([
       Collections, CollectionMembers, CollectionLabels, CollectionPlaces, CollectionPlaceRatings,
       Categories, Users, Trips, TripMembers, Places, PlaceRatings, Tags,

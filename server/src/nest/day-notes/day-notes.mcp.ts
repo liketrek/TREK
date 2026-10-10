@@ -1,12 +1,11 @@
 import {
   McpController, Tool, ResourceTemplate, type McpContext,
   TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, ok,
+  ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
 import { NOTE_COLORS, type NoteColor } from '@trek/shared';
-import { AuthService } from '../auth/auth.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { DayNotesService } from './day-notes.service';
 
@@ -42,7 +41,6 @@ function parseId(value: string | string[]): number | null {
 export class DayNotesMcp {
   constructor(
     private readonly notes: DayNotesService,
-    private readonly auth: AuthService,
     private readonly guards: McpToolGuardsService,
   ) {}
 
@@ -67,7 +65,6 @@ export class DayNotesMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.notes.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.notes.dayExists(dayId, tripId))) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
@@ -98,7 +95,6 @@ export class DayNotesMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.notes.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     const existing = await this.notes.getNote(noteId, dayId, tripId);
@@ -120,7 +116,6 @@ export class DayNotesMcp {
     access: { group: 'trips', mode: 'write' },
   })
   async deleteDayNote({ tripId, dayId, noteId }: { tripId: number; dayId: number; noteId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.notes.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     const note = await this.notes.getNote(noteId, dayId, tripId);

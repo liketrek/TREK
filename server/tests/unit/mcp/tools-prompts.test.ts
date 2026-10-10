@@ -69,17 +69,15 @@ import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
 import { AuthMcp } from '../../../src/nest/auth/auth.mcp';
-import { DemoService } from '../../../src/nest/common/demo.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
-import type { AuthService } from '../../../src/nest/auth/auth.service';
 import type { TripsService } from '../../../src/nest/trips/trips.service';
 import type { TodoService } from '../../../src/nest/todo/todo.service';
 import type { CollabService } from '../../../src/nest/collab/collab.service';
 import { AddonsService } from '../../../src/nest/addons/addons.service';
 import { notificationsStub } from '../../helpers/notifications';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestTripsRepo, createTestTripMembersRepo, createTestUsersRepo, sharedTestOrm, createTestPlacesRepo } from '../../helpers/test-uow';
+import { createTestUnitOfWork, createTestAppSettingsRepo, createTestTripsRepo, createTestTripMembersRepo, createTestUsersRepo, createTestPlacesRepo } from '../../helpers/test-uow';
 import { budgetRepoArgs } from '../../helpers/budget-repos';
 import {
   createTestPackingItemsRepo,
@@ -90,7 +88,6 @@ import {
   createTestPackingTemplateCategoriesRepo,
   createTestPackingTemplateItemsRepo,
 } from '../../helpers/packing-repos';
-import type { EntityManager } from '@mikro-orm/core';
 
 // The trip-summary prompt moved to the DI-discovered TripsMcp — its cases below
 // exercise it through a hand-built registry over a stub TripsService whose
@@ -112,16 +109,6 @@ const readModelStub = {
 // The three remaining prompts moved to their domains' @McpController classes:
 // packing-list, budget-overview and the static-token notice. Built over the same
 // in-memory DB so the cases below keep asserting real rows.
-//
-// Plan 3c Task 0b: `promptEm` is resolved once in the first `beforeAll` below —
-// `canAccessTrip`/`isOwner`/`rosterUserIds`/
-// `getPlaceWithTags` resolve `TripsRepository`/`TripMembersRepository`/
-// `PlacesRepository` through it now, not through `db/database.ts`'s deleted
-// free functions this file's `dbMock` used to stand in for.
-let promptEm: EntityManager | undefined;
-const authStub = { isDemoUser: () => false } as unknown as AuthService;
-
-
 
 // The packing-list / budget-overview prompts live here since the trips.bridge
 // fold; the summary rides the same readModelStub the trip-summary prompt uses.
@@ -134,13 +121,11 @@ let budgetMcp: BudgetMcp;
 let tripPromptsMcp: TripPromptsMcp;
 beforeAll(async () => {
   orm = await createTestOrm(testDb);
-  promptEm = (await sharedTestOrm(testDb)).em;
   promptGuards = new McpToolGuardsService(await createTestTripsRepo(testDb), await createTestUsersRepo(testDb), new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new RealtimeService());
   tripsMcp = new TripsMcp(
   tripsStub,
   { listItems: () => [] } as unknown as TodoService,
   { listPolls: () => [], countMessages: () => 0 } as unknown as CollabService,
-  undefined as never,
   undefined as never,
   undefined as never,
   readModelStub,
@@ -162,7 +147,7 @@ beforeAll(async () => {
     await createTestTripsRepo(testDb),
     await createTestTripMembersRepo(testDb),
   );
-  packingMcp = new PackingMcp(promptPackingService, authStub, addonsStub, promptGuards);
+  packingMcp = new PackingMcp(promptPackingService, addonsStub, promptGuards);
   promptBudget = new BudgetService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new ExchangeRatesService(), new RealtimeService(), await createTestUnitOfWork(testDb), ...(await budgetRepoArgs(testDb)));
   budgetMcp = new BudgetMcp(
   promptBudget,
@@ -174,7 +159,6 @@ beforeAll(async () => {
   await createTestUnitOfWork(testDb),
   await createTestPlacesRepo(testDb),
   await createTestTripsRepo(testDb),
-  new DemoService(new RuntimeEnvService(), promptEm),
   await createTestTripMembersRepo(testDb),
 );
   tripPromptsMcp = new TripPromptsMcp(tripsStub, readModelStub, promptPackingService, addonsStub);

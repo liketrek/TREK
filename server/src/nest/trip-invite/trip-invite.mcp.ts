@@ -1,13 +1,12 @@
 import {
   McpController, Tool, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, ok,
+  ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
 import { getAppUrl } from '../../app-config';
 import { AuditService } from '../audit/audit.service';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
-import { DemoService } from '../common/demo.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { canShareTrips, canWrite } from '../../mcp/scopes';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
@@ -36,13 +35,7 @@ export class TripInviteMcp {
     private readonly env: RuntimeEnvService,
     private readonly guards: McpToolGuardsService,
     private readonly audit: AuditService,
-    private readonly demo: DemoService,
   ) {}
-
-  /** Plan 3i Task 3: the AuthService.isDemoUser check via the injected DemoService (common/demo.service.ts), not the free-function demo-write.ts helper. */
-  private async isDemoUser(userId: number): Promise<boolean> {
-    return await this.demo.isDemoUserId(userId);
-  }
 
   /** Trip access first (404-equivalent), then share_manage, which is requireManage() in the controller. */
   private async denyManage(tripId: number, userId: number) {
@@ -87,7 +80,6 @@ export class TripInviteMcp {
     { tripId, expires_in_days }: { tripId: number } & TripInviteLinkCreateRequest,
     ctx: McpContext,
   ) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     const denied = await this.denyManage(tripId, ctx.userId);
     if ((await denied)) return denied;
     // The route's own coercion, kept verbatim: the shared contract admits a
@@ -121,7 +113,6 @@ export class TripInviteMcp {
     access: (ctx) => canShareTrips(ctx.scopes) && canWrite(ctx.scopes, 'trips'),
   })
   async deleteTripInviteLink({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     const denied = await this.denyManage(tripId, ctx.userId);
     if ((await denied)) return denied;
     await this.invites.remove(tripId);

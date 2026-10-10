@@ -18,6 +18,7 @@ import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
 import { RoadtripDayBoundaries } from '../../../src/db/entities/RoadtripDayBoundaries.entity';
 import { deleteRows } from '../../helpers/factories/rows';
 import type { McpContext } from '../../../src/nest-mcp';
+import { callGatedTool } from '../../helpers/mcp-gate';
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;
@@ -41,16 +42,16 @@ function setup() {
   const boundariesRepo = t.repo(RoadtripDayBoundaries);
   const service = new DayBoundariesService(dayAssignmentsRepo, boundariesRepo);
   const realtime = { broadcast: vi.fn() };
-  const auth = { isDemoUser: vi.fn(() => false) };
+  const demo = { isDemoUser: vi.fn(async () => false) };
   const guards = { hasTripPermission: vi.fn(() => true) };
   const tripsRepo = { findAccessible: vi.fn(async () => ({ id: tripA.id, user_id: user.id })) };
-  const mcp = new DayBoundariesMcp(service, tripsRepo as never, auth as never, guards as never, realtime as never, {} as never);
+  const mcp = new DayBoundariesMcp(service, tripsRepo as never, guards as never, realtime as never, {} as never);
   return {
     service,
     controller: new DayBoundariesController(service, realtime as never),
     mcp,
     tripsRepo,
-    auth,
+    demo,
     guards,
     realtime,
     tripA,
@@ -134,9 +135,10 @@ it('MCP checks demo, trip access and edit permission before saving', async () =>
   const ctx = { userId: 1 } as McpContext;
   const boundary = { day_number: 1, from_assignment_id: s.fromId, to_assignment_id: s.toId, fraction: 0.4 };
   const request = { tripId: s.tripA.id, dayNumber: 1, boundary };
-  s.auth.isDemoUser.mockReturnValue(true);
-  await s.mcp.save(request, ctx);
-  s.auth.isDemoUser.mockReturnValue(false);
+  const save = (req: typeof request) => callGatedTool(s.mcp, 'save', req, ctx, s.demo.isDemoUser);
+  s.demo.isDemoUser.mockResolvedValue(true);
+  await save(request);
+  s.demo.isDemoUser.mockResolvedValue(false);
   s.tripsRepo.findAccessible.mockResolvedValue(undefined);
   await s.mcp.save(request, ctx);
   s.tripsRepo.findAccessible.mockResolvedValue({ id: s.tripA.id, user_id: 1 });

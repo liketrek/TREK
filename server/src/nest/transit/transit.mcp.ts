@@ -1,11 +1,10 @@
 import {
   McpController, Tool, type McpContext,
   TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT, TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
-  demoDenied, ok,
+  ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import {
   buildTransitReservationParts,
   cleanTransitItineraryNames,
@@ -69,7 +68,6 @@ export class TransitMcp {
     // this injects TripsRepository directly (same constructor slot) and
     // calls findAccessible.
     @InjectRepository(Trips) private readonly trips: TripsRepository,
-    private readonly auth: AuthService,
     private readonly guards: McpToolGuardsService,
     // The limiter RateLimitModule provides, so its store is the one every
     // other caller counts in. The MCP buckets (mcp_transit_*) are keyed by
@@ -193,7 +191,6 @@ export class TransitMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.trips.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
     const day = await this.days.getDay(dayId, tripId);

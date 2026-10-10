@@ -12,7 +12,6 @@ import { RealtimeModule } from '../realtime/realtime.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { QueryHelpersModule } from '../query-helpers/query-helpers.module';
 import { PlacesModule } from '../places/places.module';
-import { AuthModule } from '../auth/auth.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { Days } from '../../db/entities/Days.entity';
 import { DayAssignments } from '../../db/entities/DayAssignments.entity';
@@ -60,7 +59,7 @@ import { RoadtripDayBoundaries } from '../../db/entities/RoadtripDayBoundaries.e
     PermissionsModule,
     QueryHelpersModule,
     PlacesModule,
-    AuthModule,
+    
     RealtimeModule,
     PluginGuardsModule,
     AccommodationsDomainModule,

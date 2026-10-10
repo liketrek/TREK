@@ -7,7 +7,6 @@ import { TransitMcp } from './transit.mcp';
 import { GoogleTransitProvider } from './google-transit.provider';
 import { DaysModule } from '../days/days.module';
 import { ReservationsModule } from '../reservations/reservations.module';
-import { AuthModule } from '../auth/auth.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { Users } from '../../db/entities/Users.entity';
@@ -33,7 +32,7 @@ import { AppConfigModule } from '../app-config/app-config.module';
  */
 @Module({
   // DaysModule + ReservationsModule: TransitMcp's create_transit_journey injects both.
-  imports: [AppConfigModule, McpSharedModule, RateLimitModule, DaysModule, ReservationsModule, AuthModule, MikroOrmModule.forFeature([AppSettings, Users, Trips]), GoogleQuotaModule],
+  imports: [AppConfigModule, McpSharedModule, RateLimitModule, DaysModule, ReservationsModule, MikroOrmModule.forFeature([AppSettings, Users, Trips]), GoogleQuotaModule],
   controllers: [TransitController],
   providers: [TransitService, TransitMcp, GoogleTransitProvider],
   exports: [TransitService],

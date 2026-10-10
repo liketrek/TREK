@@ -28,7 +28,7 @@ import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createAdmin } from '../../helpers/factories';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
 import { createTestRegistry } from '../../../src/nest-mcp';
-import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../../../src/mcp/nest-mcp-policy';
+import { trekDemoToolGate, trekMcpAccessPolicy, trekMcpValidateAccess } from '../../../src/mcp/nest-mcp-policy';
 import { CategoriesMcp } from '../../../src/nest/categories/categories.mcp';
 import { CategoriesService } from '../../../src/nest/categories/categories.service';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
@@ -78,19 +78,20 @@ async function withHarness(
 // file's DB, which is what lets the admin gate and the demo gate be driven from
 // the users table instead of from a stub.
 let categoriesMcp: CategoriesMcp;
+let categoriesDemo: DemoService;
 beforeAll(async () => {
   const categoriesEm = (await sharedTestOrm(testDb)).em;
   categoriesMcp = new CategoriesMcp(
   new CategoriesService(await createTestCategoriesRepo(testDb)),
   new RuntimeEnvService(),
   new McpToolGuardsService(await createTestTripsRepo(testDb), await createTestUsersRepo(testDb), new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new RealtimeService()),
-  new DemoService(new RuntimeEnvService(), categoriesEm),
 );
+  categoriesDemo = new DemoService(new RuntimeEnvService(), categoriesEm);
 });
 
 async function withWriteHarness(userId: number, fn: (client: Client) => Promise<void>) {
   const server = new McpServer({ name: 'trek-test', version: '1.0.0' });
-  await createTestRegistry([categoriesMcp], { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess })
+  await createTestRegistry([categoriesMcp], { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess, toolGate: trekDemoToolGate((id) => categoriesDemo.isDemoUserId(id)) })
     .attach(server, { userId, scopes: null, isStaticToken: false });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: 'test-client', version: '1.0.0' });

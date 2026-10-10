@@ -5,13 +5,11 @@ import { ADDON_IDS } from '../../addons';
 import { AddonsService } from '../addons/addons.service';
 import { addonGate } from '../addons/addon-gate';
 import { GoogleRouteService } from './google-route.service';
-import { AuthService } from '../auth/auth.service';
-import { demoDenied } from '../../mcp/tools/_shared';
 import { answeringRefusals } from './roadtrip-mcp.helpers';
 
 @McpController()
 export class GoogleRouteMcp {
-  constructor(private readonly routes: GoogleRouteService, private readonly auth: AuthService, readonly addons: AddonsService) {}
+  constructor(private readonly routes: GoogleRouteService, readonly addons: AddonsService) {}
   @Tool({ name: 'preview_google_maps_route', description: 'Read ordered stops from a Google Maps directions link. No changes are saved. Review geocoded positions and unresolved stops before importing. The exact Google road geometry is not imported.',
     inputSchema: googleRoutePreviewRequestSchema.shape, annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'trips', mode: 'read' }, when: addonGate(ADDON_IDS.ROADTRIP) })
@@ -26,7 +24,6 @@ export class GoogleRouteMcp {
     // a client that withheld places:write was getting an itinerary written anyway.
     access: { group: 'places', mode: 'write' }, when: addonGate(ADDON_IDS.ROADTRIP) })
   async import(input: GoogleRouteImport & { tripId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     return answeringRefusals(async () => ok(await this.routes.import(input.tripId, ctx.userId, input)));
   }
 }

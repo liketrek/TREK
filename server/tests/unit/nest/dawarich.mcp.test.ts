@@ -43,7 +43,7 @@ import { DawarichMcp } from '../../../src/nest/integrations/dawarich.mcp';
 import { AcceptError } from '../../../src/nest/integrations/dawarich-suggestions.service';
 import type { DawarichSuggestionsService } from '../../../src/nest/integrations/dawarich-suggestions.service';
 import type { DawarichTracksService } from '../../../src/nest/integrations/dawarich-tracks.service';
-import type { AuthService } from '../../../src/nest/auth/auth.service';
+import { callGatedTool } from '../../helpers/mcp-gate';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import { getEntry, type ClassRef } from '../../../src/nest-mcp/metadata';
 import type { McpContext, McpTextResult, ToolOptions } from '../../../src/nest-mcp';
@@ -54,17 +54,14 @@ const ctx = { userId: 7, scopes: null, isStaticToken: false } as McpContext;
 interface Mocks {
   suggestions?: Partial<DawarichSuggestionsService>;
   tracks?: Partial<DawarichTracksService>;
-  auth?: Partial<AuthService>;
   addons?: Partial<AddonsService>;
 }
 
-/** The demo gate is off unless a case turns it on; every write tool asks it. */
+/** The demo gate runs in the registry; the cases about it go through callGatedTool. */
 function makeMcp(m: Mocks = {}) {
-  const auth: Partial<AuthService> = m.auth ?? { isDemoUser: async () => false };
   return new DawarichMcp(
     (m.suggestions ?? {}) as DawarichSuggestionsService,
     (m.tracks ?? {}) as DawarichTracksService,
-    auth as AuthService,
     (m.addons ?? {}) as AddonsService,
   );
 }
@@ -226,10 +223,10 @@ describe('DawarichMcp surface', () => {
     const forTrip = vi.fn().mockResolvedValue({
       days: [], source: 'tracks', fetchedAt: '2026-05-02T09:00:00.000Z', pointCount: 0, truncated: false,
     });
-    const mcp = makeMcp({ suggestions: { list: listFn }, tracks: { forTrip }, auth: { isDemoUser } });
+    const mcp = makeMcp({ suggestions: { list: listFn }, tracks: { forTrip } });
 
-    payload(await mcp.listSuggestions({}, ctx));
-    payload(await mcp.tripTrack({ tripId: 5 }, ctx));
+    payload((await callGatedTool(mcp, 'listSuggestions', {}, ctx, isDemoUser)) as McpTextResult);
+    payload((await callGatedTool(mcp, 'tripTrack', { tripId: 5 }, ctx, isDemoUser)) as McpTextResult);
     expect(isDemoUser).not.toHaveBeenCalled();
   });
 });
@@ -439,10 +436,9 @@ describe('DawarichMcp accept tools', () => {
       const accept = vi.fn();
       const setState = vi.fn();
       const isDemoUser = vi.fn().mockResolvedValue(true);
-      const mcp = makeMcp({ suggestions: { accept, setState }, auth: { isDemoUser } });
+      const mcp = makeMcp({ suggestions: { accept, setState } });
 
-      const call = (mcp as unknown as Record<string, (a: unknown, c: McpContext) => Promise<McpTextResult>>)[method];
-      expect(refusal(await call.call(mcp, args, ctx))).toBe('Write operations are disabled in demo mode.');
+      expect(refusal((await callGatedTool(mcp, method, args, ctx, isDemoUser)) as McpTextResult)).toBe('Write operations are disabled in demo mode.');
       expect(isDemoUser).toHaveBeenCalledWith(7);
       expect(accept).not.toHaveBeenCalled();
       expect(setState).not.toHaveBeenCalled();

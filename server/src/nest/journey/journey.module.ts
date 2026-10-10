@@ -9,7 +9,6 @@ import { MemoriesModule } from '../memories/memories.module';
 import { JourneyDomainModule } from './journey-domain.module';
 import { JourneyPhotoCaptureModule } from './journey-photo-capture.module';
 import { JourneyMcp } from './journey.mcp';
-import { AuthModule } from '../auth/auth.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { AllowedFileTypesModule } from '../files/allowed-file-types.module';
 import { AllowedFileTypesService } from '../files/allowed-file-types.service';
@@ -38,7 +37,7 @@ import { UserConnectionRepositoriesModule } from '../database/user-connection-re
         }),
     }),
     StorageModule,
-    AuthModule, AddonsModule, MemoriesModule, JourneyDomainModule, JourneyPhotoCaptureModule,
+    AddonsModule, MemoriesModule, JourneyDomainModule, JourneyPhotoCaptureModule,
     // JourneyService's JV1 read (`UserImmichRepository.getImmichAutoUpload`).
     UserConnectionRepositoriesModule,
     // Plan 3g Task 3: `JourneyService` (JV1, now through the module above)

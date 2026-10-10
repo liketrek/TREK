@@ -20,7 +20,6 @@ import { TripMembershipModule } from '../trip-membership/trip-membership.module'
 import { AppConfigModule } from '../app-config/app-config.module';
 import { UnsplashModule } from '../unsplash/unsplash.module';
 import { TripsMcp } from './trips.mcp';
-import { AuthModule } from '../auth/auth.module';
 import { CalendarModule } from '../calendar/calendar.module';
 import { AccommodationsModule } from '../accommodations/accommodations.module';
 import { TripMembersModule } from '../trip-members/trip-members.module';
@@ -49,7 +48,7 @@ import { SettingsModule } from '../settings/settings.module';
         }),
     }),
     StorageModule,
-    McpSharedModule, TodoModule, PackingModule, FilesModule, ReservationsModule, DaysModule, PermissionsModule, AuditModule, BudgetModule, CollabModule, VacayModule, PlacesModule, AuthModule, AppConfigModule, UnsplashModule, RealtimeModule, PluginGuardsModule, AddonsModule, TripMembershipModule, CalendarModule, AccommodationsModule, TripMembersModule, TripReadModelModule, SettingsModule],
+    McpSharedModule, TodoModule, PackingModule, FilesModule, ReservationsModule, DaysModule, PermissionsModule, AuditModule, BudgetModule, CollabModule, VacayModule, PlacesModule, AppConfigModule, UnsplashModule, RealtimeModule, PluginGuardsModule, AddonsModule, TripMembershipModule, CalendarModule, AccommodationsModule, TripMembersModule, TripReadModelModule, SettingsModule],
   controllers: [TripsController],
   providers: [TripsService, TripsMcp, TripPromptsMcp, TripsRpc],
   // Exported for FeedsModule (ICS feeds) and PluginsModule (RPC host injection).

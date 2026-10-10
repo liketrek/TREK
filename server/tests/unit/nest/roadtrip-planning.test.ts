@@ -1,6 +1,7 @@
 import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../../../src/mcp/nest-mcp-policy';
 import type { McpContext } from '../../../src/nest-mcp';
 import { createTestRegistry } from '../../../src/nest-mcp';
+import { callGatedTool } from '../../helpers/mcp-gate';
 import { PlacesMcp } from '../../../src/nest/places/places.mcp';
 import { RoadtripPlanService } from '../../../src/nest/roadtrip/roadtrip-plan.service';
 import { RoadtripPlanningMcp } from '../../../src/nest/roadtrip/roadtrip-planning.mcp';
@@ -160,13 +161,12 @@ describe('roadtrip preferences', () => {
     expect((await s.preferences.read(10)).roadtrip_day_start).toBe('');
     const mcp = new RoadtripPreferencesMcp(
       s.preferences,
-      { isDemoUser: () => true } as never,
       {} as never,
       s.tripsRepo as never,
       {} as never,
     );
     s.preferenceDb.upsertValue.mockClear();
-    await mcp.update({ tripId: 10, settings: { roadtrip_range_km: 300 } }, ctx);
+    await callGatedTool(mcp, 'update', { tripId: 10, settings: { roadtrip_range_km: 300 } }, ctx, async () => true);
     expect(s.preferenceDb.upsertValue).not.toHaveBeenCalled();
   });
   it('saves the switch that starts and ends each day at the stay, through the tool too, and reads it back', async () => {
@@ -174,7 +174,6 @@ describe('roadtrip preferences', () => {
     expect((await s.preferences.read(10)).roadtrip_hotel_bookends).toBeUndefined();
     const mcp = new RoadtripPreferencesMcp(
       s.preferences,
-      { isDemoUser: () => false } as never,
       {} as never,
       s.tripsRepo as never,
       { hasTripPermission: () => true } as never,
@@ -192,7 +191,6 @@ describe('roadtrip preferences', () => {
     const s = setup();
     const mcp = new RoadtripPreferencesMcp(
       s.preferences,
-      { isDemoUser: () => false } as never,
       {} as never,
       s.tripsRepo as never,
       { hasTripPermission: () => true } as never,
@@ -355,13 +353,11 @@ describe('browser-independent roadtrip calculation', () => {
 describe('Roadtrip MCP registration and search', () => {
   it('imports GPX through the existing service and broadcasts the imported places', async () => {
     const places = { importGpx: vi.fn(() => ({ places: [{ id: 12 }], count: 1, skipped: 0 })) };
-    const auth = { isDemoUser: vi.fn(() => false) };
     const guards = { hasTripPermission: () => true, safeBroadcast: vi.fn() };
     const mcp = new PlacesMcp(
       places as never,
       {} as never,
       { findAccessible: () => ({ id: 1, user_id: 1, currency: null }) } as never,
-      auth as never,
       {} as never,
       {} as never,
       guards as never,
@@ -384,8 +380,7 @@ describe('Roadtrip MCP registration and search', () => {
     });
     expect(guards.safeBroadcast).toHaveBeenCalledWith(1, 'place:created', { place: { id: 12 } });
     places.importGpx.mockClear();
-    auth.isDemoUser.mockReturnValue(true);
-    await mcp.importGpx(input, ctx);
+    await callGatedTool(mcp, 'importGpx', input, ctx, async () => true);
     expect(places.importGpx).not.toHaveBeenCalled();
   });
   it('hides addon tools when disabled and separates settings reads from writes', async () => {
@@ -393,7 +388,7 @@ describe('Roadtrip MCP registration and search', () => {
     const addons = { isAddonEnabled: vi.fn(() => true) };
     const registry = createTestRegistry(
       [
-        new RoadtripPreferencesMcp(s.preferences, {} as never, addons as never, s.tripsRepo as never, {} as never),
+        new RoadtripPreferencesMcp(s.preferences, addons as never, s.tripsRepo as never, {} as never),
         new RoadtripPlanningMcp(s.plans, {} as never, addons as never),
       ],
       { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess },
@@ -416,7 +411,7 @@ describe('Roadtrip MCP registration and search', () => {
     const s = setup();
     const registry = createTestRegistry(
       [
-        new RoadtripPreferencesMcp(s.preferences, {} as never, { isAddonEnabled: () => true } as never, s.tripsRepo as never, {} as never),
+        new RoadtripPreferencesMcp(s.preferences, { isAddonEnabled: () => true } as never, s.tripsRepo as never, {} as never),
         new RoadtripPlanningMcp(s.plans, {} as never, { isAddonEnabled: () => true } as never),
       ],
       { accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess },
@@ -492,7 +487,6 @@ describe('Roadtrip MCP registration and search', () => {
       service as never,
       { findAccessible: () => true } as never,
       guards as never,
-      { isDemoUser: () => false } as never,
       {} as never,
     );
     const input = { tripId: 1, dayId: 2, viaId: 4, lat: 48, lng: 10 };
@@ -531,8 +525,7 @@ describe('RoadtripMcp — non-member refusal, one case per tool (Plan 3d Task 7 
     };
     const tripsRepo = { findAccessible: vi.fn(async () => findAccessible) };
     const guards = { hasTripPermission: vi.fn(async () => true) };
-    const auth = { isDemoUser: vi.fn(async () => false) };
-    const mcp = new RoadtripMcp(service as never, tripsRepo as never, guards as never, auth as never, {} as never);
+    const mcp = new RoadtripMcp(service as never, tripsRepo as never, guards as never, {} as never);
     return { mcp, service, tripsRepo };
   }
 
@@ -576,7 +569,7 @@ describe('RoadtripMcp — non-member refusal, one case per tool (Plan 3d Task 7 
 describe('MCP trip preferences authorization', () => {
   it('reads shared preferences and refuses inaccessible trips', async () => {
     const s = setup();
-    const tool = new RoadtripPreferencesMcp(s.preferences, { isDemoUser: () => false } as never, {} as never, s.tripsRepo as never, { hasTripPermission: () => true } as never);
+    const tool = new RoadtripPreferencesMcp(s.preferences, {} as never, s.tripsRepo as never, { hasTripPermission: () => true } as never);
     expect(JSON.stringify(await tool.read({ tripId: 10 }, ctx))).toContain('100');
     s.tripsRepo.findAccessible.mockResolvedValue(false);
     expect((await tool.read({ tripId: 10 }, ctx)).isError).toBe(true);
@@ -589,18 +582,16 @@ describe('MCP trip preferences authorization', () => {
   it('update_roadtrip_settings refuses a non-member trip on its own, without a prior read call', async () => {
     const s = setup();
     s.tripsRepo.findAccessible.mockResolvedValue(false);
-    const tool = new RoadtripPreferencesMcp(s.preferences, { isDemoUser: () => false } as never, {} as never, s.tripsRepo as never, { hasTripPermission: () => true } as never);
+    const tool = new RoadtripPreferencesMcp(s.preferences, {} as never, s.tripsRepo as never, { hasTripPermission: () => true } as never);
     const res = await tool.update({ tripId: 10, settings: { roadtrip_range_km: 50 } }, ctx);
     expect(res.isError).toBe(true);
     expect(JSON.stringify(res)).toContain('access denied');
   });
   it('rejects demos and readers, but permits a trip editor', async () => {
     const s = setup();
-    const auth = { isDemoUser: vi.fn(() => true) };
     const guards = { hasTripPermission: vi.fn(() => false) };
-    const tool = new RoadtripPreferencesMcp(s.preferences, auth as never, {} as never, s.tripsRepo as never, guards as never);
-    expect((await tool.update({ tripId: 10, settings: {} }, ctx)).isError).toBe(true);
-    auth.isDemoUser.mockReturnValue(false);
+    const tool = new RoadtripPreferencesMcp(s.preferences, {} as never, s.tripsRepo as never, guards as never);
+    expect(await callGatedTool(tool, 'update', { tripId: 10, settings: {} }, ctx, async () => true)).toMatchObject({ isError: true });
     expect((await tool.update({ tripId: 10, settings: {} }, ctx)).isError).toBe(true);
     guards.hasTripPermission.mockReturnValue(true);
     expect(JSON.stringify(await tool.update({ tripId: 10, settings: { roadtrip_range_km: 120 } }, ctx))).toContain('120');

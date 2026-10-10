@@ -2,12 +2,11 @@ import {
   McpController, Tool, ResourceTemplate, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
+  errorResult, ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
-import { DemoService } from '../common/demo.service';
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
@@ -94,16 +93,10 @@ export class BudgetMcp {
     private readonly uow: UnitOfWork,
     @InjectRepository(Places) private readonly places: PlacesRepository,
     @InjectRepository(Trips) private readonly trips: TripsRepository,
-    private readonly demo: DemoService,
     // Plan 4 Task 3 — DatabaseService.rosterUserIds inlined onto
     // TripMembersRepository.rosterUserIds directly.
     @InjectRepository(TripMembers) private readonly tripMembers: TripMembersRepository,
   ) {}
-
-  /** Plan 3i Task 3: the AuthService.isDemoUser check via the injected DemoService (common/demo.service.ts), not the free-function demo-write.ts helper. */
-  private async isDemoUser(userId: number): Promise<boolean> {
-    return await this.demo.isDemoUserId(userId);
-  }
 
   /**
    * Resolve the equal-split participants for a new budget item. When member_ids
@@ -217,7 +210,6 @@ export class BudgetMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
     if (members !== undefined && member_ids !== undefined) return errorResult('Pass either members (uneven split) or member_ids (equal split), not both.');
@@ -250,7 +242,6 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'write' },
   })
   async deleteBudgetItem({ tripId, itemId }: { tripId: number; itemId: number }, ctx: McpContext) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
     const deleted = await this.budget.deleteBudgetItem(itemId, tripId);
@@ -294,7 +285,6 @@ export class BudgetMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
     if (members !== undefined && member_ids !== undefined) return errorResult('Pass either members (uneven split) or member_ids (equal split), not both.');
@@ -342,7 +332,6 @@ export class BudgetMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
     if (place_id != null && !(await this.placeOnTrip(tripId, place_id))) return errorResult('place_id does not belong to this trip.');
@@ -374,7 +363,6 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'write' },
   })
   async setBudgetItemMembers({ tripId, itemId, userIds }: { tripId: number; itemId: number; userIds: number[] }, ctx: McpContext) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
     const result = await this.budget.updateMembers(itemId, tripId, userIds);
@@ -398,7 +386,6 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'write' },
   })
   async toggleBudgetMemberPaid({ tripId, itemId, memberId, paid }: { tripId: number; itemId: number; memberId: number; paid: boolean }, ctx: McpContext) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
     const member = await this.budget.toggleMemberPaid(itemId, tripId, memberId, paid);
@@ -463,7 +450,6 @@ export class BudgetMcp {
     { tripId, from_user_id, to_user_id, amount, currency, settled_at, note }: { tripId: number; from_user_id: number; to_user_id: number; amount: number; currency?: string | null; settled_at?: string | null; note?: string | null },
     ctx: McpContext,
   ) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
     // Freeze-then-write composite, same as the REST path: the rate for the display
@@ -495,7 +481,6 @@ export class BudgetMcp {
     { tripId, settlementId, from_user_id, to_user_id, amount, currency, settled_at, note }: { tripId: number; settlementId: number; from_user_id: number; to_user_id: number; amount: number; currency?: string | null; settled_at?: string | null; note?: string | null },
     ctx: McpContext,
   ) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
     // Freeze-then-write composite, same as the REST path: an edit that leaves the
@@ -518,7 +503,6 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'write' },
   })
   async deleteSettlement({ tripId, settlementId }: { tripId: number; settlementId: number }, ctx: McpContext) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
     const deleted = await this.budget.deleteSettlement(settlementId, tripId);
@@ -540,7 +524,6 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'write' },
   })
   async freezeBudgetRates({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
     // The same service call as POST …/budget/freeze-rates, without a lent rate table:

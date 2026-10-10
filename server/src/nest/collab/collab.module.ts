@@ -8,7 +8,6 @@ import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { CollabMcp } from './collab.mcp';
 import { PermissionsModule } from '../permissions/permissions.module';
-import { AuthModule } from '../auth/auth.module';
 import { AddonsModule } from '../addons/addons.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
@@ -43,7 +42,7 @@ import { Trips } from '../../db/entities/Trips.entity';
     // "registered here only for one read, never the owning module" shape
     // `FilesModule`'s own forFeature list documents).
     MikroOrmModule.forFeature([CollabNotes, CollabMessageReactions, CollabPolls, CollabPollVotes, CollabLinks, CollabMessages, Trips]),
-    McpSharedModule, NotificationsModule, PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule, AddonsModule, RateLimitModule],
+    McpSharedModule, NotificationsModule, PermissionsModule, RealtimeModule, PluginGuardsModule, AddonsModule, RateLimitModule],
   controllers: [CollabController],
   providers: [CollabService, CollabMcp, CollabRpc],
   // For in-container consumers (CollabRpc).

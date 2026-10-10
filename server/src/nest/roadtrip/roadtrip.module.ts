@@ -8,7 +8,6 @@ import { GoogleRouteMcp } from './google-route.mcp';
 import { PlacesModule } from '../places/places.module';
 import { AssignmentsModule } from '../assignments/assignments.module';
 import { AddonsModule } from '../addons/addons.module';
-import { AuthModule } from '../auth/auth.module';
 import { MapsModule } from '../maps/maps.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { PermissionsModule } from '../permissions/permissions.module';
@@ -75,7 +74,7 @@ import { ReservationDayPositions } from '../../db/entities/ReservationDayPositio
   imports: [
     McpSharedModule,
     PermissionsModule,
-    AuthModule,
+    
     AddonsModule,
     RealtimeModule,
     SettingsModule,

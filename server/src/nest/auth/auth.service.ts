@@ -1102,18 +1102,12 @@ export class AuthService {
   }
 
   // -------------------------------------------------------------------------
-  // Demo gate + JWT verification
+  // JWT verification
   //
   // The MCP token half of this section moved to tokens/token.service.ts. What
-  // stays is login identity (verifyJwtToken) and the demo check, neither of
-  // which is about minting a token.
+  // stays is login identity (verifyJwtToken), which is not about minting a token.
+  // The MCP demo check moved to DemoService, behind the registry's tool gate.
   // -------------------------------------------------------------------------
-
-  async isDemoUser(userId: number): Promise<boolean> {
-    if (!readEnv().demo.enabled) return false;
-    const email = await this.usersRepo.getEmail(userId);
-    return isDemoEmail(email ?? undefined);
-  }
 
   /**
    * Verify a JWT the same way `auth/jwt-verify.ts#verifyJwtAndLoadUser`

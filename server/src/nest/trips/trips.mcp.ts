@@ -2,12 +2,11 @@ import {
   McpController, Tool, Resource, ResourceTemplate, Prompt, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_OPEN_WORLD_READONLY,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
+  errorResult, ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { tripIdPromptArg } from '../mcp-shared/prompt-args';
 import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { CalendarService } from '../calendar/calendar.service';
 import { TripMembersService } from '../trip-members/trip-members.service';
 import { TripReadModelService } from '../trip-read-model/trip-read-model.service';
@@ -68,7 +67,6 @@ export class TripsMcp {
     private readonly trips: TripsService,
     private readonly todos: TodoService,
     private readonly collab: CollabService,
-    private readonly auth: AuthService,
     // Appended, not inserted: the hand-wired MCP test harnesses build this
     // positionally, so an earlier slot would silently shift every one of them.
     private readonly calendar: CalendarService,
@@ -104,7 +102,6 @@ export class TripsMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (start_date) {
       const d = new Date(start_date + 'T00:00:00Z');
       if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== start_date)
@@ -159,7 +156,6 @@ export class TripsMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('trip_edit', tripId, ctx.userId))) return permissionDenied();
     if (clear_dates && (start_date || end_date))
@@ -224,7 +220,6 @@ export class TripsMcp {
     access: (ctx) => canDeleteTrips(ctx.scopes),
   })
   async deleteTrip({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.trips.isOwner(tripId, ctx.userId))) return noAccess();
     await this.trips.remove(tripId, ctx.userId, 'user');
     return ok({ success: true, tripId });
@@ -351,7 +346,6 @@ export class TripsMcp {
     access: { group: 'trips', mode: 'write' },
   })
   async addTripMember({ tripId, identifier }: { tripId: number; identifier: string }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) return noAccess();
     const ownerRow = await this.trips.getOwner(tripId);
     if (!ownerRow) return noAccess();
@@ -380,7 +374,6 @@ export class TripsMcp {
     access: { group: 'trips', mode: 'write' },
   })
   async removeTripMember({ tripId, memberId }: { tripId: number; memberId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) return noAccess();
     // Giving up your own access is not member management, so it carries no permission
     // requirement: the same self-removal bypass DELETE /api/trips/:id/members/:userId has.
@@ -401,7 +394,6 @@ export class TripsMcp {
     access: { group: 'trips', mode: 'write' },
   })
   async leaveTrip({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) return noAccess();
     const ownerRow = await this.trips.getOwner(tripId);
     if (!ownerRow) return noAccess();
@@ -435,7 +427,6 @@ export class TripsMcp {
     access: { group: 'trips', mode: 'write' },
   })
   async createTripGuest({ tripId, name }: { tripId: number; name: string }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) return noAccess();
     const ownerRow = await this.trips.getOwner(tripId);
     if (!ownerRow || ownerRow.user_id !== ctx.userId)
@@ -463,7 +454,6 @@ export class TripsMcp {
     access: { group: 'trips', mode: 'write' },
   })
   async renameTripGuest({ tripId, guestId, name }: { tripId: number; guestId: number; name: string }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) return noAccess();
     const ownerRow = await this.trips.getOwner(tripId);
     if (!ownerRow || ownerRow.user_id !== ctx.userId)
@@ -489,7 +479,6 @@ export class TripsMcp {
     access: { group: 'trips', mode: 'write' },
   })
   async deleteTripGuest({ tripId, guestId }: { tripId: number; guestId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) return noAccess();
     const ownerRow = await this.trips.getOwner(tripId);
     if (!ownerRow || ownerRow.user_id !== ctx.userId)
@@ -511,7 +500,6 @@ export class TripsMcp {
     access: { group: 'trips', mode: 'write' },
   })
   async copyTrip({ tripId, title }: { tripId: number; title?: string }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) return noAccess();
     try {
       const newTripId = await this.trips.copy(tripId, ctx.userId, title);

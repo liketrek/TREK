@@ -2,12 +2,11 @@ import { z } from 'zod';
 import {
   McpController, Tool, type McpContext,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  demoDenied, errorResult, ok,
+  errorResult, ok,
 } from '../../nest-mcp';
 import { fileLinkRequestSchema, fileUpdateRequestSchema } from '@trek/shared';
 import type { FileLinkRequest, FileUpdateRequest } from '@trek/shared';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { AuthService } from '../auth/auth.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { FilesService, FileContentError, FILE_CONTENT_MAX } from './files.service';
 import { AllowedFileTypesService } from './allowed-file-types.service';
@@ -63,7 +62,6 @@ function contentRefusal(err: FileContentError): string {
 export class FilesMcp {
   constructor(
     private readonly files: FilesService,
-    private readonly auth: AuthService,
     private readonly guards: McpToolGuardsService,
     private readonly allowedTypes: AllowedFileTypesService,
   ) {}
@@ -138,7 +136,6 @@ export class FilesMcp {
     ctx: McpContext,
   ) {
     if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.guards.hasTripPermission('file_upload', tripId, ctx.userId))) return permissionDenied();
     // A path someone pasted in is not a name; keep only the last segment.
     const originalname = filename.split(/[\\/]/).pop()!.trim();
@@ -180,7 +177,6 @@ export class FilesMcp {
     { tripId, fileId, ...fields }: { tripId: number; fileId: number } & FileUpdateRequest,
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('file_edit', tripId, ctx.userId))) return permissionDenied();
     const current = await this.files.getFileById(fileId, tripId);
@@ -220,7 +216,6 @@ export class FilesMcp {
     { tripId, fileId, ...targets }: { tripId: number; fileId: number } & FileLinkRequest,
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('file_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.files.getFileById(fileId, tripId))) return errorResult('File not found.');
@@ -251,7 +246,6 @@ export class FilesMcp {
     { tripId, fileId, linkId }: { tripId: number; fileId: number; linkId: number },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('file_edit', tripId, ctx.userId))) return permissionDenied();
     // deleteFileLink scopes by (linkId, fileId) only, so the file has to be resolved

@@ -5,8 +5,7 @@ import { RoadtripService } from './roadtrip.service';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { demoDenied, noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { AuthService } from '../auth/auth.service';
+import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { ADDON_IDS } from '../../addons';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
@@ -43,7 +42,6 @@ export class RoadtripMcp {
     private readonly roadtrip: RoadtripService,
     @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
     private readonly guards: McpToolGuardsService,
-    private readonly auth: AuthService,
     readonly addons: AddonsService,
   ) {}
 
@@ -85,7 +83,6 @@ export class RoadtripMcp {
     { tripId, dayId, after_order_index, lat, lng }: { tripId: number; dayId: number; after_order_index: number; lat: number; lng: number },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.roadtrip.dayExists(dayId, tripId))) return noAccess();
@@ -127,7 +124,6 @@ export class RoadtripMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.roadtrip.dayExists(dayId, tripId))) return noAccess();
@@ -166,7 +162,6 @@ export class RoadtripMcp {
     { tripId, dayId, vias, remove }: { tripId: number; dayId: number; vias: { id: number; after_order_index: number }[]; remove?: number[] },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.roadtrip.dayExists(dayId, tripId))) return noAccess();
@@ -188,7 +183,6 @@ export class RoadtripMcp {
     when: roadtripAddonOn,
   })
   async removeVia({ tripId, dayId, viaId }: { tripId: number; dayId: number; viaId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.roadtrip.dayExists(dayId, tripId))) return noAccess();
@@ -204,7 +198,6 @@ export class RoadtripMcp {
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT, access: { group: 'trips', mode: 'write' }, when: roadtripAddonOn,
   })
   async updateVia(input: RoadtripViaUpdateRequest & { tripId: number; dayId: number; viaId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.tripsRepo.findAccessible(input.tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', input.tripId, ctx.userId))) return permissionDenied();
     if (!(await this.roadtrip.dayExists(input.dayId, input.tripId))) return noAccess();

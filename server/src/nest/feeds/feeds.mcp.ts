@@ -1,7 +1,7 @@
 import {
   McpController, Tool, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, ok,
+  ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
 import { getAppUrl } from '../../app-config';
@@ -9,7 +9,6 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
-import { DemoService } from '../common/demo.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { FeedsService } from './feeds.service';
@@ -43,13 +42,7 @@ export class FeedsMcp {
     @InjectRepository(Trips) private readonly trips: TripsRepository,
     private readonly env: RuntimeEnvService,
     private readonly guards: McpToolGuardsService,
-    private readonly demo: DemoService,
   ) {}
-
-  /** Plan 3i Task 3: the AuthService.isDemoUser check via the injected DemoService (common/demo.service.ts), not the free-function demo-write.ts helper. */
-  private async isDemoUser(userId: number): Promise<boolean> {
-    return await this.demo.isDemoUserId(userId);
-  }
 
   /**
    * The REST routes take the base URL from APP_URL and fall back to the calling
@@ -96,7 +89,6 @@ export class FeedsMcp {
     access: { group: 'trips', mode: 'share' },
   })
   async enableTripCalendarFeed({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     const denied = await this.denyTripFeed(tripId, ctx.userId);
     if (denied) return denied;
     return ok(await this.feeds.generateTripToken(tripId, ctx.userId, this.base()));
@@ -112,7 +104,6 @@ export class FeedsMcp {
     access: { group: 'trips', mode: 'share' },
   })
   async rotateTripCalendarFeed({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     const denied = await this.denyTripFeed(tripId, ctx.userId);
     if (denied) return denied;
     return ok(await this.feeds.rotateTripToken(tripId, ctx.userId, this.base()));
@@ -128,7 +119,6 @@ export class FeedsMcp {
     access: { group: 'trips', mode: 'share' },
   })
   async disableTripCalendarFeed({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     const denied = await this.denyTripFeed(tripId, ctx.userId);
     if (denied) return denied;
     await this.feeds.disableTripToken(tripId, ctx.userId);
@@ -159,7 +149,6 @@ export class FeedsMcp {
     access: { group: 'trips', mode: 'share' },
   })
   async enableAllTripsCalendarFeed(_input: Record<string, never>, ctx: McpContext) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     return ok(await this.feeds.generateUserToken(ctx.userId, this.base()));
   }
 
@@ -171,7 +160,6 @@ export class FeedsMcp {
     access: { group: 'trips', mode: 'share' },
   })
   async rotateAllTripsCalendarFeed(_input: Record<string, never>, ctx: McpContext) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     return ok(await this.feeds.rotateUserToken(ctx.userId, this.base()));
   }
 
@@ -183,7 +171,6 @@ export class FeedsMcp {
     access: { group: 'trips', mode: 'share' },
   })
   async disableAllTripsCalendarFeed(_input: Record<string, never>, ctx: McpContext) {
-    if (await this.isDemoUser(ctx.userId)) return demoDenied();
     await this.feeds.disableUserToken(ctx.userId);
     return ok({ feed_url: null });
   }

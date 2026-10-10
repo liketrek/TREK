@@ -2,11 +2,10 @@ import {
   McpController, Tool, ResourceTemplate, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
+  errorResult, ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { CollabService } from './collab.service';
@@ -65,7 +64,6 @@ function jsonContent(uri: string, data: unknown) {
 export class CollabMcp {
   constructor(
     private readonly collab: CollabService,
-    private readonly auth: AuthService,
     readonly addons: AddonsService,
     private readonly guards: McpToolGuardsService,
   ) {}
@@ -94,7 +92,6 @@ export class CollabMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
     const note = await this.collab.createNote(tripId, ctx.userId, { title, content, category, color, website, pinned });
@@ -125,7 +122,6 @@ export class CollabMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
     const note = await this.collab.updateNote(tripId, noteId, { title, content, category, color, website, pinned });
@@ -146,7 +142,6 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'write' },
   })
   async deleteCollabNote({ tripId, noteId }: { tripId: number; noteId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
     const deleted = await this.collab.deleteNote(tripId, noteId);
@@ -193,7 +188,6 @@ export class CollabMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
     const poll = await this.collab.createPoll(tripId, ctx.userId, { question, options, multiple, deadline });
@@ -214,7 +208,6 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'write' },
   })
   async voteCollabPoll({ tripId, pollId, optionIndex }: { tripId: number; pollId: number; optionIndex: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
     const result = await this.collab.votePoll(tripId, pollId, ctx.userId, optionIndex);
@@ -235,7 +228,6 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'write' },
   })
   async closeCollabPoll({ tripId, pollId }: { tripId: number; pollId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
     const poll = await this.collab.closePoll(tripId, pollId);
@@ -256,7 +248,6 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'write' },
   })
   async deleteCollabPoll({ tripId, pollId }: { tripId: number; pollId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
     const deleted = await this.collab.deletePoll(tripId, pollId);
@@ -295,7 +286,6 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'write' },
   })
   async sendCollabMessage({ tripId, text, replyTo }: { tripId: number; text: string; replyTo?: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
     const result = await this.collab.createMessage(tripId, ctx.userId, text, replyTo ?? null);
@@ -316,7 +306,6 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'write' },
   })
   async deleteCollabMessage({ tripId, messageId }: { tripId: number; messageId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
     const result = await this.collab.deleteMessage(tripId, messageId, ctx.userId);
@@ -338,7 +327,6 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'write' },
   })
   async reactCollabMessage({ tripId, messageId, emoji }: { tripId: number; messageId: number; emoji: string }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
     const result = await this.collab.reactMessage(messageId, tripId, ctx.userId, emoji);

@@ -8,7 +8,6 @@ import { PermissionsModule } from '../permissions/permissions.module';
 import { QueryHelpersModule } from '../query-helpers/query-helpers.module';
 import { PlacePhotosModule } from '../place-photos/place-photos.module';
 import { StorageModule } from '../storage/storage.module';
-import { AuthModule } from '../auth/auth.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
 import { Reservations } from '../../db/entities/Reservations.entity';
 import { ShareTokens } from '../../db/entities/ShareTokens.entity';
@@ -31,7 +30,7 @@ import { CollabMessages } from '../../db/entities/CollabMessages.entity';
 // for the same reason).
 @Module({
   imports: [
-    McpSharedModule, SettingsModule, PermissionsModule, QueryHelpersModule, AuthModule, PlacePhotosModule, StorageModule,
+    McpSharedModule, SettingsModule, PermissionsModule, QueryHelpersModule, PlacePhotosModule, StorageModule,
     MikroOrmModule.forFeature([
       Reservations, ShareTokens, Trips, Days, DayAssignments, DayNotes, Places, PackingItems, BudgetItems, Categories, CollabMessages,
     ]),

@@ -9,7 +9,6 @@ import { ToursImportController } from './tours-import.controller';
 import { ToursService } from './tours.service';
 import { PlacesModule } from '../places/places.module';
 import { PermissionsModule } from '../permissions/permissions.module';
-import { AuthModule } from '../auth/auth.module';
 import { AddonsModule } from '../addons/addons.module';
 
 /**
@@ -23,7 +22,7 @@ import { AddonsModule } from '../addons/addons.module';
   imports: [
     PlacesModule,
     PermissionsModule,
-    AuthModule,
+    
     AddonsModule,
     MikroOrmModule.forFeature([Tours, TourTypes, TourWaypoints, Places]),
   ],

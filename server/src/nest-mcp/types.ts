@@ -1,5 +1,6 @@
 import type { Scope, ScopeGroup } from '../mcp/scopes';
 
+import type { InjectionToken, ModuleMetadata } from '@nestjs/common';
 import type { ZodRawShape, ZodType } from 'zod';
 
 /**
@@ -254,10 +255,38 @@ export interface McpRegistryListing {
  */
 export type McpAccessValidator = (access: McpDeclarativeAccess, entry: McpRegistryListing) => string | null | undefined;
 
+/**
+ * Host-supplied check run before every registered tool handler, after the
+ * SDK validated the arguments and inside the `around` wrapper. Return a result
+ * to answer the call with it instead of running the handler, or undefined to
+ * let the handler run. The package attaches no meaning to it; TREK's demo-mode
+ * write block lives in `src/mcp/nest-mcp-policy.ts`.
+ *
+ * Registered entries only: a dynamic tool's source owns its own checks,
+ * because the host cannot know what a contributor's annotations promise.
+ */
+export type McpToolGate = (tool: ToolOptions, ctx: McpContext) => unknown;
+
+/**
+ * How the module builds its `McpToolGate`: a factory with the providers it
+ * needs, resolved from the container like any other provider. A gate that
+ * reads the database has to come from DI, and `forRoot` options are static.
+ */
+export interface McpToolGateProvider {
+  /** Modules exporting what `inject` names, unless those providers are global. */
+  imports?: NonNullable<ModuleMetadata['imports']>;
+  inject?: InjectionToken[];
+  useFactory: (...deps: never[]) => McpToolGate;
+}
+
 export interface McpModuleOptions {
   accessPolicy?: McpAccessPolicy;
   validateAccess?: McpAccessValidator;
+  toolGate?: McpToolGateProvider;
 }
+
+/** Injection token for the resolved `McpToolGate` (null when none was configured). */
+export const MCP_TOOL_GATE = Symbol('MCP_TOOL_GATE');
 
 /** Injection token for the options object given to `McpModule.forRoot()`. */
 export const MCP_MODULE_OPTIONS = Symbol('MCP_MODULE_OPTIONS');

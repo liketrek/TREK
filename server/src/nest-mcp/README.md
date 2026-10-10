@@ -60,10 +60,32 @@ import { ok, errorResult, demoDenied, TOOL_ANNOTATIONS_READONLY } from '../../ne
 
 ok({ tags })                 // { content: [{ type: 'text', text: <pretty JSON> }] }
 errorResult('Tag not found.') // { content: [...], isError: true } — message verbatim
-demoDenied()                  // canned demo-mode write refusal
+demoDenied()                  // canned demo-mode write refusal (the host's tool gate returns it)
 ```
 
 Six `TOOL_ANNOTATIONS_*` presets cover the read/write/delete/idempotency matrix (plus `OPEN_WORLD` variants). TREK-specific canned errors (permission wording, RBAC lookups) belong in the host layer, built on `errorResult` — see `server/src/mcp/tools/_shared.ts`, which re-exports the generic helpers from here.
+
+### Tool gate
+
+`toolGate` runs before every registered tool handler, after the SDK validated
+the arguments and inside `around` (so the trace and the `onInvoke` audit still
+see a refused call). Returning a result answers the call with it; `undefined`
+runs the handler. Dynamic tools are not gated: their source owns its checks.
+
+```ts
+McpModule.forRoot({
+  accessPolicy,
+  toolGate: { inject: [DemoService], useFactory: (demo) => (tool, ctx) => /* result or undefined */ },
+})
+createTestRegistry(instances, { accessPolicy, toolGate: (tool, ctx) => undefined });
+```
+
+The gate is built from the container (`imports`/`inject`/`useFactory`), because
+a check that reads the database cannot live in static `forRoot` options. TREK's
+is `trekDemoToolGate` in `src/mcp/nest-mcp-policy.ts`: a demo account calling a
+tool not annotated `readOnlyHint: true` gets `demoDenied()`. Tools therefore
+never check demo mode themselves; ESLint refuses `isDemoUser`/`isDemoUserId`/
+`demoDenied()` in `*.mcp.ts`.
 
 ### Fail-fast validation
 

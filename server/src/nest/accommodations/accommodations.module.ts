@@ -4,7 +4,6 @@ import { AccommodationsRpc } from './accommodations.rpc';
 import { AccommodationsMcp } from './accommodations.mcp';
 import { PlacesModule } from '../places/places.module';
 import { AccommodationsDomainModule } from './accommodations-domain.module';
-import { AuthModule } from '../auth/auth.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
@@ -27,7 +26,7 @@ import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
  * which comes near accommodations.
  */
 @Module({
-  imports: [McpSharedModule, PermissionsModule, RealtimeModule, PluginGuardsModule, PlacesModule, AccommodationsDomainModule, AuthModule],
+  imports: [McpSharedModule, PermissionsModule, RealtimeModule, PluginGuardsModule, PlacesModule, AccommodationsDomainModule],
   controllers: [AccommodationsController],
   providers: [AccommodationsRpc, AccommodationsMcp],
   // The MODULE, not the provider: Nest refuses to export a provider that belongs to

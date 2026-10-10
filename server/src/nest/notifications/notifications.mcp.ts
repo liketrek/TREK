@@ -1,10 +1,9 @@
 import {
   McpController, Tool, Resource, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  demoDenied, ok,
+  ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { NotificationsService } from './notifications.service';
 
 function jsonContent(uri: string, data: unknown) {
@@ -33,7 +32,6 @@ function jsonContent(uri: string, data: unknown) {
 export class NotificationsMcp {
   constructor(
     private readonly notifications: NotificationsService,
-    private readonly auth: AuthService,
   ) {}
 
   @Tool({
@@ -77,7 +75,6 @@ export class NotificationsMcp {
     access: { group: 'notifications', mode: 'write' },
   })
   async markNotificationRead({ notificationId }: { notificationId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const success = await this.notifications.markRead(notificationId, ctx.userId);
     if (!success) return { content: [{ type: 'text' as const, text: 'Notification not found.' }], isError: true };
     return ok({ success: true });
@@ -93,7 +90,6 @@ export class NotificationsMcp {
     access: { group: 'notifications', mode: 'write' },
   })
   async markNotificationUnread({ notificationId }: { notificationId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const success = await this.notifications.markUnread(notificationId, ctx.userId);
     if (!success) return { content: [{ type: 'text' as const, text: 'Notification not found.' }], isError: true };
     return ok({ success: true });
@@ -107,7 +103,6 @@ export class NotificationsMcp {
     access: { group: 'notifications', mode: 'write' },
   })
   async markAllNotificationsRead(_input: Record<string, never>, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const count = await this.notifications.markAllRead(ctx.userId);
     return ok({ success: true, count });
   }

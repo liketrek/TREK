@@ -1,14 +1,13 @@
 import {
   McpController, Tool, type McpContext,
   TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
+  errorResult, ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
 import { airtrailImportSchema } from '@trek/shared';
 import { ADDON_IDS } from '../../addons';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
-import { AuthService } from '../auth/auth.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
@@ -48,7 +47,6 @@ export class ReservationImportMcp {
     // this injects TripsRepository directly (same constructor slot) and
     // calls findAccessible.
     @InjectRepository(Trips) private readonly trips: TripsRepository,
-    private readonly auth: AuthService,
     private readonly guards: McpToolGuardsService,
     readonly addons: AddonsService,
   ) {}
@@ -74,7 +72,6 @@ export class ReservationImportMcp {
     { tripId, flightIds, connections }: { tripId: number; flightIds: string[]; connections?: string[][] },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.trips.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
 

@@ -1,4 +1,4 @@
-import { trekMcpAccessPolicy, trekMcpValidateAccess } from '../mcp/nest-mcp-policy';
+import { trekDemoToolGate, trekMcpAccessPolicy, trekMcpValidateAccess } from '../mcp/nest-mcp-policy';
 import mikroOrmConfig from '../mikro-orm.config';
 import { AppSettings } from '../db/entities/AppSettings.entity';
 import { Users } from '../db/entities/Users.entity';
@@ -24,6 +24,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { CollabModule } from './collab/collab.module';
 import { CollectionsModule } from './collections/collections.module';
 import { DemoModule } from './common/demo.module';
+import { DemoService } from './common/demo.service';
 import { IdempotencyCleanupJob } from './common/idempotency-cleanup.job';
 import { IdempotencyInterceptor } from './common/idempotency.interceptor';
 import { ManagedGuard } from './common/managed.guard';
@@ -100,7 +101,11 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
     RealtimeModule,
     RealtimeGatewayModule,
     SchedulingModule,
-    McpModule.forRoot({ accessPolicy: trekMcpAccessPolicy, validateAccess: trekMcpValidateAccess }),
+    McpModule.forRoot({
+      accessPolicy: trekMcpAccessPolicy,
+      validateAccess: trekMcpValidateAccess,
+      toolGate: { inject: [DemoService], useFactory: (demo: DemoService) => trekDemoToolGate((id) => demo.isDemoUserId(id)) },
+    }),
     HealthModule,
     PlatformModule,
     McpTransportModule,

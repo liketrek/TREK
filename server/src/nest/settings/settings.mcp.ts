@@ -1,11 +1,10 @@
 import {
   McpController, Tool, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  demoDenied, errorResult, ok,
+  errorResult, ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
 import { MASKED_SETTING_VALUE, SUPPORTED_LANGUAGE_CODES, settingsBulkRequestSchema, weekStartSchema } from '@trek/shared';
-import { AuthService } from '../auth/auth.service';
 import { SettingsService } from './settings.service';
 
 /**
@@ -99,7 +98,6 @@ const KEY_LIST = DISPLAY_PREFERENCE_KEYS.join(', ');
 export class SettingsMcp {
   constructor(
     private readonly settings: SettingsService,
-    private readonly auth: AuthService,
   ) {}
 
   /**
@@ -138,7 +136,6 @@ export class SettingsMcp {
     access: { group: 'settings', mode: 'write' },
   })
   async updateDisplaySettings({ settings }: { settings: Record<string, unknown> }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
 
     const entries = Object.entries(settings);
     if (entries.length === 0) {

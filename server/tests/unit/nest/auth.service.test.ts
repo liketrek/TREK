@@ -1189,17 +1189,6 @@ describe('resetPassword', () => {
   });
 });
 
-describe('ephemeral + demo helpers', () => {
-  it('AUTH-DB-088: isDemoUser is true only for the demo email in demo mode', async () => {
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const { user: other } = createUser(testDb);
-    expect(await svc.isDemoUser(user.id)).toBe(false); // demo mode off
-    vi.stubEnv('DEMO_MODE', 'true');
-    expect(await svc.isDemoUser(user.id)).toBe(true);
-    expect(await svc.isDemoUser(other.id)).toBe(false);
-    vi.unstubAllEnvs();
-  });
-});
 
 // ---------------------------------------------------------------------------
 // Quirk fixes after the DI fold (trailing fix(server) commit): AUTH-DB-089+.

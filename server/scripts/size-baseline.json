@@ -7,7 +7,7 @@
   "src/db/repositories/Users.repository.ts": 1446,
   "src/nest/atlas/atlas-geo.ts": 1005,
   "src/nest/atlas/atlas.service.ts": 1182,
-  "src/nest/auth/auth.service.ts": 1156,
+  "src/nest/auth/auth.service.ts": 1150,
   "src/nest/budget/budget.service.ts": 1702,
   "src/nest/collections/collections.service.ts": 1488,
   "src/nest/doc-sync/doc-sync.service.ts": 1060,

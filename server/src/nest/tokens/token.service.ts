@@ -43,8 +43,7 @@ type TokenKind = 'mcp' | 'api';
  * before.
  *
  * Deliberately NOT here: verifyJwtToken (that is login identity, and it stays
- * next to the cookie/JWT logic on AuthService) and isDemoUser (a demo gate that
- * happens to read the users table).
+ * next to the cookie/JWT logic on AuthService).
  */
 @Injectable()
 export class TokenService {

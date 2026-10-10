@@ -2,14 +2,13 @@ import {
   McpController, Tool, Resource, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
+  errorResult, ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
 import { ADDON_IDS } from '../../addons';
 import { AtlasService, BucketItemExistsError } from './atlas.service';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
-import { AuthService } from '../auth/auth.service';
 
 /** Legacy registrar gate: the whole atlas surface (tools AND resources) rides
  *  the atlas addon — unlike the REST controller, which is deliberately ungated
@@ -58,7 +57,6 @@ export class AtlasMcp {
   constructor(
     private readonly atlas: AtlasService,
     readonly addons: AddonsService,
-    private readonly auth: AuthService,
   ) {}
 
   // ── Bucket list ─────────────────────────────────────────────────────────
@@ -87,7 +85,6 @@ export class AtlasMcp {
     { name, lat, lng, country_code, notes, target_date, region_code }: { name: string; lat?: number; lng?: number; country_code?: string; notes?: string; target_date?: string | null; region_code?: string },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     // The same rule the REST contract enforces: a region comes with its own country.
     if (region_code && (!country_code || !region_code.toUpperCase().startsWith(`${country_code.toUpperCase()}-`))) {
       return errorResult('region_code must belong to country_code.');
@@ -112,7 +109,6 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'write' },
   })
   async deleteBucketListItem({ itemId }: { itemId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     const deleted = await this.atlas.deleteBucketItem(ctx.userId, itemId);
     if (!deleted) return { content: [{ type: 'text' as const, text: 'Bucket list item not found.' }], isError: true };
     return ok({ success: true });
@@ -131,7 +127,6 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'write' },
   })
   async markCountryVisited({ country_code }: { country_code: string }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     await this.atlas.markCountry(ctx.userId, country_code.toUpperCase());
     return ok({ success: true, country_code: country_code.toUpperCase() });
   }
@@ -147,7 +142,6 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'write' },
   })
   async unmarkCountryVisited({ country_code }: { country_code: string }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     await this.atlas.unmarkCountry(ctx.userId, country_code.toUpperCase());
     return ok({ success: true, country_code: country_code.toUpperCase() });
   }
@@ -231,7 +225,6 @@ export class AtlasMcp {
     { regionCode, regionName, countryCode }: { regionCode: string; regionName: string; countryCode: string },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     // Post-fold quirk fix: uppercase both codes, matching the REST controller
     // (the legacy registrar passed them through verbatim, so a lowercase mark
     // created a row REST's uppercased unmark could never hit).
@@ -256,7 +249,6 @@ export class AtlasMcp {
     access: { group: 'atlas', mode: 'write' },
   })
   async unmarkRegionVisited({ regionCode }: { regionCode: string }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     // Post-fold quirk fix: uppercase, matching the REST controller.
     await this.atlas.unmarkRegion(ctx.userId, regionCode.toUpperCase());
     return ok({ success: true });
@@ -307,7 +299,6 @@ export class AtlasMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     let item: unknown;
     try {
       item = await this.atlas.updateBucketItem(ctx.userId, itemId, { name, notes, lat, lng, country_code, target_date });

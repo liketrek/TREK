@@ -2,11 +2,10 @@ import {
   McpController, Tool, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, ok,
+  ok,
 } from '../../nest-mcp';
 import { z } from 'zod';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { AuthService } from '../auth/auth.service';
 import { ADDON_IDS } from '../../addons';
 import { Users } from '../../db/entities/Users.entity';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
@@ -64,13 +63,8 @@ export class CollectionsMcp {
   constructor(
     private readonly collections: CollectionsService,
     @InjectRepository(Users) private readonly users: UsersRepository,
-    private readonly auth: AuthService,
     readonly addons: AddonsService,
   ) {}
-
-  private async denyDemo(userId: number) {
-    return (await this.auth.isDemoUser(userId)) ? demoDenied() : null;
-  }
 
   // ── Read ──────────────────────────────────────────────────────────────
 
@@ -150,7 +144,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async createCollection(body: CollectionCreateRequest, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { return ok({ collection: await this.collections.createCollection(ctx.userId, body) }); } catch (err) { return fail(err); }
   }
 
@@ -163,7 +156,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async updateCollection({ collectionId, ...body }: { collectionId: number } & CollectionUpdateRequest, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { return ok({ collection: await this.collections.updateCollection(ctx.userId, collectionId, body) }); } catch (err) { return fail(err); }
   }
 
@@ -176,7 +168,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async deleteCollection({ collectionId }: { collectionId: number }, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { await this.collections.deleteCollection(ctx.userId, collectionId); return ok({ success: true }); } catch (err) { return fail(err); }
   }
 
@@ -189,7 +180,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async reorderCollections({ orderedIds }: { orderedIds: number[] }, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { await this.collections.reorderCollections(ctx.userId, orderedIds); return ok({ success: true }); } catch (err) { return fail(err); }
   }
 
@@ -204,7 +194,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async savePlaceToCollection(body: CollectionSavePlaceRequest, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { return ok(await this.collections.savePlace(ctx.userId, body)); } catch (err) { return fail(err); }
   }
 
@@ -225,7 +214,6 @@ export class CollectionsMcp {
     { collectionId, tripId, placeIds, force }: { collectionId: number; tripId: number; placeIds: number[]; force?: boolean },
     ctx: McpContext,
   ) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { return ok(await this.collections.saveFromTripPlaces(ctx.userId, collectionId, tripId, placeIds, force)); } catch (err) { return fail(err); }
   }
 
@@ -238,7 +226,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async updateCollectionPlace({ placeId, ...body }: { placeId: number } & CollectionPlaceUpdateRequest, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { return ok({ place: await this.collections.updatePlace(ctx.userId, placeId, body) }); } catch (err) { return fail(err); }
   }
 
@@ -251,7 +238,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async setCollectionPlaceStatus({ placeId, status }: { placeId: number; status: CollectionStatus }, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { return ok({ place: await this.collections.setStatus(ctx.userId, placeId, status) }); } catch (err) { return fail(err); }
   }
 
@@ -267,7 +253,6 @@ export class CollectionsMcp {
     { trip_id, place_ids, status }: CollectionSetStatusFromTripRequest,
     ctx: McpContext,
   ) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { return ok(await this.collections.setStatusFromTrip(ctx.userId, trip_id, place_ids, status)); } catch (err) { return fail(err); }
   }
 
@@ -283,7 +268,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async rateCollectionPlace({ placeId, rating }: { placeId: number; rating?: number | null }, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { return ok({ place: await this.collections.setRating(ctx.userId, placeId, rating ?? null) }); } catch (err) { return fail(err); }
   }
 
@@ -296,7 +280,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async deleteCollectionPlace({ placeId }: { placeId: number }, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { await this.collections.deletePlace(ctx.userId, placeId); return ok({ success: true }); } catch (err) { return fail(err); }
   }
 
@@ -309,7 +292,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async copyCollectionPlacesToTrip(body: CollectionCopyToTripRequest, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { return ok(await this.collections.copyToTrip(ctx.userId, body)); } catch (err) { return fail(err); }
   }
 
@@ -324,7 +306,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async createCollectionLabel({ collection_id, name, color }: CollectionLabelCreateRequest, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { return ok({ label: await this.collections.createLabel(ctx.userId, collection_id, name, color) }); } catch (err) { return fail(err); }
   }
 
@@ -337,7 +318,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async updateCollectionLabel({ labelId, ...body }: { labelId: number } & CollectionLabelUpdateRequest, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { return ok({ label: await this.collections.updateLabel(ctx.userId, labelId, body) }); } catch (err) { return fail(err); }
   }
 
@@ -350,7 +330,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async deleteCollectionLabel({ labelId }: { labelId: number }, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { await this.collections.deleteLabel(ctx.userId, labelId); return ok({ success: true }); } catch (err) { return fail(err); }
   }
 
@@ -366,7 +345,6 @@ export class CollectionsMcp {
     { label_ids, place_ids, remove }: CollectionLabelAssignRequest & { remove?: boolean },
     ctx: McpContext,
   ) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { return ok(await this.collections.assignLabels(ctx.userId, label_ids, place_ids, remove ?? false)); } catch (err) { return fail(err); }
   }
 
@@ -381,7 +359,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async inviteToCollection({ collection_id, user_id, role }: CollectionInviteRequest, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     // try/catch added with the post-fold quirk pass — the legacy handler was one
     // of two where an unexpected throw escaped to the SDK instead of isError.
     try {
@@ -408,7 +385,6 @@ export class CollectionsMcp {
     { collectionId, userId: targetUserId, role }: { collectionId: number; userId: number; role: CollectionRole },
     ctx: McpContext,
   ) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { await this.collections.setMemberRole(ctx.userId, collectionId, targetUserId, role); return ok({ success: true }); } catch (err) { return fail(err); }
   }
 
@@ -424,7 +400,6 @@ export class CollectionsMcp {
     { collectionId, userId: targetUserId }: { collectionId: number; userId: number },
     ctx: McpContext,
   ) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { await this.collections.removeMember(ctx.userId, collectionId, targetUserId); return ok({ success: true }); } catch (err) { return fail(err); }
   }
 
@@ -440,7 +415,6 @@ export class CollectionsMcp {
     { collectionId, userId: targetUserId }: { collectionId: number; userId: number },
     ctx: McpContext,
   ) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { await this.collections.cancelInvite(collectionId, ctx.userId, targetUserId); return ok({ success: true }); } catch (err) { return fail(err); }
   }
 
@@ -453,7 +427,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async acceptCollectionInvite({ collectionId }: { collectionId: number }, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     // try/catch added with the post-fold quirk pass (see inviteToCollection).
     try {
       const res = await this.collections.acceptInvite(ctx.userId, collectionId, undefined);
@@ -471,7 +444,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async declineCollectionInvite({ collectionId }: { collectionId: number }, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { await this.collections.declineInvite(ctx.userId, collectionId, undefined); return ok({ success: true }); } catch (err) { return fail(err); }
   }
 
@@ -484,7 +456,6 @@ export class CollectionsMcp {
     access: { group: 'collections', mode: 'write' },
   })
   async leaveCollection({ collectionId }: { collectionId: number }, ctx: McpContext) {
-    const demo = await this.denyDemo(ctx.userId); if (demo) return demo;
     try { await this.collections.leaveCollection(ctx.userId, collectionId, undefined); return ok({ success: true }); } catch (err) { return fail(err); }
   }
 }

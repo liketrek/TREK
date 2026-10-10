@@ -4,7 +4,6 @@ import { TagsController } from './tags.controller';
 import { TagsMcp } from './tags.mcp';
 import { TagsRpc } from './tags.rpc';
 import { TagsService } from './tags.service';
-import { AuthModule } from '../auth/auth.module';
 import { Tags } from '../../db/entities/Tags.entity';
 
 /**
@@ -16,7 +15,7 @@ import { Tags } from '../../db/entities/Tags.entity';
  * precedent comment).
  */
 @Module({
-  imports: [AuthModule, MikroOrmModule.forFeature([Tags])],
+  imports: [MikroOrmModule.forFeature([Tags])],
   controllers: [TagsController],
   // TagsRpc must stay in providers: the plugin RPC registry discovers marked
   // PROVIDERS only, and a missing entry here would leave tags.* answering

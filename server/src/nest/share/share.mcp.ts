@@ -1,11 +1,10 @@
 import {
   McpController, Tool, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
-  demoDenied, ok,
+  ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { canShareTrips } from '../../mcp/scopes';
 import { ShareService } from './share.service';
@@ -22,7 +21,6 @@ import { ShareService } from './share.service';
 export class ShareMcp {
   constructor(
     private readonly share: ShareService,
-    private readonly auth: AuthService,
     private readonly guards: McpToolGuardsService,
   ) {}
 
@@ -69,7 +67,6 @@ export class ShareMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.share.verifyTripAccess(String(tripId), ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('share_manage', tripId, ctx.userId))) return permissionDenied();
     // The zod .default()s above fill omitted flags, and ShareService applies
@@ -90,7 +87,6 @@ export class ShareMcp {
     access: (ctx) => canShareTrips(ctx.scopes),
   })
   async deleteShareLink({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.share.verifyTripAccess(String(tripId), ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('share_manage', tripId, ctx.userId))) return permissionDenied();
     await this.share.remove(String(tripId));

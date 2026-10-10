@@ -1,4 +1,4 @@
-import type { McpAccessGroup, McpAccessMode, McpAccessPolicy, McpAccessValidator } from '../nest-mcp';
+import { demoDenied, type McpAccessGroup, type McpAccessMode, type McpAccessPolicy, type McpAccessValidator, type McpToolGate, type ToolOptions } from '../nest-mcp';
 import { ALL_SCOPES, canRead, canWrite, type Scope, type ScopeGroup } from './scopes';
 
 /** The mode half of every scope: 'read' | 'write' | 'delete' | 'share'. */
@@ -45,3 +45,26 @@ const VALID_GROUP_MODES: ReadonlySet<string> = new Set(ALL_SCOPES);
  */
 export const trekMcpValidateAccess: McpAccessValidator = ({ group, mode }) =>
   VALID_GROUP_MODES.has(`${group}:${mode}`) ? null : `no '${group}:${mode}' scope in SCOPES`;
+
+/**
+ * True for a tool the demo gate holds back: every tool that does not declare
+ * itself read-only. The annotation, not `access.mode`, is the signal, because
+ * the share/content scopes cover reads too (get_share_link,
+ * get_trip_calendar_feed, read_trip_file) and the predicate-gated tools carry
+ * no mode at all. tests/unit/mcp/demo-tool-gate.test.ts holds the two in step:
+ * every `mode: 'read'` tool is read-only and every `mode: 'write'` one is not.
+ */
+export function isDemoGatedTool(tool: ToolOptions): boolean {
+  return tool.annotations?.readOnlyHint !== true;
+}
+
+/**
+ * The demo-mode write block for every registered tool, in one place: a demo
+ * account calling a tool that is not read-only gets the canned refusal, the
+ * same result each tool used to return from its own first line. Given to
+ * McpModule.forRoot as `toolGate` (AppModule) and to the MCP test registry.
+ * Plugin tools are dynamic and keep their own gate in PluginMcpToolsService.
+ */
+export function trekDemoToolGate(isDemoUser: (userId: number) => Promise<boolean>): McpToolGate {
+  return async (tool, ctx) => (isDemoGatedTool(tool) && (await isDemoUser(ctx.userId)) ? demoDenied() : undefined);
+}

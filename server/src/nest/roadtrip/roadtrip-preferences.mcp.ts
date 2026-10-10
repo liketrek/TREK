@@ -5,13 +5,11 @@ import {
   Tool,
   TOOL_ANNOTATIONS_READONLY,
   TOOL_ANNOTATIONS_WRITE,
-  demoDenied,
   ok,
   type McpContext,
 } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
-import { AuthService } from '../auth/auth.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
@@ -28,7 +26,6 @@ const when = addonGate(ADDON_IDS.ROADTRIP);
 export class RoadtripPreferencesMcp {
   constructor(
     private readonly preferences: RoadtripPreferencesService,
-    private readonly auth: AuthService,
     readonly addons: AddonsService,
     @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
     private readonly guards: McpToolGuardsService,
@@ -58,7 +55,6 @@ export class RoadtripPreferencesMcp {
     when,
   })
   async update({ tripId, settings }: { tripId: number; settings: RoadtripPreferences }, ctx: McpContext) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     // A day window that ends before it starts is refused by the service, with the reason.

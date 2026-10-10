@@ -5,7 +5,6 @@ import { DayNotesService } from './day-notes.service';
 import { DayNotesMcp } from './day-notes.mcp';
 import { DayNotesRpc } from './day-notes.rpc';
 import { PermissionsModule } from '../permissions/permissions.module';
-import { AuthModule } from '../auth/auth.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
 import { McpSharedModule } from '../mcp-shared/mcp-shared.module';
@@ -24,13 +23,12 @@ import { Trips } from '../../db/entities/Trips.entity';
  * injection the same way. Wiring the modules to each other would buy
  * nothing and cost a cycle.
  *
- * AuthModule is only for DayNotesMcp's demo-user gate, PluginGuardsModule only
- * for DayNotesRpc.
+ * PluginGuardsModule is only for DayNotesRpc.
  */
 @Module({
   // DayNotes/Days: Plan 4 Task 1 — DayNotesService's own DayNotesRepository/
   // DaysRepository.existsInTrip, replacing its raw `this.dbs.all/get/run`.
-  imports: [McpSharedModule, PermissionsModule, AuthModule, RealtimeModule, PluginGuardsModule, MikroOrmModule.forFeature([DayNotes, Days, Trips])],
+  imports: [McpSharedModule, PermissionsModule, RealtimeModule, PluginGuardsModule, MikroOrmModule.forFeature([DayNotes, Days, Trips])],
   controllers: [DayNotesController],
   providers: [DayNotesService, DayNotesMcp, DayNotesRpc],
   exports: [DayNotesService],

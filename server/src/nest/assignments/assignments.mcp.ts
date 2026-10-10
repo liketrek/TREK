@@ -2,12 +2,11 @@ import {
   McpController, Tool, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
+  errorResult, ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
 import { assignmentEndDayRequestSchema, type AssignmentEndDayRequest } from '@trek/shared';
-import { AuthService } from '../auth/auth.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { AssignmentsService } from './assignments.service';
 import { DaysService } from '../days/days.service';
@@ -26,7 +25,6 @@ export class AssignmentsMcp {
   constructor(
     private readonly assignments: AssignmentsService,
     private readonly days: DaysService,
-    private readonly auth: AuthService,
     private readonly guards: McpToolGuardsService,
   ) {}
 
@@ -46,7 +44,6 @@ export class AssignmentsMcp {
     { tripId, dayId, placeId, notes }: { tripId: number; dayId: number; placeId: number; notes?: string },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.assignments.dayExists(dayId, tripId))) return errorResult('Day not found.');
@@ -72,7 +69,6 @@ export class AssignmentsMcp {
     { tripId, assignmentId, end_day }: AssignmentEndDayRequest & { tripId: number; assignmentId: number },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId))) return errorResult('Assignment not found.');
@@ -96,7 +92,6 @@ export class AssignmentsMcp {
     { tripId, dayId, assignmentId }: { tripId: number; dayId: number; assignmentId: number },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.assignments.assignmentExistsInDay(assignmentId, dayId, tripId)))
@@ -121,7 +116,6 @@ export class AssignmentsMcp {
     { tripId, dayId }: { tripId: number; dayId: number },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.assignments.dayExists(dayId, tripId))) return errorResult('Day not found.');
@@ -149,7 +143,6 @@ export class AssignmentsMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     const existing = await this.assignments.getAssignmentForTrip(assignmentId, tripId);
@@ -185,7 +178,6 @@ export class AssignmentsMcp {
     { tripId, assignmentId, notes }: { tripId: number; assignmentId: number; notes: string | null },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId))) return errorResult('Assignment not found.');
@@ -212,7 +204,6 @@ export class AssignmentsMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId))) return errorResult('Assignment not found.');
@@ -238,7 +229,6 @@ export class AssignmentsMcp {
     { tripId, assignmentId, excluded }: { tripId: number; assignmentId: number; excluded: boolean },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId))) return errorResult('Assignment not found.');
@@ -266,7 +256,6 @@ export class AssignmentsMcp {
     },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId))) return errorResult('Assignment not found.');
@@ -315,7 +304,6 @@ export class AssignmentsMcp {
     { tripId, assignmentId, userIds }: { tripId: number; assignmentId: number; userIds: number[] },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId))) return errorResult('Assignment not found.');
@@ -339,7 +327,6 @@ export class AssignmentsMcp {
     { tripId, dayId, assignmentIds }: { tripId: number; dayId: number; assignmentIds: number[] },
     ctx: McpContext,
   ) {
-    if (await this.auth.isDemoUser(ctx.userId)) return demoDenied();
     if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
     if (!(await this.days.getDay(dayId, tripId))) return errorResult('Day not found.');

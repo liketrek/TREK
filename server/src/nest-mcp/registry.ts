@@ -9,6 +9,7 @@ import type {
   McpEntry,
   McpEntryKind,
   McpRegistryListing,
+  McpToolGate,
   PromptOptions,
   ResourceOptions,
   ResourceTemplateOptions,
@@ -37,6 +38,8 @@ function strictInputSchema(schema: ToolOptions['inputSchema']): unknown {
 export interface McpRegistryOptions {
   accessPolicy?: McpAccessPolicy;
   validateAccess?: McpAccessValidator;
+  /** Runs before every registered tool handler; see `McpToolGate`. */
+  toolGate?: McpToolGate;
 }
 
 type AnyHandler = (this: unknown, ...handlerArgs: unknown[]) => unknown;
@@ -102,12 +105,14 @@ export class McpRegistry {
   private readonly bound: BoundEntry[] = [];
   private readonly accessPolicy?: McpAccessPolicy;
   private readonly validateAccess?: McpAccessValidator;
+  private readonly toolGate?: McpToolGate;
   /** Memoised `reservedNames()`; dropped by register() so it can never go stale. */
   private reserved?: ReadonlySet<string>;
 
   constructor(options: McpRegistryOptions = {}) {
     this.accessPolicy = options.accessPolicy;
     this.validateAccess = options.validateAccess;
+    this.toolGate = options.toolGate;
   }
 
   /**
@@ -140,7 +145,7 @@ export class McpRegistry {
       const handler = (instance as unknown as Record<string, AnyHandler>)[entry.methodName];
       switch (entry.kind) {
         case 'tool':
-          this.attachTool(registrar, entry.options, instance, handler, ctx, opts);
+          this.attachTool(registrar, entry.options, instance, this.gated(entry.options, handler, ctx), ctx, opts);
           break;
         case 'resource':
           this.attachResource(registrar, entry.options, instance, handler, ctx, opts);
@@ -299,6 +304,20 @@ export class McpRegistry {
       );
     }
     return this.accessPolicy(access, ctx);
+  }
+
+  /**
+   * The handler as the session calls it: behind the host's tool gate when one
+   * is configured. Only registered tools come through here; a dynamic tool's
+   * source owns its own checks.
+   */
+  private gated(options: ToolOptions, handler: AnyHandler, ctx: McpContext): AnyHandler {
+    const gate = this.toolGate;
+    if (!gate) return handler;
+    return async function (this: unknown, ...handlerArgs: unknown[]) {
+      const refusal = await gate(options, ctx);
+      return refusal !== undefined ? refusal : handler.apply(this, handlerArgs);
+    };
   }
 
   // D6: this callback is invoked from inside McpTransportController's @Post/@Get/
