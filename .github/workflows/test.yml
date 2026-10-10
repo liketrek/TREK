@@ -383,6 +383,10 @@ jobs:
       - name: Lint
         # Fails on any ESLint error, like lint:check did, and on any rule
         # whose warning count rises above scripts/eslint-baseline.json.
+        # Typed linting (no-floating-promises, no-misused-promises) loads the
+        # whole TypeScript program, so it gets the heap the server lint gets.
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
         run: cd client && npm run lint:warnings
 
       - name: Page pattern check

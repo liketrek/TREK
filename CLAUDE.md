@@ -38,7 +38,7 @@ cd client && npm run lint:rtl                      # physical left/right sides m
 cd client && npm run lint:dup                      # lines in copied code may only shrink per file, at SonarCloud's thresholds (CI gate)
 cd client && npm run lint:pairs                    # desktop and phone views of a feature import its shared hook; every phone screen is listed (CI gate)
 cd client && npm run lint:size                     # no source file past 1000 lines, longer ones only shrink (CI gate; server has the same)
-cd client && npm run lint:warnings                 # eslint errors fail, warnings per rule may only shrink (CI gate)
+cd client && npm run lint:warnings                 # eslint (typed) errors fail, warnings per rule may only shrink, new rules start frozen (CI gate)
 cd server && npm run lint:warnings                 # the same for the server, against server/scripts/eslint-baseline.json (CI gate)
 cd server && npm run lint:format                   # Prettier outside the baseline list (CI gate; shared has the same in lint-prettier.yml)
 cd server && npm run lint:strict                   # strict type errors per file may only shrink, a new file has none (CI gate)
