@@ -35,7 +35,6 @@
     "admin -> llm-parse/llm-config.ts",
     "atlas -> geo/nominatim.client.ts",
     "atlas -> public-api/public-api-request.ts",
-    "auth -> maps/maps.helpers.ts",
     "auth -> maps/providers/places-provider.ts",
     "auth -> plugins/paths.ts",
     "auth -> plugins/user-erasure-enqueue.ts",

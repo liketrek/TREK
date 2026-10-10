@@ -15,7 +15,7 @@ import {
   writeInstanceApiKey,
   type InstanceApiKeyName,
 } from '../settings/instance-api-keys';
-import { SEARCH_TEXT_FIELD_MASK } from '../maps/maps.helpers';
+import { SEARCH_TEXT_FIELD_MASK } from '../maps/providers/google-places.constants';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { Users } from '../../db/entities/Users.entity';

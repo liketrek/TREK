@@ -23,6 +23,7 @@ import type { PlaceDetailsCacheRepository } from '../../db/repositories/PlaceDet
 import { Places } from '../../db/entities/Places.entity';
 import type { PlacesRepository } from '../../db/repositories/Places.repository';
 import { isPlacesProviderChoice, type PlacesProviderChoice } from './providers/places-provider';
+import { SEARCH_TEXT_FIELD_MASK } from './providers/google-places.constants';
 import {
   AMAP_SHORT_HOSTS,
   AmapPlacesProvider,
@@ -49,7 +50,6 @@ import {
 } from './trek-places.client';
 import {
   UA,
-  SEARCH_TEXT_FIELD_MASK,
   toApiLang,
   googleFtidFromMapsUrl,
   buildOsmDetails,

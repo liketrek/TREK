@@ -53,7 +53,7 @@ async function setUserColumns(
 ): Promise<void> {
   await updateRows(await sharedTestOrm(testDb), Users, { id: userId }, data);
 }
-import { SEARCH_TEXT_FIELD_MASK } from '../../../src/nest/maps/maps.helpers';
+import { SEARCH_TEXT_FIELD_MASK } from '../../../src/nest/maps/providers/google-places.constants';
 
 const avatarsFx = makeStorageFixture('avatars/');
 let profile: UserProfileService;
