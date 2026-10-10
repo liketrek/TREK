@@ -65,7 +65,9 @@ over an injected `AddonsService`.
 ## Cross-cutting pieces
 
 - `common/`: the exception filter, the Zod validation pipe, the idempotency
-  interceptor (`X-Idempotency-Key` replay), `validate-route-guards.ts`, and
+  interceptor (`X-Idempotency-Key` replay), `@ResponseContract` (the shared
+  response schema a handler answers with, checked in every test that reaches
+  it), `validate-route-guards.ts`, and
   stateless helpers (`avatarUrl`, `conflictResult`, `demo`, `passwordPolicy`,
   `timezoneService`, `cookie`, `rowShape`, `geo`, `crypto/`). The helpers are
   free functions on purpose: numbered migrations and `src/demo/demo-seed.ts`
@@ -222,7 +224,8 @@ is measured, so moving code into this tree starts measuring it: run
 
 ## Definition of done (per module)
 
-Contract in `@trek/shared` → service over injected repositories → controller
-with the routes, statuses and bodies of the contract → the parallel MCP tool on
+Contract in `@trek/shared` (request and response schemas) → service over
+injected repositories → controller with the routes, statuses and bodies of the
+contract, each handler declaring its `@ResponseContract` → the parallel MCP tool on
 the same service and permission → unit and e2e tests → module registered in
 `app.module.ts` → the client calls it through the typed contract.

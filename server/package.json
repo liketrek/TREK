@@ -26,6 +26,7 @@
     "lint:query-api": "node scripts/query-api-ratchet.mjs",
     "lint:mcp-zod": "node scripts/mcp-inline-zod.mjs",
     "lint:service-http": "node scripts/service-http-ratchet.mjs",
+    "lint:response-contracts": "node scripts/response-contract-ratchet.mjs",
     "contracts:dto-open": "node scripts/dto-open-shapes.mjs",
     "gen:plugin-facts": "node --import tsx scripts/gen-plugin-facts.ts",
     "check:plugin-facts": "node --import tsx scripts/gen-plugin-facts.ts --check",

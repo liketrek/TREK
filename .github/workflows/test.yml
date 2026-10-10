@@ -329,6 +329,13 @@ jobs:
         # scripts/service-http-baseline.json. A service throws a DomainError.
         run: cd server && npm run lint:service-http
 
+      - name: Route handlers without a response contract may only shrink
+        # Counts the handlers under src/nest/ without @ResponseContract (or a
+        # response-contract-exempt comment) per file against
+        # scripts/response-contract-baseline.json. A covered handler's
+        # responses are parsed against its @trek/shared schema in every test.
+        run: cd server && npm run lint:response-contracts
+
       - name: Open request schemas may only shrink
         # Needs the shared build above. Counts open shapes (records of
         # unknown, passthrough, any) in shared's request schemas.
