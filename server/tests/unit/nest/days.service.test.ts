@@ -942,7 +942,7 @@ describe('reorder', () => {
     expect(await reservationRow(res)).toMatchObject({ reservation_time: '2026-02-02T19:00' });
   });
 
-  it('DAY-SVC-048 — pins the known dates to the leading slots and nulls the slots beyond them', async () => {
+  it('DAY-SVC-048 — a day without a date keeps none when it moves before a dated one', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const dated = createDay(testDb, trip.id, { date: '2026-03-01' });
@@ -950,11 +950,11 @@ describe('reorder', () => {
 
     await svc.reorder(trip.id, [dateless.id, dated.id]);
 
-    // The slot beyond the known dates must resolve to null: better-sqlite3
-    // refuses to bind the `undefined` a bare index lookup would hand it.
+    // The dateless day must resolve to null, not undefined: better-sqlite3
+    // refuses to bind the `undefined` a bare lookup would hand it.
     expect(await orderedDays(trip.id)).toEqual([
-      { id: dateless.id, day_number: 1, date: '2026-03-01' },
-      { id: dated.id, day_number: 2, date: null },
+      { id: dateless.id, day_number: 1, date: null },
+      { id: dated.id, day_number: 2, date: '2026-03-01' },
     ]);
   });
 

@@ -42,7 +42,7 @@ describe('OIDC outbound calls', () => {
   it('OIDC-SSRF-003: the token exchange follows no redirect at all', () => {
     // A redirect there would hand client_secret to a second host, and the
     // platform default is to follow. The third argument is the hop budget.
-    const tokenCall = /safeFetchAdminConfigured\(\s*doc\.token_endpoint[\s\S]*?\}\s*,\s*0\s*\)/.test(SOURCE);
+    const tokenCall = /safeFetchAdminConfigured\(\s*doc\.token_endpoint[\s\S]*?\}\s*,\s*0\s*,?\s*\)/.test(SOURCE);
 
     expect(tokenCall).toBe(true);
   });

@@ -409,8 +409,11 @@ describe('DayRemovalService.remove', () => {
 
     const appended = await days.create(trip.id);
     await days.reorder(trip.id, [d1.id, d2.id, appended.id, d3.id]);
-    // The pushed-out day lost its date to the new one and sits at the end without one.
-    expect((await dayRows(trip.id)).at(-1)).toEqual({ id: d3.id, day_number: 4, date: null });
+    // The new day has no date and takes none in its slot; the day it pushed back keeps its own.
+    expect((await dayRows(trip.id)).slice(-2)).toEqual([
+      { id: appended.id, day_number: 3, date: null },
+      { id: d3.id, day_number: 4, date: '2026-01-03' },
+    ]);
     await removal.remove(trip.id, d3.id, { userId: user.id });
 
     expect(await dayRows(trip.id)).toEqual([
