@@ -35,7 +35,7 @@ db.exec('DELETE FROM app_settings');
 const { getPhotoProviderConfig } = vi.hoisted(() => ({
   getPhotoProviderConfig: vi.fn(() => ({ url: 'https://immich.example' })),
 }));
-vi.mock('../../src/nest/memories/memories.helpers', () => ({ getPhotoProviderConfig }));
+vi.mock('../../src/nest/common/photo-provider-config', () => ({ getPhotoProviderConfig }));
 
 import { AddonsModule } from '../../src/nest/addons/addons.module';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';

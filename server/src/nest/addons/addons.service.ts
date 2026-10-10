@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { ADDON_IDS } from '../../addons';
-import { getPhotoProviderConfig } from '../memories/memories.helpers';
-import { readTransitProvider, writeTransitProvider } from '../transit/transit-provider';
+import { getPhotoProviderConfig } from '../common/photo-provider-config';
+import { readTransitProvider, writeTransitProvider } from '../common/transit-provider';
 import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
 import { readEnv } from '../../app-config';
 import type { TransitProvider } from '@trek/shared';
@@ -233,7 +233,7 @@ export class AddonsService {
 
   // ── Transit backend (#1699) ────────────────────────────────────────────────
   // Not a flag: two named backends, so it stores the name rather than a
-  // boolean. The read/write pair lives in transit/transit-provider.ts because
+  // boolean. The read/write pair lives in common/transit-provider.ts because
   // TransitService reads the same row on every request — one key, one reader,
   // one writer. Neither that module nor instance-api-keys.ts (below) is one of
   // this plan's six domains, so they stay on DatabaseService until their own

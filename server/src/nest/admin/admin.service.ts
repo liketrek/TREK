@@ -18,7 +18,7 @@ import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyC
 import { avatarUrl } from '../common/avatarUrl';
 import { DATABASE_BACKUP, type DatabaseBackupStrategy } from '../database/database-backup.interface';
 import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from '../llm-parse/llm-config';
-import { getPhotoProviderConfig } from '../memories/memories.helpers';
+import { getPhotoProviderConfig } from '../common/photo-provider-config';
 import { validatePassword } from '../common/passwordPolicy';
 import { UserCleanupService } from '../auth/user-cleanup.service';
 import { UnitOfWork } from '../database/unit-of-work';

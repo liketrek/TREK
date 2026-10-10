@@ -43,7 +43,7 @@ import { PlaceShadowPicks } from '../../../src/db/entities/PlaceShadowPicks.enti
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
 
 const { getPhotoProviderConfig } = vi.hoisted(() => ({ getPhotoProviderConfig: vi.fn(() => ({})) }));
-vi.mock('../../../src/nest/memories/memories.helpers', () => ({ getPhotoProviderConfig }));
+vi.mock('../../../src/nest/common/photo-provider-config', () => ({ getPhotoProviderConfig }));
 
 const testDb = createSnapshotTestDb();
 let t: TestOrm;

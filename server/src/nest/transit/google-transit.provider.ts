@@ -8,7 +8,7 @@ import type { AppSettingsRepository } from '../../db/repositories/AppSettings.re
 import { Users } from '../../db/entities/Users.entity';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { GoogleQuotaService } from '../google-quota/google-quota.service';
-import { readTransitProvider } from './transit-provider';
+import { readTransitProvider } from '../common/transit-provider';
 import {
   decodePolyline,
   deriveTransitStats,
