@@ -65,6 +65,12 @@ describe('the counters', () => {
     expect(countInlineZod(`${Z}object({ a: ${Z}string(), b: idSchema, c: fizz.x })`)).toBe(2);
   });
 
+  it('ENV-RATCHET-001b: counts a z. call Prettier broke across lines', () => {
+    expect(countInlineZod(`const s = z
+  .object({ a: idSchema })
+  .strict();`)).toBe(1);
+  });
+
   it('ENV-RATCHET-002: counts the result envelope and HTTP in a service, not a 2xx status', () => {
     expect(
       countServiceIdioms(`return { error: 'x', ${STATUS} };\nthrow ${HTTP}{}, 400);\nreturn { status: 200 };`),

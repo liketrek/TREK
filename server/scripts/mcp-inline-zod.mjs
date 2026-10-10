@@ -18,7 +18,9 @@
  */
 import { cliMain } from './lib/count-ratchet.mjs';
 
-const ZOD_CALL = /\bz\./g;
+// Whitespace before the dot counts too: Prettier breaks a long chain into `z`
+// on one line and `.object(` on the next.
+const ZOD_CALL = /\bz\s*\./g;
 
 /** The inline zod calls in one file's text, comments included. */
 export function countInlineZod(text) {
