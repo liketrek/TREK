@@ -75,7 +75,7 @@ vi.mock('../../../src/nest/common/cookie', async (importOriginal) => {
 import { db as testDb } from '../../../src/db/database';
 import type { Request, Response } from 'express';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
+import { createUser, createTrip, createAdmin } from '../../helpers/factories';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
@@ -103,7 +103,8 @@ import {
   createTestTripMembersRepo,
 } from '../../helpers/test-uow';
 import { budgetRepoArgs } from '../../helpers/budget-repos';
-import { findRow, updateRows } from '../../helpers/factories/rows';
+import { deleteRows, findRow, updateRows } from '../../helpers/factories/rows';
+import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { readUser } from '../../helpers/factories/users';
 import { setAppSetting } from '../../helpers/factories/settings';
 import { makeInviteToken } from '../../helpers/factories/tokens';
@@ -1443,5 +1444,88 @@ describe('the flow-store sweeps', () => {
       error.mockRestore();
       vi.useRealTimers();
     }
+  });
+});
+
+// ── "Is OIDC configured?": the four places that ask, pinned ───────────────────
+//
+// Three of them live in AuthService (the legacy oidc_only fallback of the
+// login toggles, the public app config's oidc_configured flag, and the lockout
+// guard of the admin settings save) and want an issuer and a client id, each
+// from the environment first and the instance setting second, an empty string
+// counting as unset. The fourth, OidcService.getOidcConfig, is the one that
+// actually talks to the provider and also wants the client secret. These cases
+// hold all four to what they answered before the checks were shared.
+
+describe('OIDC configured — the four checks', () => {
+  const KEYS = ['oidc_issuer', 'oidc_client_id', 'oidc_client_secret', 'oidc_only', 'password_login', 'password_registration', 'oidc_login', 'oidc_registration'];
+  afterEach(async () => {
+    vi.unstubAllEnvs();
+    await deleteRows(await orm(), AppSettings, { key: { $in: KEYS } });
+  });
+
+  type Source = { issuer?: string; clientId?: string; secret?: string };
+  async function arrange(env: Source, settings: Source) {
+    vi.stubEnv('OIDC_ISSUER', env.issuer ?? '');
+    vi.stubEnv('OIDC_CLIENT_ID', env.clientId ?? '');
+    vi.stubEnv('OIDC_CLIENT_SECRET', env.secret ?? '');
+    vi.stubEnv('OIDC_ONLY', '');
+    const o = await orm();
+    if (settings.issuer !== undefined) await setAppSetting(o, 'oidc_issuer', settings.issuer);
+    if (settings.clientId !== undefined) await setAppSetting(o, 'oidc_client_id', settings.clientId);
+    if (settings.secret !== undefined) await setAppSetting(o, 'oidc_client_secret', settings.secret);
+  }
+
+  /** What each of the four places answers right now. */
+  async function answers() {
+    const o = await orm();
+    // 1: with only the legacy oidc_only flag set, password login goes away exactly when OIDC is configured.
+    await setAppSetting(o, 'oidc_only', 'true');
+    const togglesSaySo = !(await auth.resolveAuthToggles()).password_login;
+    await deleteRows(o, AppSettings, { key: 'oidc_only' });
+    // 2: the public config.
+    const configSaysSo = (await auth.getAppConfig(null)).oidc_configured;
+    // 3: turning password login off is refused when OIDC is not configured (oidc_login is on by default).
+    const admin = createAdmin(testDb).user;
+    const save = await auth.updateAppSettings(admin.id, { password_login: false });
+    const lockoutSaysSo = save.error === undefined;
+    await deleteRows(o, AppSettings, { key: { $in: ['password_login'] } });
+    // 4: the provider config.
+    const providerSaysSo = (await svc.getOidcConfig()) !== null;
+    return { togglesSaySo, configSaysSo, lockoutSaysSo, providerSaysSo };
+  }
+
+  const yes = { togglesSaySo: true, configSaysSo: true, lockoutSaysSo: true };
+  const no = { togglesSaySo: false, configSaysSo: false, lockoutSaysSo: false };
+
+  it('OIDC-CONF-001: nothing set anywhere: no', async () => {
+    await arrange({}, {});
+    expect(await answers()).toEqual({ ...no, providerSaysSo: false });
+  });
+
+  it('OIDC-CONF-002: issuer and client id from the environment: the auth checks say yes, the provider config wants the secret too', async () => {
+    await arrange({ issuer: 'https://idp.example', clientId: 'trek' }, {});
+    expect(await answers()).toEqual({ ...yes, providerSaysSo: false });
+    await arrange({ issuer: 'https://idp.example', clientId: 'trek', secret: 's3cret' }, {});
+    expect(await answers()).toEqual({ ...yes, providerSaysSo: true });
+  });
+
+  it('OIDC-CONF-003: the same from the instance settings', async () => {
+    await arrange({}, { issuer: 'https://idp.example', clientId: 'trek' });
+    expect(await answers()).toEqual({ ...yes, providerSaysSo: false });
+    await arrange({}, { secret: 's3cret' });
+    expect(await answers()).toEqual({ ...yes, providerSaysSo: true });
+  });
+
+  it('OIDC-CONF-004: each value may come from either side, and an empty environment value falls back to the setting', async () => {
+    await arrange({ issuer: 'https://idp.example' }, { clientId: 'trek', secret: 's3cret' });
+    expect(await answers()).toEqual({ ...yes, providerSaysSo: true });
+  });
+
+  it('OIDC-CONF-005: an issuer alone, or an empty setting, is not configured', async () => {
+    await arrange({ issuer: 'https://idp.example', secret: 's3cret' }, {});
+    expect(await answers()).toEqual({ ...no, providerSaysSo: false });
+    await arrange({}, { issuer: '', clientId: 'trek', secret: 's3cret' });
+    expect(await answers()).toEqual({ ...no, providerSaysSo: false });
   });
 });
