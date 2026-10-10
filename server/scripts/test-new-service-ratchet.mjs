@@ -11,8 +11,9 @@
  * test-module.ts: createTestModule with overrides), and a booted app hands
  * the rest out through `app.get(...)`.
  *
- * Every `new <Name>Service(` and `new <Name>Repository(` under tests/ counts,
- * per file, against scripts/test-new-service-baseline.json; a file without an
+ * Every `new <Name>Service(` and `new <Name>Repository(` under tests/ outside a
+ * comment counts (an import alias or `new (Name)(` counts as the class it
+ * names), per file, against scripts/test-new-service-baseline.json; a file without an
  * entry may hold none (scripts/lib/count-ratchet.mjs has the rules). The
  * allowlist is derived, not kept by hand: a class whose constructor takes no
  * parameters (no constructor of its own, or an empty one, down its chain of
@@ -25,9 +26,8 @@
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { cliMain } from './lib/count-ratchet.mjs';
+import { cliMain, stripComments } from './lib/count-ratchet.mjs';
 
-const NEW_CALL = /\bnew\s+([A-Z][A-Za-z0-9_]*(?:Service|Repository))\s*[(<]/g;
 const CLASS_DECL = /\bclass\s+([A-Za-z_$][\w$]*)(?:\s*<[^{]*?>)?(?:\s+extends\s+([A-Za-z_$][\w$.]*))?[^{]*\{/g;
 
 /** The trees whose classes the allowlist is derived from, relative to the server root. */
@@ -119,10 +119,35 @@ export function zeroArgClasses(classes) {
   return new Set([...byName.keys()].filter((name) => resolve(name)));
 }
 
-/** The hand-built services and repositories in one file's text, `allowed` left out. */
+// `new X(`, `new X<T>(` and `new (X)(`: the name is checked after aliases resolve.
+const ANY_NEW = /\bnew(?:\s+|\s*\(\s*)([A-Za-z_$][\w$]*)\s*\)?\s*[(<]/g;
+// `import { DaysService as Days }` (and `type`-less re-imports of the same shape).
+const IMPORT_BLOCK = /\bimport\s+(?:type\s+)?\{([^}]*)\}\s*from\b/g;
+const ALIAS = /\b([A-Za-z_$][\w$]*)\s+as\s+([A-Za-z_$][\w$]*)/g;
+const SERVICE_NAME = /^[A-Z][A-Za-z0-9_]*(?:Service|Repository)$/;
+
+/** Local name -> imported name, for every renamed import in the text. */
+function importAliases(text) {
+  const aliases = new Map();
+  for (const block of text.matchAll(IMPORT_BLOCK)) {
+    for (const m of block[1].matchAll(ALIAS)) aliases.set(m[2], m[1]);
+  }
+  return aliases;
+}
+
+/**
+ * The hand-built services and repositories in one file's text, `allowed` left
+ * out. Comments do not count; an import alias (`DaysService as Days`) and a
+ * parenthesised class (`new (DaysService)(`) count as the class they name.
+ */
 export function countNewServices(text, allowed = new Set()) {
+  const code = stripComments(text);
+  const aliases = importAliases(code);
   let n = 0;
-  for (const match of text.matchAll(NEW_CALL)) if (!allowed.has(match[1])) n++;
+  for (const match of code.matchAll(ANY_NEW)) {
+    const name = aliases.get(match[1]) ?? match[1];
+    if (SERVICE_NAME.test(name) && !allowed.has(name)) n++;
+  }
   return n;
 }
 

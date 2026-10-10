@@ -77,6 +77,19 @@ describe('lint:test-mocks', () => {
     expect(countHeldMocks(text)).toBe(0);
   });
 
+  it('TEST-RATCHET-005: counts the import() form of a mock, and not a mock quoted in a comment', () => {
+    const text = [
+      `${MOCK}import('../../src/config'), () => ({}));`,
+      `${DO_MOCK}import("../../src/db/database"), async () => ({}));`,
+      '/**',
+      ` * ${MOCK}'../../src/db/database', async () =>`,
+      ' */',
+      `// ${MOCK}'../../src/config', () => ({}));`,
+      `const path = "// not a comment"; ${MOCK}'../../src/nest/realtime/realtime.service', () => ({}));`,
+    ].join('\n');
+    expect(countHeldMocks(text)).toBe(3);
+  });
+
   it('TEST-RATCHET-003: fails a new mock, passes at the baseline and fails a stale entry until --update', () => {
     const mock = `${MOCK}'../../src/config', () => ({}));\n`;
     const grown = run(
@@ -149,6 +162,19 @@ describe('lint:test-new-service', () => {
       `const f = ${NEW}CacheService<string>(store);`,
     ].join('\n');
     expect(countNewServices(text, new Set(['RealtimeService']))).toBe(3);
+  });
+
+  it('TEST-RATCHET-016: an import alias and a parenthesised class count as the service they name, a comment does not', () => {
+    const text = [
+      "import { DaysService as Days, TodoService } from '../../src/nest/days/days.service';",
+      "import { RealtimeService as Rt } from '../../src/nest/realtime/realtime.service';",
+      `const a = ${NEW}Days(repo, uow);`,
+      `const b = ${['ne', 'w'].join('')}(TodoService)(permissions);`,
+      `const c = ${NEW}Rt();`,
+      `// const d = ${NEW}DaysService(repo, uow);`,
+      `const e = ${NEW}Map<string, Days>();`,
+    ].join('\n');
+    expect(countNewServices(text, new Set(['RealtimeService']))).toBe(2);
   });
 
   it('TEST-RATCHET-013: derives the allowlist from src/ and tests/helpers/ when it runs', () => {

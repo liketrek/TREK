@@ -24,6 +24,43 @@ function walk(dir, files = []) {
   return files;
 }
 
+/**
+ * The text with every // and /* comment blanked out (newlines kept, so line
+ * numbers hold), strings and template literals left as they are. A count
+ * that reads code, not prose, runs over this: a call quoted in a doc comment
+ * is not a call.
+ */
+export function stripComments(text) {
+  let out = '';
+  let i = 0;
+  while (i < text.length) {
+    const c = text[i];
+    const next = text[i + 1];
+    if (c === '/' && next === '/') {
+      const end = text.indexOf('\n', i);
+      i = end < 0 ? text.length : end;
+      continue;
+    }
+    if (c === '/' && next === '*') {
+      const end = text.indexOf('*/', i + 2);
+      const stop = end < 0 ? text.length : end + 2;
+      out += text.slice(i, stop).replace(/[^\n]/g, ' ');
+      i = stop;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === '`') {
+      let j = i + 1;
+      while (j < text.length && text[j] !== c) j += text[j] === '\\' ? 2 : 1;
+      out += text.slice(i, j + 1);
+      i = j + 1;
+      continue;
+    }
+    out += c;
+    i++;
+  }
+  return out;
+}
+
 /** Counts keyed by the server-relative POSIX path, files without any left out. */
 export function scan(serverDir, check) {
   const dir = join(serverDir, check.root);
