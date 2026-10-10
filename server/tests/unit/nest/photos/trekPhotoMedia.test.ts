@@ -4,22 +4,22 @@
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb } = await import('../../helpers/db-mock');
+vi.mock('../../../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../../../helpers/db-mock');
   const db = createSnapshotTestDb();
   // FKs off: this suite only checks media_type persistence, not owner/user integrity.
   db.exec('PRAGMA foreign_keys = OFF');
   return { db, closeDb: () => {}, reinitialize: () => {}, getPlaceWithTags: async () => null, canAccessTrip: async () => null, isOwner: async () => false };
 });
 
-import { db as testDb } from '../../../src/db/database';
-import { createUser } from '../../helpers/factories';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { deleteRows } from '../../helpers/factories/rows';
+import { db as testDb } from '../../../../src/db/database';
+import { createUser } from '../../../helpers/factories';
+import { TrekPhotoRegistrationService } from '../../../../src/nest/photos/trek-photo-registration.service';
+import { TrekPhotos } from '../../../../src/db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../../../src/db/entities/TripPhotos.entity';
+import { JourneyPhotos } from '../../../../src/db/entities/JourneyPhotos.entity';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+import { deleteRows } from '../../../helpers/factories/rows';
 
 // Was photos.bridge, deleted with the other three that had no consumer outside
 // the container. These call the repository directly now.

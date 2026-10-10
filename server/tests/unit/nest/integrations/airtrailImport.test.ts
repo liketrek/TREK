@@ -8,27 +8,27 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * doesn't actually chain.
  */
 
-import { db } from '../../../src/db/database';
-import { createUser, createTrip } from '../../helpers/factories';
-import type { AirtrailAirport, AirtrailFlightRaw } from '../../../src/nest/integrations/airtrail.client';
-import { AirtrailImportService } from '../../../src/nest/integrations/airtrail-import.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { ReservationsService } from '../../../src/nest/reservations/reservations.service';
-import { ReservationsReadService } from '../../../src/nest/reservations/reservations-read.service';
-import type { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
-import type { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
-import { notificationsStub } from '../../helpers/notifications';
-import { accommodationsOver } from '../../helpers/accommodations-service';
-import { createTestUnitOfWork, createTestAppSettingsRepo, createTestReservationsRepo, createTestReservationEndpointsRepo, createTestReservationTravelersRepo, createTestReservationDayPositionsRepo, createTestDayAccommodationsRepo, createTestDaysRepo, createTestPlacesRepo, createTestDayAssignmentsRepo, createTestTripMembersRepo, createTestUsersRepo, createTestTripsRepo, sharedTestOrm } from '../../helpers/test-uow';
-import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
-import { budgetRepoArgs } from '../../helpers/budget-repos';
-import { findRow, findRows } from '../../helpers/factories/rows';
-import { Days } from '../../../src/db/entities/Days.entity';
-import { Reservations } from '../../../src/db/entities/Reservations.entity';
-import { ReservationEndpoints } from '../../../src/db/entities/ReservationEndpoints.entity';
+import { db } from '../../../../src/db/database';
+import { createUser, createTrip } from '../../../helpers/factories';
+import type { AirtrailAirport, AirtrailFlightRaw } from '../../../../src/nest/integrations/airtrail.client';
+import { AirtrailImportService } from '../../../../src/nest/integrations/airtrail-import.service';
+import { PermissionsService } from '../../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
+import { BudgetService } from '../../../../src/nest/budget/budget.service';
+import { ExchangeRatesService } from '../../../../src/nest/budget/exchange-rates.service';
+import { ReservationsService } from '../../../../src/nest/reservations/reservations.service';
+import { ReservationsReadService } from '../../../../src/nest/reservations/reservations-read.service';
+import type { AirtrailClient } from '../../../../src/nest/integrations/airtrail.client';
+import type { AirtrailService } from '../../../../src/nest/integrations/airtrail.service';
+import { notificationsStub } from '../../../helpers/notifications';
+import { accommodationsOver } from '../../../helpers/accommodations-service';
+import { createTestUnitOfWork, createTestAppSettingsRepo, createTestReservationsRepo, createTestReservationEndpointsRepo, createTestReservationTravelersRepo, createTestReservationDayPositionsRepo, createTestDayAccommodationsRepo, createTestDaysRepo, createTestPlacesRepo, createTestDayAssignmentsRepo, createTestTripMembersRepo, createTestUsersRepo, createTestTripsRepo, sharedTestOrm } from '../../../helpers/test-uow';
+import { createTestBudgetItemsRepo } from '../../../helpers/files-repos';
+import { budgetRepoArgs } from '../../../helpers/budget-repos';
+import { findRow, findRows } from '../../../helpers/factories/rows';
+import { Days } from '../../../../src/db/entities/Days.entity';
+import { Reservations } from '../../../../src/db/entities/Reservations.entity';
+import { ReservationEndpoints } from '../../../../src/db/entities/ReservationEndpoints.entity';
 
 // The client and the per-user credentials are the only stubs; the reservation
 // writes go through the real service against the real test DB, as before. They

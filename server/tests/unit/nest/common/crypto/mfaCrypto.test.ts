@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { encryptMfaSecret, decryptMfaSecret } from '../../../src/nest/common/crypto/mfaCrypto';
+import { encryptMfaSecret, decryptMfaSecret } from '../../../../../src/nest/common/crypto/mfaCrypto';
 
 describe('mfaCrypto', () => {
   const TOTP_SECRET = 'JBSWY3DPEHPK3PXP'; // typical base32 TOTP secret

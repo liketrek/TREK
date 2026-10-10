@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { canonicalHash, mapFlightToReservation, mapFlightsToMultiLegReservation, normalizeFlight } from '../../../src/nest/integrations/airtrail.mapper';
-import type { AirtrailFlightRaw } from '../../../src/nest/integrations/airtrail.client';
+import { canonicalHash, mapFlightToReservation, mapFlightsToMultiLegReservation, normalizeFlight } from '../../../../src/nest/integrations/airtrail.mapper';
+import type { AirtrailFlightRaw } from '../../../../src/nest/integrations/airtrail.client';
 
 function airport(over: Partial<AirtrailFlightRaw['from']> = {}): NonNullable<AirtrailFlightRaw['from']> {
   return {

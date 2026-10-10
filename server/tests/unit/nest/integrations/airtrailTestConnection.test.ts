@@ -1,20 +1,20 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // Avoid any real DNS/network from the SSRF guard during saveSettings and the probe.
-vi.mock('../../../src/utils/ssrfGuard', () => ({
+vi.mock('../../../../src/utils/ssrfGuard', () => ({
   checkSsrf: vi.fn(async () => ({ allowed: true, isPrivate: false })),
   safeFetch: vi.fn(),
 }));
 
-import { db } from '../../../src/db/database';
-import { createUser } from '../../helpers/factories';
-import { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
-import type { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
-import { AuditService } from '../../../src/nest/audit/audit.service';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
-import { Users } from '../../../src/db/entities/Users.entity';
-import { UserAirtrailRepository } from '../../../src/db/repositories/UserAirtrail.repository';
+import { db } from '../../../../src/db/database';
+import { createUser } from '../../../helpers/factories';
+import { AirtrailService } from '../../../../src/nest/integrations/airtrail.service';
+import type { AirtrailClient } from '../../../../src/nest/integrations/airtrail.client';
+import { AuditService } from '../../../../src/nest/audit/audit.service';
+import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
+import { AuditLog } from '../../../../src/db/entities/AuditLog.entity';
+import { Users } from '../../../../src/db/entities/Users.entity';
+import { UserAirtrailRepository } from '../../../../src/db/repositories/UserAirtrail.repository';
 
 // The probe is the only call that would leave the process, so the client is a
 // stub; the credential handling around it runs against the real row.

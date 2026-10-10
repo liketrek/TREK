@@ -10,24 +10,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * the collaborators are visible in the signature instead of resolved by path.
  * Only the mapper stays a module mock, because it stayed free functions.
  */
-vi.mock('../../../src/nest/integrations/airtrail.mapper', () => ({
+vi.mock('../../../../src/nest/integrations/airtrail.mapper', () => ({
   canonicalHash: vi.fn(() => 'hash'),
   mapFlightToReservation: vi.fn(() => ({})),
   entityCode: (e: any) => e?.icao || e?.iata || null,
 }));
 
-import { AirtrailLinkService } from '../../../src/nest/integrations/airtrail-link.service';
-import { AirtrailAuthError } from '../../../src/nest/integrations/airtrail.client';
-import type { ReservationsRepository } from '../../../src/db/repositories/Reservations.repository';
-import type { ReservationEndpointsRepository } from '../../../src/db/repositories/ReservationEndpoints.repository';
-import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
-import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import type { AddonsService } from '../../../src/nest/addons/addons.service';
-import { AirtrailSyncService } from '../../../src/nest/integrations/airtrail-sync.service';
-import type { ReservationsService } from '../../../src/nest/reservations/reservations.service';
-import type { ReservationsReadService } from '../../../src/nest/reservations/reservations-read.service';
-import type { AirtrailClient } from '../../../src/nest/integrations/airtrail.client';
-import type { AirtrailService } from '../../../src/nest/integrations/airtrail.service';
+import { AirtrailLinkService } from '../../../../src/nest/integrations/airtrail-link.service';
+import { AirtrailAuthError } from '../../../../src/nest/integrations/airtrail.client';
+import type { ReservationsRepository } from '../../../../src/db/repositories/Reservations.repository';
+import type { ReservationEndpointsRepository } from '../../../../src/db/repositories/ReservationEndpoints.repository';
+import type { AppSettingsRepository } from '../../../../src/db/repositories/AppSettings.repository';
+import type { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
+import type { AddonsService } from '../../../../src/nest/addons/addons.service';
+import { AirtrailSyncService } from '../../../../src/nest/integrations/airtrail-sync.service';
+import type { ReservationsService } from '../../../../src/nest/reservations/reservations.service';
+import type { ReservationsReadService } from '../../../../src/nest/reservations/reservations-read.service';
+import type { AirtrailClient } from '../../../../src/nest/integrations/airtrail.client';
+import type { AirtrailService } from '../../../../src/nest/integrations/airtrail.service';
 
 const linkedRow = { id: 5, trip_id: 9, external_id: '42', external_owner_user_id: 7, sync_enabled: 1 };
 

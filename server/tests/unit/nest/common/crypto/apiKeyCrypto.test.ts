@@ -5,7 +5,7 @@ import {
   decrypt_api_key,
   maybe_encrypt_api_key,
   is_encrypted_api_key,
-} from '../../../src/nest/common/crypto/apiKeyCrypto';
+} from '../../../../../src/nest/common/crypto/apiKeyCrypto';
 
 describe('apiKeyCrypto', () => {
   const PLAINTEXT_KEY = 'my-secret-api-key-12345';

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapReservations } from '../../../src/nest/booking-import/kitinerary-mapper';
+import { mapReservations } from '../../../../src/nest/booking-import/kitinerary-mapper';
 
 const airport = (iata: string, lat: number, lng: number) => ({
   iataCode: iata,

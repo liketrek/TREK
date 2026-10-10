@@ -5,8 +5,8 @@
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb } = await import('../../helpers/db-mock');
+vi.mock('../../../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../../../helpers/db-mock');
   const db = createSnapshotTestDb();
   return {
     db,
@@ -17,29 +17,29 @@ vi.mock('../../../src/db/database', async () => {
   };
 });
 
-import { db as testDb } from '../../../src/db/database';
-import { resetTestDb } from '../../helpers/test-db';
-import { findRow } from '../../helpers/factories/rows';
-import { Places } from '../../../src/db/entities/Places.entity';
-import { createUser, createTrip } from '../../helpers/factories';
-import { accommodationsOver } from '../../helpers/accommodations-service';
-import { isUpdateConflict } from '../../../src/nest/common/conflictResult';
-import { PackingService } from '../../../src/nest/packing/packing.service';
-import { PlacesService } from '../../../src/nest/places/places.service';
-import { buildPlaceImportService } from '../../helpers/place-import';
-import { buildMapsService } from '../../helpers/maps-service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { QueryHelpersService } from '../../../src/nest/query-helpers/query-helpers.service';
-import { UnsplashService } from '../../../src/nest/unsplash/unsplash.service';
-import { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.service';
-import { TrekPhotoRegistrationService } from '../../../src/nest/photos/trek-photo-registration.service';
-import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
-import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
-import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
-import { notificationsStub } from '../../helpers/notifications';
-import { makeStorageFixture } from '../../helpers/storage-fixture';
+import { db as testDb } from '../../../../src/db/database';
+import { resetTestDb } from '../../../helpers/test-db';
+import { findRow } from '../../../helpers/factories/rows';
+import { Places } from '../../../../src/db/entities/Places.entity';
+import { createUser, createTrip } from '../../../helpers/factories';
+import { accommodationsOver } from '../../../helpers/accommodations-service';
+import { isUpdateConflict } from '../../../../src/nest/common/conflictResult';
+import { PackingService } from '../../../../src/nest/packing/packing.service';
+import { PlacesService } from '../../../../src/nest/places/places.service';
+import { buildPlaceImportService } from '../../../helpers/place-import';
+import { buildMapsService } from '../../../helpers/maps-service';
+import { PermissionsService } from '../../../../src/nest/permissions/permissions.service';
+import { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
+import { QueryHelpersService } from '../../../../src/nest/query-helpers/query-helpers.service';
+import { UnsplashService } from '../../../../src/nest/unsplash/unsplash.service';
+import { PlacePhotoCacheService } from '../../../../src/nest/place-photos/place-photo-cache.service';
+import { JourneyDomainService } from '../../../../src/nest/journey/journey-domain.service';
+import { TrekPhotoRegistrationService } from '../../../../src/nest/photos/trek-photo-registration.service';
+import { TrekPhotos } from '../../../../src/db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../../../src/db/entities/TripPhotos.entity';
+import { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
+import { notificationsStub } from '../../../helpers/notifications';
+import { makeStorageFixture } from '../../../helpers/storage-fixture';
 import {
   createTestUnitOfWork,
   createTestAppSettingsRepo,
@@ -55,13 +55,13 @@ import {
   createTestCategoriesRepo,
   createTestTripsRepo,
   sharedTestOrm,
-} from '../../helpers/test-uow';
-import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
-import { createTestCollectionPlacesRepo } from '../../helpers/test-uow';
+} from '../../../helpers/test-uow';
+import { createTestBudgetItemsRepo } from '../../../helpers/files-repos';
+import { createTestCollectionPlacesRepo } from '../../../helpers/test-uow';
 import {
   createTestJourneysRepo, createTestJourneyContributorsRepo, createTestJourneyTripsRepo, createTestJourneyEntriesRepo,
   createTestJourneyPhotosRepo, createTestJourneyEntryPhotosRepo,
-} from '../../helpers/journey-repos';
+} from '../../../helpers/journey-repos';
 import {
   createTestPackingItemsRepo,
   createTestPackingItemContributorsRepo,
@@ -70,8 +70,8 @@ import {
   createTestPackingTemplatesRepo,
   createTestPackingTemplateCategoriesRepo,
   createTestPackingTemplateItemsRepo,
-} from '../../helpers/packing-repos';
-import { noGoogleQuota } from '../../helpers/google-quota';
+} from '../../../helpers/packing-repos';
+import { noGoogleQuota } from '../../../helpers/google-quota';
 
 const realtime = new RealtimeService();
 const runtimeEnv = new RuntimeEnvService();

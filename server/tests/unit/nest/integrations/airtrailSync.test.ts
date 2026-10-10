@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildSavePayload } from '../../../src/nest/integrations/airtrail-sync.service';
-import type { AirtrailAirport, AirtrailFlightRaw, AirtrailSavePayload } from '../../../src/nest/integrations/airtrail.client';
+import { buildSavePayload } from '../../../../src/nest/integrations/airtrail-sync.service';
+import type { AirtrailAirport, AirtrailFlightRaw, AirtrailSavePayload } from '../../../../src/nest/integrations/airtrail.client';
 
 /**
  * buildSavePayload spreads the raw flight, so the body also carries the
