@@ -32,7 +32,7 @@ export default function MobileTopBar() {
         >
           <Bell size={20} strokeWidth={1.9} />
           {unread > 0 && (
-            <span style={{ position: 'absolute', top: 7, right: 7, width: 8, height: 8, borderRadius: '50%', background: 'oklch(0.7 0.17 38)', boxShadow: '0 0 0 2px var(--bg, #fff)' }} />
+            <span style={{ position: 'absolute', top: 7, insetInlineEnd: 7, width: 8, height: 8, borderRadius: '50%', background: 'oklch(0.7 0.17 38)', boxShadow: '0 0 0 2px var(--bg, #fff)' }} />
           )}
         </button>
         <button type="button"
@@ -62,7 +62,7 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[300] md:hidden" role="presentation" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="absolute bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-2xl overflow-hidden"
+        className="absolute bottom-0 inset-x-0 bg-white dark:bg-zinc-900 rounded-t-2xl overflow-hidden"
         style={{ animation: 'slideUp 0.25s ease-out', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         role="presentation"
         onClick={e => e.stopPropagation()}
@@ -93,7 +93,7 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
         <div className="py-2 px-2">
           <button type="button"
             onClick={() => handleNav('/settings')}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 active:bg-zinc-100 dark:active:bg-zinc-800 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-start hover:bg-zinc-50 dark:hover:bg-zinc-800 active:bg-zinc-100 dark:active:bg-zinc-800 transition-colors"
           >
             <Settings size={18} className="text-zinc-500" />
             <span className="text-[14px] font-medium text-zinc-900 dark:text-white">{t('nav.bottomSettings')}</span>
@@ -102,7 +102,7 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
           {user?.role === 'admin' && (
             <button type="button"
               onClick={() => handleNav('/admin')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 active:bg-zinc-100 dark:active:bg-zinc-800 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-start hover:bg-zinc-50 dark:hover:bg-zinc-800 active:bg-zinc-100 dark:active:bg-zinc-800 transition-colors"
             >
               <Shield size={18} className="text-zinc-500" />
               <span className="text-[14px] font-medium text-zinc-900 dark:text-white">{t('nav.bottomAdmin')}</span>
@@ -115,7 +115,7 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
         <div className="py-2 px-2">
           <button type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left hover:bg-red-50 dark:hover:bg-red-900/20 active:bg-red-100 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-start hover:bg-red-50 dark:hover:bg-red-900/20 active:bg-red-100 transition-colors"
           >
             <LogOut size={18} className="text-red-500" />
             <span className="text-[14px] font-medium text-red-600 dark:text-red-400">{t('nav.bottomLogout')}</span>

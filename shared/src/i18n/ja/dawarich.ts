@@ -8,11 +8,9 @@ const dawarich: TranslationStrings = {
   'dawarich.url': 'インスタンスのアドレス',
   'dawarich.apiKey': 'API キー',
   'dawarich.apiKeyPlaceholder': 'Dawarich の API キーを貼り付け',
-  'dawarich.apiKeyHint':
-    'Dawarich の「Account → API key」にあります。暗号化して保存され、以後は表示されません。',
+  'dawarich.apiKeyHint': 'Dawarich の「Account → API key」にあります。暗号化して保存され、以後は表示されません。',
   'dawarich.allowInsecureTls': '自己署名証明書を許可',
-  'dawarich.allowInsecureTlsHint':
-    'サーバーが信頼していない証明書をインスタンスが使っている場合にのみ必要です。',
+  'dawarich.allowInsecureTlsHint': 'サーバーが信頼していない証明書をインスタンスが使っている場合にのみ必要です。',
   'dawarich.syncEnabled': '新しい滞在を自動で確認',
   'dawarich.syncEnabledHint': 'オフにすると、TREK は指示したときだけ Dawarich を読み取ります。',
   'dawarich.test.button': '接続をテスト',
@@ -51,8 +49,7 @@ const dawarich: TranslationStrings = {
   'dawarich.error.unauthorized': 'Dawarich が API キーを拒否しました。',
   'dawarich.error.forbidden': 'その API キーにはこれを読み取る権限がありません。',
   'dawarich.error.not_found': 'この Dawarich のバージョンにはそのエンドポイントがありません。',
-  'dawarich.error.rate_limited':
-    'Dawarich からリクエストを控えるよう求められました。しばらくしてからお試しください。',
+  'dawarich.error.rate_limited': 'Dawarich からリクエストを控えるよう求められました。しばらくしてからお試しください。',
   'dawarich.error.server_error': 'Dawarich がエラーを返しました。',
   'dawarich.error.invalid_response': 'そのアドレスからの応答は Dawarich のものではありません。',
   'dawarich.error.too_large': 'Dawarich が、TREK が一度に読み取れる量を超えるデータを返しました。',
@@ -60,7 +57,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'このインスタンスでは Dawarich アドオンが無効になっています。',
   'dawarich.error.offline': 'これには接続が必要です。TREK は現在オフラインです。',
   'dawarich.error.invalid_url': 'TREK はこのアドレスを使用できません。',
-  'dawarich.warning.private_ip': 'このアドレスはプライベート IP ({ip}) を指しています。意図した設定かご確認ください。サーバー側に ALLOW_INTERNAL_NETWORK=true が必要な場合があります。',
+  'dawarich.warning.private_ip':
+    'このアドレスはプライベート IP ({ip}) を指しています。意図した設定かご確認ください。サーバー側に ALLOW_INTERNAL_NETWORK=true が必要な場合があります。',
   'dawarich.error.unknown': 'Dawarich との通信中に問題が発生しました。',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -84,8 +82,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.title': 'Dawarich から',
   'dawarich.suggestions.pending': '{count}件が未処理',
   'dawarich.suggestions.loading': 'Dawarich を読み取り中…',
-  'dawarich.suggestions.notConnected':
-    '設定で Dawarich を接続すると、ここに滞在が表示されます。',
+  'dawarich.suggestions.notConnected': '設定で Dawarich を接続すると、ここに滞在が表示されます。',
   'dawarich.suggestions.unavailable': 'Dawarich を読み取れませんでした。',
   'dawarich.suggestions.allHandled': 'ここに記録されたものはすべて処理済みです。',
   'dawarich.suggestions.asJournal': '日記を書く',
@@ -101,8 +98,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.bucket_list': 'ウィッシュにチェック済み',
   'dawarich.suggestions.sourceChanged':
     'この滞在は、使用したあとに Dawarich 側で変更されました。TREK に書いた内容はそのままです。',
-  'dawarich.suggestions.sourceMissing':
-    'この滞在は Dawarich にもう存在しません。TREK に書いた内容はそのままです。',
+  'dawarich.suggestions.sourceMissing': 'この滞在は Dawarich にもう存在しません。TREK に書いた内容はそのままです。',
   'dawarich.sourceStatus.suggested': '検出済み・未確認',
   'dawarich.confidence.high': '確度の高い検出',
   'dawarich.confidence.medium': 'ある程度確かな検出',
@@ -116,7 +112,7 @@ const dawarich: TranslationStrings = {
   'dawarich.accept.confirm.journal': 'エントリーを追加',
   'dawarich.accept.confirm.bucket_list': 'チェックを付ける',
   'dawarich.accept.recorded': '記録：{from}から{to}まで',
-  'dawarich.accept.duration': '{minutes}分',
+  'dawarich.accept.duration': '{count}分',
   'dawarich.accept.name': '名前',
   'dawarich.accept.date': '日付',
   'dawarich.accept.from': '到着',
@@ -147,8 +143,7 @@ const dawarich: TranslationStrings = {
   'dawarich.bucket.confirm': '{count}件にチェックを付ける',
   'dawarich.bucket.confirmed': '{count}件のウィッシュにチェックを付けました',
   'dawarich.bucket.skipped': '{count}件は座標がないため照合できませんでした。',
-  'dawarich.bucket.truncated':
-    '最初の項目のみ照合しました。残りはもう一度実行してください。',
+  'dawarich.bucket.truncated': '最初の項目のみ照合しました。残りはもう一度実行してください。',
   'dawarich.bucket.visitedFrom': 'Dawarich の記録からチェックを付けました',
   'dawarich.bucket.clearVisit': '元に戻す',
 
@@ -160,7 +155,6 @@ const dawarich: TranslationStrings = {
   'dawarich.atlas.loading': '記録を読み取り中…',
   'dawarich.atlas.empty': '記録の中に、TREK にまだない国はありませんでした。',
   'dawarich.atlas.cities': '{count}都市',
-  'dawarich.atlas.citiesOne': '1 都市',
   'dawarich.atlas.accept': '{count}か国を追加',
   'dawarich.atlas.accepted': '{count}か国を追加しました',
   'dawarich.atlas.unresolved': 'TREK はこれらを国と照合できませんでした：{names}。',
@@ -176,9 +170,7 @@ const dawarich: TranslationStrings = {
   'dawarich.again': 'もう一度確認',
   'dawarich.bucket.metersAway': '{meters} m 先',
   'dawarich.bucket.kilometersAway': '{km} km 先',
-  'dawarich.bucket.rule': '{meters} m 以内に {minutes} 分以上滞在すると、願いがかなったとみなします。',
-
-  'dawarich.journey.dayStays.one': 'Dawarich の滞在 1 件',
+  'dawarich.bucket.rule': '{meters} m 以内に {count} 分以上滞在すると、願いがかなったとみなします。',
   'dawarich.journey.dayStays.other': 'Dawarich の滞在 {count} 件',
 };
 

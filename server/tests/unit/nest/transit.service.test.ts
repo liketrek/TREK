@@ -9,10 +9,13 @@
  * TransitService instance), so it persists across the tests in this file —
  * every case uses its own coordinates/query to stay isolated.
  */
-import { deriveTransitStats, type TransitLeg } from '../../../src/nest/transit/transit.helpers';
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { transitConfig } from '../../../src/nest/app-config/tokens';
 import { GoogleTransitProvider } from '../../../src/nest/transit/google-transit.provider';
+import { deriveTransitStats, type TransitLeg } from '../../../src/nest/transit/transit.helpers';
 import { TransitService } from '../../../src/nest/transit/transit.service';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
+import { noGoogleQuota } from '../../helpers/google-quota';
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -25,8 +28,9 @@ vi.mock('../../../src/nest/maps/maps.helpers', () => ({ buildUserAgent: () => 'T
 const fetchMock = vi.fn();
 // No `transit_provider` row means Transitous, so every case below keeps
 // exercising the MOTIS path — the Google branch has its own suite.
-const db = { get: () => undefined, run: () => undefined } as unknown as DatabaseService;
-const svc = new TransitService(new GoogleTransitProvider(db));
+const noAppSettings = { getValue: async () => null } as unknown as AppSettingsRepository;
+const noUsers = { getApiKeyColumn: async () => null } as unknown as UsersRepository;
+const svc = new TransitService(new GoogleTransitProvider(noAppSettings, noUsers, noGoogleQuota), transitConfig());
 
 beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
@@ -267,5 +271,22 @@ describe('quirk repairs (DI fold fix pass)', () => {
     await svc.geocode('lru-evictor-station');
     await svc.geocode('lru-probe-station');
     expect(fetchMock.mock.calls.length).toBe(fetchesBeforeTouch + 1);
+  });
+});
+
+describe('upstream base URL', () => {
+  it('TRANSIT-SVC-016: calls the instance the transitConfig token names (TRANSIT_API_URL)', async () => {
+    const own = new TransitService(new GoogleTransitProvider(noAppSettings, noUsers, noGoogleQuota), {
+      apiBase: 'https://motis.internal.example',
+    });
+    fetchMock.mockResolvedValueOnce(okJson([]));
+    await own.geocode('own-motis-station');
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(/^https:\/\/motis\.internal\.example\/api\/v1\/geocode\?/);
+  });
+
+  it('TRANSIT-SVC-017: defaults to Transitous when TRANSIT_API_URL is unset', async () => {
+    fetchMock.mockResolvedValueOnce(okJson([]));
+    await svc.geocode('default-base-station');
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(/^https:\/\/api\.transitous\.org\/api\/v1\/geocode\?/);
   });
 });

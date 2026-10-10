@@ -15,11 +15,18 @@ const shared: TranslationStrings = {
   'shared.tabChat': 'Trò chuyện',
   'shared.days': 'ngày',
   'shared.places': 'địa điểm',
+  'shared.unplanned': 'Chưa lên kế hoạch',
   'shared.other': 'Khác',
   'shared.totalBudget': 'Tổng chi phí',
   'shared.messages': 'tin nhắn',
   'shared.sharedVia': 'Được chia sẻ qua',
   'shared.confirmed': 'Đã xác nhận',
   'shared.pending': 'Chưa giải quyết',
+  'shared.footerTagline': 'Trình lập kế hoạch du lịch do bạn tự lưu trữ. Mã nguồn mở.',
+  'shared.emptyBookings': 'Chưa có đặt chỗ nào được chia sẻ',
+  'shared.emptyPacking': 'Danh sách hành lý vẫn còn trống',
+  'shared.emptyCosts': 'Chưa có khoản chi nào',
+  'shared.emptyChat': 'Chưa có tin nhắn nào',
+  'shared.wholeTrip': 'Cả chuyến đi',
 };
 export default shared;

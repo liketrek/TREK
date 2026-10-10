@@ -57,6 +57,8 @@ const dayplan: TranslationStrings = {
   'dayplan.exportMaps': 'Mapy a GPS',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Exportovat denní plán do PDF',
+  'dayplan.pdfMine': 'Můj plán jako PDF',
+  'dayplan.pdfMineSub': 'Jen aktivity a rezervace, kterých se účastníte',
   'dayplan.gpxTooltip': 'Exportovat jako GPX pro offline mapy a GPS zařízení',
   'dayplan.gpxAll': 'Celá cesta',
   'dayplan.gpxPlaces': 'Jen místa',
@@ -78,8 +80,8 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Všechna místa přiřazena',
   'dayplan.mobile.noMatch': 'Žádná shoda',
   'dayplan.mobile.createNew': 'Vytvořit nové místo',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': 'Rozbalit všechny dny', // en-fallback
+  'dayplan.collapseAll': 'Sbalit všechny dny', // en-fallback
   'dayplan.reorderDays': 'Změnit pořadí dnů',
   'dayplan.reorderTitle': 'Změnit pořadí dnů',
   'dayplan.reorderHint': 'Místa, poznámky a rezervace daného dne se přesunou spolu s ním.',
@@ -92,13 +94,29 @@ const dayplan: TranslationStrings = {
   'dayplan.deleteDay': 'Smazat den',
   'dayplan.deleteDayTitle': 'Smazat {day}?',
   'dayplan.deleteDayBody': 'Den bude z cesty odebrán. Tuto akci nelze vrátit zpět.',
+  'dayplan.excludeFromRoute': 'Vynechat z trasy',
+  'dayplan.includeInRoute': 'Vrátit do trasy',
+  'dayplan.offRoute': 'Mimo trasu',
+  'dayplan.offRouteHint': 'Zůstává ve dni i na mapě, ale trasa ho vynechá',
+  'dayplan.clearDay': 'Vyprázdnit den',
+  'dayplan.clearDayTitle': 'Vyprázdnit {day}?',
+  'dayplan.clearDayBody':
+    'Všechna místa se z tohoto dne odeberou. Místa zůstanou v cestě a den si ponechá své poznámky i rezervace.',
   'dayplan.deleteDayEmpty': 'Na tento den není nic naplánováno.',
   'dayplan.impactPlaces': 'Naplánovaná místa: {count}',
+  'dayplan.impactPlaces.one': 'Naplánovaná místa: {count}',
+  'dayplan.impactPlaces.few': 'Naplánovaná místa: {count}',
   'dayplan.impactPlacesHint': 'Zůstanou v seznamu míst.',
   'dayplan.impactNotes': 'Poznámky: {count}',
+  'dayplan.impactNotes.one': 'Poznámky: {count}',
+  'dayplan.impactNotes.few': 'Poznámky: {count}',
   'dayplan.impactTexts': 'Názvy a popisy dne: {count}',
+  'dayplan.impactTexts.one': 'Názvy a popisy dne: {count}',
+  'dayplan.impactTexts.few': 'Názvy a popisy dne: {count}',
   'dayplan.impactDeletedHint': 'Budou také smazány.',
   'dayplan.impactBookings': 'Rezervace: {count}',
+  'dayplan.impactBookings.one': 'Rezervace: {count}',
+  'dayplan.impactBookings.few': 'Rezervace: {count}',
   'dayplan.impactStay': 'Ubytování v {name}',
   'dayplan.deleteDayBookingsHint': 'Zůstanou v Rezervacích, bez dne.',
   'dayplan.deleteDayStayHint': 'Příjezd nebo odjezd připadá na tento den, proto se ubytování zruší.',
@@ -109,8 +127,14 @@ const dayplan: TranslationStrings = {
   'dayplan.deleteDayStayPaidHint':
     'Příjezd nebo odjezd připadá na tento den, proto se ubytování zruší spolu s rezervací „{booking}“ a jejím výdajem {amount}.',
   'dayplan.deleteDayShift': 'Pozdější dny: {count}',
+  'dayplan.deleteDayShift.one': 'Pozdější dny: {count}',
+  'dayplan.deleteDayShift.few': 'Pozdější dny: {count}',
   'dayplan.deleteDayShiftHint': 'Každý se posune o jedno datum dříve.',
   'dayplan.deleteDayShiftBookingsHint':
+    'Každý se posune o jedno datum dříve. Rezervace, které se posunou s nimi: {count}',
+  'dayplan.deleteDayShiftBookingsHint.one':
+    'Každý se posune o jedno datum dříve. Rezervace, které se posunou s nimi: {count}',
+  'dayplan.deleteDayShiftBookingsHint.few':
     'Každý se posune o jedno datum dříve. Rezervace, které se posunou s nimi: {count}',
   'dayplan.deleteDayShrink': 'Cesta nyní končí {date}',
   'dayplan.deleteDayShrinkHint': 'Nezbývá žádný den bez data, který by převzal poslední datum.',

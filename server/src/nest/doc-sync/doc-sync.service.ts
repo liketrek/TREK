@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
@@ -6,14 +7,24 @@ import { pipeline } from 'node:stream/promises';
 import { Transform } from 'node:stream';
 import { Readable } from 'node:stream';
 import type { DocsyncErrorCode } from '@trek/shared';
-import { DatabaseService } from '../database/database.service';
 import { AddonsService } from '../addons/addons.service';
 import { ADDON_IDS } from '../../addons';
 import { StorageService } from '../storage/storage.service';
+import { UnitOfWork } from '../database/unit-of-work';
 import { FilesService } from '../files/files.service';
 import { AllowedFileTypesService } from '../files/allowed-file-types.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import { MAX_FILE_SIZE, isVideoExtension } from '../files/files.constants';
+import { TripDocumentLinks } from '../../db/entities/TripDocumentLinks.entity';
+import type { TripDocumentLinksRepository } from '../../db/repositories/TripDocumentLinks.repository';
+import { DocumentSyncItems } from '../../db/entities/DocumentSyncItems.entity';
+import type { DocumentSyncIssueRow, DocumentSyncItemsRepository } from '../../db/repositories/DocumentSyncItems.repository';
+import { TripFiles } from '../../db/entities/TripFiles.entity';
+import type { TripFilesRepository } from '../../db/repositories/TripFiles.repository';
+import { FileLinks } from '../../db/entities/FileLinks.entity';
+import type { FileLinksRepository } from '../../db/repositories/FileLinks.repository';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { DocumentProviderRegistry } from './document-provider.registry';
 import { DocSyncConfigService, type ConnectionRow, type LinkRow } from './doc-sync-config.service';
 import type { DocumentProvider, RemoteDocument } from './document-provider';
@@ -24,6 +35,7 @@ import {
   LINK_BACKOFF_SECONDS,
   LINK_CIRCUIT_OPEN_AFTER,
   MAX_TRANSFERS_PER_RUN,
+  SETTING_SYNC_ENABLED,
 } from './doc-sync.constants';
 import {
   backoffSeconds,
@@ -37,20 +49,6 @@ import {
   type PlanAction,
   type SyncItemState,
 } from './doc-sync.helpers';
-
-/**
- * The SET clause for a pairing whose copy is listed again: `touch`, `relocate`
- * and both renames.
- *
- * Only `touch` lifted the missing flag, so a copy found again under a new name
- * (a rename, or a move where ids are paths) stayed on the issues list for one
- * more run. `error` is left alone on purpose: that row either never got its
- * bytes or holds older ones than the provider, and calling it synced would hide
- * it for good. So is a row without a file, which is a deletion the planner
- * turns into `local_deleted`.
- */
-const FOUND_AGAIN = `remote_missing_at = NULL,
-                    state = CASE WHEN state = 'remote_missing' AND file_id IS NOT NULL THEN 'synced' ELSE state END`;
 
 /**
  * The reconciler: it executes what `planReconcile` decided, and does nothing
@@ -72,6 +70,13 @@ const FOUND_AGAIN = `remote_missing_at = NULL,
  *   2. TREK's own writes must not come back as foreign changes. That is what
  *      `pushed_sha256` is for, and why the comparison is over content rather
  *      than over timestamps.
+ *
+ * Plan 3h Task 5: every `this.db.connection.prepare(...)` call converted onto
+ * `TripDocumentLinksRepository`/`DocumentSyncItemsRepository` (own tables) and
+ * additive methods on `TripFilesRepository`/`FileLinksRepository` (3e,
+ * cross-domain — DS4/DS15/DS16/DS19/DS29/DS32/DS36). `FOUND_AGAIN`'s CASE
+ * expression is now `foundAgainState` (`src/db/dialect/sql-functions.ts`),
+ * built once and consumed by the repository methods behind DS2/DS3/DS5/DS12.
  */
 @Injectable()
 export class DocSyncService {
@@ -80,7 +85,11 @@ export class DocSyncService {
   private readonly running = new Set<number>();
 
   constructor(
-    private readonly db: DatabaseService,
+    @InjectRepository(TripDocumentLinks) private readonly linksRepo: TripDocumentLinksRepository,
+    @InjectRepository(DocumentSyncItems) private readonly items: DocumentSyncItemsRepository,
+    @InjectRepository(TripFiles) private readonly tripFiles: TripFilesRepository,
+    @InjectRepository(FileLinks) private readonly fileLinks: FileLinksRepository,
+    @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
     private readonly config: DocSyncConfigService,
     private readonly registry: DocumentProviderRegistry,
     private readonly storage: StorageService,
@@ -88,6 +97,7 @@ export class DocSyncService {
     private readonly allowedTypes: AllowedFileTypesService,
     private readonly realtime: RealtimeService,
     private readonly addons: AddonsService,
+    private readonly uow: UnitOfWork,
   ) {}
 
   // ── Entry points ───────────────────────────────────────────────────────────
@@ -106,22 +116,16 @@ export class DocSyncService {
    * A binding whose provider an admin switched off is left out here rather
    * than stood down per run. It never runs, so it never gets a `last_sync_at`,
    * and twenty of them would sort first on every tick and take every slot.
+   *
+   * DS1's 3-key ORDER BY (`next_attempt_at`, then `last_sync_at`, then `id`)
+   * is production-proven — preserved byte-exact in
+   * `TripDocumentLinksRepository.dueLinks`. The provider-enabled subquery is
+   * resolved here first (`config.enabledProviderIds`), then handed to the
+   * repository as a plain id list — see that method's own docstring for why.
    */
-  dueLinks(limit = 20): LinkRow[] {
-    return this.db.connection
-      .prepare(
-        `SELECT * FROM trip_document_links
-          WHERE sync_enabled = 1
-            AND last_sync_state != 'orphaned'
-            AND failure_count < ?
-            AND (next_attempt_at IS NULL OR next_attempt_at <= CURRENT_TIMESTAMP)
-            AND provider_id IN (SELECT id FROM document_providers WHERE enabled = 1)
-          ORDER BY COALESCE(next_attempt_at, '1970-01-01') ASC,
-                   COALESCE(last_sync_at, '1970-01-01') ASC,
-                   id ASC
-          LIMIT ?`,
-      )
-      .all(LINK_CIRCUIT_OPEN_AFTER, limit) as LinkRow[];
+  async dueLinks(limit = 20): Promise<LinkRow[]> {
+    const enabledProviderIds = await this.config.enabledProviderIds();
+    return this.linksRepo.dueLinks(LINK_CIRCUIT_OPEN_AFTER, enabledProviderIds, limit);
   }
 
   /**
@@ -133,9 +137,21 @@ export class DocSyncService {
    * resumes exactly where it stopped once the switch is back on. Public because
    * a manual run has to refuse before it un-shelves anything.
    */
-  isSwitchedOff(link: Pick<LinkRow, 'provider_id'>): boolean {
-    if (!this.addons.isAddonEnabled(ADDON_IDS.DOCUMENTS)) return true;
-    return !this.config.enabledProviderIds().includes(link.provider_id);
+  async isSwitchedOff(link: Pick<LinkRow, 'provider_id'>): Promise<boolean> {
+    if (!(await this.addons.isAddonEnabled(ADDON_IDS.DOCUMENTS))) return true;
+    return !(await this.config.enabledProviderIds()).includes(link.provider_id);
+  }
+
+  /**
+   * DSWH1 (R2 — moved off `DocSyncWebhookController`) — the instance-wide
+   * kill switch (`SELECT value FROM app_settings WHERE key = ?`,
+   * `SETTING_SYNC_ENABLED`), the same switch the job's own tick obeys.
+   * Unrecognised values mean ON: the setting is absent by default, and only
+   * an explicit `'false'` stops the sync.
+   */
+  async isSyncEnabled(): Promise<boolean> {
+    const value = await this.appSettings.getValue(SETTING_SYNC_ENABLED);
+    return value !== 'false';
   }
 
   /**
@@ -161,7 +177,7 @@ export class DocSyncService {
       return await this.runLink(link, opts);
     } catch (err) {
       this.logger.error(`link ${link.id} failed: ${err instanceof Error ? err.message : String(err)}`);
-      this.recordLinkFailure(link, 'unknown');
+      await this.recordLinkFailure(link, 'unknown');
       return { state: 'failed', pulled: 0, pushed: 0, conflicts: 0, missing: 0, errorCode: 'unknown' };
     } finally {
       this.running.delete(link.id);
@@ -174,23 +190,23 @@ export class DocSyncService {
     // First, before anything that records a failure: a binding whose provider
     // is switched off must come back as it was left. The webhook and a first
     // run after binding reach this without asking beforehand.
-    if (this.isSwitchedOff(link)) {
+    if ((await this.isSwitchedOff(link))) {
       return { state: 'disabled', pulled: 0, pushed: 0, conflicts: 0, missing: 0 };
     }
     // An orphaned binding runs for nobody. Its credential belongs to somebody
     // who has left the trip, and a webhook or a resolved conflict reach this
     // without asking beforehand.
-    if (this.config.isOrphaned(link)) {
+    if (await this.config.isOrphaned(link)) {
       return { state: 'orphaned', pulled: 0, pushed: 0, conflicts: 0, missing: 0 };
     }
-    const conn = this.config.getConnection(link.connection_id);
+    const conn = await this.config.getConnection(link.connection_id);
     if (!conn) {
-      this.recordLinkFailure(link, 'not_found');
+      await this.recordLinkFailure(link, 'not_found');
       return { state: 'failed', pulled: 0, pushed: 0, conflicts: 0, missing: 0, errorCode: 'not_found' };
     }
     const provider = this.registry.get(link.provider_id);
     if (!provider) {
-      this.recordLinkFailure(link, 'provider_error');
+      await this.recordLinkFailure(link, 'provider_error');
       return { state: 'failed', pulled: 0, pushed: 0, conflicts: 0, missing: 0, errorCode: 'provider_error' };
     }
 
@@ -202,20 +218,20 @@ export class DocSyncService {
     const resolved = await provider.resolveScope(ref, scope);
     if (docFailed(resolved)) {
       const code = resolved.error.code === 'not_found' || resolved.error.code === 'scope_missing' ? 'scope_missing' : resolved.error.code;
-      this.recordLinkFailure(link, code, code === 'scope_missing' ? 'scope_lost' : undefined);
+      await this.recordLinkFailure(link, code, code === 'scope_missing' ? 'scope_lost' : undefined);
       return { state: code === 'scope_missing' ? 'scope_lost' : 'failed', pulled: 0, pushed: 0, conflicts: 0, missing: 0, errorCode: code };
     }
 
     // Read before the listing because they decide how much of it is needed: a
     // file restored in TREK waits for a listing that shows its copy.
-    const items = this.loadItems(link.id);
-    const local = this.loadLocalDocuments(link);
+    const items = await this.loadItems(link.id);
+    const local = await this.loadLocalDocuments(link);
     if (opts.full || needsFullListing(items, local)) scope.cursor = null;
 
     const listing = await provider.list(ref, scope);
     if (docFailed(listing)) {
       const state = listing.error.code === 'unauthorized' ? 'needs_reauth' : 'failed';
-      this.recordLinkFailure(link, listing.error.code, state);
+      await this.recordLinkFailure(link, listing.error.code, state);
       return { state, pulled: 0, pushed: 0, conflicts: 0, missing: 0, errorCode: listing.error.code };
     }
 
@@ -235,7 +251,7 @@ export class DocSyncService {
       // Refusing the whole run is the point: the listing is not trustworthy, so
       // nothing in it should be acted on, not even the parts that look fine.
       this.logger.warn(`link ${link.id}: mass-delete guard tripped (${plan.missingCount} of ${items.length} gone), run abandoned`);
-      this.recordLinkFailure(link, 'mass_delete_guard', 'partial');
+      await this.recordLinkFailure(link, 'mass_delete_guard', 'partial');
       return { state: 'partial', pulled: 0, pushed: 0, conflicts: 0, missing: plan.missingCount, errorCode: 'mass_delete_guard' };
     }
 
@@ -281,7 +297,7 @@ export class DocSyncService {
      * clean.
      */
     const cursor = state === 'ok' && !wroteUpstream ? listing.data.cursor : null;
-    this.recordLinkSuccess(link, cursor, state, softFailure ?? null);
+    await this.recordLinkSuccess(link, cursor, state, softFailure ?? null);
     if (pulled > 0 || pushed > 0) {
       this.realtime.broadcast(link.trip_id, 'docsync:changed', { linkId: link.id, pulled, pushed });
     }
@@ -306,54 +322,35 @@ export class DocSyncService {
         // keeps the agreed name; the rename, if there was one, is the planner's
         // next action for this row. That may be a rename rather than a `touch`,
         // so a copy on record as missing is lifted here already.
-        this.db.connection
-          .prepare(
-            `UPDATE document_sync_items
-                SET remote_id = ?, remote_version = ?,
-                    remote_size = COALESCE(?, remote_size), remote_modified_at = COALESCE(?, remote_modified_at),
-                    ${FOUND_AGAIN}, last_seen_at = CURRENT_TIMESTAMP
-              WHERE id = ?`,
-          )
-          .run(action.remote.remoteId, action.remote.remoteVersion, action.remote.size, action.remote.remoteModifiedAt, action.itemId);
+        await this.items.applyRelocate(action.itemId, {
+          remote_id: action.remote.remoteId,
+          remote_version: action.remote.remoteVersion,
+          remote_size: action.remote.size,
+          remote_modified_at: action.remote.remoteModifiedAt,
+        });
         return 'ok';
       }
       case 'rename_remote': {
         const res = await ctx.provider.rename(ctx.ref, ctx.scope, action.remoteId, action.name);
         if (docFailed(res)) return res.error.code;
-        this.db.connection
-          .prepare(
-            `UPDATE document_sync_items
-                SET remote_name = ?, remote_version = ?, ${FOUND_AGAIN}, last_seen_at = CURRENT_TIMESTAMP
-              WHERE id = ?`,
-          )
-          .run(action.name, res.data.remoteVersion, action.itemId);
+        await this.items.applyRenameRemote(action.itemId, { remote_name: action.name, remote_version: res.data.remoteVersion });
         return 'ok';
       }
       case 'rename_local': {
-        this.db.connection.prepare('UPDATE trip_files SET original_name = ? WHERE id = ?').run(action.name, action.fileId);
+        await this.tripFiles.renameOriginalName(action.fileId, action.name);
         this.realtime.broadcast(ctx.link.trip_id, 'file:updated', {
-          file: this.files.getFileById(action.fileId, ctx.link.trip_id),
+          file: await this.files.getFileById(action.fileId, ctx.link.trip_id),
         });
-        this.db.connection
-          .prepare(`UPDATE document_sync_items SET remote_name = ?, ${FOUND_AGAIN}, last_seen_at = CURRENT_TIMESTAMP WHERE id = ?`)
-          .run(action.name, action.itemId);
+        await this.items.applyRenameLocal(action.itemId, { remote_name: action.name });
         return 'ok';
       }
       case 'conflict': {
-        this.db.connection
-          .prepare("UPDATE document_sync_items SET state = 'conflict', last_seen_at = CURRENT_TIMESTAMP WHERE id = ?")
-          .run(action.itemId);
+        await this.items.markConflict(action.itemId);
         return 'conflict';
       }
       case 'mark_remote_missing': {
         // Recorded, not executed. A human decides whether the local copy goes.
-        this.db.connection
-          .prepare(
-            `UPDATE document_sync_items
-                SET state = 'remote_missing', remote_missing_at = CURRENT_TIMESTAMP, last_seen_at = CURRENT_TIMESTAMP
-              WHERE id = ?`,
-          )
-          .run(action.itemId);
+        await this.items.markRemoteMissing(action.itemId);
         return 'ok';
       }
       case 'local_deleted': {
@@ -371,30 +368,14 @@ export class DocSyncService {
         // restore in TREK later has to know whether the gap upstream is TREK's.
         // A copy on record as gone stays on record: the holdings count reads
         // the mark, and the copy is no more at the store than it was before.
-        this.db.connection
-          .prepare(
-            `UPDATE document_sync_items
-                SET state = 'local_deleted',
-                    remote_missing_at = CASE WHEN ? = 1 THEN remote_missing_at ELSE NULL END,
-                    remote_trashed_at = CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE NULL END,
-                    last_seen_at = CURRENT_TIMESTAMP
-              WHERE id = ?`,
-          )
-          .run(remoteGone ? 1 : 0, binned ? 1 : 0, action.itemId);
+        await this.items.markLocalDeleted(action.itemId, { remoteGone, binned });
         return 'ok';
       }
       case 'local_restored': {
         // A copy found gone is flagged the way `mark_remote_missing` flags one,
         // and recovers the same way: a later `touch` lifts it once it is back.
         const missing = action.missing === true;
-        this.db.connection
-          .prepare(
-            `UPDATE document_sync_items
-                SET state = ?, remote_missing_at = CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE NULL END,
-                    remote_trashed_at = NULL, last_seen_at = CURRENT_TIMESTAMP
-              WHERE id = ?`,
-          )
-          .run(missing ? 'remote_missing' : 'synced', missing ? 1 : 0, action.itemId);
+        await this.items.markLocalRestored(action.itemId, { state: missing ? 'remote_missing' : 'synced', missing });
         return 'ok';
       }
       case 'detach': {
@@ -402,20 +383,11 @@ export class DocSyncService {
         // provider copy is new. The push the planner queued after this fills
         // the pairing in again, and if that push fails the row is an ordinary
         // unpaired file that the next run retries.
-        this.db.connection
-          .prepare(
-            `UPDATE document_sync_items
-                SET state = 'pending', remote_id = NULL, remote_version = NULL, remote_trashed_at = NULL,
-                    error_code = NULL, last_seen_at = CURRENT_TIMESTAMP
-              WHERE id = ?`,
-          )
-          .run(action.itemId);
+        await this.items.markDetached(action.itemId);
         return 'ok';
       }
       case 'remote_restored': {
-        this.db.connection
-          .prepare('UPDATE document_sync_items SET remote_trashed_at = NULL, last_seen_at = CURRENT_TIMESTAMP WHERE id = ?')
-          .run(action.itemId);
+        await this.items.markRemoteRestored(action.itemId);
         return 'ok';
       }
       case 'touch': {
@@ -426,22 +398,13 @@ export class DocSyncService {
         // Size and modification time are kept current as well: where the id is
         // the path, they are how the planner recognises this copy once it has
         // been renamed or moved.
-        this.db.connection
-          .prepare(
-            `UPDATE document_sync_items
-                SET last_seen_at = CURRENT_TIMESTAMP,
-                    remote_version = COALESCE(?, remote_version),
-                    remote_name = COALESCE(?, remote_name),
-                    remote_id = COALESCE(?, remote_id),
-                    remote_size = COALESCE(?, remote_size),
-                    remote_modified_at = COALESCE(?, remote_modified_at),
-                    ${FOUND_AGAIN}
-              WHERE id = ?`,
-          )
-          .run(
-            action.remote?.remoteVersion ?? null, action.remote?.name ?? null, action.remote?.remoteId ?? null,
-            action.remote?.size ?? null, action.remote?.remoteModifiedAt ?? null, action.itemId,
-          );
+        await this.items.applyTouch(action.itemId, {
+          remote_version: action.remote?.remoteVersion ?? null,
+          remote_name: action.remote?.name ?? null,
+          remote_id: action.remote?.remoteId ?? null,
+          remote_size: action.remote?.size ?? null,
+          remote_modified_at: action.remote?.remoteModifiedAt ?? null,
+        });
         return 'ok';
       }
       default:
@@ -464,19 +427,19 @@ export class DocSyncService {
     // Video is admitted the way the upload admits it, whatever the operator's
     // list says: a clip the file manager takes must not come back as refused
     // when it arrives through the store instead.
-    const allowed = isVideoExtension(path.extname(name)) || isAllowedByOperator(name, this.allowedTypes.get());
+    const allowed = isVideoExtension(path.extname(name)) || isAllowedByOperator(name, await this.allowedTypes.get());
     if (isBlockedName(name) || !allowed) {
-      this.upsertItem(ctx.link, { itemId, remote, state: 'rejected_type', errorCode: 'unsupported_type' });
+      await this.upsertItem(ctx.link, { itemId, remote, state: 'rejected_type', errorCode: 'unsupported_type' });
       return 'unsupported_type';
     }
     if (remote.size !== null && remote.size > MAX_FILE_SIZE) {
-      this.upsertItem(ctx.link, { itemId, remote, state: 'too_large', errorCode: 'too_large' });
+      await this.upsertItem(ctx.link, { itemId, remote, state: 'too_large', errorCode: 'too_large' });
       return 'too_large';
     }
 
     const fetched = await ctx.provider.fetch(ctx.ref, ctx.scope, remote.remoteId);
     if (docFailed(fetched)) {
-      this.upsertItem(ctx.link, { itemId, remote, state: 'error', errorCode: fetched.error.code });
+      await this.upsertItem(ctx.link, { itemId, remote, state: 'error', errorCode: fetched.error.code });
       return fetched.error.code;
     }
 
@@ -504,7 +467,7 @@ export class DocSyncService {
     } catch (err) {
       await fs.promises.rm(tmpPath, { force: true });
       const code: DocsyncErrorCode = err instanceof Error && err.message === 'too_large' ? 'too_large' : 'provider_error';
-      this.upsertItem(ctx.link, { itemId, remote, state: code === 'too_large' ? 'too_large' : 'error', errorCode: code });
+      await this.upsertItem(ctx.link, { itemId, remote, state: code === 'too_large' ? 'too_large' : 'error', errorCode: code });
       return code;
     }
 
@@ -512,13 +475,9 @@ export class DocSyncService {
 
     // What this row pointed at before, if anything: a pull_update replaces a
     // document TREK already holds, and `createFile` only ever inserts.
-    const pairing = itemId === null
-      ? undefined
-      : (this.db.connection
-          .prepare('SELECT file_id, remote_name, content_sha256 FROM document_sync_items WHERE id = ?')
-          .get(itemId) as { file_id: number | null; remote_name: string | null; content_sha256: string | null } | undefined);
+    const pairing = itemId === null ? undefined : await this.items.findPairing(itemId);
     const supersededId = pairing?.file_id ?? null;
-    const superseded = supersededId === null ? undefined : this.files.getFileById(supersededId, ctx.link.trip_id);
+    const superseded = supersededId === null ? undefined : await this.files.getFileById(supersededId, ctx.link.trip_id);
 
     // The bytes TREK already holds, under a version marker that moved on
     // metadata: Paperless bumps it for a tag or a correspondent as much as for
@@ -529,7 +488,7 @@ export class DocSyncService {
     // here would read it as TREK's own and send the old name back up.
     if (superseded && !superseded.deleted_at && pairing?.content_sha256 === sha256) {
       await fs.promises.rm(tmpPath, { force: true });
-      this.upsertItem(ctx.link, {
+      await this.upsertItem(ctx.link, {
         itemId,
         remote,
         state: 'synced',
@@ -543,7 +502,7 @@ export class DocSyncService {
       await this.storage.put('files', storageKey, { tmpPath });
     } catch {
       await fs.promises.rm(tmpPath, { force: true });
-      this.upsertItem(ctx.link, { itemId, remote, state: 'error', errorCode: 'provider_error' });
+      await this.upsertItem(ctx.link, { itemId, remote, state: 'error', errorCode: 'provider_error' });
       return 'provider_error';
     }
 
@@ -560,13 +519,13 @@ export class DocSyncService {
      * a new revision is the same document to the trip, and without this every
      * edit in the store quietly took the attachment off its booking.
      */
-    const { created, retired } = this.db.transaction(() => {
-      const file = this.files.createFile(
+    const { created, retired } = await this.uow.transactional(async () => {
+      const file = await this.files.createFile(
         ctx.link.trip_id,
         { filename: storageKey, originalname: name, size: bytes, mimetype: remote.mimeType || 'application/octet-stream' },
         // Attributed to the person whose connection brought it in, which is the
         // only honest answer: nobody in TREK uploaded it.
-        this.config.getConnection(ctx.link.connection_id)?.owner_user_id ?? 0,
+        (await this.config.getConnection(ctx.link.connection_id))?.owner_user_id ?? 0,
         {
           place_id: superseded?.place_id ?? null,
           reservation_id: superseded?.reservation_id ?? null,
@@ -576,16 +535,11 @@ export class DocSyncService {
       const gone = supersededId !== null && Number(supersededId) !== Number(file.id);
       const starred = gone && !!superseded?.starred;
       if (gone) {
-        if (starred) this.db.connection.prepare('UPDATE trip_files SET starred = 1 WHERE id = ?').run(file.id);
-        this.db.connection
-          .prepare(
-            `INSERT OR IGNORE INTO file_links (file_id, reservation_id, assignment_id, place_id, budget_item_id)
-             SELECT ?, reservation_id, assignment_id, place_id, budget_item_id FROM file_links WHERE file_id = ?`,
-          )
-          .run(file.id, supersededId);
-        this.files.softDeleteFile(supersededId as number);
+        if (starred) await this.tripFiles.setStarred(Number(file.id), 1);
+        await this.fileLinks.copySelectIgnore(Number(file.id), supersededId as number);
+        await this.files.softDeleteFile(supersededId as number);
       }
-      this.upsertItem(ctx.link, {
+      await this.upsertItem(ctx.link, {
         itemId,
         remote,
         state: 'synced',
@@ -616,15 +570,15 @@ export class DocSyncService {
     // Paperless refuses anything outside its parser list with a 400. Checking
     // first turns a recurring hard failure into one visible row that says why.
     if (caps.acceptedMimeTypes && !caps.acceptedMimeTypes.includes(mime)) {
-      this.upsertItem(ctx.link, { itemId, fileId: local.fileId, state: 'rejected_type', errorCode: 'unsupported_type' });
+      await this.upsertItem(ctx.link, { itemId, fileId: local.fileId, state: 'rejected_type', errorCode: 'unsupported_type' });
       return 'unsupported_type';
     }
     if (caps.maxUploadBytes !== null && local.size > caps.maxUploadBytes) {
-      this.upsertItem(ctx.link, { itemId, fileId: local.fileId, state: 'too_large', errorCode: 'too_large' });
+      await this.upsertItem(ctx.link, { itemId, fileId: local.fileId, state: 'too_large', errorCode: 'too_large' });
       return 'too_large';
     }
 
-    const file = this.files.getFileById(local.fileId, ctx.link.trip_id);
+    const file = await this.files.getFileById(local.fileId, ctx.link.trip_id);
     if (!file) return 'not_found';
     // Re-read rather than trust the plan: a run walks a whole folder, and a
     // document somebody deleted in the meantime would otherwise still be
@@ -642,11 +596,11 @@ export class DocSyncService {
       const got = await this.storage.getStream('files', String(file.filename));
       stream = got.stream;
     } catch {
-      this.upsertItem(ctx.link, { itemId, fileId: local.fileId, state: 'error', errorCode: 'provider_error' });
+      await this.upsertItem(ctx.link, { itemId, fileId: local.fileId, state: 'error', errorCode: 'provider_error' });
       return 'provider_error';
     }
 
-    const uid = this.existingUid(ctx.link.id, itemId) ?? newTrekDocUid();
+    const uid = (await this.existingUid(ctx.link.id, itemId)) ?? newTrekDocUid();
     const res = await ctx.provider.push(ctx.ref, ctx.scope, {
       body: stream,
       fileName: local.name,
@@ -660,7 +614,7 @@ export class DocSyncService {
     });
 
     if (docFailed(res)) {
-      this.upsertItem(ctx.link, { itemId, fileId: local.fileId, state: 'error', errorCode: res.error.code, trekDocUid: uid });
+      await this.upsertItem(ctx.link, { itemId, fileId: local.fileId, state: 'error', errorCode: res.error.code, trekDocUid: uid });
       return res.error.code;
     }
 
@@ -670,9 +624,9 @@ export class DocSyncService {
     // the unique index on (link_id, remote_id) would abort this run (and every
     // run after it) with a constraint error. The upload happened, so nothing is
     // lost; what must not happen is the pairing moving off the file that owns it.
-    const heldBy = this.pairingOwner(ctx.link.id, res.data.remoteId, itemId);
+    const heldBy = await this.pairingOwner(ctx.link.id, res.data.remoteId, itemId);
     if (heldBy !== null) {
-      this.upsertItem(ctx.link, {
+      await this.upsertItem(ctx.link, {
         itemId,
         fileId: local.fileId,
         state: 'error',
@@ -682,7 +636,7 @@ export class DocSyncService {
       return 'conflict';
     }
 
-    this.upsertItem(ctx.link, {
+    await this.upsertItem(ctx.link, {
       itemId,
       fileId: local.fileId,
       state: 'synced',
@@ -716,42 +670,30 @@ export class DocSyncService {
    * and the only way to find out is to try again. The scheduler never calls
    * this: automatic retries are exactly what the limit exists to stop.
    */
-  retryShelvedItems(linkId: number): void {
-    this.db.connection
-      .prepare(
-        `UPDATE document_sync_items
-            SET attempts = 0, next_attempt_at = NULL
-          WHERE link_id = ? AND state = 'error'`,
-      )
-      .run(linkId);
+  async retryShelvedItems(linkId: number): Promise<void> {
+    await this.items.resetShelvedForLink(linkId);
   }
 
   // ── State loading and writing ──────────────────────────────────────────────
 
-  private loadItems(linkId: number): SyncItemState[] {
-    const rows = this.db.connection
-      .prepare(
-        `SELECT id, file_id, trek_doc_uid, remote_id, remote_version, remote_name, remote_size, remote_modified_at,
-                content_sha256, pushed_sha256, state, attempts, next_attempt_at, remote_missing_at, remote_trashed_at
-           FROM document_sync_items WHERE link_id = ?`,
-      )
-      .all(linkId) as Array<Record<string, unknown>>;
+  private async loadItems(linkId: number): Promise<SyncItemState[]> {
+    const rows = await this.items.findByLink(linkId);
     return rows.map((r) => ({
-      id: Number(r.id),
-      fileId: r.file_id === null ? null : Number(r.file_id),
-      trekDocUid: String(r.trek_doc_uid),
-      remoteId: r.remote_id === null ? null : String(r.remote_id),
-      remoteVersion: r.remote_version === null ? null : String(r.remote_version),
-      remoteName: r.remote_name === null || r.remote_name === undefined ? null : String(r.remote_name),
-      remoteSize: r.remote_size === null ? null : Number(r.remote_size),
-      remoteModifiedAt: r.remote_modified_at === null ? null : String(r.remote_modified_at),
-      contentSha256: r.content_sha256 === null ? null : String(r.content_sha256),
-      pushedSha256: r.pushed_sha256 === null ? null : String(r.pushed_sha256),
-      state: String(r.state),
-      attempts: Number(r.attempts ?? 0),
-      nextAttemptAt: r.next_attempt_at === null || r.next_attempt_at === undefined ? null : String(r.next_attempt_at),
-      remoteMissingAt: r.remote_missing_at === null ? null : String(r.remote_missing_at),
-      remoteTrashedAt: r.remote_trashed_at === null ? null : String(r.remote_trashed_at),
+      id: r.id,
+      fileId: r.file_id,
+      trekDocUid: r.trek_doc_uid,
+      remoteId: r.remote_id,
+      remoteVersion: r.remote_version,
+      remoteName: r.remote_name,
+      remoteSize: r.remote_size,
+      remoteModifiedAt: r.remote_modified_at,
+      contentSha256: r.content_sha256,
+      pushedSha256: r.pushed_sha256,
+      state: r.state,
+      attempts: r.attempts,
+      nextAttemptAt: r.next_attempt_at,
+      remoteMissingAt: r.remote_missing_at,
+      remoteTrashedAt: r.remote_trashed_at,
     }));
   }
 
@@ -769,19 +711,13 @@ export class DocSyncService {
    * Paperless, everything else to Nextcloud": splitting a trip across bindings
    * would need a per-document assignment that nothing in the UI offers yet.
    */
-  private loadLocalDocuments(link: LinkRow): LocalDocument[] {
-    const rows = this.db.connection
-      .prepare(
-        `SELECT f.id, f.original_name, f.file_size, f.mime_type, f.deleted_at
-           FROM trip_files f
-          WHERE f.trip_id = ? AND f.message_id IS NULL AND f.note_id IS NULL`,
-      )
-      .all(link.trip_id) as Array<Record<string, unknown>>;
+  private async loadLocalDocuments(link: LinkRow): Promise<LocalDocument[]> {
+    const rows = await this.tripFiles.listSyncableForTrip(link.trip_id);
     return rows.map((r) => ({
-      fileId: Number(r.id),
-      name: String(r.original_name),
-      size: Number(r.file_size ?? 0),
-      mimeType: r.mime_type === null ? null : String(r.mime_type),
+      fileId: r.id,
+      name: r.original_name,
+      size: r.file_size ?? 0,
+      mimeType: r.mime_type,
       // Deliberately null, and not the agreed hash out of document_sync_items:
       // reading that column here would compare it against itself, and
       // `localChanged` in the planner could then never be true. TREK has no way
@@ -790,25 +726,20 @@ export class DocSyncService {
       // than admitting it. The day the file manager grows a replace, this needs
       // a real hash column on trip_files, filled at upload time.
       sha256: null,
-      deletedAt: r.deleted_at === null ? null : String(r.deleted_at),
+      deletedAt: r.deleted_at,
     }));
   }
 
   /** The item already paired with this remote document, if it is a different one. */
-  private pairingOwner(linkId: number, remoteId: string, itemId: number | null): number | null {
-    const row = this.db.connection
-      .prepare('SELECT id FROM document_sync_items WHERE link_id = ? AND remote_id = ?')
-      .get(linkId, remoteId) as { id?: number } | undefined;
-    if (row?.id === undefined) return null;
-    return itemId !== null && Number(row.id) === Number(itemId) ? null : Number(row.id);
+  private async pairingOwner(linkId: number, remoteId: string, itemId: number | null): Promise<number | null> {
+    const found = await this.items.findPairingOwner(linkId, remoteId);
+    if (found === undefined) return null;
+    return itemId !== null && Number(found) === Number(itemId) ? null : Number(found);
   }
 
-  private existingUid(linkId: number, itemId: number | null): string | null {
+  private async existingUid(linkId: number, itemId: number | null): Promise<string | null> {
     if (itemId === null) return null;
-    const row = this.db.connection
-      .prepare('SELECT trek_doc_uid FROM document_sync_items WHERE id = ? AND link_id = ?')
-      .get(itemId, linkId) as { trek_doc_uid?: string } | undefined;
-    return row?.trek_doc_uid ?? null;
+    return (await this.items.findTrekDocUid(itemId, linkId)) ?? null;
   }
 
   private async hashStoredFile(storageKey: string): Promise<string> {
@@ -818,7 +749,7 @@ export class DocSyncService {
     return hash.digest('hex');
   }
 
-  private upsertItem(
+  private async upsertItem(
     link: LinkRow,
     patch: {
       itemId: number | null;
@@ -837,7 +768,7 @@ export class DocSyncService {
       pushedSha256?: string;
       trekDocUid?: string;
     },
-  ): void {
+  ): Promise<void> {
     const failed = patch.state === 'error';
     /**
      * A failed transfer leaves the pairing describing the copy TREK holds.
@@ -873,43 +804,29 @@ export class DocSyncService {
        * pass now clears it, which is what makes the limit mean "six failures in
        * a row" rather than "six failures ever".
        */
-      const before = (this.db.connection
-        .prepare('SELECT attempts FROM document_sync_items WHERE id = ?')
-        .get(patch.itemId) as { attempts: number } | undefined)?.attempts ?? 0;
+      const before = (await this.items.getAttempts(patch.itemId)) ?? 0;
       const attempts = failed ? before + 1 : 0;
+      // A row that has used up its attempts stops retrying and waits for a
+      // person; planReconcile skips it and a manual run clears the counter
+      // (see retryShelvedItems). The repository turns this second count into
+      // the DB-clock `datetime('now', ...)` fragment itself (recordAttempt's
+      // own docstring).
+      const nextAttemptAfterSeconds = failed && attempts < ITEM_MAX_ATTEMPTS ? backoffSeconds(ITEM_BACKOFF_SECONDS, attempts) : null;
 
-      this.db.connection
-        .prepare(
-          `UPDATE document_sync_items
-              SET state = ?, error_code = ?, file_id = COALESCE(?, file_id),
-                  remote_id = COALESCE(?, remote_id), remote_version = COALESCE(?, remote_version),
-                  remote_name = COALESCE(?, remote_name), remote_size = COALESCE(?, remote_size),
-                  remote_modified_at = COALESCE(?, remote_modified_at),
-                  content_sha256 = COALESCE(?, content_sha256),
-                  pushed_sha256 = COALESCE(?, pushed_sha256),
-                  attempts = ?,
-                  -- A row that has used up its attempts stops retrying and waits
-                  -- for a person; planReconcile skips it and a manual run clears
-                  -- the counter (see retryShelvedItems).
-                  next_attempt_at = CASE
-                    WHEN ? = 1 AND ? < ? THEN datetime('now', '+' || ? || ' seconds')
-                    ELSE NULL
-                  END,
-                  remote_missing_at = NULL,
-                  synced_at = CASE WHEN ? = 'synced' THEN CURRENT_TIMESTAMP ELSE synced_at END,
-                  last_seen_at = CURRENT_TIMESTAMP
-            WHERE id = ?`,
-        )
-        .run(
-          patch.state, patch.errorCode ?? null, patch.fileId ?? null,
-          remoteId, remoteVersion,
-          remoteName, remoteSize, remoteModifiedAt,
-          patch.contentSha256 ?? null, patch.pushedSha256 ?? null,
-          attempts,
-          failed ? 1 : 0, attempts, ITEM_MAX_ATTEMPTS,
-          backoffSeconds(ITEM_BACKOFF_SECONDS, attempts), patch.state,
-          patch.itemId,
-        );
+      await this.items.recordAttempt(patch.itemId, {
+        state: patch.state,
+        error_code: patch.errorCode ?? null,
+        file_id: patch.fileId ?? null,
+        remote_id: remoteId,
+        remote_version: remoteVersion,
+        remote_name: remoteName,
+        remote_size: remoteSize,
+        remote_modified_at: remoteModifiedAt,
+        content_sha256: patch.contentSha256 ?? null,
+        pushed_sha256: patch.pushedSha256 ?? null,
+        attempts,
+        next_attempt_after_seconds: nextAttemptAfterSeconds,
+      });
       return;
     }
 
@@ -918,75 +835,43 @@ export class DocSyncService {
     // without one), and SQLite only matches an ON CONFLICT target to a partial
     // index when the predicate is restated. Without it every insert fails with
     // "ON CONFLICT clause does not match any PRIMARY KEY or UNIQUE constraint".
-    this.db.connection
-      .prepare(
-        `INSERT INTO document_sync_items
-           (link_id, trip_id, file_id, trek_doc_uid, remote_id, remote_name, remote_version, remote_size,
-            remote_modified_at, content_sha256, pushed_sha256, state, error_code, attempts, next_attempt_at, synced_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                 CASE WHEN ? = 1 THEN datetime('now', '+' || ? || ' seconds') ELSE NULL END,
-                 CASE WHEN ? = 'synced' THEN CURRENT_TIMESTAMP ELSE NULL END)
-         ON CONFLICT(link_id, remote_id) WHERE remote_id IS NOT NULL DO UPDATE SET
-           state = excluded.state, error_code = excluded.error_code,
-           file_id = COALESCE(excluded.file_id, document_sync_items.file_id),
-           remote_version = COALESCE(excluded.remote_version, document_sync_items.remote_version),
-           content_sha256 = COALESCE(excluded.content_sha256, document_sync_items.content_sha256),
-           pushed_sha256 = COALESCE(excluded.pushed_sha256, document_sync_items.pushed_sha256),
-           last_seen_at = CURRENT_TIMESTAMP`,
-      )
-      .run(
-        link.id, link.trip_id, patch.fileId ?? null, patch.trekDocUid ?? newTrekDocUid(),
-        remoteId, remoteName, remoteVersion, remoteSize,
-        remoteModifiedAt, patch.contentSha256 ?? null, patch.pushedSha256 ?? null,
-        patch.state, patch.errorCode ?? null, failed ? 1 : 0,
-        failed ? 1 : 0, backoffSeconds(ITEM_BACKOFF_SECONDS, 1),   // a new row is always at its first failure
-        patch.state,
-      );
+    await this.items.insertOrUpsertOnConflict({
+      link_id: link.id,
+      trip_id: link.trip_id,
+      file_id: patch.fileId ?? null,
+      trek_doc_uid: patch.trekDocUid ?? newTrekDocUid(),
+      remote_id: remoteId,
+      remote_name: remoteName,
+      remote_version: remoteVersion,
+      remote_size: remoteSize,
+      remote_modified_at: remoteModifiedAt,
+      content_sha256: patch.contentSha256 ?? null,
+      pushed_sha256: patch.pushedSha256 ?? null,
+      state: patch.state,
+      error_code: patch.errorCode ?? null,
+      attempts: failed ? 1 : 0,
+      // A new row is always at its first failure.
+      next_attempt_after_seconds: failed ? backoffSeconds(ITEM_BACKOFF_SECONDS, 1) : null,
+      synced_now: patch.state === 'synced',
+    });
   }
 
-  private recordLinkSuccess(link: LinkRow, cursor: string | null, state: string, errorCode: string | null): void {
-    this.db.connection
-      .prepare(
-        `UPDATE trip_document_links
-            SET remote_cursor = ?, last_sync_at = CURRENT_TIMESTAMP, last_sync_state = ?,
-                last_sync_error = ?, failure_count = 0, next_attempt_at = NULL, updated_at = CURRENT_TIMESTAMP
-          WHERE id = ?`,
-      )
-      .run(cursor, state, errorCode, link.id);
+  private async recordLinkSuccess(link: LinkRow, cursor: string | null, state: string, errorCode: string | null): Promise<void> {
+    await this.linksRepo.recordSuccess(link.id, { remote_cursor: cursor, state, error_code: errorCode });
   }
 
-  private recordLinkFailure(link: LinkRow, code: string, state = 'failed'): void {
+  private async recordLinkFailure(link: LinkRow, code: string, state = 'failed'): Promise<void> {
     const failures = link.failure_count + 1;
     const wait = backoffSeconds(LINK_BACKOFF_SECONDS, failures);
-    this.db.connection
-      .prepare(
-        `UPDATE trip_document_links
-            SET last_sync_at = CURRENT_TIMESTAMP, last_sync_state = ?, last_sync_error = ?,
-                failure_count = ?, next_attempt_at = datetime('now', '+' || ? || ' seconds'),
-                updated_at = CURRENT_TIMESTAMP
-          WHERE id = ?`,
-      )
-      .run(state, code, failures, wait, link.id);
+    await this.linksRepo.recordFailure(link.id, {
+      state,
+      error_code: code,
+      failure_count: failures,
+      next_attempt_seconds: wait,
+    });
   }
 
   // ── Conflict resolution ────────────────────────────────────────────────────
-
-  /**
-   * Resolve a conflict the way a human chose.
-   *
-   * `both` keeps the provider copy as a second TREK document rather than
-   * overwriting either side, which is the only outcome that cannot lose work
-   * and is therefore what the UI offers first.
-   */
-  /**
-   * Decide a conflict.
-   *
-   * `tripId` is not decoration: the route authorises the caller against the trip
-   * in its URL, and without checking the row against the same trip an owner of
-   * any trip could resolve a conflict in somebody else's: the id is a plain
-   * integer and nothing else tied the two together. Same rule as everywhere in
-   * this codebase: every referenced id must exist AND belong to the same trip.
-   */
 
   /**
    * Rename the provider's copy, outside a run.
@@ -996,7 +881,7 @@ export class DocSyncService {
    * next run to sort out rather than the owner's choice being refused.
    */
   private async renameRemoteTo(link: LinkRow, remoteId: string, name: string, itemId: number): Promise<void> {
-    const conn = this.config.getConnection(link.connection_id);
+    const conn = await this.config.getConnection(link.connection_id);
     const provider = this.registry.get(link.provider_id);
     if (!conn || !provider) return;
     const res = await provider.rename(this.config.toRef(conn), this.config.toScopeRef(link), remoteId, name);
@@ -1004,18 +889,29 @@ export class DocSyncService {
       this.logger.warn(`link ${link.id}: renaming ${remoteId} to "${name}" failed: ${res.error.code}`);
       return;
     }
-    this.db.connection
-      .prepare('UPDATE document_sync_items SET remote_name = ?, remote_version = ?, last_seen_at = CURRENT_TIMESTAMP WHERE id = ?')
-      .run(name, res.data.remoteVersion, itemId);
+    await this.items.setRemoteName(itemId, { remote_name: name, remote_version: res.data.remoteVersion });
   }
 
+  /**
+   * Decide a conflict.
+   *
+   * `tripId` is not decoration: the route authorises the caller against the trip
+   * in its URL, and without checking the row against the same trip an owner of
+   * any trip could resolve a conflict in somebody else's: the id is a plain
+   * integer and nothing else tied the two together. Same rule as everywhere in
+   * this codebase: every referenced id must exist AND belong to the same trip.
+   * This check stays a JS-level comparison AFTER the read — never folded into
+   * the SQL WHERE clause — per the inventory's explicit callout.
+   *
+   * `both` keeps the provider copy as a second TREK document rather than
+   * overwriting either side, which is the only outcome that cannot lose work
+   * and is therefore what the UI offers first.
+   */
   async resolveConflict(itemId: number, keep: 'trek' | 'provider' | 'both', tripId?: number): Promise<boolean> {
-    const item = this.db.connection
-      .prepare('SELECT * FROM document_sync_items WHERE id = ?')
-      .get(itemId) as Record<string, unknown> | undefined;
+    const item = await this.items.findRaw(itemId);
     if (!item || item.state !== 'conflict') return false;
     if (tripId !== undefined && Number(item.trip_id) !== Number(tripId)) return false;
-    const link = this.config.getLink(Number(item.link_id));
+    const link = await this.config.getLink(item.link_id);
     if (!link) return false;
 
     /**
@@ -1033,48 +929,36 @@ export class DocSyncService {
      * that renamed, and gets renamed back), keeping the provider's takes the
      * local rename back (TREK then reads as unchanged, and follows).
      */
-    const localName = item.file_id === null
-      ? null
-      : (this.db.connection
-          .prepare('SELECT original_name FROM trip_files WHERE id = ?')
-          .get(item.file_id) as { original_name: string } | undefined)?.original_name ?? null;
+    const localName = item.file_id === null ? null : ((await this.tripFiles.findOriginalName(item.file_id)) ?? null);
 
     if (keep === 'trek') {
       // Forget the provider's version marker, so the next run sees no upstream
       // change and pushes TREK's copy. Clearing content_sha256 instead would do
       // the opposite: it reads as "TREK never agreed to these bytes", and the
       // provider's copy comes down over the one the user just chose to keep.
-      this.db.connection
-        .prepare("UPDATE document_sync_items SET state = 'pending', remote_version = NULL, error_code = NULL WHERE id = ?")
-        .run(itemId);
+      await this.items.resolveKeepTrek(itemId);
       // Carry the name over as well, here rather than by moving the arbiter:
       // TREK winning means the provider's copy takes TREK's name, and the only
       // way to say that through `remote_name` would be to write the provider's
       // CURRENT name into it, which this method does not know without asking.
       if (localName && item.remote_id && localName !== item.remote_name) {
-        await this.renameRemoteTo(link, String(item.remote_id), localName, itemId);
+        await this.renameRemoteTo(link, item.remote_id, localName, itemId);
       }
     } else if (keep === 'provider') {
-      this.db.connection
-        .prepare("UPDATE document_sync_items SET state = 'pending', content_sha256 = NULL, error_code = NULL WHERE id = ?")
-        .run(itemId);
+      await this.items.resolveKeepProvider(itemId);
       // Take the local rename back to the agreed name. Only the provider's
       // rename is then left standing, and the next run follows it the ordinary
       // way, through the planner, with no special case in it. Cleaned the way
       // a download cleans it: the planner compares cleaned names, so a raw one
       // with a slash in it would read as TREK renaming the file all over again.
-      const agreedName = item.remote_name ? sanitizeIncomingName(String(item.remote_name)) : null;
+      const agreedName = item.remote_name ? sanitizeIncomingName(item.remote_name) : null;
       if (item.file_id !== null && agreedName && localName !== agreedName) {
-        this.db.connection
-          .prepare('UPDATE trip_files SET original_name = ? WHERE id = ?')
-          .run(agreedName, item.file_id);
+        await this.tripFiles.renameOriginalName(item.file_id, agreedName);
       }
     } else {
       // Detach the pairing and let the next run pull the provider copy as a new
       // document. Both versions survive, under two rows.
-      this.db.connection
-        .prepare("UPDATE document_sync_items SET state = 'local_deleted', remote_id = NULL, error_code = NULL WHERE id = ?")
-        .run(itemId);
+      await this.items.resolveKeepBoth(itemId);
     }
     await this.syncLink(link, { full: true });
     return true;
@@ -1085,26 +969,30 @@ export class DocSyncService {
    * that vanished upstream. Deliberately not "everything not synced": a row
    * waiting for its turn is not a problem anyone should be shown.
    */
-  issues(tripId: number): Array<Record<string, unknown>> {
-    return this.db.connection
-      .prepare(
-        `SELECT i.id, i.state, i.error_code, i.remote_name, i.remote_missing_at, f.original_name AS file_name
-           FROM document_sync_items i
-           LEFT JOIN trip_files f ON f.id = i.file_id
-          WHERE i.trip_id = ?
-            AND i.state IN ('conflict', 'rejected_type', 'too_large', 'remote_missing', 'error')
-          ORDER BY i.id DESC
-          LIMIT 200`,
-      )
-      .all(tripId) as Array<Record<string, unknown>>;
+  async issues(tripId: number): Promise<DocumentSyncIssueRow[]> {
+    return this.items.listIssues(tripId);
+  }
+
+  /**
+   * DSCTRL4/DSCTRL5 (R2 — moved off the controller, `DocSyncController.items`)
+   * — the trip's sync items, state-filtered or not. Two distinct `LIMIT 500`
+   * queries (a 3rd near-duplicate listing shape alongside {@link issues}'s
+   * own `LIMIT 200` fixed-state-list) stay two repository methods, per R2's
+   * own instruction not to unify near-duplicate reads with different shapes.
+   * `state` is checked for TRUTHINESS, not `undefined` (Plan 3h Task 7
+   * review, M2): legacy's own gate (`doc-sync.controller.ts`, pre-R2) read
+   * `state ? <filtered> : <unfiltered>`, so `?state=` (an empty string)
+   * returns every item — an `=== undefined` check would instead filter on
+   * `state = ''`, which matches nothing.
+   */
+  async itemsForTrip(tripId: number, state?: string) {
+    return state ? this.items.listForTripByState(tripId, state) : this.items.listForTrip(tripId);
   }
 
   /** Per-trip view for the UI: what is synced, what needs attention. */
-  status(tripId: number): Record<string, unknown> {
-    const links = this.config.listLinks(tripId);
-    const counts = this.db.connection
-      .prepare('SELECT state, COUNT(*) AS n FROM document_sync_items WHERE trip_id = ? GROUP BY state')
-      .all(tripId) as Array<{ state: string; n: number }>;
+  async status(tripId: number): Promise<Record<string, unknown>> {
+    const links = await this.config.listLinks(tripId);
+    const counts = await this.items.countByState(tripId);
 
     /**
      * What each side is actually holding, per binding.
@@ -1114,46 +1002,30 @@ export class DocSyncService {
      * are the standing numbers instead: how many documents this trip has, how
      * many of them the store has, and how many are only on one side.
      */
-    const totalHere = this.db.connection
-      .prepare(
-        `SELECT COUNT(*) AS n FROM trip_files
-          WHERE trip_id = ? AND deleted_at IS NULL AND message_id IS NULL AND note_id IS NULL`,
-      )
-      .get(tripId) as { n: number };
-
-    const perLink = this.db.connection
-      .prepare(
-        `SELECT link_id,
-                SUM(CASE WHEN file_id IS NOT NULL AND remote_id IS NOT NULL AND state = 'synced' THEN 1 ELSE 0 END) AS paired,
-                -- A deletion closed over a copy already gone keeps its missing mark,
-                -- and that copy is at the store no more than a binned one is.
-                SUM(CASE WHEN remote_id IS NOT NULL AND state != 'remote_missing' AND remote_trashed_at IS NULL
-                          AND (state != 'local_deleted' OR remote_missing_at IS NULL)
-                         THEN 1 ELSE 0 END) AS atProvider,
-                SUM(CASE WHEN state = 'remote_missing' THEN 1 ELSE 0 END) AS missing
-           FROM document_sync_items
-          WHERE trip_id = ?
-          GROUP BY link_id`,
-      )
-      .all(tripId) as Array<{ link_id: number; paired: number; atProvider: number; missing: number }>;
+    const totalHere = await this.tripFiles.countActiveDocuments(tripId);
+    const perLink = await this.items.perLinkHoldings(tripId);
 
     const byLink = new Map(perLink.map((r) => [r.link_id, r]));
+    // `map` cannot await the provider-off read, so the projection runs as an
+    // explicit loop — same order, same rows.
+    const linkCards = [];
+    for (const l of links) {
+      const row = byLink.get(l.id);
+      linkCards.push({
+        ...(await this.config.publicLink(l, null)),
+        // Paused rather than failed, so the card can say why nothing moves
+        // without the binding's own state being touched.
+        providerOff: await this.isSwitchedOff(l),
+        holdings: {
+          inTrek: totalHere,
+          atProvider: Number(row?.atProvider ?? 0),
+          paired: Number(row?.paired ?? 0),
+          missing: Number(row?.missing ?? 0),
+        },
+      });
+    }
     return {
-      links: links.map((l) => {
-        const row = byLink.get(l.id);
-        return {
-          ...this.config.publicLink(l, null),
-          // Paused rather than failed, so the card can say why nothing moves
-          // without the binding's own state being touched.
-          providerOff: this.isSwitchedOff(l),
-          holdings: {
-            inTrek: totalHere.n,
-            atProvider: Number(row?.atProvider ?? 0),
-            paired: Number(row?.paired ?? 0),
-            missing: Number(row?.missing ?? 0),
-          },
-        };
-      }),
+      links: linkCards,
       items: Object.fromEntries(counts.map((c) => [c.state, c.n])),
     };
   }

@@ -38,6 +38,21 @@ export const mapsSearchRequestSchema = z.object({
 });
 export type MapsSearchRequest = z.infer<typeof mapsSearchRequestSchema>;
 
+/**
+ * Places of any kind around a point, nearest first (#976). No category and no
+ * box: the circle is the question. Both are capped, because the Google path
+ * bills per call and a city centre has more named places than anyone reads.
+ */
+export const mapsNearbyRequestSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  /** Metres, 500 when left out. */
+  radius: z.number().int().min(50).max(5000).optional(),
+  /** How many places, 20 when left out. */
+  limit: z.number().int().min(1).max(20).optional(),
+});
+export type MapsNearbyRequest = z.infer<typeof mapsNearbyRequestSchema>;
+
 export const mapsAutocompleteRequestSchema = z.object({
   input: z.string().min(1).max(200),
   lang: z.string().optional(),

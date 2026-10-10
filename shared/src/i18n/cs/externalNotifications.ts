@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const cs: NotificationLocale = {
   email: {
@@ -37,8 +38,16 @@ const cs: NotificationLocale = {
       body: `${p.actor} vás pozval ke sdílení sbírky. Otevřete TREK pro přijetí nebo odmítnutí.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} sdílených fotek`,
-      body: `${p.actor} sdílel ${p.count} foto v "${p.trip}".`,
+      title: pluralForm(p.count, 'cs', {
+        one: `${p.count} sdílená fotka`,
+        few: `${p.count} sdílené fotky`,
+        other: `${p.count} sdílených fotek`,
+      }),
+      body: pluralForm(p.count, 'cs', {
+        one: `${p.actor} sdílel ${p.count} fotku v "${p.trip}".`,
+        few: `${p.actor} sdílel ${p.count} fotky v "${p.trip}".`,
+        other: `${p.actor} sdílel ${p.count} fotek v "${p.trip}".`,
+      }),
     }),
     collab_message: (p) => ({
       title: `Nová zpráva v "${p.trip}"`,
@@ -56,7 +65,13 @@ const cs: NotificationLocale = {
       title: 'Selhání repliky úložiště',
       body:
         `Zápis do repliky '${p.backend}' selhal: ${p.op} u ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` Od poslední notifikace bylo potlačeno ${p.suppressed} dalších selhání.` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'cs', {
+              one: ` Od poslední notifikace bylo potlačeno ${p.suppressed} další selhání.`,
+              few: ` Od poslední notifikace byla potlačena ${p.suppressed} další selhání.`,
+              other: ` Od poslední notifikace bylo potlačeno ${p.suppressed} dalších selhání.`,
+            })
+          : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Relace Synology byla zrušena',

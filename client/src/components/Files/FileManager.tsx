@@ -44,7 +44,7 @@ export default function FileManager(props: FileManagerProps) {
       {showTrash ? <TrashView {...S} /> : <FilesView {...S} />}
 
       <style>{`
-        @media (max-width: 767px) {
+        @media (max-width: 767px), (pointer: coarse) and (max-height: 500px) {
           .file-actions button { padding: 8px !important; }
           .file-actions svg { width: 18px !important; height: 18px !important; }
         }

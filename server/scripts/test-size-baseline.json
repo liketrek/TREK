@@ -1,0 +1,9 @@
+{
+  "tests/unit/nest/atlas.service.test.ts": 2193,
+  "tests/unit/nest/budget.service.db.test.ts": 2220,
+  "tests/unit/nest/doc-sync/doc-sync.service.test.ts": 2511,
+  "tests/unit/nest/journey-domain.service.test.ts": 3876,
+  "tests/unit/nest/maps.service.test.ts": 3751,
+  "tests/unit/nest/places.service.test.ts": 2561,
+  "tests/unit/nest/trips.service.test.ts": 2404
+}

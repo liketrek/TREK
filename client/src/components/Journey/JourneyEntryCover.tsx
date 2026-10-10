@@ -103,7 +103,7 @@ export default function JourneyEntryCover({
       // The whole card is the photo, so its own ring is what separates it from the
       // map behind. A suggestion is drawn as an outline rather than a solid thing:
       // it is somewhere you planned to be, not somewhere you have written about.
-      className={`relative flex-none overflow-hidden rounded-[18px] text-left transition-[width,height] duration-150 ${
+      className={`relative flex-none overflow-hidden rounded-[18px] text-start transition-[width,height] duration-150 ${
         isActive ? 'h-[180px] w-[164px] shadow-[0_18px_40px_-16px_rgba(0,0,0,.55)]' : 'h-[152px] w-[136px] shadow-[0_10px_24px_-14px_rgba(0,0,0,.5)]'
       } ${src ? '' : emptyGround} ${isSuggestion ? 'opacity-90' : ''}`}
       // backgroundImage, not background: the shorthand would drop the opaque colour
@@ -140,7 +140,7 @@ export default function JourneyEntryCover({
           was doing, against a bright sky. Sized and placed to sit on the same line
           as the date opposite it. */}
       {entry.country_code && (
-        <span className="absolute left-2 top-2 flex h-[18px] items-center drop-shadow-[0_1px_3px_rgba(0,0,0,.6)]">
+        <span className="absolute start-2 top-2 flex h-[18px] items-center drop-shadow-[0_1px_3px_rgba(0,0,0,.6)]">
           <CountryFlag code={entry.country_code} size={14} />
         </span>
       )}
@@ -150,7 +150,7 @@ export default function JourneyEntryCover({
           italic, dimmed title carries the rest. */}
       {isSuggestion && (
         <span
-          className={`absolute top-2 ${entry.country_code ? 'left-[30px]' : 'left-2'} ${badgeDot} text-white`}
+          className={`absolute top-2 ${entry.country_code ? 'start-[30px]' : 'start-2'} ${badgeDot} text-white`}
           title={t('journey.entry.suggestion')}
           aria-label={t('journey.entry.suggestion')}
         >
@@ -160,7 +160,7 @@ export default function JourneyEntryCover({
 
       {/* Top right: when, and how it was. They fit beside each other now that the
           flag on the left is a bare mark rather than a chip of its own. */}
-      <span className="absolute right-2 top-2 flex items-center gap-1">
+      <span className="absolute end-2 top-2 flex items-center gap-1">
         {mood && (
           <span className={badgeDot} style={{ color: mood.color }}>
             <mood.icon size={11} strokeWidth={2.4} />

@@ -26,7 +26,7 @@ export async function createAttachHarness(
   opts?: McpAttachOptions,
 ): Promise<AttachHarness> {
   const server = new McpServer({ name: 'nest-mcp-test', version: '1.0.0' });
-  registry.attach(server, asCtx(ctx), opts);
+  await registry.attach(server, asCtx(ctx), opts);
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: 'test-client', version: '1.0.0' });

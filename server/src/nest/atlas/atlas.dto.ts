@@ -1,9 +1,6 @@
+import { markRegionRequestSchema, createBucketItemRequestSchema, updateBucketItemRequestSchema } from '@trek/shared';
+
 import { createZodDto } from 'nestjs-zod';
-import {
-  markRegionRequestSchema,
-  createBucketItemRequestSchema,
-  updateBucketItemRequestSchema,
-} from '@trek/shared';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared atlas contracts. The

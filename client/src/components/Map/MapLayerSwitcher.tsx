@@ -1,9 +1,18 @@
-import { Map as MapIcon, Satellite } from 'lucide-react'
+import { Map as MapIcon, Mountain, Satellite } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { Tooltip } from '../shared/Tooltip'
 import { MAP_CONTROL_SHADOW } from './mapControlShadow'
 
 export type BaseLayer = 'default' | 'satellite'
+export type TourBaseLayer = BaseLayer | 'topo'
+
+const FROSTED_SHELL = {
+  display: 'inline-flex', alignItems: 'center', padding: 4, borderRadius: 999, pointerEvents: 'auto' as const,
+  background: 'var(--sidebar-bg)',
+  backdropFilter: 'blur(20px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+  boxShadow: MAP_CONTROL_SHADOW,
+}
 
 // Where the switcher sits and how much room it takes, so a control placed beside it
 // (the phone's compass) is positioned off the same numbers instead of guessing them.
@@ -28,13 +37,7 @@ export function MapLayerSwitcher({ active, onToggle }: { active: BaseLayer; onTo
   const label = isSatellite ? t('map.baseLayer.switchToDefault') : t('map.baseLayer.switchToSatellite')
 
   return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'center', padding: 4, borderRadius: 999, pointerEvents: 'auto',
-      background: 'var(--sidebar-bg)',
-      backdropFilter: 'blur(20px) saturate(180%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-      boxShadow: MAP_CONTROL_SHADOW,
-    }}>
+    <div style={FROSTED_SHELL}>
       {/* Same tooltip as its neighbours on the map, for the same reasons — see
           TripRouteOverviewPill. To the right, though: this one sits at the
           bottom left of the map, where a tooltip to the left would land on the
@@ -58,6 +61,50 @@ export function MapLayerSwitcher({ active, onToggle }: { active: BaseLayer; onTo
           <Icon size={17} strokeWidth={2} />
         </button>
       </Tooltip>
+    </div>
+  )
+}
+
+const TOUR_LAYERS = [
+  { id: 'default', labelKey: 'map.baseLayer.default', Icon: MapIcon },
+  { id: 'topo', labelKey: null, Icon: Mountain },
+  { id: 'satellite', labelKey: 'map.baseLayer.satellite', Icon: Satellite },
+] as const
+
+/** Per-view Tours control. It never reads or writes the global map setting. */
+export function TourMapLayerSwitcher({
+  active,
+  onChange,
+}: {
+  active: TourBaseLayer
+  onChange: (layer: TourBaseLayer) => void
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <div style={{ ...FROSTED_SHELL, gap: 2 }} role="group" aria-label={t('settings.mapStyle')}>
+      {TOUR_LAYERS.map(({ id, labelKey, Icon }) => {
+        const selected = active === id
+        const label = labelKey ? t(labelKey) : 'Topo'
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onChange(id)}
+            aria-pressed={selected}
+            className={selected ? 'bg-accent-soft text-accent' : 'text-content-muted'}
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              minHeight: 34, borderRadius: 999, border: 'none', cursor: 'pointer',
+              background: selected ? undefined : 'transparent', padding: '0 10px',
+              fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600,
+            }}
+          >
+            <Icon size={15} strokeWidth={2} />
+            <span>{label}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }

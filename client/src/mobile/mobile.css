@@ -251,6 +251,11 @@
 @keyframes trek-magnifier { 0%, 100% { transform: translateX(-3px) rotate(-3deg); } 50% { transform: translateX(3px) rotate(3deg); } }
 /* to-do checkmark ticking on, holding, then resetting */
 @keyframes trek-check { 0%, 8% { transform: scale(0); } 22% { transform: scale(1.2); } 32%, 88% { transform: scale(1); } 96%, 100% { transform: scale(0); } }
+/* tours: a walking step, the pole swinging forward and planting, the pack riding along */
+@keyframes trek-walk { 0%, 50%, 100% { transform: translateY(0); } 25%, 75% { transform: translateY(-1.6px); } }
+@keyframes trek-pole { 0%, 100% { transform: rotate(-9deg); } 45% { transform: rotate(7deg); } 55% { transform: rotate(7deg); } }
+@keyframes trek-pack { 0%, 50%, 100% { transform: rotate(0); } 25%, 75% { transform: rotate(-3deg); } }
+@keyframes trek-trail { to { stroke-dashoffset: 8; } }
 
 .trek        { animation: trek-in 480ms cubic-bezier(.34, 1.4, .64, 1) both; transform-origin: 50% 100%; }
 .trek-root   { animation: trek-idle 3.4s ease-in-out infinite;     transform-box: fill-box; transform-origin: 50% 100%; }
@@ -265,6 +270,7 @@
 .trek-bounce--idle     { animation: trek-hop 4.6s ease-in-out infinite; }
 .trek-bounce--polls    { animation: trek-nod 3s ease-in-out infinite; }
 .trek-bounce--transport { animation: trek-sk-body 3.6s ease-in-out infinite; }
+.trek-bounce--tours    { animation: trek-walk 1.6s ease-in-out infinite; }
 /* per-scene props */
 .trek-board    { animation: trek-sk-board 3.6s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 65%; }
 .trek-wheel    { animation: trek-roll 1.1s linear infinite;        transform-box: fill-box; transform-origin: center; }
@@ -287,6 +293,9 @@
 .trek-magnifier { animation: trek-magnifier 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 .trek-z        { animation: trek-z 2.8s ease-in-out infinite;     transform-box: fill-box; transform-origin: center; }
 .trek-check    { animation: trek-check 3s ease-in-out infinite;   transform-box: fill-box; transform-origin: center; }
+.trek-pole     { animation: trek-pole 1.6s ease-in-out infinite;  transform-box: fill-box; transform-origin: 50% 0%; }
+.trek-pack     { animation: trek-pack 1.6s ease-in-out infinite;  transform-box: fill-box; transform-origin: 90% 10%; }
+.trek-trail    { animation: trek-trail .8s linear infinite; }
 /* staggered starts for written lines / poll bars / Zzz */
 .trek-d2, .trek-z2 { animation-delay: .5s; }
 .trek-d3, .trek-z3 { animation-delay: 1s; }
@@ -326,7 +335,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .trek, .trek-root, .trek-body, .trek-shadow, .trek-eyes, .trek-pupils,
-  .trek-bounce--idle, .trek-bounce--polls, .trek-bounce--transport,
+  .trek-bounce--idle, .trek-bounce--polls, .trek-bounce--transport, .trek-bounce--tours, .trek-pole, .trek-pack, .trek-trail,
   .trek-board, .trek-wheel, .trek-flag, .trek-ticket, .trek-note, .trek-pencil, .trek-write, .trek-bar,
   .trek-suitcase, .trek-handle, .trek-pin, .trek-globe, .trek-coin, .trek-page, .trek-plane,
   .trek-magnifier, .trek-z, .trek-check, .trek-chain, .trek-link { animation: none; }

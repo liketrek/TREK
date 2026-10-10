@@ -8,6 +8,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { fontStack } from './bookFonts'
+import { haversineKm } from '../../utils/geo'
 import { brightness } from './folioColour'
 import { COUNTRY_SHAPES, countryParts, countryWorldPath, projectMercator, unprojectMercator } from './countryShapes'
 import { projectOntoTiles, tileView, usableStaticUrl } from './mapTiles'
@@ -358,16 +359,6 @@ function MapView({ el, frameStyle, big = false }: {
    */
   const bowed = el.routeArc === 'bow' && trail.length === 0 && points.length > 1
 
-  /** Kilometres between two coordinates, for the ramp. */
-  const km = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
-    const r = (d: number) => (d * Math.PI) / 180
-    const dLat = r(b.lat - a.lat)
-    const dLng = r(b.lng - a.lng)
-    const h = Math.sin(dLat / 2) ** 2
-      + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2
-    return 12742 * Math.asin(Math.min(1, Math.sqrt(h)))
-  }
-
   const meanLat = el.points.length
     ? el.points.reduce((sum, p) => sum + p.lat, 0) / el.points.length
     : 0
@@ -389,7 +380,7 @@ function MapView({ el, frameStyle, big = false }: {
       const d = Math.hypot(dx, dy)
       if (d < 1e-6) return { k: 0, nx: 0, ny: 0 }
 
-      const u = Math.min(1, Math.max(0, Math.log(km(a, b) / 150) / Math.log(10)))
+      const u = Math.min(1, Math.max(0, Math.log(haversineKm(a, b) / 150) / Math.log(10)))
       const ramp = u * u * (3 - 2 * u)
       // How much of the leg runs east-west, which is where a bow is truthful.
       const eastWest = 0.35 + 0.65 * Math.abs(dx / d)

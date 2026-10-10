@@ -6,19 +6,21 @@
  * dispatch() now strips it. These tests prove the strip is invisible: the same result,
  * the same audit row, and the acting user still resolved from the host side.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
-import type { RpcRequest, RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
-import { makeDeps } from '../../helpers/rpc-host-deps';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
 import { PackingRpc } from '../../../src/nest/packing/packing.rpc';
 import type { PackingService } from '../../../src/nest/packing/packing.service';
+import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
+import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
+import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
+import type { RpcRequest, RpcResponse } from '../../../src/nest/plugins/protocol/envelope';
 import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { TripsRpc } from '../../../src/nest/trips/trips.rpc';
-import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
-import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
-import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
+import { makeDeps } from '../../helpers/rpc-host-deps';
+import type { EntityManager } from '@mikro-orm/core';
+
+import { describe, it, expect, vi } from 'vitest';
 
 const req = (method: string, params: Record<string, unknown>): RpcRequest => ({ k: 'req', id: 'x', method, params });
 
@@ -35,12 +37,18 @@ const dbRegistry = () => {
 /** trips.getById lives on the decorators now, so the audit cases bind it through them. */
 const tripsRegistry = () => {
   const db = {
-    canAccessTrip: (tripId: number, userId: number) => (tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined),
+    findAccessible: async (tripId: number, userId: number) =>
+      tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined,
     prepare: () => ({ get: () => ({ id: 1, title: 'Japan' }), all: () => [] }),
-  } as unknown as DatabaseService;
-  const guards = new PluginGuards(db, {} as never, {} as never);
+  } as unknown as TripsRepository;
+  const guards = new PluginGuards(db, {} as never, {} as never, {} as never);
+  // Plan 3c Task 7: trips.getById (RP1) now reads through
+  // `EntityManager.getRepository(Trips).findRaw(...)`, not a raw statement on the handle.
+  const em = {
+    getRepository: () => ({ findRaw: async () => ({ id: 1, title: 'Japan', feed_token: null }) }),
+  } as unknown as EntityManager;
   return createTestPluginRegistry([
-    new TripsRpc({} as never, {} as never, {} as never, {} as never, db, {} as never, guards, {} as never, {} as never),
+    new TripsRpc({} as never, {} as never, {} as never, {} as never, {} as never, guards, {} as never, {} as never, em),
   ]);
 };
 
@@ -108,7 +116,7 @@ describe('dispatch strips the supervisor _inv marker', () => {
       createTestPluginRegistry([new PackingRpc(packing, realtime, guards)]),
     );
     await host.dispatch(req('packing.setBagMembers', { tripId: 1, bagId: 80, userIds: [3], _inv: 'req-7' }), 42);
-    expect(setBagMembers).toHaveBeenCalledWith('1', '80', [3]);
+    expect(setBagMembers).toHaveBeenCalledWith('1', 80, [3]);
   });
 
   /**
@@ -129,10 +137,20 @@ describe('dispatch strips the supervisor _inv marker', () => {
   it('RPCINV-008 null and undefined params still behave as an empty object', async () => {
     const host = new PluginRpcHost('p', new Set(['db:own']), makeDeps(), dbRegistry());
 
-    const nulled = await host.dispatch({ k: 'req', id: 'x', method: 'db.query', params: null as unknown as Record<string, unknown> });
+    const nulled = await host.dispatch({
+      k: 'req',
+      id: 'x',
+      method: 'db.query',
+      params: null as unknown as Record<string, unknown>,
+    });
     // The type says params is required; the IPC channel does not, so a child can
     // leave it off entirely.
-    const missing = await host.dispatch({ k: 'req', id: 'x', method: 'db.query', params: undefined as unknown as Record<string, unknown> });
+    const missing = await host.dispatch({
+      k: 'req',
+      id: 'x',
+      method: 'db.query',
+      params: undefined as unknown as Record<string, unknown>,
+    });
     expect(nulled).toEqual(missing);
   });
 });

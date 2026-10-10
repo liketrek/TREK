@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': 'Ongedaan maken: {action}',
   'undo.assignPlace': 'Locatie aan dag toegewezen',
   'undo.removeAssignment': 'Locatie uit dag verwijderd',
+  'undo.clearDay': 'Dag leeggemaakt',
   'undo.reorder': 'Locaties hergeordend',
   'undo.optimize': 'Route geoptimaliseerd',
   'undo.deletePlace': 'Locatie verwijderd',

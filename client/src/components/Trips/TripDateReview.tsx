@@ -72,7 +72,7 @@ export default function TripDateReview({ askShift, shiftMode, onShiftMode, remov
       )}
       {removal && removal !== 'unknown' && (
         // Beside the question on a wide screen, below it on a narrow one.
-        <div className={wide ? 'border-t border-edge-faint pt-3 md:border-l md:border-t-0 md:pl-5 md:pt-0' : ''}>
+        <div className={wide ? 'border-t border-edge-faint pt-3 md:border-s md:border-t-0 md:ps-5 md:pt-0' : ''}>
           <p className="text-body text-content-secondary">{t('dashboard.shrinkIntro')}</p>
           <DayImpactList
             lines={shrinkTripLines(removal, t, shiftMode)}

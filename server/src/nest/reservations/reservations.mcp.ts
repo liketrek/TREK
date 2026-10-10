@@ -2,11 +2,10 @@ import {
   McpController, Tool, ResourceTemplate, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
+  errorResult, ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { BudgetService } from '../budget/budget.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import { ReservationsService } from './reservations.service';
@@ -14,12 +13,21 @@ import { DaysService } from '../days/days.service';
 import { findByIata } from '../airports/airports.data';
 import type { EndpointInput } from './reservations.service';
 import { AssignmentsService } from '../assignments/assignments.service';
-import { transportLegInputSchema, reservationUrlSchema, type TransportLegInput } from '@trek/shared';
+import {
+  idSchema, transportLegInputSchema, reservationUrlSchema, type TransportLegInput,
+  TRANSPORT_RESERVATION_TYPES, MCP_CREATABLE_TRANSPORT_TYPES, LEG_RESERVATION_TYPES, BOOKING_RESERVATION_TYPES,
+  RESERVATION_STATUSES, type ReservationStatus,
+} from '@trek/shared';
+import { RESERVATION_METADATA } from '../../db/json-columns';
+import { decodeJson } from '../../utils/json-column';
 
-// What counts as a transport booking, for the update_transport gate. Every value
-// ReservationsPanel renders with a transport icon, so a stored `transit` row is
-// editable through the transport tools like any other.
-const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'] as const;
+// The type lists come from the shared reservation catalog (RESERVATION_TYPES),
+// in the pickers' order, so the enums below list their values as the UI does.
+//
+// TRANSPORT_TYPES is what counts as a transport booking, for the update_transport
+// gate: every value ReservationsPanel renders with a transport icon, so a stored
+// `transit` row is editable through the transport tools like any other.
+const TRANSPORT_TYPES = TRANSPORT_RESERVATION_TYPES;
 // What a caller may ASK for, which is the transport form's own picker
 // (client/src/components/Planner/TransportModal.tsx), in its order. The tools
 // below used to accept four of these nine, so a bus or a ferry could be planned
@@ -29,11 +37,11 @@ const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cr
 // booking carries a provider itinerary in metadata.transit, and create_transit_journey
 // is what writes one. A hand-made `transit` row would be a shape the transit UI
 // does not expect.
-const CREATABLE_TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other'] as const;
+const CREATABLE_TRANSPORT_TYPES = MCP_CREATABLE_TRANSPORT_TYPES;
 /** Only these two carry per-segment detail: the transport form writes metadata.legs for a flight or a train and for nothing else. */
-const LEG_TRANSPORT_TYPES = ['flight', 'train'] as const;
+const LEG_TRANSPORT_TYPES = LEG_RESERVATION_TYPES;
 /** Everything the picker offers that is not a transport: create_reservation's half. */
-const BOOKING_TYPES = ['hotel', 'restaurant', 'event', 'tour', 'activity', 'parking', 'other'] as const;
+const BOOKING_TYPES = BOOKING_RESERVATION_TYPES;
 
 /**
  * The booking link. Same refinement the REST contract applies
@@ -103,6 +111,11 @@ function parseId(value: string | string[]): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
+/** The linked cost a tool's price becomes: the entry the booking form sends for one. */
+function linkedCost(price: number | null | undefined, category: string | undefined) {
+  return price != null && price > 0 ? { total_price: price, category } : undefined;
+}
+
 // ---------------------------------------------------------------------------
 // Multi-leg bookings (#1914)
 //
@@ -133,14 +146,7 @@ type MetaRecord = Record<string, unknown>;
  * still has to accept a legs update.
  */
 function parseStoredMetadata(raw: unknown): MetaRecord {
-  if (typeof raw !== 'string' || !raw) return {};
-  try {
-    let parsed: unknown = JSON.parse(raw);
-    if (typeof parsed === 'string') parsed = JSON.parse(parsed);
-    return typeof parsed === 'object' && parsed !== null ? parsed as MetaRecord : {};
-  } catch {
-    return {};
-  }
+  return typeof raw === 'string' ? decodeJson(RESERVATION_METADATA, raw) : {};
 }
 
 interface LegPlan {
@@ -157,7 +163,7 @@ interface LegPlan {
   reservationEndTime?: string;
   // A day row carries an optional date, so the caller cannot promise one. Every
   // read below treats a dateless day as "no date known" rather than stamping undefined.
-  lookupDay: (id: number) => { date?: string | null } | undefined;
+  lookupDay: (id: number) => Promise<{ date?: string | null } | undefined>;
 }
 
 interface LegOutcome {
@@ -175,7 +181,7 @@ interface LegOutcome {
  * Validate the legs against the endpoints and fold them into the metadata.
  * Returns the values the write should use, or the first error as text.
  */
-function applyLegs(plan: LegPlan): LegOutcome | { error: string } {
+async function applyLegs(plan: LegPlan): Promise<LegOutcome | { error: string }> {
   const { legs, lookupDay } = plan;
   const last = legs.length - 1;
 
@@ -191,7 +197,7 @@ function applyLegs(plan: LegPlan): LegOutcome | { error: string } {
   for (let i = 0; i < legs.length; i++) {
     for (const field of ['dep_day_id', 'arr_day_id'] as const) {
       const dayId = legs[i][field];
-      if (dayId != null && !lookupDay(dayId))
+      if (dayId != null && !(await lookupDay(dayId)))
         return { error: `legs[${i}].${field} does not belong to this trip.` };
     }
   }
@@ -205,10 +211,10 @@ function applyLegs(plan: LegPlan): LegOutcome | { error: string } {
 
   const endpoints = plan.endpoints.map(e => ({ ...e }));
   let endpointsChanged = false;
-  const syncEndpoint = (index: number, time: string | null | undefined, dayId: number | null | undefined, label: string): string | null => {
+  const syncEndpoint = async (index: number, time: string | null | undefined, dayId: number | null | undefined, label: string): Promise<string | null> => {
     const ep = endpoints[index];
     if (dayId != null && !ep.local_date) {
-      const day = lookupDay(dayId);
+      const day = await lookupDay(dayId);
       if (day?.date) { ep.local_date = day.date; endpointsChanged = true; }
     }
     if (!time) return null;
@@ -230,7 +236,7 @@ function applyLegs(plan: LegPlan): LegOutcome | { error: string } {
     if (leg.to && arrEp.code && leg.to.toUpperCase() !== arrEp.code.toUpperCase())
       return { error: `legs[${i}].to (${leg.to}) does not match endpoints[${i + 1}] (${arrEp.code}).` };
 
-    const depConflict = syncEndpoint(i, leg.dep_time, leg.dep_day_id, `legs[${i}].dep_time`);
+    const depConflict = await syncEndpoint(i, leg.dep_time, leg.dep_day_id, `legs[${i}].dep_time`);
     if (depConflict) return { error: depConflict };
 
     const entry: MetaRecord = {
@@ -252,7 +258,7 @@ function applyLegs(plan: LegPlan): LegOutcome | { error: string } {
     merged.push(entry);
   }
 
-  const arrConflict = syncEndpoint(legs.length, legs[last].arr_time, lastArrDay, `legs[${last}].arr_time`);
+  const arrConflict = await syncEndpoint(legs.length, legs[last].arr_time, lastArrDay, `legs[${last}].arr_time`);
   if (arrConflict) return { error: arrConflict };
 
   const metadata: MetaRecord = { ...plan.baseMetadata, legs: merged };
@@ -279,9 +285,9 @@ function applyLegs(plan: LegPlan): LegOutcome | { error: string } {
   const endDayId = plan.endDayId ?? lastArrDay ?? undefined;
   // Same fallback as the form's buildTime: date the time when the day is known,
   // otherwise keep the bare 'HH:mm' rather than dropping it.
-  const stamp = (day: number | undefined, time: string | null | undefined) => {
+  const stamp = async (day: number | undefined, time: string | null | undefined) => {
     if (!time) return undefined;
-    const row = day === undefined ? undefined : lookupDay(day);
+    const row = day === undefined ? undefined : await lookupDay(day);
     return row?.date ? `${row.date}T${time}` : time;
   };
 
@@ -291,8 +297,8 @@ function applyLegs(plan: LegPlan): LegOutcome | { error: string } {
     endpointsChanged,
     day_id: dayId,
     end_day_id: endDayId,
-    reservation_time: plan.reservationTime ?? stamp(dayId, legs[0].dep_time),
-    reservation_end_time: plan.reservationEndTime ?? stamp(endDayId, legs[last].arr_time),
+    reservation_time: plan.reservationTime ?? await stamp(dayId, legs[0].dep_time),
+    reservation_end_time: plan.reservationEndTime ?? await stamp(endDayId, legs[last].arr_time),
   };
 }
 
@@ -320,7 +326,6 @@ export class ReservationsMcp {
     private readonly reservations: ReservationsService,
     private readonly days: DaysService,
     private readonly budget: BudgetService,
-    private readonly auth: AuthService,
     // Appended, not inserted: the hand-wired MCP harnesses build this
     // positionally.
     private readonly assignments: AssignmentsService,
@@ -331,7 +336,7 @@ export class ReservationsMcp {
     name: 'create_reservation',
     description: 'Recommend a reservation for a trip. Created as pending, so the user must confirm it. For anything travelled ON (flight, train, bus, car, taxi, bicycle, cruise, ferry, transport_other) use create_transport instead. Linking: hotel → use place_id + start_day_id + end_day_id (all three required to create the accommodation link); restaurant/event/tour/activity/parking/other → use assignment_id. Set price to record the cost; it will appear on the booking and in the Budget tab.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       title: z.string().min(1).max(200),
       type: z.enum(BOOKING_TYPES).describe('Reservation type: "hotel", "restaurant", "event", "tour", "activity", "parking", or "other"'),
       reservation_time: z.string().optional().describe('ISO 8601 datetime or time string'),
@@ -340,13 +345,13 @@ export class ReservationsMcp {
       location: z.string().max(500).optional(),
       confirmation_number: z.string().max(100).optional(),
       notes: z.string().max(1000).optional(),
-      day_id: z.number().int().positive().optional(),
-      place_id: z.number().int().positive().optional().describe('Hotel place to link (hotel type only)'),
-      start_day_id: z.number().int().positive().optional().describe('Check-in day (hotel type only; requires place_id and end_day_id)'),
-      end_day_id: z.number().int().positive().optional().describe('Check-out day (hotel type only; requires place_id and start_day_id)'),
+      day_id: idSchema.optional(),
+      place_id: idSchema.optional().describe('Hotel place to link (hotel type only)'),
+      start_day_id: idSchema.optional().describe('Check-in day (hotel type only; requires place_id and end_day_id)'),
+      end_day_id: idSchema.optional().describe('Check-out day (hotel type only; requires place_id and start_day_id)'),
       check_in: z.string().max(10).optional().describe('Check-in time (e.g. "15:00", hotel type only)'),
       check_out: z.string().max(10).optional().describe('Check-out time (e.g. "11:00", hotel type only)'),
-      assignment_id: z.number().int().positive().optional().describe('Link to a day assignment (restaurant, train, car, cruise, event, tour, activity, other)'),
+      assignment_id: idSchema.optional().describe('Link to a day assignment (restaurant, train, car, cruise, event, tour, activity, other)'),
       price: z.number().nonnegative().optional().describe('Reservation cost — shown on the booking and linked in the Budget tab'),
       budget_category: z.string().max(100).optional().describe('Budget category for the price entry (defaults to reservation type)'),
     },
@@ -362,20 +367,19 @@ export class ReservationsMcp {
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.reservations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
 
     // Validate that all referenced IDs belong to this trip
-    if (day_id && !this.days.getDay(day_id, tripId))
+    if (day_id && !(await this.days.getDay(day_id, tripId)))
       return errorResult('day_id does not belong to this trip.');
-    if (place_id && !this.assignments.placeExists(place_id, tripId))
+    if (place_id && !(await this.assignments.placeExists(place_id, tripId)))
       return errorResult('place_id does not belong to this trip.');
-    if (start_day_id && !this.days.getDay(start_day_id, tripId))
+    if (start_day_id && !(await this.days.getDay(start_day_id, tripId)))
       return errorResult('start_day_id does not belong to this trip.');
-    if (end_day_id && !this.days.getDay(end_day_id, tripId))
+    if (end_day_id && !(await this.days.getDay(end_day_id, tripId)))
       return errorResult('end_day_id does not belong to this trip.');
-    if (assignment_id && !this.assignments.getAssignmentForTrip(assignment_id, tripId))
+    if (assignment_id && !(await this.assignments.getAssignmentForTrip(assignment_id, tripId)))
       return errorResult('assignment_id does not belong to this trip.');
 
     const createAccommodation = (type === 'hotel' && place_id && start_day_id && end_day_id)
@@ -384,25 +388,18 @@ export class ReservationsMcp {
 
     const metadata = price != null ? { price: String(price) } : undefined;
 
-    const { reservation, accommodationCreated } = this.reservations.create(tripId, {
+    // The booking and its linked cost are one write, the same service path REST takes.
+    const { reservation, accommodationCreated, costEvents } = await this.reservations.createWithCost(String(tripId), {
       title, type, reservation_time, reservation_end_time, url, location, confirmation_number,
       notes, day_id, place_id, assignment_id,
       create_accommodation: createAccommodation,
       metadata,
-    });
+    }, linkedCost(price, budget_category || type));
 
     if (accommodationCreated) {
       this.guards.safeBroadcast(tripId, 'accommodation:created', {});
     }
-
-    if (price != null && price > 0) {
-      const item = this.budget.linkBudgetItemToReservation(tripId, reservation.id, {
-        name: title,
-        category: budget_category || type,
-        total_price: price,
-      });
-      this.guards.safeBroadcast(tripId, 'budget:created', { item });
-    }
+    for (const { event, payload } of costEvents) this.guards.safeBroadcast(tripId, event, payload);
 
     this.guards.safeBroadcast(tripId, 'reservation:created', { reservation });
     return ok({ reservation });
@@ -412,8 +409,8 @@ export class ReservationsMcp {
     name: 'update_reservation',
     description: 'Update an existing reservation in a trip. Use status "confirmed" to confirm a pending recommendation, or "pending" to revert it. For anything travelled ON (flight, train, bus, car, taxi, bicycle, cruise, ferry, transport_other) use update_transport instead. Linking: hotel → use place_id to link to an accommodation place; restaurant/event/tour/activity/parking/other → use assignment_id to link to a day assignment.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      reservationId: z.number().int().positive(),
+      tripId: idSchema,
+      reservationId: idSchema,
       title: z.string().min(1).max(200).optional(),
       type: z.enum(BOOKING_TYPES).optional().describe('Reservation type: "hotel", "restaurant", "event", "tour", "activity", "parking", or "other"'),
       reservation_time: z.string().optional().describe('ISO 8601 datetime or time string'),
@@ -422,9 +419,9 @@ export class ReservationsMcp {
       location: z.string().max(500).optional(),
       confirmation_number: z.string().max(100).optional(),
       notes: z.string().max(1000).optional(),
-      status: z.enum(['pending', 'confirmed', 'cancelled']).optional().describe('Reservation status: "pending", "confirmed", or "cancelled"'),
-      place_id: z.number().int().positive().nullable().optional().describe('Link to a place (use for hotel type), or null to unlink'),
-      assignment_id: z.number().int().positive().nullable().optional().describe('Link to a day assignment (use for restaurant, train, car, cruise, event, tour, activity, other), or null to unlink'),
+      status: z.enum(RESERVATION_STATUSES).optional().describe('Reservation status: "pending", "confirmed", or "cancelled"'),
+      place_id: idSchema.nullable().optional().describe('Link to a place (use for hotel type), or null to unlink'),
+      assignment_id: idSchema.nullable().optional().describe('Link to a day assignment (use for restaurant, train, car, cruise, event, tour, activity, other), or null to unlink'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'reservations', mode: 'write' },
@@ -434,26 +431,29 @@ export class ReservationsMcp {
       tripId: number; reservationId: number; title?: string;
       type?: BookingType;
       reservation_time?: string; reservation_end_time?: string; url?: string; location?: string; confirmation_number?: string; notes?: string;
-      status?: 'pending' | 'confirmed' | 'cancelled'; place_id?: number | null; assignment_id?: number | null;
+      status?: ReservationStatus; place_id?: number | null; assignment_id?: number | null;
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
-    const existing = this.reservations.getReservation(reservationId, tripId);
+    if (!(await this.reservations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
+    const existing = await this.reservations.getReservation(reservationId, tripId);
     if (!existing) return errorResult('Reservation not found.');
 
-    if (place_id != null && !this.assignments.placeExists(place_id, tripId))
+    if (place_id != null && !(await this.assignments.placeExists(place_id, tripId)))
       return errorResult('place_id does not belong to this trip.');
-    if (assignment_id != null && !this.assignments.getAssignmentForTrip(assignment_id, tripId))
+    if (assignment_id != null && !(await this.assignments.getAssignmentForTrip(assignment_id, tripId)))
       return errorResult('assignment_id does not belong to this trip.');
 
-    const { reservation } = this.reservations.update(reservationId, tripId, {
+    // The booking and the linked expenses a type change re-files are one write,
+    // the same service path REST and the plugin RPC take.
+    const { reservation, accommodationChanged, costEvents } = await this.reservations.updateWithCost(String(reservationId), String(tripId), {
       title, type, reservation_time, reservation_end_time, url, location, confirmation_number, notes, status,
       place_id: place_id !== undefined ? place_id ?? undefined : undefined,
       assignment_id: assignment_id !== undefined ? assignment_id ?? undefined : undefined,
-    }, existing);
+    }, existing, undefined);
+    if (accommodationChanged) this.guards.safeBroadcast(tripId, 'accommodation:updated', {});
+    for (const { event, payload } of costEvents) this.guards.safeBroadcast(tripId, event, payload);
     this.guards.safeBroadcast(tripId, 'reservation:updated', { reservation });
     return ok({ reservation });
   }
@@ -462,21 +462,21 @@ export class ReservationsMcp {
     name: 'delete_reservation',
     description: 'Delete a reservation from a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      reservationId: z.number().int().positive(),
+      tripId: idSchema,
+      reservationId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'reservations', mode: 'write' },
   })
   async deleteReservation({ tripId, reservationId }: { tripId: number; reservationId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
-    const { deleted, accommodationDeleted } = this.reservations.remove(reservationId, tripId);
+    if (!(await this.reservations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
+    const { deleted, accommodationDeleted, deletedBudgetItemIds } = await this.reservations.remove(reservationId, tripId);
     if (!deleted) return errorResult('Reservation not found.');
     if (accommodationDeleted) {
       this.guards.safeBroadcast(tripId, 'accommodation:deleted', { accommodationId: deleted.accommodation_id });
     }
+    for (const itemId of deletedBudgetItemIds) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
     this.guards.safeBroadcast(tripId, 'reservation:deleted', { reservationId });
     return ok({ success: true });
   }
@@ -485,9 +485,9 @@ export class ReservationsMcp {
     name: 'set_reservation_travelers',
     description: 'Set who is travelling on a booking, replacing the current list. Pass the user IDs of trip members or guests from list_trip_members; an empty array clears the list. Somebody who is not on the trip is ignored rather than added: use add_trip_member for a person with a TREK account, or create_trip_guest for one without.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      reservationId: z.number().int().positive(),
-      user_ids: z.array(z.number().int().positive()).describe('User IDs of the travellers, from list_trip_members. Replaces the whole list; [] clears it.'),
+      tripId: idSchema,
+      reservationId: idSchema,
+      user_ids: z.array(idSchema).describe('User IDs of the travellers, from list_trip_members. Replaces the whole list; [] clears it.'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'reservations', mode: 'write' },
@@ -496,13 +496,12 @@ export class ReservationsMcp {
     { tripId, reservationId, user_ids }: { tripId: number; reservationId: number; user_ids: number[] },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.reservations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
 
     // The service filters the ids against the trip roster on its own, so an
     // off-trip id cannot be attached; a missing booking is the only failure.
-    const result = this.reservations.setTravelers(String(reservationId), String(tripId), user_ids);
+    const result = await this.reservations.setTravelers(String(reservationId), String(tripId), user_ids);
     if (!result) return errorResult('Reservation not found.');
 
     this.guards.safeBroadcast(tripId, 'reservation:travelers-updated', { reservationId, travelers: result.travelers });
@@ -520,12 +519,12 @@ export class ReservationsMcp {
     name: 'reorder_reservations',
     description: 'Update the display order of reservations within a day.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       positions: z.array(z.strictObject({
-        id: z.number().int().positive(),
+        id: idSchema,
         day_plan_position: z.number().int().min(0),
       })).describe('Array of { id, day_plan_position } pairs'),
-      dayId: z.number().int().positive().optional().describe('Optionally scope the update to a specific day'),
+      dayId: idSchema.optional().describe('Optionally scope the update to a specific day'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'reservations', mode: 'write' },
@@ -534,17 +533,16 @@ export class ReservationsMcp {
     { tripId, positions, dayId }: { tripId: number; positions: { id: number; day_plan_position: number }[]; dayId?: number },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.reservations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
 
     // The service scopes the write to the trip on its own, so a foreign id is
     // already harmless — say so rather than reporting a success that moved
     // nothing, the way the sibling tools above do.
-    if (dayId && !this.days.getDay(dayId, tripId))
+    if (dayId && !(await this.days.getDay(dayId, tripId)))
       return errorResult('dayId does not belong to this trip.');
 
-    this.reservations.updatePositions(tripId, positions, dayId);
+    await this.reservations.updatePositions(tripId, positions, dayId);
     this.guards.safeBroadcast(tripId, 'reservation:positions', { positions, dayId });
     return ok({ success: true });
   }
@@ -553,11 +551,11 @@ export class ReservationsMcp {
     name: 'link_hotel_accommodation',
     description: 'Set or update the check-in/check-out day links for a hotel reservation. Creates or updates the accommodation record that ties the reservation to a place and a date range. Use the day IDs from get_trip_summary.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      reservationId: z.number().int().positive(),
-      place_id: z.number().int().positive().describe('The hotel place to link'),
-      start_day_id: z.number().int().positive().describe('Check-in day ID'),
-      end_day_id: z.number().int().positive().describe('Check-out day ID'),
+      tripId: idSchema,
+      reservationId: idSchema,
+      place_id: idSchema.describe('The hotel place to link'),
+      start_day_id: idSchema.describe('Check-in day ID'),
+      end_day_id: idSchema.describe('Check-out day ID'),
       check_in: z.string().max(10).optional().describe('Check-in time (e.g. "15:00")'),
       check_out: z.string().max(10).optional().describe('Check-out time (e.g. "11:00")'),
     },
@@ -571,22 +569,21 @@ export class ReservationsMcp {
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
-    const current = this.reservations.getReservation(reservationId, tripId);
+    if (!(await this.reservations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
+    const current = await this.reservations.getReservation(reservationId, tripId);
     if (!current) return errorResult('Reservation not found.');
     if (current.type !== 'hotel') return errorResult('Reservation is not of type hotel.');
 
-    if (!this.assignments.placeExists(place_id, tripId))
+    if (!(await this.assignments.placeExists(place_id, tripId)))
       return errorResult('place_id does not belong to this trip.');
-    if (!this.days.getDay(start_day_id, tripId))
+    if (!(await this.days.getDay(start_day_id, tripId)))
       return errorResult('start_day_id does not belong to this trip.');
-    if (!this.days.getDay(end_day_id, tripId))
+    if (!(await this.days.getDay(end_day_id, tripId)))
       return errorResult('end_day_id does not belong to this trip.');
 
     const isNewAccommodation = !current.accommodation_id;
-    const { reservation } = this.reservations.update(reservationId, tripId, {
+    const { reservation } = await this.reservations.update(reservationId, tripId, {
       place_id,
       type: current.type,
       status: current.status as string,
@@ -618,7 +615,7 @@ export class ReservationsMcp {
     access: { group: 'reservations', mode: 'read' },
   })
   async listUpcomingReservations({ limit }: { limit?: number }, ctx: McpContext) {
-    return ok({ reservations: this.reservations.listUpcoming(ctx.userId, limit) });
+    return ok({ reservations: await this.reservations.listUpcoming(ctx.userId, limit) });
   }
 
   @ResourceTemplate({
@@ -630,7 +627,7 @@ export class ReservationsMcp {
   })
   async tripReservationsResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
     const id = parseId(tripId);
-    if (id === null || !this.reservations.verifyTripAccess(id, ctx.userId)) {
+    if (id === null || !(await this.reservations.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [{
           uri: uri.href,
@@ -639,7 +636,7 @@ export class ReservationsMcp {
         }],
       };
     }
-    const reservations = this.reservations.list(id);
+    const reservations = await this.reservations.list(id);
     return {
       contents: [{
         uri: uri.href,
@@ -664,12 +661,12 @@ export class ReservationsMcp {
     name: 'create_transport',
     description: 'Create a transport booking for a trip: flight, train, bus, car, taxi, bicycle, cruise, ferry or transport_other. For scheduled public transit use create_transit_journey, which attaches the provider itinerary. Use endpoints[] to record origin/destination and intermediate stops; for flights, set code to the IATA airport code (use search_airports first). For a booking WITH STOPOVERS also pass legs[] (one entry per segment, one fewer than endpoints[]), otherwise every segment inherits the stop time as both its arrival and its departure. The top-level confirmation_number is the booking reference; when a single segment was booked under its own reference, put that one on the leg instead. Created as pending, so confirm it with update_transport. Set price to record the cost; it will appear on the booking and in the Budget tab.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       type: z.enum(CREATABLE_TRANSPORT_TYPES),
       title: z.string().min(1).max(200),
-      status: z.enum(['pending', 'confirmed', 'cancelled']).optional().default('pending'),
-      start_day_id: z.number().int().positive().optional().describe('Departure day'),
-      end_day_id: z.number().int().positive().optional().describe('Arrival day (if different from departure)'),
+      status: z.enum(RESERVATION_STATUSES).optional().default('pending'),
+      start_day_id: idSchema.optional().describe('Departure day'),
+      end_day_id: idSchema.optional().describe('Arrival day (if different from departure)'),
       reservation_time: z.string().optional().describe('ISO 8601 datetime or time string for departure'),
       reservation_end_time: z.string().optional().describe('ISO 8601 datetime or time string for arrival'),
       confirmation_number: z.string().max(100).optional(),
@@ -688,22 +685,21 @@ export class ReservationsMcp {
   async createTransport(
     { tripId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, url, notes, metadata, endpoints, legs, needs_review, price, budget_category }: {
       tripId: number; type: TransportType; title: string;
-      status?: 'pending' | 'confirmed' | 'cancelled'; start_day_id?: number; end_day_id?: number;
+      status?: ReservationStatus; start_day_id?: number; end_day_id?: number;
       reservation_time?: string; reservation_end_time?: string; confirmation_number?: string; url?: string; notes?: string;
       metadata?: Record<string, string>; endpoints?: TransportEndpoint[]; legs?: TransportLegInput[]; needs_review?: boolean;
       price?: number; budget_category?: string;
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.reservations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
 
     if (metadata && 'legs' in metadata) return errorResult(LEGS_IN_METADATA_ERROR);
 
-    if (start_day_id && !this.days.getDay(start_day_id, tripId))
+    if (start_day_id && !(await this.days.getDay(start_day_id, tripId)))
       return errorResult('start_day_id does not belong to this trip.');
-    if (end_day_id && !this.days.getDay(end_day_id, tripId))
+    if (end_day_id && !(await this.days.getDay(end_day_id, tripId)))
       return errorResult('end_day_id does not belong to this trip.');
 
     const resolved = resolveEndpointCoords(endpoints);
@@ -717,7 +713,7 @@ export class ReservationsMcp {
     let arrivalTime = reservation_end_time;
 
     if (legs !== undefined) {
-      const applied = applyLegs({
+      const applied = await applyLegs({
         legs,
         type,
         endpoints: resolved.endpoints,
@@ -740,7 +736,7 @@ export class ReservationsMcp {
 
     if (price != null) meta.price = String(price);
 
-    const { reservation } = this.reservations.create(tripId, {
+    const { reservation, costEvents } = await this.reservations.createWithCost(String(tripId), {
       title,
       type,
       reservation_time: departureTime,
@@ -755,16 +751,8 @@ export class ReservationsMcp {
       metadata: Object.keys(meta).length > 0 ? meta : undefined,
       endpoints: transportEndpoints,
       needs_review,
-    });
-
-    if (price != null && price > 0) {
-      const item = this.budget.linkBudgetItemToReservation(tripId, reservation.id, {
-        name: title,
-        category: budget_category || type,
-        total_price: price,
-      });
-      this.guards.safeBroadcast(tripId, 'budget:created', { item });
-    }
+    }, linkedCost(price, budget_category || type));
+    for (const { event, payload } of costEvents) this.guards.safeBroadcast(tripId, event, payload);
 
     this.guards.safeBroadcast(tripId, 'reservation:created', { reservation });
     return ok({ reservation });
@@ -774,13 +762,13 @@ export class ReservationsMcp {
     name: 'update_transport',
     description: 'Update an existing transport booking. Pass endpoints[] to replace the full list of stops (origin, destination, intermediates), and legs[] to write the per-segment times of a stopover booking. Sending legs[] without metadata keeps the stored metadata (departure_airport, airtrail_ids, transit) and only replaces the segments. A per-segment booking reference lives on the leg (legs[].confirmation_number); the top-level one stays the booking reference. Use status "confirmed" to confirm.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      reservationId: z.number().int().positive(),
+      tripId: idSchema,
+      reservationId: idSchema,
       type: z.enum(CREATABLE_TRANSPORT_TYPES).optional(),
       title: z.string().min(1).max(200).optional(),
-      status: z.enum(['pending', 'confirmed', 'cancelled']).optional(),
-      start_day_id: z.number().int().positive().optional().describe('Departure day'),
-      end_day_id: z.number().int().positive().optional().describe('Arrival day (if different from departure)'),
+      status: z.enum(RESERVATION_STATUSES).optional(),
+      start_day_id: idSchema.optional().describe('Departure day'),
+      end_day_id: idSchema.optional().describe('Arrival day (if different from departure)'),
       reservation_time: z.string().optional().describe('ISO 8601 datetime or time string for departure'),
       reservation_end_time: z.string().optional().describe('ISO 8601 datetime or time string for arrival'),
       confirmation_number: z.string().max(100).optional(),
@@ -797,28 +785,27 @@ export class ReservationsMcp {
   async updateTransport(
     { tripId, reservationId, type, title, status, start_day_id, end_day_id, reservation_time, reservation_end_time, confirmation_number, url, notes, metadata, endpoints, legs, needs_review }: {
       tripId: number; reservationId: number; type?: TransportType; title?: string;
-      status?: 'pending' | 'confirmed' | 'cancelled'; start_day_id?: number; end_day_id?: number;
+      status?: ReservationStatus; start_day_id?: number; end_day_id?: number;
       reservation_time?: string; reservation_end_time?: string; confirmation_number?: string; url?: string; notes?: string;
       metadata?: Record<string, string>; endpoints?: TransportEndpoint[]; legs?: TransportLegInput[]; needs_review?: boolean;
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.reservations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
 
     if (metadata && 'legs' in metadata) return errorResult(LEGS_IN_METADATA_ERROR);
 
-    const existing = this.reservations.getReservation(reservationId, tripId);
+    const existing = await this.reservations.getReservation(reservationId, tripId);
     if (!existing) return errorResult('Transport not found.');
 
     const resolvedType = type ?? existing.type;
     if (!(TRANSPORT_TYPES as readonly string[]).includes(resolvedType))
       return errorResult('Reservation is not a transport type. Use update_reservation instead.');
 
-    if (start_day_id && !this.days.getDay(start_day_id, tripId))
+    if (start_day_id && !(await this.days.getDay(start_day_id, tripId)))
       return errorResult('start_day_id does not belong to this trip.');
-    if (end_day_id && !this.days.getDay(end_day_id, tripId))
+    if (end_day_id && !(await this.days.getDay(end_day_id, tripId)))
       return errorResult('end_day_id does not belong to this trip.');
 
     // Only resolve when endpoints are explicitly provided; undefined leaves them untouched.
@@ -837,12 +824,12 @@ export class ReservationsMcp {
 
     if (legs !== undefined) {
       const stored = parseStoredMetadata(existing.metadata);
-      const applied = applyLegs({
+      const applied = await applyLegs({
         legs,
         type: resolvedType,
         // Endpoints the caller did not replace stay the geometry the legs run
         // over, so read them back (the row carries them) instead of guessing.
-        endpoints: resolvedEndpoints ?? (this.reservations.getReservationWithJoins(reservationId)?.endpoints ?? []).map(e => ({
+        endpoints: resolvedEndpoints ?? ((await this.reservations.getReservationWithJoins(reservationId))?.endpoints ?? []).map(e => ({
           role: e.role, sequence: e.sequence, name: e.name, code: e.code,
           lat: e.lat, lng: e.lng, timezone: e.timezone,
           local_time: e.local_time, local_date: e.local_date,
@@ -869,7 +856,8 @@ export class ReservationsMcp {
       if (applied.endpointsChanged) resolvedEndpoints = applied.endpoints;
     }
 
-    const { reservation } = this.reservations.update(reservationId, tripId, {
+    // One write with the linked expenses a type change re-files, as on update_reservation.
+    const { reservation, accommodationChanged, costEvents } = await this.reservations.updateWithCost(String(reservationId), String(tripId), {
       title,
       type,
       reservation_time: departureTime,
@@ -883,7 +871,9 @@ export class ReservationsMcp {
       metadata: nextMetadata,
       endpoints: resolvedEndpoints,
       needs_review,
-    }, existing);
+    }, existing, undefined);
+    if (accommodationChanged) this.guards.safeBroadcast(tripId, 'accommodation:updated', {});
+    for (const { event, payload } of costEvents) this.guards.safeBroadcast(tripId, event, payload);
     this.guards.safeBroadcast(tripId, 'reservation:updated', { reservation });
     return ok({ reservation });
   }
@@ -892,18 +882,18 @@ export class ReservationsMcp {
     name: 'delete_transport',
     description: 'Delete a transport booking from a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      reservationId: z.number().int().positive(),
+      tripId: idSchema,
+      reservationId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'reservations', mode: 'write' },
   })
   async deleteTransport({ tripId, reservationId }: { tripId: number; reservationId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.reservations.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId)) return permissionDenied();
-    const { deleted } = this.reservations.remove(reservationId, tripId);
+    if (!(await this.reservations.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('reservation_edit', tripId, ctx.userId))) return permissionDenied();
+    const { deleted, deletedBudgetItemIds } = await this.reservations.remove(reservationId, tripId);
     if (!deleted) return errorResult('Transport not found.');
+    for (const itemId of deletedBudgetItemIds) this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
     this.guards.safeBroadcast(tripId, 'reservation:deleted', { reservationId });
     return ok({ success: true });
   }

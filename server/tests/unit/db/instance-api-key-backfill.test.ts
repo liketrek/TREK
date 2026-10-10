@@ -10,132 +10,156 @@
  * promotion is skipped, because the instance row outranks everybody's own
  * column and nobody may be moved onto a stranger's key by an upgrade.
  *
- * Seeded before runMigrations rather than by rewinding schema_version
- * afterwards: createTables already brings users.role and both key columns, so
- * the backfill fires on its normal pass and finds the rows. That keeps this
- * file independent of where the entry sits in the append-only array, so
- * appending the next migration does not drag it along. The one guard that does
- * have to track the tail is tests/integration/leg-mode-incoming.test.ts, which
- * says so in place.
+ * Ported off the legacy runner (Task 0 triage: PORT) onto the real
+ * `Migration20200101031100_1939`: migrate to the step immediately before it,
+ * seed rows with raw SQL, apply just that one migration, assert.
  */
-import { describe, it, expect } from 'vitest';
-import Database from 'better-sqlite3';
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
+import { createMigrationOrm, migrateTo, pendingNames, rawExec, rawQuery } from '../../helpers/migration-step';
+import type { MikroORM } from '@mikro-orm/sqlite';
 
-function freshDb() {
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  createTables(db);
-  return db;
+import { describe, it, expect } from 'vitest';
+
+const TARGET = 'Migration20200101031100_1939';
+
+async function ormBeforeTarget(): Promise<MikroORM> {
+  const orm = await createMigrationOrm();
+  const names = await pendingNames(orm);
+  const idx = names.indexOf(TARGET);
+  expect(idx).toBeGreaterThan(0);
+  await migrateTo(orm, names[idx - 1]);
+  return orm;
 }
 
-function seedUser(
-  db: Database.Database,
+async function seedUser(
+  orm: MikroORM,
   id: number,
   role: 'admin' | 'user',
   keys: { maps?: string; unsplash?: string } = {},
-) {
-  db.prepare(
+): Promise<void> {
+  await rawExec(
+    orm,
     `INSERT INTO users (id, username, email, password_hash, role, maps_api_key, unsplash_api_key)
-     VALUES (?, ?, ?, 'x', ?, ?, ?)`
-  ).run(id, `u${id}`, `u${id}@test.local`, role, keys.maps ?? null, keys.unsplash ?? null);
+     VALUES (?, ?, ?, 'x', ?, ?, ?)`,
+    [id, `u${id}`, `u${id}@test.local`, role, keys.maps ?? null, keys.unsplash ?? null],
+  );
 }
 
-const setting = (db: Database.Database, key: string) =>
-  (db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined)?.value;
+async function setting(orm: MikroORM, key: string): Promise<string | undefined> {
+  const rows = await rawQuery<{ value: string }>(orm, 'SELECT value FROM app_settings WHERE key = ?', [key]);
+  return rows[0]?.value;
+}
 
 describe('instance API-key backfill migration', () => {
-  it('KEYFILL-001: copies the one key the install was searching with and keeps the column', () => {
-    const db = freshDb();
-    seedUser(db, 1, 'admin', { maps: 'the-admin-google', unsplash: 'the-admin-unsplash' });
-    seedUser(db, 2, 'user');
+  it('KEYFILL-001: copies the one key the install was searching with and keeps the column', async () => {
+    const orm = await ormBeforeTarget();
+    try {
+      await seedUser(orm, 1, 'admin', { maps: 'the-admin-google', unsplash: 'the-admin-unsplash' });
+      await seedUser(orm, 2, 'user');
 
-    runMigrations(db);
+      await migrateTo(orm, TARGET);
 
-    expect(setting(db, 'maps_api_key')).toBe('the-admin-google');
-    expect(setting(db, 'unsplash_api_key')).toBe('the-admin-unsplash');
-    // Nothing is taken away: the columns are still the per-user fallback.
-    const row = db.prepare('SELECT maps_api_key FROM users WHERE id = 1').get() as { maps_api_key: string };
-    expect(row.maps_api_key).toBe('the-admin-google');
-    db.close();
-  });
+      expect(await setting(orm, 'maps_api_key')).toBe('the-admin-google');
+      expect(await setting(orm, 'unsplash_api_key')).toBe('the-admin-unsplash');
+      // Nothing is taken away: the columns are still the per-user fallback.
+      const rows = await rawQuery<{ maps_api_key: string }>(orm, 'SELECT maps_api_key FROM users WHERE id = 1');
+      expect(rows[0].maps_api_key).toBe('the-admin-google');
+    } finally {
+      await orm.close(true);
+    }
+  }, 30000);
 
-  it('KEYFILL-002: skips an admin whose column is empty and takes the next one', () => {
-    const db = freshDb();
-    seedUser(db, 1, 'admin', { maps: '' });
-    seedUser(db, 2, 'admin', { maps: 'the-only-real-key' });
+  it('KEYFILL-002: skips an admin whose column is empty and takes the next one', async () => {
+    const orm = await ormBeforeTarget();
+    try {
+      await seedUser(orm, 1, 'admin', { maps: '' });
+      await seedUser(orm, 2, 'admin', { maps: 'the-only-real-key' });
 
-    runMigrations(db);
+      await migrateTo(orm, TARGET);
 
-    expect(setting(db, 'maps_api_key')).toBe('the-only-real-key');
-    db.close();
-  });
+      expect(await setting(orm, 'maps_api_key')).toBe('the-only-real-key');
+    } finally {
+      await orm.close(true);
+    }
+  }, 30000);
 
-  it('KEYFILL-003: never overwrites a value the admin has already saved instance-wide', () => {
-    const db = freshDb();
-    seedUser(db, 1, 'admin', { maps: 'old-column-key' });
-    db.prepare("INSERT INTO app_settings (key, value) VALUES ('maps_api_key', 'already-instance-wide')").run();
+  it('KEYFILL-003: never overwrites a value the admin has already saved instance-wide', async () => {
+    const orm = await ormBeforeTarget();
+    try {
+      await seedUser(orm, 1, 'admin', { maps: 'old-column-key' });
+      await rawExec(orm, "INSERT INTO app_settings (key, value) VALUES ('maps_api_key', 'already-instance-wide')");
 
-    runMigrations(db);
+      await migrateTo(orm, TARGET);
 
-    expect(setting(db, 'maps_api_key')).toBe('already-instance-wide');
-    db.close();
-  });
+      expect(await setting(orm, 'maps_api_key')).toBe('already-instance-wide');
+    } finally {
+      await orm.close(true);
+    }
+  }, 30000);
 
-  it('KEYFILL-004: ignores a non-admin key and writes no row at all', () => {
-    const db = freshDb();
-    seedUser(db, 1, 'user', { maps: 'members-own-key' });
+  it('KEYFILL-004: ignores a non-admin key and writes no row at all', async () => {
+    const orm = await ormBeforeTarget();
+    try {
+      await seedUser(orm, 1, 'user', { maps: 'members-own-key' });
 
-    runMigrations(db);
+      await migrateTo(orm, TARGET);
 
-    // A member's key stays theirs — the resolver still finds it for them, and
-    // promoting it would hand their billing to the whole instance.
-    expect(setting(db, 'maps_api_key')).toBeUndefined();
-    db.close();
-  });
+      // A member's key stays theirs — the resolver still finds it for them, and
+      // promoting it would hand their billing to the whole instance.
+      expect(await setting(orm, 'maps_api_key')).toBeUndefined();
+    } finally {
+      await orm.close(true);
+    }
+  }, 30000);
 
-  it('KEYFILL-005: writes nothing on an install that never had a key', () => {
-    const db = freshDb();
-    seedUser(db, 1, 'admin');
+  it('KEYFILL-005: writes nothing on an install that never had a key', async () => {
+    const orm = await ormBeforeTarget();
+    try {
+      await seedUser(orm, 1, 'admin');
 
-    runMigrations(db);
+      await migrateTo(orm, TARGET);
 
-    expect(setting(db, 'maps_api_key')).toBeUndefined();
-    expect(setting(db, 'unsplash_api_key')).toBeUndefined();
-    db.close();
-  });
+      expect(await setting(orm, 'maps_api_key')).toBeUndefined();
+      expect(await setting(orm, 'unsplash_api_key')).toBeUndefined();
+    } finally {
+      await orm.close(true);
+    }
+  }, 30000);
 
-  it('KEYFILL-006: leaves a column alone once a member holds a key of their own', () => {
-    const db = freshDb();
-    seedUser(db, 1, 'admin', { maps: 'admins-own-google', unsplash: 'admins-own-unsplash' });
-    seedUser(db, 7, 'user', { maps: 'members-own-google' });
+  it('KEYFILL-006: leaves a column alone once a member holds a key of their own', async () => {
+    const orm = await ormBeforeTarget();
+    try {
+      await seedUser(orm, 1, 'admin', { maps: 'admins-own-google', unsplash: 'admins-own-unsplash' });
+      await seedUser(orm, 7, 'user', { maps: 'members-own-google' });
 
-    runMigrations(db);
+      await migrateTo(orm, TARGET);
 
-    // Member 7 pays for their own Google key. Promoting the admin's would put
-    // every one of their searches on his key and his bill, because the instance
-    // row is resolved before their own column.
-    expect(setting(db, 'maps_api_key')).toBeUndefined();
-    // Decided per column: nobody else has an Unsplash key, so that one really
-    // was the whole install's and stays it.
-    expect(setting(db, 'unsplash_api_key')).toBe('admins-own-unsplash');
-    const row = db.prepare('SELECT maps_api_key FROM users WHERE id = 7').get() as { maps_api_key: string };
-    expect(row.maps_api_key).toBe('members-own-google');
-    db.close();
-  });
+      // Member 7 pays for their own Google key. Promoting the admin's would put
+      // every one of their searches on his key and his bill, because the instance
+      // row is resolved before their own column.
+      expect(await setting(orm, 'maps_api_key')).toBeUndefined();
+      // Decided per column: nobody else has an Unsplash key, so that one really
+      // was the whole install's and stays it.
+      expect(await setting(orm, 'unsplash_api_key')).toBe('admins-own-unsplash');
+      const rows = await rawQuery<{ maps_api_key: string }>(orm, 'SELECT maps_api_key FROM users WHERE id = 7');
+      expect(rows[0].maps_api_key).toBe('members-own-google');
+    } finally {
+      await orm.close(true);
+    }
+  }, 30000);
 
-  it('KEYFILL-007: two admins with their own keys both keep them', () => {
-    const db = freshDb();
-    seedUser(db, 1, 'admin', { maps: 'first-admin-google' });
-    seedUser(db, 2, 'admin', { maps: 'second-admin-google' });
+  it('KEYFILL-007: two admins with their own keys both keep them', async () => {
+    const orm = await ormBeforeTarget();
+    try {
+      await seedUser(orm, 1, 'admin', { maps: 'first-admin-google' });
+      await seedUser(orm, 2, 'admin', { maps: 'second-admin-google' });
 
-    runMigrations(db);
+      await migrateTo(orm, TARGET);
 
-    expect(setting(db, 'maps_api_key')).toBeUndefined();
-    const rows = db.prepare('SELECT maps_api_key FROM users ORDER BY id').all() as { maps_api_key: string }[];
-    expect(rows.map((r) => r.maps_api_key)).toEqual(['first-admin-google', 'second-admin-google']);
-    db.close();
-  });
+      expect(await setting(orm, 'maps_api_key')).toBeUndefined();
+      const rows = await rawQuery<{ maps_api_key: string }>(orm, 'SELECT maps_api_key FROM users ORDER BY id');
+      expect(rows.map((r) => r.maps_api_key)).toEqual(['first-admin-google', 'second-admin-google']);
+    } finally {
+      await orm.close(true);
+    }
+  }, 30000);
 });

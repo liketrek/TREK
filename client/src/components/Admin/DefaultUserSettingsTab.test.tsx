@@ -1,4 +1,4 @@
-// FE-ADMIN-DUS-001 to FE-ADMIN-DUS-027
+// FE-ADMIN-DUS-001 to FE-ADMIN-DUS-029
 import { render, screen, waitFor, within, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -6,6 +6,7 @@ import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildAdmin } from '../../../tests/helpers/factories';
 import { useAuthStore } from '../../store/authStore';
+import { AMAP_ROAD } from '../../constants/mapDefaults';
 import { ToastContainer } from '../shared/Toast';
 import DefaultUserSettingsTab from './DefaultUserSettingsTab';
 
@@ -43,9 +44,9 @@ function withToast() {
   return render(<><ToastContainer /><DefaultUserSettingsTab /></>);
 }
 
-/** The selected option button is the one drawn with the strong border token. */
+/** The selected option is the pressed button of its segmented group. */
 function isActive(button: HTMLElement): boolean {
-  return (button.style.border || '').includes('var(--text-primary)');
+  return button.getAttribute('aria-pressed') === 'true';
 }
 
 /**
@@ -218,6 +219,18 @@ describe('DefaultUserSettingsTab', () => {
     await waitFor(() => expect(puts).toEqual([{ map_tile_url: url }]));
     expect(screen.getByPlaceholderText(TILE_PLACEHOLDER)).toHaveValue(url);
     expect(screen.getByTestId('map-preview')).toHaveAttribute('data-tile', url);
+  });
+
+  it('FE-ADMIN-DUS-029: the Amap presets a user can pick are offered as instance defaults too', async () => {
+    const user = userEvent.setup();
+    const { puts } = stubDefaults();
+    render(<DefaultUserSettingsTab />);
+    await screen.findByText('Default User Settings');
+
+    await pickFromSelect(user, 'Select template...', '高德地图 (Amap)');
+
+    await waitFor(() => expect(puts).toEqual([{ map_tile_url: AMAP_ROAD }]));
+    expect(screen.getByTestId('map-preview')).toHaveAttribute('data-tile', AMAP_ROAD);
   });
 
   it('FE-ADMIN-DUS-011: a hand-typed tile URL is saved on blur', async () => {
@@ -451,5 +464,20 @@ describe('DefaultUserSettingsTab', () => {
     await screen.findByText('Default User Settings');
 
     expect(screen.queryByText('Shared CARTO key')).not.toBeInTheDocument();
+  });
+});
+
+describe('DefaultUserSettingsTab week start (#2029)', () => {
+  it('FE-ADMIN-DUS-028: the week-start default saves its own key and can be reset', async () => {
+    const user = userEvent.setup();
+    const { puts } = stubDefaults();
+    render(<DefaultUserSettingsTab />);
+    await screen.findByText('Default User Settings');
+
+    await user.click(screen.getByRole('button', { name: 'Sunday' }));
+    await waitFor(() => expect(resetLink('Week starts on')).toBeInTheDocument());
+    await user.click(resetLink('Week starts on'));
+
+    await waitFor(() => expect(puts).toEqual([{ week_start: 'sunday' }, { week_start: null }]));
   });
 });

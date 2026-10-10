@@ -135,7 +135,7 @@ describe('MPlacesSaveToCollectionSheet', () => {
     })
     renderSheet()
     fireEvent.click(await screen.findByText('Favorites'))
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Skipped 1 duplicates', 'info', undefined))
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Skipped 1 duplicate', 'info', undefined))
     expect(addToast).toHaveBeenCalledWith('Saved 1 to Favorites', 'success', undefined)
   })
 

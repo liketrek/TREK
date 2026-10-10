@@ -1,10 +1,13 @@
-import crypto from 'node:crypto';
-import { Readable } from 'node:stream';
-import { Injectable } from '@nestjs/common';
-import { Response } from 'express';
-import { DatabaseService } from '../database/database.service';
+import { TrekPhotoCacheMeta } from '../../db/entities/TrekPhotoCacheMeta.entity';
+import type { TrekPhotoCacheMetaRepository } from '../../db/repositories/TrekPhotoCacheMeta.repository';
 import { StorageService } from '../storage/storage.service';
 import { StorageNotFoundError } from '../storage/storage.types';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+
+import { Response } from 'express';
+import crypto from 'node:crypto';
+import { Readable } from 'node:stream';
 
 export const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
@@ -30,7 +33,7 @@ function objectName(key: string): string {
 @Injectable()
 export class TrekPhotoCacheService {
   constructor(
-    private readonly db: DatabaseService,
+    @InjectRepository(TrekPhotoCacheMeta) private readonly cacheMeta: TrekPhotoCacheMetaRepository,
     private readonly storage: StorageService,
   ) {}
 
@@ -39,19 +42,18 @@ export class TrekPhotoCacheService {
   }
 
   async getFresh(key: string): Promise<{ contentType: string } | null> {
-    const row = this.db.get<{ content_type: string; fetched_at: number }>(
-      'SELECT content_type, fetched_at FROM trek_photo_cache_meta WHERE cache_key = ?', key,
-    );
+    // TC1
+    const row = await this.cacheMeta.findFreshness(key);
 
     if (!row) return null;
 
     if (Date.now() - row.fetched_at >= CACHE_TTL) {
-      this.db.run('DELETE FROM trek_photo_cache_meta WHERE cache_key = ?', key);
+      await this.cacheMeta.deleteByCacheKey(key); // TC2
       return null;
     }
 
     if (!(await this.storage.exists('photos-trek', objectName(key)))) {
-      this.db.run('DELETE FROM trek_photo_cache_meta WHERE cache_key = ?', key);
+      await this.cacheMeta.deleteByCacheKey(key); // TC3
       return null;
     }
 
@@ -61,10 +63,8 @@ export class TrekPhotoCacheService {
   async put(key: string, bytes: Buffer, contentType: string): Promise<void> {
     await this.storage.put('photos-trek', objectName(key), Readable.from(bytes));
 
-    this.db.run(
-      'INSERT OR REPLACE INTO trek_photo_cache_meta (cache_key, content_type, fetched_at) VALUES (?, ?, ?)',
-      key, contentType, Date.now(),
-    );
+    // TC4
+    await this.cacheMeta.upsertMeta(key, contentType, Date.now());
   }
 
   async serveFresh(res: Response, key: string): Promise<boolean> {
@@ -91,18 +91,19 @@ export class TrekPhotoCacheService {
 
   setInFlight(key: string, promise: Promise<Buffer | null>): void {
     inFlight.set(key, promise);
-    promise.finally(() => inFlight.delete(key));
+    // Book-keeping only: the caller awaits `promise` itself and observes its
+    // rejection, so the derived chain swallows the same one rather than raising
+    // a second, unhandled rejection.
+    void promise.finally(() => inFlight.delete(key)).catch(() => undefined);
   }
 
   async sweepExpired(): Promise<void> {
     const cutoff = Date.now() - CACHE_TTL * 2;
-    const stale = this.db.all<{ cache_key: string }>(
-      'SELECT cache_key FROM trek_photo_cache_meta WHERE fetched_at < ?', cutoff,
-    );
+    const stale = await this.cacheMeta.listStale(cutoff); // TC5
 
-    for (const row of stale) {
-      this.db.run('DELETE FROM trek_photo_cache_meta WHERE cache_key = ?', row.cache_key);
-      await this.storage.delete('photos-trek', objectName(row.cache_key));
+    for (const cacheKey of stale) {
+      await this.cacheMeta.deleteByCacheKey(cacheKey); // TC6
+      await this.storage.delete('photos-trek', objectName(cacheKey));
     }
 
     // Pass 2 (fix #4, spec rev 3.2): getFresh's expiry path deletes the meta
@@ -113,9 +114,11 @@ export class TrekPhotoCacheService {
     for await (const stat of this.storage.list('photos-trek')) {
       if (stat.key.includes('/') || !stat.key.endsWith('.bin') || stat.mtimeMs >= cutoff) continue;
       const key = stat.key.slice(0, -'.bin'.length);
-      const row = this.db.get('SELECT 1 FROM trek_photo_cache_meta WHERE cache_key = ?', key);
-      if (!row) {
-        await this.storage.delete('photos-trek', stat.key).catch(() => { /* race */ });
+      const exists = await this.cacheMeta.existsByCacheKey(key); // TC7
+      if (!exists) {
+        await this.storage.delete('photos-trek', stat.key).catch(() => {
+          /* race */
+        });
       }
     }
   }

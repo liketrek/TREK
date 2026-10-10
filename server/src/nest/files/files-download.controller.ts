@@ -1,10 +1,11 @@
+import { Public } from '../auth-core/public.decorator';
+import { contentDisposition } from '../common/content-disposition';
+import { StorageService } from '../storage/storage.service';
+import { FilesService } from './files.service';
 import { Controller, Get, HttpException, Param, Req, Res } from '@nestjs/common';
+
 import type { Request, Response } from 'express';
 import path from 'path';
-import { FilesService } from './files.service';
-import { contentDisposition } from '../common/content-disposition';
-import { Public } from '../auth/public.decorator';
-import { StorageService } from '../storage/storage.service';
 
 /**
  * GET /api/trips/:tripId/files/:id/download — authenticated file download.
@@ -24,6 +25,7 @@ export class FilesDownloadController {
     private readonly storage: StorageService,
   ) {}
 
+  // response-contract-exempt: streams the file through @Res(), there is no JSON body to check.
   @Get(':id/download')
   async download(
     @Req() req: Request,
@@ -31,17 +33,14 @@ export class FilesDownloadController {
     @Param('tripId') tripId: string,
     @Param('id') id: string,
   ): Promise<void> {
-    const auth = this.files.authenticateDownload(req);
-    if ('error' in auth) {
-      throw new HttpException({ error: auth.error }, auth.status);
-    }
+    const auth = await this.files.authenticateDownload(req);
 
-    const trip = this.files.verifyTripAccess(tripId, auth.userId);
+    const trip = await this.files.verifyTripAccess(tripId, auth.userId);
     if (!trip) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
 
-    const file = this.files.getFileById(id, tripId);
+    const file = await this.files.getFileById(id, tripId);
     if (!file) {
       throw new HttpException({ error: 'File not found' }, 404);
     }
@@ -69,7 +68,10 @@ export class FilesDownloadController {
       name,
       res,
       walletMime
-        ? { contentType: walletMime, disposition: contentDisposition(path.basename(file.original_name || name), 'inline') }
+        ? {
+            contentType: walletMime,
+            disposition: contentDisposition(path.basename(file.original_name || name), 'inline'),
+          }
         : undefined,
     );
   }

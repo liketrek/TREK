@@ -1,11 +1,10 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import { logError, logInfo } from '../audit/audit-log.logger';
 import { ADDON_IDS } from '../../addons';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { AddonsService } from '../addons/addons.service';
-import { DatabaseService } from '../database/database.service';
+import { logError, logInfo } from '../audit/audit-log.logger';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 import { DocSyncConfigService } from './doc-sync-config.service';
-import { DocSyncService } from './doc-sync.service';
 import {
   DEFAULT_POLL_INTERVAL_SECONDS,
   MAX_POLL_INTERVAL_SECONDS,
@@ -13,6 +12,9 @@ import {
   SETTING_POLL_INTERVAL,
   SETTING_SYNC_ENABLED,
 } from './doc-sync.constants';
+import { DocSyncService } from './doc-sync.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
  * The poll that carries document sync.
@@ -40,7 +42,7 @@ import {
 @Injectable()
 export class DocSyncJob implements OnApplicationBootstrap {
   constructor(
-    private readonly db: DatabaseService,
+    @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
     private readonly sync: DocSyncService,
     private readonly config: DocSyncConfigService,
     private readonly addons: AddonsService,
@@ -50,9 +52,13 @@ export class DocSyncJob implements OnApplicationBootstrap {
   /** When the last pass started; null until the first one, which is never skipped. */
   private lastRunAt: number | null = null;
 
-  onApplicationBootstrap(): void {
+  async onApplicationBootstrap(): Promise<void> {
     if (!this.registrar.isEnabled()) return;
-    logInfo(`Document sync: polling every ${this.intervalSeconds()}s`);
+    // Through runOnBoot (task-6-review-parity.md C1: repository-backed as of
+    // Plan 3h Task 5 — the wrap stays at the entrypoint regardless).
+    await this.registrar.runOnBoot('docsync-boot', async () => {
+      logInfo(`Document sync: polling every ${await this.intervalSeconds()}s`);
+    });
     this.registrar.register('docsync', '* * * * *', () => this.tick());
   }
 
@@ -64,17 +70,17 @@ export class DocSyncJob implements OnApplicationBootstrap {
    * boundaries fall. Comparing against the last run keeps the setting's own
    * resolution; the cost of the extra wake-ups is one read of app_settings.
    */
-  private isDue(now: number): boolean {
+  private async isDue(now: number): Promise<boolean> {
     // Null rather than 0: comparing against the epoch means "due" only once the
     // clock has passed the interval since 1970, which is true in production and
     // false for any test that picks a small timestamp, a difference that would
     // have hidden here rather than in the behaviour it is supposed to describe.
     if (this.lastRunAt === null) return true;
-    return now - this.lastRunAt >= this.intervalSeconds() * 1000;
+    return now - this.lastRunAt >= (await this.intervalSeconds()) * 1000;
   }
 
-  private intervalSeconds(): number {
-    const raw = this.db.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', SETTING_POLL_INTERVAL)?.value;
+  private async intervalSeconds(): Promise<number> {
+    const raw = (await this.appSettings.getValue(SETTING_POLL_INTERVAL)) ?? undefined;
     const parsed = Number.parseInt(raw || '', 10);
     if (!Number.isFinite(parsed)) return DEFAULT_POLL_INTERVAL_SECONDS;
     return Math.min(MAX_POLL_INTERVAL_SECONDS, Math.max(MIN_POLL_INTERVAL_SECONDS, parsed));
@@ -82,22 +88,22 @@ export class DocSyncJob implements OnApplicationBootstrap {
 
   async tick(): Promise<void> {
     try {
-      if (!this.addons.isAddonEnabled(ADDON_IDS.DOCUMENTS)) return;
-      const killSwitch = this.db.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', SETTING_SYNC_ENABLED)?.value;
+      if (!(await this.addons.isAddonEnabled(ADDON_IDS.DOCUMENTS))) return;
+      const killSwitch = (await this.appSettings.getValue(SETTING_SYNC_ENABLED)) ?? undefined;
       // Unrecognised values mean ON here because the setting is absent by
       // default; only an explicit 'false' stops the sync.
       if (killSwitch === 'false') return;
 
       const now = Date.now();
-      if (!this.isDue(now)) return;
+      if (!(await this.isDue(now))) return;
       this.lastRunAt = now;
 
       // Cheap, and it catches a binding whose owner left the trip through a
       // path that has no hook to attach to: a transfer, a direct DB edit.
-      const orphaned = this.config.markOrphanedLinks();
+      const orphaned = await this.config.markOrphanedLinks();
       if (orphaned > 0) logInfo(`Document sync: ${orphaned} link(s) orphaned, owner no longer on the trip`);
 
-      const links = this.sync.dueLinks();
+      const links = await this.sync.dueLinks();
       for (const link of links) {
         // One failing provider must not stop the others: an unreachable NAS on
         // one trip is not a reason to skip a Paperless binding on another.

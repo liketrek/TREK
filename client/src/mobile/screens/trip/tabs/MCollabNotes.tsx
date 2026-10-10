@@ -6,7 +6,7 @@ import { sanitizedMarkdownPlugins, sanitizedMarkdownComponents } from '../../../
 import { Check, ExternalLink, FileText, Paperclip, Pin, PinOff, Plus, StickyNote, Trash2, X } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { collabApi } from '../../../../api/client'
-import { addListener, removeListener } from '../../../../api/websocket'
+import { announceNoteFilesChanged, useCollabNotesData } from '../../../../components/Collab/useCollabNotesData'
 import { openFile } from '../../../../utils/fileDownload'
 import { safeExternalHref } from '../../../../utils/safeUrl'
 import MSheet from '../../../components/MSheet'
@@ -21,7 +21,7 @@ import {
   sortNotes,
   type CollabNoteData,
   type CollabNoteFile,
-} from './collabModel'
+} from '../../../../components/Collab/collabModel'
 
 interface MCollabNotesProps {
   planner: TripPlanner
@@ -47,9 +47,9 @@ function linkHost(url: string): string {
 }
 
 /**
- * Trip-tab Collab / Notes. Same architecture as MCollabChat: own state, own
- * `collabApi` calls, own WebSocket listener — no `tripStore`/`tripActions`
- * (10-tab-databindings.md §8.4). The demo only has a placeholder for this
+ * Trip-tab Collab / Notes. The list and its WebSocket listener come from
+ * useCollabNotesData, the hook the desktop panel reads too; no
+ * `tripStore`/`tripActions` (10-tab-databindings.md §8.4). The demo only has a placeholder for this
  * sub-tab, so the card/filter/form design below is new (spec 03 §6.4 audit
  * item), built in the same visual language as MTransportsTab.
  */
@@ -58,43 +58,11 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
   const canEdit = planner.can('collab_edit', planner.trip)
   const canUploadFiles = planner.can('file_upload', planner.trip)
 
-  const [notes, setNotes] = useState<CollabNoteData[]>([])
-  const [loading, setLoading] = useState(true)
+  const { notes, setNotes, loading, uploadNoteFiles } = useCollabNotesData({ tripId, t, toast })
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [formTarget, setFormTarget] = useState<NoteFormTarget | null>(null)
   const [viewingNote, setViewingNote] = useState<CollabNoteData | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
-
-  // ── Load ──
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    collabApi.getNotes(tripId).then((data: GetNotesResponse) => {
-      if (!cancelled) setNotes(data.notes || [])
-    }).catch(() => { /* leave notes empty */ }).finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [tripId])
-
-  // ── WebSocket (own listener, not handleRemoteEvent) ──
-  useEffect(() => {
-    const handler = (event: Record<string, unknown>) => {
-      if (String(event.tripId) !== String(tripId)) return
-      if (event.type === 'collab:note:created') {
-        const note = event.note as CollabNoteData
-        setNotes(prev => (prev.some(n => n.id === note.id) ? prev : [note, ...prev]))
-      }
-      if (event.type === 'collab:note:updated') {
-        const note = event.note as CollabNoteData
-        setNotes(prev => prev.map(n => (n.id === note.id ? { ...n, ...note } : n)))
-      }
-      if (event.type === 'collab:note:deleted') {
-        const noteId = event.noteId as number
-        setNotes(prev => prev.filter(n => n.id !== noteId))
-      }
-    }
-    addListener(handler)
-    return () => removeListener(handler)
-  }, [tripId])
 
   const categories = noteCategoriesList(notes)
   const colorMap = buildCategoryColorMap(notes)
@@ -113,17 +81,13 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
       throw new Error('create failed')
     }
     if (data.pendingFiles.length > 0) {
-      for (const file of data.pendingFiles) {
-        const fd = new FormData()
-        fd.append('file', file)
-        try { await collabApi.uploadNoteFile(tripId, created.id, fd) } catch { toast.error(t('common.error')) }
-      }
+      await uploadNoteFiles(created.id, data.pendingFiles)
       const fresh = (await collabApi.getNotes(tripId)) as GetNotesResponse
       setNotes(fresh.notes || [])
       return
     }
     setNotes(prev => (prev.some(n => n.id === created.id) ? prev : [created, ...prev]))
-  }, [tripId, toast, t])
+  }, [tripId, toast, t, setNotes, uploadNoteFiles])
 
   const handleUpdate = useCallback(async (
     noteId: number,
@@ -139,26 +103,23 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
       throw new Error('update failed')
     }
     if (pendingFiles.length > 0) {
-      for (const file of pendingFiles) {
-        const fd = new FormData()
-        fd.append('file', file)
-        try { await collabApi.uploadNoteFile(tripId, noteId, fd) } catch { toast.error(t('common.error')) }
-      }
+      await uploadNoteFiles(noteId, pendingFiles)
       const fresh = (await collabApi.getNotes(tripId)) as GetNotesResponse
       setNotes(fresh.notes || [])
       return
     }
     if (updated) setNotes(prev => prev.map(n => (n.id === noteId ? { ...n, ...updated } : n)))
-  }, [tripId, toast, t])
+  }, [tripId, toast, t, setNotes, uploadNoteFiles])
 
   const handleDelete = useCallback(async (noteId: number) => {
     try {
       await collabApi.deleteNote(tripId, noteId)
       setNotes(prev => prev.filter(n => n.id !== noteId))
+      announceNoteFilesChanged()
     } catch {
       toast.error(t('common.error'))
     }
-  }, [tripId, toast, t])
+  }, [tripId, toast, t, setNotes])
 
   // Returns whether the file is really gone — the form sheet only drops the
   // chip once the server confirmed it.
@@ -168,12 +129,13 @@ export default function MCollabNotes({ planner }: MCollabNotesProps) {
       setNotes(prev => prev.map(n => (
         n.id === noteId ? { ...n, attachments: n.attachments.filter(f => f.id !== fileId) } : n
       )))
+      announceNoteFilesChanged()
       return true
     } catch {
       toast.error(t('common.error'))
       return false
     }
-  }, [tripId, toast, t])
+  }, [tripId, toast, t, setNotes])
 
   const openNote = (note: CollabNoteData) => (canEdit ? setFormTarget(note) : setViewingNote(note))
 
@@ -314,7 +276,7 @@ function NoteCardRow({ note, color, canEdit, onTap, onTogglePin, onDelete, t }: 
     <div className="mt-2 overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]">
       <div className="flex items-center gap-[7px] px-3 py-[10px]" style={{ background: `${color}0d` }}>
         {!!note.pinned && <Pin size={11} strokeWidth={2.4} style={{ color }} className="flex-none" />}
-        <button type="button" onClick={onTap} className="flex min-w-0 flex-1 items-center gap-[7px] text-left">
+        <button type="button" onClick={onTap} className="flex min-w-0 flex-1 items-center gap-[7px] text-start">
           <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-bold text-m-ink">{note.title}</span>
           {note.category && (
             <span
@@ -358,9 +320,9 @@ function NoteCardRow({ note, color, canEdit, onTap, onTogglePin, onDelete, t }: 
         )}
       </div>
 
-      <button type="button" onClick={onTap} className="block w-full px-3 pb-3 pt-[9px] text-left">
+      <button type="button" onClick={onTap} className="block w-full px-3 pb-3 pt-[9px] text-start">
         {note.content && (
-          <div className="line-clamp-3 font-geist text-[0.75rem] leading-[1.5] text-m-muted [&_a]:underline [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:mb-1 [&_strong]:font-bold [&_ul]:list-disc [&_ul]:pl-4">
+          <div className="line-clamp-3 [overflow-wrap:anywhere] font-geist text-[0.75rem] leading-[1.5] text-m-muted [&_a]:underline [&_ol]:list-decimal [&_ol]:ps-4 [&_p]:mb-1 [&_strong]:font-bold [&_ul]:list-disc [&_ul]:ps-4">
             <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={sanitizedMarkdownPlugins} components={sanitizedMarkdownComponents}>{note.content}</Markdown>
           </div>
         )}
@@ -640,7 +602,7 @@ function NoteViewSheet({ open, note, onClose, t }: {
       />
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-4 pt-1">
         {snapshot?.content && (
-          <div className="font-geist text-[0.8125rem] leading-[1.6] text-m-ink [&_a]:underline [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_strong]:font-bold [&_ul]:list-disc [&_ul]:pl-5">
+          <div className="font-geist text-[0.8125rem] leading-[1.6] text-m-ink [overflow-wrap:anywhere] [&_a]:underline [&_ol]:list-decimal [&_ol]:ps-5 [&_p]:mb-2 [&_strong]:font-bold [&_ul]:list-disc [&_ul]:ps-5">
             <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={sanitizedMarkdownPlugins} components={sanitizedMarkdownComponents}>{snapshot.content}</Markdown>
           </div>
         )}
@@ -662,7 +624,7 @@ function NoteViewSheet({ open, note, onClose, t }: {
                 key={f.id}
                 type="button"
                 onClick={() => openFile(f.url, f.original_name)}
-                className="flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[8px] text-left"
+                className="flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[8px] text-start"
               >
                 <FileText size={13} strokeWidth={2} className="flex-none text-m-muted" />
                 <span className="min-w-0 flex-1 truncate font-geist text-[0.71875rem] font-semibold text-m-muted">

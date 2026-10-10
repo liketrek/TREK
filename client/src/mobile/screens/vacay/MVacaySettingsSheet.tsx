@@ -4,14 +4,13 @@ import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MToggle from '../../components/MToggle'
 import { useVacayStore } from '../../../store/vacayStore'
-import { getIntlLanguage, useTranslation } from '../../../i18n'
-import { useToast } from '../../../components/shared/Toast'
-import apiClient from '../../../api/client'
-import { fetchRegionOptions, fetchSchoolHolidayRegionOptions } from '../../../components/Vacay/holidayRegions'
+import { useTranslation } from '../../../i18n'
 import { useSchoolHolidayCountries } from '../../../components/Vacay/useSchoolHolidayCountries'
-import { windowMonths } from '../../../vacay/yearWindow'
+import {
+  canAddHolidayCalendar, monthDayCap, parseHolidayRegion, useLeaveYear, useRegionOptions, useVacaySettings,
+} from '../../../components/Vacay/useVacaySettings'
 import { FALLBACK_PERSON_COLOR } from './vacayDayModel'
-import type { VacayHolidayCalendar, VacayYearSettings } from '../../../types'
+import type { VacayHolidayCalendar } from '../../../types'
 
 const CALENDAR_COLORS = ['#fecaca', '#fed7aa', '#fde68a', '#bbf7d0', '#a5f3fc', '#c7d2fe', '#e9d5ff', '#fda4af']
 
@@ -29,36 +28,17 @@ interface MVacaySettingsSheetProps {
  */
 export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsSheetProps) {
   const { t, language } = useTranslation()
-  const toast = useToast()
-  const { plan, updatePlan, addHolidayCalendar, updateHolidayCalendar, deleteHolidayCalendar, isFused, dissolve, users } = useVacayStore()
-  const [countries, setCountries] = useState<Option[]>([])
+  const { plan, updatePlan, addHolidayCalendar, updateHolidayCalendar, deleteHolidayCalendar, isFused, users } = useVacayStore()
   const [showAddForm, setShowAddForm] = useState(false)
   const [showAddSchoolForm, setShowAddSchoolForm] = useState(false)
-
-  useEffect(() => {
-    if (!open) return
-    apiClient.get('/addons/vacay/holidays/countries').then(r => {
-      let displayNames: Intl.DisplayNames | undefined
-      try { displayNames = new Intl.DisplayNames([getIntlLanguage(language)], { type: 'region' }) } catch { /* */ }
-      const list: Option[] = r.data.map((c: { countryCode: string; name: string }) => ({
-        value: c.countryCode,
-        label: displayNames ? (displayNames.of(c.countryCode) || c.name) : c.name,
-      }))
-      list.sort((a, b) => a.label.localeCompare(b.label))
-      setCountries(list)
-    }).catch(() => {})
-  }, [open, language])
+  const {
+    countries, publicHolidayCalendars, schoolHolidayCalendars, weekendDays, toggleWeekendDay, dissolveFusion,
+  } = useVacaySettings({ language, loadCountries: open })
 
   const { countries: schoolHolidayCountries, error: schoolCountryError } = useSchoolHolidayCountries(open)
 
   if (!plan) return null
 
-  // Public and school calendars live in the same holiday_calendars list, split by type
-  // (a null type predates the school-holiday feature, so it counts as a public holiday).
-  const publicHolidayCalendars = (plan.holiday_calendars ?? []).filter(cal => (cal.type ?? 'public_holiday') === 'public_holiday')
-  const schoolHolidayCalendars = (plan.holiday_calendars ?? []).filter(cal => cal.type === 'school_holiday')
-
-  const weekendDays: number[] = plan.weekend_days ? String(plan.weekend_days).split(',').map(Number) : [0, 6]
   const weekdayChips = [
     { day: 1, label: t('vacay.mon') },
     { day: 2, label: t('vacay.tue') },
@@ -90,20 +70,17 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
         </div>
         {plan.block_weekends !== false && (
           <>
-            <div className="mb-[6px] ml-7 mt-[2px] font-geist text-[0.625rem] font-bold uppercase tracking-[.06em] text-m-faint">
+            <div className="mb-[6px] ms-7 mt-[2px] font-geist text-[0.625rem] font-bold uppercase tracking-[.06em] text-m-faint">
               {t('vacay.weekendDays')}
             </div>
-            <div className="mb-[6px] ml-7 flex gap-1">
+            <div className="mb-[6px] ms-7 flex gap-1">
               {weekdayChips.map(({ day, label }) => {
                 const active = weekendDays.includes(day)
                 return (
                   <button
                     key={day}
                     type="button"
-                    onClick={() => {
-                      const next = active ? weekendDays.filter(d => d !== day) : [...weekendDays, day]
-                      updatePlan({ weekend_days: next.join(',') })
-                    }}
+                    onClick={() => toggleWeekendDay(day)}
                     className={`flex-1 rounded-[10px] py-[7px] text-center text-[0.65625rem] font-semibold ${
                       active ? 'bg-m-act text-m-actfg' : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'
                     }`}
@@ -274,7 +251,7 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
             </div>
             <button
               type="button"
-              onClick={async () => { await dissolve(); toast.success(t('vacay.dissolved')); onClose() }}
+              onClick={() => dissolveFusion(onClose)}
               className="mt-[10px] w-full rounded-xl bg-[#D6273B] p-[11px] text-center text-[0.78125rem] font-bold text-white"
             >
               {t('vacay.dissolveAction')}
@@ -293,27 +270,13 @@ export default function MVacaySettingsSheet({ open, onClose }: MVacaySettingsShe
  */
 function YearTypeRows() {
   const { t, locale } = useTranslation()
-  const { yearSettings, updateYearSettings, selectedYear } = useVacayStore()
-  const type = yearSettings.year_type
+  const { yearSettings, type, selectedYear, save, windowLabel } = useLeaveYear(locale)
 
   const monthOptions: Option[] = useMemo(() => {
     const fmt = new Intl.DateTimeFormat(locale, { month: 'long' })
     return Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: fmt.format(new Date(2026, i, 1)) }))
   }, [locale])
 
-  const save = (patch: Partial<VacayYearSettings>) => {
-    const next = { ...yearSettings, ...patch }
-    updateYearSettings({
-      year_type: next.year_type,
-      year_start_month: next.year_start_month,
-      year_start_day: Math.min(next.year_start_day, monthDayCap(next.year_start_month)),
-      hire_date: next.hire_date,
-    })
-  }
-
-  const months = windowMonths(selectedYear, yearSettings)
-  const fmtShort = new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric' })
-  const windowLabel = `${fmtShort.format(new Date(months[0].year, months[0].month, 1))} – ${fmtShort.format(new Date(months[11].year, months[11].month, 1))}`
 
   return (
     <>
@@ -324,7 +287,7 @@ function YearTypeRows() {
           <div className="font-geist text-[0.65625rem] text-m-muted">{t('vacay.yearTypeHint')}</div>
         </div>
       </div>
-      <div className="ml-7 flex gap-1">
+      <div className="ms-7 flex gap-1">
         {([
           { value: 'calendar', label: t('vacay.yearTypeCalendar') },
           { value: 'fiscal', label: t('vacay.yearTypeFiscal') },
@@ -344,7 +307,7 @@ function YearTypeRows() {
       </div>
 
       {type === 'fiscal' && (
-        <div className="ml-7 flex gap-2">
+        <div className="ms-7 flex gap-2">
           <span className="min-w-0 flex-1">
             <SelectRow
               value={String(yearSettings.year_start_month)}
@@ -365,7 +328,7 @@ function YearTypeRows() {
       )}
 
       {type === 'anniversary' && (
-        <div className="ml-7">
+        <div className="ms-7">
           <input
             type="date"
             value={yearSettings.hire_date || ''}
@@ -376,17 +339,11 @@ function YearTypeRows() {
         </div>
       )}
 
-      <div className="ml-7 mt-[6px] font-geist text-[0.625rem] text-m-faint">
+      <div className="ms-7 mt-[6px] font-geist text-[0.625rem] text-m-faint">
         {t('vacay.yearWindow', { year: selectedYear, window: windowLabel })}
       </div>
     </>
   )
-}
-
-/** Days a month always has — February caps at 28 so a start date never goes missing in a common year. */
-function monthDayCap(month: number): number {
-  if (month === 2) return 28
-  return [4, 6, 9, 11].includes(month) ? 30 : 31
 }
 
 /** Styled native select in the sheet's row look (label + chevron). */
@@ -428,7 +385,7 @@ function ColorSwatch({ color, onPick }: { color: string; onPick: (color: string)
         style={{ background: color }}
       />
       {openPalette && (
-        <span className="absolute left-0 top-[32px] z-10 grid w-[124px] grid-cols-4 gap-1 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-2 shadow-[0_8px_24px_rgba(0,0,0,.12)]">
+        <span className="absolute start-0 top-[32px] z-10 grid w-[124px] grid-cols-4 gap-1 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-2 shadow-[0_8px_24px_rgba(0,0,0,.12)]">
           {CALENDAR_COLORS.map(c => (
             <button
               key={c}
@@ -444,30 +401,6 @@ function ColorSwatch({ color, onPick }: { color: string; onPick: (color: string)
   )
 }
 
-/**
- * Region options for a holiday-calendar country.
- *
- * The loaded list is tagged with the country it belongs to, so switching country
- * drops the previous list in the same render instead of leaving it selectable while
- * the next request is still running (#1813: picking a German region for the
- * Netherlands was possible that way). `loadingRegions` tells "not answered yet"
- * apart from "this country has no regions"; on the list alone both are empty.
- */
-function useRegionOptions(country: string, calendarType: 'public_holiday' | 'school_holiday') {
-  const [loaded, setLoaded] = useState<{ country: string; options: Option[]; failed?: boolean }>({ country: '', options: [] })
-
-  useEffect(() => {
-    if (!country) return
-    const load = calendarType === 'school_holiday' ? fetchSchoolHolidayRegionOptions : fetchRegionOptions
-    let stale = false
-    load(country).then(options => { if (!stale) setLoaded({ country, options }) }).catch(() => { if (!stale) setLoaded({ country, options: [], failed: true }) })
-    return () => { stale = true }
-  }, [country, calendarType])
-
-  const ready = loaded.country === country
-  return { regions: ready ? loaded.options : [], regionError: ready && loaded.failed, loadingRegions: Boolean(country) && !ready }
-}
-
 function CalendarEditor({ cal, countries, calendarType = 'public_holiday', onUpdate, onDelete }: {
   cal: VacayHolidayCalendar
   countries: Option[]
@@ -479,9 +412,7 @@ function CalendarEditor({ cal, countries, calendarType = 'public_holiday', onUpd
   const [label, setLabel] = useState(cal.label || '')
   // A school-holiday group carries a `|group:…` suffix — strip it before the
   // country is read off, otherwise the region lookup finds nothing.
-  const [baseRegion] = cal.region.split('|')
-  const country = baseRegion.split('-')[0]
-  const region = cal.region.includes('|group:') || baseRegion.includes('-') ? cal.region : ''
+  const { country, region } = parseHolidayRegion(cal.region)
   const { regions, regionError } = useRegionOptions(country, calendarType)
 
   useEffect(() => { setLabel(cal.label || '') }, [cal.label])
@@ -522,15 +453,14 @@ function AddCalendarDraft({ countries, calendarType = 'public_holiday', onAdd, o
   const [color, setColor] = useState(CALENDAR_COLORS[0])
   const [label, setLabel] = useState('')
 
-  const [baseRegion] = region.split('|')
-  const country = baseRegion.split('-')[0] || ''
-  const selectedRegion = region.includes('|group:') || baseRegion.includes('-') ? region : ''
-  const { regions, loadingRegions, regionError } = useRegionOptions(country, calendarType)
+  const { country, region: selectedRegion } = parseHolidayRegion(region)
+  const regionOptions = useRegionOptions(country, calendarType)
+  const { regions, loadingRegions, regionError } = regionOptions
 
   // Adding is blocked while the region list is on its way: an empty list would
   // otherwise pass as "this country needs no region" and create a calendar that
   // draws nothing (#1813). The button shows a spinner so the wait is visible.
-  const canAdd = Boolean(country) && !loadingRegions && !regionError && (regions.length === 0 || regions.some(option => option.value === region))
+  const canAdd = canAddHolidayCalendar(country, region, regionOptions)
 
   return (
     <div className="mt-2 rounded-[14px] border-[1.5px] border-dashed border-[color:var(--m-rowbr)] p-3">

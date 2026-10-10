@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildPlanRows } from './planTimelineModel'
 import type { MergedItem } from '../../../../utils/dayMerge'
-import type { Reservation } from '../../../../types'
+import type { Reservation, RouteSegment } from '../../../../types'
 
 // FE-MOBILE-PLANROWS-001 to FE-MOBILE-PLANROWS-003
 
@@ -46,5 +46,23 @@ describe('buildPlanRows', () => {
     const place = rows[0]
     if (place.kind !== 'place') throw new Error('expected a place row')
     expect(place.linkedReservations).toEqual([])
+  })
+
+  it('shows the incoming and outgoing connectors at opposite Tour endpoints', () => {
+    const start: [number, number] = [48.103, 11.103]
+    const end: [number, number] = [48.12, 11.12]
+    const before: [number, number] = [48.1, 11.1]
+    const after: [number, number] = [48.13, 11.13]
+    const merged = [
+      { type: 'place', sortKey: 0, data: { id: 11, place: { id: 1, lat: before[0], lng: before[1] } } },
+      { type: 'place', sortKey: 1, data: { id: 12, tour_place_id: 2,
+        tour_route_geometry: JSON.stringify([start, end]), place: { id: 2, lat: start[0], lng: start[1] } } },
+      { type: 'place', sortKey: 2, data: { id: 13, place: { id: 3, lat: after[0], lng: after[1] } } },
+    ] as unknown as MergedItem[]
+    const segment = (from: [number, number], to: [number, number]) => ({ from, to }) as RouteSegment
+    const segments = [segment(before, start), segment(end, after)]
+    const rows = buildPlanRows({ merged, reservations: [], routeSegments: segments, dayId: 5, toursEnabled: true })
+    expect(rows.filter(row => row.kind === 'conn').map(row => row.seg)).toEqual(segments)
+    expect(buildPlanRows({ merged, reservations: [], routeSegments: segments, dayId: 5 }).some(row => row.kind === 'conn' && row.seg.from[0] === end[0])).toBe(false)
   })
 })

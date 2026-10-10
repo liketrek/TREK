@@ -8,8 +8,8 @@
  *
  * An earlier denylist spelled out `db:write:` and missed `db:create:trips`.
  */
-import { KNOWN_PERMISSIONS } from '../../../src/nest/plugins/protocol/envelope';
 import { clampToolAnnotations } from '../../../src/nest/plugins/mcp-tool-schema';
+import { KNOWN_PERMISSIONS } from '../../../src/nest/plugins/protocol/envelope';
 
 import { describe, expect, it } from 'vitest';
 
@@ -72,7 +72,10 @@ describe('grant classification', () => {
   });
 
   it('MCPANN-005: a per-host egress grant is a side effect and forces openWorldHint', () => {
-    const out = clampToolAnnotations({ readOnlyHint: true, openWorldHint: false }, new Set(['http:outbound:api.example.com']));
+    const out = clampToolAnnotations(
+      { readOnlyHint: true, openWorldHint: false },
+      new Set(['http:outbound:api.example.com']),
+    );
     expect(out.readOnlyHint).toBe(false);
     expect(out.openWorldHint).toBe(true);
   });

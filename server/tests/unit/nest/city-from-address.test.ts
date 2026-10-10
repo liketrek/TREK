@@ -4,8 +4,9 @@
  * the bug being fixed here was precisely that the old rule looked plausible against
  * invented examples and failed against actual data.
  */
-import { describe, it, expect } from 'vitest';
 import { cityFromAddress } from '../../../src/nest/atlas/city-from-address';
+
+import { describe, it, expect } from 'vitest';
 
 const COUNTRIES = new Set(['Japan', 'France', 'Germany', 'Italy', 'Nederland', '日本', 'Россия', 'Ελλάδα', '대한민국']);
 const isCountry = (part: string) => COUNTRIES.has(part);
@@ -16,8 +17,12 @@ describe('cityFromAddress', () => {
   it('takes the city, not the name of the place itself', () => {
     // The old rule scanned left to right and returned "Shibuya Sky" for this.
     expect(city('Shibuya Sky, 12, Shibuya 2, Shibuya, Tokyo, 150-0002, Japan', 'Tokyo')).toBe('Shibuya');
-    expect(city('Family Mart, Omotesandō, Kita-Aoyama 3, Kita-Aoyama, Minato, Tokyo, 107-0061, Japan', 'Tokyo')).toBe('Minato');
-    expect(city('BNP Paribas, Boulevard de Courcelles, Paris, Île-de-France, 75008, France', 'Île-de-France')).toBe('Paris');
+    expect(city('Family Mart, Omotesandō, Kita-Aoyama 3, Kita-Aoyama, Minato, Tokyo, 107-0061, Japan', 'Tokyo')).toBe(
+      'Minato',
+    );
+    expect(city('BNP Paribas, Boulevard de Courcelles, Paris, Île-de-France, 75008, France', 'Île-de-France')).toBe(
+      'Paris',
+    );
   });
 
   it('skips the region so the city below it wins', () => {

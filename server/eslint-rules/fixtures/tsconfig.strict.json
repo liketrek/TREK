@@ -1,0 +1,15 @@
+{
+  // Second fixture project, identical but with strictNullChecks ON. The server
+  // compiles with `strict: false`, where `Promise<T> | null` collapses to
+  // `Promise<T>` and the rule's nullable exemptions are unreachable — this one
+  // exists so those branches (`p ?? x`, `p === null`) are actually exercised.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["strict.ts"]
+}

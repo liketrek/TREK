@@ -57,6 +57,8 @@ const dayplan: TranslationStrings = {
   'dayplan.exportMaps': 'Карты и GPS',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Экспортировать план дня в PDF',
+  'dayplan.pdfMine': 'Мой план в PDF',
+  'dayplan.pdfMineSub': 'Только занятия и бронирования, в которых вы участвуете',
   'dayplan.gpxTooltip': 'Экспорт в GPX для офлайн-карт и GPS-устройств',
   'dayplan.gpxAll': 'Вся поездка',
   'dayplan.gpxPlaces': 'Только места',
@@ -78,8 +80,8 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Все места распределены',
   'dayplan.mobile.noMatch': 'Нет совпадений',
   'dayplan.mobile.createNew': 'Создать новое место',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': 'Развернуть все дни', // en-fallback
+  'dayplan.collapseAll': 'Свернуть все дни', // en-fallback
   'dayplan.reorderDays': 'Изменить порядок дней',
   'dayplan.reorderTitle': 'Изменить порядок дней',
   'dayplan.reorderHint': 'Места, заметки и бронирования дня перемещаются вместе с ним.',
@@ -92,13 +94,33 @@ const dayplan: TranslationStrings = {
   'dayplan.deleteDay': 'Удалить день',
   'dayplan.deleteDayTitle': 'Удалить {day}?',
   'dayplan.deleteDayBody': 'День будет удалён из поездки. Это действие нельзя отменить.',
+  'dayplan.excludeFromRoute': 'Исключить из маршрута',
+  'dayplan.includeInRoute': 'Вернуть в маршрут',
+  'dayplan.offRoute': 'Вне маршрута',
+  'dayplan.offRouteHint': 'Остаётся в дне и на карте, но маршрут его пропускает',
+  'dayplan.clearDay': 'Очистить день',
+  'dayplan.clearDayTitle': 'Очистить {day}?',
+  'dayplan.clearDayBody':
+    'Все места будут убраны из этого дня. Сами места останутся в поездке, а заметки и бронирования дня сохранятся.',
   'dayplan.deleteDayEmpty': 'На этот день ничего не запланировано.',
   'dayplan.impactPlaces': 'Запланированные места: {count}',
+  'dayplan.impactPlaces.one': 'Запланированные места: {count}',
+  'dayplan.impactPlaces.few': 'Запланированные места: {count}',
+  'dayplan.impactPlaces.many': 'Запланированные места: {count}',
   'dayplan.impactPlacesHint': 'Они останутся в списке мест.',
   'dayplan.impactNotes': 'Заметки: {count}',
+  'dayplan.impactNotes.one': 'Заметки: {count}',
+  'dayplan.impactNotes.few': 'Заметки: {count}',
+  'dayplan.impactNotes.many': 'Заметки: {count}',
   'dayplan.impactTexts': 'Названия и описания дня: {count}',
+  'dayplan.impactTexts.one': 'Названия и описания дня: {count}',
+  'dayplan.impactTexts.few': 'Названия и описания дня: {count}',
+  'dayplan.impactTexts.many': 'Названия и описания дня: {count}',
   'dayplan.impactDeletedHint': 'Тоже будут удалены.',
   'dayplan.impactBookings': 'Бронирования: {count}',
+  'dayplan.impactBookings.one': 'Бронирования: {count}',
+  'dayplan.impactBookings.few': 'Бронирования: {count}',
+  'dayplan.impactBookings.many': 'Бронирования: {count}',
   'dayplan.impactStay': 'Проживание в {name}',
   'dayplan.deleteDayBookingsHint': 'Они останутся в Бронированиях, без дня.',
   'dayplan.deleteDayStayHint': 'Заезд или выезд приходится на этот день, поэтому проживание отменяется.',
@@ -109,8 +131,17 @@ const dayplan: TranslationStrings = {
   'dayplan.deleteDayStayPaidHint':
     'Заезд или выезд приходится на этот день, поэтому проживание отменяется вместе с бронированием «{booking}» и его расходом на {amount}.',
   'dayplan.deleteDayShift': 'Последующие дни: {count}',
+  'dayplan.deleteDayShift.one': 'Последующие дни: {count}',
+  'dayplan.deleteDayShift.few': 'Последующие дни: {count}',
+  'dayplan.deleteDayShift.many': 'Последующие дни: {count}',
   'dayplan.deleteDayShiftHint': 'Каждый сдвигается на одну дату раньше.',
   'dayplan.deleteDayShiftBookingsHint':
+    'Каждый сдвигается на одну дату раньше. Бронирования, которые сдвигаются вместе с ними: {count}',
+  'dayplan.deleteDayShiftBookingsHint.one':
+    'Каждый сдвигается на одну дату раньше. Бронирования, которые сдвигаются вместе с ними: {count}',
+  'dayplan.deleteDayShiftBookingsHint.few':
+    'Каждый сдвигается на одну дату раньше. Бронирования, которые сдвигаются вместе с ними: {count}',
+  'dayplan.deleteDayShiftBookingsHint.many':
     'Каждый сдвигается на одну дату раньше. Бронирования, которые сдвигаются вместе с ними: {count}',
   'dayplan.deleteDayShrink': 'Теперь поездка заканчивается {date}',
   'dayplan.deleteDayShrinkHint': 'Нет дня без даты, который мог бы занять последнюю дату.',

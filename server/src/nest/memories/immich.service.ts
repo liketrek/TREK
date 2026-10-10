@@ -1,19 +1,31 @@
-import { Injectable } from '@nestjs/common';
-import type { Response } from 'express';
-import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { UserImmichRepository } from '../../db/repositories/UserImmich.repository';
 import { checkSsrf, safeFetch, type SafeFetchOptions } from '../../utils/ssrfGuard';
 import { AuditService } from '../audit/audit.service';
+import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { UnitOfWork } from '../database/unit-of-work';
 import { StorageService } from '../storage/storage.service';
+import { MemoriesAccessService } from './memories-access.service';
+import {
+  describeFetchFailure,
+  fail,
+  handleServiceResult,
+  isWithinLocalDayRange,
+  pipeAsset,
+  shiftCalendarDay,
+  sortAssetsByTakenAtDesc,
+  type Selection,
+} from './memories.helpers';
+import { Injectable } from '@nestjs/common';
+import { PROVIDER_SELECT_ALL_MAX_PAGES } from '@trek/shared';
+
+import type { Response } from 'express';
 import fsPromises from 'node:fs/promises';
 import path from 'node:path';
-import { DatabaseService } from '../database/database.service';
-import { MemoriesAccessService } from './memories-access.service';
-import { describeFetchFailure, fail, handleServiceResult, isWithinLocalDayRange, pipeAsset, shiftCalendarDay, sortAssetsByTakenAtDesc, type Selection } from './memories.helpers';
 
 const ALBUM_PAGE_SIZE = 1000;
 const ALBUM_MAX_PAGES = 20;
 /**
- * How many upstream pages one search may read while filling one answered page.
+ * How many upstream pages one search may spend on rows the day filter drops.
  *
  * The day filter runs after the fetch, so the number of raw pages an answered
  * page costs depends on how much of the padding days sits in front of it. This
@@ -21,8 +33,29 @@ const ALBUM_MAX_PAGES = 20;
  * would otherwise keep a single request fetching, so the scan stops here and
  * answers `hasMore: false` rather than spinning or handing back the same
  * partial page for every page the caller asks for.
+ *
+ * It is an allowance on top of the pages the answered ones need, not a ceiling
+ * on the scan. Every call restarts at raw page 1, so page N reads at least N-1
+ * raw pages before it reaches its own, and a flat budget of 20 ended every
+ * date-filtered search at 20 answered pages: 1,000 photos at the picker's old
+ * page size, with no word to the user (#1587).
  */
 const SEARCH_MAX_RAW_PAGES = 20;
+/**
+ * The hard stop behind that allowance: no single search reads more raw pages
+ * than this, whatever page it asks for. `page` comes from the caller unbounded,
+ * and a purely relative budget would walk 100,000 raw pages to answer page
+ * 100,000.
+ *
+ * Sized for the journey picker, which never asks a date-bounded search for a
+ * page past PROVIDER_SELECT_ALL_MAX_PAGES + 1 (251), whether "Select all" loads
+ * it, a second press does, or it is scrolled into view: photos 50,001 to 50,200
+ * at its 200 a page. Page N may read N - 1 + SEARCH_MAX_RAW_PAGES raw pages, so
+ * page 251 needs 250 + 20 = 270, and that is the ceiling. A deeper page, which
+ * only another caller such as the MCP tool asks for, gets a smaller allowance,
+ * and one past the ceiling can only come back empty with `hasMore: false`.
+ */
+const SEARCH_ABSOLUTE_MAX_RAW_PAGES = PROVIDER_SELECT_ALL_MAX_PAGES + SEARCH_MAX_RAW_PAGES;
 /** A mirrored journey upload is one photo; a server that sits on it this long is not coming back. */
 const UPLOAD_TIMEOUT_MS = 60_000;
 
@@ -53,16 +86,15 @@ function tlsOptions(allowInsecureTls: boolean): SafeFetchOptions {
 @Injectable()
 export class ImmichService {
   constructor(
-    private readonly db: DatabaseService,
     private readonly audit: AuditService,
     private readonly access: MemoriesAccessService,
     private readonly storage: StorageService,
+    private readonly immichRepo: UserImmichRepository,
+    private readonly uow: UnitOfWork,
   ) {}
 
-  getImmichCredentials(userId: number): ImmichCreds | null {
-    const user = this.db
-      .prepare('SELECT immich_url, immich_api_key, immich_allow_insecure_tls FROM users WHERE id = ?')
-      .get(userId) as { immich_url: string | null; immich_api_key: string | null; immich_allow_insecure_tls: number | null } | undefined;
+  async getImmichCredentials(userId: number): Promise<ImmichCreds | null> {
+    const user = await this.immichRepo.getImmichCredentials(userId);
     if (!user?.immich_url || !user?.immich_api_key) return null;
     const apiKey = decrypt_api_key(user.immich_api_key);
     if (!apiKey) return null;
@@ -97,28 +129,28 @@ export class ImmichService {
 
   // ── Connection Settings ────────────────────────────────────────────────────
 
-  getConnectionSettings(userId: number) {
-    const creds = this.getImmichCredentials(userId);
-    const prefs = this.db
-      .prepare('SELECT immich_auto_upload, immich_allow_insecure_tls FROM users WHERE id = ?')
-      .get(userId) as { immich_auto_upload?: number; immich_allow_insecure_tls?: number } | undefined;
+  async getConnectionSettings(userId: number) {
+    const creds = await this.getImmichCredentials(userId);
+    const prefs = await this.immichRepo.getImmichConnectionPrefs(userId);
     return {
       immich_url: creds?.immich_url || '',
       connected: !!(creds?.immich_url && creds?.immich_api_key),
-      auto_upload: !!(prefs?.immich_auto_upload),
+      auto_upload: !!prefs?.immich_auto_upload,
       allow_insecure_tls: prefs?.immich_allow_insecure_tls === 1,
     };
   }
 
-  setImmichAutoUpload(userId: number, enabled: boolean): void {
-    this.db.prepare('UPDATE users SET immich_auto_upload = ? WHERE id = ?').run(enabled ? 1 : 0, userId);
+  async setImmichAutoUpload(userId: number, enabled: boolean): Promise<void> {
+    await this.immichRepo.setImmichAutoUpload(userId, enabled ? 1 : 0);
   }
 
   /**
    * `allowInsecureTls` left undefined keeps the stored choice while the URL
    * stays the same, so a client that does not know the switch cannot clear it
    * by saving. The switch trusts one server, so a new URL without it starts
-   * off, and disconnecting (no URL) always turns it off again.
+   * off, and disconnecting (no URL) always turns it off again. `autoUpload`
+   * is written with the connection in one transaction, after the URL check;
+   * left undefined it keeps the stored choice.
    */
   async saveImmichSettings(
     userId: number,
@@ -126,44 +158,38 @@ export class ImmichService {
     immichApiKey: string | undefined,
     clientIp: string | null,
     allowInsecureTls?: boolean,
+    autoUpload?: boolean,
   ): Promise<{ success: boolean; warning?: string; error?: string }> {
+    let ssrf: Awaited<ReturnType<typeof checkSsrf>> | null = null;
+    const url = (immichUrl?.endsWith('/') ? immichUrl.slice(0, -1) : (immichUrl ?? '')).trim();
     if (immichUrl) {
-      if (immichUrl.endsWith('/')) {
-        immichUrl = immichUrl.slice(0, -1);
-      }
-      const ssrf = await checkSsrf(immichUrl.trim());
+      ssrf = await checkSsrf(url);
       if (!ssrf.allowed) {
         return { success: false, error: `Invalid Immich URL: ${ssrf.error}` };
       }
-      const url = immichUrl.trim();
-      const insecure = allowInsecureTls === undefined ? null : Number(allowInsecureTls);
-      // SET expressions read the row as it was, so `immich_url IS ?` compares the
-      // stored URL with the new one.
-      this.db
-        .prepare(
-          `UPDATE users SET immich_url = ?, immich_api_key = ?,
-             immich_allow_insecure_tls = CASE WHEN immich_url IS ? THEN COALESCE(?, immich_allow_insecure_tls) ELSE COALESCE(?, 0) END
-           WHERE id = ?`,
-        )
-        .run(url, maybe_encrypt_api_key(immichApiKey), url, insecure, insecure, userId);
-      if (ssrf.isPrivate) {
-        this.audit.writeAudit({
-          userId,
-          action: 'immich.private_ip_configured',
-          ip: clientIp,
-          details: { immich_url: immichUrl.trim(), resolved_ip: ssrf.resolvedIp },
-        });
-        return {
-          success: true,
-          warning: `Immich URL resolves to a private IP address (${ssrf.resolvedIp}). Make sure this is intentional.`,
-        };
+    }
+    // The DNS check above is network I/O, so it runs before the transaction opens.
+    await this.uow.transactional(async () => {
+      if (immichUrl) {
+        const insecure = allowInsecureTls === undefined ? null : Number(allowInsecureTls);
+        // The stored URL decides whether an undefined switch keeps its value (IM4).
+        await this.immichRepo.setImmichSettings(userId, url, maybe_encrypt_api_key(immichApiKey), insecure);
+      } else {
+        await this.immichRepo.clearImmichSettings(userId, maybe_encrypt_api_key(immichApiKey));
       }
-    } else {
-      this.db.prepare('UPDATE users SET immich_url = ?, immich_api_key = ?, immich_allow_insecure_tls = 0 WHERE id = ?').run(
-        null,
-        maybe_encrypt_api_key(immichApiKey),
-        userId
-      );
+      if (typeof autoUpload === 'boolean') await this.setImmichAutoUpload(userId, autoUpload);
+    });
+    if (ssrf?.isPrivate) {
+      await this.audit.writeAudit({
+        userId,
+        action: 'immich.private_ip_configured',
+        ip: clientIp,
+        details: { immich_url: url, resolved_ip: ssrf.resolvedIp },
+      });
+      return {
+        success: true,
+        warning: `Immich URL resolves to a private IP address (${ssrf.resolvedIp}). Make sure this is intentional.`,
+      };
     }
     return { success: true };
   }
@@ -181,12 +207,16 @@ export class ImmichService {
     const ssrf = await checkSsrf(immichUrl);
     if (!ssrf.allowed) return { connected: false, error: ssrf.error ?? 'Invalid Immich URL' };
     try {
-      const resp = await safeFetch(`${immichUrl}/api/users/me`, {
-        headers: { 'x-api-key': immichApiKey, 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(10000) as any,
-      }, tlsOptions(allowInsecureTls));
+      const resp = await safeFetch(
+        `${immichUrl}/api/users/me`,
+        {
+          headers: { 'x-api-key': immichApiKey, Accept: 'application/json' },
+          signal: AbortSignal.timeout(10000) as any,
+        },
+        tlsOptions(allowInsecureTls),
+      );
       if (!resp.ok) return { connected: false, error: `HTTP ${resp.status}` };
-      const data = await resp.json() as { name?: string; email?: string };
+      const data = (await resp.json()) as { name?: string; email?: string };
 
       // Detect http → https upgrade only: same host/port, protocol changed to https
       let canonicalUrl: string | undefined;
@@ -210,17 +240,21 @@ export class ImmichService {
   }
 
   async getConnectionStatus(
-    userId: number
+    userId: number,
   ): Promise<{ connected: boolean; error?: string; user?: { name?: string; email?: string } }> {
-    const creds = this.getImmichCredentials(userId);
+    const creds = await this.getImmichCredentials(userId);
     if (!creds) return { connected: false, error: 'Not configured' };
     try {
-      const resp = await safeFetch(`${creds.immich_url}/api/users/me`, {
-        headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(10000) as any,
-      }, tlsOptions(creds.allow_insecure_tls));
+      const resp = await safeFetch(
+        `${creds.immich_url}/api/users/me`,
+        {
+          headers: { 'x-api-key': creds.immich_api_key, Accept: 'application/json' },
+          signal: AbortSignal.timeout(10000) as any,
+        },
+        tlsOptions(creds.allow_insecure_tls),
+      );
       if (!resp.ok) return { connected: false, error: `HTTP ${resp.status}` };
-      const data = await resp.json() as { name?: string; email?: string };
+      const data = (await resp.json()) as { name?: string; email?: string };
       return { connected: true, user: { name: data.name, email: data.email } };
     } catch (err: unknown) {
       return { connected: false, error: describeFetchFailure(err) };
@@ -229,18 +263,20 @@ export class ImmichService {
 
   // ── Browse Timeline / Search ───────────────────────────────────────────────
 
-  async browseTimeline(
-    userId: number
-  ): Promise<{ buckets?: any; error?: string; status?: number }> {
-    const creds = this.getImmichCredentials(userId);
+  async browseTimeline(userId: number): Promise<{ buckets?: any; error?: string; status?: number }> {
+    const creds = await this.getImmichCredentials(userId);
     if (!creds) return { error: 'Immich not configured', status: 400 };
 
     try {
-      const resp = await safeFetch(`${creds.immich_url}/api/timeline/buckets`, {
-        method: 'GET',
-        headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(15000) as any,
-      }, tlsOptions(creds.allow_insecure_tls));
+      const resp = await safeFetch(
+        `${creds.immich_url}/api/timeline/buckets`,
+        {
+          method: 'GET',
+          headers: { 'x-api-key': creds.immich_api_key, Accept: 'application/json' },
+          signal: AbortSignal.timeout(15000) as any,
+        },
+        tlsOptions(creds.allow_insecure_tls),
+      );
       if (!resp.ok) return { error: 'Failed to fetch from Immich', status: resp.status };
       const buckets = await resp.json();
       return { buckets };
@@ -263,47 +299,51 @@ export class ImmichService {
     page: number,
     size: number,
   ): Promise<{ items?: any[]; status?: number }> {
-    const resp = await safeFetch(`${creds.immich_url}/api/search/metadata`, {
-      method: 'POST',
-      headers: { 'x-api-key': creds.immich_api_key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        // Padded by a day on each end and narrowed again by the caller. These
-        // two filter on fileCreatedAt, a UTC instant, while `from`/`to` name
-        // calendar days on somebody's wall clock — for a UTC+10 reader the
-        // unpadded window really ran from 10:00 local on the first day to
-        // 09:59 on the day after the last (#2336). The padding is what makes
-        // the assets that belong to those days available to the local-date
-        // filter; nothing wider than a day is needed, since no zone sits
-        // further than 14 hours from UTC.
-        takenAfter: from ? `${shiftCalendarDay(from, -1)}T00:00:00.000Z` : undefined,
-        takenBefore: to ? `${shiftCalendarDay(to, 1)}T23:59:59.999Z` : undefined,
-        // No type filter — surface videos alongside images (#823).
-        // Immich 1.133–1.144 defaulted metadata search to `timeline` visibility;
-        // v3 defaults to any visibility except `locked`, which is what started
-        // surfacing Live Photo motion parts as broken tiles (#1474). Ask for
-        // `timeline` explicitly so hidden assets never cross the wire and a full
-        // page stays a full page of renderable tiles.
-        //
-        // `visibility` only exists from 1.133.0. Older servers strip it — Immich
-        // validates with `whitelist: true` and no `forbidNonWhitelisted`, so an
-        // unknown property is dropped, never a 400 — and they never defaulted
-        // `isVisible` either, so they still return hidden assets. this.isVisibleAsset()
-        // below is the only guard on those versions. Do not remove it.
-        visibility: 'timeline',
-        withExif: true,
-        // Immich's own default order has moved between versions, and the picker
-        // pages lazily: an unordered page 2 lands in the wrong day heading.
-        // Same whitelist reasoning as `visibility` above — an older server that
-        // does not know the property drops it instead of failing the request,
-        // which is why the result is sorted again below.
-        order: 'desc',
-        size,
-        page,
-      }),
-      signal: AbortSignal.timeout(15000) as any,
-    }, tlsOptions(creds.allow_insecure_tls));
+    const resp = await safeFetch(
+      `${creds.immich_url}/api/search/metadata`,
+      {
+        method: 'POST',
+        headers: { 'x-api-key': creds.immich_api_key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          // Padded by a day on each end and narrowed again by the caller. These
+          // two filter on fileCreatedAt, a UTC instant, while `from`/`to` name
+          // calendar days on somebody's wall clock — for a UTC+10 reader the
+          // unpadded window really ran from 10:00 local on the first day to
+          // 09:59 on the day after the last (#2336). The padding is what makes
+          // the assets that belong to those days available to the local-date
+          // filter; nothing wider than a day is needed, since no zone sits
+          // further than 14 hours from UTC.
+          takenAfter: from ? `${shiftCalendarDay(from, -1)}T00:00:00.000Z` : undefined,
+          takenBefore: to ? `${shiftCalendarDay(to, 1)}T23:59:59.999Z` : undefined,
+          // No type filter — surface videos alongside images (#823).
+          // Immich 1.133–1.144 defaulted metadata search to `timeline` visibility;
+          // v3 defaults to any visibility except `locked`, which is what started
+          // surfacing Live Photo motion parts as broken tiles (#1474). Ask for
+          // `timeline` explicitly so hidden assets never cross the wire and a full
+          // page stays a full page of renderable tiles.
+          //
+          // `visibility` only exists from 1.133.0. Older servers strip it — Immich
+          // validates with `whitelist: true` and no `forbidNonWhitelisted`, so an
+          // unknown property is dropped, never a 400 — and they never defaulted
+          // `isVisible` either, so they still return hidden assets. this.isVisibleAsset()
+          // below is the only guard on those versions. Do not remove it.
+          visibility: 'timeline',
+          withExif: true,
+          // Immich's own default order has moved between versions, and the picker
+          // pages lazily: an unordered page 2 lands in the wrong day heading.
+          // Same whitelist reasoning as `visibility` above — an older server that
+          // does not know the property drops it instead of failing the request,
+          // which is why the result is sorted again below.
+          order: 'desc',
+          size,
+          page,
+        }),
+        signal: AbortSignal.timeout(15000) as any,
+      },
+      tlsOptions(creds.allow_insecure_tls),
+    );
     if (!resp.ok) return { status: resp.status };
-    const data = await resp.json() as { assets?: { items?: any[] } };
+    const data = (await resp.json()) as { assets?: { items?: any[] } };
     return { items: data.assets?.items || [] };
   }
 
@@ -314,7 +354,7 @@ export class ImmichService {
     page: number = 1,
     size: number = 50,
   ): Promise<{ assets?: any[]; hasMore?: boolean; error?: string; status?: number }> {
-    const creds = this.getImmichCredentials(userId);
+    const creds = await this.getImmichCredentials(userId);
     if (!creds) return { error: 'Immich not configured', status: 400 };
 
     // Once a day filter is in play the raw pages and the answered pages stop
@@ -331,7 +371,10 @@ export class ImmichService {
     const narrowed = Boolean(from || to);
     const skip = narrowed ? (page - 1) * size : 0;
     const wanted = skip + size;
-    const maxRawPages = narrowed ? SEARCH_MAX_RAW_PAGES : 1;
+    // The pages before this one, read even when every row on them is kept, plus
+    // the allowance for rows the filter drops. Page 1 keeps its budget of 20, and
+    // no page reads past the absolute ceiling.
+    const maxRawPages = narrowed ? Math.min(page - 1 + SEARCH_MAX_RAW_PAGES, SEARCH_ABSOLUTE_MAX_RAW_PAGES) : 1;
 
     const kept: any[] = [];
     let rawPage = narrowed ? 1 : page;
@@ -380,34 +423,37 @@ export class ImmichService {
     return { assets: sortAssetsByTakenAtDesc(kept.slice(skip, wanted)), hasMore };
   }
 
-
   // ── Asset Info / Proxy ─────────────────────────────────────────────────────
-
 
   async getAssetInfo(
     userId: number,
     assetId: string,
-    ownerUserId?: number
+    ownerUserId?: number,
   ): Promise<{ data?: any; error?: string; status?: number }> {
     const effectiveUserId = ownerUserId ?? userId;
-    const creds = this.getImmichCredentials(effectiveUserId);
+    const creds = await this.getImmichCredentials(effectiveUserId);
     if (!creds) return { error: 'Not found', status: 404 };
 
     try {
-      const resp = await safeFetch(`${creds.immich_url}/api/assets/${assetId}`, {
-        headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(10000) as any,
-      }, tlsOptions(creds.allow_insecure_tls));
+      const resp = await safeFetch(
+        `${creds.immich_url}/api/assets/${assetId}`,
+        {
+          headers: { 'x-api-key': creds.immich_api_key, Accept: 'application/json' },
+          signal: AbortSignal.timeout(10000) as any,
+        },
+        tlsOptions(creds.allow_insecure_tls),
+      );
       if (!resp.ok) return { error: 'Failed', status: resp.status };
-      const asset = await resp.json() as any;
+      const asset = (await resp.json()) as any;
       return {
         data: {
           id: asset.id,
           takenAt: asset.fileCreatedAt || asset.createdAt,
-          mediaType: asset.type === 'VIDEO' ? 'video' as const : 'image' as const,
+          mediaType: asset.type === 'VIDEO' ? ('video' as const) : ('image' as const),
           width: asset.exifInfo?.exifImageWidth || null,
           height: asset.exifInfo?.exifImageHeight || null,
-          camera: asset.exifInfo?.make && asset.exifInfo?.model ? `${asset.exifInfo.make} ${asset.exifInfo.model}` : null,
+          camera:
+            asset.exifInfo?.make && asset.exifInfo?.model ? `${asset.exifInfo.make} ${asset.exifInfo.model}` : null,
           lens: asset.exifInfo?.lensModel || null,
           focalLength: asset.exifInfo?.focalLength ? `${asset.exifInfo.focalLength}mm` : null,
           aperture: asset.exifInfo?.fNumber ? `f/${asset.exifInfo.fNumber}` : null,
@@ -430,18 +476,22 @@ export class ImmichService {
   async fetchImmichThumbnailBytes(
     userId: number,
     assetId: string,
-    ownerUserId?: number
+    ownerUserId?: number,
   ): Promise<{ bytes: Buffer; contentType: string } | { error: string; status: number }> {
     const effectiveUserId = ownerUserId ?? userId;
-    const creds = this.getImmichCredentials(effectiveUserId);
+    const creds = await this.getImmichCredentials(effectiveUserId);
     if (!creds) return { error: 'Not found', status: 404 };
 
     const url = `${creds.immich_url}/api/assets/${assetId}/thumbnail?size=thumbnail`;
     try {
-      const resp = await safeFetch(url, {
-        headers: { 'x-api-key': creds.immich_api_key },
-        signal: AbortSignal.timeout(10000) as any,
-      }, tlsOptions(creds.allow_insecure_tls));
+      const resp = await safeFetch(
+        url,
+        {
+          headers: { 'x-api-key': creds.immich_api_key },
+          signal: AbortSignal.timeout(10000) as any,
+        },
+        tlsOptions(creds.allow_insecure_tls),
+      );
       if (!resp.ok) return { error: 'Upstream error', status: resp.status };
       const contentType = resp.headers.get('content-type') || 'image/jpeg';
       const bytes = Buffer.from(await resp.arrayBuffer());
@@ -473,7 +523,7 @@ export class ImmichService {
     opts?: { mediaType?: string | null; range?: string },
   ): Promise<void> {
     const effectiveUserId = ownerUserId ?? userId;
-    const creds = this.getImmichCredentials(effectiveUserId);
+    const creds = await this.getImmichCredentials(effectiveUserId);
     if (!creds) {
       handleServiceResult(response, fail('Not found', 404));
       return;
@@ -502,32 +552,45 @@ export class ImmichService {
       timeout = 30000;
     }
 
-    await pipeAsset(url, response, headers, timeout ? AbortSignal.timeout(timeout) : undefined, cacheControl, tlsOptions(creds.allow_insecure_tls));
+    await pipeAsset(
+      url,
+      response,
+      headers,
+      timeout ? AbortSignal.timeout(timeout) : undefined,
+      cacheControl,
+      tlsOptions(creds.allow_insecure_tls),
+    );
   }
 
   // ── Albums ──────────────────────────────────────────────────────────────────
 
-  async listAlbums(
-    userId: number
-  ): Promise<{ albums?: any[]; error?: string; status?: number }> {
-    const creds = this.getImmichCredentials(userId);
+  async listAlbums(userId: number): Promise<{ albums?: any[]; error?: string; status?: number }> {
+    const creds = await this.getImmichCredentials(userId);
     if (!creds) return { error: 'Immich not configured', status: 400 };
 
     try {
       // Fetch both owned and shared albums
       const [ownResp, sharedResp] = await Promise.all([
-        safeFetch(`${creds.immich_url}/api/albums`, {
-          headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
-          signal: AbortSignal.timeout(10000) as any,
-        }, tlsOptions(creds.allow_insecure_tls)),
-        safeFetch(`${creds.immich_url}/api/albums?shared=true`, {
-          headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
-          signal: AbortSignal.timeout(10000) as any,
-        }, tlsOptions(creds.allow_insecure_tls)),
+        safeFetch(
+          `${creds.immich_url}/api/albums`,
+          {
+            headers: { 'x-api-key': creds.immich_api_key, Accept: 'application/json' },
+            signal: AbortSignal.timeout(10000) as any,
+          },
+          tlsOptions(creds.allow_insecure_tls),
+        ),
+        safeFetch(
+          `${creds.immich_url}/api/albums?shared=true`,
+          {
+            headers: { 'x-api-key': creds.immich_api_key, Accept: 'application/json' },
+            signal: AbortSignal.timeout(10000) as any,
+          },
+          tlsOptions(creds.allow_insecure_tls),
+        ),
       ]);
       if (!ownResp.ok) return { error: 'Failed to fetch albums', status: ownResp.status };
-      const ownAlbums = await ownResp.json() as any[];
-      const sharedAlbums = sharedResp.ok ? await sharedResp.json() as any[] : [];
+      const ownAlbums = (await ownResp.json()) as any[];
+      const sharedAlbums = sharedResp.ok ? ((await sharedResp.json()) as any[]) : [];
       const seenIds = new Set<string>();
       const allAlbums = [...ownAlbums, ...sharedAlbums].filter((a: any) => {
         if (seenIds.has(a.id)) return false;
@@ -576,17 +639,18 @@ export class ImmichService {
    * that has any of those problems (through 1.144.1) and absent only on v3, where
    * the search path is correct. A version probe with a wrong boundary would not be.
    */
-  private async fetchAlbumAssets(
-    creds: ImmichCreds,
-    albumId: string,
-  ): Promise<{ assets?: any[]; status?: number }> {
-    const resp = await safeFetch(`${creds.immich_url}/api/albums/${albumId}`, {
-      headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(15000) as any,
-    }, tlsOptions(creds.allow_insecure_tls));
+  private async fetchAlbumAssets(creds: ImmichCreds, albumId: string): Promise<{ assets?: any[]; status?: number }> {
+    const resp = await safeFetch(
+      `${creds.immich_url}/api/albums/${albumId}`,
+      {
+        headers: { 'x-api-key': creds.immich_api_key, Accept: 'application/json' },
+        signal: AbortSignal.timeout(15000) as any,
+      },
+      tlsOptions(creds.allow_insecure_tls),
+    );
     if (!resp.ok) return { status: resp.status };
 
-    const albumData = await resp.json() as { assets?: any[] };
+    const albumData = (await resp.json()) as { assets?: any[] };
     if (Array.isArray(albumData.assets)) return { assets: albumData.assets };
 
     return this.fetchAlbumAssetsViaSearch(creds, albumId);
@@ -606,22 +670,26 @@ export class ImmichService {
     const all: any[] = [];
 
     for (let page = 1; page <= ALBUM_MAX_PAGES; page++) {
-      const resp = await safeFetch(`${creds.immich_url}/api/search/metadata`, {
-        method: 'POST',
-        headers: { 'x-api-key': creds.immich_api_key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          albumIds: [albumId],
-          withExif: true,
-          withDeleted: false,
-          order: 'desc',
-          size: ALBUM_PAGE_SIZE,
-          page,
-        }),
-        signal: AbortSignal.timeout(15000) as any,
-      }, tlsOptions(creds.allow_insecure_tls));
+      const resp = await safeFetch(
+        `${creds.immich_url}/api/search/metadata`,
+        {
+          method: 'POST',
+          headers: { 'x-api-key': creds.immich_api_key, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            albumIds: [albumId],
+            withExif: true,
+            withDeleted: false,
+            order: 'desc',
+            size: ALBUM_PAGE_SIZE,
+            page,
+          }),
+          signal: AbortSignal.timeout(15000) as any,
+        },
+        tlsOptions(creds.allow_insecure_tls),
+      );
       if (!resp.ok) return { status: resp.status };
 
-      const data = await resp.json() as { assets?: { items?: any[] } };
+      const data = (await resp.json()) as { assets?: { items?: any[] } };
       const items = data.assets?.items || [];
       all.push(...items);
       if (items.length < ALBUM_PAGE_SIZE) break;
@@ -630,11 +698,8 @@ export class ImmichService {
     return { assets: all };
   }
 
-  async getAlbumPhotos(
-    userId: number,
-    albumId: string,
-  ): Promise<{ assets?: any[]; error?: string; status?: number }> {
-    const creds = this.getImmichCredentials(userId);
+  async getAlbumPhotos(userId: number, albumId: string): Promise<{ assets?: any[]; error?: string; status?: number }> {
+    const creds = await this.getImmichCredentials(userId);
     if (!creds) return { error: 'Immich not configured', status: 400 };
 
     try {
@@ -682,10 +747,10 @@ export class ImmichService {
     linkId: string,
     userId: number,
   ): Promise<{ selection: Selection; total: number } | { error: string; status: number }> {
-    const response = this.access.getAlbumIdFromLink(tripId, linkId, userId);
+    const response = await this.access.getAlbumIdFromLink(tripId, linkId, userId);
     if (!response.success) return { error: 'Album link not found', status: 404 };
 
-    const creds = this.getImmichCredentials(userId);
+    const creds = await this.getImmichCredentials(userId);
     if (!creds) return { error: 'Immich not configured', status: 400 };
 
     try {
@@ -707,7 +772,7 @@ export class ImmichService {
   // ── Upload to Immich ──────────────────────────────────────────────────────
 
   async uploadToImmich(userId: number, filePath: string, fileName: string): Promise<string | null> {
-    const creds = this.getImmichCredentials(userId);
+    const creds = await this.getImmichCredentials(userId);
     if (!creds) return null;
 
     // Journey uploads store the uploads-relative 'journey/<file>' path; only
@@ -722,8 +787,12 @@ export class ImmichService {
       const boundary = '----ImmichUpload' + Date.now();
       const ext = path.extname(fileName).toLowerCase();
       const mimeTypes: Record<string, string> = {
-        '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
-        '.gif': 'image/gif', '.webp': 'image/webp', '.heic': 'image/heic',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.heic': 'image/heic',
       };
       const contentType = mimeTypes[ext] || 'application/octet-stream';
       const now = new Date().toISOString();
@@ -737,29 +806,35 @@ export class ImmichService {
       addField('fileCreatedAt', now);
       addField('fileModifiedAt', now);
 
-      parts.push(Buffer.from(
-        `--${boundary}\r\nContent-Disposition: form-data; name="assetData"; filename="${fileName}"\r\nContent-Type: ${contentType}\r\n\r\n`
-      ));
+      parts.push(
+        Buffer.from(
+          `--${boundary}\r\nContent-Disposition: form-data; name="assetData"; filename="${fileName}"\r\nContent-Type: ${contentType}\r\n\r\n`,
+        ),
+      );
       parts.push(fileBuffer);
       parts.push(Buffer.from(`\r\n--${boundary}--\r\n`));
 
       const body = Buffer.concat(parts);
 
-      const res = await safeFetch(`${creds.immich_url}/api/assets`, {
-        method: 'POST',
-        headers: {
-          'x-api-key': creds.immich_api_key,
-          'Content-Type': `multipart/form-data; boundary=${boundary}`,
-          'Content-Length': String(body.length),
+      const res = await safeFetch(
+        `${creds.immich_url}/api/assets`,
+        {
+          method: 'POST',
+          headers: {
+            'x-api-key': creds.immich_api_key,
+            'Content-Type': `multipart/form-data; boundary=${boundary}`,
+            'Content-Length': String(body.length),
+          },
+          body,
+          // The journey upload waits on this mirror, so a server that never
+          // answers must not hold the upload open with it.
+          signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS),
         },
-        body,
-        // The journey upload waits on this mirror, so a server that never
-        // answers must not hold the upload open with it.
-        signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS),
-      }, tlsOptions(creds.allow_insecure_tls));
+        tlsOptions(creds.allow_insecure_tls),
+      );
 
       if (res.ok) {
-        const data = await res.json() as { id?: string };
+        const data = (await res.json()) as { id?: string };
         return data.id || null;
       }
       return null;

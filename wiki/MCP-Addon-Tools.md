@@ -13,7 +13,7 @@ Requires `packing:read` or `packing:write` scope. The Packing addon is listed as
 | Tool | Description |
 |---|---|
 | `create_packing_item` | Add an item to the packing checklist with optional category. |
-| `update_packing_item` | Rename an item or change its category. |
+| `update_packing_item` | Rename an item, change its category, or count how many of it are already packed. |
 | `set_packing_item_sharing` | Move an item between the three sharing tiers: `common` puts it in the pool the whole trip packs from, `personal` keeps it to its owner, `shared` covers the trip members in `recipient_ids`. Only the item's owner may change this. |
 | `toggle_packing_item` | Check or uncheck a packing item. |
 | `delete_packing_item` | Remove a packing item. |
@@ -60,7 +60,7 @@ Requires `atlas:read` or `atlas:write` scope.
 | `mark_region_visited` | Mark a sub-country region as visited (e.g. `"US-CA"`). |
 | `unmark_region_visited` | Remove a region from the visited list. |
 | `get_country_atlas_places` | Get places saved in the user's atlas for a specific country. |
-| `create_bucket_list_item` | Add a destination to your personal bucket list with optional coordinates, country code and target date. The same destination for the same target date is rejected as a duplicate. |
+| `create_bucket_list_item` | Add a destination to your personal bucket list with optional coordinates, country code, target date and `region_code` (a state or province, hatched on the Atlas map). The same destination for the same target date is rejected as a duplicate. |
 | `update_bucket_list_item` | Update a bucket list item (name, notes, coordinates, target date). |
 | `delete_bucket_list_item` | Remove an item from your bucket list. |
 
@@ -185,16 +185,17 @@ Requires `journey:read` or `journey:write` scope.
 | `get_journey` | Get a full snapshot of a journey — metadata, entries, contributors, and linked trips. |
 | `get_journey_stats` | What a journey adds up to: distance travelled in metres, calendar days spanned, countries in visit order, the furthest point reached, and entry, photo and place counts. Entries switched off with `stats_excluded` count towards none of those and are listed under `excluded`. Pass `include_route` for the route itself, up to 400 stops with coordinates. |
 | `create_journey` | Create a new journey with title, optional subtitle, and an initial list of trip IDs. |
-| `update_journey` | Update a journey's title, subtitle, cover or status, and whether its entries offer a pros/cons list, a mood and a weather note (`show_verdict`, `show_mood`, `show_weather`). Owner only. |
+| `update_journey` | Update a journey's title, subtitle, cover or status, and whether its entries offer a pros/cons list, a mood and a weather note (`show_verdict`, `show_mood`, `show_weather`). `status_override` sets the shown status by hand (`draft`, `live` or `completed`), `null` goes back to following the trip dates. `photo_location` lets an entry without a place take the position of its first geotagged photo. Owner only. |
 | `restore_journey_suggestions` | Bring back every trip-derived suggestion that was dismissed from a journey. Answers with how many came back. |
 | `delete_journey` | Delete a journey. |
 | `add_journey_trip` | Link an existing trip to a journey. |
 | `remove_journey_trip` | Remove a trip from a journey. |
 | `list_journey_entries` | List all entries in a journey (date, text, mood, linked trip). |
-| `create_journey_entry` | Add an entry with date (required), optional title, story text, time of day, location name, mood, and sort order. |
-| `update_journey_entry` | Edit a journey entry's title, story, date, time of day, place, coordinates, weather, tags, mood, pros/cons list or visibility. `stats_excluded: true` keeps the entry but takes it off the route and out of `get_journey_stats`; `dismissed: true` waves a trip-derived suggestion away without deleting it, so the trip sync does not offer it again. |
+| `create_journey_entry` | Add an entry with date (required), optional title, story text, time of day, location name, mood, and sort order. `is_draft: true` creates it as a draft that the journey share link leaves out. |
+| `update_journey_entry` | Edit a journey entry's title, story, date, time of day, place, coordinates, weather, tags, mood, pros/cons list or visibility. `stats_excluded: true` keeps the entry but takes it off the route and out of `get_journey_stats`; `dismissed: true` waves a trip-derived suggestion away without deleting it, so the trip sync does not offer it again. `is_draft` turns the entry into a draft or publishes it. |
 | `delete_journey_entry` | Remove an entry from a journey. |
 | `reorder_journey_entries` | Reorder entries by providing the new ordered list of entry IDs. |
+| `reorder_journey_entry_photos` | Put the photos of one entry in a new order by passing every photo id of the entry once. The first photo is the entry's cover. |
 | `list_journey_contributors` | List the contributors of a journey (owner and editors/viewers). |
 | `add_journey_contributor` | Invite a user to a journey with `editor` or `viewer` role. |
 | `update_journey_contributor_role` | Change a contributor's role between `editor` and `viewer`. |

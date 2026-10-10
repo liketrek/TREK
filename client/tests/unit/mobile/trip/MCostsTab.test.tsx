@@ -15,7 +15,7 @@ import { resetAllStores, seedStore } from '../../../helpers/store'
 import { server } from '../../../helpers/msw/server'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 
-// FE-MOB-COSTT-001 to FE-MOB-COSTT-049
+// FE-MOB-COSTT-001 to FE-MOB-COSTT-050
 
 // The add/edit expense sheet is the shared desktop-sized form; the panel only
 // owns when it opens and what happens on save, so it is stubbed here.
@@ -465,7 +465,7 @@ describe('MCostsTab', () => {
     fireEvent.change(within(dialog).getByPlaceholderText('0.00'), { target: { value: '12,5' } })
     expect(submit).toBeEnabled()
     fireEvent.click(submit)
-    expect(create).toHaveBeenCalledWith(7, { from_user_id: 1, to_user_id: 2, amount: 12.5, currency: 'USD', settled_at: localToday() })
+    expect(create).toHaveBeenCalledWith(7, { from_user_id: 1, to_user_id: 2, amount: 12.5, currency: 'USD', settled_at: localToday(), note: null })
     await waitFor(() => expect(settlementBases).toHaveLength(2))
   })
 
@@ -690,7 +690,7 @@ describe('MCostsTab', () => {
     fireEvent.change(within(dialog).getByPlaceholderText('0.00'), { target: { value: '30' } })
     fireEvent.click(submit)
 
-    expect(update).toHaveBeenCalledWith(7, 501, { from_user_id: 1, to_user_id: 2, amount: 30, currency: 'USD', settled_at: '2026-04-28' })
+    expect(update).toHaveBeenCalledWith(7, 501, { from_user_id: 1, to_user_id: 2, amount: 30, currency: 'USD', settled_at: '2026-04-28', note: null })
     await waitFor(() => expect(settlementBases).toHaveLength(2))
   })
 
@@ -727,7 +727,7 @@ describe('MCostsTab', () => {
     // The pound rate the phone holds goes along; the server only uses it when the
     // currency changes and it has no rate of its own, so the frozen one stays.
     expect(update).toHaveBeenCalledWith(7, 505, {
-      from_user_id: 1, to_user_id: 2, amount: 10, currency: 'GBP', settled_at: '2026-04-28',
+      from_user_id: 1, to_user_id: 2, amount: 10, currency: 'GBP', settled_at: '2026-04-28', note: null,
       fallback_fx: { base: 'USD', rates: { GBP: 0.5 } },
     })
   })
@@ -873,5 +873,16 @@ describe('MCostsTab', () => {
     expect(submit).toBeDisabled()
     fireEvent.click(submit)
     expect(create).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-COSTT-050: reads the settlement again when an expense is saved outside the tab', async () => {
+    // A scanned receipt is reviewed in the trip sheets, which reload the items only.
+    const p = planner()
+    const { rerender, shell } = await renderTab(p)
+    expect(settlementBases).toHaveLength(1)
+
+    const bread = { ...RAMEN, id: 15, name: 'Bread', total_price: 18.1 } as BudgetItem
+    rerender(<MCostsTab planner={{ ...p, budgetItems: [...ITEMS, bread] }} shell={shell} />)
+    await waitFor(() => expect(settlementBases).toHaveLength(2))
   })
 })

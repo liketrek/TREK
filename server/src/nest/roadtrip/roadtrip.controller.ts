@@ -1,12 +1,29 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
-import type { RoadtripDayTrack, RoadtripVia } from '@trek/shared';
-import { RoadtripService } from './roadtrip.service';
-import { RoadtripViaBatchDto, RoadtripViaCreateDto, RoadtripViaReanchorDto, RoadtripViaUpdateDto } from './roadtrip.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
-import { RequireAddon } from '../addons/require-addon.decorator';
-import { AddonGuard } from '../addons/addon.guard';
 import { ADDON_IDS } from '../../addons';
+import { AddonGuard } from '../addons/addon.guard';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import {
+  RoadtripViaBatchDto,
+  RoadtripViaCreateDto,
+  RoadtripViaReanchorDto,
+  RoadtripViaUpdateDto,
+} from './roadtrip.dto';
+import { RoadtripService } from './roadtrip.service';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  HttpCode,
+  HttpException,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
+import type { RoadtripDayTrack, RoadtripVia } from '@trek/shared';
 
 /**
  * /api/trips/:tripId/roadtrip — the points a drive is routed through (#1797).
@@ -33,27 +50,27 @@ export class RoadtripController {
 
   /** Every via of the trip, so the client can route all days without a request per day. */
   @Get('vias')
-  listAll(@Param('tripId') tripId: string): { vias: RoadtripVia[]; tracks: RoadtripDayTrack[] } {
-    return { vias: this.roadtrip.listForTrip(tripId), tracks: this.roadtrip.tracksForTrip(tripId) };
+  async listAll(@Param('tripId') tripId: string): Promise<{ vias: RoadtripVia[]; tracks: RoadtripDayTrack[] }> {
+    return { vias: await this.roadtrip.listForTrip(tripId), tracks: await this.roadtrip.tracksForTrip(tripId) };
   }
 
   @Get('days/:dayId/vias')
-  list(@Param('tripId') tripId: string, @Param('dayId') dayId: string): { vias: RoadtripVia[] } {
-    this.requireDay(dayId, tripId);
-    return { vias: this.roadtrip.listForDay(dayId) };
+  async list(@Param('tripId') tripId: string, @Param('dayId') dayId: string): Promise<{ vias: RoadtripVia[] }> {
+    await this.requireDay(dayId, tripId);
+    return { vias: await this.roadtrip.listForDay(dayId) };
   }
 
   @RequirePermission('day_edit')
   @Post('days/:dayId/vias')
-  create(
+  async create(
     @Param('tripId') tripId: string,
     @Param('dayId') dayId: string,
     @Body() body: RoadtripViaCreateDto,
     @Headers('x-socket-id') socketId?: string,
-  ): { via: RoadtripVia } {
-    this.requireDay(dayId, tripId);
-    const via = this.roadtrip.create(dayId, body);
-    this.announce(tripId, dayId, socketId);
+  ): Promise<{ via: RoadtripVia }> {
+    await this.requireDay(dayId, tripId);
+    const via = await this.roadtrip.create(dayId, body);
+    await this.announce(tripId, dayId, socketId);
     return { via };
   }
 
@@ -68,27 +85,33 @@ export class RoadtripController {
   @RequirePermission('day_edit')
   @Post('days/:dayId/vias/batch')
   @HttpCode(200)
-  createMany(
+  async createMany(
     @Param('tripId') tripId: string,
     @Param('dayId') dayId: string,
     @Body() body: RoadtripViaBatchDto,
     @Headers('x-socket-id') socketId?: string,
-  ): { vias: RoadtripVia[] } {
-    this.requireDay(dayId, tripId);
+  ): Promise<{ vias: RoadtripVia[] }> {
+    await this.requireDay(dayId, tripId);
     // Permission is not enough on its own: a place id from somebody else's trip would
     // otherwise become this day's label, and a place that is not a track would become a
     // label that can never be drawn.
-    if (body.track && !this.roadtrip.trackExists(body.track.place_id, tripId)) {
+    if (body.track && !(await this.roadtrip.trackExists(body.track.place_id, tripId))) {
       throw new HttpException({ error: 'Track not found' }, 404);
     }
-    const vias = this.roadtrip.createMany(dayId, body);
-    this.announce(tripId, dayId, socketId);
+    const vias = await this.roadtrip.createMany(dayId, body);
+    await this.announce(tripId, dayId, socketId);
     // A batch is how a day starts following a recorded track, so the track it now follows
     // is news in its own right: the rail draws a badge for it and the map a line.
-    this.roadtrip.broadcast(tripId, 'roadtripTrack:changed', {
-      dayId,
-      track: this.roadtrip.tracksForTrip(tripId).find(t => String(t.day_id) === String(dayId)) ?? null,
-    }, socketId);
+    const tracks = await this.roadtrip.tracksForTrip(tripId);
+    this.roadtrip.broadcast(
+      tripId,
+      'roadtripTrack:changed',
+      {
+        dayId,
+        track: tracks.find((t) => String(t.day_id) === String(dayId)) ?? null,
+      },
+      socketId,
+    );
     return { vias };
   }
 
@@ -102,48 +125,48 @@ export class RoadtripController {
   @RequirePermission('day_edit')
   @Put('days/:dayId/vias')
   @HttpCode(200)
-  reanchor(
+  async reanchor(
     @Param('tripId') tripId: string,
     @Param('dayId') dayId: string,
     @Body() body: RoadtripViaReanchorDto,
     @Headers('x-socket-id') socketId?: string,
-  ): { vias: RoadtripVia[] } {
-    this.requireDay(dayId, tripId);
-    const vias = this.roadtrip.reanchor(dayId, body);
-    this.announce(tripId, dayId, socketId);
+  ): Promise<{ vias: RoadtripVia[] }> {
+    await this.requireDay(dayId, tripId);
+    const vias = await this.roadtrip.reanchor(dayId, body);
+    await this.announce(tripId, dayId, socketId);
     return { vias };
   }
 
   @RequirePermission('day_edit')
   @Put('days/:dayId/vias/:id')
   @HttpCode(200)
-  update(
+  async update(
     @Param('tripId') tripId: string,
     @Param('dayId') dayId: string,
     @Param('id') id: string,
     @Body() body: RoadtripViaUpdateDto,
     @Headers('x-socket-id') socketId?: string,
-  ): { via: RoadtripVia } {
-    this.requireDay(dayId, tripId);
-    const via = this.roadtrip.move(id, dayId, body.lat, body.lng, body.after_order_index);
+  ): Promise<{ via: RoadtripVia }> {
+    await this.requireDay(dayId, tripId);
+    const via = await this.roadtrip.move(id, dayId, body.lat, body.lng, body.after_order_index);
     if (!via) throw new HttpException({ error: 'Via not found' }, 404);
-    this.announce(tripId, dayId, socketId);
+    await this.announce(tripId, dayId, socketId);
     return { via };
   }
 
   @RequirePermission('day_edit')
   @Delete('days/:dayId/vias/:id')
-  remove(
+  async remove(
     @Param('tripId') tripId: string,
     @Param('dayId') dayId: string,
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
-  ): { success: true } {
-    this.requireDay(dayId, tripId);
-    if (!this.roadtrip.remove(id, dayId)) {
+  ): Promise<{ success: true }> {
+    await this.requireDay(dayId, tripId);
+    if (!(await this.roadtrip.remove(id, dayId))) {
       throw new HttpException({ error: 'Via not found' }, 404);
     }
-    this.announce(tripId, dayId, socketId);
+    await this.announce(tripId, dayId, socketId);
     return { success: true };
   }
 
@@ -155,11 +178,16 @@ export class RoadtripController {
    * routes means a client applies them all the same way. The originating socket is
    * excluded, so the person dragging does not get their own point handed back mid-drag.
    */
-  private announce(tripId: string, dayId: string, socketId: string | undefined): void {
-    this.roadtrip.broadcast(tripId, 'roadtripVia:changed', {
-      dayId,
-      vias: this.roadtrip.listForDay(dayId),
-    }, socketId);
+  private async announce(tripId: string, dayId: string, socketId: string | undefined): Promise<void> {
+    this.roadtrip.broadcast(
+      tripId,
+      'roadtripVia:changed',
+      {
+        dayId,
+        vias: await this.roadtrip.listForDay(dayId),
+      },
+      socketId,
+    );
   }
 
   /**
@@ -167,8 +195,8 @@ export class RoadtripController {
    * Without it a valid day id from someone else's trip would be editable through a trip
    * the caller does have access to.
    */
-  private requireDay(dayId: string, tripId: string): void {
-    if (!this.roadtrip.dayExists(dayId, tripId)) {
+  private async requireDay(dayId: string, tripId: string): Promise<void> {
+    if (!(await this.roadtrip.dayExists(dayId, tripId))) {
       throw new HttpException({ error: 'Day not found' }, 404);
     }
   }

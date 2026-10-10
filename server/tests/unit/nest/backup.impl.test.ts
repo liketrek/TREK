@@ -2,7 +2,28 @@
  * Unit tests for backupService.
  * Covers BACKUP-031 to BACKUP-060.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
+import {
+  formatSize,
+  parseIntField,
+  parseAutoBackupBody,
+  isValidBackupFilename,
+  checkRateLimit,
+  createBackup,
+  deleteBackup,
+  restoreFromZip,
+  restoreBackup,
+  BACKUP_RATE_WINDOW,
+  backupFileExists,
+  listBackups,
+  sendBackupToResponse,
+} from '../../../src/nest/backup/backup.impl';
+import { SqliteDatabaseBackup } from '../../../src/nest/backup/sqlite-database-backup';
+import type { DatabaseLifecycle } from '../../../src/nest/database/database-lifecycle.service';
+import type { StorageService } from '../../../src/nest/storage/storage.service';
+
+import path from 'node:path';
+import { describe, it, expect, vi, beforeEach, onTestFinished } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks — must be defined before any vi.mock() calls
@@ -55,31 +76,53 @@ const dbMock = vi.hoisted(() => ({
   isOwner: vi.fn(),
 }));
 
-vi.mock('../../../src/db/database', () => dbMock);
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-secret',
-  ENCRYPTION_KEY: 'a'.repeat(64),
-  updateJwtSecret: () => {},
+// The database port's SQLite implementation is built for real below with this
+// stand-in for the MaintenanceRepository Nest injects into it: the WAL
+// checkpoint and the VACUUM INTO snapshot are what a backup and a restore ask
+// of it. The real statements are MaintenanceRepository.test.ts's coverage.
+const maintenanceRepoMock = vi.hoisted(() => ({
+  walCheckpoint: vi.fn().mockResolvedValue(undefined),
+  vacuumInto: vi.fn().mockResolvedValue(undefined),
 }));
+
+const logMock = vi.hoisted(() => ({ logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
+
+vi.mock('../../../src/db/database', () => dbMock);
+vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
 vi.mock('fs', () => ({ default: fsMock, ...fsMock }));
 vi.mock('archiver', () => ({ default: archiverMock }));
 vi.mock('unzipper', () => ({ default: unzipperMock }));
-import {
-  formatSize,
-  parseIntField,
-  parseAutoBackupBody,
-  isValidBackupFilename,
-  checkRateLimit,
-  createBackup,
-  deleteBackup,
-  restoreFromZip,
-  restoreBackup,
-  BACKUP_RATE_WINDOW,
-  backupFileExists,
-  listBackups,
-  sendBackupToResponse,
-} from '../../../src/nest/backup/backup.impl';
-import type { StorageService } from '../../../src/nest/storage/storage.service';
+
+// ---------------------------------------------------------------------------
+// The database port. The real SqliteDatabaseBackup over a lifecycle stand-in:
+// closing and reopening go to the mocked db/database module (so the closeDb/
+// reinitialize assertions below keep pinning the swap), and the database file
+// is whatever `liveDb.file` says, data/travel.db unless a case moves it the
+// way TREK_DB_FILE does.
+// ---------------------------------------------------------------------------
+
+const DEFAULT_LIVE_DB = path.join(__dirname, '../../../data/travel.db');
+const liveDb = { file: DEFAULT_LIVE_DB };
+beforeEach(() => {
+  liveDb.file = DEFAULT_LIVE_DB;
+});
+
+const lifecycleStub = {
+  get file() {
+    return liveDb.file;
+  },
+  close: () => dbMock.closeDb(),
+  reopen: async () => {
+    await dbMock.reinitialize();
+  },
+} as unknown as DatabaseLifecycle;
+
+function deps(storage: StorageService) {
+  return {
+    storage,
+    database: new SqliteDatabaseBackup(lifecycleStub, maintenanceRepoMock as unknown as MaintenanceRepository),
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Storage stub — backup.impl functions receive StorageService as a parameter
@@ -328,11 +371,15 @@ describe('BACKUP-036 createBackup', () => {
   function setupArchiveSuccess() {
     const writableEvents: Record<string, Function> = {};
     fsMock.createWriteStream.mockReturnValue({
-      on: vi.fn((event: string, cb: Function) => { writableEvents[event] = cb; }),
+      on: vi.fn((event: string, cb: Function) => {
+        writableEvents[event] = cb;
+      }),
     } as never);
     archiverInstanceMock.on.mockImplementation(() => {});
     archiverInstanceMock.pipe.mockReturnValue(undefined);
-    archiverInstanceMock.finalize.mockImplementation(() => { writableEvents['close']?.(); });
+    archiverInstanceMock.finalize.mockImplementation(() => {
+      writableEvents['close']?.();
+    });
     archiverMock.mockReturnValue(archiverInstanceMock);
     return writableEvents;
   }
@@ -355,7 +402,7 @@ describe('BACKUP-036 createBackup', () => {
     setupArchiveSuccess();
     const storage = stubStorage({ stat: statOf(2048) });
 
-    const result = await createBackup(storage);
+    const result = await createBackup(deps(storage));
 
     expect(result.filename).toMatch(/^backup-.*\.zip$/);
     expect(result.size).toBe(2048);
@@ -383,12 +430,18 @@ describe('BACKUP-036 createBackup', () => {
       }),
     });
 
-    await createBackup(storage);
+    await createBackup(deps(storage));
 
     expect(storage.getLocalPathOrNull).toHaveBeenCalledWith('files', 'a.pdf');
     expect(storage.getLocalPathOrNull).toHaveBeenCalledWith('journey', 'thumbs/x.jpg');
-    expect(archiverInstanceMock.file).toHaveBeenCalledWith('/stub/local/path', { name: 'uploads/files/a.pdf' });
-    expect(archiverInstanceMock.file).toHaveBeenCalledWith('/stub/local/path', { name: 'uploads/journey/thumbs/x.jpg' });
+    expect(archiverInstanceMock.file).toHaveBeenCalledWith('/stub/local/path', {
+      name: 'uploads/files/a.pdf',
+      store: true,
+    });
+    expect(archiverInstanceMock.file).toHaveBeenCalledWith('/stub/local/path', {
+      name: 'uploads/journey/thumbs/x.jpg',
+      store: true,
+    });
     // The local fast path never touches getStream — this is the zero-copy default-install branch.
     expect(storage.getStream).not.toHaveBeenCalled();
   });
@@ -404,7 +457,11 @@ describe('BACKUP-036 createBackup', () => {
       // setupArchiveSuccess set up (finalize() resolves the build via 'close');
       // staged files use a minimal fake that just resolves the pipeline.
       if (String(p).includes('zip-build-')) {
-        return { on: vi.fn((event: string, cb: Function) => { writableEvents[event] = cb; }) };
+        return {
+          on: vi.fn((event: string, cb: Function) => {
+            writableEvents[event] = cb;
+          }),
+        };
       }
       // pipeline() (real, from node:stream/promises) needs a real Writable —
       // a PassThrough gives it one without touching the real filesystem.
@@ -421,7 +478,7 @@ describe('BACKUP-036 createBackup', () => {
       }),
     });
 
-    await createBackup(storage);
+    await createBackup(deps(storage));
 
     expect(storage.getLocalPathOrNull).toHaveBeenCalledWith('files', 'remote.pdf');
     expect(storage.getStream).toHaveBeenCalledWith('files', 'remote.pdf');
@@ -433,17 +490,19 @@ describe('BACKUP-036 createBackup', () => {
     expect(stagedPath).toContain('/stub/spool/staging-backup-');
     expect(stagedPath).toContain('files/remote.pdf');
     // The staging dir is removed alongside zipSpool/dbSnap in the existing finally.
-    expect(fsMock.rmSync).toHaveBeenCalledWith(
-      expect.stringContaining('/stub/spool/staging-backup-'),
-      { recursive: true, force: true },
-    );
+    expect(fsMock.rmSync).toHaveBeenCalledWith(expect.stringContaining('/stub/spool/staging-backup-'), {
+      recursive: true,
+      force: true,
+    });
   });
 
   it('BACKUP-036l — a vanished remote object (archiver "warning") fails the backup instead of silently dropping it', async () => {
     fsMock.existsSync.mockReturnValue(false);
     const archiveEvents: Record<string, Function> = {};
     fsMock.createWriteStream.mockReturnValue({ on: vi.fn() } as never);
-    archiverInstanceMock.on.mockImplementation((event: string, cb: Function) => { archiveEvents[event] = cb; });
+    archiverInstanceMock.on.mockImplementation((event: string, cb: Function) => {
+      archiveEvents[event] = cb;
+    });
     archiverInstanceMock.pipe.mockReturnValue(undefined);
     archiverInstanceMock.finalize.mockImplementation(() => {
       // archiver emits 'warning' (not 'error') for entries it couldn't stat/read
@@ -453,7 +512,7 @@ describe('BACKUP-036 createBackup', () => {
     archiverMock.mockReturnValue(archiverInstanceMock);
     const storage = stubStorage();
 
-    await expect(createBackup(storage)).rejects.toThrow('ENOENT');
+    await expect(createBackup(deps(storage))).rejects.toThrow('ENOENT');
     expect(storage.put).not.toHaveBeenCalled();
   });
 
@@ -467,7 +526,7 @@ describe('BACKUP-036 createBackup', () => {
       health: vi.fn(() => ({ replicaFailures: [{ backend: 'nas-backups', key: 'backup-x.zip', error: 'EIO' }] })),
     });
 
-    const result = await createBackup(storage);
+    const result = await createBackup(deps(storage));
 
     expect(result.filename).toMatch(/^backup-.*\.zip$/);
     expect(storage.put).toHaveBeenCalledOnce();
@@ -479,42 +538,69 @@ describe('BACKUP-036 createBackup', () => {
     // Two plugin code dirs: 'notes' is real, 'devlink' resolves outside the root.
     // The plugin-data snapshot reads with { withFileTypes: true }; hand it Dirent-likes there.
     const dirent = (name: string) => ({ name, isDirectory: () => true });
-    fsMock.readdirSync.mockImplementation((_p: string, opts?: { withFileTypes?: boolean }) =>
-      (opts?.withFileTypes ? [dirent('notes'), dirent('devlink')] : ['notes', 'devlink']) as never);
-    fsMock.realpathSync.mockImplementation((p: string) => (String(p).endsWith('devlink') ? '/somewhere/else/devlink' : p));
+    fsMock.readdirSync.mockImplementation(
+      (_p: string, opts?: { withFileTypes?: boolean }) =>
+        (opts?.withFileTypes ? [dirent('notes'), dirent('devlink')] : ['notes', 'devlink']) as never,
+    );
+    fsMock.realpathSync.mockImplementation((p: string) =>
+      String(p).endsWith('devlink') ? '/somewhere/else/devlink' : p,
+    );
     fsMock.statSync.mockReturnValue({ isDirectory: () => true } as never);
     setupArchiveSuccess();
     const storage = stubStorage({ stat: statOf(2048) });
 
-    await createBackup(storage);
+    await createBackup(deps(storage));
 
     // the consistent snapshot of the data tree is archived under plugins-data/
-    expect(archiverInstanceMock.directory).toHaveBeenCalledWith(expect.stringContaining('plugins-snap'), 'plugins-data');
+    expect(archiverInstanceMock.directory).toHaveBeenCalledWith(
+      expect.stringContaining('plugins-snap'),
+      'plugins-data',
+    );
     // the real code dir is archived, the dev-link is skipped
     expect(archiverInstanceMock.directory).toHaveBeenCalledWith(expect.stringContaining('notes'), 'plugins-code/notes');
     expect(archiverInstanceMock.directory).not.toHaveBeenCalledWith(expect.anything(), 'plugins-code/devlink');
     // the snapshot staging lives in the backups spool
-    expect(archiverInstanceMock.directory).toHaveBeenCalledWith(expect.stringContaining('/stub/spool/plugins-snap-backup-'), 'plugins-data');
+    expect(archiverInstanceMock.directory).toHaveBeenCalledWith(
+      expect.stringContaining('/stub/spool/plugins-snap-backup-'),
+      'plugins-data',
+    );
   });
 
-  it('BACKUP-036b — WAL checkpoint error is swallowed (non-critical)', async () => {
-    // db.exec throws on WAL checkpoint
-    dbMock.db.exec.mockImplementationOnce(() => { throw new Error('WAL checkpoint failed'); });
+  it('BACKUP-036b: a failed WAL checkpoint is logged and the backup still goes ahead (best effort)', async () => {
     fsMock.existsSync.mockReturnValue(false);
     setupArchiveSuccess();
+    maintenanceRepoMock.walCheckpoint.mockRejectedValueOnce(new Error('database is locked'));
     const storage = stubStorage({ stat: statOf(512) });
 
-    // Should not throw even though WAL checkpoint failed
-    const result = await createBackup(storage);
+    const result = await createBackup(deps(storage));
+
     expect(result).toHaveProperty('filename');
     expect(result.size).toBe(512);
+    expect(logMock.logWarn).toHaveBeenCalledWith(
+      expect.stringContaining('WAL checkpoint before the snapshot failed (database is locked)'),
+    );
+  });
+
+  it('BACKUP-036t: a failure that is not an Error is still named in the log and the thrown error', async () => {
+    fsMock.existsSync.mockImplementation((p: string) => String(p).endsWith('travel.db'));
+    setupArchiveSuccess();
+    maintenanceRepoMock.walCheckpoint.mockRejectedValueOnce('SQLITE_BUSY');
+    maintenanceRepoMock.vacuumInto.mockRejectedValueOnce('SQLITE_FULL');
+    const storage = stubStorage({ stat: statOf(512) });
+
+    await expect(createBackup(deps(storage))).rejects.toThrow('Database snapshot failed: SQLITE_FULL');
+
+    expect(logMock.logWarn).toHaveBeenCalledWith(expect.stringContaining('(SQLITE_BUSY)'));
+    expect(storage.put).not.toHaveBeenCalled();
   });
 
   it('BACKUP-036c — archiver error cleans up the spool staging, skips put and re-throws', async () => {
     fsMock.existsSync.mockReturnValue(false);
     const archiveEvents: Record<string, Function> = {};
     fsMock.createWriteStream.mockReturnValue({ on: vi.fn() } as never);
-    archiverInstanceMock.on.mockImplementation((event: string, cb: Function) => { archiveEvents[event] = cb; });
+    archiverInstanceMock.on.mockImplementation((event: string, cb: Function) => {
+      archiveEvents[event] = cb;
+    });
     archiverInstanceMock.pipe.mockReturnValue(undefined);
     archiverInstanceMock.finalize.mockImplementation(() => {
       // Simulate archive error instead of success
@@ -523,26 +609,83 @@ describe('BACKUP-036 createBackup', () => {
     archiverMock.mockReturnValue(archiverInstanceMock);
     const storage = stubStorage();
 
-    await expect(createBackup(storage)).rejects.toThrow('disk full');
+    await expect(createBackup(deps(storage))).rejects.toThrow('disk full');
 
     // Nothing is committed; the half-built spool file is removed in the finally.
     expect(storage.put).not.toHaveBeenCalled();
     expect(fsMock.rmSync).toHaveBeenCalledWith(expect.stringContaining('zip-build-backup-'), { force: true });
   });
 
-  it('BACKUP-036d — includes travel.db when it exists, snapshotted into the spool', async () => {
+  it('BACKUP-036d: archives a VACUUM INTO snapshot of the database, never the live file', async () => {
     fsMock.existsSync.mockImplementation((p: string) => String(p).endsWith('travel.db'));
     setupArchiveSuccess();
     const storage = stubStorage({ stat: statOf(1024) });
 
-    await createBackup(storage);
+    await createBackup(deps(storage));
 
-    // the core DB is snapshotted (VACUUM INTO) and archived under the name travel.db
-    expect(dbMock.db.exec).toHaveBeenCalledWith(expect.stringContaining('VACUUM INTO'));
-    expect(archiverInstanceMock.file).toHaveBeenCalledWith(
+    expect(maintenanceRepoMock.walCheckpoint).toHaveBeenCalled();
+    expect(maintenanceRepoMock.vacuumInto).toHaveBeenCalledWith(
       expect.stringContaining('/stub/spool/travel-snap-backup-'),
-      { name: 'travel.db' }
     );
+    expect(archiverInstanceMock.file).toHaveBeenCalledWith(expect.stringContaining('/stub/spool/travel-snap-backup-'), {
+      name: 'travel.db',
+    });
+    expect(archiverInstanceMock.file).not.toHaveBeenCalledWith(DEFAULT_LIVE_DB, expect.anything());
+    // The scratch snapshot goes with the rest of the spool.
+    expect(fsMock.rmSync).toHaveBeenCalledWith(expect.stringContaining('travel-snap-backup-'), { force: true });
+  });
+
+  it('BACKUP-036q: a failed VACUUM INTO fails the backup: no live file archived, nothing committed, said in the log', async () => {
+    // This used to fall back to archiving the live WAL-mode file without a
+    // word: the torn copy the snapshot exists to prevent, passed off as a
+    // good backup.
+    fsMock.existsSync.mockImplementation((p: string) => String(p).endsWith('travel.db'));
+    setupArchiveSuccess();
+    maintenanceRepoMock.vacuumInto.mockRejectedValueOnce(new Error('database or disk is full'));
+    const storage = stubStorage({ stat: statOf(1024) });
+
+    await expect(createBackup(deps(storage))).rejects.toThrow('Database snapshot failed: database or disk is full');
+
+    // Nothing was archived and nothing reached the backups store, so the
+    // existing backups are exactly what they were.
+    expect(archiverMock).not.toHaveBeenCalled();
+    expect(archiverInstanceMock.file).not.toHaveBeenCalled();
+    expect(storage.put).not.toHaveBeenCalled();
+    // A partial snapshot and the spool are cleaned up.
+    expect(fsMock.rmSync).toHaveBeenCalledWith(expect.stringContaining('travel-snap-backup-'), { force: true });
+    expect(fsMock.rmSync).toHaveBeenCalledWith(expect.stringContaining('zip-build-backup-'), { force: true });
+    expect(logMock.logError).toHaveBeenCalledWith(expect.stringContaining('could not take a snapshot of the database'));
+    expect(logMock.logError).toHaveBeenCalledWith(expect.stringContaining('No backup was written'));
+  });
+
+  it('BACKUP-036r: backs up the database the connection runs on when TREK_DB_FILE moves it out of data/', async () => {
+    // The old code looked for data/travel.db only: with the database elsewhere
+    // the backup silently held no database at all.
+    liveDb.file = path.join(path.sep, 'srv', 'trek', 'custom-name.db');
+    fsMock.existsSync.mockImplementation((p: string) => p === liveDb.file);
+    setupArchiveSuccess();
+    const storage = stubStorage({ stat: statOf(1024) });
+
+    await createBackup(deps(storage));
+
+    expect(maintenanceRepoMock.vacuumInto).toHaveBeenCalledWith(
+      expect.stringContaining('/stub/spool/travel-snap-backup-'),
+    );
+    expect(archiverInstanceMock.file).toHaveBeenCalledWith(expect.stringContaining('/stub/spool/travel-snap-backup-'), {
+      name: 'travel.db',
+    });
+  });
+
+  it('BACKUP-036s: no database file to copy is said in the log, not passed over in silence', async () => {
+    fsMock.existsSync.mockReturnValue(false);
+    setupArchiveSuccess();
+    const storage = stubStorage({ stat: statOf(1024) });
+
+    await createBackup(deps(storage));
+
+    expect(maintenanceRepoMock.vacuumInto).not.toHaveBeenCalled();
+    expect(archiverInstanceMock.file).not.toHaveBeenCalledWith(expect.anything(), { name: 'travel.db' });
+    expect(logMock.logWarn).toHaveBeenCalledWith(expect.stringContaining('this backup holds no database'));
   });
 
   it('BACKUP-036e — excludes the re-derivable photo caches nested under photos/', async () => {
@@ -558,12 +701,15 @@ describe('BACKUP-036 createBackup', () => {
       }),
     });
 
-    await createBackup(storage);
+    await createBackup(deps(storage));
 
-    expect(archiverInstanceMock.file).toHaveBeenCalledWith('/stub/local/path', { name: 'uploads/photos/flat.jpg' });
-    const names = archiverInstanceMock.file.mock.calls.map(c => c[1]?.name as string);
-    expect(names.some(n => n?.includes('google/'))).toBe(false);
-    expect(names.some(n => n?.includes('trek/'))).toBe(false);
+    expect(archiverInstanceMock.file).toHaveBeenCalledWith('/stub/local/path', {
+      name: 'uploads/photos/flat.jpg',
+      store: true,
+    });
+    const names = archiverInstanceMock.file.mock.calls.map((c) => c[1]?.name as string);
+    expect(names.some((n) => n?.includes('google/'))).toBe(false);
+    expect(names.some((n) => n?.includes('trek/'))).toBe(false);
     // Only the archived categories are ever listed — the excludes are structural.
     expect(storage.getLocalPathOrNull).toHaveBeenCalledTimes(1);
   });
@@ -576,10 +722,10 @@ describe('BACKUP-036 createBackup', () => {
     setupArchiveSuccess();
     const storage = stubStorage({ stat: statOf(1024) });
 
-    await createBackup(storage);
+    await createBackup(deps(storage));
 
     expect(archiverInstanceMock.glob).not.toHaveBeenCalled();
-    const listed = (storage.list as ReturnType<typeof vi.fn>).mock.calls.map(c => c[0] as string);
+    const listed = (storage.list as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0] as string);
     expect(listed.sort()).toEqual(['avatars', 'covers', 'files', 'journey', 'photos', 'places']);
     expect(listed).not.toContain('backups');
   });
@@ -592,12 +738,11 @@ describe('BACKUP-036 createBackup', () => {
       setupArchiveSuccess();
       const storage = stubStorage({ stat: statOf(1024) });
 
-      await createBackup(storage);
+      await createBackup(deps(storage));
 
-      expect(archiverInstanceMock.file).toHaveBeenCalledWith(
-        expect.stringContaining('.encryption_key'),
-        { name: '.encryption_key' },
-      );
+      expect(archiverInstanceMock.file).toHaveBeenCalledWith(expect.stringContaining('.encryption_key'), {
+        name: '.encryption_key',
+      });
     } finally {
       process.env.ENCRYPTION_KEY = prevEnvKey;
     }
@@ -609,7 +754,7 @@ describe('BACKUP-036 createBackup', () => {
     setupArchiveSuccess();
     const storage = stubStorage({ stat: statOf(1024) });
 
-    await createBackup(storage);
+    await createBackup(deps(storage));
 
     expect(archiverInstanceMock.file).not.toHaveBeenCalledWith(
       expect.stringContaining('.encryption_key'),
@@ -617,20 +762,19 @@ describe('BACKUP-036 createBackup', () => {
     );
   });
 
-  it('BACKUP-036i — the auto-backup prefix names both the zip and its scratch snapshots', async () => {
+  it('BACKUP-036i: the auto-backup prefix names the zip and the scratch snapshot', async () => {
     // The scheduler passes 'auto-backup' so retention and the admin panel can
     // still tell scheduled archives apart by filename.
     fsMock.existsSync.mockImplementation((p: string) => String(p).endsWith('travel.db'));
     setupArchiveSuccess();
     const storage = stubStorage({ stat: statOf(1024) });
 
-    const result = await createBackup(storage, 'auto-backup');
+    const result = await createBackup(deps(storage), 'auto-backup');
 
     expect(result.filename).toMatch(/^auto-backup-.*\.zip$/);
-    expect(archiverInstanceMock.file).toHaveBeenCalledWith(
-      expect.stringContaining('travel-snap-auto-backup-'),
-      { name: 'travel.db' },
-    );
+    expect(archiverInstanceMock.file).toHaveBeenCalledWith(expect.stringContaining('travel-snap-auto-backup-'), {
+      name: 'travel.db',
+    });
     expect(storage.put).toHaveBeenCalledWith('backups', result.filename, {
       tmpPath: expect.stringContaining('zip-build-auto-backup-'),
     });
@@ -659,7 +803,11 @@ describe('BACKUP-037 deleteBackup', () => {
     // Note: storage.delete is idempotent on a MISSING object (route parity holds
     // because the controller pre-checks existence and 404s); this pins that a
     // real backend failure still surfaces.
-    const storage = stubStorage({ delete: vi.fn(async () => { throw new Error('EIO: i/o error'); }) });
+    const storage = stubStorage({
+      delete: vi.fn(async () => {
+        throw new Error('EIO: i/o error');
+      }),
+    });
 
     await expect(deleteBackup(storage, 'backup-missing.zip')).rejects.toThrow('EIO');
   });
@@ -689,7 +837,7 @@ describe('BACKUP-038 restoreFromZip', () => {
     });
     fsMock.rmSync.mockReturnValue(undefined);
 
-    const result = await restoreFromZip(stubStorage(), '/data/tmp/upload.zip');
+    const result = await restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip');
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/travel\.db not found/i);
@@ -701,7 +849,7 @@ describe('BACKUP-038 restoreFromZip', () => {
       files: [{ uncompressedSize: 6 * 1024 * 1024 * 1024 }], // 6 GB > 5 GB cap
     });
 
-    const result = await restoreFromZip(stubStorage(), '/data/tmp/bomb.zip');
+    const result = await restoreFromZip(deps(stubStorage()), '/data/tmp/bomb.zip');
 
     expect(result.success).toBe(false);
     expect(result.status).toBe(400);
@@ -771,7 +919,7 @@ describe('BACKUP-061 restoreFromZip extraction', () => {
   it('BACKUP-061a — refuses an entry whose path escapes the archive root (zip-slip)', async () => {
     unzipperMock.Open.file.mockResolvedValueOnce({ files: [zipEntry('../../etc/passwd')] });
 
-    const result = await restoreFromZip(stubStorage(), '/data/tmp/slip.zip');
+    const result = await restoreFromZip(deps(stubStorage()), '/data/tmp/slip.zip');
 
     expect(result.success).toBe(false);
     expect(result.status).toBe(400);
@@ -786,15 +934,18 @@ describe('BACKUP-061 restoreFromZip extraction', () => {
   // slash is normalised away and only the `..` check above can fire. Asserting it
   // unconditionally passed locally on Windows and failed on the Linux CI runner, which
   // is the wrong way round for a security test to be discovered.
-  it.runIf(process.platform === 'win32')('BACKUP-061b — a drive-letter entry path is refused the same way', async () => {
-    unzipperMock.Open.file.mockResolvedValueOnce({ files: [zipEntry('C:/Windows/system32/evil.dll')] });
+  it.runIf(process.platform === 'win32')(
+    'BACKUP-061b — a drive-letter entry path is refused the same way',
+    async () => {
+      unzipperMock.Open.file.mockResolvedValueOnce({ files: [zipEntry('C:/Windows/system32/evil.dll')] });
 
-    const result = await restoreFromZip(stubStorage(), '/data/tmp/abs.zip');
+      const result = await restoreFromZip(deps(stubStorage()), '/data/tmp/abs.zip');
 
-    expect(result.success).toBe(false);
-    expect(result.status).toBe(400);
-    expect(fsMock.createWriteStream).not.toHaveBeenCalled();
-  });
+      expect(result.success).toBe(false);
+      expect(result.status).toBe(400);
+      expect(fsMock.createWriteStream).not.toHaveBeenCalled();
+    },
+  );
 
   it('BACKUP-061c — directory entries are skipped rather than written', async () => {
     unzipperMock.Open.file.mockResolvedValueOnce({
@@ -803,7 +954,7 @@ describe('BACKUP-061 restoreFromZip extraction', () => {
 
     // What happens after extraction is BACKUP-042..045's business; this case only
     // cares that the directory entry never reached the writer.
-    await restoreFromZip(stubStorage(), '/data/tmp/dirs.zip').catch(() => undefined);
+    await restoreFromZip(deps(stubStorage()), '/data/tmp/dirs.zip').catch(() => undefined);
 
     expect(fsMock.createWriteStream).toHaveBeenCalledTimes(1);
   });
@@ -815,7 +966,7 @@ describe('BACKUP-061 restoreFromZip extraction', () => {
     lying.uncompressedSize = 8;
     unzipperMock.Open.file.mockResolvedValueOnce({ files: [lying] });
 
-    const result = await restoreFromZip(stubStorage(), '/data/tmp/liar.zip');
+    const result = await restoreFromZip(deps(stubStorage()), '/data/tmp/liar.zip');
 
     expect(result.success).toBe(false);
     expect(result.status).toBe(400);
@@ -843,7 +994,9 @@ describe('BACKUP-061 restoreFromZip extraction', () => {
     // A corrupt stream is NOT dressed up as a 400 "too large": it leaves the function
     // as a throw, which is what makes the controller answer 500 rather than telling the
     // admin their perfectly-sized backup is over the cap.
-    await expect(restoreFromZip(stubStorage(), '/data/tmp/corrupt.zip')).rejects.toThrow('corrupt deflate stream');
+    await expect(restoreFromZip(deps(stubStorage()), '/data/tmp/corrupt.zip')).rejects.toThrow(
+      'corrupt deflate stream',
+    );
     expect(fsMock.rmSync).toHaveBeenCalledWith(expect.stringContaining('restore-'), { recursive: true, force: true });
   });
 
@@ -854,7 +1007,15 @@ describe('BACKUP-061 restoreFromZip extraction', () => {
         .fn()
         .mockReturnValueOnce({ get: vi.fn().mockReturnValue({ integrity_check: 'ok' }) })
         .mockReturnValueOnce({
-          all: vi.fn().mockReturnValue([{ name: 'users' }, { name: 'trips' }, { name: 'trip_members' }, { name: 'places' }, { name: 'days' }]),
+          all: vi
+            .fn()
+            .mockReturnValue([
+              { name: 'users' },
+              { name: 'trips' },
+              { name: 'trip_members' },
+              { name: 'places' },
+              { name: 'days' },
+            ]),
         }),
       pragma: vi.fn(),
       close: vi.fn(),
@@ -868,7 +1029,7 @@ describe('BACKUP-061 restoreFromZip extraction', () => {
     });
     const storage = stubStorage();
 
-    const result = await restoreFromZip(storage, '/data/tmp/ok.zip');
+    const result = await restoreFromZip(deps(storage), '/data/tmp/ok.zip');
 
     // The files already landed, so this is neither a success nor a plain failure: the
     // admin has to restart, and the message has to say so.
@@ -937,16 +1098,17 @@ describe('BACKUP-062 sendBackupToResponse', () => {
     await sendBackupToResponse(storage, 'backup-2026-01-01T00-00-00.zip', res);
 
     expect(storage.sendToResponse).toHaveBeenCalledOnce();
-    expect(storage.sendToResponse).toHaveBeenCalledWith(
-      'backups',
-      'backup-2026-01-01T00-00-00.zip',
-      res,
-      { disposition: 'attachment; filename="backup-2026-01-01T00-00-00.zip"' },
-    );
+    expect(storage.sendToResponse).toHaveBeenCalledWith('backups', 'backup-2026-01-01T00-00-00.zip', res, {
+      disposition: 'attachment; filename="backup-2026-01-01T00-00-00.zip"',
+    });
   });
 
   it('BACKUP-062b — propagates a storage failure (the controller owns the miss contract)', async () => {
-    const storage = stubStorage({ sendToResponse: vi.fn(async () => { throw new Error('missing'); }) });
+    const storage = stubStorage({
+      sendToResponse: vi.fn(async () => {
+        throw new Error('missing');
+      }),
+    });
     const res = {} as import('express').Response;
 
     await expect(sendBackupToResponse(storage, 'backup-x.zip', res)).rejects.toThrow('missing');
@@ -970,7 +1132,9 @@ describe('BACKUP-041 listBackups', () => {
 
   it('BACKUP-041b — returns BackupInfo for each .zip object', async () => {
     const storage = stubStorage({
-      list: listOf([{ key: 'backup-2026-01-01T00-00-00.zip', size: 1024, mtimeMs: Date.parse('2026-01-01T00:00:00Z') }]),
+      list: listOf([
+        { key: 'backup-2026-01-01T00-00-00.zip', size: 1024, mtimeMs: Date.parse('2026-01-01T00:00:00Z') },
+      ]),
     });
 
     const result = await listBackups(storage);
@@ -1050,9 +1214,7 @@ describe('BACKUP-042 restoreFromZip — integrity check fails', () => {
   it('BACKUP-042a — returns status 400 with integrity check error message', async () => {
     setupSuccessfulExtraction();
 
-    fsMock.existsSync.mockImplementation((p: string) =>
-      String(p).endsWith('travel.db')
-    );
+    fsMock.existsSync.mockImplementation((p: string) => String(p).endsWith('travel.db'));
     fsMock.rmSync.mockReturnValue(undefined);
 
     const fakeDbInstance = {
@@ -1067,7 +1229,7 @@ describe('BACKUP-042 restoreFromZip — integrity check fails', () => {
       return fakeDbInstance;
     });
 
-    const result = await restoreFromZip(stubStorage(), '/data/tmp/upload.zip');
+    const result = await restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip');
 
     expect(result.success).toBe(false);
     expect(result.status).toBe(400);
@@ -1084,13 +1246,12 @@ describe('BACKUP-043 restoreFromZip — missing required table', () => {
   it('BACKUP-043a — returns status 400 with missing required table error', async () => {
     setupSuccessfulExtraction();
 
-    fsMock.existsSync.mockImplementation((p: string) =>
-      String(p).endsWith('travel.db')
-    );
+    fsMock.existsSync.mockImplementation((p: string) => String(p).endsWith('travel.db'));
     fsMock.rmSync.mockReturnValue(undefined);
 
     const fakeDbInstance = {
-      prepare: vi.fn()
+      prepare: vi
+        .fn()
         .mockReturnValueOnce({
           get: vi.fn().mockReturnValue({ integrity_check: 'ok' }),
         })
@@ -1104,7 +1265,7 @@ describe('BACKUP-043 restoreFromZip — missing required table', () => {
       return fakeDbInstance;
     });
 
-    const result = await restoreFromZip(stubStorage(), '/data/tmp/upload.zip');
+    const result = await restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip');
 
     expect(result.success).toBe(false);
     expect(result.status).toBe(400);
@@ -1121,16 +1282,14 @@ describe('BACKUP-044 restoreFromZip — Database constructor throws (invalid SQL
   it('BACKUP-044a — returns status 400 with "not a valid SQLite database" error', async () => {
     setupSuccessfulExtraction();
 
-    fsMock.existsSync.mockImplementation((p: string) =>
-      String(p).endsWith('travel.db')
-    );
+    fsMock.existsSync.mockImplementation((p: string) => String(p).endsWith('travel.db'));
     fsMock.rmSync.mockReturnValue(undefined);
 
     DatabaseMock.mockImplementation(function () {
       throw new Error('file is not a database');
     });
 
-    const result = await restoreFromZip(stubStorage(), '/data/tmp/upload.zip');
+    const result = await restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip');
 
     expect(result.success).toBe(false);
     expect(result.status).toBe(400);
@@ -1146,18 +1305,21 @@ describe('BACKUP-045 restoreFromZip — full success path (no uploads)', () => {
 
   function setupAllTablesPresent() {
     const fakeDbInstance = {
-      prepare: vi.fn()
+      prepare: vi
+        .fn()
         .mockReturnValueOnce({
           get: vi.fn().mockReturnValue({ integrity_check: 'ok' }),
         })
         .mockReturnValueOnce({
-          all: vi.fn().mockReturnValue([
-            { name: 'users' },
-            { name: 'trips' },
-            { name: 'trip_members' },
-            { name: 'places' },
-            { name: 'days' },
-          ]),
+          all: vi
+            .fn()
+            .mockReturnValue([
+              { name: 'users' },
+              { name: 'trips' },
+              { name: 'trip_members' },
+              { name: 'places' },
+              { name: 'days' },
+            ]),
         }),
       pragma: vi.fn(),
       close: vi.fn(),
@@ -1181,7 +1343,7 @@ describe('BACKUP-045 restoreFromZip — full success path (no uploads)', () => {
     fsMock.copyFileSync.mockReturnValue(undefined);
     fsMock.rmSync.mockReturnValue(undefined);
 
-    const result = await restoreFromZip(stubStorage(), '/data/tmp/upload.zip');
+    const result = await restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip');
 
     expect(result).toEqual({ success: true });
     // The uploaded database is checked through the shared opener, read-only and
@@ -1195,8 +1357,12 @@ describe('BACKUP-045 restoreFromZip — full success path (no uploads)', () => {
     setupAllTablesPresent();
 
     const callOrder: string[] = [];
-    dbMock.closeDb.mockImplementation(() => { callOrder.push('closeDb'); });
-    fsMock.copyFileSync.mockImplementation(() => { callOrder.push('copyFileSync'); });
+    dbMock.closeDb.mockImplementation(() => {
+      callOrder.push('closeDb');
+    });
+    fsMock.copyFileSync.mockImplementation(() => {
+      callOrder.push('copyFileSync');
+    });
     fsMock.unlinkSync.mockReturnValue(undefined);
     fsMock.rmSync.mockReturnValue(undefined);
 
@@ -1206,9 +1372,178 @@ describe('BACKUP-045 restoreFromZip — full success path (no uploads)', () => {
       return true;
     });
 
-    await restoreFromZip(stubStorage(), '/data/tmp/upload.zip');
+    await restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip');
 
     expect(callOrder.indexOf('closeDb')).toBeLessThan(callOrder.indexOf('copyFileSync'));
+  });
+
+  it('BACKUP-045g: keeps a copy of the database it replaces, before closing it', async () => {
+    setupSuccessfulExtraction();
+    setupAllTablesPresent();
+
+    const callOrder: string[] = [];
+    maintenanceRepoMock.vacuumInto.mockImplementation(async (target: string) => {
+      callOrder.push(`vacuum:${target}`);
+    });
+    dbMock.closeDb.mockImplementation(() => {
+      callOrder.push('closeDb');
+    });
+    fsMock.unlinkSync.mockReturnValue(undefined);
+    fsMock.rmSync.mockReturnValue(undefined);
+    fsMock.existsSync.mockImplementation((p: string) => !String(p).includes('uploads'));
+
+    await restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip');
+
+    expect(callOrder[0]).toMatch(/^vacuum:.*pre-restore-\d+\.db$/);
+    expect(callOrder.indexOf('closeDb')).toBeGreaterThan(0);
+    expect(logMock.logInfo).toHaveBeenCalledWith(expect.stringContaining('the replaced database was kept as'));
+  });
+
+  it('BACKUP-045i: swaps the archive into the database the connection runs on when TREK_DB_FILE moves it', async () => {
+    // The restore used to write data/travel.db whatever TREK_DB_FILE said: the
+    // live database was never replaced and the restore reported success.
+    setupSuccessfulExtraction();
+    setupAllTablesPresent();
+    liveDb.file = path.join(path.sep, 'srv', 'trek', 'custom-name.db');
+    maintenanceRepoMock.vacuumInto.mockResolvedValue(undefined);
+    fsMock.unlinkSync.mockReturnValue(undefined);
+    fsMock.copyFileSync.mockReturnValue(undefined);
+    fsMock.rmSync.mockReturnValue(undefined);
+    fsMock.existsSync.mockImplementation(
+      (p: string) => !String(p).includes('uploads') && !String(p).endsWith('.encryption_key'),
+    );
+
+    const result = await restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip');
+
+    expect(result).toEqual({ success: true });
+    const tmp = liveDb.file + '.restore-tmp';
+    expect(fsMock.copyFileSync).toHaveBeenCalledWith(expect.stringMatching(/restore-\d+[\\/]travel\.db$/), tmp);
+    expect(fsMock.renameSync).toHaveBeenCalledWith(tmp, liveDb.file);
+    expect(fsMock.unlinkSync).toHaveBeenCalledWith(liveDb.file + '-wal');
+    expect(fsMock.copyFileSync).not.toHaveBeenCalledWith(expect.anything(), DEFAULT_LIVE_DB + '.restore-tmp');
+    // The safety copy sits next to that database too.
+    expect(maintenanceRepoMock.vacuumInto).toHaveBeenCalledWith(
+      expect.stringMatching(/[\\/]srv[\\/]trek[\\/]pre-restore-\d+\.db$/),
+    );
+  });
+
+  it('BACKUP-045h: a database that cannot be copied does not block the restore', async () => {
+    setupSuccessfulExtraction();
+    setupAllTablesPresent();
+    maintenanceRepoMock.vacuumInto.mockRejectedValueOnce(new Error('database disk image is malformed'));
+    fsMock.unlinkSync.mockReturnValue(undefined);
+    fsMock.rmSync.mockReturnValue(undefined);
+    fsMock.existsSync.mockImplementation((p: string) => !String(p).includes('uploads'));
+
+    const result = await restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip');
+
+    expect(result.success).toBe(true);
+    expect(logMock.logWarn).toHaveBeenCalledWith(
+      expect.stringContaining('could not keep a copy of the current database'),
+    );
+    expect(dbMock.closeDb).toHaveBeenCalled();
+  });
+
+  it('BACKUP-045i: the sessions signed in before the restore are put back after the reopen', async () => {
+    setupSuccessfulExtraction();
+    setupAllTablesPresent();
+    const callOrder: string[] = [];
+    const carried = [
+      {
+        id: 'sess-1',
+        user_id: 1,
+        email: 'admin@example.test',
+        created_at: 'a',
+        last_seen_at: 'b',
+        expires_at: 'c',
+        user_agent: null,
+      },
+    ];
+    const sessionsRepo = {
+      listActiveToCarry: vi.fn(async () => {
+        callOrder.push('read');
+        return carried;
+      }),
+      restoreCarried: vi.fn(async () => {
+        callOrder.push('restore');
+        return 1;
+      }),
+    };
+    const { RequestContext } = await import('@mikro-orm/core');
+    const em = vi
+      .spyOn(RequestContext, 'getEntityManager')
+      .mockReturnValue({ getRepository: () => sessionsRepo } as never);
+    const fork = vi
+      .spyOn(RequestContext, 'create')
+      .mockImplementation(((_em: unknown, next: () => unknown) => next()) as never);
+    onTestFinished(() => {
+      em.mockRestore();
+      fork.mockRestore();
+    });
+    dbMock.closeDb.mockImplementation(() => {
+      callOrder.push('closeDb');
+    });
+    dbMock.reinitialize.mockImplementation(() => {
+      callOrder.push('reinitialize');
+    });
+    fsMock.unlinkSync.mockReturnValue(undefined);
+    fsMock.copyFileSync.mockReturnValue(undefined);
+    fsMock.rmSync.mockReturnValue(undefined);
+    fsMock.existsSync.mockImplementation(
+      (p: string) => !String(p).includes('uploads') && !String(p).endsWith('.encryption_key'),
+    );
+
+    const result = await restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip');
+
+    expect(result).toEqual({ success: true });
+    expect(callOrder).toEqual(['read', 'closeDb', 'reinitialize', 'restore']);
+    expect(sessionsRepo.restoreCarried).toHaveBeenCalledWith(carried);
+    // Put back in a fresh fork, not through the one that read the replaced file.
+    expect(fork).toHaveBeenCalledTimes(1);
+  });
+
+  it('BACKUP-045j: sessions that cannot be read or put back do not fail the restore', async () => {
+    setupSuccessfulExtraction();
+    setupAllTablesPresent();
+    const sessionsRepo = {
+      listActiveToCarry: vi
+        .fn()
+        .mockRejectedValueOnce(new Error('no such table: user_sessions'))
+        .mockResolvedValueOnce([{ id: 's' }]),
+      restoreCarried: vi.fn().mockRejectedValue(new Error('database is locked')),
+    };
+    const { RequestContext } = await import('@mikro-orm/core');
+    const em = vi
+      .spyOn(RequestContext, 'getEntityManager')
+      .mockReturnValue({ getRepository: () => sessionsRepo } as never);
+    const fork = vi
+      .spyOn(RequestContext, 'create')
+      .mockImplementation(((_em: unknown, next: () => unknown) => next()) as never);
+    onTestFinished(() => {
+      em.mockRestore();
+      fork.mockRestore();
+    });
+    fsMock.unlinkSync.mockReturnValue(undefined);
+    fsMock.copyFileSync.mockReturnValue(undefined);
+    fsMock.rmSync.mockReturnValue(undefined);
+    fsMock.existsSync.mockImplementation(
+      (p: string) => !String(p).includes('uploads') && !String(p).endsWith('.encryption_key'),
+    );
+
+    const unreadable = await restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip');
+    expect(unreadable).toEqual({ success: true });
+    expect(logMock.logWarn).toHaveBeenCalledWith(
+      expect.stringContaining('could not read the active sessions (no such table: user_sessions)'),
+    );
+    expect(sessionsRepo.restoreCarried).not.toHaveBeenCalled();
+
+    setupSuccessfulExtraction();
+    setupAllTablesPresent();
+    const unwritable = await restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip');
+    expect(unwritable).toEqual({ success: true });
+    expect(logMock.logWarn).toHaveBeenCalledWith(
+      expect.stringContaining('could not keep the active sessions (database is locked)'),
+    );
   });
 
   it('BACKUP-045c — reinitialize is called even when copyFileSync throws', async () => {
@@ -1226,7 +1561,7 @@ describe('BACKUP-045 restoreFromZip — full success path (no uploads)', () => {
     });
     fsMock.rmSync.mockReturnValue(undefined);
 
-    await expect(restoreFromZip(stubStorage(), '/data/tmp/upload.zip')).rejects.toThrow('disk full');
+    await expect(restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip')).rejects.toThrow('disk full');
 
     expect(dbMock.reinitialize).toHaveBeenCalled();
   });
@@ -1245,7 +1580,7 @@ describe('BACKUP-045 restoreFromZip — full success path (no uploads)', () => {
     fsMock.copyFileSync.mockReturnValue(undefined);
     fsMock.rmSync.mockReturnValue(undefined);
 
-    const result = await restoreFromZip(stubStorage(), '/data/tmp/upload.zip');
+    const result = await restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip');
 
     expect(result).toEqual({ success: true });
     // Key copied from the extract dir into the live data dir.
@@ -1269,7 +1604,7 @@ describe('BACKUP-045 restoreFromZip — full success path (no uploads)', () => {
     fsMock.copyFileSync.mockReturnValue(undefined);
     fsMock.rmSync.mockReturnValue(undefined);
 
-    const result = await restoreFromZip(stubStorage(), '/data/tmp/upload.zip');
+    const result = await restoreFromZip(deps(stubStorage()), '/data/tmp/upload.zip');
 
     expect(result).toEqual({ success: true });
     expect(fsMock.copyFileSync).not.toHaveBeenCalledWith(
@@ -1288,25 +1623,31 @@ describe('BACKUP-045 restoreFromZip — full success path (no uploads)', () => {
     setupAllTablesPresent();
 
     const callOrder: string[] = [];
-    dbMock.reinitialize.mockImplementation(() => { callOrder.push('reinitialize'); });
+    dbMock.reinitialize.mockImplementation(() => {
+      callOrder.push('reinitialize');
+    });
 
     const dirent = (name: string, dir = false) => ({ name, isDirectory: () => dir, isFile: () => !dir });
     fsMock.existsSync.mockImplementation((p: string) => !String(p).endsWith('.encryption_key'));
     fsMock.readdirSync.mockImplementation((p: string, opts?: { withFileTypes?: boolean }) => {
       const s = String(p);
       const entries = s.endsWith('uploads') ? [dirent('files', true)] : s.endsWith('files') ? [dirent('a.pdf')] : [];
-      return (opts?.withFileTypes ? entries : entries.map(e => e.name)) as never;
+      return (opts?.withFileTypes ? entries : entries.map((e) => e.name)) as never;
     });
     fsMock.unlinkSync.mockReturnValue(undefined);
     fsMock.copyFileSync.mockReturnValue(undefined);
     fsMock.rmSync.mockReturnValue(undefined);
 
     const storage = stubStorage({
-      reloadConfig: vi.fn(() => { callOrder.push('reloadConfig'); }),
-      put: vi.fn(async () => { callOrder.push('put:rehydrate'); }),
+      reloadConfig: vi.fn(() => {
+        callOrder.push('reloadConfig');
+      }),
+      put: vi.fn(async () => {
+        callOrder.push('put:rehydrate');
+      }),
     });
 
-    const result = await restoreFromZip(storage, '/data/tmp/upload.zip');
+    const result = await restoreFromZip(deps(storage), '/data/tmp/upload.zip');
 
     expect(result).toEqual({ success: true });
     expect(callOrder).toEqual(['reinitialize', 'reloadConfig', 'put:rehydrate']);
@@ -1320,18 +1661,21 @@ describe('BACKUP-046 restoreFromZip — uploads rehydration through storage', ()
 
   function setupAllTablesPresent() {
     const fakeDbInstance = {
-      prepare: vi.fn()
+      prepare: vi
+        .fn()
         .mockReturnValueOnce({
           get: vi.fn().mockReturnValue({ integrity_check: 'ok' }),
         })
         .mockReturnValueOnce({
-          all: vi.fn().mockReturnValue([
-            { name: 'users' },
-            { name: 'trips' },
-            { name: 'trip_members' },
-            { name: 'places' },
-            { name: 'days' },
-          ]),
+          all: vi
+            .fn()
+            .mockReturnValue([
+              { name: 'users' },
+              { name: 'trips' },
+              { name: 'trip_members' },
+              { name: 'places' },
+              { name: 'days' },
+            ]),
         }),
       pragma: vi.fn(),
       close: vi.fn(),
@@ -1353,9 +1697,9 @@ describe('BACKUP-046 restoreFromZip — uploads rehydration through storage', ()
     });
     fsMock.readdirSync.mockImplementation((p: string, opts?: { withFileTypes?: boolean }) => {
       const s = String(p);
-      const key = Object.keys(tree).find(k => s.endsWith(k));
+      const key = Object.keys(tree).find((k) => s.endsWith(k));
       const entries = key ? tree[key] : [];
-      return (opts?.withFileTypes ? entries : entries.map(e => e.name)) as never;
+      return (opts?.withFileTypes ? entries : entries.map((e) => e.name)) as never;
     });
     fsMock.unlinkSync.mockReturnValue(undefined);
     fsMock.copyFileSync.mockReturnValue(undefined);
@@ -1389,7 +1733,7 @@ describe('BACKUP-046 restoreFromZip — uploads rehydration through storage', ()
       }),
     });
 
-    const result = await restoreFromZip(storage, '/data/tmp/upload.zip');
+    const result = await restoreFromZip(deps(storage), '/data/tmp/upload.zip');
 
     expect(result).toEqual({ success: true });
     // wipe: bare keys deleted in every archived category, nested keys never
@@ -1397,11 +1741,15 @@ describe('BACKUP-046 restoreFromZip — uploads rehydration through storage', ()
     expect(deleted.every(([, key]) => !(key as string).includes('/'))).toBe(true);
     expect(deleted.map(([c]) => c).sort()).toEqual(['avatars', 'covers', 'files', 'journey', 'photos', 'places']);
     // rehydration: every extracted file becomes a category put, nested keys intact
-    expect(storage.put).toHaveBeenCalledWith('files', 'a.pdf', { tmpPath: expect.stringContaining('/uploads/files/a.pdf') });
-    expect(storage.put).toHaveBeenCalledWith('journey', 'thumbs/t.jpg', { tmpPath: expect.stringContaining('/uploads/journey/thumbs/t.jpg') });
+    expect(storage.put).toHaveBeenCalledWith('files', 'a.pdf', {
+      tmpPath: expect.stringContaining('/uploads/files/a.pdf'),
+    });
+    expect(storage.put).toHaveBeenCalledWith('journey', 'thumbs/t.jpg', {
+      tmpPath: expect.stringContaining('/uploads/journey/thumbs/t.jpg'),
+    });
     // No uploads bulk copy remains (plugin-tree staging still uses cpSync — out of scope).
-    const cpTargets = fsMock.cpSync.mock.calls.map(c => String(c[1]));
-    expect(cpTargets.some(t => t.includes('uploads'))).toBe(false);
+    const cpTargets = fsMock.cpSync.mock.calls.map((c) => String(c[1]));
+    expect(cpTargets.some((t) => t.includes('uploads'))).toBe(false);
   });
 
   it('BACKUP-046b — skips entries that cannot map to a storage key, with a warning (2026-08-17 decision)', async () => {
@@ -1422,7 +1770,7 @@ describe('BACKUP-046 restoreFromZip — uploads rehydration through storage', ()
       }),
     });
 
-    const result = await restoreFromZip(storage, '/data/tmp/upload.zip');
+    const result = await restoreFromZip(deps(storage), '/data/tmp/upload.zip');
 
     expect(result).toEqual({ success: true });
     // unknown top-level dir + top-level file + invalid key: all skipped, warned
@@ -1440,10 +1788,12 @@ describe('BACKUP-046 restoreFromZip — uploads rehydration through storage', ()
       '/uploads/files': [dirent('a.pdf')],
     });
     const storage = stubStorage({
-      put: vi.fn(async () => { throw new Error('ENOSPC: no space left'); }),
+      put: vi.fn(async () => {
+        throw new Error('ENOSPC: no space left');
+      }),
     });
 
-    await expect(restoreFromZip(storage, '/data/tmp/upload.zip')).rejects.toThrow('ENOSPC');
+    await expect(restoreFromZip(deps(storage), '/data/tmp/upload.zip')).rejects.toThrow('ENOSPC');
     // the DB reopen still ran (finally) — the process is never left closed
     expect(dbMock.reinitialize).toHaveBeenCalled();
   });
@@ -1463,8 +1813,12 @@ describe('BACKUP-063 restoreBackup', () => {
       withLocalFile: vi.fn(async () => ({ success: true })),
     });
 
-    await expect(restoreBackup(storage, 'backup-2026-01-01T00-00-00.zip')).resolves.toEqual({ success: true });
-    expect(storage.withLocalFile).toHaveBeenCalledWith('backups', 'backup-2026-01-01T00-00-00.zip', expect.any(Function));
+    await expect(restoreBackup(deps(storage), 'backup-2026-01-01T00-00-00.zip')).resolves.toEqual({ success: true });
+    expect(storage.withLocalFile).toHaveBeenCalledWith(
+      'backups',
+      'backup-2026-01-01T00-00-00.zip',
+      expect.any(Function),
+    );
   });
 
   it('BACKUP-063b — the local path handed back by storage feeds the restore core', async () => {
@@ -1474,7 +1828,7 @@ describe('BACKUP-063 restoreBackup', () => {
     unzipperMock.Open.file.mockResolvedValue({ files: [] });
     const storage = stubStorage();
 
-    const result = await restoreBackup(storage, 'backup-2026-01-01T00-00-00.zip');
+    const result = await restoreBackup(deps(storage), 'backup-2026-01-01T00-00-00.zip');
 
     expect(result).toEqual({ success: false, error: 'Invalid backup: travel.db not found', status: 400 });
   });

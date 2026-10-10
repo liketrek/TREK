@@ -58,7 +58,7 @@ const planner: TranslationStrings = {
   'planner.overview': 'Tổng quan',
   'planner.noDays': 'Chưa có ngày nào',
   'planner.editTripToAddDays': 'Chỉnh sửa chuyến đi để thêm ngày',
-  'planner.dayCount': '{n} Ngày',
+  'planner.dayCount': '{n} ngày',
   'planner.clickToUnlock': 'Bấm để mở khóa',
   'planner.keepPosition': 'Giữ vị trí trong quá trình tối ưu hóa tuyến đường',
   'planner.dayDetails': 'Chi tiết ngày',

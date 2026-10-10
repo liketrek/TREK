@@ -7,7 +7,6 @@ const members: TranslationStrings = {
   'members.invite': '초대',
   'members.allHaveAccess': '모든 사용자가 이미 접근 권한을 가지고 있습니다.',
   'members.access': '접근',
-  'members.person': '명',
   'members.persons': '명',
   'members.you': '나',
   'members.owner': '소유자',

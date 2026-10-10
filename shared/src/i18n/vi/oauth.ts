@@ -87,8 +87,7 @@ const oauth: TranslationStrings = {
   'oauth.authorize.trustNote':
     'Chỉ cấp quyền truy cập cho các ứng dụng mà bạn tin tưởng. Dữ liệu của bạn vẫn còn trên máy chủ của bạn.',
   'oauth.authorize.selectScope': 'Chọn ít nhất một phạm vi',
-  'oauth.authorize.approveOneScope': 'Phê duyệt (phạm vi {count})',
-  'oauth.authorize.approveManyScopes': 'Phê duyệt ({count} phạm vi)',
+  'oauth.authorize.approveScopes': 'Phê duyệt ({count} phạm vi)',
   'oauth.authorize.approveAccess': 'Phê duyệt quyền truy cập',
   'oauth.authorize.deny': 'Từ chối',
   'oauth.authorize.choosePermissions': 'Chọn quyền nào để cấp',
@@ -100,17 +99,21 @@ const oauth: TranslationStrings = {
   'oauth.scope.group.files': 'Tệp',
   'oauth.scope.group.settings': 'Cài đặt',
   'oauth.scope.files:read.label': 'Xem tệp của chuyến đi',
-  'oauth.scope.files:read.description': 'Liệt kê tài liệu của chuyến đi: tên, kích thước, ai đã tải lên và chúng liên kết với gì',
+  'oauth.scope.files:read.description':
+    'Liệt kê tài liệu của chuyến đi: tên, kích thước, ai đã tải lên và chúng liên kết với gì',
   'oauth.scope.files:write.label': 'Quản lý tệp của chuyến đi',
-  'oauth.scope.files:write.description': 'Đổi tên và mô tả tệp, liên kết với đặt chỗ và địa điểm, gắn sao và chuyển vào thùng rác',
+  'oauth.scope.files:write.description':
+    'Đổi tên và mô tả tệp, liên kết với đặt chỗ và địa điểm, gắn sao và chuyển vào thùng rác',
   'oauth.scope.files:content.label': 'Đọc nội dung tệp',
   'oauth.scope.files:content.description': 'Đọc nội dung của tài liệu đã tải lên, chẳng hạn PDF đặt chỗ hoặc vé',
   'oauth.scope.settings:read.label': 'Xem tuỳ chọn của bạn',
   'oauth.scope.settings:read.description': 'Đọc đơn vị, định dạng giờ, ngôn ngữ, tiền tệ mặc định và trang khởi đầu',
   'oauth.scope.settings:write.label': 'Thay đổi tuỳ chọn của bạn',
-  'oauth.scope.settings:write.description': 'Thay đổi đơn vị, định dạng giờ, ngôn ngữ, tiền tệ mặc định và trang khởi đầu. Không bao giờ khoá API đã lưu',
+  'oauth.scope.settings:write.description':
+    'Thay đổi đơn vị, định dạng giờ, ngôn ngữ, tiền tệ mặc định và trang khởi đầu. Không bao giờ khoá API đã lưu',
   'oauth.scope.group.plugins': 'Tiện ích',
   'oauth.scope.plugins:use.label': 'Chạy công cụ của tiện ích',
-  'oauth.scope.plugins:use.description': 'Cho phép ứng dụng này gọi các công cụ do những tiện ích mà quản trị viên đã cài đặt và phê duyệt cung cấp. Mỗi tiện ích hoạt động với quyền đã được cấp trước đó, không phải với phạm vi của mã thông báo này',
+  'oauth.scope.plugins:use.description':
+    'Cho phép ứng dụng này gọi các công cụ do những tiện ích mà quản trị viên đã cài đặt và phê duyệt cung cấp. Mỗi tiện ích hoạt động với quyền đã được cấp trước đó, không phải với phạm vi của mã thông báo này',
 };
 export default oauth;

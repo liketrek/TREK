@@ -1,4 +1,4 @@
-import type BetterSqlite3 from 'better-sqlite3';
+import type { PluginSettingsFieldsRepository } from '../../db/repositories/PluginSettingsFields.repository';
 
 /** What a settings-field `default` may be — the JSON scalars the manifest accepts. */
 export type SettingDefault = string | number | boolean;
@@ -31,16 +31,12 @@ export function parseDefaultValue(raw: unknown): SettingDefault | undefined {
 
 /** The declared defaults for one plugin and scope, keyed by field. Null-prototype so a
  *  field key can never resolve off Object.prototype (see plugin-config-parse.ts). */
-export function settingDefaults(
-  db: BetterSqlite3.Database,
+export async function settingDefaults(
+  settingsFields: PluginSettingsFieldsRepository,
   pluginId: string,
   scope: 'instance' | 'user',
-): Record<string, SettingDefault> {
-  const rows = db
-    .prepare(
-      'SELECT field_key, default_value FROM plugin_settings_fields WHERE plugin_id = ? AND scope = ? AND secret = 0 AND default_value IS NOT NULL',
-    )
-    .all(pluginId, scope) as Array<{ field_key: string; default_value: string }>;
+): Promise<Record<string, SettingDefault>> {
+  const rows = await settingsFields.listDefaults(pluginId, scope);
   const out: Record<string, SettingDefault> = Object.create(null);
   for (const r of rows) {
     const v = parseDefaultValue(r.default_value);

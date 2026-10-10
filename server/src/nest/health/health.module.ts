@@ -1,7 +1,9 @@
-import { Module } from '@nestjs/common';
-import { FeaturesController } from './features.controller';
-import { KitineraryExtractorModule } from '../booking-import/kitinerary-extractor.module';
 import { AddonsModule } from '../addons/addons.module';
+import { KitineraryExtractorModule } from '../booking-import/kitinerary-extractor.module';
+import { MaintenanceModule } from '../database/maintenance.module';
+import { FeaturesController } from './features.controller';
+import { ReadinessService } from './readiness.service';
+import { Module } from '@nestjs/common';
 
 /** Server capability reporting. `GET /api/health/features` tells the client which
  *  optional server-side features are usable, so it can hide the affordances it
@@ -9,7 +11,9 @@ import { AddonsModule } from '../addons/addons.module';
  *  redirect and HSTS exempt it by path inside globalMiddleware, so it answers
  *  plain-HTTP probes no matter where the route itself is registered. */
 @Module({
-  imports: [KitineraryExtractorModule, AddonsModule],
+  imports: [KitineraryExtractorModule, AddonsModule, MaintenanceModule],
   controllers: [FeaturesController],
+  providers: [ReadinessService],
+  exports: [ReadinessService],
 })
 export class HealthModule {}

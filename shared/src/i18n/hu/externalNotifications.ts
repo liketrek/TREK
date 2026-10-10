@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const hu: NotificationLocale = {
   email: {
@@ -37,8 +38,11 @@ const hu: NotificationLocale = {
       body: `${p.actor} meghívott egy gyűjtemény megosztására. Nyissa meg a TREK-et az elfogadáshoz vagy elutasításhoz.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} fotó megosztva`,
-      body: `${p.actor} ${p.count} fotót osztott meg a(z) "${p.trip}" utazásban.`,
+      title: pluralForm(p.count, 'hu', { one: `${p.count} fotó megosztva`, other: `${p.count} fotó megosztva` }),
+      body: pluralForm(p.count, 'hu', {
+        one: `${p.actor} ${p.count} fotót osztott meg a(z) "${p.trip}" utazásban.`,
+        other: `${p.actor} ${p.count} fotót osztott meg a(z) "${p.trip}" utazásban.`,
+      }),
     }),
     collab_message: (p) => ({
       title: `Új üzenet a(z) "${p.trip}" utazásban`,
@@ -56,7 +60,12 @@ const hu: NotificationLocale = {
       title: 'Tárhely-replika hiba',
       body:
         `Sikertelen írás a(z) '${p.backend}' replikán: ${p.op} / ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` Az utolsó értesítés óta ${p.suppressed} további hiba lett elnyomva.` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'hu', {
+              one: ` Az utolsó értesítés óta ${p.suppressed} további hiba lett elnyomva.`,
+              other: ` Az utolsó értesítés óta ${p.suppressed} további hiba lett elnyomva.`,
+            })
+          : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Synology munkamenet törölve',

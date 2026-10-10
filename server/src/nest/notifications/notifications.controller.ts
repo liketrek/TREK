@@ -1,3 +1,19 @@
+import type { User } from '../../types';
+import { AdminGuard } from '../auth-core/admin.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { ManagedForbidden } from '../common/managed';
+import { NotificationPreferencesService } from './notification-preferences.service';
+import {
+  PreferencesUpdateDto,
+  TestSmtpDto,
+  TestWebhookDto,
+  TestNtfyDto,
+  NotificationRespondDto,
+} from './notifications.dto';
+import { AdminNotificationPreferencesDto, NotificationDefaultsUpdateDto } from './notifications.dto';
+import { NotificationsService } from './notifications.service';
+import { resolveNtfyToken } from './transports/ntfy.service';
 import {
   Body,
   Controller,
@@ -12,22 +28,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { ChannelTestResult, UnreadCountResult } from '@trek/shared';
-import type { User } from '../../types';
-import { NotificationsService } from './notifications.service';
-import { resolveNtfyToken } from './transports/ntfy.service';
-import {
-  PreferencesUpdateDto,
-  TestSmtpDto,
-  TestWebhookDto,
-  TestNtfyDto,
-  NotificationRespondDto,
-} from './notifications.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard } from '../auth/admin.guard';
-import { NotificationPreferencesService } from './notification-preferences.service';
-import { AdminNotificationPreferencesDto } from '../admin/admin.dto';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { ManagedForbidden } from '../common/managed';
 
 // The masked placeholder the client sends instead of a stored secret (8× U+2022).
 const MASKED = '••••••••';
@@ -59,9 +59,9 @@ export class NotificationsController {
   }
 
   @Put('preferences')
-  setPreferences(@CurrentUser() user: User, @Body() body: PreferencesUpdateDto) {
-    this.notifications.setPreferences(user.id, body);
-    return this.notifications.getPreferences(user.id, user.role);
+  async setPreferences(@CurrentUser() user: User, @Body() body: PreferencesUpdateDto) {
+    await this.notifications.setPreferences(user.id, body);
+    return await this.notifications.getPreferences(user.id, user.role);
   }
 
   @ManagedForbidden('the relay is the operator credential; a test send would use their reputation')
@@ -79,8 +79,8 @@ export class NotificationsController {
   async testWebhook(@CurrentUser() user: User, @Body() body: TestWebhookDto): Promise<ChannelTestResult> {
     let url: string | null | undefined = body.url;
     if (!url || url === MASKED) {
-      url = this.notifications.userWebhookUrl(user.id);
-      if (!url && user.role === 'admin') url = this.notifications.adminWebhookUrl();
+      url = await this.notifications.userWebhookUrl(user.id);
+      if (!url && user.role === 'admin') url = await this.notifications.adminWebhookUrl();
       if (!url) {
         throw new HttpException({ error: 'No webhook URL configured' }, 400);
       }
@@ -97,8 +97,8 @@ export class NotificationsController {
   @HttpCode(200)
   async testNtfy(@CurrentUser() user: User, @Body() body: TestNtfyDto): Promise<ChannelTestResult> {
     const { topic, server, token } = body;
-    const userCfg = this.notifications.userNtfyConfig(user.id);
-    const adminCfg = this.notifications.adminNtfyConfig();
+    const userCfg = await this.notifications.userNtfyConfig(user.id);
+    const adminCfg = await this.notifications.adminNtfyConfig();
 
     const resolvedTopic = topic || userCfg?.topic || undefined;
     const resolvedServer = server || userCfg?.server || adminCfg.server || undefined;
@@ -108,9 +108,8 @@ export class NotificationsController {
     // (GHSA-7pqc-fj3c-9346). Same rule as the live send path, and target-based
     // rather than role-based on purpose — an admin-only gate here would take a
     // working button away from every user with their own ntfy config.
-    const resolvedToken = (token && token !== MASKED)
-      ? token
-      : resolveNtfyToken(adminCfg, userCfg, resolvedServer ?? null);
+    const resolvedToken =
+      token && token !== MASKED ? token : resolveNtfyToken(adminCfg, userCfg, resolvedServer ?? null);
 
     if (!resolvedTopic) {
       throw new HttpException({ error: 'No ntfy topic configured' }, 400);
@@ -145,42 +144,42 @@ export class NotificationsController {
   }
 
   @Get('in-app/unread-count')
-  unreadCount(@CurrentUser() user: User): UnreadCountResult {
-    return { count: this.notifications.unreadCount(user.id) };
+  async unreadCount(@CurrentUser() user: User): Promise<UnreadCountResult> {
+    return { count: await this.notifications.unreadCount(user.id) };
   }
 
   @Put('in-app/read-all')
-  readAll(@CurrentUser() user: User): { success: boolean; count: number } {
-    return { success: true, count: this.notifications.markAllRead(user.id) };
+  async readAll(@CurrentUser() user: User): Promise<{ success: boolean; count: number }> {
+    return { success: true, count: await this.notifications.markAllRead(user.id) };
   }
 
   @Delete('in-app/all')
-  deleteAll(@CurrentUser() user: User): { success: boolean; count: number } {
-    return { success: true, count: this.notifications.deleteAll(user.id) };
+  async deleteAll(@CurrentUser() user: User): Promise<{ success: boolean; count: number }> {
+    return { success: true, count: await this.notifications.deleteAll(user.id) };
   }
 
   @Put('in-app/:id/read')
-  markRead(@CurrentUser() user: User, @Param('id') idParam: string): { success: boolean } {
+  async markRead(@CurrentUser() user: User, @Param('id') idParam: string): Promise<{ success: boolean }> {
     const id = this.parseId(idParam);
-    if (!this.notifications.markRead(id, user.id)) {
+    if (!(await this.notifications.markRead(id, user.id))) {
       throw new HttpException({ error: 'Not found' }, 404);
     }
     return { success: true };
   }
 
   @Put('in-app/:id/unread')
-  markUnread(@CurrentUser() user: User, @Param('id') idParam: string): { success: boolean } {
+  async markUnread(@CurrentUser() user: User, @Param('id') idParam: string): Promise<{ success: boolean }> {
     const id = this.parseId(idParam);
-    if (!this.notifications.markUnread(id, user.id)) {
+    if (!(await this.notifications.markUnread(id, user.id))) {
       throw new HttpException({ error: 'Not found' }, 404);
     }
     return { success: true };
   }
 
   @Delete('in-app/:id')
-  deleteOne(@CurrentUser() user: User, @Param('id') idParam: string): { success: boolean } {
+  async deleteOne(@CurrentUser() user: User, @Param('id') idParam: string): Promise<{ success: boolean }> {
     const id = this.parseId(idParam);
-    if (!this.notifications.deleteOne(id, user.id)) {
+    if (!(await this.notifications.deleteOne(id, user.id))) {
       throw new HttpException({ error: 'Not found' }, 404);
     }
     return { success: true };
@@ -229,11 +228,23 @@ export class AdminNotificationPreferencesController {
     return this.prefs.getPreferencesMatrix(user.id, user.role, 'admin');
   }
 
+  /** What every user's notification cells start as, and which the admin blocked (#1536). */
+  @Get('defaults')
+  getDefaults(@CurrentUser() user: User) {
+    return this.prefs.getInstanceDefaults(user.id);
+  }
+
+  @Put('defaults')
+  async setDefaults(@CurrentUser() user: User, @Body() body: NotificationDefaultsUpdateDto) {
+    await this.prefs.setInstanceDefaults(body.defaults);
+    return await this.prefs.getInstanceDefaults(user.id);
+  }
+
   @Put()
-  set(@CurrentUser() user: User, @Body() body: AdminNotificationPreferencesDto) {
-    this.prefs.setAdminPreferences(user.id, body);
+  async set(@CurrentUser() user: User, @Body() body: AdminNotificationPreferencesDto) {
+    await this.prefs.setAdminPreferences(user.id, body);
     // Answer with the refreshed matrix rather than the raw write result — the admin
     // panel renders straight from this response.
-    return this.prefs.getPreferencesMatrix(user.id, user.role, 'admin');
+    return await this.prefs.getPreferencesMatrix(user.id, user.role, 'admin');
   }
 }

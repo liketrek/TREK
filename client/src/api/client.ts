@@ -2,8 +2,9 @@ import { isEffectivelyOffline } from '../sync/networkMode'
 import axios, { AxiosInstance } from 'axios'
 import type { z } from 'zod'
 import type { Day, Place, Trip } from '../types'
-import type { TransitProvider } from '@trek/shared'
+import type { MapsNearbyRequest, JourneyReorderEntryPhotosRequest, TransitProvider, GoogleQuotaUpdateRequest, NotificationDefaultsUpdateRequest, TourListItem, TourImportGpxResponse, TourCreateRequest, TourCreateResponse, TourDetailResponse } from '@trek/shared'
 import { randomId } from '../utils/randomId'
+import { postProviderPhotosInBatches } from './providerPhotoBatches'
 import {
   weatherResultSchema, type WeatherResult,
   inAppListResultSchema, type InAppListResult,
@@ -25,15 +26,15 @@ import {
   type TripAddMemberRequest, type TripTransferOwnershipRequest,
   type TripCreateGuestRequest, type TripRenameGuestRequest, type AssignmentReorderRequest,
   type PackingReorderRequest, type PackingCreateBagRequest, type TodoReorderRequest,
-  type TripCreateRequest, type TripUpdateRequest, type TripCopyRequest, type ActiveTripResponse,
+  type TripCreateRequest, type TripUpdateRequest, type TripCopyRequest, type ActiveTripResponse, type TripSearchResponse,
   type DayCreateRequest, type DayUpdateRequest, type DayReorderRequest,
-  type PlaceCreateRequest, type PlaceUpdateRequest,
+  type PlaceCreateRequest, type PlaceUpdateRequest, type PlaceImageFromFileRequest,
   type ReservationCreateRequest, type ReservationUpdateRequest,
   type AccommodationCreateRequest, type AccommodationUpdateRequest,
   type BudgetCreateItemRequest, type BudgetUpdateItemRequest,
   type PackingCreateItemRequest, type PackingUpdateItemRequest, type PackingSetSharingRequest,
   type TodoCreateItemRequest, type TodoUpdateItemRequest,
-  type AssignmentCreateRequest, type AssignmentNotesRequest, type AssignmentParticipantsRequest, type AssignmentTimeRequest, type AssignmentTransportRequest,
+  type AssignmentCreateRequest, type AssignmentNotesRequest, type AssignmentParticipantsRequest, type AssignmentRouteRequest, type AssignmentTimeRequest, type AssignmentTransportRequest,
   type PlaceBulkDeleteRequest,
   type PlaceBulkUpdateRequest,
   type DayNoteCreateRequest, type DayNoteUpdateRequest,
@@ -53,6 +54,7 @@ import {
   type BookingImportPreviewResponse,
   type BookingImportConfirmResponse,
   type BookingImportMode,
+  type ReceiptScanResult,
   type StorageAdminState,
   type StorageBackend,
   type StorageConfigPut,
@@ -114,11 +116,13 @@ const RATE_LIMIT_MESSAGES: Record<string, string> = {
   en:      'Too many attempts. Please try again later.',
   de:      'Zu viele Versuche. Bitte versuchen Sie es später erneut.',
   es:      'Demasiados intentos. Inténtelo de nuevo más tarde.',
+  et:      'Liiga palju katseid. Palun proovi hiljem uuesti.',
   fr:      'Trop de tentatives. Veuillez réessayer plus tard.',
   hu:      'Túl sok próbálkozás. Kérjük, próbálja újra később.',
   nl:      'Te veel pogingen. Probeer het later opnieuw.',
   br:      'Muitas tentativas. Tente novamente mais tarde.',
   cs:      'Příliš mnoho pokusů. Zkuste to prosím znovu.',
+  sk:      'Príliš veľa pokusov. Skúste to prosím neskôr.',
   pl:      'Zbyt wiele prób. Spróbuj ponownie później.',
   ru:      'Слишком много попыток. Попробуйте позже.',
   zh:      '尝试次数过多，请稍后再试。',
@@ -126,9 +130,11 @@ const RATE_LIMIT_MESSAGES: Record<string, string> = {
   it:      'Troppi tentativi. Riprova più tardi.',
   tr:      'Çok fazla deneme. Lütfen daha sonra tekrar deneyin.',
   ar:      'محاولات كثيرة جدًا. يرجى المحاولة لاحقًا.',
+  az:      'Həddindən çox cəhd edildi. Bir az sonra yenidən cəhd edin.',
   id:      'Terlalu banyak percobaan. Coba lagi nanti.',
   ja:      '試行回数が多すぎます。時間をおいて再度お試しください。',
   ko:      '시도 횟수가 너무 많습니다. 잠시 후 다시 시도해 주세요.',
+  th:      'พยายามหลายครั้งเกินไป โปรดลองอีกครั้งภายหลัง',
   uk:      'Занадто багато спроб. Спробуйте пізніше.',
   sv:      'För många försök. Prova igen senare.',
   ca:      'Massa intents. Torneu-ho a provar més tard.',
@@ -421,6 +427,7 @@ export const tripsApi = {
   delete: (id: number | string) => apiClient.delete(`/trips/${id}`).then(r => r.data),
   uploadCover: (id: number | string, formData: FormData) => postMultipart(`/trips/${id}/cover`, formData),
   searchCoverImages: (query: string) => apiClient.get('/trips/cover-images/search', { params: { query } }).then(r => r.data),
+  search: (q: string): Promise<TripSearchResponse> => apiClient.get('/trips/search', { params: { q } }).then(r => r.data),
   archive: (id: number | string) => apiClient.put(`/trips/${id}`, { is_archived: true }).then(r => r.data),
   unarchive: (id: number | string) => apiClient.put(`/trips/${id}`, { is_archived: false }).then(r => r.data),
   getMembers: (id: number | string) => apiClient.get(`/trips/${id}/members`).then(r => r.data),
@@ -458,30 +465,36 @@ export const placesApi = {
     apiClient.post(`/trips/${tripId}/places`, data).then(r => r.data),
   get: (tripId: number | string, id: number | string) => apiClient.get(`/trips/${tripId}/places/${id}`).then(r => r.data),
   update: (tripId: number | string, id: number | string, data: PlaceUpdateRequest) => apiClient.put(`/trips/${tripId}/places/${id}`, data).then(r => r.data),
-  delete: (tripId: number | string, id: number | string) => apiClient.delete(`/trips/${tripId}/places/${id}`).then(r => r.data),
+  delete: (tripId: number | string, id: number | string): Promise<{ success: boolean; tourPlaceIds?: number[] }> =>
+    apiClient.delete(`/trips/${tripId}/places/${id}`).then(r => r.data),
   searchImage: (tripId: number | string, id: number | string) => apiClient.get(`/trips/${tripId}/places/${id}/image`).then(r => r.data),
   uploadImage: (tripId: number | string, id: number | string, file: File) => {
     const fd = new FormData()
     fd.append('image', file)
     return postMultipart<{ place: Place }>(`/trips/${tripId}/places/${id}/image`, fd)
   },
+  // A picture already attached in the trip, copied in as the place's image (#1242).
+  imageFromFile: (tripId: number | string, id: number | string, fileId: number): Promise<{ place: Place }> =>
+    apiClient.put(`/trips/${tripId}/places/${id}/image/from-file`, { file_id: fileId } satisfies PlaceImageFromFileRequest).then(r => r.data),
   rate: (tripId: number | string, id: number | string, rating: number | null): Promise<{ place: Place }> =>
     rating === null
       ? apiClient.delete(`/trips/${tripId}/places/${id}/rating`).then(r => r.data)
       : apiClient.put(`/trips/${tripId}/places/${id}/rating`, { rating }).then(r => r.data),
-  importGpx: (tripId: number | string, file: File, opts?: { waypoints?: boolean; routes?: boolean; tracks?: boolean }) => {
+  importGpx: (tripId: number | string, file: File, opts?: { waypoints?: boolean; routes?: boolean; tracks?: boolean; enrich?: boolean }) => {
     const fd = new FormData()
     fd.append('file', file)
     if (opts?.waypoints !== undefined) fd.append('importWaypoints', String(opts.waypoints))
     if (opts?.routes !== undefined) fd.append('importRoutes', String(opts.routes))
     if (opts?.tracks !== undefined) fd.append('importTracks', String(opts.tracks))
+    if (opts?.enrich) fd.append('enrich', 'true')
     return postMultipart(`/trips/${tripId}/places/import/gpx`, fd)
   },
-  importMapFile: (tripId: number | string, file: File, opts?: { points?: boolean; paths?: boolean }) => {
+  importMapFile: (tripId: number | string, file: File, opts?: { points?: boolean; paths?: boolean; enrich?: boolean }) => {
     const fd = new FormData()
     fd.append('file', file)
     if (opts?.points !== undefined) fd.append('importPoints', String(opts.points))
     if (opts?.paths !== undefined) fd.append('importPaths', String(opts.paths))
+    if (opts?.enrich) fd.append('enrich', 'true')
     return postMultipart(`/trips/${tripId}/places/import/map`, fd)
   },
   // A longer timeout than the shared 8 s, like the other routes here that wait
@@ -501,16 +514,38 @@ export const placesApi = {
       apiClient.post(`/trips/${tripId}/places/bulk-update`, { ids, ...data } satisfies PlaceBulkUpdateRequest).then(r => r.data),
 }
 
+export const toursApi = {
+  list: (tripId: number | string): Promise<{ tours: TourListItem[] }> =>
+    apiClient.get(`/trips/${tripId}/tours`).then(r => r.data),
+  detail: (tripId: number | string, placeId: number | string, signal?: AbortSignal): Promise<TourDetailResponse> =>
+    (signal
+      ? apiClient.get(`/trips/${tripId}/tours/${placeId}`, { signal })
+      : apiClient.get(`/trips/${tripId}/tours/${placeId}`)).then(r => r.data),
+  create: (tripId: number | string, body: TourCreateRequest): Promise<TourCreateResponse> =>
+    apiClient.post(`/trips/${tripId}/tours`, body).then(r => r.data),
+  update: (tripId: number | string, placeId: number | string, body: TourCreateRequest): Promise<TourDetailResponse> =>
+    apiClient.put(`/trips/${tripId}/tours/${placeId}`, body).then(r => r.data),
+  importGpx: (tripId: number | string, file: File): Promise<TourImportGpxResponse> => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return postMultipart(`/trips/${tripId}/tours/import/gpx`, fd)
+  },
+}
+
 export const assignmentsApi = {
   list: (tripId: number | string, dayId: number | string) => apiClient.get(`/trips/${tripId}/days/${dayId}/assignments`).then(r => r.data),
   create: (tripId: number | string, dayId: number | string, data: AssignmentCreateRequest) => apiClient.post(`/trips/${tripId}/days/${dayId}/assignments`, data).then(r => r.data),
   delete: (tripId: number | string, dayId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/days/${dayId}/assignments/${id}`).then(r => r.data),
+  // Takes every place off the day at once; the day, its notes and bookings stay (#2470).
+  clearDay: (tripId: number | string, dayId: number | string) => apiClient.delete(`/trips/${tripId}/days/${dayId}/assignments`).then(r => r.data as { success: true; removedIds: number[] }),
   reorder: (tripId: number | string, dayId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/days/${dayId}/assignments/reorder`, { orderedIds } satisfies AssignmentReorderRequest).then(r => r.data),
   move: (tripId: number | string, assignmentId: number, newDayId: number | string, orderIndex: number | null) => apiClient.put(`/trips/${tripId}/assignments/${assignmentId}/move`, { new_day_id: newDayId, order_index: orderIndex }).then(r => r.data),
   update: (tripId: number | string, dayId: number | string, id: number, data: Record<string, unknown>) => apiClient.put(`/trips/${tripId}/days/${dayId}/assignments/${id}`, data).then(r => r.data),
   getParticipants: (tripId: number | string, id: number) => apiClient.get(`/trips/${tripId}/assignments/${id}/participants`).then(r => r.data),
   setParticipants: (tripId: number | string, id: number, userIds: number[]) => apiClient.put(`/trips/${tripId}/assignments/${id}/participants`, { user_ids: userIds } satisfies AssignmentParticipantsRequest).then(r => r.data),
   updateTime: (tripId: number | string, id: number, times: AssignmentTimeRequest) => apiClient.put(`/trips/${tripId}/assignments/${id}/time`, times).then(r => r.data),
+  // Keeps the stop on the day but out of its route (#2532).
+  setRouteExcluded: (tripId: number | string, id: number, excluded: boolean) => apiClient.put(`/trips/${tripId}/assignments/${id}/route`, { excluded } satisfies AssignmentRouteRequest).then(r => r.data),
   // Day-specific note on an assignment (#2163) — null clears it.
   updateNotes: (tripId: number | string, id: number, data: AssignmentNotesRequest) => apiClient.put(`/trips/${tripId}/assignments/${id}/notes`, data).then(r => r.data),
   // Per-segment travel mode (#1281): mode of the leg leaving this stop (null = inherit day default).
@@ -682,6 +717,8 @@ export const adminApi = {
   getPlacesGoogleOnly: () => apiClient.get('/admin/places-google-only').then(r => r.data),
   updatePlacesGoogleOnly: (enabled: boolean) => apiClient.put('/admin/places-google-only', { enabled }).then(r => r.data),
   getPlacesEnrich: () => apiClient.get('/admin/places-enrich').then(r => r.data),
+  getGoogleQuota: () => apiClient.get('/admin/google-quota').then(r => r.data),
+  updateGoogleQuota: (dailyLimit: number | null) => apiClient.put('/admin/google-quota', { daily_limit: dailyLimit } satisfies GoogleQuotaUpdateRequest).then(r => r.data),
   updatePlacesEnrich: (enabled: boolean) => apiClient.put('/admin/places-enrich', { enabled }).then(r => r.data),
   getTransitProvider: () => apiClient.get('/admin/transit-provider').then(r => r.data),
   updateTransitProvider: (provider: TransitProvider) => apiClient.put('/admin/transit-provider', { provider }).then(r => r.data),
@@ -715,6 +752,8 @@ export const adminApi = {
       apiClient.post('/admin/dev/test-notification', data).then(r => r.data),
   getNotificationPreferences: () => apiClient.get('/admin/notification-preferences').then(r => r.data),
   updateNotificationPreferences: (prefs: Record<string, Record<string, boolean>>) => apiClient.put('/admin/notification-preferences', prefs).then(r => r.data),
+  getNotificationDefaults: () => apiClient.get('/admin/notification-preferences/defaults').then(r => r.data),
+  updateNotificationDefaults: (defaults: NotificationDefaultsUpdateRequest['defaults']) => apiClient.put('/admin/notification-preferences/defaults', { defaults } satisfies NotificationDefaultsUpdateRequest).then(r => r.data),
   getDefaultUserSettings: () => apiClient.get('/admin/default-user-settings').then(r => r.data),
   updateDefaultUserSettings: (settings: Record<string, unknown>) => apiClient.put('/admin/default-user-settings', settings).then(r => r.data),
   getStorage: (): Promise<StorageAdminState> => apiClient.get('/admin/storage').then(r => r.data),
@@ -1016,13 +1055,19 @@ export const journeyApi = {
   /** A clip on one entry: the video plus the poster frame the browser grabbed (issue #2341). */
   uploadEntryVideo: (entryId: number, formData: FormData, opts?: UploadOptions) =>
     postMultipart(`/journeys/entries/${entryId}/video`, formData, opts),
-  addProviderPhotosToGallery: (journeyId: number, provider: string, assetIds: string[], passphrase?: string, mediaTypes?: string[]) => apiClient.post(`/journeys/${journeyId}/gallery/provider-photos`, { provider, asset_ids: assetIds, ...(passphrase ? { passphrase } : {}), ...(mediaTypes ? { media_types: mediaTypes } : {}) } satisfies JourneyProviderPhotosRequest).then(r => r.data),
+  // Both provider-photo adds go out in batches of PROVIDER_PHOTO_BATCH ids: one
+  // request for a whole trip ran into the 100 kB body limit (#1587).
+  addProviderPhotosToGallery: (journeyId: number, provider: string, assetIds: string[], passphrase?: string, mediaTypes?: string[]) =>
+    postProviderPhotosInBatches(assetIds, mediaTypes, (ids, types) => apiClient.post(`/journeys/${journeyId}/gallery/provider-photos`, { provider, asset_ids: ids, ...(passphrase ? { passphrase } : {}), ...(types ? { media_types: types } : {}) } satisfies JourneyProviderPhotosRequest).then(r => r.data)),
   addProviderPhoto: (entryId: number, provider: string, assetId: string, caption?: string, passphrase?: string) => apiClient.post(`/journeys/entries/${entryId}/provider-photos`, { provider, asset_id: assetId, caption, ...(passphrase ? { passphrase } : {}) }).then(r => r.data),
-  addProviderPhotos: (entryId: number, provider: string, assetIds: string[], caption?: string, passphrase?: string, mediaTypes?: string[]) => apiClient.post(`/journeys/entries/${entryId}/provider-photos`, { provider, asset_ids: assetIds, caption, ...(passphrase ? { passphrase } : {}), ...(mediaTypes ? { media_types: mediaTypes } : {}) }).then(r => r.data),
+  addProviderPhotos: (entryId: number, provider: string, assetIds: string[], caption?: string, passphrase?: string, mediaTypes?: string[]) =>
+    postProviderPhotosInBatches(assetIds, mediaTypes, (ids, types) => apiClient.post(`/journeys/entries/${entryId}/provider-photos`, { provider, asset_ids: ids, caption, ...(passphrase ? { passphrase } : {}), ...(types ? { media_types: types } : {}) }).then(r => r.data)),
   linkPhoto: (entryId: number, journeyPhotoId: number) => apiClient.post(`/journeys/entries/${entryId}/link-photo`, { journey_photo_id: journeyPhotoId }).then(r => r.data),
   unlinkPhoto: (entryId: number, journeyPhotoId: number) => apiClient.delete(`/journeys/entries/${entryId}/photos/${journeyPhotoId}`).then(r => r.data),
   deleteGalleryPhoto: (journeyId: number, journeyPhotoId: number) => apiClient.delete(`/journeys/${journeyId}/gallery/${journeyPhotoId}`).then(r => r.data),
   updatePhoto: (photoId: number, data: Record<string, unknown>) => apiClient.patch(`/journeys/photos/${photoId}`, data).then(r => r.data),
+  // The photos of one entry in their new order, in one request (#824).
+  reorderEntryPhotos: (entryId: number, orderedIds: number[]) => apiClient.put(`/journeys/entries/${entryId}/photos/reorder`, { orderedIds } satisfies JourneyReorderEntryPhotosRequest).then(r => r.data),
   deletePhoto: (photoId: number) => apiClient.delete(`/journeys/photos/${photoId}`).then(r => r.data),
 
   // Cover
@@ -1100,7 +1145,7 @@ export const memoriesApi = {
  * They filter on the axios cancel code and on the DOMException name, so an
  * abort from the cache path has to look like one or it surfaces as a toast.
  */
-function abortedError(): Error & { code: string } {
+export function abortedError(): Error & { code: string } {
   const err = new Error('canceled') as Error & { code: string }
   err.name = 'CanceledError'
   err.code = 'ERR_CANCELED'
@@ -1243,6 +1288,9 @@ export const mapsApi = {
       const from = [...new Set(extra.map(p => String(p.source ?? 'plugin')))].join('+')
       return { places: [...core.places, ...extra], source: `${core.source}+${from}` }
     }),
+  /** Places of any kind around a point, nearest first, each with `distance_m` (#976). */
+  nearby: (lat: number, lng: number, lang?: string) =>
+    apiClient.post(`/maps/nearby?lang=${lang || 'en'}`, { lat, lng } satisfies MapsNearbyRequest).then(r => checkInDev(mapsSearchResultSchema, r.data, 'maps.nearby')),
   autocomplete: (input: string, lang?: string, locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } }, signal?: AbortSignal, sessionToken?: string) =>
     withCachedPlaces(
       input,
@@ -1466,7 +1514,7 @@ export const reservationsApi = {
     return postMultipart(`/trips/${tripId}/reservations/import/booking/async`, fd)
   },
   // Poll a background job — recovery path when a WebSocket push was missed.
-  importJobStatus: (tripId: number | string, jobId: string): Promise<{ status: 'running' | 'done' | 'error'; done: number; total: number; result?: BookingImportPreviewResponse; error?: string }> =>
+  importJobStatus: (tripId: number | string, jobId: string): Promise<{ status: 'running' | 'done' | 'error'; done: number; total: number; result?: BookingImportPreviewResponse | ReceiptScanResult; error?: string }> =>
     apiClient.get(`/trips/${tripId}/reservations/import/jobs/${jobId}`).then(r => r.data),
 }
 

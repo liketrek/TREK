@@ -1,320 +1,376 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import Database from 'better-sqlite3';
+import { Days } from '../../../src/db/entities/Days.entity';
+import { Places } from '../../../src/db/entities/Places.entity';
+import { RoadtripDayTracks } from '../../../src/db/entities/RoadtripDayTracks.entity';
+import { RoadtripVias } from '../../../src/db/entities/RoadtripVias.entity';
 import { RoadtripService } from '../../../src/nest/roadtrip/roadtrip.service';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { createDay, createPlace, createTrip, createUser } from '../../helpers/factories';
+import { updateRows } from '../../helpers/factories/rows';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { createTestUnitOfWork } from '../../helpers/test-uow';
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 /**
- * Via points, against a real SQLite. The table is tiny and the interesting parts are the
- * ordering and the day scoping, both of which are SQL — mocking the DB would test the mock.
+ * Via points and tracks, against real rows through
+ * `RoadtripViasRepository`/`RoadtripDayTracksRepository`/`DaysRepository`/
+ * `PlacesRepository` (Plan 3d Task 1) — moved off the hand-DDL, raw
+ * `DatabaseService`-shaped facade (§15a/§15c test risk 2) onto real schema.
  */
-function makeService() {
-  const raw = new Database(':memory:');
-  raw.exec(`
-    CREATE TABLE days (id INTEGER PRIMARY KEY, trip_id INTEGER NOT NULL);
-    CREATE TABLE roadtrip_vias (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      day_id INTEGER NOT NULL REFERENCES days(id) ON DELETE CASCADE,
-      after_order_index INTEGER NOT NULL,
-      sequence INTEGER NOT NULL DEFAULT 0,
-      lat REAL NOT NULL,
-      lng REAL NOT NULL,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE places (
-      id INTEGER PRIMARY KEY,
-      trip_id INTEGER NOT NULL,
-      name TEXT,
-      route_geometry TEXT
-    );
-    CREATE TABLE roadtrip_day_tracks (
-      day_id INTEGER PRIMARY KEY REFERENCES days(id) ON DELETE CASCADE,
-      place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
-      stray_km REAL,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-    INSERT INTO days (id, trip_id) VALUES (1, 7), (2, 7), (3, 99);
-    INSERT INTO places (id, trip_id, name, route_geometry) VALUES
-      (10, 7, 'Atlantic Road', '[[52,13],[52,14]]'),
-      (11, 7, 'A hotel', NULL),
-      (12, 99, 'Somebody else\u2019s track', '[[40,2],[40,3]]');
-  `);
-  const db = {
-    get: <T>(sql: string, ...params: unknown[]) => raw.prepare(sql).get(...params as never[]) as T | undefined,
-    all: <T>(sql: string, ...params: unknown[]) => raw.prepare(sql).all(...params as never[]) as T[],
-    run: (sql: string, ...params: unknown[]) => raw.prepare(sql).run(...params as never[]),
-    transaction: <T>(fn: (conn: unknown) => T) => raw.transaction(() => fn(raw))(),
-  };
-  // The realtime side is exercised through the controller and the MCP layer; here the
-  // service is under test for what it writes, so a broadcast that goes nowhere is right.
-  return new RoadtripService(db as never, { broadcast: () => {} } as never);
+const testDb = createSnapshotTestDb();
+let t: TestOrm;
+beforeAll(async () => {
+  t = await createTestOrm(testDb);
+});
+beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
+});
+
+async function makeService() {
+  return new RoadtripService(
+    { broadcast: () => {} } as never,
+    await createTestUnitOfWork(testDb),
+    t.repo(Days),
+    t.repo(Places),
+    t.repo(RoadtripVias),
+    t.repo(RoadtripDayTracks),
+  );
+}
+
+async function fixture() {
+  const { user } = createUser(testDb);
+  const tripA = createTrip(testDb, user.id);
+  const tripB = createTrip(testDb, user.id);
+  const dayA1 = createDay(testDb, tripA.id);
+  const dayA2 = createDay(testDb, tripA.id);
+  const dayB1 = createDay(testDb, tripB.id);
+  const track = createPlace(testDb, tripA.id, { name: 'Atlantic Road' });
+  const hotel = createPlace(testDb, tripA.id, { name: 'A hotel' });
+  const otherTrack = createPlace(testDb, tripB.id, { name: 'Somebody else’s track' });
+  await updateRows(t, Places, { id: track.id }, { route_geometry: '[[52,13],[52,14]]' });
+  await updateRows(t, Places, { id: otherTrack.id }, { route_geometry: '[[40,2],[40,3]]' });
+  return { tripA, tripB, dayA1, dayA2, dayB1, track, hotel, otherTrack };
 }
 
 describe('RoadtripService', () => {
   let service: RoadtripService;
-  beforeEach(() => { service = makeService(); });
-
-  it('ROADTRIP-SVC-001: a day of another trip is not this trip’s day', () => {
-    // The trip guard proves access to the trip; this is what stops a valid day id from
-    // someone else’s trip being edited through one the caller can reach.
-    expect(service.dayExists(1, 7)).toBe(true);
-    expect(service.dayExists(3, 7)).toBe(false);
+  let f: Awaited<ReturnType<typeof fixture>>;
+  beforeEach(async () => {
+    service = await makeService();
+    f = await fixture();
   });
 
-  it('ROADTRIP-SVC-002: vias appended after the same stop keep the order they were added in', () => {
-    const first = service.create(1, { after_order_index: 0, lat: 53, lng: 10 });
-    const second = service.create(1, { after_order_index: 0, lat: 53.5, lng: 10.5 });
+  it('ROADTRIP-SVC-001: a day of another trip is not this trip’s day', async () => {
+    expect(await service.dayExists(f.dayA1.id, f.tripA.id)).toBe(true);
+    expect(await service.dayExists(f.dayB1.id, f.tripA.id)).toBe(false);
+  });
+
+  it('ROADTRIP-SVC-002: vias appended after the same stop keep the order they were added in', async () => {
+    const first = await service.create(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 });
+    const second = await service.create(f.dayA1.id, { after_order_index: 0, lat: 53.5, lng: 10.5 });
 
     expect(first.sequence).toBe(0);
     expect(second.sequence).toBe(1);
-    expect(service.listForDay(1).map(v => v.id)).toEqual([first.id, second.id]);
+    expect((await service.listForDay(f.dayA1.id)).map((v) => v.id)).toEqual([first.id, second.id]);
   });
 
-  it('ROADTRIP-SVC-003: the list is ordered by stop first, then by sequence', () => {
-    const late = service.create(1, { after_order_index: 2, lat: 51, lng: 12 });
-    const early = service.create(1, { after_order_index: 0, lat: 53, lng: 10 });
+  it('ROADTRIP-SVC-003: the list is ordered by stop first, then by sequence', async () => {
+    const late = await service.create(f.dayA1.id, { after_order_index: 2, lat: 51, lng: 12 });
+    const early = await service.create(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 });
 
-    expect(service.listForDay(1).map(v => v.id)).toEqual([early.id, late.id]);
+    expect((await service.listForDay(f.dayA1.id)).map((v) => v.id)).toEqual([early.id, late.id]);
   });
 
-  it('ROADTRIP-SVC-004: the trip listing spans its days and stops at the trip boundary', () => {
-    service.create(1, { after_order_index: 0, lat: 53, lng: 10 });
-    service.create(2, { after_order_index: 0, lat: 52, lng: 11 });
-    service.create(3, { after_order_index: 0, lat: 50, lng: 14 });
+  it('ROADTRIP-SVC-004: the trip listing spans its days and stops at the trip boundary', async () => {
+    await service.create(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 });
+    await service.create(f.dayA2.id, { after_order_index: 0, lat: 52, lng: 11 });
+    await service.create(f.dayB1.id, { after_order_index: 0, lat: 50, lng: 14 });
 
-    // Day 3 belongs to trip 99 and must not appear in trip 7.
-    expect(service.listForTrip(7).map(v => v.day_id)).toEqual([1, 2]);
+    // dayB1 belongs to tripB and must not appear in tripA's listing.
+    expect((await service.listForTrip(f.tripA.id)).map((v) => v.day_id).sort((a, b) => a - b)).toEqual(
+      [f.dayA1.id, f.dayA2.id].sort((a, b) => a - b),
+    );
   });
 
-  it('ROADTRIP-SVC-005: a move with no new anchor leaves the chain alone', () => {
-    // The drag stayed between the same two stops, so there is nothing to re-pin. The
-    // sequence is never touched by a move either way: it orders the vias that share one
-    // anchor, and dragging one does not reorder its neighbours.
-    const via = service.create(1, { after_order_index: 1, lat: 53, lng: 10 });
+  it('ROADTRIP-SVC-005: a move with no new anchor leaves the chain alone', async () => {
+    const via = await service.create(f.dayA1.id, { after_order_index: 1, lat: 53, lng: 10 });
 
-    const moved = service.move(via.id, 1, 52.5, 11.5);
+    const moved = await service.move(via.id, f.dayA1.id, 52.5, 11.5);
 
     expect(moved).toMatchObject({ lat: 52.5, lng: 11.5, after_order_index: 1, sequence: via.sequence });
   });
 
-  it('ROADTRIP-SVC-007: a via dragged past a stop is re-pinned to the leg it landed on', () => {
-    // The bug this exists for: a drag used to carry only the coordinates, so a via pulled
-    // beyond the stop it used to precede kept claiming the earlier leg. The route then ran
-    // out to the point and back before carrying on, which reads as the drag doing nothing.
-    const via = service.create(1, { after_order_index: 0, lat: 53.87, lng: 10.7 });
+  it('ROADTRIP-SVC-007: a via dragged past a stop is re-pinned to the leg it landed on', async () => {
+    const via = await service.create(f.dayA1.id, { after_order_index: 0, lat: 53.87, lng: 10.7 });
 
-    const moved = service.move(via.id, 1, 53.87, 11.53, 1);
+    const moved = await service.move(via.id, f.dayA1.id, 53.87, 11.53, 1);
 
     expect(moved).toMatchObject({ lat: 53.87, lng: 11.53, after_order_index: 1 });
   });
 
-  it('ROADTRIP-SVC-008: a re-pin through the wrong day changes nothing at all', () => {
-    // The day check has to guard the anchor as well as the coordinates, or an id from
-    // another day could be renumbered through a day the caller does happen to reach.
-    const via = service.create(1, { after_order_index: 0, lat: 53, lng: 10 });
+  it('ROADTRIP-SVC-008: a re-pin through the wrong day changes nothing at all', async () => {
+    const via = await service.create(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 });
 
-    expect(service.move(via.id, 2, 51, 12, 3)).toBeNull();
-    expect(service.listForDay(1)[0]).toMatchObject({ lat: 53, lng: 10, after_order_index: 0 });
+    expect(await service.move(via.id, f.dayA2.id, 51, 12, 3)).toBeNull();
+    expect((await service.listForDay(f.dayA1.id))[0]).toMatchObject({ lat: 53, lng: 10, after_order_index: 0 });
   });
 
-  it('ROADTRIP-SVC-006: a via cannot be moved or removed through the wrong day', () => {
-    const via = service.create(1, { after_order_index: 0, lat: 53, lng: 10 });
+  it('ROADTRIP-SVC-006: a via cannot be moved or removed through the wrong day', async () => {
+    const via = await service.create(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 });
 
-    expect(service.move(via.id, 2, 0, 0)).toBeNull();
-    expect(service.remove(via.id, 2)).toBe(false);
-    // Still where it was.
-    expect(service.listForDay(1)).toHaveLength(1);
+    expect(await service.move(via.id, f.dayA2.id, 0, 0)).toBeNull();
+    expect(await service.remove(via.id, f.dayA2.id)).toBe(false);
+    expect(await service.listForDay(f.dayA1.id)).toHaveLength(1);
   });
 
-  it('ROADTRIP-SVC-008: re-anchoring moves the vias it names and leaves the rest alone', () => {
-    const a = service.create(1, { after_order_index: 0, lat: 53, lng: 10 });
-    const b = service.create(1, { after_order_index: 1, lat: 54, lng: 11 });
-    const c = service.create(1, { after_order_index: 2, lat: 55, lng: 12 });
+  it('ROADTRIP-SVC-008b: re-anchoring moves the vias it names and leaves the rest alone', async () => {
+    const a = await service.create(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 });
+    const b = await service.create(f.dayA1.id, { after_order_index: 1, lat: 54, lng: 11 });
+    const c = await service.create(f.dayA1.id, { after_order_index: 2, lat: 55, lng: 12 });
 
-    const after = service.reanchor(1, { vias: [{ id: b.id, after_order_index: 2 }, { id: c.id, after_order_index: 3 }] });
+    const after = await service.reanchor(f.dayA1.id, {
+      vias: [
+        { id: b.id, after_order_index: 2 },
+        { id: c.id, after_order_index: 3 },
+      ],
+    });
 
-    const byId = new Map(after.map(v => [v.id, v.after_order_index]));
+    const byId = new Map(after.map((v) => [v.id, v.after_order_index]));
     expect(byId.get(a.id)).toBe(0);
     expect(byId.get(b.id)).toBe(2);
     expect(byId.get(c.id)).toBe(3);
-    // Where a via sits is untouched — only which leg it belongs to changed.
-    expect(after.find(v => v.id === b.id)?.lat).toBe(54);
+    expect(after.find((v) => v.id === b.id)?.lat).toBe(54);
   });
 
-  it('ROADTRIP-SVC-009: re-anchoring deletes the vias whose leg stopped existing', () => {
-    const gone = service.create(1, { after_order_index: 0, lat: 53, lng: 10 });
-    const kept = service.create(1, { after_order_index: 2, lat: 54, lng: 11 });
+  it('ROADTRIP-SVC-009: re-anchoring deletes the vias whose leg stopped existing', async () => {
+    const gone = await service.create(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 });
+    const kept = await service.create(f.dayA1.id, { after_order_index: 2, lat: 54, lng: 11 });
 
-    const after = service.reanchor(1, {
+    const after = await service.reanchor(f.dayA1.id, {
       vias: [{ id: kept.id, after_order_index: 1 }],
       remove: [gone.id],
     });
 
-    expect(after.map(v => v.id)).toEqual([kept.id]);
-    expect(after[0].after_order_index).toBe(1);
+    expect(after.map((v) => v.id)).toEqual([kept.id]);
+    expect(after[0]!.after_order_index).toBe(1);
   });
 
-  it('ROADTRIP-SVC-010: a via of another day cannot be renumbered through this one', () => {
-    // The batch is trusted to name ids, so `AND day_id = ?` is the only thing standing
-    // between a day the caller can reach and every via of the trip.
-    const other = service.create(2, { after_order_index: 0, lat: 53, lng: 10 });
+  it('ROADTRIP-SVC-010: a via of another day cannot be renumbered through this one', async () => {
+    const other = await service.create(f.dayA2.id, { after_order_index: 0, lat: 53, lng: 10 });
 
-    service.reanchor(1, { vias: [{ id: other.id, after_order_index: 9 }], remove: [other.id] });
+    await service.reanchor(f.dayA1.id, { vias: [{ id: other.id, after_order_index: 9 }], remove: [other.id] });
 
-    const untouched = service.listForDay(2);
-    expect(untouched.map(v => v.id)).toEqual([other.id]);
-    expect(untouched[0].after_order_index).toBe(0);
+    const untouched = await service.listForDay(f.dayA2.id);
+    expect(untouched.map((v) => v.id)).toEqual([other.id]);
+    expect(untouched[0]!.after_order_index).toBe(0);
   });
 
-  it('ROADTRIP-SVC-011: an id that is gone does not fail the rest of the batch', () => {
-    // The caller computed the batch from a snapshot; a via somebody else deleted in the
-    // meantime must not leave the remaining ones mis-pinned.
-    const kept = service.create(1, { after_order_index: 0, lat: 53, lng: 10 });
+  it('ROADTRIP-SVC-011: an id that is gone does not fail the rest of the batch', async () => {
+    const kept = await service.create(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 });
 
-    const after = service.reanchor(1, {
-      vias: [{ id: 9999, after_order_index: 4 }, { id: kept.id, after_order_index: 1 }],
+    const after = await service.reanchor(f.dayA1.id, {
+      vias: [
+        { id: 9999, after_order_index: 4 },
+        { id: kept.id, after_order_index: 1 },
+      ],
     });
 
-    expect(after.map(v => v.after_order_index)).toEqual([1]);
+    expect(after.map((v) => v.after_order_index)).toEqual([1]);
   });
 
-  it('ROADTRIP-SVC-016: merging two populated legs keeps the drive going one way', () => {
-    // The case none of the four above reach: they all re-anchor onto legs that
-    // are empty. `sequence` is allocated per leg and starts at 0 in each, so
-    // merging two populated legs put leg A's 0,1 beside leg B's 0,1 — and
-    // everything that draws the route orders by sequence, so the drive ran A0,
-    // B0, A1, B1: forward, back, and forward again. Persisted, surviving a
-    // reload, and unrepairable except by deleting the vias.
-    const a0 = service.create(1, { after_order_index: 1, lat: 50.0, lng: 10 });
-    const a1 = service.create(1, { after_order_index: 1, lat: 50.1, lng: 10 });
-    const b0 = service.create(1, { after_order_index: 2, lat: 50.2, lng: 10 });
-    const b1 = service.create(1, { after_order_index: 2, lat: 50.3, lng: 10 });
+  it('ROADTRIP-SVC-016: merging two populated legs keeps the drive going one way', async () => {
+    const a0 = await service.create(f.dayA1.id, { after_order_index: 1, lat: 50.0, lng: 10 });
+    const a1 = await service.create(f.dayA1.id, { after_order_index: 1, lat: 50.1, lng: 10 });
+    const b0 = await service.create(f.dayA1.id, { after_order_index: 2, lat: 50.2, lng: 10 });
+    const b1 = await service.create(f.dayA1.id, { after_order_index: 2, lat: 50.3, lng: 10 });
     expect([a0.sequence, a1.sequence, b0.sequence, b1.sequence]).toEqual([0, 1, 0, 1]);
 
-    // The stop between the two legs is removed, so leg 2 merges into leg 1 —
-    // exactly what reanchorAfterRemove computes on the client.
-    const after = service.reanchor(1, {
-      vias: [{ id: b0.id, after_order_index: 1 }, { id: b1.id, after_order_index: 1 }],
+    const after = await service.reanchor(f.dayA1.id, {
+      vias: [
+        { id: b0.id, after_order_index: 1 },
+        { id: b1.id, after_order_index: 1 },
+      ],
     });
 
-    const onLeg = after.filter(v => v.after_order_index === 1).sort((x, y) => x.sequence - y.sequence);
-    expect(onLeg.map(v => v.id)).toEqual([a0.id, a1.id, b0.id, b1.id]);
-    // Strictly increasing across the whole leg, with no value used twice.
-    expect(onLeg.map(v => v.sequence)).toEqual([0, 1, 2, 3]);
-    // Which is the geographic order the day is actually driven in.
-    expect(onLeg.map(v => v.lat)).toEqual([50.0, 50.1, 50.2, 50.3]);
+    const onLeg = after.filter((v) => v.after_order_index === 1).sort((x, y) => x.sequence - y.sequence);
+    expect(onLeg.map((v) => v.id)).toEqual([a0.id, a1.id, b0.id, b1.id]);
+    expect(onLeg.map((v) => v.sequence)).toEqual([0, 1, 2, 3]);
+    expect(onLeg.map((v) => v.lat)).toEqual([50.0, 50.1, 50.2, 50.3]);
   });
 
-  it('ROADTRIP-SVC-017: a leg nothing merged into keeps the order it had', () => {
-    const first = service.create(1, { after_order_index: 0, lat: 53, lng: 10 });
-    const second = service.create(1, { after_order_index: 0, lat: 54, lng: 11 });
-    const elsewhere = service.create(1, { after_order_index: 3, lat: 55, lng: 12 });
+  it('ROADTRIP-SVC-017: a leg nothing merged into keeps the order it had', async () => {
+    const first = await service.create(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 });
+    const second = await service.create(f.dayA1.id, { after_order_index: 0, lat: 54, lng: 11 });
+    const elsewhere = await service.create(f.dayA1.id, { after_order_index: 3, lat: 55, lng: 12 });
 
-    const after = service.reanchor(1, { vias: [{ id: elsewhere.id, after_order_index: 2 }] });
+    const after = await service.reanchor(f.dayA1.id, { vias: [{ id: elsewhere.id, after_order_index: 2 }] });
 
-    const leg0 = after.filter(v => v.after_order_index === 0).sort((x, y) => x.sequence - y.sequence);
-    expect(leg0.map(v => v.id)).toEqual([first.id, second.id]);
-    expect(leg0.map(v => v.sequence)).toEqual([0, 1]);
-    // And the one that moved is alone on its new leg, numbered from zero.
-    expect(after.find(v => v.id === elsewhere.id)?.sequence).toBe(0);
+    const leg0 = after.filter((v) => v.after_order_index === 0).sort((x, y) => x.sequence - y.sequence);
+    expect(leg0.map((v) => v.id)).toEqual([first.id, second.id]);
+    expect(leg0.map((v) => v.sequence)).toEqual([0, 1]);
+    expect(after.find((v) => v.id === elsewhere.id)?.sequence).toBe(0);
   });
 
-  it('ROADTRIP-SVC-012: a chain lands in the order it was sent, per leg', () => {
-    const vias = service.createMany(1, { vias: [
-      { after_order_index: 0, lat: 53.0, lng: 10.0 },
-      { after_order_index: 0, lat: 53.1, lng: 10.1 },
-      { after_order_index: 1, lat: 53.2, lng: 10.2 },
-    ] });
+  it('ROADTRIP-SVC-012: a chain lands in the order it was sent, per leg', async () => {
+    const vias = await service.createMany(f.dayA1.id, {
+      vias: [
+        { after_order_index: 0, lat: 53.0, lng: 10.0 },
+        { after_order_index: 0, lat: 53.1, lng: 10.1 },
+        { after_order_index: 1, lat: 53.2, lng: 10.2 },
+      ],
+    });
 
-    expect(vias.map(v => [v.after_order_index, v.sequence])).toEqual([[0, 0], [0, 1], [1, 0]]);
-    expect(vias.map(v => v.lat)).toEqual([53.0, 53.1, 53.2]);
+    expect(vias.map((v) => [v.after_order_index, v.sequence])).toEqual([
+      [0, 0],
+      [0, 1],
+      [1, 0],
+    ]);
+    expect(vias.map((v) => v.lat)).toEqual([53.0, 53.1, 53.2]);
   });
 
-  it('ROADTRIP-SVC-013: a chain appends to what a leg already has', () => {
-    service.create(1, { after_order_index: 0, lat: 53, lng: 10 });
-    const vias = service.createMany(1, { vias: [{ after_order_index: 0, lat: 54, lng: 11 }] });
+  it('ROADTRIP-SVC-013: a chain appends to what a leg already has', async () => {
+    await service.create(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 });
+    const vias = await service.createMany(f.dayA1.id, { vias: [{ after_order_index: 0, lat: 54, lng: 11 }] });
 
-    expect(vias.map(v => v.sequence)).toEqual([0, 1]);
+    expect(vias.map((v) => v.sequence)).toEqual([0, 1]);
   });
 
-  it('ROADTRIP-SVC-014: replace_legs clears only the legs it names', () => {
-    // The point of naming legs rather than taking a flag for the day: a hand-placed
-    // detour on another leg is not something adopting a track on this one asked to lose.
-    const keep = service.create(1, { after_order_index: 5, lat: 50, lng: 8 });
-    service.create(1, { after_order_index: 0, lat: 53, lng: 10 });
+  it('ROADTRIP-SVC-014: replace_legs clears only the legs it names', async () => {
+    const keep = await service.create(f.dayA1.id, { after_order_index: 5, lat: 50, lng: 8 });
+    await service.create(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 });
 
-    const vias = service.createMany(1, {
+    const vias = await service.createMany(f.dayA1.id, {
       vias: [{ after_order_index: 0, lat: 54, lng: 11 }],
       replace_legs: [0],
     });
 
-    expect(vias.map(v => v.id)).toEqual([vias[0].id, keep.id]);
-    expect(vias.find(v => v.after_order_index === 0)?.lat).toBe(54);
+    expect(vias.map((v) => v.id)).toEqual([vias[0]!.id, keep.id]);
+    expect(vias.find((v) => v.after_order_index === 0)?.lat).toBe(54);
   });
 
-  it('ROADTRIP-SVC-015: clearing a leg without adding anything is a legal batch', () => {
-    service.create(1, { after_order_index: 0, lat: 53, lng: 10 });
+  it('ROADTRIP-SVC-015: clearing a leg without adding anything is a legal batch', async () => {
+    await service.create(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 });
 
-    expect(service.createMany(1, { vias: [], replace_legs: [0] })).toEqual([]);
+    expect(await service.createMany(f.dayA1.id, { vias: [], replace_legs: [0] })).toEqual([]);
   });
 
-  it('ROADTRIP-SVC-016: a chain cannot be laid on a day it was not addressed to', () => {
-    service.createMany(2, { vias: [{ after_order_index: 0, lat: 53, lng: 10 }] });
+  it('ROADTRIP-SVC-016b: a chain cannot be laid on a day it was not addressed to', async () => {
+    await service.createMany(f.dayA2.id, { vias: [{ after_order_index: 0, lat: 53, lng: 10 }] });
 
-    expect(service.listForDay(1)).toEqual([]);
-    expect(service.listForDay(2)).toHaveLength(1);
+    expect(await service.listForDay(f.dayA1.id)).toEqual([]);
+    expect(await service.listForDay(f.dayA2.id)).toHaveLength(1);
   });
 
-  it('ROADTRIP-SVC-017: the chain and the track it came from land in one write', () => {
-    // Same transaction on purpose: a day saying it follows a road whose vias never
-    // arrived is worse than a day saying nothing at all.
-    service.createMany(1, {
+  it('ROADTRIP-SVC-017b: the chain and the track it came from land in one write', async () => {
+    await service.createMany(f.dayA1.id, {
       vias: [{ after_order_index: 0, lat: 53, lng: 10 }],
-      track: { place_id: 10, stray_km: 0.8 },
+      track: { place_id: f.track.id, stray_km: 0.8 },
     });
 
-    expect(service.tracksForTrip(7)).toEqual([{ day_id: 1, place_id: 10, stray_km: 0.8 }]);
+    expect(await service.tracksForTrip(f.tripA.id)).toEqual([
+      { day_id: f.dayA1.id, place_id: f.track.id, stray_km: 0.8 },
+    ]);
   });
 
-  it('ROADTRIP-SVC-018: laying a second track on a day replaces the first, never doubles it', () => {
-    service.createMany(1, { vias: [], track: { place_id: 10, stray_km: 2 } });
-    service.createMany(1, { vias: [], track: { place_id: 12, stray_km: null } });
+  it('ROADTRIP-SVC-018: laying a second track on a day replaces the first, never doubles it', async () => {
+    await service.createMany(f.dayA1.id, { vias: [], track: { place_id: f.track.id, stray_km: 2 } });
+    await service.createMany(f.dayA1.id, { vias: [], track: { place_id: f.hotel.id, stray_km: null } });
 
-    expect(service.tracksForTrip(7)).toEqual([{ day_id: 1, place_id: 12, stray_km: null }]);
+    expect(await service.tracksForTrip(f.tripA.id)).toEqual([
+      { day_id: f.dayA1.id, place_id: f.hotel.id, stray_km: null },
+    ]);
   });
 
-  it('ROADTRIP-SVC-019: three states, not two \u2014 absent keeps, null clears', () => {
-    service.createMany(1, { vias: [], track: { place_id: 10, stray_km: 1 } });
+  it('ROADTRIP-SVC-019: three states, not two — absent keeps, null clears', async () => {
+    await service.createMany(f.dayA1.id, { vias: [], track: { place_id: f.track.id, stray_km: 1 } });
 
-    // Absent: a hand-dragged via on the same day must not wipe the road it follows.
-    service.createMany(1, { vias: [{ after_order_index: 0, lat: 53, lng: 10 }] });
-    expect(service.tracksForTrip(7)).toHaveLength(1);
+    await service.createMany(f.dayA1.id, { vias: [{ after_order_index: 0, lat: 53, lng: 10 }] });
+    expect(await service.tracksForTrip(f.tripA.id)).toHaveLength(1);
 
-    service.createMany(1, { vias: [], replace_legs: [0], track: null });
-    expect(service.tracksForTrip(7)).toEqual([]);
+    await service.createMany(f.dayA1.id, { vias: [], replace_legs: [0], track: null });
+    expect(await service.tracksForTrip(f.tripA.id)).toEqual([]);
   });
 
-  it('ROADTRIP-SVC-020: the tracks of one trip are not the tracks of another', () => {
-    service.createMany(1, { vias: [], track: { place_id: 10, stray_km: null } });
-    service.createMany(3, { vias: [], track: { place_id: 12, stray_km: null } });
+  it('ROADTRIP-SVC-020: the tracks of one trip are not the tracks of another', async () => {
+    await service.createMany(f.dayA1.id, { vias: [], track: { place_id: f.track.id, stray_km: null } });
+    await service.createMany(f.dayB1.id, { vias: [], track: { place_id: f.otherTrack.id, stray_km: null } });
 
-    expect(service.tracksForTrip(7).map(t => t.day_id)).toEqual([1]);
-    expect(service.tracksForTrip(99).map(t => t.day_id)).toEqual([3]);
+    expect((await service.tracksForTrip(f.tripA.id)).map((tr) => tr.day_id)).toEqual([f.dayA1.id]);
+    expect((await service.tracksForTrip(f.tripB.id)).map((tr) => tr.day_id)).toEqual([f.dayB1.id]);
   });
 
-  it('ROADTRIP-SVC-021: only a track of this trip can become a day\u2019s label', () => {
-    // Permission is not enough on its own: without this a place id from another trip
-    // would become this day\u2019s label, and an ordinary place would become a label that
-    // can never be drawn.
-    expect(service.trackExists(10, 7)).toBe(true);
-    expect(service.trackExists(11, 7)).toBe(false);
-    expect(service.trackExists(12, 7)).toBe(false);
-    expect(service.trackExists(999, 7)).toBe(false);
+  it('ROADTRIP-SVC-021: only a track of this trip can become a day’s label', async () => {
+    expect(await service.trackExists(f.track.id, f.tripA.id)).toBe(true);
+    expect(await service.trackExists(f.hotel.id, f.tripA.id)).toBe(false);
+    expect(await service.trackExists(f.otherTrack.id, f.tripA.id)).toBe(false);
+    expect(await service.trackExists(999999, f.tripA.id)).toBe(false);
   });
 
-  it('ROADTRIP-SVC-007: removing one reports whether there was anything to remove', () => {
-    const via = service.create(1, { after_order_index: 0, lat: 53, lng: 10 });
+  // L1 (Plan 3d Task 7 whole-plan review): `listForDay`/`listForTrip`/
+  // `tracksForTrip`/`trackExists` used to bind `Number(id)` directly — a
+  // hex-spelled id coerces to a real row under `Number()`, where the legacy
+  // raw-bind statement's affinity never converts a hex string, so it always
+  // matched nothing. `toRowId` now answers that legacy empty/false shape.
+  it("L1: a hex-spelled day/trip id answers the legacy empty shape on every read path, not the real trip's rows", async () => {
+    await service.create(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 });
+    await service.createMany(f.dayA1.id, { vias: [], track: { place_id: f.track.id, stray_km: null } });
 
-    expect(service.remove(via.id, 1)).toBe(true);
-    expect(service.remove(via.id, 1)).toBe(false);
-    expect(service.listForDay(1)).toEqual([]);
+    const hexDayId = '0x' + f.dayA1.id.toString(16);
+    const hexTripId = '0x' + f.tripA.id.toString(16);
+
+    expect(await service.listForDay(hexDayId)).toEqual([]);
+    expect(await service.listForTrip(hexTripId)).toEqual([]);
+    expect(await service.tracksForTrip(hexTripId)).toEqual([]);
+    expect(await service.trackExists(f.track.id, hexTripId)).toBe(false);
+
+    // Sanity: the canonical id still sees the real rows.
+    expect(await service.listForDay(f.dayA1.id)).toHaveLength(1);
+    expect(await service.tracksForTrip(f.tripA.id)).toHaveLength(1);
+  });
+
+  it('ROADTRIP-SVC-007b: removing one reports whether there was anything to remove', async () => {
+    const via = await service.create(f.dayA1.id, { after_order_index: 0, lat: 53, lng: 10 });
+
+    expect(await service.remove(via.id, f.dayA1.id)).toBe(true);
+    expect(await service.remove(via.id, f.dayA1.id)).toBe(false);
+    expect(await service.listForDay(f.dayA1.id)).toEqual([]);
+  });
+
+  it('RT8-GUARD-001: a non-canonical dayId is refused before any write — `createMany` never reaches the track upsert with an invalid day', async () => {
+    // The Task 0 review carry (RT8): `RoadtripDayTracksRepository.upsertTrack`'s
+    // `day_id` is that table's PRIMARY KEY column, and SQLite silently accepts
+    // `INSERT … VALUES (NULL, …)` on an INTEGER PK by auto-assigning a rowid —
+    // possibly colliding with a real, unrelated day. `requireDayId` (the
+    // service's own gate, `toRowId`-based) refuses `'abc'`/`'3 '`/`'0x10'`
+    // BEFORE the transaction opens, so `upsertTrack` can never be reached with
+    // anything but a real, parsed integer.
+    for (const badDayId of ['abc', '3 ', '0x10', '', '1.5']) {
+      await expect(
+        service.createMany(badDayId, { vias: [], track: { place_id: f.track.id, stray_km: null } }),
+      ).rejects.toMatchObject({ response: { error: 'Day not found' }, status: 404 });
+    }
+    expect(await service.tracksForTrip(f.tripA.id)).toEqual([]);
+  });
+
+  // R7: `create`'s `nextSequence` (MAX(sequence)+1) read and its `insertVia`
+  // write run in one transaction, which holds the connection, so two concurrent
+  // creates (`Promise.allSettled`, no mocks) take one sequence each. Before,
+  // both landed on sequence 0.
+  it('R7: two concurrent creates on the same leg both succeed and take consecutive sequences', async () => {
+    const results = await Promise.allSettled([
+      service.create(f.dayA1.id, { after_order_index: 0, lat: 1, lng: 1 }),
+      service.create(f.dayA1.id, { after_order_index: 0, lat: 2, lng: 2 }),
+    ]);
+    expect(results.every((r) => r.status === 'fulfilled')).toBe(true);
+    const rows = await service.listForDay(f.dayA1.id);
+    expect(rows).toHaveLength(2);
+    expect(rows.map((r) => r.after_order_index)).toEqual([0, 0]);
+    expect(rows.map((r) => r.sequence).sort((a, b) => a - b)).toEqual([0, 1]);
   });
 });

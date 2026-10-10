@@ -1,11 +1,14 @@
-import { Controller, HttpCode, OnModuleDestroy, Param, Post, Req } from '@nestjs/common';
-import type { Request } from 'express';
-import crypto from 'crypto';
-import { Public } from '../auth/public.decorator';
-import { DatabaseService } from '../database/database.service';
-import { SETTING_SYNC_ENABLED, WEBHOOK_NUDGE_DEBOUNCE_SECONDS } from './doc-sync.constants';
+import { logError } from '../audit/audit-log.logger';
+import { Public } from '../auth-core/public.decorator';
+import { withRequestContext } from '../database/request-context';
 import { DocSyncConfigService, type LinkRow } from './doc-sync-config.service';
+import { WEBHOOK_NUDGE_DEBOUNCE_SECONDS } from './doc-sync.constants';
 import { DocSyncService } from './doc-sync.service';
+import { MikroORM } from '@mikro-orm/core';
+import { Controller, HttpCode, OnModuleDestroy, Param, Post, Req } from '@nestjs/common';
+
+import crypto from 'crypto';
+import type { Request } from 'express';
 
 /**
  * `/api/docsync/webhook/:token`: the one endpoint a provider calls.
@@ -41,7 +44,7 @@ export class DocSyncWebhookController implements OnModuleDestroy {
   constructor(
     private readonly config: DocSyncConfigService,
     private readonly sync: DocSyncService,
-    private readonly db: DatabaseService,
+    private readonly orm: MikroORM,
   ) {}
 
   /**
@@ -53,15 +56,13 @@ export class DocSyncWebhookController implements OnModuleDestroy {
    * addon off would have watched it carry on. Checked when the timer fires as
    * well as on arrival, so a switch thrown during the debounce window still
    * takes effect.
+   *
+   * DSWH1 (R2 — moved off this controller): the kill-switch read now lives
+   * on `DocSyncService.isSyncEnabled`, the same rule the job obeys.
    */
-  private syncIsOn(link: LinkRow): boolean {
-    if (this.sync.isSwitchedOff(link)) return false;
-    const killSwitch = this.db.get<{ value: string }>(
-      'SELECT value FROM app_settings WHERE key = ?', SETTING_SYNC_ENABLED,
-    )?.value;
-    // Unrecognised values mean ON: the setting is absent by default, and only an
-    // explicit 'false' stops the sync. Same rule as the job.
-    return killSwitch !== 'false';
+  private async syncIsOn(link: LinkRow): Promise<boolean> {
+    if (await this.sync.isSwitchedOff(link)) return false;
+    return this.sync.isSyncEnabled();
   }
 
   onModuleDestroy(): void {
@@ -70,14 +71,16 @@ export class DocSyncWebhookController implements OnModuleDestroy {
   }
 
   @Post(':token')
-  @Public('A provider cannot hold a TREK session; the per-link token in the URL is the authentication, and the call can only ever trigger a sync run.')
+  @Public(
+    'A provider cannot hold a TREK session; the per-link token in the URL is the authentication, and the call can only ever trigger a sync run.',
+  )
   @HttpCode(200)
-  nudge(@Param('token') token: string, @Req() req: Request) {
-    const link = this.config.getLinkByToken(token);
+  async nudge(@Param('token') token: string, @Req() req: Request) {
+    const link = await this.config.getLinkByToken(token);
     // Always 200, even for an unknown token: a 404 here would let anyone probe
     // which tokens exist, and a provider that gets an error will retry anyway.
     if (!link || link.sync_enabled !== 1) return { received: true };
-    if (!this.syncIsOn(link)) return { received: true };
+    if (!(await this.syncIsOn(link))) return { received: true };
 
     // The secret is only known to a provider TREK subscribed at itself, so it
     // is only demanded there. A URL pasted into a store by hand (Papra, or a
@@ -105,20 +108,40 @@ export class DocSyncWebhookController implements OnModuleDestroy {
    * because the provider is usually still writing the rest. The link is looked
    * up again when the timer fires, so a binding switched off or deleted in the
    * meantime does not get one last run out of a stale row.
+   *
+   * R9 (Plan 3h Task 5): the timer body forks its OWN fresh request context
+   * via `withRequestContext` — the same shape
+   * `StorageHealthNotifierService`'s listener (Plan 3f Task 4, R3) uses. This
+   * `nudge()` handler already returned its `{received:true}` response before
+   * this timer fires (`WEBHOOK_NUDGE_DEBOUNCE_SECONDS` later), so whatever
+   * request-scoped `EntityManager` fork the original HTTP request forked is
+   * long gone by the time this body runs — insurance, per 3f's own
+   * measurement that `AsyncLocalStorage` survives a detached chain intact in
+   * this codebase today, not a fix for an observed failure (the pre-conversion
+   * code had no `EntityManager` to lose in the first place: raw
+   * `better-sqlite3` calls have no request-scoping concept at all).
    */
   private schedule(linkId: number, reload: () => ReturnType<DocSyncConfigService['getLink']>, isRetry = false): void {
     if (this.pending.has(linkId)) return;
+    // setTimeout cannot await its callback, so the now-async body runs in a
+    // helper and its rejection is observed here rather than left unhandled
+    // (recipe R1.5).
     const timer = setTimeout(() => {
-      this.pending.delete(linkId);
-      const fresh = reload();
-      if (!fresh || fresh.sync_enabled !== 1) return;
-      if (!this.syncIsOn(fresh)) return;
-      void this.sync.syncLink(fresh).then((res) => {
+      void withRequestContext(this.orm, async () => {
+        this.pending.delete(linkId);
+        const fresh = await reload();
+        if (!fresh || fresh.sync_enabled !== 1) return;
+        if (!(await this.syncIsOn(fresh))) return;
+        const res = await this.sync.syncLink(fresh);
         // A run that was already in flight answers `busy`, and the changes this
         // nudge was about may have landed after that run read the folder. Ask
         // again once rather than waiting out a whole poll interval: once, and
         // only for `busy`, so this cannot become a loop.
         if (res?.state === 'busy' && !isRetry) this.schedule(linkId, reload, true);
+      }).catch((err: unknown) => {
+        logError(
+          `Document sync webhook nudge failed for link ${linkId}: ${err instanceof Error ? err.message : String(err)}`,
+        );
       });
     }, WEBHOOK_NUDGE_DEBOUNCE_SECONDS * 1000);
     // A pending nudge must not hold the process open at shutdown.
@@ -142,10 +165,7 @@ export class DocSyncWebhookController implements OnModuleDestroy {
     if (sig && id && ts) {
       const raw = (req as Request & { rawBody?: Buffer }).rawBody;
       const body = raw ? raw.toString('utf8') : JSON.stringify(req.body ?? {});
-      const expected = crypto
-        .createHmac('sha256', Buffer.from(secret))
-        .update(`${id}.${ts}.${body}`)
-        .digest('base64');
+      const expected = crypto.createHmac('sha256', Buffer.from(secret)).update(`${id}.${ts}.${body}`).digest('base64');
       for (const part of sig.split(' ')) {
         const value = part.startsWith('v1,') ? part.slice(3) : part;
         if (timingSafeEqualStr(value, expected)) return true;

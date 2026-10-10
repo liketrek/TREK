@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, Download, ExternalLink, X } from 'lucide-react'
-import { getAuthUrl } from '../../../../api/authUrl'
 import { downloadFile, openFile } from '../../../../utils/fileDownload'
 import { lockBodyScroll } from '../../../../utils/bodyScrollLock'
-import { isVideo } from '../../../../components/Files/FileManager.helpers'
+import { useMediaLightbox } from '../../../../components/Files/useMediaLightbox'
 import VideoPlayer from '../../../../components/Journey/VideoPlayerLazy'
 import type { TranslationFn, TripFile } from '../../../../types'
 
@@ -29,39 +28,12 @@ function sheetRoot(): HTMLElement {
  * its Range requests stay cookie-authenticated (#823).
  */
 export default function MFileLightbox({ files, index, onIndexChange, onClose, t }: MFileLightboxProps) {
-  const file = files[index]
-  const [imgSrc, setImgSrc] = useState('')
-  const touchStartRef = useRef<number | null>(null)
-  const fileIsVideo = isVideo(file?.mime_type)
-  const fileUrl = file?.url
-  const fileMimeType = file?.mime_type
-
-  useEffect(() => {
-    // Swiping is faster than the resource-token round trip, so a stale token must
-    // not overwrite the file the user is looking at now.
-    let cancelled = false
-    setImgSrc('')
-    if (fileUrl && !isVideo(fileMimeType)) {
-      getAuthUrl(fileUrl, 'download').then(url => { if (!cancelled) setImgSrc(url) })
-    }
-    return () => { cancelled = true }
-  }, [fileUrl, fileMimeType])
-
-  const hasPrev = index > 0
-  const hasNext = index < files.length - 1
-  const goPrev = () => { if (hasPrev) onIndexChange(index - 1) }
-  const goNext = () => { if (hasNext) onIndexChange(index + 1) }
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-      if (e.key === 'ArrowLeft') goPrev()
-      if (e.key === 'ArrowRight') goNext()
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, files.length])
+  const { file, imgSrc, fileIsVideo, hasPrev, hasNext, goPrev, goNext, onTouchStart, onTouchEnd } = useMediaLightbox({
+    files,
+    index,
+    onIndexChange,
+    onClose,
+  })
 
   useEffect(() => lockBodyScroll(), [])
 
@@ -71,25 +43,18 @@ export default function MFileLightbox({ files, index, onIndexChange, onClose, t 
     <div
       // Backdrop, header bar and media pane are plain boxes: they only route the
       // tap-to-dismiss. Escape / arrow keys and the header buttons are the
-      // keyboard equivalents, wired up in the effect above.
+      // keyboard equivalents, wired up in useMediaLightbox.
       role="presentation"
       className="m-root fixed inset-0 z-[65] flex flex-col bg-black/[.92]"
       onClick={onClose}
-      onTouchStart={e => { touchStartRef.current = e.touches[0].clientX }}
-      onTouchEnd={e => {
-        const start = touchStartRef.current
-        if (start === null) return
-        const diff = e.changedTouches[0].clientX - start
-        if (diff > 60) goPrev()
-        else if (diff < -60) goNext()
-        touchStartRef.current = null
-      }}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
     >
       {/* Header */}
       <div role="presentation" className="flex flex-none items-center justify-between px-4 py-[10px]" onClick={e => e.stopPropagation()}>
         <span className="min-w-0 flex-1 truncate font-geist text-[0.75rem] text-white/70">
           {file.original_name}
-          <span className="ml-2 text-white/40">{index + 1} / {files.length}</span>
+          <span className="ms-2 text-white/40">{index + 1} / {files.length}</span>
         </span>
         <div className="flex flex-none items-center gap-1">
           <button

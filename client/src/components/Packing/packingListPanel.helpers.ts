@@ -1,4 +1,5 @@
-import { KAT_COLORS } from './packingListPanel.constants'
+import type { PackingBag, PackingItem } from '../../types'
+import { KAT_COLORS, PACKING_PLACEHOLDER_NAME } from './packingListPanel.constants'
 
 // Stable color assignment: category name → index via simple hash
 export function katColor(kat: string, allCategories?: string[]): string {
@@ -68,6 +69,29 @@ export const unassignedTotalWeight = (
     : visibleItems.reduce((sum, i) => sum + itemWeight(i), 0)
 
 /**
+ * What every bag surface adds up: the bag sidebar and the bag dialog on the desktop
+ * and the bag sheet on the phone. The item lists describe what you carry (#1767),
+ * the weights what the bags hold, whoever packed them (#2191). The heaviest bag is
+ * the scale for bags without a limit of their own, worked out once for all of them.
+ */
+export function bagLoadSummary(
+  bags: PackingBag[],
+  items: PackingItem[],
+  currentUserId: number | null | undefined,
+  unassignedWeightGrams: number | null | undefined,
+  serverWeightsFresh: boolean,
+) {
+  const myItems = items.filter(i => countsTowardsMyLoad(i, currentUserId))
+  const bagItemsOf = (bag: PackingBag) => myItems.filter(i => i.bag_id === bag.id)
+  const bagWeightOf = (bag: PackingBag) => bagTotalWeight(bag, bagItemsOf(bag), serverWeightsFresh)
+  const heaviestBagWeight = Math.max(...bags.map(bagWeightOf), 1)
+  const unassigned = myItems.filter(i => !i.bag_id)
+  const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned, serverWeightsFresh)
+  const totalWeight = bags.reduce((s, b) => s + bagWeightOf(b), 0) + unassignedWeight
+  return { myItems, bagItemsOf, bagWeightOf, heaviestBagWeight, unassigned, unassignedWeight, totalWeight }
+}
+
+/**
  * How full a bag's bar reads. A bag with a weight limit is measured against that limit —
  * that is the number an airline cares about. Without one there is nothing absolute to
  * measure against, so bags are shown relative to the heaviest one and stay comparable.
@@ -76,13 +100,16 @@ export const unassignedTotalWeight = (
 export const bagFillPct = (bagWeight: number, limitGrams: number | null | undefined, heaviestBagWeight: number): number =>
   Math.min(100, Math.round((bagWeight / (limitGrams || Math.max(heaviestBagWeight, 1))) * 100))
 
-// Parse CSV line respecting quoted values (e.g. "Shirt, blue" stays as one field)
+// Parse CSV line respecting quoted values (e.g. "Shirt, blue" stays as one field).
+// A doubled quote inside a quoted field is a literal one, which is how the CSV
+// export writes a name that contains a quote.
 export const parseCsvLine = (line: string): string[] => {
   const parts: string[] = []
   let current = ''
   let inQuotes = false
   for (let i = 0; i < line.length; i++) {
     const ch = line[i]
+    if (ch === '"' && inQuotes && line[i + 1] === '"') { current += '"'; i++; continue }
     if (ch === '"') { inQuotes = !inQuotes; continue }
     if (!inQuotes && (ch === ',' || ch === ';' || ch === '\t')) { parts.push(current.trim()); current = ''; continue }
     current += ch
@@ -97,21 +124,157 @@ export interface ParsedImportItem {
   weight_grams: string | undefined
   bag: string | undefined
   checked: boolean
+  /** From a leading "3x" or "3 ×" on the name. Absent means one. */
+  quantity?: number
+}
+
+// "3x Socks", "3 x Socks", "3 × Socks". The space after the x is required, so
+// "4x4 adapter" stays a name.
+const QUANTITY_PREFIX = /^(\d{1,3})\s*[x×]\s+(\S.*)$/i
+
+/** A name with its quantity prefix split off, the same way for CSV rows and Markdown items. */
+export const splitQuantity = (raw: string): { name: string; quantity?: number } => {
+  const match = QUANTITY_PREFIX.exec(raw.trim())
+  const quantity = match ? Number(match[1]) : 0
+  return match && quantity >= 1 ? { name: match[2].trim(), quantity } : { name: raw.trim() }
+}
+
+const MD_HEADING = /^#{1,6}\s+(\S.*)$/
+const MD_ITEM = /^(?:[-*+]|\d+[.)])\s+(?:\[([ xX])\]\s+)?(\S.*)$/
+// The weight the Markdown export writes after a name: "(200 g)" or "(1.2 kg)".
+// Only a parenthesis that holds nothing but a weight counts, so "Charger (USB-C)"
+// keeps its name.
+const MD_WEIGHT = /\((\d+(?:[.,]\d+)?)\s?(g|kg)\)$/i
+
+/** Links, emphasis and code marks as plain text: a list copied from a notes app is full of them. */
+const plainMarkdown = (text: string): string =>
+  text.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/\*\*|__|~~|`/g, '').trim()
+
+/**
+ * Whether pasted text is a Markdown list rather than CSV rows (#875): any heading or
+ * list item decides it, the way Obsidian, Notion, GitHub and most notes apps export.
+ */
+export const isMarkdownList = (text: string): boolean =>
+  text.split('\n').some(line => MD_HEADING.test(line.trim()) || MD_ITEM.test(line.trim()))
+
+/**
+ * A Markdown list as import rows. Every heading names the category of the items
+ * under it, "- [x]" marks an item packed, and anything that is neither heading nor
+ * list item (a note, a blank line, a rule) is left out.
+ */
+const parseMarkdownLines = (text: string): ParsedImportItem[] => {
+  const out: ParsedImportItem[] = []
+  let category: string | undefined
+  for (const line of text.split('\n').map(l => l.trim())) {
+    const heading = MD_HEADING.exec(line)
+    if (heading) {
+      // A closing run of hashes ("## Clothing ##") is decoration, not part of the name.
+      category = plainMarkdown(heading[1].replace(/\s#+$/, '')) || undefined
+      continue
+    }
+    const item = MD_ITEM.exec(line)
+    // "- [ ]" with nothing after it is an empty checkbox, not an item called "[ ]".
+    if (!item || /^\[[ xX]\]$/.test(item[2])) continue
+    let label = plainMarkdown(item[2])
+    let weight_grams: string | undefined
+    const weight = MD_WEIGHT.exec(label)
+    if (weight) {
+      const grams = Number(weight[1].replace(',', '.')) * (weight[2].toLowerCase() === 'kg' ? 1000 : 1)
+      weight_grams = String(Math.round(grams))
+      label = label.slice(0, weight.index).trim()
+    }
+    out.push({ ...splitQuantity(label), category, weight_grams, bag: undefined, checked: item[1]?.toLowerCase() === 'x' })
+  }
+  return out.filter(i => i.name)
 }
 
 export const parseImportLines = (text: string): ParsedImportItem[] => {
+  if (isMarkdownList(text)) return parseMarkdownLines(text)
   return text.split('\n').map(line => line.trim()).filter(Boolean).map(line => {
     // Format: Category, Name, Weight (optional), Bag (optional), checked/unchecked (optional)
     const parts = parseCsvLine(line)
     if (parts.length >= 2) {
       const category = parts[0]
-      const name = parts[1]
       const weight_grams = parts[2] || undefined
       const bag = parts[3] || undefined
       const checked = parts[4]?.toLowerCase() === 'checked' || parts[4] === '1'
-      return { name, category, weight_grams, bag, checked }
+      return { ...splitQuantity(parts[1]), category, weight_grams, bag, checked }
     }
     // Single value = just a name
-    return { name: parts[0], category: undefined, weight_grams: undefined, bag: undefined, checked: false }
+    return { ...splitQuantity(parts[0]), category: undefined, weight_grams: undefined, bag: undefined, checked: false }
   }).filter(i => i.name)
+}
+
+/**
+ * One list's items in name order, for the A-Z view. Compared the way the reader's
+ * language sorts (accents next to their letter, "Shirt 2" before "Shirt 10"), and
+ * the '...' stand-in of an empty list stays at the bottom where it always sits.
+ * Returns a new array; the stored manual order is left alone.
+ */
+export function sortItemsByName<T extends { name: string }>(items: T[], locale?: string): T[] {
+  const collator = new Intl.Collator(locale, { sensitivity: 'base', numeric: true })
+  return [...items].sort((a, b) => {
+    const pa = a.name === PACKING_PLACEHOLDER_NAME
+    const pb = b.name === PACKING_PLACEHOLDER_NAME
+    if (pa !== pb) return pa ? 1 : -1
+    return collator.compare(a.name.trim(), b.name.trim())
+  })
+}
+
+/** The packed count an item shows (#2296): all of it once ticked, its partial count before that. */
+export function packedOf(item: { checked?: number | boolean; packed_quantity?: number | null; quantity?: number }): number {
+  return item.checked ? (item.quantity || 1) : (item.packed_quantity ?? 0)
+}
+
+type SharingItem = { category?: string | null; name: string; is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[] }
+
+/**
+ * The tier a new item takes in the given category (#2241). In "my list" a category
+ * whose own items are all shared with the very same people shares the next one with
+ * them too, so a list kept for two does not need every new line shared by hand. Any
+ * difference between the items, or one kept to myself, and the new item stays mine
+ * alone: sharing is only ever carried over when the category is unanimous about it.
+ */
+export function newItemSharing(
+  items: SharingItem[],
+  category: string,
+  view: 'common' | 'personal',
+  userId: number | null | undefined,
+): { visibility: 'common' | 'personal' | 'shared'; recipient_ids?: number[] } {
+  if (view !== 'personal') return { visibility: 'common' }
+  const own = items.filter(i => i.category === category && i.name !== PACKING_PLACEHOLDER_NAME && !!i.is_private && i.owner_id === userId)
+  const sets = own.map(i => (i.recipients || []).map(r => r.user_id).sort((a, b) => a - b).join(','))
+  if (!own.length || !sets[0] || sets.some(set => set !== sets[0])) return { visibility: 'personal' }
+  return { visibility: 'shared', recipient_ids: sets[0].split(',').map(Number) }
+}
+
+/** What the packed part of these items weighs: unit weight times the packed count (#1131). */
+export const packedWeight = (items: { weight_grams?: number | null; quantity?: number; checked?: number | boolean; packed_quantity?: number | null }[]): number =>
+  items.reduce((sum, i) => sum + (i.weight_grams || 0) * packedOf(i), 0)
+
+export interface PersonLoad { user_id: number; username: string; avatar?: string | null; grams: number; shared: boolean }
+
+/**
+ * What each person carries, from the bags they are a member of (#1131). A bag
+ * with several members is split evenly between them, so the rows add up to the
+ * weight of the bags that have anyone at all; `shared` marks a person with such
+ * a split share. Heaviest first.
+ */
+export function perPersonLoads<B extends { members?: { user_id: number; username: string; avatar?: string | null }[] }>(
+  bags: B[],
+  weightOf: (bag: B) => number,
+): PersonLoad[] {
+  const byUser = new Map<number, PersonLoad>()
+  for (const bag of bags) {
+    const members = bag.members ?? []
+    if (members.length === 0) continue
+    const share = weightOf(bag) / members.length
+    for (const m of members) {
+      const row = byUser.get(m.user_id) ?? { user_id: m.user_id, username: m.username, avatar: m.avatar, grams: 0, shared: false }
+      row.grams += share
+      if (members.length > 1) row.shared = true
+      byUser.set(m.user_id, row)
+    }
+  }
+  return [...byUser.values()].map(r => ({ ...r, grams: Math.round(r.grams) })).sort((a, b) => b.grams - a.grams)
 }

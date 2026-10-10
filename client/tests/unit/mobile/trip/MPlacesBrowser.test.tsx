@@ -1,16 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
+import { act, fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 import { buildPlanner, buildShell } from '../../../helpers/mobileTrip'
 import MPlacesBrowser from '../../../../src/mobile/screens/trip/places/MPlacesBrowser'
 import { collectionsApi } from '../../../../src/api/collections'
-import type { CollectionListResponse } from '@trek/shared'
+import { toursApi } from '../../../../src/api/client'
+import type { CollectionListResponse, TourListItem } from '@trek/shared'
 import { useAddonStore } from '../../../../src/store/addonStore'
 import { useTripStore } from '../../../../src/store/tripStore'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import type { AssignmentsMap, Category, Day, Place } from '../../../../src/types'
 
-// FE-MOB-PBROW-001 to FE-MOB-PBROW-031
+// FE-MOB-PBROW-001 to FE-MOB-PBROW-036
 
 const CATEGORIES = [
   { id: 1, name: 'Sights', color: '#123456', icon: 'landmark' },
@@ -35,6 +36,7 @@ function place(over: Partial<Place>): Place {
 const LOUVRE = place({ id: 1, name: 'Louvre', address: 'Rue de Rivoli', category_id: 1 })
 const EIFFEL = place({ id: 2, name: 'Eiffel Tower', description: 'Iron lady' })
 const SEINE = place({ id: 3, name: 'Seine Track', category_id: 2, route_geometry: 'abc', route_color: '#ff0000' })
+const TOUR = place({ id: 4, name: 'Ridge walk', tour_place_id: 4 })
 
 const PLACES = [LOUVRE, EIFFEL, SEINE]
 
@@ -109,7 +111,7 @@ describe('MPlacesBrowser', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'places.planned' }))
     expect(useTripStore.getState().placesFilter).toBe('planned')
-    expect(screen.getByText('places.countSingular')).toBeInTheDocument()
+    expect(screen.getByText('places.count:1')).toBeInTheDocument()
     expect(screen.getByText('Louvre')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'places.all' }))
@@ -119,16 +121,16 @@ describe('MPlacesBrowser', () => {
   it('FE-MOB-PBROW-006: the tracks chip only appears with a track and filters to it', () => {
     renderBrowser()
     fireEvent.click(screen.getByRole('button', { name: 'places.filterTracks' }))
-    expect(screen.getByText('places.countSingular')).toBeInTheDocument()
+    expect(screen.getByText('places.count:1')).toBeInTheDocument()
     expect(screen.getByText('Seine Track')).toBeInTheDocument()
     expect(screen.queryByText('Louvre')).not.toBeInTheDocument()
   })
 
-  it('FE-MOB-PBROW-007: hides the tracks chip and falls back to all when the last track is gone', () => {
-    seedStore(useTripStore, { placesFilter: 'tracks' })
+  // The fall back to "all" once the last track is gone lives in useTripPlanner
+  // (FE-TP-HOOK-177), which stays mounted while this browser is not.
+  it('FE-MOB-PBROW-007: hides the tracks chip when no place carries a track', () => {
     renderBrowser(makePlanner({ places: [LOUVRE, EIFFEL] } as Partial<TripPlanner>))
     expect(screen.queryByRole('button', { name: 'places.filterTracks' })).not.toBeInTheDocument()
-    expect(useTripStore.getState().placesFilter).toBe('all')
     expect(screen.getByText('places.count:2')).toBeInTheDocument()
   })
 
@@ -152,7 +154,7 @@ describe('MPlacesBrowser', () => {
 
   it('FE-MOB-PBROW-010: the category panel toggles the shared filter set and badges its size', () => {
     renderBrowser()
-    const catBtn = screen.getByRole('button', { name: 'places.allCategories' })
+    const catBtn = screen.getByRole('button', { name: 'places.filters' })
     expect(catBtn).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(catBtn)
     expect(catBtn).toHaveAttribute('aria-expanded', 'true')
@@ -168,10 +170,63 @@ describe('MPlacesBrowser', () => {
     expect(useTripStore.getState().placesCategoryFilter.size).toBe(0)
   })
 
+  it('FE-MOB-PBROW-032: the panel rating floor narrows the list, badges the button and lands in the store', () => {
+    const planner = makePlanner({
+      places: [{ ...LOUVRE, rating_avg: 4.5 }, { ...EIFFEL, rating_avg: 3 }, SEINE],
+    } as Partial<TripPlanner>)
+    renderBrowser(planner)
+    const panelBtn = screen.getByRole('button', { name: 'places.filters' })
+    fireEvent.click(panelBtn)
+    const floors = screen.getByRole('group', { name: 'Filter by rating' })
+    fireEvent.click(within(floors).getByRole('button', { name: '4+' }))
+    expect(useTripStore.getState().placesRatingFilter).toBe(4)
+    expect(within(floors).getByRole('button', { name: '4+' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Louvre')).toBeInTheDocument()
+    expect(screen.queryByText('Eiffel Tower')).not.toBeInTheDocument()
+    expect(screen.queryByText('Seine Track')).not.toBeInTheDocument()
+    expect(panelBtn).toHaveTextContent('1')
+
+    fireEvent.click(within(floors).getByRole('button', { name: 'All' }))
+    expect(useTripStore.getState().placesRatingFilter).toBe('all')
+    expect(screen.getByText('Seine Track')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-PBROW-035: the panel badge counts kinds of filter, like the map badge', () => {
+    renderBrowser()
+    const panelBtn = screen.getByRole('button', { name: 'places.filters' })
+    fireEvent.click(panelBtn)
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Sights' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Food' }))
+    // Two categories are one kind of filter.
+    expect(panelBtn).toHaveTextContent('1')
+    fireEvent.click(within(screen.getByRole('group', { name: 'Filter by rating' })).getByRole('button', { name: '4+' }))
+    expect(panelBtn).toHaveTextContent('2')
+    // The pool has its own chips in plain sight, so the panel badge leaves it out.
+    fireEvent.click(screen.getByRole('button', { name: 'places.unplanned' }))
+    expect(panelBtn).toHaveTextContent('2')
+  })
+
+  it('FE-MOB-PBROW-036: a new rating floor starts a fresh selection, as a new pool does', () => {
+    renderBrowser()
+    fireEvent.click(screen.getByRole('button', { name: 'common.select' }))
+    fireEvent.click(row('Louvre'))
+    expect(screen.getByText('places.selectionCount:1')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'places.filters' }))
+    fireEvent.click(within(screen.getByRole('group', { name: 'Filter by rating' })).getByRole('button', { name: '1+' }))
+    expect(screen.queryByText('places.selectionCount:1')).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PBROW-033: a floor set from the map sheet already thins the list on arrival', () => {
+    seedStore(useTripStore, { placesRatingFilter: 5 })
+    renderBrowser(makePlanner({ places: [{ ...LOUVRE, rating_avg: 5 }, EIFFEL] } as Partial<TripPlanner>))
+    expect(screen.getByText('Louvre')).toBeInTheDocument()
+    expect(screen.queryByText('Eiffel Tower')).not.toBeInTheDocument()
+  })
+
   it('FE-MOB-PBROW-011: the uncategorized row filters the places without a category', () => {
     renderBrowser()
-    fireEvent.click(screen.getByRole('button', { name: 'places.allCategories' }))
-    fireEvent.click(screen.getByRole('checkbox', { name: 'places.noCategory' }))
+    fireEvent.click(screen.getByRole('button', { name: 'places.filters' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'No Category' }))
     expect([...useTripStore.getState().placesCategoryFilter]).toEqual(['uncategorized'])
     expect(screen.getByText('Eiffel Tower')).toBeInTheDocument()
     expect(screen.queryByText('Louvre')).not.toBeInTheDocument()
@@ -180,8 +235,8 @@ describe('MPlacesBrowser', () => {
   it('FE-MOB-PBROW-012: the uncategorized row is dropped when every place has a category', () => {
     const planner = makePlanner({ places: [LOUVRE, SEINE] } as Partial<TripPlanner>)
     renderBrowser(planner)
-    fireEvent.click(screen.getByRole('button', { name: 'places.allCategories' }))
-    expect(screen.queryByRole('checkbox', { name: 'places.noCategory' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'places.filters' }))
+    expect(screen.queryByRole('checkbox', { name: 'No Category' })).not.toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Food' })).toBeInTheDocument()
   })
 
@@ -290,6 +345,52 @@ describe('MPlacesBrowser', () => {
     expect(screen.queryByText(/places.selectionCount/)).not.toBeInTheDocument()
   })
 
+  it('routes a Tour row to read-only detail instead of mobile Place bulk management', () => {
+    const planner = makePlanner({
+      places: [LOUVRE, TOUR],
+      isTourPlace: vi.fn((placeId: number) => placeId === TOUR.id),
+    })
+    renderBrowser(planner)
+    fireEvent.click(screen.getByRole('button', { name: 'common.select' }))
+    fireEvent.click(row('Louvre'))
+    fireEvent.click(row('Ridge walk'))
+
+    expect(planner.handlePlaceClick).toHaveBeenCalledWith(TOUR.id)
+    expect(screen.getByText('places.selectionCount:1')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'places.deleteSelected' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'places.changeCategory' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'common.deselectAll' })).toBeInTheDocument()
+  })
+
+  it('keeps Tour-backed Places out of the Places pool and Tours mode browse/attach only', async () => {
+    const ridge: TourListItem = {
+      place_id: TOUR.id, name: 'Ridge walk', tour_type: 'hike', distance: 4, elevation_gain: 100,
+      elevation_loss: 80, duration: null, difficulty: null, wanderer_ref: null, match_confidence: 1,
+      max_hiking_difficulty: 2, planned: false, caution: false,
+    }
+    seedStore(useAddonStore, { addons: [{ id: 'collections', enabled: true }, { id: 'tours', enabled: true }] })
+    const list = vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [ridge] })
+    const planner = makePlanner({
+      places: [...PLACES, TOUR],
+      tours: [ridge],
+      isTourPlace: vi.fn((placeId: number) => placeId === TOUR.id),
+    })
+    const { shell } = renderBrowser(planner)
+
+    await waitFor(() => expect(screen.getByText('places.count:3')).toBeInTheDocument())
+    expect(screen.queryByText('Ridge walk')).not.toBeInTheDocument()
+    // The planner owns the tour list; the browser does not fetch a second one.
+    expect(list).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('tab', { name: /^Tours$/i }))
+    expect(screen.getByRole('option', { name: /Ridge walk/ })).toBeInTheDocument()
+    expect(screen.queryByText('Louvre')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'mobileTrip.importPlaces' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'common.add' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'common.select' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /tours.addToDay|Add to day/i })).toBeInTheDocument()
+  })
+
   it('FE-MOB-PBROW-020b: a failed bulk delete keeps the selection for a retry', async () => {
     const planner = makePlanner()
     ;(planner.confirmDeletePlaces as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('nope'))
@@ -362,6 +463,13 @@ describe('MPlacesBrowser', () => {
     expect(screen.queryByText('places.noneFound')).not.toBeInTheDocument()
   })
 
+  it('FE-MOB-PBROW-034: an unplanned pool emptied by the rating floor reports no matches, not "all planned"', () => {
+    seedStore(useTripStore, { placesRatingFilter: 5 })
+    renderBrowser(makePlanner({ places: [EIFFEL] } as Partial<TripPlanner>), buildShell({ browseFromEdit: true }))
+    expect(screen.getByText('places.noneFound')).toBeInTheDocument()
+    expect(screen.queryByText('places.allPlanned')).not.toBeInTheDocument()
+  })
+
   it('FE-MOB-PBROW-028: a search without hits reports no matches', () => {
     renderBrowser()
     fireEvent.change(screen.getByPlaceholderText('places.search'), { target: { value: 'zzz' } })
@@ -398,7 +506,7 @@ describe('MPlacesBrowser', () => {
 
     // Narrow to the two categorised places: two visible, two selected — but not
     // the same two, so the toolbar must still offer select-all.
-    fireEvent.click(screen.getByRole('button', { name: 'places.allCategories' }))
+    fireEvent.click(screen.getByRole('button', { name: 'places.filters' }))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sights' }))
     fireEvent.click(screen.getByRole('checkbox', { name: 'Food' }))
 

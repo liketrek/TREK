@@ -2,7 +2,6 @@
  * Unit tests for MCP scope helper functions in server/src/mcp/scopes.ts.
  * No DB or mocks needed — pure functions only.
  */
-import { describe, it, expect } from 'vitest';
 import {
   validateScopes,
   canReadTrips,
@@ -13,6 +12,8 @@ import {
   ALL_SCOPES,
   SCOPE_INFO,
 } from '../../../src/mcp/scopes';
+
+import { describe, it, expect } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // ALL_SCOPES

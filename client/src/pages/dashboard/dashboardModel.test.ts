@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { daysUntil, getTripStatus, sortTrips, localIsoToday } from './dashboardModel'
+import { MOMENT_LABEL, daysUntil, fullDate, getTripStatus, sortTrips, localIsoToday } from './dashboardModel'
 
 /**
  * The dashboard classifies trips against the user's WALL CLOCK — `daysUntil`
@@ -47,5 +47,25 @@ describe('dashboardModel — "today" is the user\'s local date', () => {
     const startsToday = { id: 2, start_date: '2026-08-25', end_date: '2026-08-26' }
     const sorted = sortTrips([endedYesterday, startsToday] as never[])
     expect(sorted.map((t: { id: number }) => t.id)).toEqual([2, 1])
+  })
+})
+
+describe('dashboardModel: fullDate', () => {
+  afterEach(() => { vi.useRealTimers() })
+
+  it('shows the year only for another year and survives a missing or malformed date', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-06-01T12:00:00Z'))
+    expect(fullDate('2026-09-10', 'en-US')).toBe('Sep 10')
+    expect(fullDate('2024-09-10', 'en-US')).toBe('Sep 10, 2024')
+    expect(fullDate(null, 'en-US')).toBeNull()
+    expect(fullDate('not-a-date', 'en-US')).toBeNull()
+  })
+})
+
+describe('dashboardModel: MOMENT_LABEL', () => {
+  it('labels only the two moments of a stay', () => {
+    expect(MOMENT_LABEL).toEqual({ checkin: 'day.checkIn', checkout: 'day.checkOut' })
+    expect(MOMENT_LABEL.flight).toBeUndefined()
   })
 })

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import path from 'path';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // The wiki module picks its source (local disk vs GitHub) once at module load, so each
 // mode needs a fresh import with TREK_WIKI_DIR already set.
@@ -146,7 +146,12 @@ describe('wiki — local wiki on disk', () => {
 
 describe('wiki — GitHub fallback when no wiki is on disk', () => {
   const ok = (body: string): Response =>
-    ({ ok: true, status: 200, text: async () => body, arrayBuffer: async () => new ArrayBuffer(4) }) as unknown as Response;
+    ({
+      ok: true,
+      status: 200,
+      text: async () => body,
+      arrayBuffer: async () => new ArrayBuffer(4),
+    }) as unknown as Response;
 
   it('fetches from GitHub and caches the result', async () => {
     const wiki = await loadWiki(MISSING_WIKI);
@@ -214,5 +219,92 @@ describe('wiki — default path resolution', () => {
     const page = await wiki.getWikiPage('Home');
     expect(page.title.length).toBeGreaterThan(0);
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('wiki — full-text search', () => {
+  const ok = (body: string): Response =>
+    ({
+      ok: true,
+      status: 200,
+      text: async () => body,
+      arrayBuffer: async () => new ArrayBuffer(4),
+    }) as unknown as Response;
+
+  it('ranks a title match first and points at the heading the text sits under', async () => {
+    const wiki = await loadWiki(FIXTURE_WIKI);
+
+    const hits = await wiki.searchWiki('cover image');
+
+    expect(hits[0]).toMatchObject({
+      slug: 'Sample',
+      title: 'Sample Page',
+      section: 'Planning',
+      heading: 'Cover images',
+      anchor: 'cover-images',
+    });
+    expect(hits[0].snippet).toContain('cover image');
+    // Only pages that carry the words come back; the fixture home page does not.
+    expect(hits.map((h) => h.slug)).not.toContain('Home');
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('finds a page by a word in its body and hands back a snippet around it', async () => {
+    const wiki = await loadWiki(FIXTURE_WIKI);
+
+    const hits = await wiki.searchWiki('restored');
+
+    expect(hits).toHaveLength(1);
+    expect(hits[0].slug).toBe('Sample');
+    expect(hits[0].heading).toBe('Archiving');
+    expect(hits[0].snippet).toMatch(/restored/);
+    expect(hits[0].snippet).not.toContain('```');
+  });
+
+  it('matches the page title without the words appearing in the body', async () => {
+    const wiki = await loadWiki(FIXTURE_WIKI);
+    const hits = await wiki.searchWiki('fixture');
+    expect(hits[0].slug).toBe('Home');
+    expect(hits[0].anchor).toBeNull();
+  });
+
+  it('returns nothing for an empty or single-letter query', async () => {
+    const wiki = await loadWiki(FIXTURE_WIKI);
+    expect(await wiki.searchWiki('   ')).toEqual([]);
+    expect(await wiki.searchWiki('a')).toEqual([]);
+    expect(await wiki.searchWiki('zzzz-no-such-word')).toEqual([]);
+  });
+
+  it('honours the limit and clamps it to a sane range', async () => {
+    const wiki = await loadWiki(FIXTURE_WIKI);
+    // Both fixture pages mention "page"; ask for one.
+    const one = await wiki.searchWiki('page', 1);
+    expect(one).toHaveLength(1);
+    const all = await wiki.searchWiki('page', 500);
+    expect(all.length).toBeGreaterThan(1);
+    expect(all.length).toBeLessThanOrEqual(20);
+  });
+
+  it('builds the index once for the bundled wiki and reuses it', async () => {
+    const wiki = await loadWiki(FIXTURE_WIKI);
+    const first = await wiki.searchWiki('archive');
+    const second = await wiki.searchWiki('archive');
+    expect(second).toEqual(first);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('searches the GitHub fallback and skips a page that fails to load', async () => {
+    const wiki = await loadWiki(MISSING_WIKI);
+    expect(wiki.isLocalWiki()).toBe(false);
+    fetchSpy.mockImplementation(async (url: string) => {
+      if (url.endsWith('_Sidebar.md')) return ok('## Docs\n- [[Home]]\n- [[Broken]]\n');
+      if (url.endsWith('Home.md')) return ok('# Remote Home\n\nInvite links expire after a week.\n');
+      return { ok: false, status: 500, text: async () => '' } as unknown as Response;
+    });
+
+    const hits = await wiki.searchWiki('invite');
+
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toMatchObject({ slug: 'Home', title: 'Remote Home' });
   });
 });

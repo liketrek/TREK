@@ -1,8 +1,8 @@
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
-import { PluginGuards } from '../plugins/host/plugin-guards.service';
-import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
 import { ADDON_IDS } from '../../addons';
+import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
+import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
 import { VacayService } from './vacay.service';
 
 /**
@@ -20,27 +20,40 @@ export class VacayRpc {
   ) {}
 
   @PluginMethod('vacay.mine', { permission: 'db:read:vacay' })
-  mine(_params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async mine(_params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireVacayUser(ctx, 'reads');
-    this.requireVacayAddon();
+    await this.requireVacayAddon();
     return this.vacay.getPlanData(userId);
   }
 
   @PluginMethod('vacay.toggleEntry', { permission: 'db:write:vacay' })
-  toggleEntry(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async toggleEntry(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireVacayUser(ctx, 'writes');
     const date = this.dateStr(params.date);
-    this.requireVacayAddon();
-    return this.vacay.toggleEntry(userId, this.vacay.getActivePlanId(userId), date, 1, 'vacation', undefined);
+    await this.requireVacayAddon();
+    return await this.vacay.toggleEntry(
+      userId,
+      await this.vacay.getActivePlanId(userId),
+      date,
+      1,
+      'vacation',
+      undefined,
+    );
   }
 
   @PluginMethod('vacay.toggleCompanyHoliday', { permission: 'db:write:vacay' })
-  toggleCompanyHoliday(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async toggleCompanyHoliday(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireVacayUser(ctx, 'writes');
     const date = this.dateStr(params.date);
     const note = typeof params.note === 'string' ? params.note.slice(0, 256) : undefined;
-    this.requireVacayAddon();
-    return this.vacay.toggleCompanyHoliday(this.vacay.getActivePlanId(userId), date, note, undefined);
+    await this.requireVacayAddon();
+    return await this.vacay.toggleCompanyHoliday(
+      await this.vacay.getActivePlanId(userId),
+      date,
+      note,
+      undefined,
+      params.fraction,
+    );
   }
 
   private requireVacayUser(ctx: PluginRpcContext, kind: 'reads' | 'writes'): number {
@@ -50,8 +63,8 @@ export class VacayRpc {
     return ctx.actingUserId;
   }
 
-  private requireVacayAddon(): void {
-    this.guards.requireAddon(ADDON_IDS.VACAY, 'vacay');
+  private async requireVacayAddon(): Promise<void> {
+    await this.guards.requireAddon(ADDON_IDS.VACAY, 'vacay');
   }
 
   private dateStr(value: unknown): string {

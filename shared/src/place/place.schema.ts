@@ -1,4 +1,5 @@
 import { tagSchema } from '../tag/tag.schema';
+import { placeEmailField, placeOpeningHoursField } from './place-hours';
 import { PLACE_WEBSITE_MAX_LENGTH, normalizePlaceWebsite } from './place-website';
 
 import { z } from 'zod';
@@ -155,6 +156,8 @@ export const placeSchema = z.object({
    */
   source: z.string().nullable().optional(),
   route_geometry: z.string().nullable().optional(),
+  /** Present on the trip Place list when this Place has a Tours facet. */
+  tour_place_id: z.number().nullable().optional(),
   // Manual track colour (#776). null = inherit the category colour like before.
   route_color: hexColorSchema.nullable().optional(),
   /**
@@ -178,6 +181,10 @@ export const placeSchema = z.object({
   fill_percent: fillPercentSchema,
   website: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
+  /** Typed in by hand (#2472). */
+  email: z.string().nullable().optional(),
+  /** Hand-kept hours as JSON text, seven days Monday first (#2472); see place-hours.ts. */
+  opening_hours: z.string().nullable().optional(),
   transport_mode: z.string().nullable().optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
@@ -188,6 +195,13 @@ export const placeSchema = z.object({
   ratings: z.array(placeRatingVoteSchema).optional(),
   rating_avg: z.number().nullable().optional(),
   rating_count: z.number().optional(),
+  /**
+   * Where the place lies, as resolved from its position (place_regions): an ISO country
+   * code and the state or province. Read-only and only on the trip's place list, for
+   * filtering it (#2537); null until the position has been resolved.
+   */
+  country_code: z.string().nullable().optional(),
+  region_name: z.string().nullable().optional(),
 });
 export type Place = z.infer<typeof placeSchema>;
 
@@ -244,6 +258,10 @@ export type AssignmentPlace = z.infer<typeof assignmentPlaceSchema>;
  * service already reads it that way rather than as "leave alone".
  */
 const stopTypeField = z.object({
+  // Named on the open body like the two below: an e-mail and the hand-kept hours have a
+  // fixed shape, and a malformed one would otherwise sit on the place unseen (#2472).
+  email: placeEmailField,
+  opening_hours: placeOpeningHoursField,
   stop_type: roadtripStopTypeSchema.nullable().optional(),
   // Named for the same reason: a bounded vocabulary on an otherwise open body. Zero is
   // outside it on purpose — a stop that fills nothing is not a stop, and letting one
@@ -298,6 +316,8 @@ export const placeImportGpxRequestSchema = z.object({
   importWaypoints: z.string().optional(),
   importRoutes: z.string().optional(),
   importTracks: z.string().optional(),
+  // Fill in the imported points from Google Places afterwards, as a list import can (#2536).
+  enrich: z.string().optional(),
 });
 export type PlaceImportGpxRequest = z.infer<typeof placeImportGpxRequestSchema>;
 
@@ -317,6 +337,7 @@ export type PlaceExportGpxRequest = z.infer<typeof placeExportGpxRequestSchema>;
 export const placeImportMapRequestSchema = z.object({
   importPoints: z.string().optional(),
   importPaths: z.string().optional(),
+  enrich: z.string().optional(),
 });
 export type PlaceImportMapRequest = z.infer<typeof placeImportMapRequestSchema>;
 
@@ -327,3 +348,9 @@ export const placeListQuerySchema = z.object({
   tag: z.string().optional(),
 });
 export type PlaceListQuery = z.infer<typeof placeListQuerySchema>;
+
+/** Use a file already attached in the trip as the place's own picture (#1242). */
+export const placeImageFromFileRequestSchema = z.object({
+  file_id: z.number().int().positive(),
+});
+export type PlaceImageFromFileRequest = z.infer<typeof placeImageFromFileRequestSchema>;

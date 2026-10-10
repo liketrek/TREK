@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
-  filterPool, firstPlannedDayNumbers, matchesCategoryFilter, matchesSearch,
-  plannedPlaceIds, poolCounts,
+  filterPool, firstPlannedDayNumbers, matchesSearch,
+  plannedPlaceIds,
 } from './placesBrowserModel'
+import { matchesCategoryFilter } from '../../../../utils/placesFilter'
 import type { AssignmentsMap, Day, Place } from '../../../../types'
 
 const mkPlace = (id: number, over: Partial<Place> = {}): Place =>
@@ -32,13 +33,6 @@ describe('placesBrowserModel — planned pool', () => {
     const named = [mkPlace(1, { name: 'Louvre' }), mkPlace(3, { name: 'Eiffel' })]
     const out = filterPool(named, { filter: 'planned', categoryFilters: noCats, search: 'eiff', plannedIds })
     expect(out.map(p => p.id)).toEqual([3])
-  })
-
-  it('MOBILE-POOL-counts: poolCounts reports planned alongside all/unplanned', () => {
-    const c = poolCounts(places, noCats, '', plannedIds)
-    expect(c.all).toBe(3)
-    expect(c.planned).toBe(2)
-    expect(c.unplanned).toBe(1)
   })
 })
 
@@ -144,12 +138,16 @@ describe('placesBrowserModel — tracks pool', () => {
     expect(out.map(p => p.id)).toEqual([1])
   })
 
-  it('FE-MOB-PMODEL-013: poolCounts counts tracks on the category+search base set', () => {
-    const c = poolCounts(places, new Set(['4']), '', plannedIds)
-    expect(c.all).toBe(2)
-    expect(c.tracks).toBe(1)
-    expect(c.planned).toBe(1)
-    expect(c.unplanned).toBe(1)
+  it('FE-MOB-PMODEL-015: the rating floor from the store narrows the pool like it narrows the map', () => {
+    const rated = [
+      mkPlace(1, { name: 'Top', rating_avg: 4.6 }),
+      mkPlace(2, { name: 'Fine', rating_avg: 3.2 }),
+      mkPlace(3, { name: 'Unrated' }),
+    ]
+    const out = filterPool(rated, { filter: 'all', categoryFilters: new Set(), ratingFilter: 3, search: '', plannedIds })
+    expect(out.map(p => p.id)).toEqual([1, 2])
+    const all = filterPool(rated, { filter: 'all', categoryFilters: new Set(), search: '', plannedIds })
+    expect(all.map(p => p.id)).toEqual([1, 2, 3])
   })
 
   // #2072 — the phone pool has to agree with the desktop one; both ask the same

@@ -5,6 +5,7 @@ import MIconBtn from '../../components/MIconBtn'
 import { A2_TO_A3 } from '../../../pages/atlas/atlasModel'
 import type { BucketItem } from '../../../pages/atlas/atlasModel'
 import type { AtlasController } from './atlasController'
+import { getIntlLanguage } from '@trek/shared'
 
 interface MAtlasBucketSheetProps {
   atlas: AtlasController
@@ -69,7 +70,7 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
 
   const fmtTarget = (targetDate: string): string => {
     const [y, m] = targetDate.split('-')
-    return m ? new Date(Number(y), Number(m) - 1).toLocaleDateString(language, { month: 'short', year: 'numeric' }) : y
+    return m ? new Date(Number(y), Number(m) - 1).toLocaleDateString(getIntlLanguage(language), { month: 'short', year: 'numeric' }) : y
   }
 
   const itemSub = (item: BucketItem): string => {
@@ -92,7 +93,7 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
           <div className="min-w-0 flex-1 truncate text-[0.9375rem] font-extrabold text-m-ink">
             {t('atlas.bucketTab')}
             {bucketList.length > 0 && (
-              <span className="ml-[6px] font-geist text-[0.75rem] font-semibold tabular-nums text-m-faint">{bucketList.length}</span>
+              <span className="ms-[6px] font-geist text-[0.75rem] font-semibold tabular-nums text-m-faint">{bucketList.length}</span>
             )}
           </div>
           <MIconBtn variant="neutral" size={34} onClick={close} ariaLabel={t('common.close')}>
@@ -152,8 +153,8 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
                   }}
                   onKeyDown={(e) => {
                     if (e.key !== 'Enter') return
-                    if (bucketForm.name) handleAddBucketItem()
-                    else handleBucketPoiSearch()
+                    if (bucketForm.name) void handleAddBucketItem()
+                    else void handleBucketPoiSearch()
                   }}
                   placeholder={t('atlas.bucketNamePlaceholder')}
                   className={`${inputCls} min-w-0 flex-1`}
@@ -183,9 +184,9 @@ export default function MAtlasBucketSheet({ atlas, open, onClose }: MAtlasBucket
                 )}
               </div>
               {bucketSearchResults.length > 0 && (
-                <div className="absolute bottom-full left-0 right-0 z-10 mb-2 max-h-40 divide-y divide-[color:var(--m-rowbr)] overflow-y-auto rounded-[16px] border border-[color:var(--m-shbr)] bg-[color:var(--m-sheetop)] shadow-[0_12px_30px_-14px_rgba(0,0,0,.4)]">
+                <div className="absolute bottom-full inset-x-0 z-10 mb-2 max-h-40 divide-y divide-[color:var(--m-rowbr)] overflow-y-auto rounded-[16px] border border-[color:var(--m-shbr)] bg-[color:var(--m-sheetop)] shadow-[0_12px_30px_-14px_rgba(0,0,0,.4)]">
                   {bucketSearchResults.slice(0, 6).map((result, i) => (
-                    <button key={i} type="button" onClick={() => pickPoi(result)} className="flex w-full flex-col px-[14px] py-[9px] text-left active:bg-[color:var(--m-ic)]">
+                    <button key={i} type="button" onClick={() => pickPoi(result)} className="flex w-full flex-col px-[14px] py-[9px] text-start active:bg-[color:var(--m-ic)]">
                       <span className="text-[0.8125rem] font-semibold text-m-ink">{result.name}</span>
                       {result.address && <span className="font-geist text-[0.625rem] text-m-faint">{result.address}</span>}
                     </button>
@@ -257,18 +258,18 @@ function MMonthYearField({ value, onChange, placeholder, language, t }: {
   const [year, setYear] = useState(selYear ?? new Date().getFullYear())
 
   const display = selYear
-    ? new Date(selYear, (selMonth ?? 1) - 1).toLocaleDateString(language, { month: 'long', year: 'numeric' })
+    ? new Date(selYear, (selMonth ?? 1) - 1).toLocaleDateString(getIntlLanguage(language), { month: 'long', year: 'numeric' })
     : ''
 
   return (
     <div className="relative">
-      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className={`${inputCls} flex items-center gap-2 text-left`}>
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className={`${inputCls} flex items-center gap-2 text-start`}>
         <Calendar size={15} strokeWidth={2.2} className="flex-none text-m-muted" />
         <span className={`min-w-0 flex-1 truncate ${display ? '' : 'text-m-faint'}`}>{display || placeholder}</span>
         <ChevronDown size={15} strokeWidth={2} className={`flex-none text-m-faint transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute bottom-full left-0 right-0 z-10 mb-2 rounded-[16px] border border-[color:var(--m-shbr)] bg-[color:var(--m-sheetop)] p-3 shadow-[0_12px_30px_-14px_rgba(0,0,0,.4)]">
+        <div className="absolute bottom-full inset-x-0 z-10 mb-2 rounded-[16px] border border-[color:var(--m-shbr)] bg-[color:var(--m-sheetop)] p-3 shadow-[0_12px_30px_-14px_rgba(0,0,0,.4)]">
           <div className="mb-[10px] flex items-center justify-between">
             <button type="button" onClick={() => setYear(y => y - 1)} aria-label={t('mobileVacay.prevYear')} className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted">
               <ChevronLeft size={16} strokeWidth={2.2} />
@@ -288,7 +289,7 @@ function MMonthYearField({ value, onChange, placeholder, language, t }: {
                   onClick={() => { onChange(`${year}-${String(m + 1).padStart(2, '0')}`); setOpen(false) }}
                   className={`rounded-[10px] py-2 text-[0.71875rem] font-bold capitalize ${on ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-ink'}`}
                 >
-                  {new Date(2000, m, 1).toLocaleDateString(language, { month: 'short' })}
+                  {new Date(2000, m, 1).toLocaleDateString(getIntlLanguage(language), { month: 'short' })}
                 </button>
               )
             })}

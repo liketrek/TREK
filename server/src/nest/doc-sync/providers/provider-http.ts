@@ -1,7 +1,8 @@
-import { pipeline, Readable, Transform } from 'node:stream';
-import type { DocsyncErrorCode } from '@trek/shared';
-import { safeFetch, SsrfBlockedError } from '../../../utils/ssrfGuard';
 import { discardBody } from '../../../utils/cappedFetch';
+import { safeFetch, SsrfBlockedError } from '../../../utils/ssrfGuard';
+import type { DocsyncErrorCode } from '@trek/shared';
+
+import { pipeline, Readable, Transform } from 'node:stream';
 
 /**
  * The transport the four document clients share: the SSRF-guarded fetch with
@@ -167,7 +168,9 @@ export async function providerFetch(url: string, init: RequestInit, options: Pro
     return await safeFetch(
       url,
       { ...init, signal: AbortSignal.timeout(options.timeoutMs) as AbortSignal },
-      { rejectUnauthorized: !options.allowInsecureTls },
+      // The transfers count their own bytes against DOWNLOAD_MAX_BYTES and the
+      // JSON reads against PROVIDER_JSON_MAX_BYTES, both read capped.
+      { rejectUnauthorized: !options.allowInsecureTls, maxBytes: null },
     );
   } catch (err: unknown) {
     throw options.onTransportFailure(classifyTransportFailure(err));

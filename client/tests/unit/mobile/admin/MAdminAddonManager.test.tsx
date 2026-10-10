@@ -1,8 +1,8 @@
-// FE-MOB-AADD-001 to FE-MOB-AADD-032
+// FE-MOB-AADD-001 to FE-MOB-AADD-037
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
-import { render, screen, waitFor, within } from '../../../helpers/render';
+import { act, render, screen, waitFor, within } from '../../../helpers/render';
 import { server } from '../../../helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../helpers/store';
 import { buildSettings } from '../../../helpers/factories';
@@ -67,6 +67,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  document.documentElement.classList.remove('dark');
 });
 
 describe('MAdminAddonManager', () => {
@@ -92,21 +93,13 @@ describe('MAdminAddonManager', () => {
     expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-dark.svg');
   });
 
-  it('FE-MOB-AADD-003: dark mode and auto+prefers-dark swap the wordmark', async () => {
-    seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: 'dark' }) });
-    const { unmount } = render(<MAdminAddonManager />);
-    await screen.findByText('No addons available');
-    expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-light.svg');
-    unmount();
-
-    const matchMedia = vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() });
-    vi.stubGlobal('matchMedia', matchMedia);
-    seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: 'auto' }) });
+  it('FE-MOB-AADD-003: the dark palette swaps the wordmark', async () => {
+    // The wordmark reads the .dark class, the same source applyAppearance() writes
+    // for dark and for auto under a dark OS theme.
+    document.documentElement.classList.add('dark');
     render(<MAdminAddonManager />);
     await screen.findByText('No addons available');
     expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-light.svg');
-    expect(matchMedia).toHaveBeenCalledWith('(prefers-color-scheme: dark)');
-    vi.unstubAllGlobals();
   });
 
   it('FE-MOB-AADD-004: a failing load toasts the addon error', async () => {
@@ -314,6 +307,33 @@ describe('MAdminAddonManager', () => {
     await user.click(screen.getByRole('switch', { name: 'Unsplash' }));
     await screen.findByText('Failed to update addon');
     await waitFor(() => expect(screen.getByRole('switch', { name: 'Unsplash' })).toHaveAttribute('aria-checked', 'false'));
+  });
+
+  it('FE-MOB-AADD-034: a failing provider toggle keeps a provider toggled while it was in flight', async () => {
+    const user = userEvent.setup();
+    server.use(
+      addonsRoute([
+        buildAddon({ id: 'journey', name: 'Journey', type: 'global', icon: 'Compass', enabled: true }),
+        buildAddon({ id: 'immich', name: 'Immich', description: 'Self-hosted photos', type: 'photo_provider', enabled: false }),
+        buildAddon({ id: 'unsplash', name: 'Unsplash', description: 'Stock photos', type: 'photo_provider', enabled: false }),
+      ]),
+      http.put('/api/admin/addons/immich', () => HttpResponse.json({ success: true })),
+      http.put('/api/admin/addons/unsplash', async () => {
+        await delay(150);
+        return HttpResponse.error();
+      }),
+    );
+    render(<><ToastContainer /><MAdminAddonManager /></>);
+    await screen.findByText('Immich');
+
+    // Unsplash is still saving when Immich goes on and through.
+    await user.click(screen.getByRole('switch', { name: 'Unsplash' }));
+    await user.click(screen.getByRole('switch', { name: 'Immich' }));
+    await screen.findByText('Addon updated');
+
+    await screen.findByText('Failed to update addon');
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Unsplash' })).toHaveAttribute('aria-checked', 'false'));
+    expect(screen.getByRole('switch', { name: 'Immich' })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('FE-MOB-AADD-026: switching the journey addon off and on again shows the cascaded providers as off', async () => {
@@ -649,12 +669,56 @@ describe('MAdminAddonManager', () => {
         model: 'gpt-4o',
         baseUrl: 'https://api.openai.com/v1',
         apiKey: '••••••••',
-        multimodal: true,
+        vision: 'auto',
       },
     });
 
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await screen.findByText('Failed to save');
+  });
+
+  it('FE-MOB-AADD-035: switching to Anthropic saves an empty base URL instead of the old host', async () => {
+    const user = userEvent.setup();
+    let body: { config?: Record<string, unknown> } | null = null;
+    server.use(
+      addonsRoute([llmAddon({ provider: 'openai', model: 'gpt-4o', baseUrl: 'https://api.openai.com/v1', apiKey: '' })]),
+      http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
+        body = (await request.json()) as { config?: Record<string, unknown> };
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><ToastContainer /><MAdminAddonManager /></>);
+
+    await user.click(await screen.findByRole('button', { name: /Anthropic/ }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await screen.findByText('Saved');
+    expect(body?.config?.provider).toBe('anthropic');
+    expect(body?.config?.baseUrl).toBe('');
+  });
+
+  it('FE-MOB-AADD-033: whether the model reads images is a three-way choice, saved as picked', async () => {
+    const user = userEvent.setup();
+    const bodies: unknown[] = [];
+    server.use(
+      addonsRoute([llmAddon({ provider: 'local', model: 'llava:7b', baseUrl: '', apiKey: '', vision: 'on' })]),
+      http.get('/api/admin/llm/local/models', () => HttpResponse.json({ models: [] })),
+      http.put('/api/admin/addons/llm_parsing', async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><ToastContainer /><MAdminAddonManager /></>);
+
+    const group = await screen.findByRole('radiogroup', { name: 'Model reads images' });
+    expect(within(group).getByRole('radio', { name: 'Yes' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('Automatic asks the Ollama server whether this model reads images.')).toBeInTheDocument();
+    await user.click(within(group).getByRole('radio', { name: 'No' }));
+    expect(within(group).getByRole('radio', { name: 'No' })).toHaveAttribute('aria-checked', 'true');
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Saved');
+    expect(bodies[0]).toMatchObject({ config: { vision: 'off' } });
   });
 
   it('FE-MOB-AADD-024: the API key field can be revealed', async () => {
@@ -670,5 +734,31 @@ describe('MAdminAddonManager', () => {
 
     await user.type(screen.getByDisplayValue('sk-secret'), '-rotated');
     expect(screen.getByDisplayValue('sk-secret-rotated')).toBeInTheDocument();
+  });
+
+  it('FE-MOB-AADD-036: collab and AI parsing show their own icons, not the puzzle fallback', async () => {
+    server.use(
+      addonsRoute([
+        buildAddon({ id: 'collab', name: 'Collab', icon: 'Users', enabled: true }),
+        buildAddon({ id: 'llm_parsing', name: 'AI Parsing', icon: 'Sparkles', type: 'integration', enabled: false }),
+      ]),
+    );
+    render(<MAdminAddonManager />);
+
+    await screen.findByRole('switch', { name: 'Collab' });
+    expect(document.querySelector('svg.lucide-users')).toBeInTheDocument();
+    expect(document.querySelector('svg.lucide-sparkles')).toBeInTheDocument();
+    expect(document.querySelector('svg.lucide-puzzle')).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-AADD-037: under auto the wordmark follows an OS theme switch without a re-render', async () => {
+    seedStore(useSettingsStore, { settings: buildSettings({ dark_mode: 'auto' }) });
+    render(<MAdminAddonManager />);
+    await screen.findByText('No addons available');
+    expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-dark.svg');
+
+    // applyAppearance() flips the .dark class when the OS theme changes under auto.
+    act(() => document.documentElement.classList.add('dark'));
+    await waitFor(() => expect(screen.getByAltText('TREK')).toHaveAttribute('src', '/text-light.svg'));
   });
 });

@@ -6,6 +6,9 @@ const journey: TranslationStrings = {
   'journey.title': 'Journey',
   'journey.subtitle': '여행을 실시간으로 기록하세요',
   'journey.new': '새 Journey',
+  'journey.lightbox.zoomIn': '확대',
+  'journey.lightbox.zoomOut': '축소',
+  'journey.lightbox.zoomReset': '전체 사진으로 돌아가기',
   'journey.create': '만들기',
   'journey.titlePlaceholder': '어디로 가시나요?',
   'journey.empty': '아직 Journey가 없습니다',
@@ -78,6 +81,8 @@ const journey: TranslationStrings = {
   'journey.detail.addEntry': '항목 추가',
   'journey.detail.jumpToTop': '맨 위로',
   'journey.detail.jumpToLast': '마지막 기록으로',
+  'journey.detail.dayJump': '날짜로 이동',
+  'journey.detail.dayJumpCount': '{count}일',
   'journey.detail.newEntry': '새 항목',
   'journey.detail.editEntry': '항목 편집',
   'journey.detail.noEntries': '아직 항목이 없습니다',
@@ -194,6 +199,14 @@ const journey: TranslationStrings = {
   'journey.settings.tracks': 'GPX 트랙',
   'journey.settings.showTripTracks': '여행의 모든 GPX 트랙 표시',
   'journey.settings.showTripTracksHint': '연결된 여행의 기록된 경로를 지도에 그립니다.',
+  'journey.settings.status': '상태',
+  'journey.settings.statusAuto': '자동',
+  'journey.settings.statusAutoHint': '연결된 여행의 날짜를 따릅니다. 여행이 없으면 초안으로 남습니다.',
+  'journey.settings.statusManualHint': '직접 설정했습니다. 자동으로 되돌릴 때까지 여행 날짜로 바뀌지 않습니다.',
+  'journey.settings.photosSection': '사진',
+  'journey.settings.photoLocation': '사진으로 기록 위치 지정',
+  'journey.settings.photoLocationHint':
+    '위치가 없는 기록은 GPS가 있는 첫 사진을 찍은 곳으로 지정됩니다. 직접 정한 위치는 바뀌지 않습니다.',
   'journey.settings.endJourney': 'Journey 보관',
   'journey.settings.reopenJourney': 'Journey 복원',
   'journey.settings.archived': 'Journey가 보관되었습니다',
@@ -208,8 +221,8 @@ const journey: TranslationStrings = {
   'journey.settings.coverFailed': '업로드 실패',
   'journey.settings.failedToDelete': '삭제 실패',
   'journey.entries.deleteTitle': '항목 삭제',
-  'journey.photosUploaded': '{count}장 사진이 업로드되었습니다',
-  'journey.photosAdded': '{count}장 사진이 추가되었습니다',
+  'journey.photosUploaded': '사진 {count}장이 업로드되었습니다',
+  'journey.photosAdded': '사진 {count}장이 추가되었습니다',
   'journey.public.notFound': '찾을 수 없습니다',
   'journey.public.notFoundMessage': '이 Journey가 존재하지 않거나 링크가 만료되었습니다.',
   'journey.public.readOnly': '읽기 전용 · 공개 Journey',
@@ -275,7 +288,7 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': '후가공',
   'journey.studio.exportMarks': '재단선',
   'journey.studio.exportMarksHint': '각 가장자리에 {bleed}mm 도련을 넣고 자를 위치를 표시합니다',
-  'journey.studio.exportNote': '{width} × {height}mm 용지 {sheets}장. 인쇄 화면은 브라우저가 PDF로 만듭니다.',
+  'journey.studio.exportNote': '{width} × {height}mm 용지 {count}장. 인쇄 화면은 브라우저가 PDF로 만듭니다.',
   'journey.studio.exportOpen': '인쇄 화면',
   'journey.studio.exportSave': 'PDF로 저장',
   'journey.studio.exportPreparing': '준비 중',
@@ -286,12 +299,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': '이 펼침면 내려받기',
-  'journey.studio.downloadSpreadHint': '이 펼침면의 디자인을 사진 없이 파일로 저장합니다. 공유하거나 다시 쓸 수 있습니다',
+  'journey.studio.downloadSpreadHint':
+    '이 펼침면의 디자인을 사진 없이 파일로 저장합니다. 공유하거나 다시 쓸 수 있습니다',
   'journey.studio.importSpread': '가져오기',
   'journey.studio.importSpreadHint': '내려받은 디자인 파일에서 펼침면을 추가합니다',
   'journey.studio.importSpreadFailed': '이 파일은 TREK 스튜디오 펼침면이 아닙니다',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': '책을 만들려면 작업할 공간이 필요해서 스튜디오는 데스크톱에서만 쓸 수 있고, PDF 만들기도 마찬가지입니다. 여정의 나머지 기능은 여기에서도 평소처럼 작동합니다.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    '책을 만들려면 작업할 공간이 필요해서 스튜디오는 데스크톱에서만 쓸 수 있고, PDF 만들기도 마찬가지입니다. 여정의 나머지 기능은 여기에서도 평소처럼 작동합니다.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -355,7 +370,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -432,6 +448,19 @@ const journey: TranslationStrings = {
   'journey.studio.kind.list': '목록',
   'journey.studio.kind.icon': '아이콘',
   'journey.studio.duplicate': '복제',
+  'journey.studio.copyToPage': '복사해서 아무 페이지에나 붙여넣기 (Ctrl+C)',
+  'journey.studio.paste': '붙여넣기 (Ctrl+V)',
+  'journey.studio.pasteEmpty': '먼저 무언가를 복사한 뒤 아무 페이지에나 붙여넣으세요',
+  'journey.studio.myLayouts': '내 레이아웃',
+  'journey.studio.myLayoutsEmpty':
+    '배치한 페이지를 저장해 두고 다른 페이지도 같은 방식으로 배치하세요. 사진과 글은 그대로 유지됩니다.',
+  'journey.studio.saveLayout': '이 페이지를 레이아웃으로 저장',
+  'journey.studio.saveLayoutHint': '사진을 제외한 배치를 이 책의 모든 편집자를 위해 저장합니다',
+  'journey.studio.saveLayoutFull':
+    '이 책에는 레이아웃을 최대 24개까지 저장할 수 있습니다. 새로 저장하려면 하나를 삭제하세요.',
+  'journey.studio.deleteLayout': '레이아웃 삭제',
+  'journey.studio.layoutName': '레이아웃',
+  'journey.studio.builtInLayouts': '기본 제공',
   'journey.studio.style': '스타일',
   'journey.studio.shows': '표시 내용',
   'journey.studio.size': '크기',
@@ -537,7 +566,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': '윤곽선',
   'journey.studio.mapSourceRelief': '음영 지형',
   'journey.studio.mapSourceSatellite': '위성 사진',
-  'journey.studio.mapSourceSatelliteHint': '구름 없는 Sentinel-2 이미지로, 출처를 밝히면 무료로 인쇄할 수 있습니다. 도시의 거리까지 선명합니다.',
+  'journey.studio.mapSourceSatelliteHint':
+    '구름 없는 Sentinel-2 이미지로, 출처를 밝히면 무료로 인쇄할 수 있습니다. 도시의 거리까지 선명합니다.',
   'journey.studio.routeLook': '경로 선',
   'journey.studio.routeStyle': '그리기 방식',
   'journey.studio.routePlain': '단선',
@@ -562,7 +592,8 @@ const journey: TranslationStrings = {
   'journey.studio.roadsBusy': '요청 중',
   'journey.studio.roadsHint': '경로 안내 서비스에 각 구간을 실제로 달린 길을 요청합니다. 긴 구간은 그대로 둡니다.',
   'journey.studio.roadsHave': '도로는 이 책에 저장되므로 오프라인에서도 같은 선으로 인쇄됩니다.',
-  'journey.studio.mapSourceReliefHint': 'NASA 음영 기복 이미지로 라이선스 없이 인쇄할 수 있습니다. 국가나 대륙에 적합하고 도시 하나에는 너무 거칩니다.',
+  'journey.studio.mapSourceReliefHint':
+    'NASA 음영 기복 이미지로 라이선스 없이 인쇄할 수 있습니다. 국가나 대륙에 적합하고 도시 하나에는 너무 거칩니다.',
   'journey.studio.mapPrintDpi': '인쇄 해상도 약',
   'journey.studio.mapPrintDpiLow': '이 크기에서는 흐릿합니다. 범위를 넓히거나 다른 소스를 사용해 보세요',
   'journey.studio.mapPerTrip': '여행별',
@@ -605,6 +636,8 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': '이 항목에는 아직 사진이 없습니다.',
   'journey.studio.noLoosePhotos': '여기 있는 사진은 모두 항목에 속해 있습니다.',
   'journey.studio.uploadPhotos': '사진 업로드',
+  'journey.studio.fromProvider': '{name}에서',
+  'journey.studio.fromProviderHint': '{name}에서 사진을 골라 업로드와 같은 곳에 추가합니다',
   'journey.studio.uploadHint': '여기에 이미지를 놓거나 클릭해서 선택하세요',
   'journey.studio.uploadToEntry': '새 이미지는 이 항목에 추가됩니다',
   'journey.studio.uploadToGallery': '새 이미지는 갤러리에 추가됩니다',
@@ -624,6 +657,13 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcluded': '경로에서 제외',
   'journey.editor.statsExcludedHint': '경유지는 일기에 남지만 Studio의 거리, 국가, 지도에는 포함되지 않습니다.',
   'journey.entry.offRoute': '경로 외',
+  'journey.entry.draft': '초안',
+  'journey.editor.draft': '초안',
+  'journey.editor.draftHint':
+    '이 기록은 나와 다른 기여자만 볼 수 있습니다. 이 옵션을 끌 때까지 공유된 Journey에는 포함되지 않습니다.',
+  'journey.editor.tripSuggestionHint':
+    '이 날은 이 여행 기간에 속합니다. 연결하면 여행의 장소가 이 Journey에 추가됩니다.',
+  'journey.editor.tripSuggestionLater': '나중에',
   'journey.suggestions.dismiss': '이 제안 넘기기',
   'journey.suggestions.dismissed': '제안을 넘겼습니다',
   'journey.suggestions.restore': '넘긴 제안 되돌리기',

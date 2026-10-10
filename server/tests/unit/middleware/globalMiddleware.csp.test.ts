@@ -1,7 +1,8 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { applyGlobalMiddleware, routingCspOrigins } from '../../../src/middleware/globalMiddleware';
+
 import express from 'express';
 import request from 'supertest';
-import { applyGlobalMiddleware, routingCspOrigins } from '../../../src/middleware/globalMiddleware';
+import { describe, it, expect, afterEach } from 'vitest';
 
 async function directiveSources(name: string): Promise<string[]> {
   const app = express();
@@ -12,8 +13,8 @@ async function directiveSources(name: string): Promise<string[]> {
   const csp = String(res.headers['content-security-policy'] || '');
   const directive = csp
     .split(';')
-    .map(d => d.trim())
-    .find(d => d.startsWith(name));
+    .map((d) => d.trim())
+    .find((d) => d.startsWith(name));
 
   return directive ? directive.split(/\s+/).slice(1) : [];
 }
@@ -43,6 +44,12 @@ describe('global CSP: the other shipped raster presets (#2180)', () => {
 
   it('allows tiles.stadiamaps.com', async () => {
     expect(await connectSrcSources()).toContain('https://tiles.stadiamaps.com');
+  });
+
+  it('allows the OpenTopoMap apex and tile shards used by the Tours planner', async () => {
+    const sources = await connectSrcSources();
+    expect(sources).toContain('https://tile.opentopomap.org');
+    expect(sources).toContain('https://*.tile.opentopomap.org');
   });
 
   it('keeps the routing host, which is a different host and covers nothing here', async () => {
@@ -138,8 +145,8 @@ describe('forced-HTTPS redirect', () => {
 
   it('redirects to the configured APP_URL host, not the Host header the caller sent', async () => {
     process.env.FORCE_HTTPS = 'true';
-    process.env.APP_URL = 'https://trip.pakulat.org';
-    expect(await redirectLocation()).toBe('https://trip.pakulat.org/trips');
+    process.env.APP_URL = 'https://trip.example.invalid';
+    expect(await redirectLocation()).toBe('https://trip.example.invalid/trips');
   });
 
   it('falls back to the request host when APP_URL is unset', async () => {
@@ -158,7 +165,7 @@ describe('forced-HTTPS redirect', () => {
 
   it('leaves an already-secure request alone, and never redirects the health probe', async () => {
     process.env.FORCE_HTTPS = 'true';
-    process.env.APP_URL = 'https://trip.pakulat.org';
+    process.env.APP_URL = 'https://trip.example.invalid';
     const app = express();
     applyGlobalMiddleware(app);
     app.get('/trips', (_req, res) => res.json({ ok: true }));
@@ -179,35 +186,32 @@ describe('routingCspOrigins', () => {
   it('CSP-ROUTING-001: keeps only the origin, because a path source matches that path alone', () => {
     // A router is asked at several paths (/route/v1/…, /table/v1/…); pinning one would
     // block the rest without an error the app could report.
-    expect(routingCspOrigins(['https://osrm.example.org/route/v1/driving']))
-      .toEqual(['https://osrm.example.org']);
+    expect(routingCspOrigins(['https://osrm.example.org/route/v1/driving'])).toEqual(['https://osrm.example.org']);
   });
 
   it('CSP-ROUTING-002: a port belongs to the origin and is kept', () => {
-    expect(routingCspOrigins(['http://192.168.178.72:5000'])).toEqual(['http://192.168.178.72:5000']);
+    expect(routingCspOrigins(['http://192.0.2.1:5000'])).toEqual(['http://192.0.2.1:5000']);
   });
 
   it('CSP-ROUTING-003: anything that is not an http(s) URL widens nothing', () => {
     // A bad settings row must not be able to loosen the policy.
-    expect(routingCspOrigins(['', null, undefined, 'not a url', 'javascript:alert(1)', 'ftp://x/y']))
-      .toEqual([]);
+    expect(routingCspOrigins(['', null, undefined, 'not a url', 'javascript:alert(1)', 'ftp://x/y'])).toEqual([]);
   });
 
   it('CSP-ROUTING-004: the same host twice is one source', () => {
-    expect(routingCspOrigins([
-      'https://osrm.example.org/route/v1/driving',
-      'https://osrm.example.org/table/v1/driving',
-    ])).toEqual(['https://osrm.example.org']);
+    expect(
+      routingCspOrigins(['https://osrm.example.org/route/v1/driving', 'https://osrm.example.org/table/v1/driving']),
+    ).toEqual(['https://osrm.example.org']);
   });
 
   it('CSP-ROUTING-006: both engines get named, because both are reached from the browser', () => {
     // bootstrap hands in the OSRM default and the Valhalla default together. An
     // instance that configures its own Valhalla and leaves OSRM public still has to
     // have that host in the policy, and the other way round.
-    expect(routingCspOrigins([
-      'https://osrm.example.org/route/v1/driving',
+    expect(routingCspOrigins(['https://osrm.example.org/route/v1/driving', 'https://valhalla.example.org'])).toEqual([
+      'https://osrm.example.org',
       'https://valhalla.example.org',
-    ])).toEqual(['https://osrm.example.org', 'https://valhalla.example.org']);
+    ]);
     expect(routingCspOrigins([null, 'https://valhalla.example.org'])).toEqual(['https://valhalla.example.org']);
   });
 });
@@ -220,7 +224,10 @@ describe('connect-src with a self-hosted router', () => {
 
     const res = await request(app).get('/probe');
     const csp = String(res.headers['content-security-policy'] || '');
-    const connect = csp.split(';').map(d => d.trim()).find(d => d.startsWith('connect-src'))!;
+    const connect = csp
+      .split(';')
+      .map((d) => d.trim())
+      .find((d) => d.startsWith('connect-src'))!;
 
     expect(connect).toContain('https://osrm.example.org');
     // The public hosts stay, so an instance can be switched back without another deploy.

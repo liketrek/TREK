@@ -7,7 +7,6 @@ const members: TranslationStrings = {
   'members.invite': '招待',
   'members.allHaveAccess': 'すでに全員がアクセスできます。',
   'members.access': 'アクセス',
-  'members.person': '人',
   'members.persons': '人',
   'members.you': 'あなた',
   'members.owner': 'オーナー',

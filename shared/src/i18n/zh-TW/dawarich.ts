@@ -57,7 +57,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': '這個執行個體已關閉 Dawarich 附加元件。',
   'dawarich.error.offline': '這需要連線 — TREK 目前處於離線狀態。',
   'dawarich.error.invalid_url': 'TREK 無法使用該位址。',
-  'dawarich.warning.private_ip': '該位址解析到內網 IP（{ip}）。請確認這是你要的——伺服器可能需要 ALLOW_INTERNAL_NETWORK=true 才能連到。',
+  'dawarich.warning.private_ip':
+    '該位址解析到內網 IP（{ip}）。請確認這是你要的——伺服器可能需要 ALLOW_INTERNAL_NETWORK=true 才能連到。',
   'dawarich.error.unknown': '與 Dawarich 溝通時發生問題。',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -97,8 +98,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.bucket_list': '願望已打勾',
   'dawarich.suggestions.sourceChanged':
     '自你使用之後，這個停留點在 Dawarich 中已有變動。你在 TREK 中寫下的內容不受影響。',
-  'dawarich.suggestions.sourceMissing':
-    '這個停留點在 Dawarich 中已不存在。你在 TREK 中寫下的內容不受影響。',
+  'dawarich.suggestions.sourceMissing': '這個停留點在 Dawarich 中已不存在。你在 TREK 中寫下的內容不受影響。',
   'dawarich.sourceStatus.suggested': '已偵測，尚未確認',
   'dawarich.confidence.high': '偵測結果可信',
   'dawarich.confidence.medium': '偵測結果尚可信',
@@ -112,7 +112,7 @@ const dawarich: TranslationStrings = {
   'dawarich.accept.confirm.journal': '新增條目',
   'dawarich.accept.confirm.bucket_list': '打勾',
   'dawarich.accept.recorded': '記錄時間 {from} 至 {to}',
-  'dawarich.accept.duration': '{minutes} 分鐘',
+  'dawarich.accept.duration': '{count} 分鐘',
   'dawarich.accept.name': '名稱',
   'dawarich.accept.date': '日期',
   'dawarich.accept.from': '抵達',
@@ -155,7 +155,6 @@ const dawarich: TranslationStrings = {
   'dawarich.atlas.loading': '正在讀取你的記錄…',
   'dawarich.atlas.empty': '你的記錄中沒有 TREK 尚未收錄的國家。',
   'dawarich.atlas.cities': '{count} 個城市',
-  'dawarich.atlas.citiesOne': '1 座城市',
   'dawarich.atlas.accept': '新增 {count} 個國家',
   'dawarich.atlas.accepted': '已新增 {count} 個國家',
   'dawarich.atlas.unresolved': 'TREK 無法將這些對應到國家：{names}。',
@@ -171,10 +170,8 @@ const dawarich: TranslationStrings = {
   'dawarich.again': '再查一次',
   'dawarich.bucket.metersAway': '{meters} 公尺外',
   'dawarich.bucket.kilometersAway': '{km} 公里外',
-  'dawarich.bucket.rule': '在 {meters} 公尺內停留 {minutes} 分鐘以上，才算實現心願。',
-
-  'dawarich.journey.dayStays.one': '來自 Dawarich 的 1 個停留',
-  'dawarich.journey.dayStays.other': '來自 Dawarich 的 {count} 個停留',
+  'dawarich.bucket.rule': '在 {meters} 公尺內停留 {count} 分鐘以上，才算實現心願。',
+  'dawarich.journey.dayStays.other': '來自 Dawarich 的 {count} 個停留點',
 };
 
 export default dawarich;

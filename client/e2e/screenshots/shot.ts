@@ -1,6 +1,7 @@
 import { test as base, expect, type Page, type Locator } from '@playwright/test'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
+import { E2E_SEED_FILE } from '../../playwright.config'
 
 /**
  * Shared plumbing for the documentation screenshot run (`npm run shots`).
@@ -56,6 +57,20 @@ async function hideDevOnlyUi(page: Page): Promise<void> {
 
 export { expect }
 
+interface SeedIds { tripId: number; collectionId?: number | null; journeyId?: number | null }
+let seedCache: SeedIds | null = null
+/**
+ * The ids the seed project wrote for this run's database. Read on first use, not
+ * at import: Playwright loads every test file before the seed project has run,
+ * and the file is named after the API port, so a run on its own ports reads its own.
+ */
+export const seed: SeedIds = new Proxy({} as SeedIds, {
+  get: (_t, key: string) => {
+    seedCache ??= JSON.parse(readFileSync(path.join(process.cwd(), E2E_SEED_FILE), 'utf8')) as SeedIds
+    return seedCache[key as keyof SeedIds]
+  },
+})
+
 export class Shot {
   constructor(private readonly page: Page) {}
 
@@ -66,6 +81,12 @@ export class Shot {
   async page_(name: string): Promise<void> {
     await this.settle()
     await this.page.screenshot({ path: path.join(OUT_DIR, `${name}.png`) })
+  }
+
+  /** Capture a region of the page, for a detail with no element of its own (a card over the map). */
+  async region(name: string, clip: { x: number; y: number; width: number; height: number }): Promise<void> {
+    await this.settle()
+    await this.page.screenshot({ path: path.join(OUT_DIR, `${name}.png`), clip })
   }
 
   /** Capture one element — preferred for dialogs, panels and cards. */
@@ -104,6 +125,13 @@ export class Shot {
  * but tolerant: on a seeded DB the notice may already be cleared.
  */
 export async function clearNotices(page: Page): Promise<void> {
+  // The "what's new" card of a release lays an overlay over the whole page that
+  // takes every click; it may land a moment after the page, so give it that moment.
+  const releaseClose = page.locator('.rn-close')
+  if (await releaseClose.waitFor({ state: 'visible', timeout: 2_500 }).then(() => true, () => false)) {
+    await releaseClose.click().catch(() => {})
+    await page.locator('.rn-overlay').waitFor({ state: 'detached', timeout: 3_000 }).catch(() => {})
+  }
   const next = page.getByRole('button', { name: /next/i })
   for (let i = 0; i < 6 && (await next.isVisible().catch(() => false)); i++) {
     if (!(await next.isEnabled().catch(() => false))) break

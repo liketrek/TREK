@@ -1,7 +1,8 @@
-import { HttpException } from '@nestjs/common';
-import type { Request } from 'express';
-import { PUBLIC_API_SCOPES, type PublicApiScope } from '@trek/shared';
 import type { RateLimitService } from '../common/rate-limit.service';
+import { HttpException } from '@nestjs/common';
+import { PUBLIC_API_SCOPES, type PublicApiScope } from '@trek/shared';
+
+import type { Request } from 'express';
 
 /**
  * What every `/api/v1` route does with the incoming request, in one place because
@@ -26,9 +27,9 @@ export const PUBLIC_API_RATE_MAX_PER_MINUTE = 120;
  * Falls back to a constant key when a request somehow carries no user, so the
  * limiter can never end up with one shared bucket for every anonymous caller.
  */
-export function enforcePublicApiRateLimit(rl: RateLimitService, req: Request): void {
+export async function enforcePublicApiRateLimit(rl: RateLimitService, req: Request): Promise<void> {
   const key = `user:${req.user?.id ?? 'unknown'}`;
-  if (!rl.check('public-api', key, PUBLIC_API_RATE_MAX_PER_MINUTE, PUBLIC_API_RATE_WINDOW_MS, Date.now())) {
+  if (!(await rl.check('public-api', key, PUBLIC_API_RATE_MAX_PER_MINUTE, PUBLIC_API_RATE_WINDOW_MS, Date.now()))) {
     throw new HttpException({ error: 'Too many requests. Please slow down.' }, 429);
   }
 }

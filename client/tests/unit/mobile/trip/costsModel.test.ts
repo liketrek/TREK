@@ -21,7 +21,7 @@ import {
   type CostsFilterState,
   type CostsSettlement,
   type CostsSettlementFlow,
-} from '../../../../src/mobile/screens/trip/tabs/costsModel';
+} from '../../../../src/components/Budget/costsModel';
 import { buildBudgetItem } from '../../../helpers/factories';
 import type { BudgetItem } from '../../../../src/types';
 

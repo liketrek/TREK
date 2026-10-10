@@ -1,15 +1,10 @@
-import fs from 'node:fs';
-import { Injectable } from '@nestjs/common';
-import type { StorageAdminState, StorageBackend, StorageConfigPut, StorageTestResponse, StorageUsage } from '@trek/shared';
-import { DatabaseService } from '../database/database.service';
-import {
-  BACKENDS_KEY,
-  CATEGORIES_KEY,
-  VERSION_KEY,
-  StorageRegistryService,
-} from './storage-registry.service';
-import { StorageService } from './storage.service';
-import { SEED_CONFIG_PATH } from './storage-paths';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { UnitOfWork } from '../database/unit-of-work';
+import { StorageJobsService } from './storage-jobs.service';
+import { getSeedConfigPath } from './storage-paths';
+import { ephemeralDriverFor, probeDriver, type ProbeTargetResult } from './storage-probe';
+import { BACKENDS_KEY, CATEGORIES_KEY, VERSION_KEY, StorageRegistryService } from './storage-registry.service';
 import {
   assertNoMaskSentinels,
   decryptBackendSecrets,
@@ -17,10 +12,20 @@ import {
   maskBackendOptions,
   unmaskStorageConfig,
 } from './storage-secrets';
-import { ephemeralDriverFor, probeDriver, type ProbeTargetResult } from './storage-probe';
-import { StorageBackendError, StorageConflictError, type StorageCategory } from './storage.types';
-import { StorageJobsService } from './storage-jobs.service';
 import { StorageStatsService } from './storage-stats.service';
+import { StorageService } from './storage.service';
+import { StorageBackendError, StorageConflictError, type StorageCategory } from './storage.types';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type {
+  StorageAdminState,
+  StorageBackend,
+  StorageConfigPut,
+  StorageTestResponse,
+  StorageUsage,
+} from '@trek/shared';
+
+import fs from 'node:fs';
 
 /**
  * Owner of the api/admin/storage read/write pipelines (spec:
@@ -32,15 +37,16 @@ import { StorageStatsService } from './storage-stats.service';
 @Injectable()
 export class StorageAdminService {
   constructor(
-    private readonly db: DatabaseService,
+    @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
     private readonly registry: StorageRegistryService,
     private readonly storage: StorageService,
     private readonly jobs: StorageJobsService,
     private readonly stats: StorageStatsService,
+    private readonly uow: UnitOfWork,
   ) {}
 
   /** The effective world — secrets masked, categories cross-referenced per backend. */
-  state(): StorageAdminState {
+  async state(): Promise<StorageAdminState> {
     const snapshot = this.registry.snapshot();
     const assignments = Object.entries(snapshot.categories) as Array<
       [keyof typeof snapshot.categories, { backend: string; source: 'default' | 'settings' }]
@@ -55,11 +61,11 @@ export class StorageAdminService {
       })),
       categories: snapshot.categories,
       health: { replicaFailures: this.storage.health().replicaFailures.map((f) => ({ ...f })) },
-      seedFilePresent: fs.existsSync(SEED_CONFIG_PATH),
-      usage: this.stats.readUsage(),
+      seedFilePresent: fs.existsSync(getSeedConfigPath()),
+      usage: await this.stats.readUsage(),
       backfills: this.jobs.statuses(),
       migrations: this.jobs.migrationStatuses(),
-      version: this.registry.currentConfigVersion(),
+      version: await this.registry.currentConfigVersion(),
       configError: this.registry.lastLoadError(),
     };
   }
@@ -82,8 +88,8 @@ export class StorageAdminService {
    * job registry; throws MigrationRequestError (400) / MigrationTargetError (404) /
    * BackfillBusyError (409).
    */
-  startMigration(category: StorageCategory, to: string): void {
-    this.jobs.startMigration(category, to);
+  async startMigration(category: StorageCategory, to: string): Promise<void> {
+    await this.jobs.startMigration(category, to);
   }
 
   /** True when an active migration was cancelled; false when there was nothing to cancel. */
@@ -92,8 +98,8 @@ export class StorageAdminService {
   }
 
   /** Runs and persists a fresh usage scan. Throws StatsBusyError (409) if one is already running. */
-  refreshStats(): Promise<StorageUsage> {
-    return this.stats.scan();
+  async refreshStats(): Promise<StorageUsage> {
+    return await this.stats.scan();
   }
 
   /**
@@ -104,27 +110,24 @@ export class StorageAdminService {
    * config that moved on since the form was loaded (e.g. a category
    * migration's flip, which bumps the same counter).
    */
-  applyConfig(config: StorageConfigPut): void {
-    const currentVersion = this.registry.currentConfigVersion();
+  async applyConfig(config: StorageConfigPut): Promise<void> {
+    const currentVersion = await this.registry.currentConfigVersion();
     if (config.version !== currentVersion) {
       throw new StorageConflictError(currentVersion, config.version);
     }
-    const unmasked = unmaskStorageConfig(config, this.storedBackendsRow());
+    const unmasked = unmaskStorageConfig(config, await this.storedBackendsRow());
     // unmask only resolves the secret fields it knows about; a mask sentinel
     // submitted in a non-secret field would otherwise pass through untouched
     // and get persisted verbatim as garbage-in.
     assertNoMaskSentinels(unmasked);
     this.registry.preview({ backends: unmasked.backends, categories: unmasked.categories });
     const encrypted = encryptStorageSecrets(unmasked);
-    this.db.transaction(() => {
-      const upsert = this.db.prepare(
-        'INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
-      );
-      upsert.run(BACKENDS_KEY, JSON.stringify(encrypted.backends));
-      upsert.run(CATEGORIES_KEY, JSON.stringify(encrypted.categories));
-      upsert.run(VERSION_KEY, String(currentVersion + 1));
+    await this.uow.transactional(async () => {
+      await this.appSettings.setValue(BACKENDS_KEY, JSON.stringify(encrypted.backends));
+      await this.appSettings.setValue(CATEGORIES_KEY, JSON.stringify(encrypted.categories));
+      await this.appSettings.setValue(VERSION_KEY, String(currentVersion + 1));
     });
-    this.registry.reload();
+    await this.registry.reload();
     // Any running job whose backend the reloaded config no longer has ends
     // cancelled rather than running invisibly against a stale driver ref
     // (polish item 3) — see StorageJobsService.cancelJobsForMissingBackends.
@@ -137,10 +140,7 @@ export class StorageAdminService {
    * hides replica failures by design. Registry state is never touched.
    */
   async testBackend(candidate: StorageBackend): Promise<StorageTestResponse> {
-    const { backends } = unmaskStorageConfig(
-      { backends: [candidate], categories: {} },
-      this.storedBackendsRow(),
-    );
+    const { backends } = unmaskStorageConfig({ backends: [candidate], categories: {} }, await this.storedBackendsRow());
     const backend = backends[0]!;
     const targets = this.probeTargetsFor(backend).map(decryptBackendSecrets) as Array<
       Extract<StorageBackend, { type: 'local' | 's3' }>
@@ -180,11 +180,11 @@ export class StorageAdminService {
   }
 
   /** The raw stored backends row — the unmask source (tolerates absent/garbage rows). */
-  private storedBackendsRow(): unknown {
-    const row = this.db.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', BACKENDS_KEY);
-    if (!row?.value) return [];
+  private async storedBackendsRow(): Promise<unknown> {
+    const value = await this.appSettings.getValue(BACKENDS_KEY);
+    if (!value) return [];
     try {
-      return JSON.parse(row.value) as unknown;
+      return JSON.parse(value) as unknown;
     } catch {
       return [];
     }

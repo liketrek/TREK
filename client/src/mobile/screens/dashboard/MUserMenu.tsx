@@ -57,7 +57,7 @@ export default function MUserMenu({ open, onClose }: MUserMenuProps): React.Reac
   }
 
   return (
-    <MDropdownPanel open={open} onClose={onClose} className="right-4 top-[calc(var(--m-safe-top,12px)+68px)]">
+    <MDropdownPanel open={open} onClose={onClose} className="end-4 top-[calc(var(--m-safe-top,12px)+68px)]">
       <div className="flex items-center gap-[10px] p-[10px_10px_12px]">
         <span className="flex h-10 w-10 flex-none items-center justify-center overflow-hidden rounded-full bg-[image:linear-gradient(135deg,#6A6A74,#1A1A1E)] text-[0.9375rem] font-bold text-white">
           {user?.avatar_url

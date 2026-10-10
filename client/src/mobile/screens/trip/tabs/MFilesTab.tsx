@@ -13,14 +13,13 @@ import MFileLinkSheet from './MFileLinkSheet'
 import MFileTrashSheet from './MFileTrashSheet'
 import MDocSyncSheet from './MDocSyncSheet'
 import { canManageDocSync } from '../../../../components/Files/docsync/useDocSync'
+import { filesFromClipboard } from '../../../../components/Files/fileActions'
 import { useAuthStore } from '../../../../store/authStore'
 import MFileLightbox from './MFileLightbox'
 import {
   FILE_FILTERS, buildFileLinkLabels, formatFileDate, getFileTypeMeta,
   matchesFileFilter, sortFilesStarredFirst, type FileFilterId,
 } from './filesModel'
-
-const MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 
 /**
  * Tab 5 — Dateien. Real `planner.files` (already non-deleted, §7.2), the
@@ -40,6 +39,7 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
   const [menuFileId, setMenuFileId] = useState<number | null>(null)
   const [linkFileId, setLinkFileId] = useState<number | null>(null)
   const currentUser = useAuthStore(st => st.user)
+  const maxUploadMb = useAuthStore(st => st.maxUploadMb)
   const [trashOpen, setTrashOpen] = useState(false)
   const [docSyncOpen, setDocSyncOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -60,9 +60,10 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
   }, [shell.uploadFilesSignal])
 
   const uploadFiles = async (list: File[]) => {
-    const tooBig = list.filter(f => f.size > MAX_UPLOAD_BYTES)
-    const okFiles = list.filter(f => f.size <= MAX_UPLOAD_BYTES)
-    if (tooBig.length > 0) planner.toast.error(t('files.uploadErrorSize'))
+    const maxBytes = maxUploadMb * 1024 * 1024
+    const tooBig = list.filter(f => f.size > maxBytes)
+    const okFiles = list.filter(f => f.size <= maxBytes)
+    if (tooBig.length > 0) planner.toast.error(t('files.uploadErrorSize', { max: maxUploadMb }))
     if (okFiles.length === 0) return
     setUploading(true)
     let uploaded = 0
@@ -91,15 +92,7 @@ export default function MFilesTab({ planner, shell }: MTabScreenProps) {
 
   const onPaste = (e: ClipboardEvent<HTMLDivElement>) => {
     if (!planner.canUploadFiles) return
-    const items = e.clipboardData?.items
-    if (!items) return
-    const pasted: File[] = []
-    for (const item of Array.from(items)) {
-      if (item.kind === 'file') {
-        const f = item.getAsFile()
-        if (f) pasted.push(f)
-      }
-    }
+    const pasted = filesFromClipboard(e.clipboardData)
     if (pasted.length > 0) {
       e.preventDefault()
       void uploadFiles(pasted)
@@ -261,7 +254,7 @@ function FileRow({ file, planner, onOpen, onStar, onMenu }: {
 
   return (
     <div className="mt-2 flex items-center gap-[11px] rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop px-[11px] py-[10px]">
-      <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-[11px] text-left">
+      <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-[11px] text-start">
         <div
           className="flex h-[42px] w-[42px] flex-none flex-col items-center justify-center gap-[2px] rounded-[13px]"
           style={{ background: `${meta.color}22`, color: meta.color }}
@@ -283,7 +276,7 @@ function FileRow({ file, planner, onOpen, onStar, onMenu }: {
               {formatFileDate(file.created_at, locale)}
             </span>
             {file.uploaded_by_name && (
-              <span className="flex items-center gap-[3px] rounded-full bg-[color:var(--m-ic)] py-[2px] pl-[3px] pr-[7px]">
+              <span className="flex items-center gap-[3px] rounded-full bg-[color:var(--m-ic)] py-[2px] ps-[3px] pe-[7px]">
                 <span className="flex h-3 w-3 flex-none items-center justify-center rounded-full bg-m-act font-geist text-[0.40625rem] font-extrabold text-m-actfg">
                   {file.uploaded_by_name[0]?.toUpperCase()}
                 </span>

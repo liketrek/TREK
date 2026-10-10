@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': 'Hoàn tác: {action}',
   'undo.assignPlace': 'Địa điểm đã được gán vào ngày',
   'undo.removeAssignment': 'Địa điểm đã bị xóa khỏi ngày',
+  'undo.clearDay': 'Đã xóa trống ngày',
   'undo.reorder': 'Địa điểm được sắp xếp lại',
   'undo.optimize': 'Tuyến đường được tối ưu hóa',
   'undo.deletePlace': 'Địa điểm đã bị xóa',

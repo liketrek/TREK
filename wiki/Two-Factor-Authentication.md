@@ -13,7 +13,7 @@ Go to **Settings → Account**, find the **Two-factor authentication (2FA)** sec
 1. A QR code and a text secret are displayed. Scan the QR code with your authenticator app.
    > **Note:** The setup session expires after **15 minutes**. If you do not complete setup within that window, start again.
 2. Enter the 6-digit code shown in your authenticator app and click **Enable 2FA**.
-3. Save your **10 backup codes**. These are single-use codes shown only once — store them somewhere safe (a password manager, printed paper). Each code has the format `XXXX-XXXX`.
+3. Save your **10 backup codes**. These are single-use codes shown only once, so store them somewhere safe (a password manager, printed paper). Each code has the format `XXXX-XXXX`. The **Backup codes** box offers **Copy codes**, **Download TXT** and **Print / PDF**.
 4. 2FA is now active on your account.
 
 ## Logging in with 2FA
@@ -30,6 +30,8 @@ Go to **Settings → Account** and use the **Disable 2FA** form. You must provid
 - Your current account **password**
 - A valid **TOTP code** from your authenticator app
 
+Disabling 2FA signs out every other session of your account: the second factor is what kept a stolen password out of them. The session you disabled it from stays signed in, since it just proved both the password and the code.
+
 > **Note:** You cannot disable 2FA while the admin has required it for all users (see below). Owning a passkey does not lift that restriction.
 
 ## Admin-enforced 2FA
@@ -42,7 +44,7 @@ A user-verified **passkey** satisfies this policy the way a TOTP authenticator d
 
 Whether enrolling a passkey is a way *out* of the lockout depends on the instance. Passkey login is off by default (see [Passkeys](Passkeys)); where an admin has turned it on, the enrolment endpoints stay reachable while the rest of the API is blocked, so you can add a passkey from **Settings → Account** instead of setting up an authenticator app. Where it is off, TOTP setup is the only way to unblock yourself — or ask an admin to reset your 2FA.
 
-> **Admin:** You can clear a locked-out user's 2FA with `DELETE /api/admin/users/<id>/mfa` (admin session required; it refuses your own account). The admin panel has no button for it: the user modal offers only **Reset passkeys**. See [Troubleshooting](Troubleshooting#locked-out-of-mfa--lost-authenticator).
+> **Admin:** You can clear a locked-out user's 2FA with `DELETE /api/admin/users/<id>/mfa` (admin session required; it refuses your own account). It also signs that user out of every session. The admin panel has no button for it: the user modal offers only **Reset passkeys**. See [Troubleshooting](Troubleshooting#locked-out-of-mfa--lost-authenticator).
 
 ## Rate limits
 

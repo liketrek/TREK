@@ -1,10 +1,24 @@
-import { DatabaseService } from '../database/database.service';
+import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
+import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { Days } from '../../db/entities/Days.entity';
+import { ReservationDayPositions } from '../../db/entities/ReservationDayPositions.entity';
+import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import type { DayAccommodationsRepository } from '../../db/repositories/DayAccommodations.repository';
+import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
+import type { DaysRepository } from '../../db/repositories/Days.repository';
+import type { ReservationDayPositionsRepository } from '../../db/repositories/ReservationDayPositions.repository';
+import type { ReservationEndpointsRepository } from '../../db/repositories/ReservationEndpoints.repository';
+import type { ReservationsRepository, RoadtripCarrierRow } from '../../db/repositories/Reservations.repository';
+import { DomainError } from '../common/domain-error';
 import { SettingsService } from '../settings/settings.service';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 import { DayBoundariesService } from './day-boundaries.service';
 import { RoadtripPreferencesService } from './roadtrip-preferences.service';
 import { RoadtripRouterService } from './roadtrip-router.service';
 import { RoadtripService } from './roadtrip.service';
-import { Injectable, HttpException } from '@nestjs/common';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 import { type RoadtripPreferences } from '@trek/shared';
 import {
   assembleRoadtrip,
@@ -24,7 +38,6 @@ import {
   seatNightBookends,
   undatedRides,
   viasOnLeg,
-  type BookendStay,
   type CarrierBooking,
   type CarrierSeam,
   type DistanceUnit,
@@ -36,111 +49,46 @@ import {
   standsAsDay,
 } from '@trek/shared/roadtrip';
 
-interface StoredDay {
-  id: number;
-  day_number: number;
-  date: string | null;
-  title: string | null;
-  default_transport_mode: string | null;
-}
-/**
- * A booking the traveller rides, with what the seam needs of it: the days and clocks at
- * both ends, the terminals, and where the day plan seats it. Same projection the client
- * reads off the reservation list, so the two plans seat a flight in the same place.
- */
-interface CarrierRow {
-  id: number;
-  type: string;
-  title: string;
-  day_id: number | null;
-  end_day_id: number | null;
-  reservation_time: string | null;
-  reservation_end_time: string | null;
-  metadata: string | null;
-  day_plan_position: number | null;
-}
-interface VisitRow {
-  /** The booking this stop stands for on its check-in day, when there is one. */
-  stay_id: number | null;
-  check_in: string | null;
-  /** The drive does not read these two (#2357): they are the booking as get_roadtrip_context reports it. */
-  check_out: string | null;
-  checkout_day: number | null;
-  id: number;
-  day_id: number;
-  order_index: number;
-  place_id: number;
-  name: string;
-  lat: number | null;
-  lng: number | null;
-  time: string | null;
-  end_time: string | null;
-  duration_minutes: number | null;
-  end_day: number;
-  leg_transport_mode: string | null;
-  incoming_leg_transport_mode: string | null;
-  stop_type: string | null;
-  fill_percent: number | null;
-}
-/**
- * A booked night as the road trip reads it: the stay, the days it spans, where it is and
- * the earliest booking linked to it. The rule reads these for the hotel at the edges of
- * the days around the night (`seatNightBookends`); get_roadtrip_context reports them as
- * they are, with the check-in beside the check-out.
- */
-type StayRow = BookendStay & { check_in: string | null };
 const stopKey = (s: RoadtripStop) =>
   `${s.lat.toFixed(5)},${s.lng.toFixed(5)},${s.legMode ?? ''},${s.incomingLegMode ?? ''}`;
 
 @Injectable()
 export class RoadtripPlanService {
   constructor(
-    private readonly db: DatabaseService,
     private readonly settings: SettingsService,
     private readonly preferences: RoadtripPreferencesService,
     private readonly router: RoadtripRouterService,
     private readonly roadtrip: RoadtripService,
     private readonly boundaries: DayBoundariesService,
+    private readonly tripsRepo: TripAccessService,
+    @InjectRepository(Days) private readonly daysRepo: DaysRepository,
+    @InjectRepository(DayAssignments) private readonly dayAssignmentsRepo: DayAssignmentsRepository,
+    @InjectRepository(DayAccommodations) private readonly dayAccommodationsRepo: DayAccommodationsRepository,
+    @InjectRepository(Reservations) private readonly reservationsRepo: ReservationsRepository,
+    @InjectRepository(ReservationEndpoints) private readonly endpointsRepo: ReservationEndpointsRepository,
+    @InjectRepository(ReservationDayPositions) private readonly dayPositionsRepo: ReservationDayPositionsRepository,
   ) {}
 
-  context(tripId: number, userId: number) {
-    if (!this.db.canAccessTrip(tripId, userId)) throw new HttpException({ error: 'Trip not found' }, 404);
-    const days = this.db.all<StoredDay>(
-      'SELECT id, day_number, date, title, default_transport_mode FROM days WHERE trip_id = ? ORDER BY day_number',
-      tripId,
-    );
-    const visits = this.db.all<VisitRow>(
-      `SELECT a.id, a.day_id, a.order_index, a.place_id, p.name, p.lat, p.lng,
-      COALESCE(a.assignment_time, p.place_time) AS time, COALESCE(a.assignment_end_time, p.end_time) AS end_time,
-      p.duration_minutes, a.end_day,
-      a.leg_transport_mode, a.incoming_leg_transport_mode, p.stop_type, p.fill_percent, stay.id AS stay_id, stay.check_in, stay.check_out, checkout.day_number AS checkout_day
-      FROM day_assignments a JOIN days d ON d.id = a.day_id JOIN places p ON p.id = a.place_id
-      LEFT JOIN day_accommodations stay ON stay.id = (SELECT id FROM day_accommodations WHERE place_id = p.id AND start_day_id = d.id ORDER BY id LIMIT 1)
-      LEFT JOIN days checkout ON checkout.id = stay.end_day_id
-      WHERE d.trip_id = ? ORDER BY d.day_number, a.order_index, a.created_at`,
-      tripId,
-    );
+  async context(tripId: number, userId: number) {
+    if (!(await this.tripsRepo.findAccessible(tripId, userId))) throw new DomainError(404, 'Trip not found');
+    // RPL1 — `DaysRepository.listPlanDays`.
+    const days = await this.daysRepo.listPlanDays(tripId);
+    // RPL2 — `DayAssignmentsRepository.listRoadtripVisits`.
+    const visits = await this.dayAssignmentsRepo.listRoadtripVisits(tripId);
     // Every stay of the trip in id order, the order the rule reads them in, so a browser
     // holding them in another order still picks the same hotel where two overlap. The
     // booking is the earliest linked one, the one the planner opens from the hotel's row.
-    const stays = this.db.all<StayRow>(
-      `SELECT a.id, a.place_id, a.start_day_id, a.end_day_id, a.check_in, a.check_out,
-      p.name AS place_name, p.lat AS place_lat, p.lng AS place_lng,
-      (SELECT MIN(r.id) FROM reservations r WHERE r.accommodation_id = a.id) AS reservation_id
-      FROM day_accommodations a LEFT JOIN places p ON p.id = a.place_id
-      WHERE a.trip_id = ? ORDER BY a.id`,
-      tripId,
-    );
+    const stays = await this.dayAccommodationsRepo.listRoadtripStays(tripId); // RPL3
     return {
       days,
       visits,
       stays,
-      carriers: this.carriers(tripId),
-      settings: this.preferences.read(tripId),
-      profiles: this.router.profiles(),
-      vias: this.roadtrip.listForTrip(tripId),
-      tracks: this.roadtrip.tracksForTrip(tripId),
-      boundaries: this.boundaries.list(tripId),
+      carriers: await this.carriers(tripId),
+      settings: await this.preferences.read(tripId),
+      profiles: await this.router.profiles(),
+      vias: await this.roadtrip.listForTrip(tripId),
+      tracks: await this.roadtrip.tracksForTrip(tripId),
+      boundaries: await this.boundaries.list(tripId),
     };
   }
 
@@ -151,15 +99,8 @@ export class RoadtripPlanService {
    * list; this is the road trip's own cut of them, so the module stays out of the
    * reservations graph.
    */
-  private carriers(tripId: number): CarrierBooking[] {
-    return this.withTerminals(
-      tripId,
-      this.db.all<CarrierRow>(
-        `SELECT id, type, title, day_id, end_day_id, reservation_time, reservation_end_time, metadata, day_plan_position
-         FROM reservations WHERE trip_id = ? AND type IN ('flight', 'train', 'ferry', 'cruise', 'bus', 'car') AND day_id IS NOT NULL`,
-        tripId,
-      ),
-    );
+  private async carriers(tripId: number): Promise<CarrierBooking[]> {
+    return this.withTerminals(tripId, await this.reservationsRepo.listRoadtripCarriers(tripId)); // RPL4
   }
 
   /**
@@ -170,37 +111,17 @@ export class RoadtripPlanService {
    * `undatedRides` alone, the rule the planner's rail lists them by, so the statement
    * names no types of its own.
    */
-  undatedRides(tripId: number): { id: number; type: string; title: string }[] {
-    const rows = this.db.all<CarrierRow>(
-      `SELECT id, type, title, day_id, end_day_id, reservation_time, reservation_end_time, metadata, day_plan_position
-       FROM reservations WHERE trip_id = ? AND day_id IS NULL`,
-      tripId,
-    );
-    return undatedRides(this.withTerminals(tripId, rows)).map(({ id, type, title }) => ({ id, type, title }));
+  async undatedRides(tripId: number): Promise<{ id: number; type: string; title: string }[]> {
+    const rows = await this.reservationsRepo.listRoadtripUndated(tripId); // RPL5
+    return undatedRides(await this.withTerminals(tripId, rows)).map(({ id, type, title }) => ({ id, type, title }));
   }
 
   /** The rows with their terminals and the slots the day plan gave them joined on. */
-  private withTerminals(tripId: number, rows: CarrierRow[]): CarrierBooking[] {
+  private async withTerminals(tripId: number, rows: RoadtripCarrierRow[]): Promise<CarrierBooking[]> {
     if (!rows.length) return [];
-    const endpoints = this.db.all<{
-      reservation_id: number;
-      role: string;
-      sequence: number;
-      name: string;
-      code: string | null;
-      lat: number;
-      lng: number;
-    }>(
-      `SELECT e.reservation_id, e.role, e.sequence, e.name, e.code, e.lat, e.lng
-       FROM reservation_endpoints e JOIN reservations r ON r.id = e.reservation_id
-       WHERE r.trip_id = ? ORDER BY e.reservation_id, e.sequence`,
-      tripId,
-    );
-    const positions = this.db.all<{ reservation_id: number; day_id: number; position: number }>(
-      `SELECT p.reservation_id, p.day_id, p.position
-       FROM reservation_day_positions p JOIN reservations r ON r.id = p.reservation_id WHERE r.trip_id = ?`,
-      tripId,
-    );
+    const endpoints = await this.endpointsRepo.listRoadtripTerminals(tripId); // RPL6
+    // RS19 — `SELECT p.reservation_id, p.day_id, p.position FROM reservation_day_positions p JOIN reservations r …`.
+    const positions = await this.dayPositionsRepo.listForTrip(tripId);
     return rows.map((row) => ({
       ...row,
       endpoints: endpoints.filter((e) => e.reservation_id === row.id),
@@ -211,7 +132,7 @@ export class RoadtripPlanService {
   }
 
   async calculate(tripId: number, userId: number, overrides?: RoadtripPreferences) {
-    const context = this.context(tripId, userId);
+    const context = await this.context(tripId, userId);
     const preferences = { ...context.settings, ...overrides };
     const window = dayWindow(
       preferences.roadtrip_day_start,
@@ -219,34 +140,35 @@ export class RoadtripPlanService {
       preferences.roadtrip_day_end_mode,
     );
     if (preferences.roadtrip_day_start && preferences.roadtrip_day_end && !window)
-      throw new HttpException({ error: 'Day end must be later than day start.' }, 400);
-    const seams = context.carriers.map((booking) => carrierSeam(booking)).filter((seam): seam is CarrierSeam => seam !== null);
+      throw new DomainError(400, 'Day end must be later than day start.');
+    const seams = context.carriers
+      .map((booking) => carrierSeam(booking))
+      .filter((seam): seam is CarrierSeam => seam !== null);
     const dayNumberOf = (dayId: number): number => context.days.find((d) => d.id === dayId)?.day_number ?? 0;
     const stored: PlanDay[] = context.days.map((day) => {
       const visits = context.visits.filter((v) => v.day_id === day.id && v.lat !== null && v.lng !== null);
-      const stops = visits.map(
-        (v, index): RoadtripStop => ({
-          assignmentId: v.id,
-          ownerDayId: day.id,
-          ownerIndex: index,
-          placeId: v.place_id,
-          name: v.name,
-          lat: v.lat!,
-          lng: v.lng!,
-          time: v.time,
-          // The visit's end time is when the drive leaves it, the same reading the
-          // planner makes in the browser (useRoadtripRoutes).
-          leaveAt: v.end_time,
-          checkInTime: v.check_in,
-          night: v.stay_id !== null,
-          dwellMinutes: v.duration_minutes,
-          endDay: v.end_day === 1,
-          legMode: v.leg_transport_mode,
-          incomingLegMode: v.incoming_leg_transport_mode,
-          stopType: v.stop_type,
-          fillPercent: v.fill_percent,
-        }),
-      );
+      const stops = visits.map((v, index): RoadtripStop => ({
+        assignmentId: v.id,
+        ownerDayId: day.id,
+        ownerIndex: index,
+        placeId: v.place_id,
+        name: v.name,
+        lat: v.lat!,
+        lng: v.lng!,
+        time: v.time,
+        // The visit's end time is when the drive leaves it, the same reading the
+        // planner makes in the browser (useRoadtripRoutes).
+        leaveAt: v.end_time,
+        checkInTime: v.check_in,
+        night: v.stay_id !== null,
+        bookedNightId: v.accommodation_id,
+        dwellMinutes: v.duration_minutes,
+        endDay: v.end_day === 1,
+        legMode: v.leg_transport_mode,
+        incomingLegMode: v.incoming_leg_transport_mode,
+        stopType: v.stop_type,
+        fillPercent: v.fill_percent,
+      }));
       return {
         dayId: day.id,
         dayNumber: day.day_number,
@@ -274,11 +196,10 @@ export class RoadtripPlanService {
     const failures: { fromAssignmentId: number; toAssignmentId: number; reason: string }[] = [];
     const avoid = parseAvoid(preferences.roadtrip_avoid);
     const connectDays = preferences.roadtrip_connect_days || window !== null;
-    if (context.visits.length > 150)
-      throw new HttpException({ error: 'This trip exceeds the 150-visit calculation limit.' }, 400);
+    if (context.visits.length > 150) throw new DomainError(400, 'This trip exceeds the 150-visit calculation limit.');
     const asked = new Set<string>();
     const distanceUnit: DistanceUnit =
-      this.settings.getUserSettings(userId).distance_unit === 'imperial' ? 'imperial' : 'metric';
+      (await this.settings.getUserSettings(userId)).distance_unit === 'imperial' ? 'imperial' : 'metric';
     const fetchRun = async (stops: RoadtripStop[], dayId: number, profile: string) => {
       const pairs = stops.slice(0, -1).map((from, index) => ({ from, to: stops[index + 1] }));
       pairs.forEach(({ from, to }) => asked.add(stopKey(from) + '>' + stopKey(to)));
@@ -330,7 +251,13 @@ export class RoadtripPlanService {
         });
         Object.assign(
           allLegs,
-          foldRouteRun(stops, stopAt, { coordinates: routed.leg.line, legs, vias: routed.leg.vias }, profile, distanceUnit),
+          foldRouteRun(
+            stops,
+            stopAt,
+            { coordinates: routed.leg.line, legs, vias: routed.leg.vias },
+            profile,
+            distanceUnit,
+          ),
         );
         missedByDay[dayId] = [...new Set([...(missedByDay[dayId] ?? []), ...routed.avoidMissed])];
         stops.forEach((stop, index) => {
@@ -416,7 +343,7 @@ export class RoadtripPlanService {
       calculated,
       failures,
       omittedVisits: context.visits.filter((v) => v.lat === null || v.lng === null).map((v) => v.id),
-      undatedRides: this.undatedRides(tripId),
+      undatedRides: await this.undatedRides(tripId),
     };
   }
 }

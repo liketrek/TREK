@@ -1,12 +1,18 @@
 import {
-  McpController, Tool, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
+  McpController,
+  Tool,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  errorResult,
+  ok,
 } from '../../nest-mcp';
-import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { TagsService } from './tags.service';
+import { idSchema } from '@trek/shared';
+
+import { z } from 'zod';
 
 /**
  * Tags MCP tools — pilot for the decorator-driven registry. Ported 1:1 from
@@ -16,7 +22,7 @@ import { TagsService } from './tags.service';
  */
 @McpController()
 export class TagsMcp {
-  constructor(private readonly tags: TagsService, private readonly auth: AuthService) {}
+  constructor(private readonly tags: TagsService) {}
 
   @Tool({
     name: 'list_tags',
@@ -26,7 +32,7 @@ export class TagsMcp {
     access: { group: 'places', mode: 'read' },
   })
   async listTags(_args: Record<string, never>, ctx: McpContext) {
-    const tags = this.tags.list(ctx.userId);
+    const tags = await this.tags.list(ctx.userId);
     return ok({ tags });
   }
 
@@ -41,8 +47,7 @@ export class TagsMcp {
     access: { group: 'places', mode: 'write' },
   })
   async createTag({ name, color }: { name: string; color?: string }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const tag = this.tags.create(ctx.userId, name, color);
+    const tag = await this.tags.create(ctx.userId, name, color);
     return ok({ tag });
   }
 
@@ -50,7 +55,7 @@ export class TagsMcp {
     name: 'update_tag',
     description: 'Update the name or color of an existing tag.',
     inputSchema: {
-      tagId: z.number().int().positive(),
+      tagId: idSchema,
       name: z.string().optional(),
       color: z.string().optional(),
     },
@@ -58,10 +63,9 @@ export class TagsMcp {
     access: { group: 'places', mode: 'write' },
   })
   async updateTag({ tagId, name, color }: { tagId: number; name?: string; color?: string }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.tags.getByIdAndUser(tagId, ctx.userId)) return errorResult('Tag not found.');
-    const tag = this.tags.update(tagId, name, color);
-    if (!tag) return errorResult('Tag not found.');
+    if (!(await this.tags.getByIdAndUser(tagId, ctx.userId))) return errorResult('Tag not found.');
+    const tag = await this.tags.update(tagId, name, color);
+    if (!(await tag)) return errorResult('Tag not found.');
     return ok({ tag });
   }
 
@@ -69,15 +73,14 @@ export class TagsMcp {
     name: 'delete_tag',
     description: 'Delete a tag (removes it from all places it was attached to).',
     inputSchema: {
-      tagId: z.number().int().positive(),
+      tagId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'places', mode: 'write' },
   })
   async deleteTag({ tagId }: { tagId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.tags.getByIdAndUser(tagId, ctx.userId)) return errorResult('Tag not found.');
-    this.tags.remove(tagId);
+    if (!(await this.tags.getByIdAndUser(tagId, ctx.userId))) return errorResult('Tag not found.');
+    await this.tags.remove(tagId);
     return ok({ success: true });
   }
 }

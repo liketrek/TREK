@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
+import type { ImmichService } from '../../../src/nest/memories/immich.service';
+import type { PhotoAssetRef, PhotoProvider } from '../../../src/nest/memories/photo-provider';
 /**
  * The PhotoProvider seam (#584).
  *
@@ -14,10 +14,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PhotoProviderRegistry } from '../../../src/nest/memories/photo-provider.registry';
 import { ImmichPhotoProvider } from '../../../src/nest/memories/providers/immich.provider';
 import { SynologyPhotoProvider } from '../../../src/nest/memories/providers/synology.provider';
-import type { ImmichService } from '../../../src/nest/memories/immich.service';
 import type { SynologyService } from '../../../src/nest/memories/synology.service';
-import type { PhotoAssetRef, PhotoProvider } from '../../../src/nest/memories/photo-provider';
+
 import type { Response } from 'express';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const immich = {
   streamImmichAsset: vi.fn(),
@@ -53,7 +53,7 @@ beforeEach(() => {
 });
 
 describe('PhotoProviderRegistry', () => {
-  it('PROV-001: resolves a stored photo\'s provider column', () => {
+  it("PROV-001: resolves a stored photo's provider column", () => {
     const registry = new PhotoProviderRegistry([immichProvider, synologyProvider]);
     expect(registry.get('immich')).toBe(immichProvider);
     expect(registry.get('synologyphotos')).toBe(synologyProvider);
@@ -82,7 +82,7 @@ describe('PhotoProviderRegistry', () => {
 });
 
 describe('ImmichPhotoProvider', () => {
-  it('PROV-004: maps the ref onto the service\'s (userId, assetId, ownerId) order', async () => {
+  it("PROV-004: maps the ref onto the service's (userId, assetId, ownerId) order", async () => {
     await immichProvider.streamAsset(res, ref, 'original');
     expect(immich.streamImmichAsset).toHaveBeenCalledWith(res, 7, 'asset-1', 'original', 42, {
       mediaType: 'image',
@@ -93,7 +93,7 @@ describe('ImmichPhotoProvider', () => {
     expect(immich.fetchImmichThumbnailBytes).toHaveBeenCalledWith(7, 'asset-1', 42);
   });
 
-  it('PROV-007: turns the service\'s {data,error} into a ServiceResult', async () => {
+  it("PROV-007: turns the service's {data,error} into a ServiceResult", async () => {
     immich.getAssetInfo.mockResolvedValue({ data: { id: 'a' } });
     expect(await immichProvider.getAssetInfo(ref)).toEqual({ success: true, data: { id: 'a' } });
 
@@ -113,10 +113,18 @@ describe('ImmichPhotoProvider', () => {
 });
 
 describe('SynologyPhotoProvider', () => {
-  it('PROV-008: maps the ref onto the service\'s (userId, ownerId, assetId) order', async () => {
+  it("PROV-008: maps the ref onto the service's (userId, ownerId, assetId) order", async () => {
     await synologyProvider.streamAsset(res, ref, 'thumbnail');
     // size stays undefined, as every caller left it.
-    expect(synology.streamSynologyAsset).toHaveBeenCalledWith(res, 7, 42, 'asset-1', 'thumbnail', undefined, 'share-pw');
+    expect(synology.streamSynologyAsset).toHaveBeenCalledWith(
+      res,
+      7,
+      42,
+      'asset-1',
+      'thumbnail',
+      undefined,
+      'share-pw',
+    );
 
     await synologyProvider.fetchThumbnailBytes(ref);
     expect(synology.fetchSynologyThumbnailBytes).toHaveBeenCalledWith(7, 42, 'asset-1', 'share-pw');

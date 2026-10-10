@@ -1,6 +1,22 @@
+import { DomainError } from './domain-error';
+import { ACCESS_LOG_ATTACHED, UNHANDLED_ERROR } from './request-correlation';
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
+
 import type { Response } from 'express';
 import { MulterError } from 'multer';
+
+/**
+ * Leave a server-side failure for the access log, which writes it together
+ * with the request line under the request's correlation id. False when no
+ * access log watches this response (a probe path, a hand-built test app), so
+ * the caller logs it itself.
+ */
+function handOverToAccessLog(res: Response, exception: unknown): boolean {
+  const locals = (res as Partial<Response>).locals;
+  if (!locals?.[ACCESS_LOG_ATTACHED]) return false;
+  locals[UNHANDLED_ERROR] = exception;
+  return true;
+}
 
 /**
  * Normalises every Nest exception to TREK's legacy error envelope so migrated
@@ -33,7 +49,7 @@ export class TrekExceptionFilter implements ExceptionFilter {
     //    branch's logging (including case 2's `status >= 500` log) — then
     //    destroy the socket so the connection doesn't hang open.
     if (res.headersSent) {
-      console.error('Unhandled error after headers sent:', exception);
+      if (!handOverToAccessLog(res, exception)) console.error('Unhandled error after headers sent:', exception);
       res.destroy();
       return;
     }
@@ -47,9 +63,22 @@ export class TrekExceptionFilter implements ExceptionFilter {
       return;
     }
 
+    // A service refusal: its status and its body, verbatim, whatever the
+    // status (the `{ error }` HttpException it replaces was passed through the
+    // same way). Checked before the generic HttpException branch so the body
+    // never depends on that branch's shape sniffing.
+    if (exception instanceof DomainError) {
+      if (exception.getStatus() >= 500) handOverToAccessLog(res, exception);
+      res.status(exception.getStatus()).json(exception.toBody());
+      return;
+    }
+
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const body = exception.getResponse();
+      // A deliberate 5xx used to leave no trace beyond its status line; its
+      // stack now rides along with that line.
+      if (status >= 500) handOverToAccessLog(res, exception);
 
       if (body && typeof body === 'object') {
         const obj = body as Record<string, unknown>;
@@ -78,7 +107,7 @@ export class TrekExceptionFilter implements ExceptionFilter {
     //    status = err.statusCode || err.status || 500; 4xx exposes err.message.
     const err = exception as { statusCode?: number; status?: number; message?: unknown } | null;
     const status = (err && (err.statusCode || err.status)) || 500;
-    if (status >= 500) console.error('Unhandled error:', exception);
+    if (status >= 500 && !handOverToAccessLog(res, exception)) console.error('Unhandled error:', exception);
     const message = status < 500 ? String(err?.message ?? 'Error') : 'Internal server error';
     res.status(status).json({ error: message });
   }

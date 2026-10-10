@@ -6,25 +6,38 @@
  * to the whole trip room, and because the logic now lives once in PackingService
  * instead of three times over.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { expectRegisteredProvider } from '../../helpers/module-providers';
-import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
-import { PackingRpc } from '../../../src/nest/packing/packing.rpc';
-import { PackingModule } from '../../../src/nest/packing/packing.module';
-import { PackingService } from '../../../src/nest/packing/packing.service';
-import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { PackingModule } from '../../../src/nest/packing/packing.module';
+import { PackingRpc } from '../../../src/nest/packing/packing.rpc';
+import { PackingService } from '../../../src/nest/packing/packing.service';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import type { RpcRequest, RpcError } from '../../../src/nest/plugins/protocol/envelope';
-import { makeDeps } from '../../helpers/rpc-host-deps';
+import type { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { notificationsStub } from '../../helpers/notifications';
+import { makeDeps } from '../../helpers/rpc-host-deps';
 
-const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-type Item = { id: number; name?: string; is_private?: number; owner_id?: number | null; recipients?: { user_id: number }[] };
+const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({
+  k: 'req',
+  id: 'x',
+  method,
+  params,
+});
+
+type Item = {
+  id: number;
+  name?: string;
+  is_private?: number;
+  owner_id?: number | null;
+  recipients?: { user_id: number }[];
+};
 
 /**
  * A REAL PackingService over a fake realtime, so the broadcast fan-out under test is
@@ -32,7 +45,21 @@ type Item = { id: number; name?: string; is_private?: number; owner_id?: number 
  */
 function build(opts: { canEdit?: boolean; before?: Item | undefined; updated?: Item | null } = {}) {
   const realtime = { broadcast: vi.fn() } as unknown as RealtimeService & { broadcast: ReturnType<typeof vi.fn> };
-  const packing = new PackingService({} as never, {} as never, realtime, notificationsStub());
+  const packing = new PackingService(
+    {} as never,
+    realtime,
+    notificationsStub(),
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
   const data = {
     listItems: vi.fn(() => [{ id: 70, name: 'Socks' }]),
     // The bodies here are the boring fixture; the item writes are typed as Item so a
@@ -41,24 +68,29 @@ function build(opts: { canEdit?: boolean; before?: Item | undefined; updated?: I
     createItem: vi.fn((_t: string, i: Record<string, unknown>): Item => ({ id: 70, ...i })),
     getItemPrivacy: vi.fn(() => opts.before),
     updateItem: vi.fn(() => (opts.updated === undefined ? { id: 70, is_private: 0 } : opts.updated)),
-    deleteItem: vi.fn((_t: string, id: string): Item | null => (id === '70' ? { id: 70, is_private: 0 } : null)),
+    // Plan 4 Task 8b (U6) — the id/bagId param is now a real number (num()-parsed
+    // in packing.rpc.ts, no longer String()-wrapped), so the fixture matches on 70/80.
+    deleteItem: vi.fn((_t: string, id: number): Item | null => (id === 70 ? { id: 70, is_private: 0 } : null)),
     listBags: vi.fn(() => [{ id: 80, name: 'Backpack' }]),
     createBag: vi.fn((_t: string, b: Record<string, unknown>) => ({ id: 80, ...b })),
-    updateBag: vi.fn((_t: string, id: string) => (id === '80' ? { id: 80 } : null)),
-    deleteBag: vi.fn((_t: string, id: string) => id === '80'),
-    setBagMembers: vi.fn((_t: string, id: string, ids: number[]) => (id === '80' ? { bagId: 80, members: ids } : null)),
+    updateBag: vi.fn((_t: string, id: number) => (id === 80 ? { id: 80 } : null)),
+    deleteBag: vi.fn((_t: string, id: number) => id === 80),
+    setBagMembers: vi.fn((_t: string, id: number, ids: number[]) => (id === 80 ? { bagId: 80, members: ids } : null)),
   };
   Object.assign(packing, data);
   const guards = new PluginGuards(
     {
-      canAccessTrip: vi.fn((tripId: number, userId: number) => (tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined)),
-      prepare: vi.fn(() => ({ get: () => ({ role: 'user' }) })),
-    } as unknown as DatabaseService,
+      findAccessible: vi.fn(async (tripId: number, userId: number) =>
+        tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined,
+      ),
+    } as unknown as TripsRepository,
     { checkPermission: vi.fn(() => opts.canEdit ?? true) } as unknown as PermissionsService,
     { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService,
+    { getRole: vi.fn(async () => 'user') } as unknown as UsersRepository,
   );
   const rpc = new PackingRpc(packing, realtime, guards);
-  const host = (...grants: string[]) => new PluginRpcHost('p', new Set(grants), makeDeps(), createTestPluginRegistry([rpc]));
+  const host = (...grants: string[]) =>
+    new PluginRpcHost('p', new Set(grants), makeDeps(), createTestPluginRegistry([rpc]));
   return { packing, data, realtime, rpc, host };
 }
 
@@ -73,7 +105,9 @@ describe('PackingRpc through the router', () => {
     expect((await host.dispatch(req('packing.list', { tripId: 1 }), 42)).ok).toBe(true);
     // The user id is handed through so the #858 visibility filter applies.
     expect(f.data.listItems).toHaveBeenCalledWith(1, 42);
-    expect(((await host.dispatch(req('packing.list', { tripId: 2 }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
+    expect(((await host.dispatch(req('packing.list', { tripId: 2 }), 42)) as RpcError).error.code).toBe(
+      'RESOURCE_FORBIDDEN',
+    );
   });
 
   it('PACKING-RPC-002 create needs the write grant, the edit right and a bound user', async () => {
@@ -81,20 +115,29 @@ describe('PackingRpc through the router', () => {
     const host = f.host('db:write:packing');
     expect((await host.dispatch(req('packing.create', { tripId: 1, input: { name: 'Socks' } }), 42)).ok).toBe(true);
     expect((await host.dispatch(req('packing.create', { tripId: 1, input: { name: '' } }), 42)).ok).toBe(false);
-    expect(((await host.dispatch(req('packing.create', { tripId: 2, input: { name: 'x' } }), 42)) as RpcError).error.code).toBe('RESOURCE_FORBIDDEN');
-    const noUser = (await host.dispatch(req('packing.create', { tripId: 1, input: { name: 'x' } }), undefined)) as RpcError;
+    expect(
+      ((await host.dispatch(req('packing.create', { tripId: 2, input: { name: 'x' } }), 42)) as RpcError).error.code,
+    ).toBe('RESOURCE_FORBIDDEN');
+    const noUser = (await host.dispatch(
+      req('packing.create', { tripId: 1, input: { name: 'x' } }),
+      undefined,
+    )) as RpcError;
     expect(noUser.error.message).toBe('packing item writes require an authenticated user context');
   });
 
   it('PACKING-RPC-003 db:read:packing does not unlock a write', async () => {
     const f = build();
-    const res = (await f.host('db:read:packing').dispatch(req('packing.create', { tripId: 1, input: { name: 'x' } }), 42)) as RpcError;
+    const res = (await f
+      .host('db:read:packing')
+      .dispatch(req('packing.create', { tripId: 1, input: { name: 'x' } }), 42)) as RpcError;
     expect(res.error.code).toBe('PERMISSION_DENIED');
   });
 
   it('PACKING-RPC-004 a missing item is RESOURCE_FORBIDDEN, naming it', async () => {
     const f = build({ updated: null });
-    const res = (await f.host('db:write:packing').dispatch(req('packing.update', { tripId: 1, itemId: 404, input: { name: 'x' } }), 42)) as RpcError;
+    const res = (await f
+      .host('db:write:packing')
+      .dispatch(req('packing.update', { tripId: 1, itemId: 404, input: { name: 'x' } }), 42)) as RpcError;
     expect(res.error.message).toBe('no packing item 404 on trip 1');
   });
 
@@ -103,33 +146,47 @@ describe('PackingRpc through the router', () => {
     const host = f.host('db:write:packing');
     expect((await host.dispatch(req('packing.listBags', { tripId: 1 }), 42)).ok).toBe(true);
     expect((await host.dispatch(req('packing.createBag', { tripId: 1, input: { name: 'Bag' } }), 42)).ok).toBe(true);
-    expect((await host.dispatch(req('packing.setBagMembers', { tripId: 1, bagId: 80, userIds: [5, 6] }), 42)).ok).toBe(true);
-    expect(f.data.setBagMembers).toHaveBeenCalledWith('1', '80', [5, 6]);
+    expect((await host.dispatch(req('packing.setBagMembers', { tripId: 1, bagId: 80, userIds: [5, 6] }), 42)).ok).toBe(
+      true,
+    );
+    expect(f.data.setBagMembers).toHaveBeenCalledWith('1', 80, [5, 6]);
   });
 
   it('PACKING-RPC-006 a bag name is required, and a missing bag is named', async () => {
     const f = build();
     const host = f.host('db:write:packing');
-    expect(((await host.dispatch(req('packing.createBag', { tripId: 1, input: { name: ' ' } }), 42)) as RpcError).error.message).toBe('bag name is required');
-    expect(((await host.dispatch(req('packing.updateBag', { tripId: 1, bagId: 404, input: {} }), 42)) as RpcError).error.message).toBe('no packing bag 404 on trip 1');
+    expect(
+      ((await host.dispatch(req('packing.createBag', { tripId: 1, input: { name: ' ' } }), 42)) as RpcError).error
+        .message,
+    ).toBe('bag name is required');
+    expect(
+      ((await host.dispatch(req('packing.updateBag', { tripId: 1, bagId: 404, input: {} }), 42)) as RpcError).error
+        .message,
+    ).toBe('no packing bag 404 on trip 1');
   });
 
   it('PACKING-RPC-007 non-numeric entries in userIds are dropped', async () => {
     const f = build();
-    await f.host('db:write:packing').dispatch(req('packing.setBagMembers', { tripId: 1, bagId: 80, userIds: [5, 'six', null, 6] }), 42);
-    expect(f.data.setBagMembers).toHaveBeenCalledWith('1', '80', [5, 6]);
+    await f
+      .host('db:write:packing')
+      .dispatch(req('packing.setBagMembers', { tripId: 1, bagId: 80, userIds: [5, 'six', null, 6] }), 42);
+    expect(f.data.setBagMembers).toHaveBeenCalledWith('1', 80, [5, 6]);
   });
 
   it('PACKING-RPC-007b a non-string bag colour is dropped rather than stored', async () => {
     const f = build();
-    await f.host('db:write:packing').dispatch(req('packing.createBag', { tripId: 1, input: { name: 'Bag', color: 42 } }), 42);
+    await f
+      .host('db:write:packing')
+      .dispatch(req('packing.createBag', { tripId: 1, input: { name: 'Bag', color: 42 } }), 42);
     expect(f.data.createBag).toHaveBeenCalledWith('1', { name: 'Bag', color: undefined });
   });
 
   it('PACKING-RPC-007c a non-array userIds becomes an empty list', async () => {
     const f = build();
-    await f.host('db:write:packing').dispatch(req('packing.setBagMembers', { tripId: 1, bagId: 80, userIds: 'nope' }), 42);
-    expect(f.data.setBagMembers).toHaveBeenCalledWith('1', '80', []);
+    await f
+      .host('db:write:packing')
+      .dispatch(req('packing.setBagMembers', { tripId: 1, bagId: 80, userIds: 'nope' }), 42);
+    expect(f.data.setBagMembers).toHaveBeenCalledWith('1', 80, []);
   });
 
   it('PACKING-RPC-007d a missing bag is refused across every bag write', async () => {
@@ -140,7 +197,9 @@ describe('PackingRpc through the router', () => {
       ['packing.deleteBag', { tripId: 1, bagId: 404 }],
       ['packing.setBagMembers', { tripId: 1, bagId: 404, userIds: [] }],
     ] as const) {
-      expect(((await host.dispatch(req(method, params), 42)) as RpcError).error.message).toBe('no packing bag 404 on trip 1');
+      expect(((await host.dispatch(req(method, params), 42)) as RpcError).error.message).toBe(
+        'no packing bag 404 on trip 1',
+      );
     }
   });
 
@@ -158,20 +217,36 @@ describe('PackingRpc through the router', () => {
   it('PACKING-RPC-007e an invalid item payload is BAD_PARAMS on create and update alike', async () => {
     const f = build();
     const host = f.host('db:write:packing');
-    expect(((await host.dispatch(req('packing.create', { tripId: 1, input: { name: 42 } }), 42)) as RpcError).error.code).toBe('BAD_PARAMS');
-    expect(((await host.dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { name: 42 } }), 42)) as RpcError).error.code).toBe('BAD_PARAMS');
+    expect(
+      ((await host.dispatch(req('packing.create', { tripId: 1, input: { name: 42 } }), 42)) as RpcError).error.code,
+    ).toBe('BAD_PARAMS');
+    expect(
+      ((await host.dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { name: 42 } }), 42)) as RpcError)
+        .error.code,
+    ).toBe('BAD_PARAMS');
   });
 
   it('PACKING-RPC-007f deleting a missing item is refused', async () => {
     const f = build();
-    const res = (await f.host('db:write:packing').dispatch(req('packing.delete', { tripId: 1, itemId: 404 }), 42)) as RpcError;
+    const res = (await f
+      .host('db:write:packing')
+      .dispatch(req('packing.delete', { tripId: 1, itemId: 404 }), 42)) as RpcError;
     expect(res.error.message).toBe('no packing item 404 on trip 1');
   });
 
   it('PACKING-RPC-018 create hands the widened fields through the schema (#2154)', async () => {
     const f = build();
-    await f.host('db:write:packing').dispatch(req('packing.create', { tripId: 1, input: { name: 'Tent', weight_grams: 250, bag_id: 19, quantity: 3 } }), 42);
-    expect(f.data.createItem).toHaveBeenCalledWith('1', { name: 'Tent', weight_grams: 250, bag_id: 19, quantity: 3 }, 42);
+    await f
+      .host('db:write:packing')
+      .dispatch(
+        req('packing.create', { tripId: 1, input: { name: 'Tent', weight_grams: 250, bag_id: 19, quantity: 3 } }),
+        42,
+      );
+    expect(f.data.createItem).toHaveBeenCalledWith(
+      '1',
+      { name: 'Tent', weight_grams: 250, bag_id: 19, quantity: 3 },
+      42,
+    );
   });
 
   it('PACKING-RPC-019 an off-trip bag is BAD_PARAMS on create and update alike, broadcasting nothing (#2154)', async () => {
@@ -179,12 +254,18 @@ describe('PackingRpc through the router', () => {
     const host = f.host('db:write:packing');
 
     f.data.createItem.mockReturnValueOnce({ invalidBag: true } as never);
-    const created = (await host.dispatch(req('packing.create', { tripId: 1, input: { name: 'Tent', bag_id: 404 } }), 42)) as RpcError;
+    const created = (await host.dispatch(
+      req('packing.create', { tripId: 1, input: { name: 'Tent', bag_id: 404 } }),
+      42,
+    )) as RpcError;
     expect(created.error.code).toBe('BAD_PARAMS');
     expect(created.error.message).toBe('no packing bag 404 on trip 1');
 
     f.data.updateItem.mockReturnValueOnce({ invalidBag: true } as never);
-    const updated = (await host.dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { bag_id: 404 } }), 42)) as RpcError;
+    const updated = (await host.dispatch(
+      req('packing.update', { tripId: 1, itemId: 70, input: { bag_id: 404 } }),
+      42,
+    )) as RpcError;
     expect(updated.error.code).toBe('BAD_PARAMS');
     expect(updated.error.message).toBe('no packing bag 404 on trip 1');
 
@@ -197,8 +278,15 @@ describe('PackingRpc through the router', () => {
     const host = f.host('db:write:packing');
     await host.dispatch(req('packing.createBag', { tripId: 1, input: { name: 'Bag', weight_limit_grams: 23000 } }), 42);
     expect(f.data.createBag).toHaveBeenCalledWith('1', { name: 'Bag', color: undefined, weight_limit_grams: 23000 });
-    await host.dispatch(req('packing.createBag', { tripId: 1, input: { name: 'Bag', weight_limit_grams: 'heavy' } }), 42);
-    expect(f.data.createBag).toHaveBeenLastCalledWith('1', { name: 'Bag', color: undefined, weight_limit_grams: undefined });
+    await host.dispatch(
+      req('packing.createBag', { tripId: 1, input: { name: 'Bag', weight_limit_grams: 'heavy' } }),
+      42,
+    );
+    expect(f.data.createBag).toHaveBeenLastCalledWith('1', {
+      name: 'Bag',
+      color: undefined,
+      weight_limit_grams: undefined,
+    });
   });
 
   it('PACKING-RPC-008 the class is listed in its module providers', () => {
@@ -222,7 +310,9 @@ describe('PackingRpc keeps private items off the room (#858)', () => {
   it('PACKING-RPC-010 a private item is created only for its owner and recipients', async () => {
     const f = build();
     f.data.createItem.mockReturnValueOnce({ id: 70, is_private: 1, owner_id: 42, recipients: [{ user_id: 7 }] });
-    await f.host('db:write:packing').dispatch(req('packing.create', { tripId: 1, input: { name: 'Gift', is_private: true } }), 42);
+    await f
+      .host('db:write:packing')
+      .dispatch(req('packing.create', { tripId: 1, input: { name: 'Gift', is_private: true } }), 42);
     // The item goes only to its viewers; the weight ping goes to the room and
     // says nothing at all (#2191) — that is exactly what makes it safe here.
     expect(fanout(f.realtime)).toEqual([
@@ -234,13 +324,17 @@ describe('PackingRpc keeps private items off the room (#858)', () => {
 
   it('PACKING-RPC-011 private stays private: an owner-only update, never a room event', async () => {
     const f = build({ before: { id: 70, is_private: 1 }, updated: { id: 70, is_private: 1, owner_id: 42 } });
-    await f.host('db:write:packing').dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { name: 'x' } }), 42);
+    await f
+      .host('db:write:packing')
+      .dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { name: 'x' } }), 42);
     expect(fanout(f.realtime)).toEqual([['packing:updated', 42]]);
   });
 
   it('PACKING-RPC-012 public to private: dropped from the room FIRST, then re-added for the owner', async () => {
     const f = build({ before: { id: 70, is_private: 0 }, updated: { id: 70, is_private: 1, owner_id: 42 } });
-    await f.host('db:write:packing').dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { is_private: true } }), 42);
+    await f
+      .host('db:write:packing')
+      .dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { is_private: true } }), 42);
     // The order matters: a member who already had the item must lose it before the
     // owner gets the private copy.
     expect(fanout(f.realtime)).toEqual([
@@ -251,7 +345,9 @@ describe('PackingRpc keeps private items off the room (#858)', () => {
 
   it('PACKING-RPC-013 private to public: created for the members who lacked it, then updated for all', async () => {
     const f = build({ before: { id: 70, is_private: 1 }, updated: { id: 70, is_private: 0 } });
-    await f.host('db:write:packing').dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { is_private: false } }), 42);
+    await f
+      .host('db:write:packing')
+      .dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { is_private: false } }), 42);
     expect(fanout(f.realtime)).toEqual([
       ['packing:created', undefined],
       ['packing:updated', undefined],
@@ -260,16 +356,22 @@ describe('PackingRpc keeps private items off the room (#858)', () => {
 
   it('PACKING-RPC-014 public stays public: one plain update to everyone', async () => {
     const f = build({ before: { id: 70, is_private: 0 }, updated: { id: 70, is_private: 0 } });
-    await f.host('db:write:packing').dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { name: 'x' } }), 42);
+    await f
+      .host('db:write:packing')
+      .dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { name: 'x' } }), 42);
     expect(fanout(f.realtime)).toEqual([['packing:updated', undefined]]);
   });
 
   it('PACKING-RPC-015 the privacy is read BEFORE the write, not after', async () => {
     const f = build({ before: { id: 70, is_private: 0 }, updated: { id: 70, is_private: 1, owner_id: 42 } });
-    await f.host('db:write:packing').dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { is_private: true } }), 42);
+    await f
+      .host('db:write:packing')
+      .dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { is_private: true } }), 42);
     // Reading it afterwards would report "already private" and skip the room delete,
     // leaving the item on every member's screen.
-    expect(f.data.getItemPrivacy.mock.invocationCallOrder[0]).toBeLessThan(f.data.updateItem.mock.invocationCallOrder[0]);
+    expect(f.data.getItemPrivacy.mock.invocationCallOrder[0]).toBeLessThan(
+      f.data.updateItem.mock.invocationCallOrder[0],
+    );
   });
 
   it('PACKING-RPC-016 deleting a private item tells only its viewers', async () => {
@@ -287,7 +389,9 @@ describe('PackingRpc keeps private items off the room (#858)', () => {
 
   it('PACKING-RPC-016b a stale-write conflict is BAD_PARAMS and broadcasts nothing', async () => {
     const f = build({ before: { id: 70, is_private: 0 }, updated: { conflict: true, server: { id: 70 } } as never });
-    const res = (await f.host('db:write:packing').dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { name: 'x' } }), 42)) as RpcError;
+    const res = (await f
+      .host('db:write:packing')
+      .dispatch(req('packing.update', { tripId: 1, itemId: 70, input: { name: 'x' } }), 42)) as RpcError;
     expect(res.error.code).toBe('BAD_PARAMS');
     expect(res.error.message).toBe('packing item was modified concurrently');
     expect(f.realtime.broadcast).not.toHaveBeenCalled();

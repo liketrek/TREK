@@ -1,39 +1,52 @@
-import archiver from 'archiver';
-import unzipper from 'unzipper';
-import path from 'path';
-import { pipeline } from 'node:stream/promises';
 import { readEnv } from '../../app-config';
-import fs from 'fs';
-import type Database from 'better-sqlite3';
-import { openDatabase } from '../../db/connection';
-import { db, closeDb, reinitialize } from '../../db/database';
-import { VALID_INTERVALS } from './auto-backup.settings';
+import { resolveDataPaths } from '../../app-config/data-paths';
+import { UserSessions } from '../../db/entities/UserSessions.entity';
+import type { CarriedUserSessionRow } from '../../db/repositories/UserSessions.repository';
+import { dbNow } from '../../db/types';
+import { logError, logWarn } from '../audit/audit-log.logger';
+import type { DatabaseBackupStrategy } from '../database/database-backup.interface';
 import { invalidatePermissionsCache } from '../permissions/permissions-cache';
+import { snapshotAllPluginDataDbs } from '../plugins/host/plugin-data.service';
 import { pluginsCodeRoot, pluginsDataRoot } from '../plugins/paths';
 import { stageExtractedPluginTrees, applyStagedRestoreNow } from '../plugins/plugin-backup';
-import { snapshotAllPluginDataDbs } from '../plugins/host/plugin-data.service';
-import type { Response } from 'express';
 import type { StorageService } from '../storage/storage.service';
 import { StorageInvalidKeyError } from '../storage/storage.types';
+import { VALID_INTERVALS } from './auto-backup.settings';
+import { extractBackupArchive } from './backup-archive';
+import { RequestContext } from '@mikro-orm/core';
+
+import archiver from 'archiver';
+import type { Response } from 'express';
+import fs from 'fs';
+import { pipeline } from 'node:stream/promises';
+import path from 'path';
 
 // ---------------------------------------------------------------------------
 // Paths
 // ---------------------------------------------------------------------------
 
-const dataDir = path.join(__dirname, '../../../data');
+/**
+ * What a backup and a restore work with: the storage facade for the archives
+ * and the uploads, and the database port for the database itself. BackupService
+ * injects both and hands them in.
+ */
+export interface BackupDeps {
+  storage: StorageService;
+  database: DatabaseBackupStrategy;
+}
+
+const describeError = (err: unknown): string => (err instanceof Error ? err.message : String(err));
+
+// The scratch and key directory. The database itself may live elsewhere
+// (TREK_DB_FILE); the database port knows where.
+const { dataDir, encryptionKeyFile } = resolveDataPaths();
+const PRECOMPRESSED = /\.(jpe?g|png|webp|gif|heic|heif|avif|mp4|mov|m4v|webm|pdf|zip|gz)$/i;
 
 // Compressed upload cap for restore archives. Defaults to 500 MB, raisable via
 // BACKUP_UPLOAD_LIMIT_MB for instances whose backups (uploads/ included) grow
-// past that. Malformed values abort boot (app-config fail-fast validation);
-// frozen at import on purpose (legacy timing).
-const backupEnv = readEnv().backup;
-export const MAX_BACKUP_UPLOAD_SIZE = backupEnv.uploadLimitMb * 1024 * 1024; // compressed
-// Upper bound on the TOTAL decompressed size of a restore archive (the upload
-// limit only caps the compressed bytes). Default 5 GB, raisable via
-// BACKUP_MAX_DECOMPRESSED_MB for an instance whose own backups (now including the
-// plugin trees) legitimately grow past it — otherwise its own backups become
-// unrestorable.
-export const MAX_BACKUP_DECOMPRESSED_SIZE = backupEnv.maxDecompressedMb * 1024 * 1024;
+// past that. Upper bound on the TOTAL decompressed size: default 5 GB, raisable
+// via BACKUP_MAX_DECOMPRESSED_MB. Both live beside the archive reader now.
+export { MAX_BACKUP_UPLOAD_SIZE, MAX_BACKUP_DECOMPRESSED_SIZE } from './backup-archive';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -64,10 +77,7 @@ export function parseAutoBackupBody(body: Record<string, unknown>): {
 } {
   const enabled = body.enabled === true || body.enabled === 'true' || body.enabled === 1;
   const rawInterval = body.interval;
-  const interval =
-    typeof rawInterval === 'string' && VALID_INTERVALS.includes(rawInterval)
-      ? rawInterval
-      : 'daily';
+  const interval = typeof rawInterval === 'string' && VALID_INTERVALS.includes(rawInterval) ? rawInterval : 'daily';
   const keep_days = Math.max(0, parseIntField(body.keep_days, 7));
   const hour = Math.min(23, Math.max(0, parseIntField(body.hour, 2)));
   const day_of_week = Math.min(6, Math.max(0, parseIntField(body.day_of_week, 0)));
@@ -162,7 +172,10 @@ export const BACKUP_UPLOAD_CATEGORIES = ['files', 'journey', 'covers', 'avatars'
  * only auto-backup-*.zip, and the admin panel badges them as automatic. Manual
  * backups keep the default.
  */
-export async function createBackup(storage: StorageService, prefix: 'backup' | 'auto-backup' = 'backup'): Promise<BackupInfo> {
+export async function createBackup(
+  { storage, database }: BackupDeps,
+  prefix: 'backup' | 'auto-backup' = 'backup',
+): Promise<BackupInfo> {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const filename = `${prefix}-${timestamp}.zip`;
   // All staging lives in the backups backend's own spool: same volume as the
@@ -181,7 +194,15 @@ export async function createBackup(storage: StorageService, prefix: 'backup' | '
   const stagingDir = path.join(spoolDir, `staging-${prefix}-${timestamp}`);
 
   try {
-    try { db.exec('PRAGMA wal_checkpoint(TRUNCATE)'); } catch (e) {}
+    // Flush the WAL first, so the snapshot below has less to copy from it.
+    // Best effort: the snapshot is consistent either way.
+    try {
+      await database.checkpoint();
+    } catch (e) {
+      logWarn(
+        `Backup: the WAL checkpoint before the snapshot failed (${describeError(e)}), taking the snapshot anyway`,
+      );
+    }
 
     // Enumerate the archived categories up front (the archiver reads entries
     // lazily during finalize(), so the promise executor below must stay
@@ -216,6 +237,33 @@ export async function createBackup(storage: StorageService, prefix: 'backup' | '
       }
     }
 
+    // Archive a point-in-time snapshot, never the live file. The archiver reads
+    // entries lazily during finalize(), so a WAL auto-checkpoint writing pages
+    // back into the live file mid-stream would tear the archived copy, and the
+    // -wal that would make it recoverable is not in the zip. Taken HERE, before
+    // the promise executor below, because the executor must stay synchronous.
+    //
+    // A snapshot that fails fails the backup. It used to fall back to archiving
+    // the live file, which is exactly the torn copy the snapshot exists to
+    // prevent, and it did so without a word in the log. Now nothing is
+    // archived, nothing is committed to the backups store (the finally below
+    // removes the half-built spool), the existing backups stay as they were,
+    // and the reason is logged.
+    const hasDatabase = database.canSnapshot();
+    if (hasDatabase) {
+      fs.rmSync(dbSnap, { force: true });
+      try {
+        await database.snapshot(dbSnap);
+      } catch (e) {
+        logError(
+          `Backup: could not take a snapshot of the database at ${database.location()} (${describeError(e)}). No backup was written.`,
+        );
+        throw new Error(`Database snapshot failed: ${describeError(e)}`, { cause: e });
+      }
+    } else {
+      logWarn(`Backup: no database file at ${database.location()}, this backup holds no database`);
+    }
+
     await new Promise<void>((resolve, reject) => {
       const output = fs.createWriteStream(zipSpool);
       const archive = archiver('zip', { zlib: { level: 9 } });
@@ -230,23 +278,8 @@ export async function createBackup(storage: StorageService, prefix: 'backup' | '
 
       archive.pipe(output);
 
-      const dbPath = path.join(dataDir, 'travel.db');
-      if (fs.existsSync(dbPath)) {
-        // Archive a point-in-time snapshot, not the live file. The archiver reads entries
-        // lazily during finalize(), so a WAL auto-checkpoint writing pages back into
-        // travel.db mid-stream would tear the archived copy — and the -wal that would make
-        // it recoverable isn't in the zip. VACUUM INTO takes a consistent snapshot even
-        // under concurrent writes — the same guarantee the plugin DBs get below.
-        let dbToArchive = dbPath;
-        try {
-          if (fs.existsSync(dbSnap)) fs.rmSync(dbSnap, { force: true });
-          db.exec(`VACUUM INTO '${dbSnap.replaceAll("'", "''")}'`);
-          dbToArchive = dbSnap;
-        } catch (e) {
-          // Snapshot failed (disk/lock) — fall back to the checkpointed live file rather
-          // than drop the core DB from the backup entirely.
-        }
-        archive.file(dbToArchive, { name: 'travel.db' });
+      if (hasDatabase) {
+        archive.file(dbSnap, { name: database.archiveEntry });
       }
 
       // Bundle the at-rest encryption key so the backup is self-contained: the
@@ -255,18 +288,23 @@ export async function createBackup(storage: StorageService, prefix: 'backup' | '
       // them. NOTE: this makes the backup file as sensitive as the key itself —
       // store/transfer it securely. Skipped when ENCRYPTION_KEY is provided via
       // env, since in that case the file is not the source of truth.
-      const encKeyPath = path.join(dataDir, '.encryption_key');
+      const encKeyPath = encryptionKeyFile;
       if (!readEnv().backup.encryptionKeyFromEnv && fs.existsSync(encKeyPath)) {
         archive.file(encKeyPath, { name: '.encryption_key' });
       }
 
-      for (const entry of uploadEntries) archive.file(entry.absPath, { name: entry.name });
+      // Photos, videos and PDFs are compressed already; deflating them at level
+      // 9 costs most of a backup's CPU time for a few bytes. They are stored.
+      for (const entry of uploadEntries) {
+        const data: archiver.ZipEntryData = { name: entry.name, store: PRECOMPRESSED.test(entry.name) };
+        archive.file(entry.absPath, data);
+      }
 
       // Plugin data — each plugin's own SQLite file and any blobs. This is the ONLY
       // copy of the user data a plugin holds, so it belongs in the backup. Checkpoint
       // every open handle first (the host keeps them open in WAL mode) so the archived
       // .db files are complete snapshots and not missing recent commits stranded in a
-      // -wal sidecar — the same treatment travel.db gets above.
+      // -wal sidecar, the same treatment the core database gets above.
       const pdata = pluginsDataRoot();
       if (fs.existsSync(pdata)) {
         // Archive a consistent point-in-time snapshot, not the live files: the archiver
@@ -286,14 +324,24 @@ export async function createBackup(storage: StorageService, prefix: 'backup' | '
         for (const entry of fs.readdirSync(pcode)) {
           const dir = path.join(pcode, entry);
           let real: string;
-          try { real = fs.realpathSync(dir); } catch { continue; }
+          try {
+            real = fs.realpathSync(dir);
+          } catch {
+            continue;
+          }
           if (!real.startsWith(realRoot + path.sep)) continue; // dev-link points outside → skip
-          try { if (!fs.statSync(dir).isDirectory()) continue; } catch { continue; }
+          try {
+            if (!fs.statSync(dir).isDirectory()) continue;
+          } catch {
+            continue;
+          }
           archive.directory(dir, `plugins-code/${entry}`);
         }
       }
 
-      archive.finalize();
+      // finalize() is async: without this catch a failure that never reached the
+      // 'error' listener above would hang this promise and reject unobserved.
+      archive.finalize().catch(reject);
     });
 
     // The commit — and, under a mirror backend, the replica fan-out point.
@@ -335,8 +383,8 @@ export interface RestoreResult {
 /** Restore a zip that already sits in the backups store, reading it through
  *  the storage facade (primary-local in v1; a remote backend downloads to
  *  tempDir via withLocalFile — the seam is in place, resumability is not). */
-export function restoreBackup(storage: StorageService, filename: string): Promise<RestoreResult> {
-  return storage.withLocalFile('backups', filename, (zipPath) => restoreFromZip(storage, zipPath));
+export function restoreBackup(deps: BackupDeps, filename: string): Promise<RestoreResult> {
+  return deps.storage.withLocalFile('backups', filename, (zipPath) => restoreFromZip(deps, zipPath));
 }
 
 const isBackupCategory = (dir: string): dir is (typeof BACKUP_UPLOAD_CATEGORIES)[number] =>
@@ -350,7 +398,7 @@ const isBackupCategory = (dir: string): dir is (typeof BACKUP_UPLOAD_CATEGORIES)
  * with a warning (2026-08-17 decision): new archives never contain them, and
  * the category mapping stays structural in both directions.
  */
-async function rehydrateUploads(storage: StorageService, extractedUploads: string): Promise<void> {
+export async function rehydrateUploads(storage: StorageService, extractedUploads: string): Promise<void> {
   const walk = (dir: string): string[] =>
     fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
       const p = path.join(dir, e.name);
@@ -376,108 +424,66 @@ async function rehydrateUploads(storage: StorageService, extractedUploads: strin
   }
 }
 
-export async function restoreFromZip(storage: StorageService, zipPath: string): Promise<RestoreResult> {
-  const extractDir = path.join(dataDir, `restore-${Date.now()}`);
-  let reinitFailed: unknown = null;
+/**
+ * The sessions signed in right now, read before the swap. The restored file
+ * brings the backup's own `user_sessions` rows (none at all for a backup from
+ * before sessions were tracked), and a session token whose row is missing is
+ * refused, so without carrying these across the admin who ran the restore and
+ * everybody else would be signed out by it. Best effort, like the snapshot:
+ * a missing request context or an unreadable table carries nothing.
+ */
+async function readSessionsToCarry(): Promise<CarriedUserSessionRow[]> {
   try {
-    // Fast reject on the central-directory's declared size, then extract entry-by-entry
-    // enforcing the ACTUAL decompressed bytes. The declared uncompressedSize is
-    // attacker-declarable — a zip bomb can under-report it and expand past the cap during
-    // extraction — so the real guard counts bytes as they are written and aborts once the
-    // running total crosses the cap. Each entry's resolved path is also confined to
-    // extractDir (a `../` entry that escaped the root — zip-slip — is refused).
-    const directory = await unzipper.Open.file(zipPath);
-    const claimedSize = directory.files.reduce((sum, f) => sum + (f.uncompressedSize || 0), 0);
-    if (claimedSize > MAX_BACKUP_DECOMPRESSED_SIZE) {
-      return { success: false, error: 'Backup exceeds the maximum decompressed size.', status: 400 };
-    }
+    const em = RequestContext.getEntityManager();
+    if (!em) return [];
+    return await em.getRepository(UserSessions).listActiveToCarry(dbNow());
+  } catch (err) {
+    logWarn(`Restore: could not read the active sessions (${err instanceof Error ? err.message : String(err)})`);
+    return [];
+  }
+}
 
-    fs.mkdirSync(extractDir, { recursive: true });
-    let decompressedBytes = 0;
-    for (const entry of directory.files) {
-      if (entry.type === 'Directory') continue;
-      const dest = path.join(extractDir, entry.path);
-      const rel = path.relative(extractDir, dest);
-      if (rel.startsWith('..') || path.isAbsolute(rel)) {
-        fs.rmSync(extractDir, { recursive: true, force: true });
-        return { success: false, error: 'Invalid backup: an entry path escapes the archive root.', status: 400 };
-      }
-      fs.mkdirSync(path.dirname(dest), { recursive: true });
-      try {
-        await new Promise<void>((resolve, reject) => {
-          const source = entry.stream();
-          const out = fs.createWriteStream(dest);
-          source.on('data', (chunk: Buffer) => {
-            decompressedBytes += chunk.length;
-            if (decompressedBytes > MAX_BACKUP_DECOMPRESSED_SIZE) {
-              source.destroy();
-              out.destroy();
-              reject(new Error('DECOMPRESSED_CAP_EXCEEDED'));
-            }
-          });
-          source.on('error', reject);
-          out.on('error', reject);
-          out.on('finish', resolve);
-          source.pipe(out);
-        });
-      } catch (err) {
-        fs.rmSync(extractDir, { recursive: true, force: true });
-        if (err instanceof Error && err.message === 'DECOMPRESSED_CAP_EXCEEDED') {
-          return { success: false, error: 'Backup exceeds the maximum decompressed size.', status: 400 };
-        }
-        throw err;
-      }
-    }
+/**
+ * Put the carried sessions into the restored database, in a fresh fork so no
+ * entity read from the replaced file is flushed into it. Only a session whose
+ * user is still there under the same id and email comes back; the password
+ * version check still refuses a token the restored account no longer matches.
+ */
+async function restoreCarriedSessions(rows: readonly CarriedUserSessionRow[]): Promise<void> {
+  const em = RequestContext.getEntityManager();
+  if (!em || rows.length === 0) return;
+  try {
+    await RequestContext.create(em, async () => {
+      const fresh = RequestContext.getEntityManager() ?? em;
+      await fresh.getRepository(UserSessions).restoreCarried(rows);
+    });
+  } catch (err) {
+    logWarn(`Restore: could not keep the active sessions (${err instanceof Error ? err.message : String(err)})`);
+  }
+}
 
-    const extractedDb = path.join(extractDir, 'travel.db');
-    if (!fs.existsSync(extractedDb)) {
+export async function restoreFromZip({ storage, database }: BackupDeps, zipPath: string): Promise<RestoreResult> {
+  const extractDir = path.join(dataDir, `restore-${Date.now()}`);
+  let reinitFailed: unknown;
+  try {
+    const refused = await extractBackupArchive(zipPath, extractDir);
+    if (refused) return { success: false, ...refused };
+
+    const unreadable = database.verify(extractDir);
+    if (unreadable) {
       fs.rmSync(extractDir, { recursive: true, force: true });
-      return { success: false, error: 'Invalid backup: travel.db not found', status: 400 };
+      return { success: false, ...unreadable };
     }
 
-    let uploadedDb: InstanceType<typeof Database> | null = null;
-    try {
-      uploadedDb = openDatabase(extractedDb, { readonly: true });
-
-      const integrityResult = uploadedDb.prepare('PRAGMA integrity_check').get() as { integrity_check: string };
-      if (integrityResult.integrity_check !== 'ok') {
-        fs.rmSync(extractDir, { recursive: true, force: true });
-        return { success: false, error: `Uploaded database failed integrity check: ${integrityResult.integrity_check}`, status: 400 };
-      }
-
-      const requiredTables = ['users', 'trips', 'trip_members', 'places', 'days'];
-      const existingTables = uploadedDb
-        .prepare("SELECT name FROM sqlite_master WHERE type='table'")
-        .all() as { name: string }[];
-      const tableNames = new Set(existingTables.map(t => t.name));
-      for (const table of requiredTables) {
-        if (!tableNames.has(table)) {
-          fs.rmSync(extractDir, { recursive: true, force: true });
-          return { success: false, error: `Uploaded database is missing required table: ${table}. This does not appear to be a TREK backup.`, status: 400 };
-        }
-      }
-    } catch (err) {
-      fs.rmSync(extractDir, { recursive: true, force: true });
-      return { success: false, error: 'Uploaded file is not a valid SQLite database', status: 400 };
-    } finally {
-      uploadedDb?.close();
-    }
-
-    closeDb();
+    await database.keepCopyBeforeRestore();
+    const liveSessions = await readSessionsToCarry();
 
     try {
-      const dbDest = path.join(dataDir, 'travel.db');
-      // Swap the core DB atomically: copy the restored DB to a temp file on the SAME
-      // filesystem, drop the old -wal/-shm sidecars (they belong to the DB being replaced
-      // and would corrupt the new one if left), then rename into place. A rename is atomic,
-      // so a crash mid-swap leaves either the old or the new travel.db intact — never the
-      // deleted-and-not-yet-copied gap that a plain unlink-then-copy could leave.
-      const dbTmp = dbDest + '.restore-tmp';
-      fs.copyFileSync(extractedDb, dbTmp);
-      for (const ext of ['-wal', '-shm']) {
-        try { fs.unlinkSync(dbDest + ext); } catch (e) {}
-      }
-      fs.renameSync(dbTmp, dbDest);
+      // Closes the connection, swaps the database in and reopens it, migrating
+      // the restored file forward. The reopen runs even when the swap throws; a
+      // reopen failure comes back here instead of propagating, because the
+      // files already landed and that has to be reported as "restart required".
+      ({ reopenError: reinitFailed } = await database.replace(path.join(extractDir, database.archiveEntry)));
 
       // Restore the bundled at-rest encryption key (if the archive carries one)
       // so the restored DB's encrypted secrets can be decrypted. Only the file
@@ -486,36 +492,33 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
       // still overrides the file).
       const extractedEncKey = path.join(extractDir, '.encryption_key');
       if (fs.existsSync(extractedEncKey)) {
-        fs.copyFileSync(extractedEncKey, path.join(dataDir, '.encryption_key'));
+        fs.copyFileSync(extractedEncKey, encryptionKeyFile);
       }
     } finally {
-      // Reopening the DB must always run (even if the copy above threw) so the
-      // process is never left without a connection. Capture a reopen failure
-      // instead of letting it propagate as a generic error — a backup whose
-      // files already landed on disk but whose connection failed to reopen
-      // needs to be reported as "restart required", not swallowed.
-      try {
-        reinitialize();
-      } catch (reinitErr) {
-        reinitFailed = reinitErr;
-      }
       // The restored DB has different permission-override rows from
       // the pre-restore DB, but our process-local permissions cache
       // still holds the pre-restore state. Any request using a cached
       // permission would decide against the wrong grants until the
       // next restart. Dropping the cache forces a fresh read.
-      invalidatePermissionsCache();
+      // D6: no repository read happens on this path today. The flush goes to
+      // the store PermissionsModule installed (permissionsCacheSlot), and the
+      // in-memory one makes no DB call, so no withRequestContext is owed here
+      // yet. A store that reads the database, or the domain phase that gives
+      // this restore path a repository read (Plan 3's admin/backup cluster),
+      // must wrap it then; see task-2-review.md's non-HTTP caller table.
+      await invalidatePermissionsCache();
     }
 
     if (!reinitFailed) {
       // The registry reads storage.* app_settings through the DB handle that
-      // was just closed and reopened above — reload it now, AFTER reinitialize()
+      // was just closed and reopened above. Reload it now, AFTER the reopen
       // and BEFORE any byte moves, so rehydrated uploads land where the RESTORED
       // config says rather than the stale pre-restore one (audit #4). Skipped
       // entirely when reopen failed: with no live DB handle the registry has
       // nothing to read, and the restore is already reported as "restart
       // required" below — rehydrating into a stale/guessed config would be worse.
-      storage.reloadConfig();
+      await storage.reloadConfig();
+      await restoreCarriedSessions(liveSessions);
 
       const extractedUploads = path.join(extractDir, 'uploads');
       if (fs.existsSync(extractedUploads)) {
@@ -525,7 +528,9 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
         for (const category of BACKUP_UPLOAD_CATEGORIES) {
           for await (const obj of storage.list(category)) {
             if (obj.key.includes('/')) continue;
-            await storage.delete(category, obj.key).catch(() => { /* best-effort, as the old unlink loop was */ });
+            await storage.delete(category, obj.key).catch(() => {
+              /* best-effort, as the old unlink loop was */
+            });
           }
         }
         await rehydrateUploads(storage, extractedUploads);
@@ -543,7 +548,7 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
     // an un-staged tree there would be gone for good with no recovery path.
     try {
       stageExtractedPluginTrees(extractDir);
-      // Quiesce regardless of whether trees were staged: the restored travel.db carries
+      // Quiesce regardless of whether trees were staged: the restored database carries
       // a different `plugins` table, so any plugin still running with its pre-restore
       // identity/grants is now a ghost — invisible in the restored UI, unstoppable short
       // of a process restart. applyStagedRestoreNow closes those handles; the tree swap
@@ -558,7 +563,12 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
     fs.rmSync(extractDir, { recursive: true, force: true });
     if (reinitFailed) {
       console.error('Restore: database reopen failed after file swap:', reinitFailed);
-      return { success: false, error: 'Backup files were restored but the database connection could not be reopened. Restart the server to finish the restore.', status: 500 };
+      return {
+        success: false,
+        error:
+          'Backup files were restored but the database connection could not be reopened. Restart the server to finish the restore.',
+        status: 500,
+      };
     }
     return { success: true };
   } catch (err: unknown) {
@@ -570,7 +580,13 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
     // stale anyway. Invalidating here too costs nothing and guarantees
     // we never serve cached permissions that don't match the DB state
     // we leave the process in after a failed restore.
-    try { invalidatePermissionsCache(); } catch { /* best-effort */ }
+    // D6: same no-repository-read note as the other invalidatePermissionsCache()
+    // call above — nothing to wrap yet.
+    try {
+      await invalidatePermissionsCache();
+    } catch {
+      /* best-effort */
+    }
     throw err;
   }
 }
@@ -582,4 +598,3 @@ export async function restoreFromZip(storage: StorageService, zipPath: string): 
 export function deleteBackup(storage: StorageService, filename: string): Promise<void> {
   return storage.delete('backups', filename);
 }
-

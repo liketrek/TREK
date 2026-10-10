@@ -1,20 +1,24 @@
-import { Module } from '@nestjs/common';
-import { JourneyController } from './journey.controller';
-import { JourneyPublicController } from './journey-public.controller';
-import { JourneyService } from './journey.service';
-import { JourneyBookService } from './journey-book.service';
+import { JourneyBooks } from '../../db/entities/JourneyBooks.entity';
+import { Users } from '../../db/entities/Users.entity';
 import { AddonsModule } from '../addons/addons.module';
-import { MemoriesModule } from '../memories/memories.module';
-import { JourneyDomainModule } from './journey-domain.module';
-import { JourneyMcp } from './journey.mcp';
-import { AuthModule } from '../auth/auth.module';
-import { MulterModule } from '@nestjs/platform-express';
+import { UserConnectionRepositoriesModule } from '../database/user-connection-repositories.module';
 import { AllowedFileTypesModule } from '../files/allowed-file-types.module';
 import { AllowedFileTypesService } from '../files/allowed-file-types.service';
+import { MemoriesModule } from '../memories/memories.module';
+import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
 import { StorageModule } from '../storage/storage.module';
 import { StorageService } from '../storage/storage.service';
-import { buildStorageUploadOptions } from '../storage/storage-upload.factory';
+import { JourneyBookService } from './journey-book.service';
+import { JourneyDomainModule } from './journey-domain.module';
+import { JourneyPhotoCaptureModule } from './journey-photo-capture.module';
+import { JourneyPublicController } from './journey-public.controller';
+import { JourneyController } from './journey.controller';
 import { journeyImageFileFilter, journeyUploadFilename } from './journey.controller';
+import { JourneyMcp } from './journey.mcp';
+import { JourneyService } from './journey.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
+import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
   // MemoriesModule: the journey gallery streams provider assets and uploads to Immich.
@@ -33,7 +37,19 @@ import { journeyImageFileFilter, journeyUploadFilename } from './journey.control
         }),
     }),
     StorageModule,
-    AuthModule, AddonsModule, MemoriesModule, JourneyDomainModule],
+    AddonsModule,
+    MemoriesModule,
+    JourneyDomainModule,
+    JourneyPhotoCaptureModule,
+    // JourneyService's JV1 read (`UserImmichRepository.getImmichAutoUpload`).
+    UserConnectionRepositoriesModule,
+    // Plan 3g Task 3: `JourneyService` (JV1, now through the module above)
+    // and `JourneyBookService` (JB1-JB7, `JourneyBooksRepository`) both
+    // constructed HERE — `@InjectRepository` resolves from this module's own
+    // `forFeature` graph, not from `AuthModule`'s (which registers `Users`
+    // for its own providers only, per that module's own docstring).
+    MikroOrmModule.forFeature([Users, JourneyBooks]),
+  ],
   controllers: [JourneyController, JourneyPublicController],
   providers: [JourneyService, JourneyBookService, JourneyMcp],
 })

@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Abbrechen',
   'common.clear': 'Löschen',
   'common.delete': 'Löschen',
+  'common.remove': 'Entfernen',
   'common.preview': 'Vorschau',
   'common.edit': 'Bearbeiten',
   'common.add': 'Hinzufügen',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': 'Umbenennen',
   'common.discardChanges': 'Änderungen verwerfen',
   'common.discard': 'Verwerfen',
+  'common.unsavedTitle': 'Änderungen verwerfen?',
+  'common.unsavedMessage': 'Was du hier eingegeben hast, ist noch nicht gespeichert.',
+  'common.keepEditing': 'Weiter bearbeiten',
   'common.name': 'Name',
   'common.email': 'E-Mail',
   'common.password': 'Passwort',
@@ -43,7 +47,9 @@ const common: TranslationStrings = {
   'common.collapse': 'Einklappen',
   'common.justNow': 'gerade eben',
   'common.hoursAgo': 'vor {count}h',
+  'common.hoursAgo.one': 'vor {count}h',
   'common.daysAgo': 'vor {count}T',
+  'common.daysAgo.one': 'vor {count}T',
   'common.saved': 'Gespeichert',
   'common.update': 'Aktualisieren',
   'common.change': 'Ändern',
@@ -71,7 +77,8 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Erneut versuchen',
   'common.errorReload': 'Seite neu laden',
   'common.errorUpdateTitle': 'Eine neue Version ist verfügbar',
-  'common.errorUpdateBody': 'TREK wurde aktualisiert, während dieser Tab offen war. Lade neu, um die neue Version zu erhalten.',
+  'common.errorUpdateBody':
+    'TREK wurde aktualisiert, während dieser Tab offen war. Lade neu, um die neue Version zu erhalten.',
   'common.errorPluginTitle': 'Dieses Plugin konnte nicht angezeigt werden',
 };
 export default common;

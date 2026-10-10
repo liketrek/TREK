@@ -4,45 +4,30 @@
  * /unified/trips/:tripId/album-links routes.
  *
  * No real HTTP is made — safeFetch is mocked to never be called.
- * The broadcast WebSocket call is no-op mocked.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
+import { TrekPhotos } from '../../src/db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../src/db/entities/TripPhotos.entity';
+import { authCookie } from '../helpers/auth';
+import { createUser, createTrip, addTripMember, addTripPhoto, addAlbumLink } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { findRow, findRows, updateRows } from '../helpers/factories/rows';
+import { resetTestDb, resetRateLimits, setAddonEnabled } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ── Hoisted DB mock ──────────────────────────────────────────────────────────
 
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: () => null,
-    canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
-    isOwner: (tripId: any, userId: number) =>
-      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
 });
-
-vi.mock('../../src/db/database', () => dbMock);
-vi.mock('../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-  SESSION_DURATION: '24h',
-  SESSION_DURATION_MS: 86400000,
-  SESSION_DURATION_SECONDS: 86400,
-  DEFAULT_LANGUAGE: 'en',
-}));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
 vi.mock('../../src/utils/ssrfGuard', async () => {
   const actual = await vi.importActual<typeof import('../../src/utils/ssrfGuard')>('../../src/utils/ssrfGuard');
   return {
@@ -52,30 +37,42 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
   };
 });
 
-import { buildApp } from '../../src/bootstrap';
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb, resetRateLimits, setAddonEnabled } from '../helpers/test-db';
-import { createUser, createTrip, addTripMember, addTripPhoto, addAlbumLink } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-
 let nestApp: INestApplication;
 let app: Application;
 
 const BASE = '/api/integrations/memories/unified';
 
 beforeAll(async () => {
-  createTables(testDb);
-  runMigrations(testDb);
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
 });
 
-beforeEach(() => {
+/** The app's own ORM, which the factories seed and read through. */
+const orm = (): FactoryOrm => nestApp.get(MikroORM);
+
+/** The trip_photos row pointing at the registered photo `assetId`, on `tripId` when given. */
+async function tripPhotoOf(assetId: string, tripId?: number) {
+  const photoIds = (await findRows(orm(), TrekPhotos, { asset_id: assetId })).map((p) => p.id);
+  return findRow(orm(), TripPhotos, { photo: { $in: photoIds }, ...(tripId !== undefined ? { trip: tripId } : {}) });
+}
+
+/** The trip_photos row for `assetId` on `tripId`; fails the case when there is none. */
+async function requireTripPhoto(assetId: string, tripId: number) {
+  const row = await tripPhotoOf(assetId, tripId);
+  if (!row) throw new Error(`no trip photo ${assetId} on trip ${tripId}`);
+  return row;
+}
+
+beforeEach(async () => {
   resetTestDb(testDb);
-  resetRateLimits(nestApp);
+  await resetRateLimits(nestApp);
   // Providers only count as enabled under an enabled journey addon (migration 84 seeds it off).
   setAddonEnabled(testDb, 'journey', true);
+  // The migrated snapshot seeds photo_providers.immich.enabled = 0 (an admin must
+  // configure it before it's usable in production); the legacy test helper always
+  // seeded it enabled, which is what these tests assume. Same convention
+  // memories-synology.test.ts already uses for its own provider.
+  await updateRows(orm(), PhotoProviders, { id: 'immich' }, { enabled: 1 });
 });
 
 afterAll(async () => {
@@ -85,7 +82,9 @@ afterAll(async () => {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function photosUrl(tripId: number) { return `${BASE}/trips/${tripId}/photos`; }
+function photosUrl(tripId: number) {
+  return `${BASE}/trips/${tripId}/photos`;
+}
 function albumLinksUrl(tripId: number, linkId?: number) {
   return linkId ? `${BASE}/trips/${tripId}/album-links/${linkId}` : `${BASE}/trips/${tripId}/album-links`;
 }
@@ -103,9 +102,7 @@ describe('Unified photo management', () => {
     addTripPhoto(testDb, trip.id, owner.id, 'asset-own', 'immich', { shared: false });
     addTripPhoto(testDb, trip.id, member.id, 'asset-shared', 'immich', { shared: true });
 
-    const res = await request(app)
-      .get(photosUrl(trip.id))
-      .set('Cookie', authCookie(owner.id));
+    const res = await request(app).get(photosUrl(trip.id)).set('Cookie', authCookie(owner.id));
 
     expect(res.status).toBe(200);
     const ids = (res.body.photos as any[]).map((p: any) => p.asset_id);
@@ -113,7 +110,7 @@ describe('Unified photo management', () => {
     expect(ids).toContain('asset-shared');
   });
 
-  it('UNIFIED-002 — GET photos excludes other members\' private photos', async () => {
+  it("UNIFIED-002 — GET photos excludes other members' private photos", async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
@@ -121,9 +118,7 @@ describe('Unified photo management', () => {
 
     addTripPhoto(testDb, trip.id, member.id, 'asset-private', 'immich', { shared: false });
 
-    const res = await request(app)
-      .get(photosUrl(trip.id))
-      .set('Cookie', authCookie(owner.id));
+    const res = await request(app).get(photosUrl(trip.id)).set('Cookie', authCookie(owner.id));
 
     expect(res.status).toBe(200);
     const ids = (res.body.photos as any[]).map((p: any) => p.asset_id);
@@ -135,9 +130,7 @@ describe('Unified photo management', () => {
     const { user: stranger } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
 
-    const res = await request(app)
-      .get(photosUrl(trip.id))
-      .set('Cookie', authCookie(stranger.id));
+    const res = await request(app).get(photosUrl(trip.id)).set('Cookie', authCookie(stranger.id));
 
     expect(res.status).toBe(404);
   });
@@ -157,22 +150,16 @@ describe('Unified photo management', () => {
     expect(res.status).toBe(200);
     expect(res.body.added).toBe(2);
 
-    const rows = testDb.prepare(`
-      SELECT tkp.asset_id FROM trip_photos tp
-      JOIN trek_photos tkp ON tkp.id = tp.photo_id
-      WHERE tp.trip_id = ?
-    `).all(trip.id) as any[];
-    expect(rows.map((r: any) => r.asset_id)).toEqual(expect.arrayContaining(['asset-a', 'asset-b']));
+    const photoIds = (await findRows(orm(), TripPhotos, { trip: trip.id })).map((r) => r.photo_id);
+    const rows = await findRows(orm(), TrekPhotos, { id: { $in: photoIds } });
+    expect(rows.map((r) => r.asset_id)).toEqual(expect.arrayContaining(['asset-a', 'asset-b']));
   });
 
   it('UNIFIED-005 — POST photos with empty selections returns 400', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const res = await request(app)
-      .post(photosUrl(trip.id))
-      .set('Cookie', authCookie(user.id))
-      .send({ selections: [] });
+    const res = await request(app).post(photosUrl(trip.id)).set('Cookie', authCookie(user.id)).send({ selections: [] });
 
     expect(res.status).toBe(400);
   });
@@ -193,11 +180,7 @@ describe('Unified photo management', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     addTripPhoto(testDb, trip.id, user.id, 'asset-tog', 'immich', { shared: false });
-    const trekRef = testDb.prepare(`
-      SELECT tp.photo_id FROM trip_photos tp
-      JOIN trek_photos tkp ON tkp.id = tp.photo_id
-      WHERE tp.trip_id = ? AND tkp.asset_id = ?
-    `).get(trip.id, 'asset-tog') as any;
+    const trekRef = await requireTripPhoto('asset-tog', trip.id);
 
     const res = await request(app)
       .put(`${photosUrl(trip.id)}/sharing`)
@@ -205,12 +188,8 @@ describe('Unified photo management', () => {
       .send({ photo_id: trekRef.photo_id, shared: true });
 
     expect(res.status).toBe(200);
-    const row = testDb.prepare(`
-      SELECT tp.shared FROM trip_photos tp
-      JOIN trek_photos tkp ON tkp.id = tp.photo_id
-      WHERE tkp.asset_id = ?
-    `).get('asset-tog') as any;
-    expect(row.shared).toBe(1);
+    const row = await tripPhotoOf('asset-tog');
+    expect(row?.shared).toBe(1);
   });
 
   it('UNIFIED-008 — PUT photos/sharing on non-member trip returns 404', async () => {
@@ -230,11 +209,7 @@ describe('Unified photo management', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     addTripPhoto(testDb, trip.id, user.id, 'asset-del', 'immich');
-    const trekRef = testDb.prepare(`
-      SELECT tp.photo_id FROM trip_photos tp
-      JOIN trek_photos tkp ON tkp.id = tp.photo_id
-      WHERE tp.trip_id = ? AND tkp.asset_id = ?
-    `).get(trip.id, 'asset-del') as any;
+    const trekRef = await requireTripPhoto('asset-del', trip.id);
 
     const res = await request(app)
       .delete(photosUrl(trip.id))
@@ -242,23 +217,14 @@ describe('Unified photo management', () => {
       .send({ photo_id: trekRef.photo_id });
 
     expect(res.status).toBe(200);
-    const row = testDb.prepare(`
-      SELECT tp.* FROM trip_photos tp
-      JOIN trek_photos tkp ON tkp.id = tp.photo_id
-      WHERE tkp.asset_id = ?
-    `).get('asset-del');
-    expect(row).toBeUndefined();
+    expect(await tripPhotoOf('asset-del')).toBeNull();
   });
 
   it('UNIFIED-009a — DELETE photos is held to the body contract, and still takes a numeric string', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     addTripPhoto(testDb, trip.id, user.id, 'asset-contract', 'immich');
-    const trekRef = testDb.prepare(`
-      SELECT tp.photo_id FROM trip_photos tp
-      JOIN trek_photos tkp ON tkp.id = tp.photo_id
-      WHERE tp.trip_id = ? AND tkp.asset_id = ?
-    `).get(trip.id, 'asset-contract') as any;
+    const trekRef = await requireTripPhoto('asset-contract', trip.id);
 
     // A DELETE that reads a body validates it like any other write, so a
     // photo_id that is neither a number nor a string never reaches the handler.
@@ -278,12 +244,7 @@ describe('Unified photo management', () => {
       .send({ photo_id: String(trekRef.photo_id) });
 
     expect(ok.status).toBe(200);
-    const row = testDb.prepare(`
-      SELECT tp.* FROM trip_photos tp
-      JOIN trek_photos tkp ON tkp.id = tp.photo_id
-      WHERE tkp.asset_id = ?
-    `).get('asset-contract');
-    expect(row).toBeUndefined();
+    expect(await tripPhotoOf('asset-contract')).toBeNull();
   });
 
   it('UNIFIED-010 — DELETE photos on non-member trip returns 404', async () => {
@@ -350,14 +311,12 @@ describe('Unified album-link management', () => {
     addAlbumLink(testDb, trip.id, user.id, 'immich', 'album-enabled');
 
     // Disable the immich provider
-    testDb.prepare('UPDATE photo_providers SET enabled = 0 WHERE id = ?').run('immich');
+    await updateRows(orm(), PhotoProviders, { id: 'immich' }, { enabled: 0 });
 
-    const res = await request(app)
-      .get(albumLinksUrl(trip.id))
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(albumLinksUrl(trip.id)).set('Cookie', authCookie(user.id));
 
     // Re-enable for future tests
-    testDb.prepare('UPDATE photo_providers SET enabled = 1 WHERE id = ?').run('immich');
+    await updateRows(orm(), PhotoProviders, { id: 'immich' }, { enabled: 1 });
 
     expect(res.status).toBe(400); // no providers enabled → error
   });
@@ -369,9 +328,7 @@ describe('Unified album-link management', () => {
 
     setAddonEnabled(testDb, 'journey', false);
 
-    const res = await request(app)
-      .get(albumLinksUrl(trip.id))
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(albumLinksUrl(trip.id)).set('Cookie', authCookie(user.id));
 
     setAddonEnabled(testDb, 'journey', true);
 

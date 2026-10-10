@@ -1,12 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, Bookmark, Loader2, Plus, X } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import MIconBtn from '../../../components/MIconBtn'
 import { useTranslation } from '../../../../i18n'
-import { useToast } from '../../../../components/shared/Toast'
-import { collectionsApi } from '../../../../api/collections'
-import { getApiErrorMessage } from '../../../../utils/apiError'
-import type { Collection } from '@trek/shared'
+import { useSaveTripPlacesToList } from '../../../../components/Collections/useSaveTripPlacesToList'
 
 interface MPlacesSaveToCollectionSheetProps {
   open: boolean
@@ -24,46 +20,9 @@ interface MPlacesSaveToCollectionSheetProps {
  */
 export default function MPlacesSaveToCollectionSheet({ open, tripId, placeIds, onClose, onDone }: MPlacesSaveToCollectionSheetProps) {
   const { t } = useTranslation()
-  const toast = useToast()
-  const [lists, setLists] = useState<Collection[]>([])
-  const [loading, setLoading] = useState(false)
-  const [search, setSearch] = useState('')
-  const [busyId, setBusyId] = useState<number | null>(null)
-
-  useEffect(() => {
-    if (!open) return
-    let cancelled = false
-    setLoading(true)
-    setSearch('')
-    collectionsApi.list()
-      // Only lists the user can add to; the server still enforces this.
-      .then(res => { if (!cancelled) setLists((res.collections ?? []).filter(c => c.is_owner !== false)) })
-      .catch(() => { if (!cancelled) setLists([]) })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [open])
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return q ? lists.filter(l => l.name.toLowerCase().includes(q)) : lists
-  }, [lists, search])
-
-  const pick = async (list: Collection) => {
-    if (busyId != null || placeIds.length === 0) return
-    setBusyId(list.id)
-    try {
-      const res = await collectionsApi.saveFromTripMany(list.id, tripId, placeIds)
-      if (res.copied > 0) toast.success(t('collections.addedNToList', { count: res.copied, name: list.name }))
-      if (res.skipped.length > 0) toast.info(t('collections.skippedDuplicates', { count: res.skipped.length }))
-      if (res.copied === 0 && res.skipped.length === 0) toast.info(t('collections.copyNothing'))
-      onDone()
-      onClose()
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
-    } finally {
-      setBusyId(null)
-    }
-  }
+  const { lists, loading, search, setSearch, filtered, busyId, pick } = useSaveTripPlacesToList({
+    open, tripId, placeIds, onClose, onDone,
+  })
 
   return (
     <MSheet open={open} onClose={onClose} variant="card" ariaLabel={t('collections.saveNToList', { count: placeIds.length })}>
@@ -99,7 +58,7 @@ export default function MPlacesSaveToCollectionSheet({ open, tripId, placeIds, o
                 type="button"
                 onClick={() => pick(list)}
                 disabled={busyId != null}
-                className="mt-2 flex w-full items-center gap-[11px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] text-left disabled:opacity-60"
+                className="mt-2 flex w-full items-center gap-[11px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[10px] text-start disabled:opacity-60"
               >
                 <span
                   className="flex h-9 w-9 flex-none items-center justify-center rounded-xl text-white"

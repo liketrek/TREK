@@ -3,7 +3,7 @@ import { ReactNode } from 'react'
 interface MDropdownPanelProps {
   open: boolean
   onClose: () => void
-  /** Positioning classes (e.g. `top-[100px] right-4`); panel is fixed. */
+  /** Positioning classes (e.g. `top-[100px] end-4`); panel is fixed. */
   className?: string
   children: ReactNode
 }

@@ -11,6 +11,7 @@ const todo: TranslationStrings = {
   'todo.uncategorized': 'Liste yok',
   'todo.namePlaceholder': 'Görev adı',
   'todo.descriptionPlaceholder': 'Açıklama (isteğe bağlı)',
+  'todo.editDescription': 'Düzenlemek için tıkla, bağlantılar doğrudan açılır',
   'todo.unassigned': 'Atanmamış',
   'todo.noCategory': 'Liste yok',
   'todo.hasDescription': 'Açıklama var',

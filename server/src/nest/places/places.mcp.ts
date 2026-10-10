@@ -2,33 +2,41 @@ import {
   McpController, Tool, ResourceTemplate, type McpContext,
   TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
+  errorResult, ok,
 } from '../../nest-mcp';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import {
   mapsSearchRequestSchema,
   placeImageUrlSchema,
   placeImportListRequestSchema,
+  placeEmailField,
+  placeOpeningHoursSchema,
   placeWebsiteSchema,
   roadtripStopTypeSchema,
+  type PlaceOpeningHours,
   roadtripGpxImportSchema,
   type RoadtripGpxImport,
   type RoadtripStopType,
+  idSchema,
 } from '@trek/shared';
 import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { AssignmentsService } from '../assignments/assignments.service';
 import { JourneyDomainService } from '../journey/journey-domain.service';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { DatabaseService } from '../database/database.service';
+import { UnitOfWork } from '../database/unit-of-work';
 import { MapsService } from '../maps/maps.service';
 import { PlacesService } from './places.service';
-import { isDirectionsUrl } from './maps-dir.helpers';
+import { isUpdateConflict } from '../common/conflictResult';
+import { isDirectionsUrl } from '../place-import/place-import.service';
+import { TripAccessService } from '../trip-membership/trip-access.service';
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
   return Number.isInteger(n) && n > 0 ? n : null;
 }
+
+/** Hours as the column keeps them: JSON text, or null to clear (#2472). */
+const hoursText = (hours: PlaceOpeningHours | null | undefined): string | null => (hours ? JSON.stringify(hours) : null);
 
 /**
  * Places MCP surface — ported 1:1 from the legacy registrar
@@ -52,24 +60,24 @@ export class PlacesMcp {
   constructor(
     private readonly places: PlacesService,
     private readonly maps: MapsService,
-    private readonly db: DatabaseService,
-    private readonly auth: AuthService,
+    private readonly tripsRepo: TripAccessService,
     private readonly journey: JourneyDomainService,
     private readonly assignments: AssignmentsService,
     private readonly guards: McpToolGuardsService,
+    private readonly uow: UnitOfWork,
   ) {}
 
   @Tool({
     name: 'create_place',
     description: 'Add a new place/POI to a trip. Set google_place_id, google_ftid, osm_id or amap_poi_id (from search_place) so the app can show opening hours, ratings, and direct Google Maps links. Set price + currency to record the cost so it shows on the item.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       name: z.string().min(1).max(200),
       description: z.string().max(2000).optional(),
       lat: z.number().optional(),
       lng: z.number().optional(),
       address: z.string().max(500).optional(),
-      category_id: z.number().int().positive().optional().describe('Category ID — use list_categories to see available options'),
+      category_id: idSchema.optional().describe('Category ID — use list_categories to see available options'),
       google_place_id: z.string().optional().describe('Google Place ID from search_place — enables opening hours display'),
       google_ftid: z.string().optional().describe('Google Maps feature ID from search_place — enables direct Google Maps links'),
       osm_id: z.string().optional().describe('OpenStreetMap ID from search_place (e.g. "way:12345") — enables opening hours if no Google ID'),
@@ -77,6 +85,8 @@ export class PlacesMcp {
       notes: z.string().max(2000).optional(),
       website: placeWebsiteSchema.optional(),
       phone: z.string().max(50).optional(),
+      email: placeEmailField.describe('E-mail address of the place, or an empty string to clear it'),
+      opening_hours: placeOpeningHoursSchema.nullable().optional().describe('Opening hours of the place, seven days Monday first: { closed, open?: "HH:MM", close?: "HH:MM" } each. Shown instead of looked-up hours. null clears them'),
       image_url: placeImageUrlSchema.optional().describe('Thumbnail for the place: an /uploads/ path, an /api/maps/place-photo/ path, an inline data: image, or an https URL'),
       price: z.number().nonnegative().optional().describe('Cost of this place/activity (e.g. ticket price, entry fee)'),
       currency: z.string().length(3).optional().describe('ISO 4217 currency code (e.g. "EUR", "USD")'),
@@ -86,18 +96,18 @@ export class PlacesMcp {
     access: { group: 'places', mode: 'write' },
   })
   async createPlace(
-    { tripId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes, website, phone, image_url, price, currency, stop_type }: {
+    { tripId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes, website, phone, email, opening_hours, image_url, price, currency, stop_type }: {
       tripId: number; name: string; description?: string; lat?: number; lng?: number; address?: string;
       category_id?: number; google_place_id?: string; google_ftid?: string; osm_id?: string; amap_poi_id?: string;
-      notes?: string; website?: string; phone?: string; image_url?: string; price?: number; currency?: string;
+      notes?: string; website?: string; phone?: string; email?: string | null; opening_hours?: PlaceOpeningHours | null;
+      image_url?: string; price?: number; currency?: string;
       stop_type?: RoadtripStopType;
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('place_edit', tripId, ctx.userId)) return permissionDenied();
-    const place = this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes, website, phone, image_url, price, currency, stop_type });
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('place_edit', tripId, ctx.userId))) return permissionDenied();
+    const place = await this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes, website, phone, email, opening_hours: hoursText(opening_hours), image_url, price, currency, stop_type });
     this.guards.safeBroadcast(tripId, 'place:created', { place });
     return ok({ place });
   }
@@ -106,14 +116,14 @@ export class PlacesMcp {
     name: 'create_and_assign_place',
     description: 'Create a new place and immediately assign it to a day in one atomic operation. Use place details from search_place results. Only use when the place does not yet exist — if it already exists, use assign_place_to_day directly. Set price + currency to record the cost so it shows on the item.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      dayId: z.number().int().positive().describe('Day to assign the place to'),
+      tripId: idSchema,
+      dayId: idSchema.describe('Day to assign the place to'),
       name: z.string().min(1).max(200),
       description: z.string().max(2000).optional(),
       lat: z.number().optional(),
       lng: z.number().optional(),
       address: z.string().max(500).optional(),
-      category_id: z.number().int().positive().optional().describe('Category ID — use list_categories to see available options'),
+      category_id: idSchema.optional().describe('Category ID — use list_categories to see available options'),
       google_place_id: z.string().optional().describe('Google Place ID from search_place — enables opening hours display'),
       google_ftid: z.string().optional().describe('Google Maps feature ID from search_place — enables direct Google Maps links'),
       osm_id: z.string().optional().describe('OpenStreetMap ID from search_place (e.g. "way:12345")'),
@@ -121,6 +131,8 @@ export class PlacesMcp {
       place_notes: z.string().max(2000).optional().describe('Notes for the place'),
       website: placeWebsiteSchema.optional(),
       phone: z.string().max(50).optional(),
+      email: placeEmailField.describe('E-mail address of the place, or an empty string to clear it'),
+      opening_hours: placeOpeningHoursSchema.nullable().optional().describe('Opening hours of the place, seven days Monday first: { closed, open?: "HH:MM", close?: "HH:MM" } each. Shown instead of looked-up hours. null clears them'),
       image_url: placeImageUrlSchema.optional().describe('Thumbnail for the place: an /uploads/ path, an /api/maps/place-photo/ path, an inline data: image, or an https URL'),
       assignment_notes: z.string().max(500).optional().describe('Notes for this day assignment'),
       price: z.number().nonnegative().optional().describe('Cost of this place/activity (e.g. ticket price, entry fee)'),
@@ -131,27 +143,27 @@ export class PlacesMcp {
     access: { group: 'places', mode: 'write' },
   })
   async createAndAssignPlace(
-    { tripId, dayId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, place_notes, website, phone, image_url, assignment_notes, price, currency, stop_type }: {
+    { tripId, dayId, name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, place_notes, website, phone, email, opening_hours, image_url, assignment_notes, price, currency, stop_type }: {
       tripId: number; dayId: number; name: string; description?: string; lat?: number; lng?: number; address?: string;
       category_id?: number; google_place_id?: string; google_ftid?: string; osm_id?: string; amap_poi_id?: string;
-      place_notes?: string; website?: string; phone?: string; image_url?: string; assignment_notes?: string;
+      place_notes?: string; website?: string; phone?: string; email?: string | null; opening_hours?: PlaceOpeningHours | null;
+      image_url?: string; assignment_notes?: string;
       price?: number; currency?: string; stop_type?: RoadtripStopType;
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('place_edit', tripId, ctx.userId)) return permissionDenied();
-    if (!this.assignments.dayExists(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('place_edit', tripId, ctx.userId))) return permissionDenied();
+    if (!(await this.assignments.dayExists(dayId, tripId))) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
     try {
-      const result = this.db.transaction(() => {
-        const place = this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes: place_notes, website, phone, image_url, price, currency, stop_type });
-        const assignment = this.assignments.createAssignment(dayId, place.id, assignment_notes ?? null);
+      const result = await this.uow.transactional(async () => {
+        const place = await this.places.create(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, google_ftid, osm_id, amap_poi_id, notes: place_notes, website, phone, email, opening_hours: hoursText(opening_hours), image_url, price, currency, stop_type });
+        const assignment = await this.assignments.createAssignment(dayId, place.id, assignment_notes ?? null);
         return { place, assignment };
       });
       this.guards.safeBroadcast(tripId, 'place:created', { place: result.place });
       this.guards.safeBroadcast(tripId, 'assignment:created', { assignment: result.assignment });
-      try { this.journey.reconcileTripSkeletons(tripId); } catch { /* non-fatal */ }
+      try { await this.journey.reconcileTripSkeletons(tripId); } catch { /* non-fatal */ }
       return ok(result);
     } catch {
       return { content: [{ type: 'text' as const, text: 'Failed to create place and assignment.' }], isError: true };
@@ -162,14 +174,14 @@ export class PlacesMcp {
     name: 'update_place',
     description: 'Update an existing place in a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      placeId: z.number().int().positive(),
+      tripId: idSchema,
+      placeId: idSchema,
       name: z.string().min(1).max(200).optional(),
       description: z.string().max(2000).optional(),
       lat: z.number().optional(),
       lng: z.number().optional(),
       address: z.string().max(500).optional(),
-      category_id: z.number().int().positive().optional().describe('Category ID — use list_categories'),
+      category_id: idSchema.optional().describe('Category ID — use list_categories'),
       price: z.number().optional(),
       currency: z.string().length(3).optional(),
       place_time: z.string().max(50).nullable().optional().describe('Scheduled time (e.g. "09:00"); null clears it'),
@@ -178,6 +190,8 @@ export class PlacesMcp {
       notes: z.string().max(2000).optional(),
       website: placeWebsiteSchema.optional(),
       phone: z.string().max(50).optional(),
+      email: placeEmailField.describe('E-mail address of the place, or an empty string to clear it'),
+      opening_hours: placeOpeningHoursSchema.nullable().optional().describe('Opening hours of the place, seven days Monday first: { closed, open?: "HH:MM", close?: "HH:MM" } each. Shown instead of looked-up hours. null clears them'),
       image_url: placeImageUrlSchema.nullable().optional().describe('Thumbnail for the place: an /uploads/ path, an /api/maps/place-photo/ path, an inline data: image, or an https URL. Pass null to remove the current picture'),
       transport_mode: z.enum(['walking', 'driving', 'cycling', 'transit', 'flight']).optional(),
       osm_id: z.string().optional().describe('OpenStreetMap ID (e.g. "way:12345")'),
@@ -191,10 +205,11 @@ export class PlacesMcp {
     access: { group: 'places', mode: 'write' },
   })
   async updatePlace(
-    { tripId, placeId, name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, image_url, transport_mode, osm_id, google_place_id, google_ftid, amap_poi_id, stop_type, fill_percent }: {
+    { tripId, placeId, name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, email, opening_hours, image_url, transport_mode, osm_id, google_place_id, google_ftid, amap_poi_id, stop_type, fill_percent }: {
       tripId: number; placeId: number; name?: string; description?: string; lat?: number; lng?: number;
       address?: string; category_id?: number; price?: number; currency?: string; place_time?: string | null;
       end_time?: string | null; duration_minutes?: number | null; notes?: string; website?: string; phone?: string;
+      email?: string | null; opening_hours?: PlaceOpeningHours | null;
       image_url?: string | null;
       transport_mode?: 'walking' | 'driving' | 'cycling' | 'transit' | 'flight'; osm_id?: string;
       google_place_id?: string; google_ftid?: string; amap_poi_id?: string; stop_type?: RoadtripStopType | null;
@@ -202,21 +217,46 @@ export class PlacesMcp {
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('place_edit', tripId, ctx.userId)) return permissionDenied();
-    const place = await this.places.update(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, image_url, transport_mode, osm_id, google_place_id, google_ftid, amap_poi_id, stop_type, fill_percent });
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('place_edit', tripId, ctx.userId))) return permissionDenied();
+    const place = await this.places.update(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, email, opening_hours: opening_hours === undefined ? undefined : hoursText(opening_hours), image_url, transport_mode, osm_id, google_place_id, google_ftid, amap_poi_id, stop_type, fill_percent });
     if (!place) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
     this.guards.safeBroadcast(tripId, 'place:updated', { place });
     return ok({ place });
   }
 
   @Tool({
+    name: 'set_place_image_from_file',
+    description: 'Use a picture already attached in the trip (a jpg, png, gif or webp from list_files) as the image of the place. The file is copied, so deleting the attachment later keeps the image.',
+    inputSchema: {
+      tripId: idSchema,
+      placeId: idSchema,
+      fileId: idSchema.describe('Id of a trip file that is an image'),
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'places', mode: 'write' },
+  })
+  async setPlaceImageFromFile(
+    { tripId, placeId, fileId }: { tripId: number; placeId: number; fileId: number },
+    ctx: McpContext,
+  ) {
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('place_edit', tripId, ctx.userId))) return permissionDenied();
+    const result = await this.places.setImageFromFile(String(tripId), String(placeId), fileId);
+    if (result === 'not_found') return errorResult('File not found.');
+    if (result === 'not_image') return errorResult('That file is not a jpg, png, gif or webp image.');
+    if (result === 'too_large') return errorResult('That image is too large.');
+    if (!result || isUpdateConflict(result)) return errorResult('Place not found.');
+    this.guards.safeBroadcast(tripId, 'place:updated', { place: result });
+    return ok({ place: result });
+  }
+
+  @Tool({
     name: 'rate_place',
     description: "Set or clear the current user's 1-5 star rating on a trip place (#1435). Every trip member rates independently; the place shows the average. Omit rating (or pass null) to remove the user's vote. Use the ratings to capture the user's preferences and shape the itinerary around highly-rated places.",
     inputSchema: {
-      tripId: z.number().int().positive(),
-      placeId: z.number().int().positive(),
+      tripId: idSchema,
+      placeId: idSchema,
       rating: z.number().int().min(1).max(5).nullable().optional().describe('1-5 stars; null/omitted clears the vote'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -226,10 +266,9 @@ export class PlacesMcp {
     { tripId, placeId, rating }: { tripId: number; placeId: number; rating?: number | null },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
     // Rating is a personal vote — any trip member may cast one, place_edit not required.
-    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
-    const place = this.places.rate(String(tripId), String(placeId), ctx.userId, rating ?? null);
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
+    const place = await this.places.rate(String(tripId), String(placeId), ctx.userId, rating ?? null);
     if (!place) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
     this.guards.safeBroadcast(tripId, 'place:updated', { place });
     return ok({ place });
@@ -237,27 +276,26 @@ export class PlacesMcp {
 
   @Tool({
     name: 'delete_place',
-    description: 'Delete a place from a trip. Removes its day assignments, its linked expenses and any nights booked at it, including each night\'s reservation and that reservation\'s expense. Warn the user before calling this on a hotel with a booking: it cannot be undone.',
+    description: 'Permanently delete a place from a trip. Removes its day assignments, its linked expenses and any nights booked at it, including each night\'s reservation and that reservation\'s expense. If the place is a Tour, its route and editable waypoints are also permanently deleted. Warn the user before calling: this cannot be undone.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      placeId: z.number().int().positive(),
+      tripId: idSchema,
+      placeId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'places', mode: 'write' },
   })
   async deletePlace({ tripId, placeId }: { tripId: number; placeId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('place_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('place_edit', tripId, ctx.userId))) return permissionDenied();
     // Scope the id to the trip before the hook: onPlaceDeleted keys on the place
     // id alone, so a foreign id would detach that trip's journey entries even
     // though the delete below refuses it.
-    if (!this.places.get(String(tripId), String(placeId))) {
+    if (!(await this.places.get(String(tripId), String(placeId)))) {
       return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
     }
-    try { this.journey.onPlaceDeleted(placeId); } catch { /* non-fatal */ } // sync journeys before the row is gone
+    try { await this.journey.onPlaceDeleted(placeId); } catch { /* non-fatal */ } // sync journeys before the row is gone
     // The link is gone once the place is, so read it first (#1298).
-    const expenseIds = this.places.linkedExpenseIds(tripId, [placeId]);
+    const expenseIds = await this.places.linkedExpenseIds(tripId, [placeId]);
     const { deleted, cancelled } = await this.places.remove(String(tripId), String(placeId));
     if (!deleted) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
     this.guards.safeBroadcast(tripId, 'place:deleted', { placeId });
@@ -273,7 +311,7 @@ export class PlacesMcp {
     name: 'list_places',
     description: 'List all places/POIs in a trip, optionally filtered by assignment status. Use assignment=unassigned to find orphan activities not yet scheduled on any day.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       search: z.string().optional(),
       category: z.string().optional(),
       tag: z.string().optional(),
@@ -289,8 +327,8 @@ export class PlacesMcp {
     },
     ctx: McpContext,
   ) {
-    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
-    const places = this.places.list(String(tripId), { search, category, tag, assignment });
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
+    const places = await this.places.list(String(tripId), { search, category, tag, assignment });
     return ok({ places });
   }
 
@@ -329,7 +367,7 @@ export class PlacesMcp {
     name: 'import_places_from_url',
     description: 'Import places from a shared Google Maps or Naver Maps list URL. Returns the imported places and count. The list must be shared publicly.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       url: z.string().url().describe('Publicly shared Google Maps list URL, a Google Maps directions link (/maps/dir/...), or a Naver Maps list URL. A directions link is read straight out of the URL: its stops become places in driving order, and the ones written as names are geocoded.'),
       source: z.enum(['google-list', 'naver-list']).describe('List source: "google-list" for Google Maps saved places, "naver-list" for Naver Maps'),
       enrich: placeImportListRequestSchema.shape.enrich.describe('Re-resolve every imported place through the Places API afterwards to fill in photo, address, website and phone (#886). Needs a Google Maps key on the instance, costs a lookup per place, and runs in the background: the tool returns the bare import and the places fill in over the websocket. Off by default'),
@@ -341,9 +379,8 @@ export class PlacesMcp {
     { tripId, url, source, enrich }: { tripId: number; url: string; source: 'google-list' | 'naver-list'; enrich?: boolean },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('place_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('place_edit', tripId, ctx.userId))) return permissionDenied();
 
     // Same opts the REST route builds: the enrichment pass is keyed on the calling
     // user because it spends that user's Places credential.
@@ -353,10 +390,6 @@ export class PlacesMcp {
         ? await this.places.importGoogleDirections(String(tripId), url, opts)
         : await this.places.importGoogleList(String(tripId), url, opts))
       : await this.places.importNaverList(String(tripId), url, opts);
-
-    if ('error' in result) {
-      return { content: [{ type: 'text' as const, text: result.error }], isError: true };
-    }
 
     for (const place of result.places) {
       this.guards.safeBroadcast(tripId, 'place:created', { place });
@@ -372,14 +405,14 @@ export class PlacesMcp {
     access: { group: 'places', mode: 'write' },
   })
   async importGpx(input: RoadtripGpxImport, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.db.canAccessTrip(input.tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('place_edit', input.tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.tripsRepo.findAccessible(input.tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('place_edit', input.tripId, ctx.userId))) return permissionDenied();
     if (!input.importWaypoints && !input.importRoutes && !input.importTracks) return errorResult('No import types selected.');
     try {
-      const imported = this.places.importGpx(String(input.tripId), Buffer.from(input.gpx, 'utf8'), { importWaypoints: input.importWaypoints, importRoutes: input.importRoutes, importTracks: input.importTracks, defaultName: input.name });
+      const imported = await this.places.importGpx(String(input.tripId), Buffer.from(input.gpx, 'utf8'), { importWaypoints: input.importWaypoints, importRoutes: input.importRoutes, importTracks: input.importTracks, defaultName: input.name });
       if (!imported) return errorResult('No matching places found in GPX.');
       for (const place of imported.places) this.guards.safeBroadcast(input.tripId, 'place:created', { place });
+      if (input.enrich) this.places.enrichImportedFilePlaces(String(input.tripId), ctx.userId, imported.places);
       return ok(imported);
     } catch {
       return errorResult('Could not import GPX. Check the XML and coordinates.');
@@ -390,7 +423,7 @@ export class PlacesMcp {
     name: 'export_trip_gpx',
     description: 'Export a trip as GPX text: its places as waypoints, any imported routes as tracks, and each planned day as a route in visiting order. This is the format handhelds and offline map apps (Organic Maps, OsmAnd, Garmin) read. Prefer export_trip_ics when the user wants the itinerary in a calendar instead.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       waypoints: z.boolean().optional().default(true).describe('Write every place with coordinates as a <wpt>'),
       tracks: z.boolean().optional().default(true).describe('Write places that carry an imported route geometry as a <trk>'),
       dayRoutes: z.boolean().optional().default(true).describe('Write each planned day as a <rte> through its stops in order'),
@@ -405,37 +438,36 @@ export class PlacesMcp {
     ctx: McpContext,
   ) {
     // A read, like the REST route: seeing the trip is enough, no place_edit.
-    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
     if (!waypoints && !tracks && !dayRoutes) return errorResult('No export types selected.');
-    const result = this.places.exportGpx(String(tripId), { waypoints, tracks, dayRoutes });
+    const result = await this.places.exportGpx(String(tripId), { waypoints, tracks, dayRoutes });
     if (!result) return errorResult('Nothing to export.');
     return ok({ gpx: result.gpx, filename: result.filename });
   }
 
   @Tool({
     name: 'bulk_delete_places',
-    description: 'Delete multiple places from a trip at once. Removes all day assignments for each place as well, plus each place\'s linked expenses and any nights booked at it, with their reservations and expenses. Warn the user before calling this: it cannot be undone.',
+    description: 'Permanently delete multiple places from a trip at once. Removes all day assignments for each place as well, plus each place\'s linked expenses and any nights booked at it, with their reservations and expenses. Any Tours in the selection also lose their routes and editable waypoints. Warn the user before calling: this cannot be undone.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      placeIds: z.array(z.number().int().positive()).min(1).max(200),
+      tripId: idSchema,
+      placeIds: z.array(idSchema).min(1).max(200),
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     access: { group: 'places', mode: 'write' },
   })
   async bulkDeletePlaces({ tripId, placeIds }: { tripId: number; placeIds: number[] }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('place_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('place_edit', tripId, ctx.userId))) return permissionDenied();
 
     // Trip-scoped, and ahead of the DELETE: journey_entries.source_place_id is
     // ON DELETE SET NULL, so a hook that ran afterwards found nothing left to
     // detach and left the entries as orphans.
-    const scoped = this.places.scopedIds(String(tripId), placeIds);
+    const scoped = await this.places.scopedIds(String(tripId), placeIds);
     for (const id of scoped) {
-      try { this.journey.onPlaceDeleted(id); } catch { /* non-fatal */ }
+      try { await this.journey.onPlaceDeleted(id); } catch { /* non-fatal */ }
     }
     // The link is gone once the places are, so read it first (#1298).
-    const expenseIds = this.places.linkedExpenseIds(tripId, scoped);
+    const expenseIds = await this.places.linkedExpenseIds(tripId, scoped);
     const { deleted, cancelled } = await this.places.removeMany(String(tripId), placeIds);
     for (const id of deleted) this.guards.safeBroadcast(tripId, 'place:deleted', { placeId: id });
     // A night booked at this place went with it, and took its partner booking and
@@ -450,15 +482,15 @@ export class PlacesMcp {
     name: 'bulk_update_places',
     description: 'Update many places in a trip at once, applying the SAME field values to every listed place. Use this for sweeping edits — e.g. re-categorising a batch of POIs (set category_id for 80 places) — in a single call instead of one update_place per place. Only the fields you set are changed; everything else on each place is preserved. Use list_categories for category_id.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      placeIds: z.array(z.number().int().positive()).min(1).max(500).describe('IDs of the places to update (from list_places)'),
-      category_id: z.number().int().positive().optional().describe('Category ID — use list_categories'),
+      tripId: idSchema,
+      placeIds: z.array(idSchema).min(1).max(500).describe('IDs of the places to update (from list_places)'),
+      category_id: idSchema.optional().describe('Category ID — use list_categories'),
       price: z.number().optional(),
       currency: z.string().length(3).optional(),
       transport_mode: z.enum(['walking', 'driving', 'cycling', 'transit', 'flight']).optional(),
       place_time: z.string().max(50).optional().describe('Scheduled time (e.g. "09:00")'),
       end_time: z.string().max(50).optional().describe('End time (e.g. "11:00")'),
-      duration_minutes: z.number().int().positive().optional(),
+      duration_minutes: idSchema.optional(),
       notes: z.string().max(2000).optional(),
       website: placeWebsiteSchema.optional(),
       phone: z.string().max(50).optional(),
@@ -480,9 +512,8 @@ export class PlacesMcp {
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.db.canAccessTrip(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('place_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.tripsRepo.findAccessible(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('place_edit', tripId, ctx.userId))) return permissionDenied();
 
     const fields = { category_id, price, currency, transport_mode, place_time, end_time, duration_minutes, notes, website, phone, image_url, description, stop_type, fill_percent };
     if (Object.values(fields).every(v => v === undefined)) {
@@ -503,7 +534,7 @@ export class PlacesMcp {
   })
   async tripPlacesResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
     const id = parseId(tripId);
-    if (id === null || !this.db.canAccessTrip(id, ctx.userId)) {
+    if (id === null || !(await this.tripsRepo.findAccessible(id, ctx.userId))) {
       return {
         contents: [{
           uri: uri.href,
@@ -513,7 +544,7 @@ export class PlacesMcp {
       };
     }
     const assignment = uri.searchParams.get('assignment') as 'all' | 'unassigned' | 'assigned' | null;
-    const places = this.places.list(String(id), { assignment: assignment ?? undefined });
+    const places = await this.places.list(String(id), { assignment: assignment ?? undefined });
     return {
       contents: [{
         uri: uri.href,

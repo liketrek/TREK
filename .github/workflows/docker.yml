@@ -1,10 +1,24 @@
 name: Build & Push Docker Image
 
+# The stable release. Dispatched by hand on main, it:
+#   1. refuses to run unless ci-ok passed on the main commit it releases,
+#   2. works out the version from the tags and the bump input, commits the
+#      bump to package.json, the lockfile and Chart.yaml, tags it and pushes,
+#   3. builds both platforms from exactly that bump commit (never from
+#      whatever main points to by then) and publishes :VERSION,
+#      :MAJOR.MINOR, :MAJOR and :latest,
+#   4. publishes the Helm chart from the same commit.
+#
+# Big or risky changes go out as a prerelease first (docker-dev.yml, tagged
+# :latest-pre and :<next>-pre.N); bump=auto here then finalizes that line.
+# Without a prerelease in flight there is no default: the run stops until
+# someone picks patch, minor or major.
+
 on:
   workflow_dispatch:
     inputs:
       bump:
-        description: 'Force bump line (auto = patch/finalize as today)'
+        description: 'auto finalizes the prerelease in flight; otherwise pick patch, minor or major'
         type: choice
         options: [auto, patch, minor, major]
         default: auto
@@ -15,6 +29,7 @@ on:
 
 permissions:
   contents: write
+  checks: read
 
 concurrency:
   group: stable-build
@@ -23,39 +38,65 @@ concurrency:
 jobs:
   version-bump:
     if: github.repository == 'liketrek/TREK'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
     outputs:
       version: ${{ steps.bump.outputs.VERSION }}
+      sha: ${{ steps.bump.outputs.SHA }}
     steps:
-      - uses: actions/create-github-app-token@v1
+      - name: Release from main only
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Dispatch this workflow on main, not on $GITHUB_REF."
+          exit 1
+
+      - uses: actions/create-github-app-token@v3
         id: app-token
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           fetch-tags: true
           token: ${{ steps.app-token.outputs.token }}
 
+      # The dev push, the main push and any manual run each leave a ci-ok on
+      # this commit. scripts/ci/ci-ok-verdict.mjs counts the newest attempt of
+      # each, refuses while one is still going, and requires the one that
+      # finished last to be green, so a later green run supersedes a flaky or
+      # cancelled one. It prints the link of every run it counted.
+      - name: Require a green ci-ok on the commit being released
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+          runs="$RUNNER_TEMP/ci-ok-runs.json"
+          gh api "repos/$GITHUB_REPOSITORY/commits/$sha/check-runs?check_name=ci-ok&filter=all&per_page=100" > "$runs"
+          node scripts/ci/ci-ok-verdict.mjs "$runs" "$sha"
+
       - name: Determine bump type and update version
         id: bump
+        env:
+          BUMP_INPUT: ${{ inputs.bump || 'auto' }}
+          CONFIRM_MAJOR: ${{ inputs.confirm_major }}
         run: |
+          set -eu
           git fetch --tags
 
-          # Derive version from git tags — no package.json dependency
+          # Derive version from git tags, no package.json dependency
           STABLE_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | grep -v '\-pre\.' | sort -V | tail -1)
           STABLE="${STABLE_TAG#v}"
           STABLE="${STABLE:-0.0.0}"
 
           PRE_TAG=$(git tag -l 'v*-pre.*' | sort -V | tail -1)
 
-          BUMP_INPUT="${{ github.event.inputs.bump || 'auto' }}"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$STABLE"
 
           if [ "$BUMP_INPUT" = "major" ]; then
-            if [ "${{ github.event.inputs.confirm_major }}" != "MAJOR" ]; then
+            if [ "$CONFIRM_MAJOR" != "MAJOR" ]; then
               echo "::error::confirm_major must equal 'MAJOR' to cut a major release"
               exit 1
             fi
@@ -68,79 +109,96 @@ jobs:
             NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
             BUMP="patch"
           else
-            # auto: finalize in-flight prerelease if one exists, else patch
+            # auto finalizes the in-flight prerelease and nothing else. It used
+            # to fall back to a patch, which would have shipped any change,
+            # however big, as a patch nobody chose.
+            PRE_BASE=""
             if [ -n "$PRE_TAG" ]; then
               PRE_BASE="${PRE_TAG#v}"
               PRE_BASE="${PRE_BASE%-pre.*}"
-              PRE_MAJOR="$(echo "$PRE_BASE" | cut -d. -f1)"
-              # Refuse to auto-finalize a major bump — it bypasses confirm_major
-              if [ "$PRE_MAJOR" -gt "$MAJOR" ]; then
-                echo "::error::In-flight prerelease $PRE_TAG is a major bump ($STABLE → $PRE_BASE). Use bump=major with confirm_major=MAJOR to finalize."
-                exit 1
-              fi
-              # If prerelease base is strictly greater than stable, finalize it
-              HIGHEST=$(printf '%s\n' "$PRE_BASE" "$STABLE" | sort -V | tail -1)
-              if [ "$HIGHEST" = "$PRE_BASE" ] && [ "$PRE_BASE" != "$STABLE" ]; then
-                NEW_VERSION="$PRE_BASE"
-                BUMP="finalize"
-              else
-                PATCH=$((PATCH + 1))
-                NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-                BUMP="patch"
-              fi
-            else
-              PATCH=$((PATCH + 1))
-              NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-              BUMP="patch"
             fi
+            HIGHEST=$(printf '%s\n' "$PRE_BASE" "$STABLE" | sort -V | tail -1)
+            if [ -z "$PRE_BASE" ] || [ "$HIGHEST" != "$PRE_BASE" ] || [ "$PRE_BASE" = "$STABLE" ]; then
+              echo "::error::No prerelease above $STABLE is in flight, so bump=auto has nothing to finalize. Dispatch again with bump=patch, minor or major."
+              exit 1
+            fi
+            PRE_MAJOR="$(echo "$PRE_BASE" | cut -d. -f1)"
+            # Refuse to auto-finalize a major bump, it would bypass confirm_major
+            if [ "$PRE_MAJOR" -gt "$MAJOR" ]; then
+              echo "::error::In-flight prerelease $PRE_TAG is a major bump ($STABLE to $PRE_BASE). Use bump=major with confirm_major=MAJOR to finalize."
+              exit 1
+            fi
+            NEW_VERSION="$PRE_BASE"
+            BUMP="finalize"
+          fi
+
+          # Patch releases have carried migrations before, so this only warns:
+          # whoever pinned :MAJOR.MINOR gets this schema change too.
+          if [ "$BUMP" = "patch" ] && [ -n "$STABLE_TAG" ] \
+            && [ -n "$(git diff --name-only --diff-filter=A "$STABLE_TAG" HEAD -- server/src/db/migrations/)" ]; then
+            echo "::warning::$NEW_VERSION is a patch release that adds database migrations."
           fi
 
           echo "Bump type: $BUMP"
-          echo "VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "$STABLE → $NEW_VERSION ($BUMP)"
+          echo "VERSION=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "$STABLE to $NEW_VERSION ($BUMP)"
 
           # Update all workspace + root package.json files and the root lockfile in one shot
           npm version "$NEW_VERSION" --workspaces --include-workspace-root --no-git-tag-version
           sed -i "s/^version: .*/version: $NEW_VERSION/" charts/trek/Chart.yaml
           sed -i "s/^appVersion: .*/appVersion: \"$NEW_VERSION\"/" charts/trek/Chart.yaml
 
-          # Commit and tag
+          # Commit and tag. The push fast-forwards main from the commit ci-ok
+          # was checked on, so it fails rather than release past anything that
+          # landed on main in the meantime.
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package.json package-lock.json server/package.json client/package.json shared/package.json charts/trek/Chart.yaml
           git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
           git tag -a "v$NEW_VERSION" -m "v$NEW_VERSION"
-          git push origin main --follow-tags
+          git push origin HEAD:main --follow-tags
+
+          # build, merge and release-helm check out exactly this commit.
+          echo "SHA=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   build:
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
     needs: version-bump
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: linux/amd64
-            runner: ubuntu-latest
+            runner: ubuntu-24.04
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
     steps:
       - name: Prepare platform tag-safe name
-        run: echo "PLATFORM_PAIR=$(echo ${{ matrix.platform }} | sed 's|/|-|g')" >> $GITHUB_ENV
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: echo "PLATFORM_PAIR=${PLATFORM//\//-}" >> "$GITHUB_ENV"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
-          ref: main
+          ref: ${{ needs.version-bump.outputs.sha }}
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Image metadata
+        id: meta
+        run: |
+          echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - name: Build and push by digest
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           platforms: ${{ matrix.platform }}
@@ -148,6 +206,9 @@ jobs:
           no-cache: true
           build-args: |
             APP_VERSION=${{ needs.version-bump.outputs.version }}
+          labels: |
+            org.opencontainers.image.revision=${{ steps.meta.outputs.revision }}
+            org.opencontainers.image.created=${{ steps.meta.outputs.created }}
 
       - name: Export digest
         run: |
@@ -156,7 +217,7 @@ jobs:
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: digests-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests/*
@@ -164,24 +225,25 @@ jobs:
           retention-days: 1
 
   merge:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
     needs: [version-bump, build]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
-          ref: main
+          ref: ${{ needs.version-bump.outputs.sha }}
 
       - name: Download build digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: /tmp/digests
           pattern: digests-*
           # Deliberately NOT merged: the per-platform folder names are what lets
           # the manifest below be assembled in a fixed order.
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -192,6 +254,10 @@ jobs:
           set -euo pipefail
           VERSION="${{ needs.version-bump.outputs.version }}"
           MAJOR_TAG="$(echo "$VERSION" | cut -d. -f1)"
+          # :MAJOR.MINOR takes the patches of one minor line and nothing else,
+          # the conservative pin for an install that wants to wait out a
+          # release that migrates.
+          MINOR_TAG="$(echo "$VERSION" | cut -d. -f1-2)"
           # amd64 first, always. This used to be a glob over hash-named files, so
           # the order changed from one release to the next: 3.4.1 listed amd64
           # first and 4.0.0 listed arm64 first. Clients that read the first entry
@@ -207,9 +273,15 @@ jobs:
               digests+=("mauriceboe/trek@sha256:$(basename "$f")")
             done
           done
+          # The labels live on each platform image; the index gets the ones a
+          # client reads before it picks a platform (#1498).
           docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.source=https://github.com/liketrek/TREK" \
+            --annotation "index:org.opencontainers.image.version=$VERSION" \
+            --annotation "index:org.opencontainers.image.licenses=AGPL-3.0-only" \
             -t "mauriceboe/trek:latest" \
             -t "mauriceboe/trek:$MAJOR_TAG" \
+            -t "mauriceboe/trek:$MINOR_TAG" \
             -t "mauriceboe/trek:$VERSION" \
             "${digests[@]}"
 
@@ -217,16 +289,17 @@ jobs:
         run: docker buildx imagetools inspect mauriceboe/trek:latest
 
   release-helm:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
     needs: version-bump
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
-          ref: main
+          ref: ${{ needs.version-bump.outputs.sha }}
 
       - name: Publish Helm chart
-        uses: stefanprodan/helm-gh-pages@v1.7.0
+        uses: stefanprodan/helm-gh-pages@0ad2bb377311d61ac04ad9eb6f252fb68e207260 # v1.7.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           charts_dir: charts

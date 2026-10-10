@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const zh: NotificationLocale = {
   email: {
@@ -37,8 +38,8 @@ const zh: NotificationLocale = {
       body: `${p.actor} 邀请你共享收藏。打开 TREK 接受或拒绝。`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} 张照片已分享`,
-      body: `${p.actor} 在"${p.trip}"中分享了 ${p.count} 张照片。`,
+      title: pluralForm(p.count, 'zh', { other: `${p.count} 张照片已分享` }),
+      body: pluralForm(p.count, 'zh', { other: `${p.actor} 在"${p.trip}"中分享了 ${p.count} 张照片。` }),
     }),
     collab_message: (p) => ({
       title: `"${p.trip}"中的新消息`,
@@ -56,7 +57,9 @@ const zh: NotificationLocale = {
       title: '存储副本故障',
       body:
         `写入副本 '${p.backend}' 失败：${p.op} / ${p.key} — ${p.error}。` +
-        (p.suppressed !== '0' ? `自上次通知以来，还有 ${p.suppressed} 个失败被抑制。` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'zh', { other: `自上次通知以来，另有 ${p.suppressed} 次失败未单独通知。` })
+          : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Synology 会话已清除',

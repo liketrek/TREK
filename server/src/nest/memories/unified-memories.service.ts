@@ -1,12 +1,21 @@
-import { Injectable } from '@nestjs/common';
 import { ADDON_IDS } from '../../addons';
-import { broadcast } from '../../websocket';
-import { encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { PhotoProviders } from '../../db/entities/PhotoProviders.entity';
+import { TripAlbumLinks } from '../../db/entities/TripAlbumLinks.entity';
+import { TripPhotos } from '../../db/entities/TripPhotos.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
+import type { PhotoProvidersRepository } from '../../db/repositories/PhotoProviders.repository';
+import type { TripAlbumLinksRepository } from '../../db/repositories/TripAlbumLinks.repository';
+import type { TripPhotosRepository } from '../../db/repositories/TripPhotos.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { AddonsService } from '../addons/addons.service';
-import { DatabaseService } from '../database/database.service';
-import { TrekPhotosRepository } from '../photos/trek-photos.repository';
+import { encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { UnitOfWork } from '../database/unit-of-work';
+import { NotificationsService } from '../notifications/notifications.service';
+import { TrekPhotoRegistrationService } from '../photos/trek-photo-registration.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import { ImmichService } from './immich.service';
-import { SynologyService } from './synology.service';
 import { MemoriesAccessService } from './memories-access.service';
 import {
   fail,
@@ -16,7 +25,9 @@ import {
   type ServiceResult,
   type SyncAlbumResult,
 } from './memories.helpers';
-import { NotificationsService } from '../notifications/notifications.service';
+import { SynologyService } from './synology.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The provider-agnostic trip photo surface: which photos a trip shows, which
@@ -27,27 +38,33 @@ import { NotificationsService } from '../notifications/notifications.service';
 @Injectable()
 export class UnifiedMemoriesService {
   constructor(
-    private readonly db: DatabaseService,
-    private readonly photos: TrekPhotosRepository,
+    private readonly photos: TrekPhotoRegistrationService,
     private readonly immich: ImmichService,
     private readonly synology: SynologyService,
     private readonly access: MemoriesAccessService,
     private readonly notifications: NotificationsService,
     private readonly addons: AddonsService,
+    private readonly uow: UnitOfWork,
+    private readonly realtime: RealtimeService,
+    @InjectRepository(PhotoProviders) private readonly photoProviders: PhotoProvidersRepository,
+    @InjectRepository(TripPhotos) private readonly tripPhotos: TripPhotosRepository,
+    @InjectRepository(TripAlbumLinks) private readonly tripAlbumLinks: TripAlbumLinksRepository,
+    @InjectRepository(Users) private readonly users: UsersRepository,
+    @InjectRepository(Trips) private readonly trips: TripsRepository,
   ) {}
 
-  private _providers(): Array<{id: string; enabled: boolean}> {
+  private async _providers(): Promise<Array<{ id: string; enabled: boolean }>> {
     // A provider only counts as enabled while the journey addon is — its whole
     // surface lives inside journeys. Covers rows left enabled from before
     // updateAddon cascaded the journey disable.
-    const journeyOn = this.addons.isAddonEnabled(ADDON_IDS.JOURNEY);
-    const rows = this.db.prepare('SELECT id, enabled FROM photo_providers').all() as Array<{id: string; enabled: number}>;
-    return rows.map(r => ({ id: r.id, enabled: journeyOn && r.enabled === 1 }));
+    const journeyOn = await this.addons.isAddonEnabled(ADDON_IDS.JOURNEY);
+    const rows = await this.photoProviders.listAll();
+    return rows.map((r) => ({ id: r.id, enabled: journeyOn && r.enabled === 1 }));
   }
 
-  private _validProvider(provider: string): ServiceResult<string> {
-    const providers = this._providers();
-    const found = providers.find(p => p.id === provider);
+  private async _validProvider(provider: string): Promise<ServiceResult<string>> {
+    const providers = await this._providers();
+    const found = providers.find((p) => p.id === provider);
     if (!found) {
       return fail(`Provider: "${provider}" is not supported`, 400);
     }
@@ -57,34 +74,20 @@ export class UnifiedMemoriesService {
     return success(provider);
   }
 
-
-
-
-  listTripPhotos(tripId: string, userId: number): ServiceResult<any[]> {
-    const access = this.db.canAccessTrip(tripId, userId);
+  async listTripPhotos(tripId: string, userId: number): Promise<ServiceResult<any[]>> {
+    const access = await this.trips.findAccessible(tripId, userId);
     if (!access) {
       return fail('Trip not found or access denied', 404);
     }
 
     try {
-
-      const enabledProviders = this._providers().filter(p => p.enabled).map(p => p.id);
+      const enabledProviders = (await this._providers()).filter((p) => p.enabled).map((p) => p.id);
 
       if (enabledProviders.length === 0) {
         return fail('No photo providers enabled', 400);
       }
 
-      const photos = this.db.prepare(`
-        SELECT tp.photo_id, tkp.asset_id, tkp.provider, tp.user_id, tp.shared, tp.added_at,
-               u.username, u.avatar
-        FROM trip_photos tp
-        JOIN trek_photos tkp ON tkp.id = tp.photo_id
-        JOIN users u ON tp.user_id = u.id
-        WHERE tp.trip_id = ?
-          AND (tp.user_id = ? OR tp.shared = 1)
-          AND tkp.provider IN (${enabledProviders.map(() => '?').join(',')})
-        ORDER BY tp.added_at ASC
-      `).all(tripId, userId, ...enabledProviders);
+      const photos = await this.tripPhotos.listForTrip(tripId, userId, enabledProviders);
 
       return success(photos);
     } catch (error) {
@@ -92,37 +95,20 @@ export class UnifiedMemoriesService {
     }
   }
 
-  listTripAlbumLinks(tripId: string, userId: number): ServiceResult<any[]> {
-    const access = this.db.canAccessTrip(tripId, userId);
+  async listTripAlbumLinks(tripId: string, userId: number): Promise<ServiceResult<any[]>> {
+    const access = await this.trips.findAccessible(tripId, userId);
     if (!access) {
       return fail('Trip not found or access denied', 404);
     }
 
-  
-      const enabledProviders = this._providers().filter(p => p.enabled).map(p => p.id);
+    const enabledProviders = (await this._providers()).filter((p) => p.enabled).map((p) => p.id);
 
-      if (enabledProviders.length === 0) {
-        return fail('No photo providers enabled', 400);
-      }
+    if (enabledProviders.length === 0) {
+      return fail('No photo providers enabled', 400);
+    }
 
     try {
-      const links = this.db.prepare(`
-        SELECT tal.id,
-               tal.trip_id,
-               tal.user_id,
-               tal.provider,
-               tal.album_id,
-               tal.album_name,
-               tal.sync_enabled,
-               tal.last_synced_at,
-               tal.created_at,
-               u.username
-        FROM trip_album_links tal
-        JOIN users u ON tal.user_id = u.id
-        WHERE tal.trip_id = ?
-          AND tal.provider IN (${enabledProviders.map(() => '?').join(',')})
-        ORDER BY tal.created_at ASC
-      `).all(tripId, ...enabledProviders);
+      const links = await this.tripAlbumLinks.listForTrip(tripId, enabledProviders);
 
       return success(links);
     } catch (error) {
@@ -133,19 +119,33 @@ export class UnifiedMemoriesService {
   //-----------------------------------------------
   // managing photos in trip
 
-  private _addTripPhoto(tripId: string, userId: number, provider: string, assetId: string, shared: boolean, albumLinkId?: string, passphrase?: string): ServiceResult<boolean> {
-    const providerResult = this._validProvider(provider);
+  private async _addTripPhoto(
+    tripId: string,
+    userId: number,
+    provider: string,
+    assetId: string,
+    shared: boolean,
+    albumLinkId?: string,
+    passphrase?: string,
+  ): Promise<ServiceResult<boolean>> {
+    const providerResult = await this._validProvider(provider);
     if (!providerResult.success) {
       return providerResult as ServiceResult<boolean>;
     }
     try {
-      const photoId = this.photos.getOrCreate(provider, assetId, userId, passphrase);
-      const result = this.db.prepare(
-        'INSERT OR IGNORE INTO trip_photos (trip_id, user_id, photo_id, shared, album_link_id) VALUES (?, ?, ?, ?, ?)'
-      ).run(tripId, userId, photoId, shared ? 1 : 0, albumLinkId || null);
-      return success(result.changes > 0);
-    }
-    catch (error) {
+      // The photo row and its trip link together: no registered photo without its link.
+      const added = await this.uow.transactional(async () => {
+        const photoId = await this.photos.getOrCreate(provider, assetId, userId, passphrase);
+        return await this.tripPhotos.insertIgnore({
+          trip_id: tripId,
+          user_id: userId,
+          photo_id: photoId,
+          shared: shared ? 1 : 0,
+          album_link_id: albumLinkId || null,
+        });
+      });
+      return success(added);
+    } catch (error) {
       return mapDbError(error, 'Failed to add photo to trip');
     }
   }
@@ -158,7 +158,7 @@ export class UnifiedMemoriesService {
     sid: string,
     albumLinkId?: string,
   ): Promise<ServiceResult<{ added: number; shared: boolean }>> {
-    const access = this.db.canAccessTrip(tripId, userId);
+    const access = await this.trips.findAccessible(tripId, userId);
     if (!access) {
       return fail('Trip not found or access denied', 404);
     }
@@ -169,14 +169,22 @@ export class UnifiedMemoriesService {
 
     let added = 0;
     for (const selection of selections) {
-      const providerResult = this._validProvider(selection.provider);
+      const providerResult = await this._validProvider(selection.provider);
       if (!providerResult.success) {
         return providerResult as ServiceResult<{ added: number; shared: boolean }>;
       }
       for (const raw of selection.asset_ids) {
         const assetId = String(raw || '').trim();
         if (!assetId) continue;
-        const result = this._addTripPhoto(tripId, userId, selection.provider, assetId, shared, albumLinkId, selection.passphrase);
+        const result = await this._addTripPhoto(
+          tripId,
+          userId,
+          selection.provider,
+          assetId,
+          shared,
+          albumLinkId,
+          selection.passphrase,
+        );
         if (!result.success) {
           return result as ServiceResult<{ added: number; shared: boolean }>;
         }
@@ -187,10 +195,9 @@ export class UnifiedMemoriesService {
     }
 
     await this._notifySharedTripPhotos(tripId, userId, added);
-    broadcast(tripId, 'memories:updated', { userId }, sid);
+    this.realtime.broadcast(tripId, 'memories:updated', { userId }, sid);
     return success({ added, shared });
   }
-
 
   async setTripPhotoSharing(
     tripId: string,
@@ -199,49 +206,34 @@ export class UnifiedMemoriesService {
     shared: boolean,
     sid?: string,
   ): Promise<ServiceResult<true>> {
-    const access = this.db.canAccessTrip(tripId, userId);
+    const access = await this.trips.findAccessible(tripId, userId);
     if (!access) {
       return fail('Trip not found or access denied', 404);
     }
 
     try {
-      this.db.prepare(`
-        UPDATE trip_photos
-        SET shared = ?
-        WHERE trip_id = ?
-          AND user_id = ?
-          AND photo_id = ?
-      `).run(shared ? 1 : 0, tripId, userId, photoId);
+      await this.tripPhotos.setShared(tripId, userId, photoId, shared ? 1 : 0);
 
       await this._notifySharedTripPhotos(tripId, userId, 1);
-      broadcast(tripId, 'memories:updated', { userId }, sid);
+      this.realtime.broadcast(tripId, 'memories:updated', { userId }, sid);
       return success(true);
     } catch (error) {
       return mapDbError(error, 'Failed to update photo sharing');
     }
   }
 
-  removeTripPhoto(
-    tripId: string,
-    userId: number,
-    photoId: number,
-    sid?: string,
-  ): ServiceResult<true> {
-    const access = this.db.canAccessTrip(tripId, userId);
+  async removeTripPhoto(tripId: string, userId: number, photoId: number, sid?: string): Promise<ServiceResult<true>> {
+    const access = await this.trips.findAccessible(tripId, userId);
     if (!access) {
       return fail('Trip not found or access denied', 404);
     }
 
     try {
-      this.db.prepare(`
-        DELETE FROM trip_photos
-        WHERE trip_id = ?
-          AND user_id = ?
-          AND photo_id = ?
-      `).run(tripId, userId, photoId);
-
-      this.photos.deleteIfOrphan(photoId);
-      broadcast(tripId, 'memories:updated', { userId }, sid);
+      await this.uow.transactional(async () => {
+        await this.tripPhotos.deleteForUserPhoto(tripId, userId, photoId);
+        await this.photos.deleteIfOrphan(photoId);
+      });
+      this.realtime.broadcast(tripId, 'memories:updated', { userId }, sid);
 
       return success(true);
     } catch (error) {
@@ -252,8 +244,15 @@ export class UnifiedMemoriesService {
   // ----------------------------------------------
   // managing album links in trip
 
-  createTripAlbumLink(tripId: string, userId: number, providerRaw: unknown, albumIdRaw: unknown, albumNameRaw: unknown, passphrase?: string): ServiceResult<true> {
-    const access = this.db.canAccessTrip(tripId, userId);
+  async createTripAlbumLink(
+    tripId: string,
+    userId: number,
+    providerRaw: unknown,
+    albumIdRaw: unknown,
+    albumNameRaw: unknown,
+    passphrase?: string,
+  ): Promise<ServiceResult<true>> {
+    const access = await this.trips.findAccessible(tripId, userId);
     if (!access) {
       return fail('Trip not found or access denied', 404);
     }
@@ -269,19 +268,23 @@ export class UnifiedMemoriesService {
       return fail('album_id required', 400);
     }
 
-
-    const providerResult = this._validProvider(provider);
+    const providerResult = await this._validProvider(provider);
     if (!providerResult.success) {
       return providerResult as ServiceResult<true>;
     }
 
     try {
       const encryptedPassphrase = passphrase ? encrypt_api_key(passphrase) : null;
-      const result = this.db.prepare(
-        'INSERT OR IGNORE INTO trip_album_links (trip_id, user_id, provider, album_id, album_name, passphrase) VALUES (?, ?, ?, ?, ?, ?)'
-      ).run(tripId, userId, provider, albumId, albumName, encryptedPassphrase);
+      const added = await this.tripAlbumLinks.insertIgnore({
+        trip_id: tripId,
+        user_id: userId,
+        provider,
+        album_id: albumId,
+        album_name: albumName,
+        passphrase: encryptedPassphrase,
+      });
 
-      if (result.changes === 0) {
+      if (!added) {
         return fail('Album already linked', 409);
       }
 
@@ -291,33 +294,26 @@ export class UnifiedMemoriesService {
     }
   }
 
-  removeAlbumLink(tripId: string, linkId: string, userId: number): ServiceResult<true> {
-    const access = this.db.canAccessTrip(tripId, userId);
+  async removeAlbumLink(tripId: string, linkId: string, userId: number): Promise<ServiceResult<true>> {
+    const access = await this.trips.findAccessible(tripId, userId);
     if (!access) {
       return fail('Trip not found or access denied', 404);
     }
 
     try {
-      const linkedPhotos = this.db.prepare('SELECT photo_id FROM trip_photos WHERE trip_id = ? AND album_link_id = ?')
-        .all(tripId, linkId) as Array<{ photo_id: number }>;
+      const linkedPhotoIds = await this.tripPhotos.listPhotoIdsForAlbumLink(tripId, linkId);
 
-      this.db.transaction(() => {
-        this.db.prepare('DELETE FROM trip_photos WHERE trip_id = ? AND album_link_id = ?')
-          .run(tripId, linkId);
-        this.db.prepare('DELETE FROM trip_album_links WHERE id = ? AND trip_id = ? AND user_id = ?')
-          .run(linkId, tripId, userId);
+      await this.uow.transactional(async () => {
+        await this.tripPhotos.deleteForAlbumLink(tripId, linkId);
+        await this.tripAlbumLinks.deleteScoped(linkId, tripId, userId);
+        for (const photo_id of linkedPhotoIds) await this.photos.deleteIfOrphan(photo_id);
       });
-
-      for (const { photo_id } of linkedPhotos) {
-        this.photos.deleteIfOrphan(photo_id);
-      }
 
       return success(true);
     } catch (error) {
       return mapDbError(error, 'Failed to remove album link');
     }
   }
-
 
   //-----------------------------------------------
   // notifications helper
@@ -330,12 +326,24 @@ export class UnifiedMemoriesService {
     if (added <= 0) return success(undefined);
 
     try {
-      const actorRow = this.db.prepare('SELECT username, email FROM users WHERE id = ?').get(actorUserId) as { username: string | null, email: string | null };
+      const actorRow = await this.users.findUsernameEmail(actorUserId);
 
-      const tripInfo = this.db.prepare('SELECT title FROM trips WHERE id = ?').get(tripId) as { title: string } | undefined;
+      const tripTitle = await this.trips.getTitle(tripId);
 
-    
-      this.notifications.send({ event: 'photos_shared', actorId: actorUserId, scope: 'trip', targetId: Number(tripId), params: { trip: tripInfo?.title || 'Untitled', actor: actorRow?.email || 'Unknown', count: String(added), tripId: String(tripId) } }).catch(() => {});
+      this.notifications
+        .send({
+          event: 'photos_shared',
+          actorId: actorUserId,
+          scope: 'trip',
+          targetId: Number(tripId),
+          params: {
+            trip: tripTitle || 'Untitled',
+            actor: actorRow?.email || 'Unknown',
+            count: String(added),
+            tripId: String(tripId),
+          },
+        })
+        .catch(() => {});
       return success(undefined);
     } catch {
       return fail('Failed to send notifications', 500);
@@ -362,7 +370,7 @@ export class UnifiedMemoriesService {
     const result = await this.addTripPhotos(tripId, userId, true, [collected.selection], sid, linkId);
     if ('error' in result) return { error: result.error.message, status: result.error.status };
 
-    this.access.updateSyncTimeForAlbumLink(linkId);
+    await this.access.updateSyncTimeForAlbumLink(linkId);
 
     return { success: true, added: result.data.added, total: collected.total };
   }
@@ -379,7 +387,7 @@ export class UnifiedMemoriesService {
     const result = await this.addTripPhotos(tripId, userId, true, [collected.data.selection], sid, linkId);
     if (!result.success) return result as ServiceResult<SyncAlbumResult>;
 
-    this.access.updateSyncTimeForAlbumLink(linkId);
+    await this.access.updateSyncTimeForAlbumLink(linkId);
 
     return success({ added: result.data.added, total: collected.data.total });
   }

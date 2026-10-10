@@ -1,8 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { logDebug, logError, logInfo } from '../../audit/audit-log.logger';
-import { decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
-import { DatabaseService } from '../../database/database.service';
+import { AppSettings } from '../../../db/entities/AppSettings.entity';
+import { Settings } from '../../../db/entities/Settings.entity';
+import { AppSettingsRepository } from '../../../db/repositories/AppSettings.repository';
+import { SettingsRepository } from '../../../db/repositories/Settings.repository';
 import { safeFetchFollow, SsrfBlockedError } from '../../../utils/ssrfGuard';
+import { logDebug, logError, logInfo } from '../../audit/audit-log.logger';
+import { readAppSetting } from '../../common/app-settings.registry';
+import { decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Renders the outgoing body. Discord and Slack get their native shapes; anything
@@ -44,19 +49,21 @@ export function buildWebhookBody(
 /** Outgoing webhooks: the per-user and the admin-global URL, and the POST itself. */
 @Injectable()
 export class WebhookService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    @InjectRepository(Settings) private readonly settings: SettingsRepository,
+    @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
+  ) {}
 
-  getUserWebhookUrl(userId: number): string | null {
-    const value = this.db.get<{ value: string }>(
-      "SELECT value FROM settings WHERE user_id = ? AND key = 'webhook_url'", userId,
-    )?.value || null;
+  /** WH1 — R4's fold ruling: the shared, already-populated `SettingsRepository.getOne(userId, key)`. */
+  async getUserWebhookUrl(userId: number): Promise<string | null> {
+    const row = await this.settings.getOne(userId, 'webhook_url');
+    const value = row?.value || null;
     return value ? decrypt_api_key(value) : null;
   }
 
-  getAdminWebhookUrl(): string | null {
-    const value = this.db.get<{ value: string }>(
-      'SELECT value FROM app_settings WHERE key = ?', 'admin_webhook_url',
-    )?.value || null;
+  /** WH2 — one of the plan's six identical `app_settings` reads, R4's shared `AppSettingsRepository.getValue(key)`. */
+  async getAdminWebhookUrl(): Promise<string | null> {
+    const value = (await readAppSetting(this.appSettings, 'admin_webhook_url')) || null;
     return value ? decrypt_api_key(value) : null;
   }
 

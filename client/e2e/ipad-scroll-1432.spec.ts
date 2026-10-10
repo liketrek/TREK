@@ -5,16 +5,19 @@ import { dismissSystemNotices } from './helpers'
 //
 // A tablet is a coarse-pointer device at a *desktop* viewport width, so the width-based
 // "is this mobile" check that 3.2.1 shipped left `draggable` armed on iPad: the swipe
-// became an HTML5 drag and raised the drop-to-import overlay instead of scrolling. Drag
-// is now gated on `(pointer: coarse)` (useIsTouch), and only a real device context proves
-// it — a jsdom unit test cannot express "coarse pointer at 834px".
+// became an HTML5 drag and raised the drop-to-import overlay instead of scrolling. What
+// turned the swipe into a drag was the drag-drop-touch polyfill, confined to hybrid
+// laptops since. #1616 then gave tablets their drag back on purpose, through the
+// long-press bridge ([data-touch-drag]): a row may be draggable, but only a press that
+// is held becomes a drag, so a swipe still scrolls. Only a real device context proves
+// that; a jsdom unit test cannot express "coarse pointer at 834px".
 //
 // Needs WebKit (`npx playwright install webkit`, plus libmanette-0.2-0 and libwoff1 on
 // Debian/Ubuntu). WebKit is the right engine here, not a nicety: every browser on iPadOS
 // is WebKit underneath, which is why the reporter saw this in all three they tried.
 test.use({ ...devices['iPad Pro 11'] })
 
-test('#1432 iPad: places list is scrollable, not draggable', async ({ page }) => {
+test('#1432 iPad: the places list scrolls under a swipe', async ({ page }) => {
   await page.goto('/dashboard')
 
   await dismissSystemNotices(page)
@@ -58,12 +61,22 @@ test('#1432 iPad: places list is scrollable, not draggable', async ({ page }) =>
   expect(env.coarse, 'iPad reports a coarse primary pointer').toBe(true)
   expect(env.width, 'iPad sits above the 768px "mobile" breakpoint').toBeGreaterThanOrEqual(768)
 
-  // 1. Rows must not be draggable — a draggable row is what swallowed the scroll gesture.
+  // 1. A swipe must not become a drag. What turned it into one in #1432 was the
+  //    drag-drop-touch polyfill; it belongs to hybrid laptops only now
+  //    (utils/touchDragPolyfill.ts), so a tablet must never load it. A row may be
+  //    draggable, but only behind the long-press bridge (#1616).
+  const polyfillLoaded = await page.evaluate(() =>
+    performance.getEntriesByType('resource').some(e => /drag-?drop-?touch/i.test(e.name)))
+  expect(polyfillLoaded, 'the drag-drop-touch polyfill stays off a tablet').toBe(false)
   const row = page.locator('div[draggable]').filter({ hasText: 'Place 1' }).first()
-  await expect(row).toHaveAttribute('draggable', 'false')
+  await expect(row).toBeVisible()
+  const swipeSafe = await row.evaluate(el => el.getAttribute('draggable') !== 'true' || !!el.closest('[data-touch-drag]'))
+  expect(swipeSafe, 'a draggable row sits behind the long-press bridge').toBe(true)
 
   // 2. The list must scroll, and no drop-to-import overlay may appear.
-  const scroller = page.locator('div[draggable]').first().locator('xpath=ancestor::div[@class="trek-stagger"]')
+  // The list's scroll container carries trek-stagger among its other classes. Taken
+  // from the row above: the first draggable on the page can be another panel's.
+  const scroller = row.locator('xpath=ancestor::div[contains(concat(" ", normalize-space(@class), " "), " trek-stagger ")]')
   const before = await scroller.evaluate(el => el.scrollTop)
   const box = (await scroller.boundingBox())!
   await page.touchscreen.tap(box.x + box.width / 2, box.y + 40)
@@ -72,17 +85,11 @@ test('#1432 iPad: places list is scrollable, not draggable', async ({ page }) =>
   expect(after, 'places list scrolled').toBeGreaterThan(before)
   await expect(page.getByText('Drop to import')).toHaveCount(0)
 
-  // 3. Drag being off means the arrow buttons are the only reorder affordance left —
-  //    they must be visible (they were opacity:0 above 767px).
-  const arrowOpacity = await page.evaluate(() => {
-    const el = document.querySelector('.reorder-buttons')
-    return el ? getComputedStyle(el).opacity : 'absent'
-  })
-  expect(['1', 'absent']).toContain(arrowOpacity)
-
-  // 4. The iPad must still get the desktop shell — isMobile stayed width-based. One
+  // 3. The iPad must still get the desktop shell — isMobile stayed width-based. One
   //    panel at a time (#2247), so opening Places closed the day plan and left its
   //    tab as the way back.
   await expect(page.locator('.leaflet-container')).toBeVisible()
-  await expect(page.locator('button[aria-label="Plan"]')).toBeVisible()
+  // The top tab bar has a button named Plan as well; the way back is the panel's
+  // own tab, which is accented while its panel is closed.
+  await expect(page.locator('button[aria-label="Plan"].bg-accent')).toBeVisible()
 })

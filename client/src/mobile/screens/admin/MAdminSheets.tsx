@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AlertTriangle, CheckCircle, ExternalLink, Fingerprint, Trash2 } from 'lucide-react'
-import { adminApi } from '../../../api/client'
+import { useAdminUserActions } from '../../../components/Admin/useAdminUserActions'
 import type { TranslationFn } from '../../../types'
 import type { useAdmin } from '../../../pages/admin/useAdmin'
 import MSheet from '../../components/MSheet'
@@ -25,11 +25,11 @@ docker run -d --name trek \\
 // and delete), the "how to update" instructions and the rotate-JWT confirm.
 export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
   const {
-    logout, navigate, toast, currentUser,
+    currentUser,
     editingUser, setEditingUser, editForm, setEditForm,
     showCreateUser, setShowCreateUser, createForm, setCreateForm,
     updateInfo, showUpdateModal, setShowUpdateModal,
-    showRotateJwtModal, setShowRotateJwtModal, rotatingJwt, setRotatingJwt,
+    showRotateJwtModal, setShowRotateJwtModal, rotatingJwt,
     handleCreateUser, handleSaveUser, handleDeleteUser,
   } = admin
 
@@ -41,30 +41,17 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
   const [showResetPasskeys, setShowResetPasskeys] = useState(false)
   const [resettingPk, setResettingPk] = useState(false)
 
+  const userActions = useAdminUserActions(admin, t)
+  const { rotateJwt } = userActions
+
+  // The sheet stays open and busy while the reset runs and closes once it worked.
   const resetPasskeys = async () => {
     if (!editingUser) return
     setResettingPk(true)
     try {
-      const r = await adminApi.resetUserPasskeys(editingUser.id)
-      toast.success(t('admin.passkey.resetDone', { count: r.deleted ?? 0 }))
-      setShowResetPasskeys(false)
-    } catch {
-      toast.error(t('common.error'))
+      if (await userActions.resetPasskeys(editingUser)) setShowResetPasskeys(false)
     } finally {
       setResettingPk(false)
-    }
-  }
-
-  const rotateJwt = async () => {
-    setRotatingJwt(true)
-    try {
-      await adminApi.rotateJwtSecret()
-      setShowRotateJwtModal(false)
-      logout()
-      navigate('/login', { state: { noRedirect: true } })
-    } catch {
-      toast.error(t('common.error'))
-      setRotatingJwt(false)
     }
   }
 
@@ -178,7 +165,7 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
                     onClick={() => {
                       const user = editingUser
                       setEditingUser(null)
-                      handleDeleteUser(user)
+                      void handleDeleteUser(user)
                     }}
                   >
                     <Trash2 size={12} strokeWidth={2.2} />

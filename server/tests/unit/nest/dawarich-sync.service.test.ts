@@ -15,42 +15,49 @@
  * `recordSyncResult` into `dawarich_connections`, so "the failure is stored" is
  * asserted against the table the settings card reads, not against a spy alone.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-// ── DB setup (real in-memory SQLite — same vi.hoisted pattern as atlas/immich) ──
-
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  return {
-    testDb: db,
-    dbMock: {
-      db,
-      closeDb: () => {},
-      reinitialize: () => {},
-      getPlaceWithTags: () => null,
-      canAccessTrip: () => null,
-      isOwner: () => false,
-    },
-  };
-});
-
-vi.mock('../../../src/db/database', () => dbMock);
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { AddonsService } from '../../../src/nest/addons/addons.service';
+import { db as testDb } from '../../../src/db/database';
+import { BucketList } from '../../../src/db/entities/BucketList.entity';
+import { DawarichConnections } from '../../../src/db/entities/DawarichConnections.entity';
+import { DawarichVisitSuggestions } from '../../../src/db/entities/DawarichVisitSuggestions.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import type { BucketListRepository } from '../../../src/db/repositories/BucketList.repository';
+import type { DawarichConnectionsRepository } from '../../../src/db/repositories/DawarichConnections.repository';
+import type { DawarichVisitSuggestionsRepository } from '../../../src/db/repositories/DawarichVisitSuggestions.repository';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import { DawarichSyncService } from '../../../src/nest/integrations/dawarich-sync.service';
 import { DawarichError } from '../../../src/nest/integrations/dawarich.client';
 import type { DawarichClient, DawarichCreds, DawarichVisitRaw } from '../../../src/nest/integrations/dawarich.client';
 import type { DawarichService } from '../../../src/nest/integrations/dawarich.service';
+import {
+  createTestDawarichConnectionsRepo,
+  createTestDawarichVisitSuggestionsRepo,
+} from '../../helpers/dawarich-repos';
+import { createUser, createTrip } from '../../helpers/factories';
+import { deleteRows, findRow, findRows, insertRow, updateRows, upsertRow } from '../../helpers/factories/rows';
+import { addTripMember } from '../../helpers/factories/trips';
+import { createTestAddonsService } from '../../helpers/test-addons';
+import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
+import type { TestOrm } from '../../helpers/test-orm';
+import { createTestTripsRepo, createTestUnitOfWork, sharedTestOrm } from '../../helpers/test-uow';
 import type { DawarichCapabilities, DawarichSyncState } from '@trek/shared';
+
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+// ── DB setup (real in-memory SQLite — same vi.hoisted pattern as atlas/immich) ──
+
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../../helpers/db-mock');
+  const db = createSnapshotTestDb();
+  return {
+    db,
+    closeDb: () => {},
+    reinitialize: () => {},
+    getPlaceWithTags: () => null,
+    canAccessTrip: () => null,
+    isOwner: () => false,
+  };
+});
 
 // ── Fakes ────────────────────────────────────────────────────────────────────
 
@@ -70,31 +77,36 @@ const listVisits = vi.fn();
 const client = { listVisits } as unknown as DawarichClient;
 
 /** Reads the same two columns the real service reads, so a row without a key is null. */
-const getCredentials = vi.fn((userId: number): DawarichCreds | null => {
-  const row = testDb
-    .prepare('SELECT url, api_key, allow_insecure_tls FROM dawarich_connections WHERE user_id = ?')
-    .get(userId) as { url: string | null; api_key: string | null; allow_insecure_tls: number } | undefined;
+const getCredentials = vi.fn(async (userId: number): Promise<DawarichCreds | null> => {
+  const row = await findRow(t, DawarichConnections, { user: userId });
   if (!row?.url || !row?.api_key) return null;
   return { baseUrl: row.url, apiKey: row.api_key, allowInsecureTls: !!row.allow_insecure_tls };
 });
 
 /** Writes the result where the settings card reads it, exactly as the real service does. */
-const recordSyncResult = vi.fn((userId: number, state: DawarichSyncState, error: string | null): void => {
-  testDb
-    .prepare(
-      'UPDATE dawarich_connections SET last_sync_at = ?, last_sync_state = ?, last_sync_error = ? WHERE user_id = ?',
-    )
-    .run(new Date().toISOString(), state, error, userId);
-});
+const recordSyncResult = vi.fn(
+  async (userId: number, state: DawarichSyncState, error: string | null): Promise<void> => {
+    await updateRows(
+      t,
+      DawarichConnections,
+      { user: userId },
+      {
+        last_sync_at: new Date().toISOString(),
+        last_sync_state: state,
+        last_sync_error: error,
+      },
+    );
+  },
+);
 
-const listSyncableUserIds = vi.fn((): number[] =>
+const listSyncableUserIds = vi.fn(async (): Promise<number[]> =>
   (
-    testDb
-      .prepare(
-        "SELECT user_id FROM dawarich_connections WHERE sync_enabled = 1 AND url IS NOT NULL AND url <> '' AND api_key IS NOT NULL",
-      )
-      .all() as { user_id: number }[]
-  ).map((r) => r.user_id),
+    await findRows(t, DawarichConnections, {
+      sync_enabled: 1,
+      url: { $ne: null, $nin: [''] },
+      api_key: { $ne: null },
+    })
+  ).map((r) => r.user_id as number),
 );
 
 const storeCapabilities = vi.fn();
@@ -110,9 +122,13 @@ const dawarich = {
 
 // Direct construction over the shared test connection — no TestingModule
 // (repo convention for DI-native service unit tests).
-const dbs = new DatabaseService(testDb);
-const addons = new AddonsService(dbs);
-const svc = new DawarichSyncService(dbs, addons, client, dawarich);
+let t: TestOrm;
+let suggestions: DawarichVisitSuggestionsRepository;
+let trips: TripsRepository;
+let bucketList: BucketListRepository;
+let connections: DawarichConnectionsRepository;
+let addons: AddonsService;
+let svc: DawarichSyncService;
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -176,45 +192,55 @@ interface SuggestionRow {
   last_seen_at: string;
 }
 
-function rows(userId = USER): SuggestionRow[] {
-  return testDb
-    .prepare('SELECT * FROM dawarich_visit_suggestions WHERE user_id = ? ORDER BY id')
-    .all(userId) as SuggestionRow[];
+async function rows(userId = USER): Promise<SuggestionRow[]> {
+  return (await findRows(t, DawarichVisitSuggestions, { user: userId }, { id: 'asc' })) as SuggestionRow[];
 }
 
-function only(userId = USER): SuggestionRow {
-  const all = rows(userId);
+async function only(userId = USER): Promise<SuggestionRow> {
+  const all = await rows(userId);
   expect(all).toHaveLength(1);
   return all[0];
 }
 
-function connection(userId = USER): { last_sync_state: string; last_sync_error: string | null } {
-  return testDb
-    .prepare('SELECT last_sync_state, last_sync_error FROM dawarich_connections WHERE user_id = ?')
-    .get(userId) as { last_sync_state: string; last_sync_error: string | null };
+async function connection(userId = USER): Promise<{ last_sync_state: string; last_sync_error: string | null }> {
+  const row = await findRow(t, DawarichConnections, { user: userId });
+  if (!row) throw new Error(`no dawarich connection for user ${userId}`);
+  return { last_sync_state: row.last_sync_state, last_sync_error: row.last_sync_error ?? null };
 }
 
-function connect(
+async function connect(
   userId: number,
   opts: { url?: string | null; apiKey?: string | null; syncEnabled?: boolean } = {},
-): void {
-  testDb
-    .prepare(
-      'INSERT OR REPLACE INTO dawarich_connections (user_id, url, api_key, allow_insecure_tls, sync_enabled) VALUES (?, ?, ?, 0, ?)',
-    )
-    .run(
-      userId,
-      opts.url === undefined ? 'https://dawarich.test' : opts.url,
-      opts.apiKey === undefined ? 'secret-key' : opts.apiKey,
-      opts.syncEnabled === false ? 0 : 1,
-    );
+): Promise<void> {
+  await upsertRow(t, DawarichConnections, {
+    user: userId,
+    url: opts.url === undefined ? 'https://dawarich.test' : opts.url,
+    api_key: opts.apiKey === undefined ? 'secret-key' : opts.apiKey,
+    allow_insecure_tls: 0,
+    sync_enabled: opts.syncEnabled === false ? 0 : 1,
+  });
 }
 
-function bucketItem(name: string, lat: number, lng: number, userId = USER): number {
-  const res = testDb
-    .prepare('INSERT INTO bucket_list (user_id, name, lat, lng) VALUES (?, ?, ?, ?)')
-    .run(userId, name, lat, lng);
-  return Number(res.lastInsertRowid);
+async function bucketItem(name: string, lat: number, lng: number, userId = USER): Promise<number> {
+  return insertRow(t, BucketList, { user: userId, name, lat, lng });
+}
+
+/** A suggestion row written straight in, as an earlier run or a stale state left it. */
+function seedSuggestion(row: {
+  source_visit_id: string;
+  trip: number;
+  name: string;
+  lat: number | null;
+  lng: number | null;
+  started_at: string;
+  ended_at: string;
+  duration_minutes: number;
+  local_date: string;
+  state: string;
+  source_hash: string;
+  matchedBucketListItem?: number;
+}): Promise<number> {
+  return insertRow(t, DawarichVisitSuggestions, { user: USER, source_status: 'suggested', ...row });
 }
 
 /** Every window of the next run answers with exactly these visits. */
@@ -222,28 +248,44 @@ function withVisits(...visits: DawarichVisitRaw[]): void {
   listVisits.mockResolvedValue({ visits, truncated: false, version: '1.14.4' });
 }
 
-beforeAll(() => {
-  createTables(testDb);
-  runMigrations(testDb);
+beforeAll(async () => {
+  t = await sharedTestOrm(testDb);
+  suggestions = await createTestDawarichVisitSuggestionsRepo(testDb);
+  trips = await createTestTripsRepo(testDb);
+  bucketList = t.repo(BucketList);
+  connections = await createTestDawarichConnectionsRepo(testDb);
+  addons = await createTestAddonsService(testDb);
+  svc = new DawarichSyncService(
+    suggestions,
+    addons,
+    client,
+    dawarich,
+    trips,
+    bucketList,
+    connections,
+    await createTestUnitOfWork(testDb),
+  );
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   resetTestDb(testDb);
   // RESET_TABLES in tests/helpers/test-db.ts predates this domain and does not
   // list its two tables; foreign keys are off during the reset, so rows would
   // otherwise outlive their user and leak into the next case.
-  testDb.exec('DELETE FROM dawarich_visit_suggestions');
-  testDb.exec('DELETE FROM dawarich_connections');
+  await deleteRows(t, DawarichVisitSuggestions);
+  await deleteRows(t, DawarichConnections);
+  t.clear();
   vi.clearAllMocks();
   probeCapabilities.mockResolvedValue(CAPABILITIES);
 
   setAddonEnabled(testDb, 'dawarich', true);
   USER = createUser(testDb).user.id;
   TRIP = createTrip(testDb, USER, { start_date: TRIP_START, end_date: TRIP_END }).id;
-  connect(USER);
+  await connect(USER);
 });
 
-afterAll(() => {
+afterAll(async () => {
+  await t.close();
   testDb.close();
 });
 
@@ -256,7 +298,7 @@ describe('DawarichSyncService — new visits', () => {
     const result = await svc.syncUser(USER);
 
     expect(result).toMatchObject({ state: 'ok', created: 1, updated: 0, missing: 0 });
-    const row = only();
+    const row = await only();
     expect(row.source_visit_id).toBe('501');
     expect(row.state).toBe('new');
     expect(row.trip_id).toBe(TRIP);
@@ -278,7 +320,7 @@ describe('DawarichSyncService — new visits', () => {
 
     await svc.syncUser(USER);
 
-    expect(only().country_code).toBe('DE');
+    expect((await only()).country_code).toBe('DE');
   });
 
   it('DAWARICH-SYNC-003: prefers the country code the source sends over the resolved one', async () => {
@@ -286,7 +328,7 @@ describe('DawarichSyncService — new visits', () => {
 
     await svc.syncUser(USER);
 
-    expect(only().country_code).toBe('AT');
+    expect((await only()).country_code).toBe('AT');
   });
 
   it('DAWARICH-SYNC-004: skips a payload entry that is not a usable visit', async () => {
@@ -306,7 +348,7 @@ describe('DawarichSyncService — new visits', () => {
     const result = await svc.syncUser(USER);
 
     expect(result.created).toBe(1);
-    expect(rows()).toHaveLength(1);
+    expect(await rows()).toHaveLength(1);
   });
 });
 
@@ -334,7 +376,7 @@ describe('DawarichSyncService, neighbouring trips', () => {
 
     expect(listVisits).toHaveBeenCalledTimes(2);
     expect(result).toMatchObject({ state: 'ok', created: 1, missing: 0 });
-    const row = only();
+    const row = await only();
     expect(row.trip_id).toBe(TRIP);
     expect(row.trip_id).not.toBe(next);
   });
@@ -343,39 +385,49 @@ describe('DawarichSyncService, neighbouring trips', () => {
     // What an earlier run left behind. Nobody acted on the row, so re-homing
     // it loses nothing, and the panel of the trip it belongs to fills in.
     const next = nextTrip();
-    testDb
-      .prepare(
-        `INSERT INTO dawarich_visit_suggestions
-           (user_id, source_visit_id, trip_id, name, lat, lng, started_at, ended_at, duration_minutes,
-            local_date, source_status, state, source_hash)
-         VALUES (?, '911', ?, 'Hotel Adlon', ?, ?, ?, ?, 180, ?, 'suggested', 'new', 'stale')`,
-      )
-      .run(USER, next, LAT, LNG, `${TRIP_END}T09:00:00Z`, `${TRIP_END}T12:00:00Z`, TRIP_END);
+    await seedSuggestion({
+      source_visit_id: '911',
+      trip: next,
+      name: 'Hotel Adlon',
+      lat: LAT,
+      lng: LNG,
+      started_at: `${TRIP_END}T09:00:00Z`,
+      ended_at: `${TRIP_END}T12:00:00Z`,
+      duration_minutes: 180,
+      local_date: TRIP_END,
+      state: 'new',
+      source_hash: 'stale',
+    });
     withVisits(lastDayVisit(911));
 
     const result = await svc.syncUser(USER);
 
     expect(result).toMatchObject({ created: 0, missing: 0 });
-    expect(only().trip_id).toBe(TRIP);
+    expect((await only()).trip_id).toBe(TRIP);
   });
 
   it('DAWARICH-SYNC-076: a row the user already acted on keeps its trip', async () => {
     // An acceptance made a place on that trip. Moving the row out from under
     // it would leave the handled list pointing somewhere else than the place.
     const next = nextTrip();
-    testDb
-      .prepare(
-        `INSERT INTO dawarich_visit_suggestions
-           (user_id, source_visit_id, trip_id, name, lat, lng, started_at, ended_at, duration_minutes,
-            local_date, source_status, state, source_hash)
-         VALUES (?, '912', ?, 'Hotel Adlon', ?, ?, ?, ?, 180, ?, 'suggested', 'accepted', 'stale')`,
-      )
-      .run(USER, next, LAT, LNG, `${TRIP_END}T09:00:00Z`, `${TRIP_END}T12:00:00Z`, TRIP_END);
+    await seedSuggestion({
+      source_visit_id: '912',
+      trip: next,
+      name: 'Hotel Adlon',
+      lat: LAT,
+      lng: LNG,
+      started_at: `${TRIP_END}T09:00:00Z`,
+      ended_at: `${TRIP_END}T12:00:00Z`,
+      duration_minutes: 180,
+      local_date: TRIP_END,
+      state: 'accepted',
+      source_hash: 'stale',
+    });
     withVisits(lastDayVisit(912));
 
     await svc.syncUser(USER);
 
-    expect(only().trip_id).toBe(next);
+    expect((await only()).trip_id).toBe(next);
   });
 
   it('DAWARICH-SYNC-077: a stay in the slack before departure, inside no trip at all, stays with the window that found it', async () => {
@@ -386,7 +438,7 @@ describe('DawarichSyncService, neighbouring trips', () => {
 
     await svc.syncUser(USER);
 
-    const row = only();
+    const row = await only();
     expect(row.local_date).toBe(eve);
     expect(row.trip_id).toBe(TRIP);
   });
@@ -401,7 +453,7 @@ describe('DawarichSyncService, neighbouring trips', () => {
     await svc.syncUser(USER);
 
     expect(listVisits).toHaveBeenCalledTimes(1);
-    expect(only().trip_id).toBe(TRIP);
+    expect((await only()).trip_id).toBe(TRIP);
   });
 });
 
@@ -411,12 +463,12 @@ describe('DawarichSyncService — repeated runs', () => {
   it('DAWARICH-SYNC-010: a second run over identical data creates no duplicate', async () => {
     withVisits(visit({ id: 601 }));
     await svc.syncUser(USER);
-    const first = only();
+    const first = await only();
 
     const second = await svc.syncUser(USER);
 
     expect(second).toMatchObject({ state: 'ok', created: 0, updated: 0, missing: 0 });
-    const row = only();
+    const row = await only();
     expect(row.id).toBe(first.id);
     expect(row.first_seen_at).toBe(first.first_seen_at);
     expect(row.source_hash).toBe(first.source_hash);
@@ -425,13 +477,13 @@ describe('DawarichSyncService — repeated runs', () => {
   it('DAWARICH-SYNC-011: a changed visit rewrites a suggestion still in state "new"', async () => {
     withVisits(visit({ id: 602, name: 'Unnamed place' }));
     await svc.syncUser(USER);
-    const before = only();
+    const before = await only();
 
     withVisits(visit({ id: 602, name: 'Café Einstein', place: { latitude: 52.52, longitude: 13.38, id: 78 } }));
     const second = await svc.syncUser(USER);
 
     expect(second).toMatchObject({ created: 0, updated: 1 });
-    const row = only();
+    const row = await only();
     expect(row.id).toBe(before.id);
     expect(row.name).toBe('Café Einstein');
     expect(row.lat).toBeCloseTo(52.52, 4);
@@ -442,20 +494,25 @@ describe('DawarichSyncService — repeated runs', () => {
   it('DAWARICH-SYNC-012: a changed visit in state "accepted" keeps the user text and only moves the hash', async () => {
     withVisits(visit({ id: 603, name: 'Hotel Adlon' }));
     await svc.syncUser(USER);
-    const before = only();
+    const before = await only();
 
     // What acceptance leaves behind: the user's own wording plus the hash they said yes to.
-    testDb
-      .prepare(
-        "UPDATE dawarich_visit_suggestions SET state = 'accepted', accepted_hash = source_hash, name = ? WHERE id = ?",
-      )
-      .run('Our anniversary dinner', before.id);
+    await updateRows(
+      t,
+      DawarichVisitSuggestions,
+      { id: before.id },
+      {
+        state: 'accepted',
+        accepted_hash: before.source_hash,
+        name: 'Our anniversary dinner',
+      },
+    );
 
     withVisits(visit({ id: 603, name: 'Adlon Kempinski', place: { latitude: 52.4, longitude: 13.2, id: 79 } }));
     const second = await svc.syncUser(USER);
 
     expect(second).toMatchObject({ created: 0, updated: 1 });
-    const row = only();
+    const row = await only();
     expect(row.state).toBe('accepted');
     expect(row.name).toBe('Our anniversary dinner');
     expect(row.lat).toBeCloseTo(LAT, 4);
@@ -468,14 +525,14 @@ describe('DawarichSyncService — repeated runs', () => {
   it('DAWARICH-SYNC-013: a changed visit in state "dismissed" is likewise left alone', async () => {
     withVisits(visit({ id: 604, name: 'Petrol station' }));
     await svc.syncUser(USER);
-    const before = only();
-    testDb.prepare("UPDATE dawarich_visit_suggestions SET state = 'dismissed' WHERE id = ?").run(before.id);
+    const before = await only();
+    await updateRows(t, DawarichVisitSuggestions, { id: before.id }, { state: 'dismissed' });
 
     withVisits(visit({ id: 604, name: 'Aral Tankstelle' }));
     const second = await svc.syncUser(USER);
 
     expect(second.updated).toBe(1);
-    const row = only();
+    const row = await only();
     expect(row.state).toBe('dismissed');
     expect(row.name).toBe('Petrol station');
     expect(row.source_hash).not.toBe(before.source_hash);
@@ -484,7 +541,15 @@ describe('DawarichSyncService — repeated runs', () => {
   it('DAWARICH-SYNC-014: an unchanged accepted row is not counted as an update', async () => {
     withVisits(visit({ id: 605 }));
     await svc.syncUser(USER);
-    testDb.prepare("UPDATE dawarich_visit_suggestions SET state = 'accepted', accepted_hash = source_hash").run();
+    // accepted_hash takes each row's own source_hash, so the rows are written one by one.
+    for (const row of await findRows(t, DawarichVisitSuggestions)) {
+      await updateRows(
+        t,
+        DawarichVisitSuggestions,
+        { id: row.id },
+        { state: 'accepted', accepted_hash: row.source_hash },
+      );
+    }
 
     const second = await svc.syncUser(USER);
 
@@ -498,13 +563,13 @@ describe('DawarichSyncService — visits that vanish from the source', () => {
   it('DAWARICH-SYNC-020: an untouched suggestion is deleted when the source stops listing it', async () => {
     withVisits(visit({ id: 701 }));
     await svc.syncUser(USER);
-    expect(rows()).toHaveLength(1);
+    expect(await rows()).toHaveLength(1);
 
     withVisits();
     const second = await svc.syncUser(USER);
 
     expect(second).toMatchObject({ created: 0, updated: 0, missing: 1 });
-    expect(rows()).toHaveLength(0);
+    expect(await rows()).toHaveLength(0);
   });
 
   it('DAWARICH-SYNC-021: an accepted suggestion survives and is only stamped source_missing_at', async () => {
@@ -518,13 +583,13 @@ describe('DawarichSyncService — visits that vanish from the source', () => {
       }),
     );
     await svc.syncUser(USER);
-    testDb.prepare("UPDATE dawarich_visit_suggestions SET state = 'accepted' WHERE source_visit_id = '703'").run();
+    await updateRows(t, DawarichVisitSuggestions, { source_visit_id: '703' }, { state: 'accepted' });
 
     withVisits();
     const second = await svc.syncUser(USER);
 
     expect(second.missing).toBe(2);
-    const surviving = only();
+    const surviving = await only();
     expect(surviving.source_visit_id).toBe('703');
     expect(surviving.state).toBe('accepted');
     expect(surviving.name).toBe('Museumsinsel');
@@ -534,31 +599,31 @@ describe('DawarichSyncService — visits that vanish from the source', () => {
   it('DAWARICH-SYNC-022: a second empty run does not move an existing source_missing_at', async () => {
     withVisits(visit({ id: 704 }));
     await svc.syncUser(USER);
-    testDb.prepare("UPDATE dawarich_visit_suggestions SET state = 'accepted' WHERE source_visit_id = '704'").run();
+    await updateRows(t, DawarichVisitSuggestions, { source_visit_id: '704' }, { state: 'accepted' });
 
     withVisits();
     await svc.syncUser(USER);
-    const firstStamp = only().source_missing_at;
+    const firstStamp = (await only()).source_missing_at;
     expect(firstStamp).not.toBeNull();
 
     await svc.syncUser(USER);
 
-    expect(only().source_missing_at).toBe(firstStamp);
+    expect((await only()).source_missing_at).toBe(firstStamp);
   });
 
   it('DAWARICH-SYNC-023: a visit that comes back clears the missing flag', async () => {
     withVisits(visit({ id: 705 }));
     await svc.syncUser(USER);
-    testDb.prepare("UPDATE dawarich_visit_suggestions SET state = 'accepted' WHERE source_visit_id = '705'").run();
+    await updateRows(t, DawarichVisitSuggestions, { source_visit_id: '705' }, { state: 'accepted' });
 
     withVisits();
     await svc.syncUser(USER);
-    expect(only().source_missing_at).not.toBeNull();
+    expect((await only()).source_missing_at).not.toBeNull();
 
     withVisits(visit({ id: 705 }));
     await svc.syncUser(USER);
 
-    expect(only().source_missing_at).toBeNull();
+    expect((await only()).source_missing_at).toBeNull();
   });
 
   it('DAWARICH-SYNC-024: a suggestion outside the fetched window is untouched by the reconciliation', async () => {
@@ -566,21 +631,25 @@ describe('DawarichSyncService — visits that vanish from the source', () => {
     await svc.syncUser(USER);
 
     // Same user and trip, but a start date years before the window this trip asks about.
-    testDb
-      .prepare(
-        `INSERT INTO dawarich_visit_suggestions
-           (user_id, source_visit_id, trip_id, name, lat, lng, started_at, ended_at, duration_minutes,
-            local_date, source_status, state, source_hash)
-         VALUES (?, '999', ?, 'Ancient stay', ?, ?, '2019-01-01T10:00:00Z', '2019-01-01T12:00:00Z', 120,
-                 '2019-01-01', 'suggested', 'new', 'deadbeef')`,
-      )
-      .run(USER, TRIP, LAT, LNG);
+    await seedSuggestion({
+      source_visit_id: '999',
+      trip: TRIP,
+      name: 'Ancient stay',
+      lat: LAT,
+      lng: LNG,
+      started_at: '2019-01-01T10:00:00Z',
+      ended_at: '2019-01-01T12:00:00Z',
+      duration_minutes: 120,
+      local_date: '2019-01-01',
+      state: 'new',
+      source_hash: 'deadbeef',
+    });
 
     withVisits();
     const second = await svc.syncUser(USER);
 
     expect(second.missing).toBe(1);
-    expect(only().source_visit_id).toBe('999');
+    expect((await only()).source_visit_id).toBe('999');
   });
 });
 
@@ -588,43 +657,43 @@ describe('DawarichSyncService — visits that vanish from the source', () => {
 
 describe('DawarichSyncService — bucket-list matching', () => {
   it('DAWARICH-SYNC-030: links a wish that is both close enough and dwelt on long enough', async () => {
-    const wish = bucketItem('Brandenburger Tor', LAT + 0.001, LNG); // ~111 m
+    const wish = await bucketItem('Brandenburger Tor', LAT + 0.001, LNG); // ~111 m
     withVisits(visit({ id: 801, started_at: `${VISIT_DAY}T09:00:00Z`, ended_at: `${VISIT_DAY}T10:00:00Z` }));
 
     await svc.syncUser(USER);
 
-    expect(only().matched_bucket_list_item_id).toBe(wish);
+    expect((await only()).matched_bucket_list_item_id).toBe(wish);
   });
 
   it('DAWARICH-SYNC-031: refuses a wish that is close but whose stay is too short', async () => {
-    bucketItem('Brandenburger Tor', LAT + 0.001, LNG);
+    await bucketItem('Brandenburger Tor', LAT + 0.001, LNG);
     // Ten minutes, under DAWARICH_BUCKET_MATCH_MIN_MINUTES.
     withVisits(visit({ id: 802, started_at: `${VISIT_DAY}T09:00:00Z`, ended_at: `${VISIT_DAY}T09:10:00Z` }));
 
     await svc.syncUser(USER);
 
-    const row = only();
+    const row = await only();
     expect(row.duration_minutes).toBe(10);
     expect(row.matched_bucket_list_item_id).toBeNull();
   });
 
   it('DAWARICH-SYNC-032: refuses a long stay that is inside the coarse box but beyond the radius', async () => {
-    bucketItem('Reichstag', LAT + 0.008, LNG); // ~890 m: inside the prefilter box, outside 250 m
+    await bucketItem('Reichstag', LAT + 0.008, LNG); // ~890 m: inside the prefilter box, outside 250 m
     withVisits(visit({ id: 803 }));
 
     await svc.syncUser(USER);
 
-    expect(only().matched_bucket_list_item_id).toBeNull();
+    expect((await only()).matched_bucket_list_item_id).toBeNull();
   });
 
   it('DAWARICH-SYNC-033: picks the nearest wish when several are in range', async () => {
-    const far = bucketItem('Pariser Platz', LAT + 0.002, LNG); // ~222 m
-    const near = bucketItem('Brandenburger Tor', LAT + 0.0005, LNG); // ~56 m
+    const far = await bucketItem('Pariser Platz', LAT + 0.002, LNG); // ~222 m
+    const near = await bucketItem('Brandenburger Tor', LAT + 0.0005, LNG); // ~56 m
 
     withVisits(visit({ id: 804 }));
     await svc.syncUser(USER);
 
-    const matched = only().matched_bucket_list_item_id;
+    const matched = (await only()).matched_bucket_list_item_id;
     expect(matched).toBe(near);
     expect(matched).not.toBe(far);
   });
@@ -635,34 +704,34 @@ describe('DawarichSyncService — bucket-list matching', () => {
     // with a winner already held. The loop then has to keep what it has instead
     // of taking whatever it looked at last; both wishes are inside the radius,
     // so nothing else in the loop can decide it.
-    const near = bucketItem('Brandenburger Tor', LAT + 0.0005, LNG); // ~56 m
-    const far = bucketItem('Pariser Platz', LAT + 0.002, LNG); // ~222 m, still inside 250 m
+    const near = await bucketItem('Brandenburger Tor', LAT + 0.0005, LNG); // ~56 m
+    const far = await bucketItem('Pariser Platz', LAT + 0.002, LNG); // ~222 m, still inside 250 m
 
     withVisits(visit({ id: 808 }));
     await svc.syncUser(USER);
 
-    const matched = only().matched_bucket_list_item_id;
+    const matched = (await only()).matched_bucket_list_item_id;
     expect(matched).toBe(near);
     expect(matched).not.toBe(far);
   });
 
   it('DAWARICH-SYNC-034: ignores a wish belonging to another user', async () => {
     const other = createUser(testDb).user.id;
-    bucketItem('Brandenburger Tor', LAT + 0.0005, LNG, other);
+    await bucketItem('Brandenburger Tor', LAT + 0.0005, LNG, other);
 
     withVisits(visit({ id: 805 }));
     await svc.syncUser(USER);
 
-    expect(only().matched_bucket_list_item_id).toBeNull();
+    expect((await only()).matched_bucket_list_item_id).toBeNull();
   });
 
   it('DAWARICH-SYNC-035: a visit without coordinates matches nothing', async () => {
-    bucketItem('Brandenburger Tor', LAT, LNG);
+    await bucketItem('Brandenburger Tor', LAT, LNG);
     withVisits(visit({ id: 806, place: null }));
 
     await svc.syncUser(USER);
 
-    const row = only();
+    const row = await only();
     expect(row.lat).toBeNull();
     expect(row.matched_bucket_list_item_id).toBeNull();
   });
@@ -672,7 +741,7 @@ describe('DawarichSyncService — bucket-list matching', () => {
     // The café across the square from the museum satisfies the radius exactly as
     // the museum does; showing the same wish on both turns one achievement into
     // two claims and invites ticking it off from the wrong one.
-    const wish = bucketItem('Museum Ludwig', LAT, LNG);
+    const wish = await bucketItem('Museum Ludwig', LAT, LNG);
     withVisits(
       visit({ id: 810, name: 'Cafe Reichard', place: { latitude: LAT + 0.0018, longitude: LNG, id: 1 } }),
       visit({ id: 811, name: 'Museum Ludwig', place: { latitude: LAT + 0.0002, longitude: LNG, id: 2 } }),
@@ -680,13 +749,13 @@ describe('DawarichSyncService — bucket-list matching', () => {
 
     await svc.syncUser(USER);
 
-    const all = rows();
+    const all = await rows();
     expect(all.find((r) => r.source_visit_id === '811')!.matched_bucket_list_item_id).toBe(wish);
     expect(all.find((r) => r.source_visit_id === '810')!.matched_bucket_list_item_id).toBeNull();
   });
 
   it('DAWARICH-SYNC-038: the order the visits arrive in does not decide who keeps the wish', async () => {
-    const wish = bucketItem('Museum Ludwig', LAT, LNG);
+    const wish = await bucketItem('Museum Ludwig', LAT, LNG);
     withVisits(
       visit({ id: 821, name: 'Museum Ludwig', place: { latitude: LAT + 0.0002, longitude: LNG, id: 2 } }),
       visit({ id: 822, name: 'Cafe Reichard', place: { latitude: LAT + 0.0018, longitude: LNG, id: 1 } }),
@@ -694,7 +763,7 @@ describe('DawarichSyncService — bucket-list matching', () => {
 
     await svc.syncUser(USER);
 
-    const all = rows();
+    const all = await rows();
     expect(all.find((r) => r.source_visit_id === '821')!.matched_bucket_list_item_id).toBe(wish);
     expect(all.find((r) => r.source_visit_id === '822')!.matched_bucket_list_item_id).toBeNull();
   });
@@ -704,7 +773,7 @@ describe('DawarichSyncService — bucket-list matching', () => {
     // same number rather than merely similar and the tie-break is the only
     // thing left to decide it. Standing somewhere for three hours is a better
     // answer to "were you there" than half an hour on the way past.
-    const wish = bucketItem('Museum Ludwig', LAT, LNG);
+    const wish = await bucketItem('Museum Ludwig', LAT, LNG);
     withVisits(
       visit({
         id: 840,
@@ -724,7 +793,7 @@ describe('DawarichSyncService — bucket-list matching', () => {
 
     await svc.syncUser(USER);
 
-    const all = rows();
+    const all = await rows();
     expect(all.find((r) => r.source_visit_id === '841')!.matched_bucket_list_item_id).toBe(wish);
     expect(all.find((r) => r.source_visit_id === '840')!.matched_bucket_list_item_id).toBeNull();
   });
@@ -733,7 +802,7 @@ describe('DawarichSyncService — bucket-list matching', () => {
     // The mirror image of 068. Here the incoming stay is the short one, so the
     // claim has to be refused rather than won. Otherwise the answer would
     // depend on the order the payload happened to list them in.
-    const wish = bucketItem('Museum Ludwig', LAT, LNG);
+    const wish = await bucketItem('Museum Ludwig', LAT, LNG);
     withVisits(
       visit({
         id: 850,
@@ -753,7 +822,7 @@ describe('DawarichSyncService — bucket-list matching', () => {
 
     await svc.syncUser(USER);
 
-    const all = rows();
+    const all = await rows();
     expect(all.find((r) => r.source_visit_id === '850')!.matched_bucket_list_item_id).toBe(wish);
     expect(all.find((r) => r.source_visit_id === '851')!.matched_bucket_list_item_id).toBeNull();
   });
@@ -764,35 +833,78 @@ describe('DawarichSyncService — bucket-list matching', () => {
     // next real stay take the wish; treating an unmeasurable holder as the
     // winner would freeze the match on a row nobody can act on. Dated well
     // outside the synced window so the reconciliation leaves it alone.
-    const wish = bucketItem('Brandenburger Tor', LAT, LNG);
-    testDb
-      .prepare(
-        `INSERT INTO dawarich_visit_suggestions
-           (user_id, source_visit_id, trip_id, name, lat, lng, started_at, ended_at, duration_minutes,
-            local_date, source_status, state, source_hash, matched_bucket_list_item_id)
-         VALUES (?, '990', ?, 'Stay without a position', NULL, NULL, '2019-01-01T10:00:00Z',
-                 '2019-01-01T12:00:00Z', 120, '2019-01-01', 'suggested', 'new', 'deadbeef', ?)`,
-      )
-      .run(USER, TRIP, wish);
+    const wish = await bucketItem('Brandenburger Tor', LAT, LNG);
+    await seedSuggestion({
+      source_visit_id: '990',
+      trip: TRIP,
+      name: 'Stay without a position',
+      lat: null,
+      lng: null,
+      started_at: '2019-01-01T10:00:00Z',
+      ended_at: '2019-01-01T12:00:00Z',
+      duration_minutes: 120,
+      local_date: '2019-01-01',
+      state: 'new',
+      source_hash: 'deadbeef',
+      matchedBucketListItem: wish,
+    });
 
     withVisits(visit({ id: 842 }));
     await svc.syncUser(USER);
 
-    const all = rows();
+    const all = await rows();
     expect(all.find((r) => r.source_visit_id === '842')!.matched_bucket_list_item_id).toBe(wish);
     expect(all.find((r) => r.source_visit_id === '990')!.matched_bucket_list_item_id).toBeNull();
+  });
+
+  it('DAWARICH-SYNC-079: DSY12/DSY13 clear-then-set ordering — two rows already (wrongly) claiming the same wish end with exactly one holder, the new winner, never two or zero', async () => {
+    // A state that should not arise from ordinary matching (claimWish already
+    // clears every previous holder before assigning), but the ordering proof
+    // has to hold even from a seeded, already-inconsistent starting point:
+    // DSY12 (clear every existing holder) must run and complete BEFORE DSY13
+    // (assign the new one), in the SAME transaction — reversed, or run as two
+    // independent statements, a concurrent read between them could observe
+    // either two holders or zero.
+    const wish = await bucketItem('Brandenburger Tor', LAT, LNG);
+    for (const [id, name, hash] of [
+      ['970', 'Old holder A', 'deadbeef-a'],
+      ['971', 'Old holder B', 'deadbeef-b'],
+    ]) {
+      await seedSuggestion({
+        source_visit_id: id,
+        trip: TRIP,
+        name,
+        lat: LAT,
+        lng: LNG,
+        started_at: '2019-01-01T10:00:00Z',
+        ended_at: '2019-01-01T12:00:00Z',
+        duration_minutes: 60,
+        local_date: '2019-01-01',
+        state: 'new',
+        source_hash: hash,
+        matchedBucketListItem: wish,
+      });
+    }
+
+    withVisits(visit({ id: 972 }));
+    await svc.syncUser(USER);
+
+    const all = await rows();
+    const holders = all.filter((r) => r.matched_bucket_list_item_id === wish);
+    expect(holders).toHaveLength(1);
+    expect(holders[0]!.source_visit_id).toBe('972');
   });
 
   it('DAWARICH-SYNC-036: a suggestion still in state "new" is re-matched on a later run', async () => {
     withVisits(visit({ id: 807 }));
     await svc.syncUser(USER);
-    expect(only().matched_bucket_list_item_id).toBeNull();
+    expect((await only()).matched_bucket_list_item_id).toBeNull();
 
-    const wish = bucketItem('Brandenburger Tor', LAT + 0.0005, LNG);
+    const wish = await bucketItem('Brandenburger Tor', LAT + 0.0005, LNG);
     withVisits(visit({ id: 807, name: 'Brandenburg Gate' }));
     await svc.syncUser(USER);
 
-    expect(only().matched_bucket_list_item_id).toBe(wish);
+    expect((await only()).matched_bucket_list_item_id).toBe(wish);
   });
 });
 
@@ -815,7 +927,7 @@ describe('DawarichSyncService — syncUser result state', () => {
     expect(listVisits).toHaveBeenCalledTimes(2);
     expect(result.state).toBe('partial');
     expect(recordSyncResult).toHaveBeenCalledWith(USER, 'partial', 'unreachable');
-    expect(connection()).toMatchObject({ last_sync_state: 'partial', last_sync_error: 'unreachable' });
+    expect(await connection()).toMatchObject({ last_sync_state: 'partial', last_sync_error: 'unreachable' });
   });
 
   it('DAWARICH-SYNC-041: reports "failed" when every trip fails', async () => {
@@ -826,7 +938,7 @@ describe('DawarichSyncService — syncUser result state', () => {
 
     expect(listVisits).toHaveBeenCalledTimes(2);
     expect(result).toMatchObject({ state: 'failed', created: 0, updated: 0, missing: 0 });
-    expect(connection()).toMatchObject({ last_sync_state: 'failed', last_sync_error: 'unauthorized' });
+    expect(await connection()).toMatchObject({ last_sync_state: 'failed', last_sync_error: 'unauthorized' });
   });
 
   it('DAWARICH-SYNC-042: a throw that is not a DawarichError is recorded as "unreachable"', async () => {
@@ -835,31 +947,32 @@ describe('DawarichSyncService — syncUser result state', () => {
     const result = await svc.syncUser(USER);
 
     expect(result.state).toBe('failed');
-    expect(connection().last_sync_error).toBe('unreachable');
+    expect((await connection()).last_sync_error).toBe('unreachable');
   });
 
   it('DAWARICH-SYNC-043: reports "ok" and clears the stored error on a clean run', async () => {
-    testDb
-      .prepare(
-        "UPDATE dawarich_connections SET last_sync_state = 'failed', last_sync_error = 'unreachable' WHERE user_id = ?",
-      )
-      .run(USER);
+    await updateRows(
+      t,
+      DawarichConnections,
+      { user: USER },
+      { last_sync_state: 'failed', last_sync_error: 'unreachable' },
+    );
     withVisits(visit({ id: 902 }));
 
     const result = await svc.syncUser(USER);
 
     expect(result.state).toBe('ok');
-    expect(connection()).toMatchObject({ last_sync_state: 'ok', last_sync_error: null });
+    expect(await connection()).toMatchObject({ last_sync_state: 'ok', last_sync_error: null });
   });
 
   it('DAWARICH-SYNC-044: a user with no syncable trip is "ok", not a failure', async () => {
-    testDb.prepare('DELETE FROM trips WHERE id = ?').run(TRIP);
+    await deleteRows(t, Trips, { id: TRIP });
 
     const result = await svc.syncUser(USER);
 
     expect(result).toMatchObject({ state: 'ok', created: 0, updated: 0, missing: 0 });
     expect(listVisits).not.toHaveBeenCalled();
-    expect(connection()).toMatchObject({ last_sync_state: 'ok', last_sync_error: null });
+    expect(await connection()).toMatchObject({ last_sync_state: 'ok', last_sync_error: null });
   });
 
   it('DAWARICH-SYNC-072: a trip whose start date is not a date is skipped, not asked about', async () => {
@@ -867,18 +980,18 @@ describe('DawarichSyncService — syncUser result state', () => {
     // filter and still is not a date. Without the window guard the request
     // would go out with a NaN boundary, which Dawarich reads as "everything",
     // and the answer would be the user's entire archive.
-    testDb.prepare("UPDATE trips SET start_date = '0000-00-00', end_date = NULL WHERE id = ?").run(TRIP);
+    await updateRows(t, Trips, { id: TRIP }, { start_date: '0000-00-00', end_date: null });
 
     const result = await svc.syncUser(USER);
 
     expect(listVisits).not.toHaveBeenCalled();
     // Nothing failed: there was simply nothing answerable to ask.
     expect(result).toMatchObject({ state: 'ok', created: 0, updated: 0, missing: 0 });
-    expect(connection()).toMatchObject({ last_sync_state: 'ok', last_sync_error: null });
+    expect(await connection()).toMatchObject({ last_sync_state: 'ok', last_sync_error: null });
   });
 
   it('DAWARICH-SYNC-045: an archived trip is not polled', async () => {
-    testDb.prepare('UPDATE trips SET is_archived = 1 WHERE id = ?').run(TRIP);
+    await updateRows(t, Trips, { id: TRIP }, { is_archived: 1 });
 
     const result = await svc.syncUser(USER);
 
@@ -889,8 +1002,8 @@ describe('DawarichSyncService — syncUser result state', () => {
   it('DAWARICH-SYNC-046: a trip the user is only a member of is polled too', async () => {
     const owner = createUser(testDb).user.id;
     const shared = createTrip(testDb, owner, { start_date: dayOffset(-12), end_date: dayOffset(-10) }).id;
-    testDb.prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(shared, USER, owner);
-    testDb.prepare('DELETE FROM trips WHERE id = ?').run(TRIP);
+    await addTripMember(t, shared, USER, owner);
+    await deleteRows(t, Trips, { id: TRIP });
     withVisits();
 
     const result = await svc.syncUser(USER);
@@ -937,25 +1050,25 @@ describe('DawarichSyncService — gates', () => {
 
     expect(result).toMatchObject({ state: 'failed', created: 0, updated: 0, missing: 0 });
     expect(recordSyncResult).toHaveBeenCalledWith(USER, 'failed', 'addon_disabled');
-    expect(connection()).toMatchObject({ last_sync_state: 'failed', last_sync_error: 'addon_disabled' });
+    expect(await connection()).toMatchObject({ last_sync_state: 'failed', last_sync_error: 'addon_disabled' });
     expect(listVisits).not.toHaveBeenCalled();
   });
 
   it('DAWARICH-SYNC-051: without a connection the run is stored as failed/not_connected', async () => {
-    connect(USER, { apiKey: null });
+    await connect(USER, { apiKey: null });
 
     const result = await svc.syncUser(USER);
 
     expect(result).toMatchObject({ state: 'failed', created: 0, updated: 0, missing: 0 });
     expect(recordSyncResult).toHaveBeenCalledWith(USER, 'failed', 'not_connected');
-    expect(connection()).toMatchObject({ last_sync_state: 'failed', last_sync_error: 'not_connected' });
+    expect(await connection()).toMatchObject({ last_sync_state: 'failed', last_sync_error: 'not_connected' });
     expect(listVisits).not.toHaveBeenCalled();
   });
 
-  it('DAWARICH-SYNC-052: syncGloballyEnabled follows the addon row', () => {
-    expect(svc.syncGloballyEnabled()).toBe(true);
+  it('DAWARICH-SYNC-052: syncGloballyEnabled follows the addon row', async () => {
+    expect(await svc.syncGloballyEnabled()).toBe(true);
     setAddonEnabled(testDb, 'dawarich', false);
-    expect(svc.syncGloballyEnabled()).toBe(false);
+    expect(await svc.syncGloballyEnabled()).toBe(false);
   });
 });
 
@@ -974,7 +1087,7 @@ describe('DawarichSyncService — runSync', () => {
   it('DAWARICH-SYNC-061: one user blowing up does not stop the next one', async () => {
     const other = createUser(testDb).user.id;
     createTrip(testDb, other, { start_date: TRIP_START, end_date: TRIP_END });
-    connect(other);
+    await connect(other);
     withVisits();
     // A hard throw, i.e. the case syncUser does not catch for itself.
     getCredentials.mockImplementationOnce(() => {
@@ -994,7 +1107,7 @@ describe('DawarichSyncService — runSync', () => {
     // handler, out of the loop, and take every remaining user with it.
     const other = createUser(testDb).user.id;
     createTrip(testDb, other, { start_date: TRIP_START, end_date: TRIP_END });
-    connect(other);
+    await connect(other);
     withVisits();
     getCredentials.mockImplementationOnce(() => {
       throw 'credential store returned a string';
@@ -1006,7 +1119,7 @@ describe('DawarichSyncService — runSync', () => {
   });
 
   it('DAWARICH-SYNC-062: skips a connection whose background sync is switched off', async () => {
-    connect(USER, { syncEnabled: false });
+    await connect(USER, { syncEnabled: false });
     withVisits();
 
     await svc.runSync();
@@ -1060,11 +1173,8 @@ describe('DawarichSyncService — runSync', () => {
     // answer is what the connection currently holds. Answering "ok" would
     // clear a warning nobody fixed, and answering "never" would wipe the
     // history of a connection that has synced for months.
-    testDb
-      .prepare("UPDATE dawarich_connections SET last_sync_state = 'partial' WHERE user_id = ?")
-      .run(USER);
-    let release: (value: { visits: DawarichVisitRaw[]; truncated: boolean; version: string | null }) => void =
-      () => {};
+    await updateRows(t, DawarichConnections, { user: USER }, { last_sync_state: 'partial' });
+    let release: (value: { visits: DawarichVisitRaw[]; truncated: boolean; version: string | null }) => void = () => {};
     listVisits.mockReturnValue(
       new Promise((resolve) => {
         release = resolve;
@@ -1084,7 +1194,7 @@ describe('DawarichSyncService — runSync', () => {
     // row while the button press it triggered is still walking windows. There
     // is no stored state left to report, and `never` is the one the wire
     // contract allows.
-    testDb.prepare('DELETE FROM dawarich_connections WHERE user_id = ?').run(USER);
+    await deleteRows(t, DawarichConnections, { user: USER });
 
     const first = svc.syncUser(USER);
     const second = await svc.syncUser(USER);

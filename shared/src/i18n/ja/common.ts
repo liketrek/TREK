@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'キャンセル',
   'common.clear': 'クリア',
   'common.delete': '削除',
+  'common.remove': '削除',
   'common.preview': 'プレビュー',
   'common.edit': '編集',
   'common.add': '追加',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': '名前を変更',
   'common.discardChanges': '変更をキャンセル',
   'common.discard': 'キャンセル',
+  'common.unsavedTitle': '変更を破棄しますか？',
+  'common.unsavedMessage': 'ここで入力した内容はまだ保存されていません。',
+  'common.keepEditing': '編集を続ける',
   'common.name': '名前',
   'common.email': 'メールアドレス',
   'common.password': 'パスワード',
@@ -71,7 +75,8 @@ const common: TranslationStrings = {
   'common.errorRetry': '再試行',
   'common.errorReload': 'ページを再読み込み',
   'common.errorUpdateTitle': '新しいバージョンがあります',
-  'common.errorUpdateBody': 'このタブを開いている間に TREK が更新されました。再読み込みして新しいバージョンを取得してください。',
+  'common.errorUpdateBody':
+    'このタブを開いている間に TREK が更新されました。再読み込みして新しいバージョンを取得してください。',
   'common.errorPluginTitle': 'このプラグインを表示できませんでした',
 };
 export default common;

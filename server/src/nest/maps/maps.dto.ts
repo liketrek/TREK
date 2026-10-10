@@ -1,9 +1,11 @@
-import { createZodDto } from 'nestjs-zod';
 import {
   mapsSearchRequestSchema,
+  mapsNearbyRequestSchema,
   mapsAutocompleteRequestSchema,
   mapsResolveUrlRequestSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared maps contracts. The
@@ -12,5 +14,6 @@ import {
  * shared/ remain the single source of truth for the wire contract.
  */
 export class MapsSearchDto extends createZodDto(mapsSearchRequestSchema) {}
+export class MapsNearbyDto extends createZodDto(mapsNearbyRequestSchema) {}
 export class MapsAutocompleteDto extends createZodDto(mapsAutocompleteRequestSchema) {}
 export class MapsResolveUrlDto extends createZodDto(mapsResolveUrlRequestSchema) {}

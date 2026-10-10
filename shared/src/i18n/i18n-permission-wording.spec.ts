@@ -11,9 +11,9 @@
  * translation is made from, and a translation still carrying the older phrasing
  * is a translation lagging behind rather than a broken build.
  */
-import { describe, it, expect } from 'vitest';
-
 import admin from './en/admin';
+
+import { describe, it, expect } from 'vitest';
 
 describe('canonical permission wording', () => {
   it('I18N-PERM-001: the geolocation permission does not promise a browser prompt', () => {
@@ -23,5 +23,15 @@ describe('canonical permission wording', () => {
     expect(copy).not.toMatch(/browser will|ask first|still ask/i);
     // It has to say where the position does come from, or it explains nothing.
     expect(copy).toMatch(/permission/i);
+  });
+
+  it('I18N-PERM-002: the POI category permission says the plugin is sent the map area', () => {
+    // Unlike a search provider, which only sees words the user typed, this hook is
+    // handed the viewport every time one of its chips is picked. An admin reading the
+    // consent line has to learn that there, not from the plugin's own documentation.
+    const copy = admin['admin.plugins.perm.hook:poi-category-provider'];
+
+    expect(copy).toBeTruthy();
+    expect(copy).toMatch(/map area/i);
   });
 });

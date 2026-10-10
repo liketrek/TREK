@@ -38,7 +38,7 @@ export default function MCollPlaceRow({
         type="button"
         onClick={() => (selectMode ? onToggleSelect(place.id) : onOpen(place.id))}
         aria-pressed={selectMode ? selected : undefined}
-        className="flex min-w-0 flex-1 items-center gap-[11px] rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop px-3 py-[11px] text-left"
+        className="flex min-w-0 flex-1 items-center gap-[11px] rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop px-3 py-[11px] text-start"
         style={selected ? { boxShadow: 'inset 0 0 0 1.5px var(--m-act)' } : undefined}
       >
         <span

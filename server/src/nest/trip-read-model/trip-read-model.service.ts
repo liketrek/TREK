@@ -1,16 +1,18 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
-import { DaysService } from '../days/days.service';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { AccommodationsService } from '../accommodations/accommodations.service';
 import { BudgetService } from '../budget/budget.service';
-import { PackingService } from '../packing/packing.service';
-import { ReservationsService } from '../reservations/reservations.service';
 import { CollabService } from '../collab/collab.service';
-import { PlacesService } from '../places/places.service';
-import { TodoService } from '../todo/todo.service';
+import { DaysService } from '../days/days.service';
 import { FilesService } from '../files/files.service';
+import { PackingService } from '../packing/packing.service';
+import { PlacesService } from '../places/places.service';
+import { ReservationsService } from '../reservations/reservations.service';
+import { TodoService } from '../todo/todo.service';
 import { TripMembersService } from '../trip-members/trip-members.service';
 import { withoutFeedToken } from '../trips/trips.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The two read aggregates over a trip: the MCP summary and the offline bundle.
@@ -24,7 +26,7 @@ import { withoutFeedToken } from '../trips/trips.service';
 @Injectable()
 export class TripReadModelService {
   constructor(
-    private readonly dbs: DatabaseService,
+    @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
     private readonly members: TripMembersService,
     private readonly days: DaysService,
     private readonly accommodations: AccommodationsService,
@@ -37,36 +39,30 @@ export class TripReadModelService {
     private readonly files: FilesService,
   ) {}
 
-  private get db() {
-    return this.dbs.connection;
-  }
-
-  private getOwner(tripId: string | number): { user_id: number } | undefined {
-    return this.db.prepare('SELECT user_id FROM trips WHERE id = ?').get(tripId) as { user_id: number } | undefined;
-  }
-
   // ── Trip summary (used by MCP get_trip_summary tool) ──────────────────────
 
   async getTripSummary(tripId: number, viewerUserId?: number) {
-    const trip = withoutFeedToken(
-      this.db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as Record<string, unknown> | undefined,
-    );
+    const trip = withoutFeedToken(await this.tripsRepo.findRaw(tripId));
     if (!trip) return null;
 
-    const ownerRow = this.getOwner(tripId);
-    if (!ownerRow) return null;
-    const { owner, members } = this.members.listMembers(tripId, ownerRow.user_id);
+    const ownerId = await this.tripsRepo.getOwnerId(tripId);
+    if (ownerId === null) return null;
+    const { owner, members } = await this.members.listMembers(tripId, ownerId);
 
-    const { days: rawDays } = this.days.list(tripId);
+    const { days: rawDays } = await this.days.list(tripId);
     const days = rawDays.map(({ notes_items, ...day }) => ({ ...day, notes: notes_items }));
 
-    const accommodations = this.accommodations.list(tripId);
+    const accommodations = await this.accommodations.list(tripId);
 
-    const budgetItems = this.budget.listBudgetItems(tripId);
+    const budgetItems = await this.budget.listBudgetItems(tripId);
     // In the trip currency, each row at the rate it was booked at (#2525). A raw sum of
     // total_price added a dollar bill to the euros and called the result euros.
     const tripCurrency = String(trip.currency || 'EUR');
-    const totals = this.budget.tripTotals(tripId, tripCurrency, await this.budget.ratesForTripTotals(tripId, tripCurrency));
+    const totals = await this.budget.tripTotals(
+      tripId,
+      tripCurrency,
+      await this.budget.ratesForTripTotals(tripId, tripCurrency),
+    );
     const budget = {
       items: budgetItems,
       item_count: budgetItems.length,
@@ -79,15 +75,15 @@ export class TripReadModelService {
 
     // Thread the viewer so another member's private/personal packing items (#858)
     // stay hidden — without it listItems returns the UNFILTERED list.
-    const packingItems = this.packing.listItems(tripId, viewerUserId);
+    const packingItems = await this.packing.listItems(tripId, viewerUserId);
     const packing = {
       items: packingItems,
       total: packingItems.length,
-      checked: (packingItems as { checked: number }[]).filter(i => i.checked).length,
+      checked: (packingItems as { checked: number }[]).filter((i) => i.checked).length,
     };
 
-    const reservations = this.reservations.list(tripId);
-    const collab_notes = this.collab.listNotes(tripId);
+    const reservations = await this.reservations.list(tripId);
+    const collab_notes = await this.collab.listNotes(tripId);
 
     return {
       trip,
@@ -104,21 +100,21 @@ export class TripReadModelService {
   // ── Bundle / notifications (route helpers) ────────────────────────────────
 
   /** Aggregates every trip sub-collection for offline caching (legacy /:id/bundle). */
-  bundle(tripId: string, trip: { user_id: number }, viewerId: number) {
-    const { days } = this.days.list(tripId);
-    const { owner, members } = this.members.listMembers(tripId, trip.user_id);
+  async bundle(tripId: string, trip: { user_id: number }, viewerId: number) {
+    const { days } = await this.days.list(tripId);
+    const { owner, members } = await this.members.listMembers(tripId, trip.user_id);
     return {
       trip,
       days,
-      places: this.places.list(String(tripId), {}),
+      places: await this.places.list(String(tripId), {}),
       // Scope to the requesting member so other members' private packing items
       // (#858) never land in this viewer's offline cache.
-      packingItems: this.packing.listItems(tripId, viewerId),
-      todoItems: this.todo.listItems(tripId),
-      budgetItems: this.budget.listBudgetItems(tripId),
-      reservations: this.reservations.list(tripId),
-      files: this.files.listFiles(tripId, false),
-      accommodations: this.accommodations.list(tripId),
+      packingItems: await this.packing.listItems(tripId, viewerId),
+      todoItems: await this.todo.listItems(tripId),
+      budgetItems: await this.budget.listBudgetItems(tripId),
+      reservations: await this.reservations.list(tripId),
+      files: await this.files.listFiles(tripId, false),
+      accommodations: await this.accommodations.list(tripId),
       members: [owner, ...(members || [])].filter(Boolean),
     };
   }

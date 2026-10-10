@@ -37,6 +37,7 @@ export type TrekScene =
   | 'costs'
   | 'search'
   | 'tasks'
+  | 'tours'
 
 export type TrekMood = 'default' | 'happy' | 'sad' | 'sleepy' | 'confused' | 'error'
 
@@ -87,6 +88,7 @@ export default function MDancingTrek({
               <path fill="currentColor" d={MARK} />
             </g>
             <Eyes mood={face} />
+            <SceneOnBody scene={scene} />
           </g>
         </g>
 
@@ -166,8 +168,52 @@ function Eyes({ mood }: { mood: TrekMood }) {
    `transform` attribute (a CSS-animation transform would override it) — any
    static rotation lives on a wrapping <g transform=…> instead. */
 
+/**
+ * Gear the mascot carries, drawn inside the body group so it walks, breathes and
+ * hops with it. Each piece carries a surface-coloured outline: on a monochrome
+ * mark that gap is the only thing telling the pack from the body behind it.
+ */
+function SceneOnBody({ scene }: { scene: TrekScene }) {
+  if (scene !== 'tours') return null
+  const cut = { stroke: 'var(--m-bg)', strokeWidth: 1.6, paintOrder: 'stroke' as const, strokeLinejoin: 'round' as const }
+  return (
+    <g>
+      {/* a small smile under the eyes, glad to be out walking */}
+      <path d="M38.2 38.9 Q40.4 41.2 42.6 38.9" fill="none" stroke="var(--m-bg)" strokeWidth="1.4" strokeLinecap="round" />
+      {/* the pack, slung over the left side */}
+      <g className="trek-pack">
+        <g transform="translate(2.6 4.2) rotate(-7 17 44)">
+          {/* sleeping mat rolled on top, two straps around it */}
+          <rect x="7.6" y="25.4" width="18.4" height="5.6" rx="2.8" fill="currentColor" {...cut} />
+          <rect x="11.6" y="25.4" width="1.2" height="5.6" fill="var(--m-bg)" />
+          <rect x="20.8" y="25.4" width="1.2" height="5.6" fill="var(--m-bg)" />
+          {/* body of the pack */}
+          <path d="M10 34 Q10 31.2 13 31.2 L21.6 31.2 Q24.6 31.2 24.6 34 L25 55.4 Q25 59 21.4 59 L12.6 59 Q9 59 9.2 55.4 Z" fill="currentColor" {...cut} />
+          {/* lid seam and buckle */}
+          <path d="M10.2 38.4 Q17.4 40.6 24.7 38.4" fill="none" stroke="var(--m-bg)" strokeWidth="1.1" strokeLinecap="round" />
+          <rect x="16" y="38.8" width="2.8" height="3.4" rx="0.7" fill="var(--m-bg)" />
+          {/* front pocket */}
+          <rect x="12" y="46" width="10.6" height="9.4" rx="2.6" fill="none" stroke="var(--m-bg)" strokeWidth="1.1" />
+          <path d="M12.2 49.2 H22.4" stroke="var(--m-bg)" strokeWidth="0.9" />
+        </g>
+      </g>
+    </g>
+  )
+}
+
 function SceneBack({ scene }: { scene: TrekScene }) {
   switch (scene) {
+    case 'tours':
+      // the hills it is heading for, faint behind it, and the trail running under its feet
+      return (
+        <g>
+          <g className="trek-hills" fill="currentColor">
+            <path d="M44 73 L62 41 L69.5 52 L74.5 46 L88 73 Z" opacity="0.14" />
+            <path d="M58.6 47.2 L62 41 L65.6 46.4 L63.4 45.2 L61.6 47.6 Z M72.6 49 L74.5 46 L77 50.2 L75.4 49.4 Z" opacity="0.3" />
+          </g>
+          <path className="trek-trail" d="M10 77.5 H78" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeDasharray="3.4 4.6" opacity="0.35" />
+        </g>
+      )
     case 'transport':
       // skateboard under the body — deck + two wheels spinning in place
       return (
@@ -285,6 +331,21 @@ function SceneBack({ scene }: { scene: TrekScene }) {
 
 function SceneFront({ scene }: { scene: TrekScene }) {
   switch (scene) {
+    case 'tours':
+      // a trekking pole swinging forward and planting in step with the walk
+      return (
+        <g transform="rotate(12 70 37)">
+          <g className="trek-pole">
+            <g stroke="var(--m-bg)" strokeWidth="1.6" style={{ paintOrder: 'stroke' }} strokeLinejoin="round">
+              <rect x="69.1" y="40.5" width="2.2" height="33.5" rx="1.1" fill="currentColor" />
+              <rect x="67.9" y="34" width="4.6" height="9" rx="2" fill="currentColor" />
+            </g>
+            <path d="M68.2 35.6 Q63.8 37.6 66.6 42" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+            <rect x="68.6" y="38.2" width="3.2" height="0.9" rx="0.45" fill="var(--m-bg)" />
+            <ellipse cx="70.2" cy="69" rx="3.4" ry="1.1" fill="none" stroke="currentColor" strokeWidth="1.2" />
+          </g>
+        </g>
+      )
     // Files reuse the booking ticket per design — a card getting written on.
     case 'bookings':
     case 'files':

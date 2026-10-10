@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Скасувати',
   'common.clear': 'Очистити',
   'common.delete': 'Видалити',
+  'common.remove': 'Видалити',
   'common.preview': 'Перегляд',
   'common.edit': 'Редагувати',
   'common.add': 'Додати',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': 'Перейменувати',
   'common.discardChanges': 'Скасувати зміни',
   'common.discard': 'Скасувати',
+  'common.unsavedTitle': 'Скасувати зміни?',
+  'common.unsavedMessage': 'Введене тут ще не збережено.',
+  'common.keepEditing': 'Продовжити редагування',
   'common.name': "Ім'я",
   'common.email': 'Ел. пошта',
   'common.password': 'Пароль',
@@ -51,7 +55,13 @@ const common: TranslationStrings = {
   'common.copied': 'Скопійовано',
   'common.justNow': 'щойно',
   'common.hoursAgo': '{count} год. тому',
+  'common.hoursAgo.one': '{count} год. тому',
+  'common.hoursAgo.few': '{count} год. тому',
+  'common.hoursAgo.many': '{count} год. тому',
   'common.daysAgo': '{count} дн. тому',
+  'common.daysAgo.one': '{count} дн. тому',
+  'common.daysAgo.few': '{count} дн. тому',
+  'common.daysAgo.many': '{count} дн. тому',
   'common.datepicker.prevMonth': 'Previous month', // en-fallback
   'common.datepicker.nextMonth': 'Next month', // en-fallback
   'common.datepicker.prevYear': 'Previous year', // en-fallback

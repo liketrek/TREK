@@ -58,11 +58,23 @@ db.exec(`PRAGMA journal_mode = ${journalMode}`);
 db.exec(`PRAGMA synchronous = ${synchronous}`);
 
 const hash = bcrypt.hashSync(password, BCRYPT_COST);
-const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+// Case-insensitive like login, so Admin@example.com is found as admin@example.com.
+const existing = db.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').get(email);
 
 if (existing) {
-  db.prepare('UPDATE users SET password_hash = ?, role = ?, must_change_password = 1 WHERE email = ?')
-    .run(hash, 'admin', email);
+  // password_version moves on, as on every password change in the app: it is
+  // what ends the sessions still signed in to an account that needed resetting.
+  db.prepare('UPDATE users SET password_hash = ?, role = ?, must_change_password = 1, password_version = COALESCE(password_version, 0) + 1 WHERE id = ?')
+    .run(hash, 'admin', existing.id);
+  // Its sessions end too, so the account's session list shows none of them
+  // as live. The table is missing on a database that no server tracking
+  // sessions has booted yet; the password_version bump above already refuses
+  // every token there.
+  const sessionsTable = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'user_sessions'").get();
+  if (sessionsTable) {
+    db.prepare('UPDATE user_sessions SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = ? AND revoked_at IS NULL')
+      .run(existing.id);
+  }
   console.log(`\n✓ Admin password reset: ${email}`);
 } else {
   // 'admin' is usually taken by the first-run seed — pick the first free username

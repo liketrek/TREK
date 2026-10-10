@@ -1,24 +1,30 @@
-import nodeHttp from 'node:http';
-import express from 'express';
-import type { Request, Response, NextFunction, RequestHandler } from 'express';
-import { NestFactory } from '@nestjs/core';
-import { ExpressAdapter } from '@nestjs/platform-express';
-import type { INestApplication } from '@nestjs/common';
-import type { ConfigType } from '@nestjs/config';
-import { AppModule } from './nest/app.module';
-import { httpConfig } from './nest/app-config';
+import { readEnv } from './app-config';
+import { nestLogLevels } from './app-config/nest-log-levels';
 import { applyGlobalMiddleware, routingCspOrigins } from './middleware/globalMiddleware';
-import { SettingsService } from './nest/settings/settings.service';
-import { applyPlatformUploads, applyPlatformStatic } from './nest/platform/platform.routes';
+import { httpConfig } from './nest/app-config';
+import { AppModule } from './nest/app.module';
 import { apiDocsEnabled } from './nest/common/api-docs.kill-switch';
+import { validateBodyContracts } from './nest/common/validate-body-contracts';
+import { validateManagedRoutes } from './nest/common/validate-managed-routes';
+import { validateRouteGuards } from './nest/common/validate-route-guards';
+import { DatabaseLifecycle } from './nest/database/database-lifecycle.service';
+import { withRequestContext } from './nest/database/request-context';
 import { setupApiDocs } from './nest/platform/api-docs';
 import { MCP_METADATA_MIDDLEWARE } from './nest/platform/mcp-metadata.middleware';
-import { validateBodyContracts } from './nest/common/validate-body-contracts';
-import { validateRouteGuards } from './nest/common/validate-route-guards';
-import { validateManagedRoutes } from './nest/common/validate-managed-routes';
+import { applyPlatformUploads, applyPlatformStatic } from './nest/platform/platform.routes';
 import { TrekWsAdapter } from './nest/realtime/trek-ws.adapter';
+import { SettingsService } from './nest/settings/settings.service';
 import { StorageService } from './nest/storage/storage.service';
+import { MikroORM } from '@mikro-orm/core';
+import type { INestApplication } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
+import { NestFactory } from '@nestjs/core';
+import { ExpressAdapter } from '@nestjs/platform-express';
 import { MAX_COLLECTION_FILE_BYTES } from '@trek/shared';
+
+import express from 'express';
+import type { Request, Response, NextFunction, RequestHandler } from 'express';
+import nodeHttp from 'node:http';
 
 /**
  * Builds the unified TREK NestJS application that serves the ENTIRE surface — the
@@ -55,6 +61,13 @@ import { MAX_COLLECTION_FILE_BYTES } from '@trek/shared';
 let boundHttpServer: nodeHttp.Server | null = null;
 
 /**
+ * The provider that owns the database connection, for index.ts to close it on
+ * shutdown. Re-exported so index.ts reaches it through the one module it loads
+ * after a first-boot restore.
+ */
+export { DatabaseLifecycle };
+
+/**
  * The http server buildApp created and bound the ws gateway to.
  *
  * index.ts listens on it; the websocket suites connect to it. Anyone creating a
@@ -66,11 +79,37 @@ export function getHttpServer(): nodeHttp.Server {
   return boundHttpServer;
 }
 
+/**
+ * Keep-alive behind a reverse proxy. Node's default is to drop an idle
+ * keep-alive connection after 5 s, while proxies keep their upstream
+ * connections for about a minute: a proxy that reuses a socket Node has just
+ * closed answers that request with a 502, intermittently and with nothing in
+ * TREK's log. The headers timeout stays above the keep-alive one, so a
+ * connection waiting for its next request is never cut by the wrong timer.
+ */
+export function applyProxyTimeouts(server: nodeHttp.Server, keepAliveTimeoutMs: number): void {
+  server.keepAliveTimeout = keepAliveTimeoutMs;
+  server.headersTimeout = keepAliveTimeoutMs + 1_000;
+}
+
 export async function buildApp(): Promise<INestApplication> {
   // rawBody keeps the unparsed request bytes on req.rawBody so a plugin webhook
   // route can verify a provider's HMAC signature over the exact payload (the
   // parsed JSON alone can't be re-serialised byte-for-byte).
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(), { rawBody: true });
+  // `logger` is the only place Nest's own logger learns about LOG_LEVEL; without
+  // it every boot prints its full route map whatever the operator asked for.
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(), {
+    rawBody: true,
+    logger: nestLogLevels(readEnv().app.logLevel),
+  });
+  // Schema first, before ANY consumer reads it. The connection lifecycle is the
+  // DatabaseLifecycle provider's: it opens the connection (the ORM's first
+  // connect usually already has), binds the ORM to later swaps, and runs the
+  // legacy baseline, the migrations and the seeders. That is async, so this is
+  // the earliest point it can happen. It has to stay above the SettingsService
+  // resolution below, which is the boot's first DB read.
+  const orm = app.get(MikroORM);
+  await app.get(DatabaseLifecycle).open();
   const instance = app.getHttpAdapter().getInstance();
   // The http server is created HERE, not by the caller after buildApp returns,
   // and that ordering is the whole point: Nest binds gateways during app.init(),
@@ -80,30 +119,31 @@ export async function buildApp(): Promise<INestApplication> {
   // boot succeeds, the gateway logs as registered, every test passes, and no
   // browser can connect. Callers take the server from getHttpServer() below.
   boundHttpServer = nodeHttp.createServer(instance);
-  app.useWebSocketAdapter(new TrekWsAdapter(boundHttpServer));
   // ConfigModule.forRoot's load factories already ran inside NestFactory.create,
-  // so the boot-stable snapshot is resolvable here, BEFORE app.init() — this is
+  // so the boot-stable snapshot is resolvable here, BEFORE app.init(); this is
   // the one bridge that lets the pre-init Express layer consume the validated
   // config instead of reading process.env itself.
   const http = app.get<ConfigType<typeof httpConfig>>(httpConfig.KEY);
+  applyProxyTimeouts(boundHttpServer, http.keepAliveTimeoutMs);
+  app.useWebSocketAdapter(new TrekWsAdapter(boundHttpServer, orm));
   // Same pre-init bridge: a self-hosted routing engine has to be named in connect-src, or
   // the browser blocks every request to it without an error the app could report. Both
   // engines go through the same door — the second one answers the avoidance questions
   // the first cannot, and is blocked just as silently when the policy leaves it out.
   const settings = app.get(SettingsService, { strict: false });
-  const defaults = settings?.getAdminUserDefaults();
+  // Boot runs outside any HTTP request, so there is no per-request EntityManager
+  // yet and `allowGlobalContext` is off in production: every repository-backed
+  // read at boot goes through D6's explicit context (see request-context.ts).
+  const defaults = await withRequestContext(orm, () => settings?.getAdminUserDefaults());
   const asUrl = (value: unknown) => (typeof value === 'string' ? value : null);
   applyGlobalMiddleware(instance, {
     http,
-    extraConnectSrc: routingCspOrigins([
-      asUrl(defaults?.routing_base_url),
-      asUrl(defaults?.valhalla_base_url),
-    ]),
+    extraConnectSrc: routingCspOrigins([asUrl(defaults?.routing_base_url), asUrl(defaults?.valhalla_base_url)]),
   });
   // Same pre-init consumption bridge as httpConfig above: the StorageService
   // instance is resolvable before init, and the handlers only *register* here —
   // per-request resolution runs after app.init() completed the registry load.
-  applyPlatformUploads(instance, app.get(StorageService));
+  applyPlatformUploads(instance, app.get(StorageService), orm);
   // The SDK discovery router (+ its addon gate). Container-built so its deps
   // are injected (same pre-init consumption bridge as httpConfig above), but
   // applied here as a PATHLESS app.use: the SDK router matches absolute
@@ -159,8 +199,7 @@ export async function buildApp(): Promise<INestApplication> {
   const json = express.json({ limit: '100kb', verify: rawBodyKeeper });
   const urlencoded = express.urlencoded({ limit: '100kb', extended: true, verify: rawBodyKeeper });
   const isMcp = (req: Request) => req.path === '/mcp' || req.path === '/mcp/';
-  const isBookWrite = (req: Request) =>
-    req.method === 'PUT' && /^\/api\/journeys\/\d+\/book$/.test(req.path);
+  const isBookWrite = (req: Request) => req.method === 'PUT' && /^\/api\/journeys\/\d+\/book$/.test(req.path);
   const isListFile = (req: Request) =>
     req.method === 'POST' && /^\/api\/addons\/collections\/(import|gpx\/read|\d+\/import)$/.test(req.path);
 
@@ -173,6 +212,17 @@ export async function buildApp(): Promise<INestApplication> {
     return isMcp(req) ? next() : urlencoded(req, res, next);
   });
   if (apiDocsEnabled()) setupApiDocs(app);
+  // The per-request EntityManager fork every Nest route runs inside (D6). This
+  // used to be @mikro-orm/nestjs's own middleware, which Nest 11 mounts as an
+  // app.all('/{*all}') route: Express decodes the wildcard param before the
+  // handler runs, so a malformed %-escape anywhere (GET /uploads/avatars/%ZZ)
+  // died as a 400 "Failed to decode param" instead of falling through to the
+  // 404 envelope (UPLOADS-P16). A pathless app.use has no param to decode.
+  // Registered last before init, where the module middleware used to sit.
+  // AppModule turns the module's own registration off (registerRequestContext).
+  instance.use(function mikroOrmRequestContext(_req: Request, _res: Response, next: NextFunction) {
+    withRequestContext(orm, next);
+  });
   await app.init();
   // Fail closed on unvalidated mutation bodies: every POST/PUT/PATCH @Body()
   // must carry a createZodDto class (validated by the global ZodValidationPipe)

@@ -1,20 +1,33 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
+import { Trips } from '../../db/entities/Trips.entity';
+import { Users } from '../../db/entities/Users.entity';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
+import type { TripEventSink, TripWriter } from '../common/trip-writer';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RealtimeService } from '../realtime/realtime.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /**
  * The impure MCP tool guards that used to live as plain functions in
- * src/mcp/tools/_shared.ts, reaching the db Proxy, permissions.bridge and the
- * src/websocket stub as module globals. The @McpController domain classes are
+ * src/mcp/tools/_shared.ts, reaching the db Proxy, a permissions.bridge
+ * instance (no longer exists — see auth.service.ts:116) and the
+ * websocket broadcast functions as module globals. The @McpController domain classes are
  * ordinary Nest providers, so they inject this instead. The pure result
  * helpers (noAccess/permissionDenied/adminRequired and the
  * src/nest-mcp re-exports) stay in _shared.ts — they carry no dependencies.
+ *
+ * Plan 4 Task 1: the trip's `user_id` and both `role` reads moved off
+ * `DatabaseService` onto `TripsRepository.getOwnerId`/`UsersRepository
+ * .getRole` — both already existed with the exact narrow column set this
+ * class needs (a trip-ownership lookup and a role lookup are each used by
+ * several other domains already converted).
  */
 @Injectable()
 export class McpToolGuardsService {
   constructor(
-    private readonly db: DatabaseService,
+    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    @InjectRepository(Users) private readonly users: UsersRepository,
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
   ) {}
@@ -37,10 +50,14 @@ export class McpToolGuardsService {
     try {
       // Legacy MCP call sites pass event names as plain strings; route through
       // the facade's implementation signature (its typed overloads are for new
-      // call sites). Runtime is a pure pass-through to src/websocket's
-      // broadcast, so the 100+ per-file vi.mock stubs keep intercepting.
+      // call sites). Runtime is a pure pass-through to the transport's
+      // broadcast.
       const send = this.realtime.broadcast as (
-        t: number | string, e: string, p: Record<string, unknown>, sid?: number | string, uid?: number,
+        t: number | string,
+        e: string,
+        p: Record<string, unknown>,
+        sid?: number | string,
+        uid?: number,
       ) => void;
       const body = { ...payload, _source: 'mcp' };
 
@@ -65,17 +82,37 @@ export class McpToolGuardsService {
    * matching REST route uses. Returns true when the user may perform `action`
    * on `tripId`.
    */
-  hasTripPermission(action: string, tripId: number | string, userId: number): boolean {
-    const trip = this.db.get<{ user_id?: number }>('SELECT user_id FROM trips WHERE id = ?', tripId);
-    if (!trip) return false;
-    const userRow = this.db.get<{ role?: string }>('SELECT role FROM users WHERE id = ?', userId);
-    const tripOwnerId = typeof trip.user_id === 'number' ? trip.user_id : null;
-    return this.permissions.checkPermission(action, userRow?.role ?? 'user', tripOwnerId, userId, tripOwnerId !== userId);
+  async hasTripPermission(action: string, tripId: number | string, userId: number): Promise<boolean> {
+    const tripOwnerId = await this.trips.getOwnerId(tripId);
+    if (tripOwnerId === null) return false;
+    const role = await this.users.getRole(userId);
+    return this.permissions.checkPermission(action, role ?? 'user', tripOwnerId, userId, tripOwnerId !== userId);
+  }
+
+  /**
+   * The tool caller as a trip use case takes it: its role for the permission
+   * check, and safeBroadcast as the way the write's events leave, so they keep
+   * the MCP marker and a failed broadcast never fails the tool.
+   */
+  async tripWriter(tripId: number, userId: number): Promise<TripWriter> {
+    const role = (await this.users.getRole(userId)) ?? 'user';
+    return { userId, role, surface: 'mcp', events: this.tripEvents(tripId) };
+  }
+
+  /** safeBroadcast in the shape of a TripEventSink. MCP skips no socket, so both doors are the same. */
+  tripEvents(tripId: number): TripEventSink {
+    return {
+      // The three-argument call when nothing scopes it, as every tool made it.
+      emit: (event, payload, onlyUserIds) =>
+        onlyUserIds === undefined
+          ? this.safeBroadcast(tripId, event, payload as Record<string, unknown>)
+          : this.safeBroadcast(tripId, event, payload as Record<string, unknown>, onlyUserIds && [...onlyUserIds]),
+      emitAll: (event, payload) => this.safeBroadcast(tripId, event, payload as Record<string, unknown>),
+    };
   }
 
   /** True when the user has the global admin role (mirrors REST `user.role === 'admin'` gates). */
-  isAdminUser(userId: number): boolean {
-    const userRow = this.db.get<{ role?: string }>('SELECT role FROM users WHERE id = ?', userId);
-    return userRow?.role === 'admin';
+  async isAdminUser(userId: number): Promise<boolean> {
+    return (await this.users.getRole(userId)) === 'admin';
   }
 }

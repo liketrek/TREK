@@ -288,7 +288,7 @@ describe('AirTrailImportModal', () => {
     await user.click(await screen.findByRole('button', { name: /Import 1/i }));
 
     await waitFor(() => expect(pushUndo).toHaveBeenCalled());
-    expect(toasts).toContainEqual(['success', '1 flight(s) imported']);
+    expect(toasts).toContainEqual(['success', '1 flight imported']);
     expect(toasts).toContainEqual(['warning', '1 already in this trip, skipped']);
     expect(pushUndo.mock.calls[0][0]).toBe('Import from AirTrail');
 

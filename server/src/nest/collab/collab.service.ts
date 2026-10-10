@@ -1,16 +1,36 @@
-import path from 'path';
-import { Injectable } from '@nestjs/common';
-import { DatabaseService, type TripAccess } from '../database/database.service';
-import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
-import { RealtimeService } from '../realtime/realtime.service';
-import { PermissionsService } from '../permissions/permissions.service';
-import { avatarUrl } from '../common/avatarUrl';
-import { checkSsrf, createPinnedDispatcher } from '../../utils/ssrfGuard';
+import { CollabLinks } from '../../db/entities/CollabLinks.entity';
+import { CollabMessageReactions } from '../../db/entities/CollabMessageReactions.entity';
+import { CollabMessages } from '../../db/entities/CollabMessages.entity';
+import { CollabNotes } from '../../db/entities/CollabNotes.entity';
+import { CollabPollVotes } from '../../db/entities/CollabPollVotes.entity';
+import { CollabPolls } from '../../db/entities/CollabPolls.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { COLLAB_POLL_OPTIONS } from '../../db/json-columns';
+import type { CollabLinksRepository } from '../../db/repositories/CollabLinks.repository';
+import type { CollabMessageReactionsRepository } from '../../db/repositories/CollabMessageReactions.repository';
+import type { CollabMessagesRepository, CollabMessageJoinRow } from '../../db/repositories/CollabMessages.repository';
+import type { CollabNotesRepository, CollabNoteJoinRow } from '../../db/repositories/CollabNotes.repository';
+import type { CollabPollVotesRepository } from '../../db/repositories/CollabPollVotes.repository';
+import type { CollabPollsRepository } from '../../db/repositories/CollabPolls.repository';
+import type { TripAccess } from '../../db/repositories/Trips.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import type { User } from '../../types';
 import { discardBody, exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
-import type { CollabNote, CollabPoll, CollabMessage, TripFile, User } from '../../types';
-import { NotificationsService } from '../notifications/notifications.service';
-import { StorageService } from '../storage/storage.service';
+import { decodeJson } from '../../utils/json-column';
+import { checkSsrf, createOutboundDispatcher } from '../../utils/ssrfGuard';
+import { avatarUrl } from '../common/avatarUrl';
 import { RateLimitService } from '../common/rate-limit.service';
+import { toRowId } from '../common/row-id';
+import { UnitOfWork } from '../database/unit-of-work';
+import { NotificationsService } from '../notifications/notifications.service';
+import { PermissionsService } from '../permissions/permissions.service';
+import { RealtimeService } from '../realtime/realtime.service';
+import { StorageService } from '../storage/storage.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
+
+import path from 'path';
 
 type Trip = TripAccess;
 
@@ -30,14 +50,6 @@ export interface PollVoteRow {
   user_id: number;
   username: string;
   avatar: string | null;
-}
-
-export interface NoteFileRow {
-  id: number;
-  filename: string;
-  original_name?: string;
-  file_size?: number;
-  mime_type?: string;
 }
 
 export interface GroupedReaction {
@@ -84,13 +96,15 @@ const PREVIEW_CACHE_MAX = 500;
  */
 function scrapeOpenGraph(html: string): Omit<LinkPreviewResult, 'url'> {
   const og = (prop: string) => {
-    const m = html.match(new RegExp(`<meta[^>]{0,512}property=["']og:${prop}["'][^>]{0,512}content=["']([^"']*)["']`, 'i'))
-      || html.match(new RegExp(`<meta[^>]{0,512}content=["']([^"']*)["'][^>]{0,512}property=["']og:${prop}["']`, 'i'));
+    const m =
+      html.match(new RegExp(`<meta[^>]{0,512}property=["']og:${prop}["'][^>]{0,512}content=["']([^"']*)["']`, 'i')) ||
+      html.match(new RegExp(`<meta[^>]{0,512}content=["']([^"']*)["'][^>]{0,512}property=["']og:${prop}["']`, 'i'));
     return m ? m[1] : null;
   };
   const titleTag = html.match(/<title[^>]{0,512}>([^<]*)<\/title>/i);
-  const descMeta = html.match(/<meta[^>]{0,512}name=["']description["'][^>]{0,512}content=["']([^"']*)["']/i)
-    || html.match(/<meta[^>]{0,512}content=["']([^"']*)["'][^>]{0,512}name=["']description["']/i);
+  const descMeta =
+    html.match(/<meta[^>]{0,512}name=["']description["'][^>]{0,512}content=["']([^"']*)["']/i) ||
+    html.match(/<meta[^>]{0,512}content=["']([^"']*)["'][^>]{0,512}name=["']description["']/i);
   const image = og('image');
 
   return {
@@ -105,28 +119,51 @@ function scrapeOpenGraph(html: string): Omit<LinkPreviewResult, 'url'> {
 }
 
 /**
- * Collab domain service — owns the collab SQL (moved from the legacy
- * services/collabService.ts: the `||` falsy-coercion defaults, the mixed
- * COALESCE/CASE update, the post-write re-selects and the sentinel error
- * strings). Trip access, the 'collab_edit' / 'file_upload' permissions and the
- * WebSocket broadcast keep their legacy call paths. Post-migration hardening
- * on top of the 1:1 move: the multi-statement writes (deleteNote, votePoll)
- * run in db.transaction(), getFormattedNoteById is trip-scoped and null-safe,
- * votePoll rejects non-integer indexes, and linkPreview absorbs malformed URLs
- * instead of throwing.
- * All consumers are in-container since the trip fold (TripsService and
- * TripsMcp inject this class); collab.bridge.ts was deleted with its last
- * outside-container consumers.
+ * Collab domain service — owns the collab SQL, now through the six
+ * `Collab*Repository` classes (Plan 3e Task 5, CB1-55) plus `TripsRepository
+ * .getTitle` (CB55) and `TripFiles`-scoped note/message attachment methods
+ * that live on `CollabNotesRepository`/`CollabMessagesRepository` themselves
+ * (see those classes' docstrings for why — Task 1's landed
+ * `TripFilesRepository` doesn't have note/message-scoped methods). Trip
+ * access, the 'collab_edit' / 'file_upload' permissions and the WebSocket
+ * broadcast keep their legacy call paths. Post-migration hardening carried
+ * over from the original DI move: the multi-statement writes (deleteNote,
+ * votePoll's multi-choice-clear branch, createMessage, deleteMessage) run
+ * through UnitOfWork.transactional(), getFormattedNoteById is trip-scoped
+ * and null-safe, votePoll rejects non-integer indexes, and linkPreview
+ * absorbs malformed URLs instead of throwing.
+ *
+ * **Read-then-write id seam (rule 21).** Every guard read below (`findInTrip`
+ * / `findScoped...`) returns the row's OWN typed `id` (a `number`), and every
+ * subsequent repository call in that method reuses THAT id rather than
+ * re-deriving one from the raw `string | number` route param — the same
+ * numeric value feeds both the trip-scoping SELECT and the write that
+ * follows it.
+ *
+ * **`deleteMessage`'s pre-existing `username` gap.** The legacy statement
+ * behind `findInTrip` (CB51) is `SELECT * FROM collab_messages WHERE id = ?
+ * AND trip_id = ?` — no join to `users` — yet the legacy code returned
+ * `{ username: message.username }`, a column that statement never selected.
+ * That has always evaluated to `undefined` at runtime; preserved exactly
+ * below (parity is law), not fixed — flagged in the task-5 report as a
+ * pre-existing defect for a ruling, the same as `§17`'s other "surprises".
  */
 @Injectable()
 export class CollabService {
   constructor(
-    private readonly db: DatabaseService,
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
     private readonly rateLimit: RateLimitService,
+    private readonly uow: UnitOfWork,
+    @InjectRepository(CollabMessageReactions) private readonly messageReactionsRepo: CollabMessageReactionsRepository,
+    @InjectRepository(CollabNotes) private readonly notesRepo: CollabNotesRepository,
+    @InjectRepository(CollabPolls) private readonly pollsRepo: CollabPollsRepository,
+    @InjectRepository(CollabPollVotes) private readonly pollVotesRepo: CollabPollVotesRepository,
+    @InjectRepository(CollabLinks) private readonly linksRepo: CollabLinksRepository,
+    @InjectRepository(CollabMessages) private readonly messagesRepo: CollabMessagesRepository,
+    @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
   ) {}
 
   /**
@@ -143,19 +180,27 @@ export class CollabService {
   /** Preview fetches currently in flight, so simultaneous askers share one request. */
   private readonly inFlight = new Map<string, Promise<LinkPreviewResult>>();
 
-  verifyTripAccess(tripId: string | number, userId: number) {
-    return this.db.canAccessTrip(tripId, userId);
+  async verifyTripAccess(tripId: string | number, userId: number) {
+    // Plan 4 Task 2 — canAccessTrip's own DatabaseService delegation is
+    // gone: this reuses the TripsRepository already injected for other
+    // reads and calls findAccessible.
+    return await this.tripsRepo.findAccessible(tripId, userId);
   }
 
-  canEdit(trip: Trip, user: User): boolean {
+  async canEdit(trip: Trip, user: User): Promise<boolean> {
     return this.permissions.checkPermission('collab_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  canUploadFiles(trip: Trip, user: User): boolean {
+  async canUploadFiles(trip: Trip, user: User): Promise<boolean> {
     return this.permissions.checkPermission('file_upload', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
-  broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
+  broadcast<E extends TrekWsTripEventName>(
+    tripId: string,
+    event: E,
+    payload: TrekWsPayload<E>,
+    socketId: string | undefined,
+  ): void {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
@@ -163,13 +208,8 @@ export class CollabService {
   /*  Reactions                                                          */
   /* ------------------------------------------------------------------ */
 
-  private loadReactions(messageId: number | string): ReactionRow[] {
-    return this.db.all<ReactionRow>(`
-    SELECT r.emoji, r.user_id, u.username
-    FROM collab_message_reactions r
-    JOIN users u ON r.user_id = u.id
-    WHERE r.message_id = ?
-  `, messageId);
+  private async loadReactions(messageId: number): Promise<ReactionRow[]> {
+    return this.messageReactionsRepo.listForMessage(messageId);
   }
 
   private groupReactions(reactions: ReactionRow[]): GroupedReaction[] {
@@ -181,105 +221,125 @@ export class CollabService {
     return Object.entries(map).map(([emoji, users]) => ({ emoji, users, count: users.length }));
   }
 
-  reactMessage(messageId: number | string, tripId: number | string, userId: number, emoji: string): { found: boolean; reactions: GroupedReaction[] } {
-    const msg = this.db.get('SELECT id FROM collab_messages WHERE id = ? AND trip_id = ?', messageId, tripId);
+  async reactMessage(
+    messageId: number | string,
+    tripId: number | string,
+    userId: number,
+    emoji: string,
+  ): Promise<{ found: boolean; reactions: GroupedReaction[] }> {
+    const idNum = toRowId(messageId);
+    const tripIdNum = toRowId(tripId);
+    if (idNum === null || tripIdNum === null) return { found: false, reactions: [] };
+    const msg = await this.messagesRepo.findInTrip(idNum, tripIdNum);
     if (!msg) return { found: false, reactions: [] };
 
-    const existing = this.db.get<{ id: number }>('SELECT id FROM collab_message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?', messageId, userId, emoji);
+    const existing = await this.messageReactionsRepo.findReaction(msg.id, userId, emoji);
     if (existing) {
-      this.db.run('DELETE FROM collab_message_reactions WHERE id = ?', existing.id);
+      await this.messageReactionsRepo.deleteById(existing.id);
     } else {
-      this.db.run('INSERT INTO collab_message_reactions (message_id, user_id, emoji) VALUES (?, ?, ?)', messageId, userId, emoji);
+      await this.messageReactionsRepo.insertReaction(msg.id, userId, emoji);
     }
 
-    return { found: true, reactions: this.groupReactions(this.loadReactions(messageId)) };
+    return { found: true, reactions: this.groupReactions(await this.loadReactions(msg.id)) };
   }
 
   /* ------------------------------------------------------------------ */
   /*  Notes                                                              */
   /* ------------------------------------------------------------------ */
 
-  private formatNote(note: CollabNote) {
-    const attachments = this.db.all<NoteFileRow>('SELECT id, filename, original_name, file_size, mime_type FROM trip_files WHERE note_id = ?', note.id);
+  private async formatNote(note: CollabNoteJoinRow) {
+    const attachments = await this.notesRepo.listAttachmentsForNote(note.id);
     return {
       ...note,
       avatar_url: avatarUrl(note),
-      attachments: attachments.map(a => ({ ...a, url: `/api/trips/${note.trip_id}/files/${a.id}/download` })),
+      attachments: attachments.map((a) => ({ ...a, url: `/api/trips/${note.trip_id}/files/${a.id}/download` })),
     };
   }
 
-  listNotes(tripId: string | number) {
-    const notes = this.db.all<CollabNote>(`
-    SELECT n.*, u.username, u.avatar
-    FROM collab_notes n
-    JOIN users u ON n.user_id = u.id
-    WHERE n.trip_id = ?
-    ORDER BY n.pinned DESC, n.updated_at DESC
-  `, tripId);
-
-    return notes.map(note => this.formatNote(note));
+  async listNotes(tripId: string | number) {
+    const notes = await this.notesRepo.listForTrip(toRowId(tripId) ?? -1);
+    return Promise.all(notes.map((note) => this.formatNote(note)));
   }
 
-  createNote(tripId: string | number, userId: number, data: { title: string; content?: string | null; category?: string | null; color?: string | null; website?: string | null; pinned?: boolean }) {
+  async createNote(
+    tripId: string | number,
+    userId: number,
+    data: {
+      title: string;
+      content?: string | null;
+      category?: string | null;
+      color?: string | null;
+      website?: string | null;
+      pinned?: boolean;
+    },
+  ) {
     const pinned = data.pinned ? 1 : 0;
-    const result = this.db.run(`
-    INSERT INTO collab_notes (trip_id, user_id, title, content, category, color, website, pinned)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `, tripId, userId, data.title, data.content || null, data.category || 'General', data.color || '#6366f1', data.website || null, pinned);
+    const id = await this.notesRepo.insertNote({
+      trip_id: tripId,
+      user_id: userId,
+      title: data.title,
+      content: data.content || null,
+      category: data.category || 'General',
+      color: data.color || '#6366f1',
+      website: data.website || null,
+      pinned,
+    });
 
-    const note = this.db.get<CollabNote>(`
-    SELECT n.*, u.username, u.avatar FROM collab_notes n JOIN users u ON n.user_id = u.id WHERE n.id = ?
-  `, result.lastInsertRowid)!;
-
+    const note = (await this.notesRepo.findWithUser(id))!;
     return this.formatNote(note);
   }
 
-  updateNote(tripId: string | number, noteId: string | number, data: { title?: string; content?: string | null; category?: string | null; color?: string | null; pinned?: number | boolean; website?: string | null }): ReturnType<CollabService['formatNote']> | null {
-    const existing = this.db.get('SELECT * FROM collab_notes WHERE id = ? AND trip_id = ?', noteId, tripId);
+  async updateNote(
+    tripId: string | number,
+    noteId: string | number,
+    data: {
+      title?: string;
+      content?: string | null;
+      category?: string | null;
+      color?: string | null;
+      pinned?: number | boolean;
+      website?: string | null;
+    },
+  ): Promise<Awaited<ReturnType<CollabService['formatNote']>> | null> {
+    const idNum = toRowId(noteId);
+    const tripIdNum = toRowId(tripId);
+    if (idNum === null || tripIdNum === null) return null;
+    const existing = await this.notesRepo.findInTrip(idNum, tripIdNum);
     if (!existing) return null;
 
-    this.db.run(`
-    UPDATE collab_notes SET
-      title = COALESCE(?, title),
-      content = CASE WHEN ? THEN ? ELSE content END,
-      category = COALESCE(?, category),
-      color = COALESCE(?, color),
-      pinned = CASE WHEN ? IS NOT NULL THEN ? ELSE pinned END,
-      website = CASE WHEN ? THEN ? ELSE website END,
-      updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `,
-      data.title || null,
-      data.content !== undefined ? 1 : 0, data.content !== undefined ? data.content : null,
-      data.category || null,
-      data.color || null,
-      data.pinned !== undefined ? 1 : null, data.pinned ? 1 : 0,
-      data.website !== undefined ? 1 : 0, data.website !== undefined ? data.website : null,
-      noteId
-    );
+    await this.notesRepo.update(existing.id, {
+      title: data.title || existing.title,
+      content: data.content !== undefined ? data.content : existing.content,
+      category: data.category || existing.category,
+      color: data.color || existing.color,
+      pinned: data.pinned !== undefined ? (data.pinned ? 1 : 0) : existing.pinned,
+      website: data.website !== undefined ? data.website : existing.website,
+    });
 
-    const note = this.db.get<CollabNote>(`
-    SELECT n.*, u.username, u.avatar FROM collab_notes n JOIN users u ON n.user_id = u.id WHERE n.id = ?
-  `, noteId)!;
-
+    const note = (await this.notesRepo.findWithUser(existing.id))!;
     return this.formatNote(note);
   }
 
   async deleteNote(tripId: string | number, noteId: string | number): Promise<boolean> {
-    const existing = this.db.get('SELECT id FROM collab_notes WHERE id = ? AND trip_id = ?', noteId, tripId);
+    const idNum = toRowId(noteId);
+    const tripIdNum = toRowId(tripId);
+    if (idNum === null || tripIdNum === null) return false;
+    const existing = await this.notesRepo.findInTrip(idNum, tripIdNum);
     if (!existing) return false;
 
     // Clean up attached objects first (delete-first is intentional — a failed
     // row delete leaves dangling rows, never orphaned files). basename()
     // tolerates any legacy 'files/'-prefixed row the boot migration has not
     // seen.
-    const noteFiles = this.db.all<NoteFileRow>('SELECT id, filename FROM trip_files WHERE note_id = ?', noteId);
+    const noteFiles = await this.notesRepo.listFilenamesForNote(existing.id);
     for (const f of noteFiles) {
-      await this.storage.delete('files', path.basename(f.filename)).catch(() => { /* ignore */ });
+      await this.storage.delete('files', path.basename(f.filename)).catch(() => {
+        /* ignore */
+      });
     }
-    this.db.transaction(() => {
-      this.db.run('DELETE FROM trip_files WHERE note_id = ?', noteId);
-      this.db.run('DELETE FROM collab_notes WHERE id = ?', noteId);
+    await this.uow.transactional(async () => {
+      await this.notesRepo.deleteAttachmentsForNote(existing.id);
+      await this.notesRepo.delete(existing.id);
     });
     return true;
   }
@@ -288,21 +348,35 @@ export class CollabService {
   /*  Note files                                                         */
   /* ------------------------------------------------------------------ */
 
-  addNoteFile(tripId: string | number, noteId: string | number, file: { filename: string; originalname: string; size: number; mimetype: string }): { file: TripFile & { url: string } } | null {
-    const note = this.db.get('SELECT id FROM collab_notes WHERE id = ? AND trip_id = ?', noteId, tripId);
+  async addNoteFile(
+    tripId: string | number,
+    noteId: string | number,
+    file: { filename: string; originalname: string; size: number; mimetype: string },
+  ) {
+    const idNum = toRowId(noteId);
+    const tripIdNum = toRowId(tripId);
+    if (idNum === null || tripIdNum === null) return null;
+    const note = await this.notesRepo.findInTrip(idNum, tripIdNum);
     if (!note) return null;
 
-    const result = this.db.run(
-      'INSERT INTO trip_files (trip_id, note_id, filename, original_name, file_size, mime_type) VALUES (?, ?, ?, ?, ?, ?)',
-      tripId, noteId, file.filename, file.originalname, file.size, file.mimetype
-    );
+    const insertedId = await this.notesRepo.insertAttachmentForNote({
+      trip_id: tripId,
+      note_id: note.id,
+      filename: file.filename,
+      original_name: file.originalname,
+      file_size: file.size,
+      mime_type: file.mimetype,
+    });
 
-    const saved = this.db.get<TripFile>('SELECT * FROM trip_files WHERE id = ?', result.lastInsertRowid)!;
+    const saved = (await this.notesRepo.findAttachmentById(insertedId))!;
     return { file: { ...saved, url: `/api/trips/${tripId}/files/${saved.id}/download` } };
   }
 
-  getFormattedNoteById(tripId: string | number, noteId: string | number) {
-    const note = this.db.get<CollabNote>('SELECT n.*, u.username, u.avatar FROM collab_notes n JOIN users u ON n.user_id = u.id WHERE n.id = ? AND n.trip_id = ?', noteId, tripId);
+  async getFormattedNoteById(tripId: string | number, noteId: string | number) {
+    const idNum = toRowId(noteId);
+    const tripIdNum = toRowId(tripId);
+    if (idNum === null || tripIdNum === null) return null;
+    const note = await this.notesRepo.findWithUserInTrip(idNum, tripIdNum);
     if (!note) return null;
     return this.formatNote(note);
   }
@@ -311,13 +385,21 @@ export class CollabService {
     // Scope to the trip — like every sibling collab op — so a caller authorized for THEIR
     // trip can't delete a note-file that belongs to someone else's trip (IDOR). trip_files
     // carries trip_id, so this ties the deleted object to the URL's :tripId the controller
-    // access-checked, not just to a note/file id an attacker can enumerate.
-    const file = this.db.get<TripFile>('SELECT * FROM trip_files WHERE id = ? AND note_id = ? AND trip_id = ?', fileId, noteId, tripId);
+    // access-checked, not just to a note/file id an attacker can enumerate. All THREE ids
+    // (`fileId`, `noteId`, `tripId`) are resolved via `toRowId` here and fed, unchanged,
+    // into the one three-column guard query below — never re-derived separately.
+    const fileIdNum = toRowId(fileId);
+    const noteIdNum = toRowId(noteId);
+    const tripIdNum = toRowId(tripId);
+    if (fileIdNum === null || noteIdNum === null || tripIdNum === null) return false;
+    const file = await this.notesRepo.findScopedForNote(fileIdNum, noteIdNum, tripIdNum);
     if (!file) return false;
 
-    await this.storage.delete('files', path.basename(file.filename)).catch(() => { /* ignore */ });
+    await this.storage.delete('files', path.basename(file.filename)).catch(() => {
+      /* ignore */
+    });
 
-    this.db.run('DELETE FROM trip_files WHERE id = ?', fileId);
+    await this.notesRepo.deleteAttachmentById(file.id);
     return true;
   }
 
@@ -325,24 +407,13 @@ export class CollabService {
   /*  Polls                                                              */
   /* ------------------------------------------------------------------ */
 
-  private getPollWithVotes(pollId: number | bigint | string) {
-    const poll = this.db.get<CollabPoll>(`
-    SELECT p.*, u.username, u.avatar
-    FROM collab_polls p
-    JOIN users u ON p.user_id = u.id
-    WHERE p.id = ?
-  `, pollId);
-
+  private async getPollWithVotes(pollId: number) {
+    const poll = await this.pollsRepo.findWithUser(pollId);
     if (!poll) return null;
 
-    const options: (string | { label: string })[] = JSON.parse(poll.options);
+    const options = decodeJson(COLLAB_POLL_OPTIONS, poll.options, `poll ${poll.id}`) as (string | { label: string })[];
 
-    const votes = this.db.all<PollVoteRow>(`
-    SELECT v.option_index, v.user_id, u.username, u.avatar
-    FROM collab_poll_votes v
-    JOIN users u ON v.user_id = u.id
-    WHERE v.poll_id = ?
-  `, pollId);
+    const votes = await this.pollVotesRepo.listForPoll(poll.id);
 
     const formattedOptions = options.map((label: string | { label: string }, idx: number) => {
       const text = typeof label === 'string' ? label : label.label || label;
@@ -351,8 +422,14 @@ export class CollabService {
         text,
         label: text,
         voters: votes
-          .filter(v => v.option_index === idx)
-          .map(v => ({ id: v.user_id, user_id: v.user_id, username: v.username, avatar: v.avatar, avatar_url: avatarUrl(v) })),
+          .filter((v) => v.option_index === idx)
+          .map((v) => ({
+            id: v.user_id,
+            user_id: v.user_id,
+            username: v.username,
+            avatar: v.avatar,
+            avatar_url: avatarUrl(v),
+          })),
       };
     });
 
@@ -365,67 +442,86 @@ export class CollabService {
     };
   }
 
-  listPolls(tripId: string | number) {
-    const rows = this.db.all<{ id: number }>(`
-    SELECT id FROM collab_polls WHERE trip_id = ? ORDER BY created_at DESC
-  `, tripId);
-
-    return rows.map(row => this.getPollWithVotes(row.id)).filter(Boolean);
+  async listPolls(tripId: string | number) {
+    const ids = await this.pollsRepo.listIdsForTrip(toRowId(tripId) ?? -1);
+    return (await Promise.all(ids.map((id) => this.getPollWithVotes(id)))).filter(Boolean);
   }
 
-  createPoll(tripId: string | number, userId: number, data: { question: string; options: unknown[]; multiple?: boolean; multiple_choice?: boolean; deadline?: string }) {
+  async createPoll(
+    tripId: string | number,
+    userId: number,
+    data: { question: string; options: unknown[]; multiple?: boolean; multiple_choice?: boolean; deadline?: string },
+  ) {
     const isMultiple = data.multiple || data.multiple_choice;
 
-    const result = this.db.run(`
-    INSERT INTO collab_polls (trip_id, user_id, question, options, multiple, deadline)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `, tripId, userId, data.question, JSON.stringify(data.options), isMultiple ? 1 : 0, data.deadline || null);
+    const id = await this.pollsRepo.insertPoll({
+      trip_id: tripId,
+      user_id: userId,
+      question: data.question,
+      options: JSON.stringify(data.options),
+      multiple: isMultiple ? 1 : 0,
+      deadline: data.deadline || null,
+    });
 
-    return this.getPollWithVotes(result.lastInsertRowid);
+    return this.getPollWithVotes(id);
   }
 
-  votePoll(tripId: string | number, pollId: string | number, userId: number, optionIndex: number): { error?: string; poll?: ReturnType<CollabService['getPollWithVotes']> } {
-    const poll = this.db.get<CollabPoll>('SELECT * FROM collab_polls WHERE id = ? AND trip_id = ?', pollId, tripId);
+  async votePoll(
+    tripId: string | number,
+    pollId: string | number,
+    userId: number,
+    optionIndex: number,
+  ): Promise<{ error?: string; poll?: Awaited<ReturnType<CollabService['getPollWithVotes']>> }> {
+    const idNum = toRowId(pollId);
+    const tripIdNum = toRowId(tripId);
+    if (idNum === null || tripIdNum === null) return { error: 'not_found' };
+    const poll = await this.pollsRepo.findInTrip(idNum, tripIdNum);
     if (!poll) return { error: 'not_found' };
     if (poll.closed) return { error: 'closed' };
 
-    const options = JSON.parse(poll.options);
+    const options = decodeJson(COLLAB_POLL_OPTIONS, poll.options, `poll ${poll.id}`);
     if (!Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex >= options.length) {
       return { error: 'invalid_index' };
     }
 
-    const existingVote = this.db.get<{ id: number }>(
-      'SELECT id FROM collab_poll_votes WHERE poll_id = ? AND user_id = ? AND option_index = ?',
-      pollId, userId, optionIndex
-    );
+    const existingVote = await this.pollVotesRepo.findVote(poll.id, userId, optionIndex);
 
     if (existingVote) {
-      this.db.run('DELETE FROM collab_poll_votes WHERE id = ?', existingVote.id);
+      await this.pollVotesRepo.deleteById(existingVote.id);
     } else {
-      this.db.transaction(() => {
+      await this.uow.transactional(async () => {
         if (!poll.multiple) {
-          this.db.run('DELETE FROM collab_poll_votes WHERE poll_id = ? AND user_id = ?', pollId, userId);
+          await this.pollVotesRepo.deleteForUser(poll.id, userId);
         }
-        this.db.run('INSERT INTO collab_poll_votes (poll_id, user_id, option_index) VALUES (?, ?, ?)', pollId, userId, optionIndex);
+        await this.pollVotesRepo.insertVote(poll.id, userId, optionIndex);
       });
     }
 
-    return { poll: this.getPollWithVotes(pollId) };
+    return { poll: await this.getPollWithVotes(poll.id) };
   }
 
-  closePoll(tripId: string | number, pollId: string | number): ReturnType<CollabService['getPollWithVotes']> | null {
-    const poll = this.db.get('SELECT * FROM collab_polls WHERE id = ? AND trip_id = ?', pollId, tripId);
+  async closePoll(
+    tripId: string | number,
+    pollId: string | number,
+  ): Promise<Awaited<ReturnType<CollabService['getPollWithVotes']>> | null> {
+    const idNum = toRowId(pollId);
+    const tripIdNum = toRowId(tripId);
+    if (idNum === null || tripIdNum === null) return null;
+    const poll = await this.pollsRepo.findInTrip(idNum, tripIdNum);
     if (!poll) return null;
 
-    this.db.run('UPDATE collab_polls SET closed = 1 WHERE id = ?', pollId);
-    return this.getPollWithVotes(pollId);
+    await this.pollsRepo.close(poll.id);
+    return this.getPollWithVotes(poll.id);
   }
 
-  deletePoll(tripId: string | number, pollId: string | number): boolean {
-    const poll = this.db.get('SELECT id FROM collab_polls WHERE id = ? AND trip_id = ?', pollId, tripId);
+  async deletePoll(tripId: string | number, pollId: string | number): Promise<boolean> {
+    const idNum = toRowId(pollId);
+    const tripIdNum = toRowId(tripId);
+    if (idNum === null || tripIdNum === null) return false;
+    const poll = await this.pollsRepo.findInTrip(idNum, tripIdNum);
     if (!poll) return false;
 
-    this.db.run('DELETE FROM collab_polls WHERE id = ?', pollId);
+    await this.pollsRepo.delete(poll.id);
     return true;
   }
 
@@ -433,59 +529,62 @@ export class CollabService {
   /*  Shared links                                                       */
   /* ------------------------------------------------------------------ */
 
-  listLinks(tripId: string | number) {
-    return this.db.all(
-      `SELECT l.*, u.username FROM collab_links l JOIN users u ON u.id = l.user_id
-       WHERE l.trip_id = ? ORDER BY l.pinned DESC, l.created_at DESC`,
-      tripId,
-    );
+  async listLinks(tripId: string | number) {
+    return this.linksRepo.listForTrip(toRowId(tripId) ?? -1);
   }
 
-  createLink(tripId: string | number, userId: number, data: { title: string; url: string; pinned?: boolean }) {
-    const result = this.db.run(
-      'INSERT INTO collab_links (trip_id,user_id,title,url,pinned) VALUES (?,?,?,?,?)',
-      tripId, userId, data.title.trim(), data.url.trim(), data.pinned ? 1 : 0,
-    );
-    return this.db.get('SELECT l.*, u.username FROM collab_links l JOIN users u ON u.id = l.user_id WHERE l.id = ?', result.lastInsertRowid);
+  async createLink(tripId: string | number, userId: number, data: { title: string; url: string; pinned?: boolean }) {
+    const id = await this.linksRepo.insertLink({
+      trip_id: tripId,
+      user_id: userId,
+      title: data.title.trim(),
+      url: data.url.trim(),
+      pinned: data.pinned ? 1 : 0,
+    });
+    return this.linksRepo.findWithUser(id);
   }
 
-  updateLink(tripId: string | number, linkId: string | number, data: { title?: string; url?: string; pinned?: boolean | number }) {
-    const existing = this.db.get<any>('SELECT * FROM collab_links WHERE id = ? AND trip_id = ?', linkId, tripId);
+  async updateLink(
+    tripId: string | number,
+    linkId: string | number,
+    data: { title?: string; url?: string; pinned?: boolean | number },
+  ) {
+    const idNum = toRowId(linkId);
+    const tripIdNum = toRowId(tripId);
+    if (idNum === null || tripIdNum === null) return null;
+    const existing = await this.linksRepo.findInTrip(idNum, tripIdNum);
     if (!existing) return null;
-    this.db.run(
-      'UPDATE collab_links SET title = ?, url = ?, pinned = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND trip_id = ?',
-      data.title?.trim() || existing.title,
-      data.url?.trim() || existing.url,
-      data.pinned === undefined ? existing.pinned : (data.pinned ? 1 : 0),
-      linkId,
-      tripId,
-    );
-    return this.db.get('SELECT l.*, u.username FROM collab_links l JOIN users u ON u.id = l.user_id WHERE l.id = ?', linkId);
+    await this.linksRepo.update(existing.id, existing.trip_id, {
+      title: data.title?.trim() || existing.title,
+      url: data.url?.trim() || existing.url,
+      // `existing.pinned` is `number | null` on the column, but every write
+      // this repository makes sets it to 0/1 (never null) — the `?? 0`
+      // fallback only guards a value that should never actually be null.
+      pinned: data.pinned === undefined ? (existing.pinned ?? 0) : data.pinned ? 1 : 0,
+    });
+    return this.linksRepo.findWithUser(existing.id);
   }
 
-  deleteLink(tripId: string | number, linkId: string | number): boolean {
-    return this.db.run('DELETE FROM collab_links WHERE id = ? AND trip_id = ?', linkId, tripId).changes > 0;
+  async deleteLink(tripId: string | number, linkId: string | number): Promise<boolean> {
+    const idNum = toRowId(linkId);
+    const tripIdNum = toRowId(tripId);
+    if (idNum === null || tripIdNum === null) return false;
+    return this.linksRepo.deleteScoped(idNum, tripIdNum);
   }
 
   /* ------------------------------------------------------------------ */
   /*  Messages                                                           */
   /* ------------------------------------------------------------------ */
 
-  private formatMessage(msg: CollabMessage, reactions?: GroupedReaction[]) {
-    const attachments = msg.id && msg.trip_id
-      ? this.db.all<any>(
-        `SELECT id, trip_id, message_id, filename, original_name, file_size, mime_type
-         FROM trip_files WHERE message_id = ? AND trip_id = ? AND deleted_at IS NULL
-         ORDER BY id ASC`,
-        msg.id, msg.trip_id,
-      )
-      : [];
+  private async formatMessage(msg: CollabMessageJoinRow, reactions?: GroupedReaction[]) {
+    const attachments =
+      msg.id && msg.trip_id ? await this.messagesRepo.listAttachmentsForMessage(msg.id, msg.trip_id) : [];
     return {
       ...msg,
       user_avatar: avatarUrl(msg),
       avatar_url: avatarUrl(msg),
       reactions: reactions || [],
-      attachments: attachments.map((a: any) => ({
+      attachments: attachments.map((a) => ({
         id: a.id,
         filename: a.filename,
         original_name: a.original_name,
@@ -496,28 +595,24 @@ export class CollabService {
     };
   }
 
-  countMessages(tripId: string | number): number {
-    const row = this.db.get<{ cnt: number }>('SELECT COUNT(*) as cnt FROM collab_messages WHERE trip_id = ?', tripId)!;
-    return row.cnt;
+  async countMessages(tripId: string | number): Promise<number> {
+    return this.messagesRepo.countForTrip(toRowId(tripId) ?? -1);
   }
 
-  listMessages(tripId: string | number, before?: string | number) {
-    const query = `
-    SELECT m.*, u.username, u.avatar,
-      CASE WHEN rm.deleted = 1 THEN '' ELSE rm.text END AS reply_text,
-      ru.username AS reply_username
-    FROM collab_messages m
-    JOIN users u ON m.user_id = u.id
-    LEFT JOIN collab_messages rm ON m.reply_to = rm.id
-    LEFT JOIN users ru ON rm.user_id = ru.id
-    WHERE m.trip_id = ?${before ? ' AND m.id < ?' : ''}
-    ORDER BY m.id DESC
-    LIMIT 100
-  `;
-
-    const messages = before
-      ? this.db.all<CollabMessage>(query, tripId, before)
-      : this.db.all<CollabMessage>(query, tripId);
+  async listMessages(tripId: string | number, before?: string | number) {
+    const tripIdNum = toRowId(tripId) ?? -1;
+    // A malformed (non-canonical) `before` is narrowed to `-1` (rule 15) —
+    // `m.id < -1` matches nothing, an empty page. The legacy raw bind let
+    // SQLite's TEXT/INTEGER type-ordering decide instead (a non-numeric
+    // cursor sorts as "greater" than every integer id, so `m.id < 'garbage'`
+    // was always true and returned every message unfiltered) — a
+    // non-canonical `before` can only reach this path from something other
+    // than our own client (every real cursor is `String(<a message's own
+    // integer id>)`), so this is the SAME accepted narrowing `toRowId`'s own
+    // docstring describes elsewhere, not a behaviour this domain's own
+    // traffic can trigger. Flagged in the task-5 report for a ruling.
+    const beforeNum = before === undefined ? undefined : (toRowId(before) ?? -1);
+    const messages = await this.messagesRepo.listForTrip(tripIdNum, beforeNum);
 
     messages.reverse();
 
@@ -527,89 +622,86 @@ export class CollabService {
     // three.
     for (const m of messages) if (m.deleted) m.text = '';
 
-    const msgIds = messages.map(m => m.id);
+    const msgIds = messages.map((m) => m.id);
+    const allReactions = await this.messageReactionsRepo.listForMessages(msgIds);
     const reactionsByMsg: Record<number, ReactionRow[]> = {};
-    if (msgIds.length > 0) {
-      const allReactions = this.db.all<ReactionRow & { message_id: number }>(`
-      SELECT r.message_id, r.emoji, r.user_id, u.username
-      FROM collab_message_reactions r
-      JOIN users u ON r.user_id = u.id
-      WHERE r.message_id IN (${msgIds.map(() => '?').join(',')})
-    `, ...msgIds);
-      for (const r of allReactions) {
-        if (!reactionsByMsg[r.message_id]) reactionsByMsg[r.message_id] = [];
-        reactionsByMsg[r.message_id].push(r);
-      }
+    for (const r of allReactions) {
+      if (!reactionsByMsg[r.message_id]) reactionsByMsg[r.message_id] = [];
+      reactionsByMsg[r.message_id].push(r);
     }
 
-    return messages.map(m => this.formatMessage(m, this.groupReactions(reactionsByMsg[m.id] || [])));
+    return Promise.all(messages.map((m) => this.formatMessage(m, this.groupReactions(reactionsByMsg[m.id] || []))));
   }
 
-  createMessage(
+  async createMessage(
     tripId: string | number,
     userId: number,
     text: string,
     replyTo?: number | null,
     files: Array<{ filename: string; originalname: string; size: number; mimetype: string }> = [],
-  ): { error?: string; message?: ReturnType<CollabService['formatMessage']> } {
+  ): Promise<{ error?: string; message?: Awaited<ReturnType<CollabService['formatMessage']>> }> {
     if (replyTo) {
       // A soft-deleted message is gone as far as anyone replying is concerned:
       // its row survives only so the placeholder can be drawn where it was.
-      const replyMsg = this.db.get(
-        'SELECT id FROM collab_messages WHERE id = ? AND trip_id = ? AND deleted = 0', replyTo, tripId,
-      );
+      const tripIdNum = toRowId(tripId) ?? -1;
+      const replyMsg = await this.messagesRepo.findActiveInTrip(replyTo, tripIdNum);
       if (!replyMsg) return { error: 'reply_not_found' };
     }
 
     // One transaction: the caller has already committed the image bytes to
     // storage, so a message row that lands without its attachment rows would
     // leave those bytes with nothing pointing at them and nothing to sweep them.
-    const result = this.db.transaction(() => {
-      const inserted = this.db.run(`
-    INSERT INTO collab_messages (trip_id, user_id, text, reply_to) VALUES (?, ?, ?, ?)
-  `, tripId, userId, text.trim(), replyTo || null);
+    const insertedId = await this.uow.transactional(async () => {
+      const id = await this.messagesRepo.insertMessage(tripId, userId, text.trim(), replyTo || null);
 
       for (const file of files) {
-        this.db.run(
-          `INSERT INTO trip_files (trip_id, message_id, filename, original_name, file_size, mime_type, uploaded_by)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          tripId, inserted.lastInsertRowid, file.filename, file.originalname, file.size, file.mimetype, userId,
-        );
+        await this.messagesRepo.insertAttachmentForMessage({
+          trip_id: tripId,
+          message_id: id,
+          filename: file.filename,
+          original_name: file.originalname,
+          file_size: file.size,
+          mime_type: file.mimetype,
+          uploaded_by: userId,
+        });
       }
-      return inserted;
+      return id;
     });
 
-    const message = this.db.get<CollabMessage>(`
-    SELECT m.*, u.username, u.avatar,
-      CASE WHEN rm.deleted = 1 THEN '' ELSE rm.text END AS reply_text,
-      ru.username AS reply_username
-    FROM collab_messages m
-    JOIN users u ON m.user_id = u.id
-    LEFT JOIN collab_messages rm ON m.reply_to = rm.id
-    LEFT JOIN users ru ON rm.user_id = ru.id
-    WHERE m.id = ?
-  `, result.lastInsertRowid)!;
+    const message = (await this.messagesRepo.findWithReply(insertedId))!;
 
-    return { message: this.formatMessage(message) };
+    return { message: await this.formatMessage(message) };
   }
 
-  deleteMessage(tripId: string | number, messageId: string | number, userId: number): { error?: string; username?: string } {
-    const message = this.db.get<CollabMessage>('SELECT * FROM collab_messages WHERE id = ? AND trip_id = ?', messageId, tripId);
+  async deleteMessage(
+    tripId: string | number,
+    messageId: string | number,
+    userId: number,
+  ): Promise<{ error?: string; username?: string }> {
+    const idNum = toRowId(messageId);
+    const tripIdNum = toRowId(tripId);
+    if (idNum === null || tripIdNum === null) return { error: 'not_found' };
+    const message = await this.messagesRepo.findInTrip(idNum, tripIdNum);
     if (!message) return { error: 'not_found' };
     if (Number(message.user_id) !== Number(userId)) return { error: 'not_owner' };
 
-    const attachments = this.db.all<{ filename: string }>('SELECT filename FROM trip_files WHERE message_id = ? AND trip_id = ?', messageId, tripId);
-    this.db.transaction(() => {
-      this.db.run('DELETE FROM trip_files WHERE message_id = ? AND trip_id = ?', messageId, tripId);
-      this.db.run('UPDATE collab_messages SET deleted = 1 WHERE id = ?', messageId);
+    const attachments = await this.messagesRepo.listFilenamesForMessage(message.id, tripIdNum);
+    await this.uow.transactional(async () => {
+      await this.messagesRepo.deleteAttachmentsForMessage(message.id, tripIdNum);
+      await this.messagesRepo.softDelete(message.id);
     });
     // Only once the rows are actually gone. Dropping the blobs first left a
     // live message pointing at attachments whose bytes no longer existed
     // whenever the second statement failed.
     for (const file of attachments) {
-      void this.storage.delete('files', path.basename(file.filename)).catch(() => { /* best effort */ });
+      void this.storage.delete('files', path.basename(file.filename)).catch(() => {
+        /* best effort */
+      });
     }
-    return { username: message.username };
+    // `message.username` — see the class docstring's "pre-existing `username`
+    // gap" note: `findInTrip` never joins `users`, so this has always been
+    // `undefined` at runtime. Preserved exactly, not fixed.
+    return { username: undefined };
   }
 
   /* ------------------------------------------------------------------ */
@@ -621,7 +713,11 @@ export class CollabService {
 
     // A malformed URL returns the fallback directly (the legacy code let
     // `new URL` throw and relied on the controller's catch for the same 200).
-    try { new URL(url); } catch { return fallback; }
+    try {
+      new URL(url);
+    } catch {
+      return fallback;
+    }
 
     // Served before the budget is charged: opening a chat re-requests every
     // preview it renders, so a reload must not cost the caller its allowance.
@@ -634,22 +730,47 @@ export class CollabService {
     // entry yet, since the first has not answered. Joining the running fetch keeps
     // that a single outbound request instead of twenty.
     const running = this.inFlight.get(url);
-    if (running !== undefined) return { ...(await running), url };
-
-    // Charged per outbound fetch rather than per request, which is what the
-    // budget is actually protecting. Without a user there is no one to charge —
-    // no caller passes that today, and the fetch stays behind the SSRF guard.
-    if (userId !== undefined && !this.rateLimit.check('collab_link_preview', String(userId), PREVIEW_FETCHES_PER_MINUTE, 60_000, Date.now())) {
-      return { ...fallback, rateLimited: true };
+    if (running !== undefined) {
+      const shared = await running;
+      // The asker this call joined was out of budget, which says nothing about
+      // this caller's: ask again, first in line or behind the next asker.
+      if (shared.rateLimited) return this.linkPreview(url, userId);
+      return { ...shared, url };
     }
 
-    const task = this.fetchPreview(url, fallback);
+    // Memoised in-flight fetch, not a missing await: the promise is stored so the
+    // concurrent askers above can join it, and this frame awaits it below. It is
+    // stored before the budget check, which awaits its store, so an asker that
+    // arrives meanwhile joins this one instead of being charged for a fetch it
+    // does not make.
+    const task = this.chargeAndFetch(url, fallback, userId);
     this.inFlight.set(url, task);
     try {
       return await task;
     } finally {
       this.inFlight.delete(url);
     }
+  }
+
+  /**
+   * Charged per outbound fetch rather than per request, which is what the
+   * budget is actually protecting. Without a user there is no one to charge:
+   * no caller passes that today, and the fetch stays behind the SSRF guard.
+   */
+  private async chargeAndFetch(url: string, fallback: LinkPreviewResult, userId?: number): Promise<LinkPreviewResult> {
+    if (
+      userId !== undefined &&
+      !(await this.rateLimit.check(
+        'collab_link_preview',
+        String(userId),
+        PREVIEW_FETCHES_PER_MINUTE,
+        60_000,
+        Date.now(),
+      ))
+    ) {
+      return { ...fallback, rateLimited: true };
+    }
+    return this.fetchPreview(url, fallback);
   }
 
   /** The outbound half of linkPreview, past the cache and the budget. */
@@ -662,7 +783,7 @@ export class CollabService {
       return { ...fallback, error: 'URL not allowed' };
     }
 
-    const dispatcher = createPinnedDispatcher(ssrf.resolvedIp!);
+    const dispatcher = createOutboundDispatcher(url, ssrf.resolvedIp!);
     try {
       // AbortSignal.timeout covers the body as well. The hand-rolled controller
       // this replaces was cleared as soon as the headers arrived, so a server that
@@ -675,7 +796,10 @@ export class CollabService {
         dispatcher,
         headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NOMAD/1.0; +https://github.com/mauriceboe/NOMAD)' },
       } as any);
-      if (!r.ok) { discardBody(r); return this.cachePreview(url, fallback); }
+      if (!r.ok) {
+        discardBody(r);
+        return this.cachePreview(url, fallback);
+      }
       // Only markup is worth scraping. A declared type that is not HTML means the
       // regexes below would comb a video or an archive for og: tags and find nothing.
       const type = r.headers?.get('content-type') ?? '';
@@ -685,7 +809,10 @@ export class CollabService {
       }
       // An unread body keeps its socket reserved until the garbage collector runs,
       // which is the one thing a size cap is there to prevent.
-      if (exceedsDeclaredLength(r, MAX_PREVIEW_BYTES)) { discardBody(r); return this.cachePreview(url, fallback); }
+      if (exceedsDeclaredLength(r, MAX_PREVIEW_BYTES)) {
+        discardBody(r);
+        return this.cachePreview(url, fallback);
+      }
 
       // A truncated head still carries the tags we scrape, so a page over the
       // budget degrades to fewer fields rather than to an error.
@@ -725,14 +852,16 @@ export class CollabService {
   }
 
   /** Fire-and-forget collab notification (mirrors the legacy route's dynamic import). */
-  notifyCollab(tripId: string, actor: User, preview?: string): void {
+  async notifyCollab(tripId: string, actor: User, preview?: string): Promise<void> {
     // Injected, not a lazy import of the old notifications bridge. The laziness bought
     // nothing the module graph does not already give — NotificationsModule
     // reaches nothing in this direction — and it hid the edge while handing the
     // send a second NotificationsService built outside the container.
-    const tripInfo = this.db.get<{ title: string }>('SELECT title FROM trips WHERE id = ?', tripId);
-    const params: Record<string, string> = { trip: tripInfo?.title || 'Untitled', actor: actor.email, tripId: String(tripId) };
+    const title = await this.tripsRepo.getTitle(tripId);
+    const params: Record<string, string> = { trip: title || 'Untitled', actor: actor.email, tripId: String(tripId) };
     if (preview !== undefined) params.preview = preview;
-    this.notifications.send({ event: 'collab_message', actorId: actor.id, scope: 'trip', targetId: Number(tripId), params }).catch(() => {});
+    this.notifications
+      .send({ event: 'collab_message', actorId: actor.id, scope: 'trip', targetId: Number(tripId), params })
+      .catch(() => {});
   }
 }

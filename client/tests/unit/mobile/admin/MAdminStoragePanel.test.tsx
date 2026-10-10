@@ -415,7 +415,7 @@ describe('MAdminStoragePanel', () => {
     );
     expect(screen.getByText(/Moving Trip documents… 2\/5/)).toBeInTheDocument();
     expect(screen.getByText(/Move finished: 4 copied, 0 skipped/)).toBeInTheDocument();
-    expect(screen.getByText(/4 objects \(4\.0 KB\) remain on uploads-local — reclaim manually/)).toBeInTheDocument();
+    expect(screen.getByText(/4 objects \(4\.0 KB\) remain on uploads-local, reclaim manually/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel move' }));
     await waitFor(() => expect(cancelledCategory).toBe('files'));
   });
@@ -440,5 +440,27 @@ describe('MAdminStoragePanel', () => {
     fireEvent.click(within(screen.getByTestId('m-storage-backend-backups-local')).getByRole('button', { name: 'Sync now' }));
     await new Promise((r) => setTimeout(r, 100));
     expect(screen.queryByText(/Existing objects are not replicated yet/)).not.toBeInTheDocument();
+  });
+
+  it('FE-MOB-MSTOR-018: Test on a mirrored primary probes the draft primary and each replica, never the mirror stub', async () => {
+    const posted: Array<{ name: string; type: string; options: Record<string, unknown> }> = [];
+    await renderPanel(mirroredState());
+    server.use(
+      http.post('/api/admin/storage/test', async ({ request }) => {
+        const body = (await request.json()) as { backend: { name: string; type: string; options: Record<string, unknown> } };
+        posted.push(body.backend);
+        return HttpResponse.json({ ok: true, targets: [{ name: body.backend.name, ok: true }] });
+      }),
+    );
+    // An unsaved endpoint change on the replica must be what the probe sees.
+    fireEvent.click(within(screen.getByTestId('m-storage-backend-off-box')).getByRole('button', { name: 'Edit' }));
+    fireEvent.change(screen.getByDisplayValue('http://127.0.0.1:9000'), { target: { value: 'http://edited.example:9000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    fireEvent.click(within(screen.getByTestId('m-storage-backend-backups-local')).getByRole('button', { name: 'Test' }));
+    await waitFor(() => expect(posted.length).toBeGreaterThan(0));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(posted.map((b) => b.name).sort()).toEqual(['backups-local', 'off-box']);
+    expect(posted.every((b) => b.type !== 'mirror')).toBe(true);
+    expect(posted.find((b) => b.name === 'off-box')?.options.endpoint).toBe('http://edited.example:9000');
   });
 });

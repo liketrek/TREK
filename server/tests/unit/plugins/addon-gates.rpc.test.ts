@@ -10,44 +10,56 @@
  * So every addon-gated method gets the same two assertions: with the addon off it is
  * refused with that addon's message, and the underlying service is never touched.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
-import { createTestPluginRegistry } from '../../../src/nest/plugins/host/rpc-kit/testing';
-import { PluginGuards } from '../../../src/nest/plugins/host/plugin-guards.service';
-import { CollabRpc } from '../../../src/nest/collab/collab.rpc';
-import { AtlasRpc } from '../../../src/nest/atlas/atlas.rpc';
-import { VacayRpc } from '../../../src/nest/vacay/vacay.rpc';
-import { JournalRpc } from '../../../src/nest/journey/journal.rpc';
-import { CollectionsRpc } from '../../../src/nest/collections/collections.rpc';
-import { CostsRpc } from '../../../src/nest/budget/costs.rpc';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
-import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
+import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { AtlasRpc } from '../../../src/nest/atlas/atlas.rpc';
+import { CostsRpc } from '../../../src/nest/budget/costs.rpc';
+import { CollabRpc } from '../../../src/nest/collab/collab.rpc';
+import { CollectionsRpc } from '../../../src/nest/collections/collections.rpc';
+import { JournalRpc } from '../../../src/nest/journey/journal.rpc';
+import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
 import type { RpcRequest, RpcError } from '../../../src/nest/plugins/protocol/envelope';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
+import { VacayRpc } from '../../../src/nest/vacay/vacay.rpc';
 import { makeDeps } from '../../helpers/rpc-host-deps';
 
-const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({ k: 'req', id: 'x', method, params });
+import { describe, it, expect, vi } from 'vitest';
+
+const req = (method: string, params: Record<string, unknown> = {}): RpcRequest => ({
+  k: 'req',
+  id: 'x',
+  method,
+  params,
+});
 
 /** Records every service call, so "the service was never touched" is checkable. */
 function spyService(calls: string[], name: string) {
   return new Proxy(
     {},
     {
-      get: (_t, prop) => (...args: unknown[]) => {
-        calls.push(`${name}.${String(prop)}`);
-        // Shapes the handlers destructure on the happy path.
-        if (prop === 'votePoll' || prop === 'createMessage') return { error: null, poll: {}, message: {} };
-        if (prop === 'listEntries') return [];
-        if (prop === 'getActivePlanId') return 1;
-        // collections.deletePlace is async in production (it deletes a storage
-        // object); a promise-returning double here pins the fix that awaits it —
-        // an un-awaited call would leave an unhandled rejection unnoticed by every
-        // assertion below.
-        if (name === 'collections' && prop === 'deletePlace') return Promise.resolve(undefined);
-        if (String(prop).startsWith('delete')) return true;
-        if (String(prop).startsWith('list')) return [];
-        return { id: 1 };
-      },
+      get:
+        (_t, prop) =>
+        (...args: unknown[]) => {
+          calls.push(`${name}.${String(prop)}`);
+          // Shapes the handlers destructure on the happy path.
+          if (prop === 'votePoll' || prop === 'createMessage') return { error: null, poll: {}, message: {} };
+          if (prop === 'listEntries') return [];
+          if (prop === 'getActivePlanId') return 1;
+          // A cost write asks whether its links may be made; null is "yes" (#2084).
+          if (prop === 'linkRefusal') return null;
+          // collections.deletePlace is async in production (it deletes a storage
+          // object); a promise-returning double here pins the fix that awaits it —
+          // an un-awaited call would leave an unhandled rejection unnoticed by every
+          // assertion below.
+          if (name === 'collections' && prop === 'deletePlace') return Promise.resolve(undefined);
+          if (String(prop).startsWith('delete')) return true;
+          if (String(prop).startsWith('list')) return [];
+          return { id: 1 };
+        },
     },
   ) as never;
 }
@@ -56,13 +68,14 @@ function spyService(calls: string[], name: string) {
 function build(addonOn: boolean) {
   const calls: string[] = [];
   const db = {
-    canAccessTrip: vi.fn(() => ({ id: 1, user_id: 42 })),
+    findAccessible: vi.fn(async () => ({ id: 1, user_id: 42 })),
     prepare: vi.fn(() => ({ get: () => ({ role: 'user' }), all: () => [] })),
-  } as unknown as DatabaseService;
+  } as unknown as TripsRepository;
   const guards = new PluginGuards(
     db,
     { checkPermission: vi.fn(() => true) } as unknown as PermissionsService,
     { isAddonEnabled: vi.fn(() => addonOn) } as unknown as AddonsService,
+    { getRole: vi.fn(async () => 'user') } as unknown as UsersRepository,
   );
   const registry = createTestPluginRegistry([
     new CollabRpc(spyService(calls, 'collab'), { broadcast: vi.fn() } as never, guards),
@@ -70,18 +83,37 @@ function build(addonOn: boolean) {
     new VacayRpc(spyService(calls, 'vacay'), guards),
     // The photo method writes bytes, so its four extra deps need real shapes or the
     // addon-on half of the table would fail for a reason that is not the gate.
-    new JournalRpc(spyService(calls, 'journey'), guards,
+    new JournalRpc(
+      spyService(calls, 'journey'),
+      guards,
       { put: async () => undefined, delete: async () => undefined } as never,
       { get: () => '*' } as never,
-      { schedule: () => undefined } as never,
-      { prepare: () => ({ get: () => ({ email: 'u@example.test' }) }) } as never),
+      { scheduleUpload: () => undefined } as never,
+      // SV8 — Plan 3i: DemoService.isDemoUserId, the shared demo-gate primitive.
+      { isDemoUserId: async () => false } as never,
+    ),
     new CollectionsRpc(spyService(calls, 'collections'), guards),
-    new CostsRpc(spyService(calls, 'budget'), db, { broadcast: vi.fn() } as never, guards, spyService(calls, 'membership')),
+    new CostsRpc(
+      spyService(calls, 'budget'),
+      new TripAccessService(db),
+      { broadcast: vi.fn() } as never,
+      guards,
+      spyService(calls, 'membership'),
+    ),
   ]);
   const granted = new Set([
-    'db:read:collab', 'db:write:collab', 'db:read:journal', 'db:write:journal',
-    'db:read:atlas', 'db:write:atlas', 'db:read:vacay', 'db:write:vacay',
-    'db:read:collections', 'db:write:collections', 'db:read:costs', 'db:write:costs',
+    'db:read:collab',
+    'db:write:collab',
+    'db:read:journal',
+    'db:write:journal',
+    'db:read:atlas',
+    'db:write:atlas',
+    'db:read:vacay',
+    'db:write:vacay',
+    'db:read:collections',
+    'db:write:collections',
+    'db:read:costs',
+    'db:write:costs',
   ]);
   return { calls, host: new PluginRpcHost('p', granted, makeDeps(), registry) };
 }

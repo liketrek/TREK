@@ -6,6 +6,9 @@ const journey: TranslationStrings = {
   'journey.title': '日記',
   'journey.subtitle': '旅の記録をリアルタイムで残そう',
   'journey.new': '新しい日記',
+  'journey.lightbox.zoomIn': '拡大',
+  'journey.lightbox.zoomOut': '縮小',
+  'journey.lightbox.zoomReset': '写真全体に戻す',
   'journey.create': '作成',
   'journey.titlePlaceholder': 'どこへ行きますか？',
   'journey.empty': '日記はまだありません',
@@ -56,7 +59,7 @@ const journey: TranslationStrings = {
   'journey.frontpage.activeJourney': '進行中の日記',
   'journey.frontpage.latestJourney': '最新の日記',
   'journey.frontpage.allJourneys': 'すべての日記',
-  'journey.frontpage.journeys': '日記',
+  'journey.frontpage.journeys': '件の日記',
   'journey.frontpage.createNew': '新しい日記を作成',
   'journey.frontpage.createNewSub': '旅を選んで、物語を書き、共有しよう',
   'journey.frontpage.live': 'ライブ',
@@ -72,12 +75,14 @@ const journey: TranslationStrings = {
   'journey.frontpage.tripsSelected': '件選択',
   'journey.frontpage.trips': '旅行',
   'journey.frontpage.placesImported': '場所がインポートされます',
-  'journey.frontpage.places': '場所',
+  'journey.frontpage.places': 'か所',
   'journey.detail.backToJourney': '日記に戻る',
   'journey.detail.syncedWithTrips': '旅行と同期済み',
   'journey.detail.addEntry': 'エントリーを追加',
   'journey.detail.jumpToTop': '先頭へ戻る',
   'journey.detail.jumpToLast': '最後の記録へ',
+  'journey.detail.dayJump': '日にジャンプ',
+  'journey.detail.dayJumpCount': '{count}日間',
   'journey.detail.newEntry': '新しいエントリー',
   'journey.detail.editEntry': 'エントリーを編集',
   'journey.detail.noEntries': 'エントリーはまだありません',
@@ -91,7 +96,7 @@ const journey: TranslationStrings = {
   'journey.detail.contributors': '参加者',
   'journey.detail.readMore': 'もっと見る',
   'journey.detail.prosCons': '良かった点・気になった点',
-  'journey.detail.photos': '写真',
+  'journey.detail.photos': '枚の写真',
   'journey.detail.day': '{number}日目',
   'journey.detail.places': '場所',
   'journey.stats.days': '日数',
@@ -103,7 +108,7 @@ const journey: TranslationStrings = {
   'journey.skeletons.hide': '提案を非表示',
   'journey.verdict.lovedIt': '最高だった',
   'journey.verdict.couldBeBetter': '改善の余地あり',
-  'journey.synced.places': '場所',
+  'journey.synced.places': 'か所',
   'journey.synced.synced': '同期済み',
   'journey.editor.discardChangesConfirm': '未保存の変更があります。破棄しますか？',
   'journey.editor.uploadPhotos': '写真をアップロード',
@@ -195,6 +200,14 @@ const journey: TranslationStrings = {
   'journey.settings.tracks': 'GPXトラック',
   'journey.settings.showTripTracks': '旅行のGPXトラックをすべて表示',
   'journey.settings.showTripTracksHint': 'リンクされた旅行の記録済みルートを地図に描画します。',
+  'journey.settings.status': 'ステータス',
+  'journey.settings.statusAuto': '自動',
+  'journey.settings.statusAutoHint': 'リンクした旅行の日付に従います。旅行がない場合は下書きのままです。',
+  'journey.settings.statusManualHint': '手動で設定されています。自動に戻すまで旅行の日付では変わりません。',
+  'journey.settings.photosSection': '写真',
+  'journey.settings.photoLocation': '写真から記録の場所を設定',
+  'journey.settings.photoLocationHint':
+    '場所のない記録は、GPS付きの最初の写真が撮られた地点になります。自分で設定した場所は変更されません。',
   'journey.settings.endJourney': '日記をアーカイブ',
   'journey.settings.reopenJourney': '日記を復元',
   'journey.settings.archived': '日記をアーカイブしました',
@@ -209,8 +222,8 @@ const journey: TranslationStrings = {
   'journey.settings.coverFailed': 'アップロードに失敗しました',
   'journey.settings.failedToDelete': '削除に失敗しました',
   'journey.entries.deleteTitle': 'エントリーを削除',
-  'journey.photosUploaded': '{count}枚の写真をアップロード',
-  'journey.photosAdded': '{count}枚の写真を追加',
+  'journey.photosUploaded': '{count}枚の写真をアップロードしました',
+  'journey.photosAdded': '{count}枚の写真を追加しました',
   'journey.public.notFound': '見つかりません',
   'journey.public.notFoundMessage': 'この日記は存在しないか、リンクの有効期限が切れています。',
   'journey.public.readOnly': '閲覧のみ · 公開日記',
@@ -276,7 +289,7 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': '仕上げ',
   'journey.studio.exportMarks': 'トンボ',
   'journey.studio.exportMarksHint': '各辺に{bleed}mmの塗り足しを付け、断裁位置を示します',
-  'journey.studio.exportNote': '{width}×{height}mmの用紙{sheets}枚。印刷ビューはブラウザがPDFにします。',
+  'journey.studio.exportNote': '{width}×{height}mmの用紙{count}枚。印刷ビューはブラウザがPDFにします。',
   'journey.studio.exportOpen': '印刷ビュー',
   'journey.studio.exportSave': 'PDFとして保存',
   'journey.studio.exportPreparing': '準備中',
@@ -287,12 +300,14 @@ const journey: TranslationStrings = {
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'この見開きをダウンロード',
-  'journey.studio.downloadSpreadHint': 'この見開きのデザインを、写真を除いてファイルに保存します。共有や再利用に使えます',
+  'journey.studio.downloadSpreadHint':
+    'この見開きのデザインを、写真を除いてファイルに保存します。共有や再利用に使えます',
   'journey.studio.importSpread': '読み込む',
   'journey.studio.importSpreadHint': 'ダウンロードしたデザインファイルから見開きを追加します',
   'journey.studio.importSpreadFailed': 'このファイルは TREK Studio の見開きではありません',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': '本づくりには広さが要るので、Studio はデスクトップ専用です。PDF の作成も同じです。旅の記録のほかの機能は、ここでもこれまでどおり使えます。', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    '本づくりには広さが要るので、Studio はデスクトップ専用です。PDF の作成も同じです。旅の記録のほかの機能は、ここでもこれまでどおり使えます。', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -356,7 +371,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -378,7 +394,8 @@ const journey: TranslationStrings = {
   'journey.studio.travel': '旅',
   'journey.studio.travelEmpty': 'この旅の数値はまだ準備できていません。',
   'journey.studio.grids': 'グリッド',
-  'journey.studio.gridHint': 'グリッドは空のフレームをまとめて配置します。「コンテンツ」から写真をドラッグしてください。',
+  'journey.studio.gridHint':
+    'グリッドは空のフレームをまとめて配置します。「コンテンツ」から写真をドラッグしてください。',
   'journey.studio.lines': '線',
   'journey.studio.frameStyles': 'フレームのスタイル',
   'journey.studio.frameShapes': 'フレームの形',
@@ -433,6 +450,19 @@ const journey: TranslationStrings = {
   'journey.studio.kind.list': 'リスト',
   'journey.studio.kind.icon': 'アイコン',
   'journey.studio.duplicate': '複製',
+  'journey.studio.copyToPage': 'コピーして任意のページに貼り付け (Ctrl+C)',
+  'journey.studio.paste': '貼り付け (Ctrl+V)',
+  'journey.studio.pasteEmpty': 'まず何かをコピーしてから、任意のページに貼り付けてください',
+  'journey.studio.myLayouts': 'マイレイアウト',
+  'journey.studio.myLayoutsEmpty':
+    '配置したページを保存して、他のページも同じ配置にできます。写真と文章はそのまま残ります。',
+  'journey.studio.saveLayout': 'このページをレイアウトとして保存',
+  'journey.studio.saveLayoutHint': '写真を除いた配置を、このブックのすべての編集者向けに保存します',
+  'journey.studio.saveLayoutFull':
+    'このブックに保存できるレイアウトは24件までです。新しく保存するには1件削除してください。',
+  'journey.studio.deleteLayout': 'レイアウトを削除',
+  'journey.studio.layoutName': 'レイアウト',
+  'journey.studio.builtInLayouts': '標準',
   'journey.studio.style': 'スタイル',
   'journey.studio.shows': '表示',
   'journey.studio.size': 'サイズ',
@@ -538,7 +568,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': '輪郭',
   'journey.studio.mapSourceRelief': '陰影起伏',
   'journey.studio.mapSourceSatellite': '衛星写真',
-  'journey.studio.mapSourceSatelliteHint': '雲のない Sentinel-2。出典を付ければ無料で印刷できます。街の通りまで鮮明です。',
+  'journey.studio.mapSourceSatelliteHint':
+    '雲のない Sentinel-2。出典を付ければ無料で印刷できます。街の通りまで鮮明です。',
   'journey.studio.routeLook': 'ルートの線',
   'journey.studio.routeStyle': '描き方',
   'journey.studio.routePlain': '一本線',
@@ -563,7 +594,8 @@ const journey: TranslationStrings = {
   'journey.studio.roadsBusy': '取得中',
   'journey.studio.roadsHint': 'ルート検索サービスに各区間の走行経路を問い合わせます。長い区間はそのままです。',
   'journey.studio.roadsHave': '道路はこの本に保存されるので、オフラインでも同じ線で印刷されます。',
-  'journey.studio.mapSourceReliefHint': 'NASA の陰影起伏図。ライセンス不要で印刷できます。国や大陸には最適ですが、都市単位には粗すぎます。',
+  'journey.studio.mapSourceReliefHint':
+    'NASA の陰影起伏図。ライセンス不要で印刷できます。国や大陸には最適ですが、都市単位には粗すぎます。',
   'journey.studio.mapPrintDpi': '印刷解像度は約',
   'journey.studio.mapPrintDpiLow': 'このサイズではぼやけます。範囲を広げるか別のソースをお試しください',
   'journey.studio.mapPerTrip': '旅行ごと',
@@ -606,6 +638,8 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': 'このエントリーにはまだ写真がありません。',
   'journey.studio.noLoosePhotos': 'ここにある写真はすべてエントリーに属しています。',
   'journey.studio.uploadPhotos': '写真をアップロード',
+  'journey.studio.fromProvider': '{name}から',
+  'journey.studio.fromProviderHint': '{name}から写真を選び、アップロードと同じ場所に追加します',
   'journey.studio.uploadHint': 'ここに画像をドロップするか、クリックして選択してください',
   'journey.studio.uploadToEntry': '新しい画像はこのエントリーに追加されます',
   'journey.studio.uploadToGallery': '新しい画像はギャラリーに追加されます',
@@ -625,6 +659,12 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcluded': 'ルートから除外',
   'journey.editor.statsExcludedHint': '立ち寄り地は日記に残りますが、Studio の距離、国、地図には含まれません。',
   'journey.entry.offRoute': 'ルート外',
+  'journey.entry.draft': '下書き',
+  'journey.editor.draft': '下書き',
+  'journey.editor.draftHint':
+    'この記録はあなたと他の参加者にのみ表示されます。オフにするまで、共有された日記には含まれません。',
+  'journey.editor.tripSuggestionHint': 'この日はこの旅行の期間内です。リンクすると、旅行の場所がこの日記に加わります。',
+  'journey.editor.tripSuggestionLater': '今はしない',
   'journey.suggestions.dismiss': 'この提案を見送る',
   'journey.suggestions.dismissed': '提案を見送りました',
   'journey.suggestions.restore': '見送った提案を戻す',

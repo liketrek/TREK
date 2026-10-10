@@ -1,12 +1,17 @@
-import { WsAdapter } from '@nestjs/platform-ws';
-import type { INestApplicationContext } from '@nestjs/common';
-import type { Server as HttpServer } from 'node:http';
-import type { MessageMappingProperties } from '@nestjs/websockets';
-import { WebSocketServer } from 'ws';
-import type { Observable } from 'rxjs';
 import { readEnv } from '../../app-config';
-import { setServer, type TrekWebSocket } from './ws-state';
 import { logError } from '../audit/audit-log.logger';
+import { traceEntry } from '../audit/entry-trace.logger';
+import { isSameHostOrigin } from '../common/same-origin';
+import { withRequestContext } from '../database/request-context';
+import { setServer, userOf, type TrekWebSocket } from './ws-state';
+import type { EntityManager } from '@mikro-orm/core';
+import type { INestApplicationContext } from '@nestjs/common';
+import { WsAdapter } from '@nestjs/platform-ws';
+import type { MessageMappingProperties } from '@nestjs/websockets';
+
+import type { IncomingMessage, Server as HttpServer } from 'node:http';
+import type { Observable } from 'rxjs';
+import { WebSocketServer } from 'ws';
 
 // Per-connection message rate limiting. It lives in the adapter, not in the
 // gateway's handlers, because the original counted EVERY inbound frame before
@@ -87,6 +92,15 @@ function withinBurst(socket: TrekWebSocket): boolean {
  *   `error` event on the socket; unhandled, Node rethrows it and the process
  *   dies. That is #1576, and it only reproduces against a hostile client, so
  *   nothing in CI would catch its removal.
+ *
+ * All three per-connection lifecycle hooks the base adapter offers —
+ * `bindClientConnect` (`OnGatewayConnection`), `bindMessageHandlers`
+ * (`@SubscribeMessage`) and `bindClientDisconnect` (`OnGatewayDisconnect`) —
+ * are overridden here to run their callback inside `withRequestContext`
+ * (D6): none of the three has an HTTP request behind it, so none gets a
+ * forked EntityManager unless this adapter forks one itself. `create`
+ * above and `close` below are the only other overrides, and neither
+ * dispatches into gateway/handler code, so neither needs the wrap.
  */
 export class TrekWsAdapter extends WsAdapter {
   private readonly httpServerRef: HttpServer;
@@ -98,7 +112,17 @@ export class TrekWsAdapter extends WsAdapter {
    * server lands on the socket this process actually listens on. Given the app,
    * it would reach for Nest's own internal server, which buildApp never uses.
    */
-  constructor(httpServer: HttpServer) {
+  constructor(
+    httpServer: HttpServer,
+    // D6 (task-2-review.md's controller ruling): a WS message handler has no HTTP
+    // request behind it, so every `@SubscribeMessage` dispatch is wrapped here —
+    // ONE wrapper at bindMessageHandlers below, not one per handler. Optional at
+    // the type level only for hand-built test doubles — bootstrap.ts always
+    // passes the real MikroORM, and any double that dispatches a matched
+    // message through bindMessageHandlers (task-6-fix-brief.md item 1) must
+    // pass one too, or the dispatch throws rather than running unwrapped.
+    private readonly orm?: { em: EntityManager },
+  ) {
     super(httpServer as unknown as INestApplicationContext);
     this.httpServerRef = httpServer;
   }
@@ -122,10 +146,12 @@ export class TrekWsAdapter extends WsAdapter {
       ...(allowedOrigins
         ? {
             verifyClient: (
-              { origin }: { origin: string },
+              { origin, req }: { origin: string; req: IncomingMessage },
               cb: (ok: boolean, code?: number, msg?: string) => void,
             ) => {
-              if (!origin || allowedOrigins.includes(origin)) cb(true);
+              // Same rule as the REST CORS check (#2543): the instance's own host
+              // is never cross-origin, whatever ALLOWED_ORIGINS lists.
+              if (!origin || allowedOrigins.includes(origin) || isSameHostOrigin(origin, req?.headers.host)) cb(true);
               else cb(false, 403, 'Origin not allowed');
             },
           }
@@ -154,10 +180,55 @@ export class TrekWsAdapter extends WsAdapter {
       // Must stay above anything that can close early: a socket that never gets
       // this listener can still crash the process while it finishes closing.
       socket.on('error', () => socket.terminate());
+      // D6 (Plan 3b Task 0): this dispatches Nest's OnGatewayConnection hook
+      // (RealtimeGateway.handleConnection) exactly the way bindMessageHandlers
+      // below dispatches a @SubscribeMessage handler — no HTTP request behind
+      // it, so nothing forks an EntityManager for it unless this ONE wrapper
+      // does. Confirmed unwrapped before this change (WSAD-050): a repository
+      // read during the handshake threw cannotUseGlobalContext. Same
+      // fail-closed shape as bindMessageHandlers: throw before calling rather
+      // than run the connection handler unwrapped.
+      if (!this.orm) {
+        throw new Error('TrekWsAdapter: no MikroORM available to build a request context for this connection');
+      }
       // The request rides along: the handshake reads the ws token off its query
       // string, so dropping it here would leave handleConnection with nothing
       // to authenticate.
-      callback(socket, request);
+      //
+      // `handleConnection` is async and this listener is not — a rejection
+      // inside it (or inside `withRequestContext` itself) would otherwise be
+      // an unhandled rejection (T1-F7b; `applyPlatformUploads`'s `.catch(next)`
+      // in `platform.routes.ts` is the sibling pattern for the pre-init HTTP
+      // path). Logged through the adapter's own error path, not thrown —
+      // there is no request/response here to propagate a failure to.
+      Promise.resolve(withRequestContext(this.orm, () => callback(socket, request))).catch((err: unknown) =>
+        logError(`ws connection handler error: ${err instanceof Error ? err.message : String(err)}`),
+      );
+    });
+  }
+
+  /**
+   * Dispatches Nest's `OnGatewayDisconnect` hook (`RealtimeGateway.handleDisconnect`)
+   * the same way `bindClientConnect` above dispatches `OnGatewayConnection` —
+   * the base `WsAdapter.bindClientDisconnect` just does `client.on(CLOSE_EVENT,
+   * callback)` with no context of any kind. `handleDisconnect` reads no
+   * repository today (Task 0 review addendum, LOW item 2), but it is a
+   * lifecycle hook with no HTTP request behind it exactly like the connect and
+   * message hooks are, so it gets the same wrap NOW rather than becoming the
+   * next "the adapter is done" surprise the moment a future change makes it
+   * read one. Same fail-closed shape as the other two: throw before calling.
+   */
+  bindClientDisconnect(client: TrekWebSocket, callback: (...args: unknown[]) => void): void {
+    client.on('close', (...args: unknown[]) => {
+      if (!this.orm) {
+        throw new Error('TrekWsAdapter: no MikroORM available to build a request context for this disconnect');
+      }
+      // Same T1-F7b shape as bindClientConnect above — handleDisconnect is
+      // async and this listener is not, so an unhandled rejection here would
+      // otherwise be silent.
+      Promise.resolve(withRequestContext(this.orm, () => callback(...args))).catch((err: unknown) =>
+        logError(`ws disconnect handler error: ${err instanceof Error ? err.message : String(err)}`),
+      );
     });
   }
 
@@ -203,12 +274,37 @@ export class TrekWsAdapter extends WsAdapter {
 
       // The whole message is the payload: TREK's frames are flat, so `tripId`
       // sits beside `type` rather than under a `data` key.
-      transform(handler.callback(message, socket)).subscribe({
+      //
+      // The context has to wrap the CALL, not just the subscribe(): an async
+      // handler's body runs synchronously up to its first await the instant it is
+      // invoked (before transform()/subscribe() ever run), and RequestContext.create
+      // is AsyncLocalStorage.run — it only covers what executes inside this
+      // synchronous frame, after which the async chain carries it on its own.
+      //
+      // Fail closed (task-6-fix-brief.md item 1): a missing `orm` used to fall
+      // through to an unwrapped call — silent degrade. `bootstrap.ts` always
+      // passes the real MikroORM, so this only ever throws in a hand-built
+      // test double that dispatches through bindMessageHandlers without one;
+      // that double now passes an ORM from `sharedTestOrm`.
+      if (!this.orm) {
+        throw new Error('TrekWsAdapter: no MikroORM available to build a request context for this message handler');
+      }
+      const orm = this.orm;
+      // Each message is its own unit of work with its own correlation id, and
+      // one log line (debug when it succeeds, warn with the reason when it
+      // throws). The handler is still invoked synchronously, inside this frame.
+      const user = userOf(socket);
+      const label = `${message.type}${user ? ` user=${user.id}` : ''}`;
+      const result = traceEntry('ws', label, () => withRequestContext(orm, () => handler.callback(message, socket)));
+      transform(result).subscribe({
         next: (response) => {
           if (response !== undefined && socket.readyState === 1) {
             socket.send(JSON.stringify(response));
           }
         },
+        // Already logged by the trace; without a handler rxjs rethrows it
+        // asynchronously, which would take the whole process down.
+        error: () => {},
       });
     });
   }

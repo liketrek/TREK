@@ -1,19 +1,18 @@
 import { useEffect, useState, useRef } from 'react'
 import { RefreshCw, Camera, X, Play } from 'lucide-react'
-import { normalizeImageFiles } from '../../utils/convertHeic'
-import { isVideoFile } from '../../utils/videoPoster'
 import { useJourneyStore } from '../../store/journeyStore'
 import { useTranslation } from '../../i18n'
-import { journeyApi, addonsApi, memoriesApi } from '../../api/client'
+import { journeyApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
-import { getApiErrorMessage } from '../../types'
 import type { JourneyEntry, GalleryPhoto, JourneyTrip } from '../../store/journeyStore'
 import { photoUrl, posterlessVideo } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
-import { ProviderPicker } from './JourneyDetailPageProviderPicker'
+import { ProviderPicker, type ProviderPhotoGroup } from './JourneyDetailPageProviderPicker'
+import { useConnectedPhotoProviders } from './useConnectedPhotoProviders'
+import { useGalleryUpload } from './useGalleryUpload'
 import { ScrollTrigger } from './JourneyDetailPageScrollTrigger'
 import EmptyState from '../shared/EmptyState'
 
-export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick, onRefresh, onRegisterUpload, onRegisterProviders }: {
+export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick, onRefresh, onAddProviderPhotos, onRegisterUpload, onRegisterProviders, onUploadProgress }: {
   entries: JourneyEntry[]
   gallery: GalleryPhoto[]
   journeyId: number
@@ -21,36 +20,28 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
   trips: JourneyTrip[]
   onPhotoClick: (photos: GalleryPhoto[], index: number) => void
   onRefresh: () => void
+  /** What the picker's Add does: the host's useProviderPhotoAdds, shared with the phone screen. */
+  onAddProviderPhotos: (journeyId: number, provider: string, groups: ProviderPhotoGroup[], entryId: number | null) => Promise<unknown>
   onRegisterUpload?: (fn: () => void) => void
+  /** The upload's file count while it runs, null once it is through: the page's Upload button shows it. */
+  onUploadProgress?: (progress: { done: number; total: number } | null) => void
   onRegisterProviders?: (providers: { id: string; name: string }[], browse: (provider: string) => void) => void
 }) {
   const { t } = useTranslation()
   const [showPicker, setShowPicker] = useState(false)
   const [pickerProvider, setPickerProvider] = useState<string | null>(null)
-  const [galleryProgress, setGalleryProgress] = useState<{ done: number; total: number } | null>(null)
-  const galleryUploading = galleryProgress !== null
+  const { progress: galleryProgress, handleGalleryUpload } =
+    useGalleryUpload({ journeyId, onUploaded: onRefresh, trackProgress: true })
+  useEffect(() => { onUploadProgress?.(galleryProgress) }, [galleryProgress, onUploadProgress])
   const toast = useToast()
 
-  // check which providers are enabled AND connected for the current user, then
-  // hand them up: the page header renders the provider buttons next to Upload
+  // The providers enabled AND connected for the current user, handed up: the page
+  // header renders the provider buttons next to Upload.
+  const connectedProviders = useConnectedPhotoProviders()
   useEffect(() => {
-    (async () => {
-      try {
-        const addonsData = await addonsApi.enabled()
-        const enabledProviders = (addonsData.addons || []).filter(
-          (a: any) => a.type === 'photo_provider' && a.enabled
-        )
-        const connected: { id: string; name: string }[] = []
-        for (const p of enabledProviders) {
-          try {
-            const status = await memoriesApi.status(p.id)
-            if (status.connected) connected.push({ id: p.id, name: p.name })
-          } catch { }
-        }
-        onRegisterProviders?.(connected, browseProvider)
-      } catch { }
-    })()
-  }, [])
+    onRegisterProviders?.(connectedProviders, browseProvider)
+    // browseProvider only sets state; registering on the list alone is the old behaviour.
+  }, [connectedProviders])
 
   const allPhotos = gallery
   // A long trip's gallery is hundreds of tiles, and rendering them all at once is
@@ -71,33 +62,6 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
 
   const galleryFileRef = useRef<HTMLInputElement>(null)
   useEffect(() => { onRegisterUpload?.(() => galleryFileRef.current?.click()) }, [onRegisterUpload])
-
-  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files?.length) return
-    setGalleryProgress({ done: 0, total: files.length })
-    try {
-      // Videos skip HEIC normalization; only images are converted (#823).
-      const all = Array.from(files)
-      const videos = all.filter(isVideoFile)
-      const images = all.filter(f => !isVideoFile(f))
-      const normalized = [...(images.length ? await normalizeImageFiles(images) : []), ...videos]
-      const { failed } = await useJourneyStore.getState().uploadGalleryPhotos(journeyId, normalized, {
-        onProgress: p => setGalleryProgress({ done: p.done, total: p.total }),
-      })
-      if (failed.length > 0) {
-        toast.error(t('journey.editor.uploadPartialFailed', { failed: String(failed.length), total: String(normalized.length) }))
-      } else {
-        toast.success(t('journey.photosUploaded', { count: String(files.length) }))
-      }
-      onRefresh()
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, t('journey.photosUploadFailed')))
-    } finally {
-      setGalleryProgress(null)
-    }
-    e.target.value = ''
-  }
 
   const handleDeletePhoto = async (galleryPhotoId: number) => {
     const store = useJourneyStore.getState()
@@ -130,7 +94,7 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
       {/* Header — the provider buttons live in the page header next to Upload */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.07em]" style={{ background: 'var(--vg-surf2)', color: 'var(--vg-ink3)' }}>
-          <Camera size={11} /> {allPhotos.length} {t('journey.detail.photos')}
+          <Camera size={11} /> {allPhotos.length} {t('journey.detail.photos', { count: allPhotos.length })}
         </span>
       </div>
 
@@ -172,13 +136,13 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
               )}
               {/* Delete button */}
               <button type="button"
-                onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id) }}
-                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 backdrop-blur text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                onClick={(e) => { e.stopPropagation(); void handleDeletePhoto(photo.id) }}
+                className="absolute top-1.5 end-1.5 w-6 h-6 rounded-full bg-black/60 backdrop-blur text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
               >
                 <X size={12} />
               </button>
               {photo.provider && photo.provider !== 'local' && (
-                <div className="absolute top-1.5 left-1.5">
+                <div className="absolute top-1.5 start-1.5">
                   <span className="text-[8px] font-medium px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur text-white flex items-center gap-1">
                     <RefreshCw size={7} />
                     {photo.provider === 'immich' ? 'Immich' : photo.provider === 'synologyphotos' ? 'Synology Photos' : photo.provider}
@@ -186,7 +150,7 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
                 </div>
               )}
               {photo.caption && (
-                <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                   <p className="text-[10px] text-white truncate">{photo.caption}</p>
                 </div>
               )}
@@ -208,27 +172,7 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
           existingAssetIds={new Set(gallery.filter(p => p.asset_id).map(p => p.asset_id!))}
           onClose={() => setShowPicker(false)}
           onAdd={async (groups, entryId) => {
-            let added = 0
-            let anyFailed = false
-            for (const group of groups) {
-              try {
-                if (entryId) {
-                  const result = await journeyApi.addProviderPhotos(entryId, pickerProvider!, group.assetIds, undefined, group.passphrase, group.mediaTypes)
-                  added += result.added || 0
-                } else {
-                  const result = await journeyApi.addProviderPhotosToGallery(journeyId, pickerProvider!, group.assetIds, group.passphrase, group.mediaTypes)
-                  added += result.added || 0
-                }
-              } catch {
-                anyFailed = true
-              }
-            }
-            if (added > 0) {
-              toast.success(t('journey.photosAdded', { count: added }))
-              onRefresh()
-            } else if (anyFailed) {
-              toast.error(t('common.error'))
-            }
+            await onAddProviderPhotos(journeyId, pickerProvider!, groups, entryId)
             setShowPicker(false)
           }}
         />

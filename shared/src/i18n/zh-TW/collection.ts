@@ -101,7 +101,7 @@ const collection: TranslationStrings = {
   'collections.markVisitedSelection': '在清單中標記為已造訪',
   'collections.markVisitedNone': '這些地點都沒有儲存在任何清單中',
   'collections.markedVisited': '已標記為造訪',
-  'collections.markedVisitedTrip': '已將 {count} 個地點標記為造訪',
+  'collections.markedVisitedTrip': '已將 {count} 個地點標記為已造訪',
 
   'collections.copyToTrip': '複製到行程',
   'collections.copyToTripTitle': '複製到行程',

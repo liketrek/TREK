@@ -6,6 +6,9 @@ const journey: TranslationStrings = {
   'journey.title': '旅程',
   'journey.subtitle': '即時記錄你的旅行',
   'journey.new': '新建旅程',
+  'journey.lightbox.zoomIn': '放大',
+  'journey.lightbox.zoomOut': '縮小',
+  'journey.lightbox.zoomReset': '回到完整照片',
   'journey.create': '建立',
   'journey.titlePlaceholder': '你要去哪裡？',
   'journey.empty': '還沒有旅程',
@@ -78,6 +81,8 @@ const journey: TranslationStrings = {
   'journey.detail.addEntry': '新增條目',
   'journey.detail.jumpToTop': '回到頂部',
   'journey.detail.jumpToLast': '跳到最後一則',
+  'journey.detail.dayJump': '跳到某一天',
+  'journey.detail.dayJumpCount': '{count} 天',
   'journey.detail.newEntry': '新建條目',
   'journey.detail.editEntry': '編輯條目',
   'journey.detail.noEntries': '還沒有條目',
@@ -90,7 +95,7 @@ const journey: TranslationStrings = {
   'journey.detail.contributors': '貢獻者',
   'journey.detail.readMore': '閱讀更多',
   'journey.detail.prosCons': '優缺點',
-  'journey.detail.photos': '照片',
+  'journey.detail.photos': '張照片',
   'journey.detail.day': '第{number}天',
   'journey.detail.places': '個地點',
   'journey.stats.days': '天',
@@ -191,6 +196,14 @@ const journey: TranslationStrings = {
   'journey.settings.tracks': 'GPX 軌跡',
   'journey.settings.showTripTracks': '顯示所有行程的 GPX 軌跡',
   'journey.settings.showTripTracksHint': '在地圖上繪製關聯行程中的已記錄路線。',
+  'journey.settings.status': '狀態',
+  'journey.settings.statusAuto': '自動',
+  'journey.settings.statusAutoHint': '跟隨連結行程的日期。沒有行程時，旅記維持為草稿。',
+  'journey.settings.statusManualHint': '已手動設定。在切回自動之前，行程日期不會再改變它。',
+  'journey.settings.photosSection': '照片',
+  'journey.settings.photoLocation': '依照片定位條目',
+  'journey.settings.photoLocationHint':
+    '沒有地點的條目會使用其第一張帶 GPS 照片的拍攝位置。你手動設定的地點永遠不會被更動。',
   'journey.settings.endJourney': '封存旅程',
   'journey.settings.reopenJourney': '還原旅程',
   'journey.settings.archived': '旅程已封存',
@@ -273,7 +286,7 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': '後製',
   'journey.studio.exportMarks': '裁切標記',
   'journey.studio.exportMarksHint': '每條邊加 {bleed} 公釐出血，並標出裁切位置',
-  'journey.studio.exportNote': '{sheets} 張 {width} × {height} 公釐。瀏覽器會把列印檢視轉成 PDF。',
+  'journey.studio.exportNote': '共 {count} 張，每張 {width} × {height} 公釐。瀏覽器會把列印檢視轉成 PDF。',
   'journey.studio.exportOpen': '列印檢視',
   'journey.studio.exportSave': '另存為 PDF',
   'journey.studio.exportPreparing': '正在準備',
@@ -289,7 +302,8 @@ const journey: TranslationStrings = {
   'journey.studio.importSpreadHint': '從下載的設計檔案加入一個跨頁',
   'journey.studio.importSpreadFailed': '這個檔案不是 TREK Studio 的跨頁',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': '排一本書需要足夠的空間，所以 Studio 只在電腦上使用，製作 PDF 也是。旅程的其他功能在這裡照常可用。', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    '排一本書需要足夠的空間，所以 Studio 只在電腦上使用，製作 PDF 也是。旅程的其他功能在這裡照常可用。', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -353,7 +367,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -430,6 +445,17 @@ const journey: TranslationStrings = {
   'journey.studio.kind.list': '清單',
   'journey.studio.kind.icon': '圖示',
   'journey.studio.duplicate': '複製',
+  'journey.studio.copyToPage': '複製，可貼到任何頁面 (Ctrl+C)',
+  'journey.studio.paste': '貼上 (Ctrl+V)',
+  'journey.studio.pasteEmpty': '請先複製內容，再貼到任何頁面',
+  'journey.studio.myLayouts': '我的版面',
+  'journey.studio.myLayoutsEmpty': '保存你排好的頁面，讓其他頁面套用相同的版面。它們的照片與文字會保留。',
+  'journey.studio.saveLayout': '將此頁面儲存為版面',
+  'journey.studio.saveLayoutHint': '保存不含照片的排列方式，供這本手冊的所有編輯者使用',
+  'journey.studio.saveLayoutFull': '這本手冊最多可保存 24 個版面。刪除一個後才能儲存新的。',
+  'journey.studio.deleteLayout': '刪除版面',
+  'journey.studio.layoutName': '版面',
+  'journey.studio.builtInLayouts': '內建',
   'journey.studio.style': '樣式',
   'journey.studio.shows': '顯示',
   'journey.studio.size': '字級',
@@ -603,6 +629,8 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': '這個條目還沒有照片。',
   'journey.studio.noLoosePhotos': '這裡的每張照片都屬於某個條目。',
   'journey.studio.uploadPhotos': '上傳照片',
+  'journey.studio.fromProvider': '來自 {name}',
+  'journey.studio.fromProviderHint': '從 {name} 選擇照片，加到上傳會放入的位置',
   'journey.studio.uploadHint': '將圖片拖放到這裡，或點擊選擇',
   'journey.studio.uploadToEntry': '新圖片會加入這個條目',
   'journey.studio.uploadToGallery': '新圖片會加入圖庫',
@@ -621,6 +649,11 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcluded': '不計入路線',
   'journey.editor.statsExcludedHint': '該停留點仍保留在日誌中，但不計入 Studio 中的距離、國家和地圖。',
   'journey.entry.offRoute': '不在路線內',
+  'journey.entry.draft': '草稿',
+  'journey.editor.draft': '草稿',
+  'journey.editor.draftHint': '只有你和其他貢獻者看得到這則記錄。在你關閉此選項之前，分享的旅程不會包含它。',
+  'journey.editor.tripSuggestionHint': '這一天落在此行程期間內。連結後，行程中的地點會加入此旅程。',
+  'journey.editor.tripSuggestionLater': '暫時不要',
   'journey.suggestions.dismiss': '忽略這則建議',
   'journey.suggestions.dismissed': '已忽略該建議',
   'journey.suggestions.restore': '找回已忽略的建議',

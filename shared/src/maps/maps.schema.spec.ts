@@ -1,5 +1,6 @@
 import {
   mapsSearchRequestSchema,
+  mapsNearbyRequestSchema,
   mapsAutocompleteRequestSchema,
   mapsReverseQuerySchema,
   mapsResolveUrlRequestSchema,
@@ -10,6 +11,17 @@ import {
 } from './maps.schema';
 
 import { describe, it, expect } from 'vitest';
+
+describe('mapsNearbyRequestSchema', () => {
+  it('takes a point and caps the circle and the count', () => {
+    expect(mapsNearbyRequestSchema.safeParse({ lat: 52.5, lng: 13.4 }).success).toBe(true);
+    expect(mapsNearbyRequestSchema.safeParse({ lat: 52.5, lng: 13.4, radius: 5000, limit: 20 }).success).toBe(true);
+    expect(mapsNearbyRequestSchema.safeParse({ lat: 52.5, lng: 13.4, radius: 5001 }).success).toBe(false);
+    expect(mapsNearbyRequestSchema.safeParse({ lat: 52.5, lng: 13.4, limit: 21 }).success).toBe(false);
+    expect(mapsNearbyRequestSchema.safeParse({ lat: 91, lng: 13.4 }).success).toBe(false);
+    expect(mapsNearbyRequestSchema.safeParse({ lng: 13.4 }).success).toBe(false);
+  });
+});
 
 describe('mapsSearchRequestSchema', () => {
   it('requires a non-empty query', () => {

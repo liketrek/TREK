@@ -24,8 +24,8 @@ export default function JournalBody({ text, dark }: Props) {
           p: ({ children }) => <p style={{ margin: '0 0 6px' }}>{children}</p>,
           blockquote: ({ children }) => (
             <blockquote style={{
-              borderLeft: `3px solid var(--journal-accent)`,
-              paddingLeft: 16, margin: '12px 0',
+              borderInlineStart: `3px solid var(--journal-accent)`,
+              paddingInlineStart: 16, margin: '12px 0',
               fontStyle: 'italic', color: 'var(--journal-muted)',
             }}>{children}</blockquote>
           ),
@@ -35,8 +35,8 @@ export default function JournalBody({ text, dark }: Props) {
               {children}
             </a>
           ),
-          ul: ({ children }) => <ul style={{ paddingLeft: 20, margin: '8px 0' }}>{children}</ul>,
-          ol: ({ children }) => <ol style={{ paddingLeft: 20, margin: '8px 0' }}>{children}</ol>,
+          ul: ({ children }) => <ul style={{ paddingInlineStart: 20, margin: '8px 0' }}>{children}</ul>,
+          ol: ({ children }) => <ol style={{ paddingInlineStart: 20, margin: '8px 0' }}>{children}</ol>,
           li: ({ children }) => <li style={{ margin: '4px 0' }}>{children}</li>,
           strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
           em: ({ children }) => <em>{children}</em>,

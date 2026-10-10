@@ -165,6 +165,8 @@ describe('MTaskSheet', () => {
 
     expect(screen.getAllByText('todo.detail.title').length).toBeGreaterThan(0)
     expect(screen.getByPlaceholderText('todo.namePlaceholder')).toHaveValue('Book flights')
+    // A saved description reads as rendered Markdown until tapped (#2558).
+    fireEvent.click(screen.getByText('Direct if possible'))
     expect(screen.getByPlaceholderText('todo.descriptionPlaceholder')).toHaveValue('Direct if possible')
     expect(screen.getByRole('button', { name: 'todo.detail.save' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'todo.detail.delete' })).toBeInTheDocument()

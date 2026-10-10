@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   A2_TO_A3,
+  visitedRegionCount,
   bucketTooltipHeight,
   bucketTooltipNeedsScroll,
   bucketTooltipPlacement,
@@ -14,6 +15,8 @@ import {
   regionCacheEvictions,
   withCountryMarkedVisited,
   wishlistA3Codes,
+  wishlistRegionCodes,
+  groupCountryPlaces,
   countryColor,
   COUNTRY_COLORS,
   REGION_CACHE_MAX,
@@ -222,6 +225,12 @@ describe('countryColor', () => {
 });
 
 describe('wishlistA3Codes', () => {
+  it('leaves a country alone when only one of its regions is wished for (#1901)', () => {
+    const result = wishlistA3Codes([bucketItem({ country_code: 'DE', region_code: 'DE-BY' })], new Set());
+    expect(result.size).toBe(0);
+    expect(wishlistRegionCodes([bucketItem({ region_code: 'de-by' }), bucketItem({ region_code: null })])).toEqual(new Set(['DE-BY']));
+  });
+
   it('resolves a bucket-list country to its A3 code', () => {
     const result = wishlistA3Codes([bucketItem({ country_code: 'JP' })], new Set());
     expect(result).toEqual(new Set(['JPN']));
@@ -410,3 +419,36 @@ describe('bucketTooltipNeedsScroll (#2153)', () => {
     expect(bucketTooltipNeedsScroll(201, 200)).toBe(false);
   });
 });
+
+describe('visitedRegionCount (#1639)', () => {
+  const regions = {
+    US: [{ status: 'visited' as const }, { status: 'planned' as const }, {}],
+    DE: [{ status: 'visited' as const }],
+  }
+  it('counts visited regions over every country, and in one of them', () => {
+    expect(visitedRegionCount(regions)).toBe(3)
+    expect(visitedRegionCount(regions, 'US')).toBe(2)
+    expect(visitedRegionCount(regions, 'FR')).toBe(0)
+    expect(visitedRegionCount({})).toBe(0)
+  })
+})
+
+describe('groupCountryPlaces (#2174)', () => {
+  const detail = {
+    trips: [{ id: 1, title: 'Berlin' }, { id: 2, title: 'Munich' }, { id: 3, title: 'Empty' }],
+    places: [
+      { id: 10, name: 'Reichstag', lat: 0, lng: 0, trip_id: 1, address: 'Platz der Republik' },
+      { id: 11, name: 'Brandenburg Gate', lat: 0, lng: 0, trip_id: 1, address: 'Pariser Platz' },
+      { id: 12, name: 'Marienplatz', lat: 0, lng: 0, trip_id: 2, address: null },
+    ],
+  }
+  it('groups by trip in trip order, places by name, and drops empty trips', () => {
+    const groups = groupCountryPlaces(detail)
+    expect(groups.map(g => g.trip.title)).toEqual(['Berlin', 'Munich'])
+    expect(groups[0].places.map(p => p.name)).toEqual(['Brandenburg Gate', 'Reichstag'])
+  })
+  it('searches name and address', () => {
+    expect(groupCountryPlaces(detail, 'platz').flatMap(g => g.places.map(p => p.id))).toEqual([11, 10, 12])
+    expect(groupCountryPlaces(detail, 'nothing')).toEqual([])
+  })
+})

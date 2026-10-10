@@ -6,6 +6,7 @@ import { offlineDb } from '../../db/offlineDb'
 import { useAuthStore } from '../authStore'
 import { mergeAssignmentPlace } from './placesSlice'
 import { withoutDay } from './daysSlice'
+import { orderBudgetByCategories } from './budgetOrder'
 
 type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
@@ -173,7 +174,7 @@ function writeToDexie(
   payload: Record<string, unknown>,
   state: TripStoreState,
 ): void {
-  ;(async () => {
+  ;void (async () => {
     try {
       await DEXIE_WRITERS[type as TrekWsTripEventName]?.(payload, state)
     } catch {
@@ -439,22 +440,7 @@ export const STATE_APPLIERS: Partial<Record<TrekWsTripEventName, StateApplier>> 
       return { budgetItems: [...reordered, ...remaining].map((item, idx) => ({ ...item, sort_order: idx })) }
     }
     if (payload.orderedCategories) {
-      const orderedCategories = payload.orderedCategories as string[]
-      const grouped = new Map<string, BudgetItem[]>()
-      for (const item of state.budgetItems) {
-        const cat = item.category || 'Other'
-        if (!grouped.has(cat)) grouped.set(cat, [])
-        grouped.get(cat)!.push(item)
-      }
-      const reordered: BudgetItem[] = []
-      for (const cat of orderedCategories) {
-        const items = grouped.get(cat)
-        if (items) reordered.push(...items)
-      }
-      for (const [cat, items] of grouped) {
-        if (!orderedCategories.includes(cat)) reordered.push(...items)
-      }
-      return { budgetItems: reordered }
+      return { budgetItems: orderBudgetByCategories(state.budgetItems, payload.orderedCategories as string[]) }
     }
     return {}
   },

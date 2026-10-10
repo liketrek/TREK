@@ -1,14 +1,11 @@
+import { Trips } from '../../db/entities/Trips.entity';
+import { TripsRepository } from '../../db/repositories/Trips.repository';
+import { DawarichClient, type DawarichCreds } from './dawarich.client';
+import { bucketPointsByDay, bucketTracksByDay, countPoints, offsetMinutesOf } from './dawarich.helpers';
+import { DawarichService } from './dawarich.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import { DAWARICH_TRACK_POINTS_PER_DAY, type DawarichTrack } from '@trek/shared';
-import { DatabaseService } from '../database/database.service';
-import { DawarichClient, type DawarichCreds } from './dawarich.client';
-import { DawarichService } from './dawarich.service';
-import {
-  bucketPointsByDay,
-  bucketTracksByDay,
-  countPoints,
-  offsetMinutesOf,
-} from './dawarich.helpers';
 
 /**
  * The recorded route for a window, fetched on demand and never stored.
@@ -41,7 +38,7 @@ export class DawarichTracksService {
   private static readonly MAX_ENTRIES = 64;
 
   constructor(
-    private readonly db: DatabaseService,
+    @InjectRepository(Trips) private readonly trips: TripsRepository,
     private readonly dawarich: DawarichService,
     private readonly client: DawarichClient,
   ) {}
@@ -61,12 +58,9 @@ export class DawarichTracksService {
     to?: string,
     offsetMinutes = 0,
   ): Promise<DawarichTrack | null> {
-    if (!this.db.canAccessTrip(tripId, userId)) return null;
+    if (!(await this.trips.findAccessible(tripId, userId))) return null;
 
-    const trip = this.db.get<{ start_date: string | null; end_date: string | null }>(
-      'SELECT start_date, end_date FROM trips WHERE id = ?',
-      tripId,
-    );
+    const trip = await this.trips.findDatesById(tripId);
     if (!trip) return null;
 
     const start = from ?? trip.start_date;
@@ -91,7 +85,7 @@ export class DawarichTracksService {
     toIso: string,
     offsetMinutes = offsetMinutesOf(fromIso),
   ): Promise<DawarichTrack> {
-    const creds = this.dawarich.getCredentials(userId);
+    const creds = await this.dawarich.getCredentials(userId);
     if (!creds) return emptyTrack();
 
     const from = new Date(fromIso);
@@ -129,7 +123,7 @@ export class DawarichTracksService {
     to: Date,
     offsetMinutes: number,
   ): Promise<DawarichTrack> {
-    const capabilities = this.dawarich.getCapabilities(userId);
+    const capabilities = await this.dawarich.getCapabilities(userId);
 
     if (capabilities?.tracks !== false) {
       try {

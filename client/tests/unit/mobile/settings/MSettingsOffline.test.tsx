@@ -270,7 +270,7 @@ describe('MSettingsOffline', () => {
     expect(screen.getByRole('button', { name: 'Downloading…' })).toBeDisabled();
 
     await act(async () => { release(); });
-    expect(await screen.findByText('Stored 4 trip(s) on this device')).toBeInTheDocument();
+    expect(await screen.findByText('Stored 4 trips on this device')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Download for offline use' })).toBeEnabled();
   });
 

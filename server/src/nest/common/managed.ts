@@ -1,6 +1,6 @@
-import { SetMetadata } from '@nestjs/common';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { byCodeUnit } from './compare';
+import { SetMetadata } from '@nestjs/common';
 
 /** Metadata key `@ManagedForbidden()` writes. */
 export const MANAGED_FORBIDDEN = 'trek:managed-forbidden';
@@ -153,6 +153,7 @@ export const MANAGED_CUSTOMER_KEYS = [
   'require_mfa',
   'temperature_unit',
   'time_format',
+  'week_start',
 ] as const;
 
 const LOCKED = new Set<string>(MANAGED_LOCKED_SETTING_KEYS);

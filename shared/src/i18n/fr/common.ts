@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Annuler',
   'common.clear': 'Effacer',
   'common.delete': 'Supprimer',
+  'common.remove': 'Supprimer',
   'common.preview': 'Aperçu',
   'common.edit': 'Modifier',
   'common.add': 'Ajouter',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': 'Renommer',
   'common.discardChanges': 'Ignorer les modifications',
   'common.discard': 'Ignorer',
+  'common.unsavedTitle': 'Abandonner vos modifications ?',
+  'common.unsavedMessage': "Ce que vous avez saisi ici n'est pas encore enregistré.",
+  'common.keepEditing': 'Continuer la modification',
   'common.name': 'Nom',
   'common.email': 'E-mail',
   'common.password': 'Mot de passe',
@@ -51,7 +55,9 @@ const common: TranslationStrings = {
   'common.copied': 'Copié',
   'common.justNow': "à l'instant",
   'common.hoursAgo': 'il y a {count}h',
+  'common.hoursAgo.one': 'il y a {count}h',
   'common.daysAgo': 'il y a {count}j',
+  'common.daysAgo.one': 'il y a {count}j',
   'common.datepicker.prevMonth': 'Previous month', // en-fallback
   'common.datepicker.nextMonth': 'Next month', // en-fallback
   'common.datepicker.prevYear': 'Previous year', // en-fallback
@@ -64,14 +70,15 @@ const common: TranslationStrings = {
   'common.datepicker.typeDate': 'Type a date', // en-fallback
   'common.datepicker.dialog': 'Date picker', // en-fallback
   'common.datepicker.clearDate': 'Clear date', // en-fallback
-  'common.errorTitle': 'Une erreur s\'est produite',
-  'common.errorBody': 'Cette partie de l\'application ne fonctionne plus. Vos données sont en sécurité.',
-  'common.errorPanelTitle': 'Cette section n\'a pas pu être affichée',
+  'common.errorTitle': "Une erreur s'est produite",
+  'common.errorBody': "Cette partie de l'application ne fonctionne plus. Vos données sont en sécurité.",
+  'common.errorPanelTitle': "Cette section n'a pas pu être affichée",
   'common.errorPanelBody': 'Le reste de la page fonctionne toujours.',
   'common.errorRetry': 'Réessayer',
   'common.errorReload': 'Recharger la page',
   'common.errorUpdateTitle': 'Une nouvelle version est disponible',
-  'common.errorUpdateBody': 'TREK a été mis à jour pendant que cet onglet était ouvert. Rechargez pour obtenir la nouvelle version.',
-  'common.errorPluginTitle': 'Ce plugin n\'a pas pu être affiché',
+  'common.errorUpdateBody':
+    'TREK a été mis à jour pendant que cet onglet était ouvert. Rechargez pour obtenir la nouvelle version.',
+  'common.errorPluginTitle': "Ce plugin n'a pas pu être affiché",
 };
 export default common;

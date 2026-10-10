@@ -2,6 +2,9 @@
   "name": "@trek/root",
   "private": true,
   "version": "4.3.3",
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+  },
   "workspaces": [
     "client",
     "server",
@@ -20,23 +23,40 @@
     "test": "npm run test --workspace=shared && npm run test --workspace=server && npm run test --workspace=client",
     "test:cov": "npm run test:coverage --workspace=shared && npm run test:coverage --workspace=server && npm run test:coverage --workspace=client && npm run test:coverage --prefix plugin-sdk",
     "test:e2e": "npm run test:e2e --workspace=server",
+    "test:ci-scripts": "node --test scripts/ci/*.test.mjs",
+    "test:lib-scripts": "node --test scripts/lib/*.test.mjs",
+    "lint:knip": "node scripts/ci/knip-ratchet.mjs",
     "lint": "npm run lint --workspace=shared && npm run lint --workspace=server && npm run lint --workspace=client",
+    "lint:fix": "npm run lint:fix --workspace=shared && npm run lint:fix --workspace=server",
     "format": "npm run format --workspace=shared && npm run format --workspace=server && npm run format --workspace=client",
     "format:check": "npm run format:check --workspace=shared && npm run format:check --workspace=server && npm run format:check --workspace=client"
   },
   "devDependencies": {
     "concurrently": "^10.0.4",
+    "knip": "^6.38.0",
     "unrun": "^0.3.1"
   },
   "comment:scarfSettings": "swagger-ui-dist ships @scarf/scarf install-time analytics; TREK sends no telemetry, so it stays off.",
   "scarfSettings": {
     "enabled": false
   },
-  "comment:overrides": "Force a single React 19 across the workspace so the test renderer (@testing-library/react) and the app share one react-dom.",
+  "comment:overrides": "React and react-dom: one React 19 across the workspace, so the test renderer (@testing-library/react) and the app share one react-dom. Everything else is a security floor. npm reads overrides from the root package.json only, so a floor in a workspace package.json does nothing. A floor never crosses a major its dependents ask for (brace-expansion is pinned per line for that reason), and npm ls <name> shows whether it holds.",
   "overrides": {
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
-    "multer": "^2.3.0"
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "@hono/node-server": "^1.19.13",
+    "brace-expansion@^2.0.0": "^2.1.7",
+    "dompurify": "^3.4.16",
+    "fast-uri": "^3.1.8",
+    "file-type": "^21.3.4",
+    "hono": "^4.12.16",
+    "ip-address": "^10.7.1",
+    "js-yaml@^5.0.0": "^5.4.1",
+    "multer": "^2.4.0",
+    "proxy-addr": "^2.0.8",
+    "qs": "^6.15.2",
+    "source-map-js": "^1.2.2",
+    "ws": "^8.21.3"
   },
   "comment:optionalDependencies": "The lockfile is generated on glibc, so the musl builds the Alpine image needs never land in it on their own. Keep the @img/* pins on the same version as client's sharp — a mismatch nests the binary away from libvips and the image build dies in generate-icons.",
   "optionalDependencies": {

@@ -111,13 +111,13 @@ export default function PlaceRating({ ratings, ratingAvg, onRate, size = 16, com
 
       {/* Who voted — avatar strip. */}
       {!compact && ratings.length > 0 && (
-        <span style={{ display: 'inline-flex', marginLeft: 'auto' }}>
+        <span style={{ display: 'inline-flex', marginInlineStart: 'auto' }}>
           {ratings.slice(0, 6).map((r, i) => (
             <span key={r.user_id} className="bg-surface-tertiary text-content-muted" style={{
               width: 18, height: 18, borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 'calc(8px * var(--fs-scale-caption, 1))', fontWeight: 700,
-              marginLeft: i ? -5 : 0, border: '1.5px solid var(--bg-elevated, #fff)',
+              marginInlineStart: i ? -5 : 0, border: '1.5px solid var(--bg-elevated, #fff)',
             }}>
               {r.avatar ? <img src={avatarSrc(r.avatar)!} alt={r.username || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : r.username?.[0]?.toUpperCase()}
             </span>

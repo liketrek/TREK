@@ -1,5 +1,9 @@
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
 
 /**
  * Adding an existing user to a trip as a member, plus the leaf membership
@@ -11,40 +15,34 @@ import { DatabaseService } from '../database/database.service';
  * this trip" / "which trips can this user see", but every service that owns
  * the hydrated answer (TripsService, TripMembersService, TripReadModelService)
  * lives in a module that imports the budget domain, so injecting one there
- * closes a real cycle. This module imports nothing, so it is the one place
- * those id-level reads can live — the fold that deleted trips.bridge.
+ * closes a real cycle. This module imports nothing but `TripsRepository`/
+ * `TripMembersRepository` (Plan 3c Task 1: `MikroOrmModule.forFeature`, no
+ * service import — see `trip-membership.module.ts`), so it stays the one
+ * place those id-level reads can live — the fold that deleted trips.bridge.
  */
 @Injectable()
 export class TripMembershipService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    @InjectRepository(TripMembers) private readonly tripMembers: TripMembersRepository,
+  ) {}
 
   /** The trip owner's user id, or null when the trip does not exist. */
-  getOwnerId(tripId: string | number): number | null {
-    const row = this.db.get<{ user_id: number }>('SELECT user_id FROM trips WHERE id = ?', tripId);
-    return row ? row.user_id : null;
+  async getOwnerId(tripId: string | number): Promise<number | null> {
+    return this.trips.getOwnerId(tripId);
   }
 
   /** Member user ids (owner excluded), in added_at order like listMembers. */
-  listMemberUserIds(tripId: string | number): number[] {
-    return this.db
-      .all<{ user_id: number }>('SELECT user_id FROM trip_members WHERE trip_id = ? ORDER BY added_at ASC', tripId)
-      .map((r) => r.user_id);
+  async listMemberUserIds(tripId: string | number): Promise<number[]> {
+    return this.tripMembers.listUserIdsByTrip(tripId);
   }
 
   /**
    * Ids of every trip the user owns or is a member of, newest first — the id
    * half of TripsService.list(userId, null), same WHERE and ORDER BY.
    */
-  listAccessibleTripIds(userId: number): number[] {
-    return this.db
-      .prepare(`
-        SELECT t.id FROM trips t
-        LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = :userId
-        WHERE (t.user_id = :userId OR m.user_id IS NOT NULL)
-        ORDER BY t.created_at DESC
-      `)
-      .all({ userId })
-      .map((r) => (r as { id: number }).id);
+  async listAccessibleTripIds(userId: number): Promise<number[]> {
+    return this.trips.listAccessibleIds(userId);
   }
 
   /**
@@ -57,19 +55,23 @@ export class TripMembershipService {
    * belongs to a real (non-guest) account.
    *
    * Returns whether a new membership row was actually created.
+   *
+   * Non-transactional check-then-act, unchanged (Plan 3c inventory §18.4,
+   * program rule 11): two concurrent joins can both pass the "already a
+   * member" check and both insert. Pinned by a concurrency test, not fixed.
    */
-  joinTripAsMember(
+  async joinTripAsMember(
     tripId: number,
     userId: number,
     invitedBy: number | null,
-  ): { joined: boolean; tripId: number } {
-    const trip = this.db.get<{ id: number; user_id: number }>('SELECT id, user_id FROM trips WHERE id = ?', tripId);
+  ): Promise<{ joined: boolean; tripId: number }> {
+    const trip = await this.trips.findIdAndOwner(tripId);
     if (!trip) return { joined: false, tripId };
     // The owner already has full access; never add them as a member.
     if (trip.user_id === userId) return { joined: false, tripId };
-    const existing = this.db.get('SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?', tripId, userId);
+    const existing = await this.tripMembers.exists(tripId, userId);
     if (existing) return { joined: false, tripId };
-    this.db.run('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)', tripId, userId, invitedBy);
+    await this.tripMembers.addMember(tripId, userId, invitedBy);
     return { joined: true, tripId };
   }
 }

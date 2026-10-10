@@ -1,17 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Archive, ArchiveRestore, Camera, Search, X } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
-import { tripsApi } from '../../../api/client'
 import { useCanDo } from '../../../store/permissionsStore'
 import { useSettingsStore } from '../../../store/settingsStore'
-import { useToast } from '../../../components/shared/Toast'
-import { normalizeImageFile } from '../../../utils/convertHeic'
-import { getApiErrorMessage } from '../../../types'
 import { CustomDatePicker } from '../../../components/shared/CustomDateTimePicker'
 import CustomSelect from '../../../components/shared/CustomSelect'
 import { currenciesWith, SYMBOLS } from '../../../components/Budget/BudgetPanel.constants'
 import type { DashboardTrip } from '../../../pages/dashboard/dashboardModel'
-import { MAX_TRIP_DAYS, tripSpanDays, type Trip, type TripCreateRequest } from '@trek/shared'
+import { type Trip, type TripCreateRequest } from '@trek/shared'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MListRow from '../../components/MListRow'
@@ -19,14 +15,8 @@ import MDayImpactList from '../../components/MDayImpactList'
 import MConfirmSheet from '../settings/MConfirmSheet'
 import { useTripRangeGuard, type RangeRemoval } from '../../../hooks/useTripRangeGuard'
 import { dayChips, shrinkTripLines } from '../../../utils/dayImpactLines'
-
-interface CoverSearchPhoto {
-  id: string
-  url: string
-  thumb: string
-  description?: string | null
-  photographer?: string | null
-}
+import { useTripCoverPicker } from '../../../components/Trips/useTripCoverPicker'
+import { endDateForNewStart, tripFormError } from '../../../components/Trips/tripFormModel'
 
 interface MNewTripSheetProps {
   open: boolean
@@ -53,11 +43,9 @@ function FieldLabel({ children }: { children: React.ReactNode }): React.ReactEle
 export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpdate, onArchive }: MNewTripSheetProps): React.ReactElement {
   const isEditing = !!trip
   const { t } = useTranslation()
-  const toast = useToast()
   const can = useCanDo()
   const defaultCurrency = useSettingsStore(s => s.settings.default_currency) || 'EUR'
   const fileRef = useRef<HTMLInputElement>(null)
-  const coverSearchSeq = useRef(0)
   const canEditTrip = !isEditing || can('trip_edit', trip)
   const canUploadCover = !isEditing || can('trip_cover_upload', trip)
 
@@ -68,14 +56,8 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
   const [currency, setCurrency] = useState('EUR')
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-  const [coverPreview, setCoverPreview] = useState<string | null>(null)
-  const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null)
-  const [pendingUnsplashUrl, setPendingUnsplashUrl] = useState<string | null>(null)
-  const [uploadingCover, setUploadingCover] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<CoverSearchPhoto[]>([])
-  const [searchError, setSearchError] = useState('')
-  const [searching, setSearching] = useState(false)
+  const cover = useTripCoverPicker({ trip, title, onCoverUpdate, releasePreviewOnChange: true })
+  const { coverPreview, uploadingCover, searchQuery, setSearchQuery, searchResults, searchError, searching } = cover
   // A save whose new dates remove days with something on them, held until the
   // traveller confirms. The phone has no shift step, so bookings keep their dates.
   const [pendingRemoval, setPendingRemoval] = useState<{ payload: TripCreateRequest; removal: RangeRemoval | 'unknown' } | null>(null)
@@ -89,46 +71,22 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
     setStartDate(trip?.start_date || '')
     setEndDate(trip?.end_date || '')
     setCurrency(trip?.currency || defaultCurrency)
-    setCoverPreview(trip?.cover_image || null)
-    setPendingCoverFile(null)
-    setPendingUnsplashUrl(null)
-    setSearchQuery('')
-    setSearchResults([])
-    setSearchError('')
+    cover.resetCover(trip?.cover_image || null)
     setError('')
     setPendingRemoval(null)
   }, [trip, open])
 
-  // The local file preview is a blob url; release it once a new cover replaces it
-  // or the sheet goes away. Server and Unsplash urls are left alone.
-  useEffect(() => {
-    if (!coverPreview?.startsWith('blob:')) return
-    return () => { URL.revokeObjectURL(coverPreview) }
-  }, [coverPreview])
-
   // Moving the start keeps the trip length (same rule as TripFormModal).
   const changeStart = (value: string) => {
-    if (value && endDate && startDate && endDate >= startDate) {
-      const duration = Math.round((new Date(endDate + 'T00:00:00Z').getTime() - new Date(startDate + 'T00:00:00Z').getTime()) / 86400000)
-      const newEnd = new Date(value + 'T00:00:00Z')
-      newEnd.setDate(newEnd.getDate() + duration)
-      setEndDate(newEnd.toISOString().split('T')[0])
-    } else if (value && (!endDate || endDate < value)) {
-      setEndDate(value)
-    }
+    setEndDate(endDateForNewStart(startDate, endDate, value))
     setStartDate(value)
   }
 
   /** The payload the form stands for, or null after putting the reason on screen. */
   const validPayload = (): TripCreateRequest | null => {
     setError('')
-    if (!title.trim()) { setError(t('dashboard.titleRequired')); return null }
-    if (startDate && endDate) {
-      const span = tripSpanDays(startDate, endDate)
-      if (span < 1) { setError(t('dashboard.endDateError')); return null }
-      const datesTouched = !trip || startDate !== (trip.start_date || '') || endDate !== (trip.end_date || '')
-      if (datesTouched && span > MAX_TRIP_DAYS) { setError(t('dashboard.tripTooLong', { days: MAX_TRIP_DAYS })); return null }
-    }
+    const formError = tripFormError({ title, startDate, endDate }, trip, t)
+    if (formError) { setError(formError); return null }
     return {
       title: title.trim(),
       description: description.trim() || null,
@@ -154,23 +112,7 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
     try {
       const result = await onSave(payload)
       const created = result ? result.trip : undefined
-      if (pendingCoverFile && created?.id) {
-        try {
-          const fd = new FormData()
-          fd.append('cover', pendingCoverFile)
-          const data = await tripsApi.uploadCover(created.id, fd)
-          onCoverUpdate?.(created.id, data.cover_image)
-        } catch {
-          toast.error(t('dashboard.coverUploadError'))
-        }
-      } else if (pendingUnsplashUrl && created?.id) {
-        try {
-          await tripsApi.update(created.id, { cover_image: pendingUnsplashUrl })
-          onCoverUpdate?.(created.id, pendingUnsplashUrl)
-        } catch {
-          toast.error(t('dashboard.coverSaveError'))
-        }
-      }
+      await cover.applyToCreatedTrip(created?.id)
       onClose()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('places.saveError'))
@@ -179,89 +121,10 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
     }
   }
 
-  const handleCoverFile = async (file: File | undefined | null) => {
-    if (!file) return
-    const normalized = await normalizeImageFile(file)
-    setPendingUnsplashUrl(null)
-    if (isEditing && trip?.id) {
-      setUploadingCover(true)
-      try {
-        const fd = new FormData()
-        fd.append('cover', normalized)
-        const data = await tripsApi.uploadCover(trip.id, fd)
-        setCoverPreview(data.cover_image)
-        onCoverUpdate?.(trip.id, data.cover_image)
-        toast.success(t('dashboard.coverSaved'))
-      } catch {
-        toast.error(t('dashboard.coverUploadError'))
-      } finally {
-        setUploadingCover(false)
-      }
-    } else {
-      setPendingCoverFile(normalized)
-      setCoverPreview(URL.createObjectURL(normalized))
-    }
-  }
-
-  const handleSearch = async () => {
-    const query = searchQuery.trim() || title.trim()
-    if (!query) { setSearchError(t('dashboard.unsplashQueryRequired')); return }
-    // Only the latest search may apply its results (out-of-order guard).
-    const seq = ++coverSearchSeq.current
-    setSearching(true)
-    setSearchError('')
-    try {
-      const data = await tripsApi.searchCoverImages(query)
-      if (seq !== coverSearchSeq.current) return
-      const photos: CoverSearchPhoto[] = data.photos || []
-      setSearchResults(photos)
-      if (photos.length === 0) setSearchError(t('dashboard.unsplashNoResults'))
-    } catch (err: unknown) {
-      if (seq !== coverSearchSeq.current) return
-      setSearchError(getApiErrorMessage(err, t('dashboard.coverSearchError')))
-    } finally {
-      if (seq === coverSearchSeq.current) setSearching(false)
-    }
-  }
-
-  const selectUnsplash = async (photo: CoverSearchPhoto) => {
-    if (!photo.url) return
-    setPendingCoverFile(null)
-    if (isEditing && trip?.id) {
-      setUploadingCover(true)
-      try {
-        await tripsApi.update(trip.id, { cover_image: photo.url })
-        setCoverPreview(photo.url)
-        onCoverUpdate?.(trip.id, photo.url)
-        toast.success(t('dashboard.coverSaved'))
-      } catch (err: unknown) {
-        toast.error(getApiErrorMessage(err, t('dashboard.coverSaveError')))
-      } finally {
-        setUploadingCover(false)
-      }
-    } else {
-      setPendingUnsplashUrl(photo.url)
-      setCoverPreview(photo.url)
-    }
-  }
-
-  const removeCover = async () => {
-    if (pendingCoverFile || pendingUnsplashUrl) {
-      setPendingCoverFile(null)
-      setPendingUnsplashUrl(null)
-      setCoverPreview(null)
-      return
-    }
-    // Anything else is a cover stored on the trip, so this is the edit sheet.
-    const id = trip!.id
-    try {
-      await tripsApi.update(id, { cover_image: null })
-      setCoverPreview(null)
-      onCoverUpdate?.(id, null)
-    } catch {
-      toast.error(t('dashboard.coverRemoveError'))
-    }
-  }
+  const handleCoverFile = cover.selectFile
+  const handleSearch = cover.search
+  const selectUnsplash = cover.selectPhoto
+  const removeCover = cover.removeCover
 
   const boxCls = 'rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-[11px_12px]'
   const inputCls = 'w-full border-none bg-transparent pt-[2px] font-[inherit] text-[0.9375rem] font-semibold text-m-ink outline-none placeholder:text-m-faint'
@@ -356,12 +219,12 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={e => { handleCoverFile(e.target.files?.[0]); e.target.value = '' }}
+              onChange={e => { void handleCoverFile(e.target.files?.[0]); e.target.value = '' }}
             />
             {coverPreview ? (
               <div className="relative h-[130px] overflow-hidden rounded-[16px]">
                 <img src={coverPreview} alt="" className="h-full w-full object-cover" />
-                <div className="absolute bottom-2 right-2 flex gap-[6px]">
+                <div className="absolute bottom-2 end-2 flex gap-[6px]">
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
@@ -398,7 +261,7 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
                 <input
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch() } }}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void handleSearch() } }}
                   placeholder={t('dashboard.unsplashSearchPlaceholder')}
                   className={`${inputCls} pt-0 text-[0.8125rem] font-medium`}
                 />
@@ -428,7 +291,7 @@ export default function MNewTripSheet({ open, trip, onClose, onSave, onCoverUpda
                   >
                     <img src={photo.thumb} alt={photo.description || ''} loading="lazy" className="h-full w-full object-cover" />
                     {photo.photographer && (
-                      <span className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-[6px] py-1 text-left font-geist text-[0.625rem] text-white">
+                      <span className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-[6px] py-1 text-start font-geist text-[0.625rem] text-white">
                         {photo.photographer}
                       </span>
                     )}

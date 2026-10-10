@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { collabApi } from '../../../../src/api/client'
 import { addListener, removeListener } from '../../../../src/api/websocket'
 import MCollabPolls from '../../../../src/mobile/screens/trip/tabs/MCollabPolls'
-import type { CollabPollData, PollVoter } from '../../../../src/mobile/screens/trip/tabs/collabModel'
+import type { CollabPollData, PollVoter } from '../../../../src/components/Collab/collabModel'
 import type { TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { useAuthStore } from '../../../../src/store/authStore'
 import { buildUser } from '../../../helpers/factories'
@@ -116,7 +116,7 @@ describe('MCollabPolls', () => {
     ] })])
 
     expect(await screen.findByText('Where to eat?')).toBeInTheDocument()
-    expect(screen.getByText('collab.polls.vote:1')).toBeInTheDocument()
+    expect(screen.getByText('collab.polls.votes:1')).toBeInTheDocument()
     expect(screen.getByText('collab.polls.multiChoice')).toBeInTheDocument()
   })
 
@@ -217,7 +217,7 @@ describe('MCollabPolls', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Ramen/ }))
 
     await waitFor(() => expect(votePoll).toHaveBeenCalledWith(1, 1, 0))
-    expect(await screen.findByText('collab.polls.vote:1')).toBeInTheDocument()
+    expect(await screen.findByText('collab.polls.votes:1')).toBeInTheDocument()
     expect(screen.getByText('100%')).toBeInTheDocument()
   })
 
@@ -304,7 +304,7 @@ describe('MCollabPolls', () => {
         { text: 'Sushi', label: 'Sushi', voters: [] },
       ] }),
     }))
-    expect(screen.getByText('collab.polls.vote:1')).toBeInTheDocument()
+    expect(screen.getByText('collab.polls.votes:1')).toBeInTheDocument()
 
     act(() => handler({ type: 'collab:poll:closed', tripId: '1', poll: poll({ id: 2, question: 'Which hotel?', is_closed: true }) }))
     expect(screen.getByText('collab.polls.closed')).toBeInTheDocument()

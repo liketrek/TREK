@@ -24,7 +24,6 @@ import {
   Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { adminApi } from '../../../api/client'
 import { useTranslation } from '../../../i18n'
 import { useCountUp } from '../../../hooks/useCountUp'
 import { useAdmin } from '../../../pages/admin/useAdmin'
@@ -71,12 +70,12 @@ export default function MAdmin() {
   const { t, locale } = useTranslation()
   const admin = useAdmin()
   const {
-    demoMode, mcpEnabled, devMode, managed, toast, navigate,
+    demoMode, mcpEnabled, devMode, managed, navigate,
     activeTab, setActiveTab, stats, serverTimezone,
-    bagTrackingEnabled, setBagTrackingEnabled,
-    collabFeatures, setCollabFeatures,
+    bagTrackingEnabled, collabFeatures,
     setShowCreateUser,
     updateInfo, setShowUpdateModal,
+    saveDemoBaseline, toggleBagTracking, toggleCollabFeature,
   } = admin
   const [sectionsOpen, setSectionsOpen] = useState(false)
 
@@ -101,15 +100,6 @@ export default function MAdmin() {
   ]
   const activeSection = sections.find((s) => s.id === activeTab) ?? sections[0]
 
-  const saveDemoBaseline = async () => {
-    try {
-      await adminApi.saveDemoBaseline()
-      toast.success('Baseline saved! Resets will restore to this state.')
-    } catch (e) {
-      toast.error(e.response?.data?.error || 'Failed to save baseline')
-    }
-  }
-
   return (
     // Flow screen: scrolls with the document (#1809), so no height and no
     // scroll container of its own.
@@ -132,7 +122,7 @@ export default function MAdmin() {
           className="flex h-[38px] min-w-0 flex-1 items-center gap-[7px] rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-sheet)] px-[14px] text-[0.8125rem] font-bold text-m-ink shadow-[0_5px_12px_-8px_rgba(0,0,0,.18)]"
         >
           <Shield size={14} strokeWidth={2.2} className="flex-none" />
-          <span className="min-w-0 flex-1 truncate text-left">{activeSection.label}</span>
+          <span className="min-w-0 flex-1 truncate text-start">{activeSection.label}</span>
           <ChevronDown size={13} strokeWidth={2} className="flex-none text-m-faint" />
         </button>
         <button
@@ -156,7 +146,7 @@ export default function MAdmin() {
                 setActiveTab(section.id)
                 setSectionsOpen(false)
               }}
-              className={`flex w-full items-center gap-[10px] rounded-[11px] p-[10px] text-left text-[0.8125rem] font-semibold text-m-ink ${
+              className={`flex w-full items-center gap-[10px] rounded-[11px] p-[10px] text-start text-[0.8125rem] font-semibold text-m-ink ${
                 section.id === activeSection.id ? 'bg-[color:var(--m-ic)]' : ''
               }`}
             >
@@ -199,10 +189,10 @@ export default function MAdmin() {
       {/* Stats grid (§6.3) */}
       {stats && (
         <div className="mb-3 grid grid-cols-2 gap-[10px]">
-          <MAdminStat label={t('admin.stats.users')} value={stats.totalUsers} icon={Users} />
-          <MAdminStat label={t('admin.stats.trips')} value={stats.totalTrips} icon={Briefcase} />
-          <MAdminStat label={t('admin.stats.places')} value={stats.totalPlaces} icon={Map} />
-          <MAdminStat label={t('admin.stats.files')} value={stats.totalFiles || 0} icon={FileText} />
+          <MAdminStat label={t('admin.stats.users', { count: stats.totalUsers })} value={stats.totalUsers} icon={Users} />
+          <MAdminStat label={t('admin.stats.trips', { count: stats.totalTrips })} value={stats.totalTrips} icon={Briefcase} />
+          <MAdminStat label={t('admin.stats.places', { count: stats.totalPlaces })} value={stats.totalPlaces} icon={Map} />
+          <MAdminStat label={t('admin.stats.files', { count: stats.totalFiles || 0 })} value={stats.totalFiles || 0} icon={FileText} />
         </div>
       )}
 
@@ -221,27 +211,9 @@ export default function MAdmin() {
       {activeTab === 'addons' && (
         <MAdminAddonManager
           bagTrackingEnabled={bagTrackingEnabled}
-          onToggleBagTracking={async () => {
-            const next = !bagTrackingEnabled
-            setBagTrackingEnabled(next)
-            try {
-              await adminApi.updateBagTracking(next)
-            } catch {
-              setBagTrackingEnabled(!next)
-            }
-          }}
+          onToggleBagTracking={toggleBagTracking}
           collabFeatures={collabFeatures}
-          onToggleCollabFeature={async (key: string) => {
-            const previous = collabFeatures[key]
-            setCollabFeatures({ ...collabFeatures, [key]: !previous })
-            try {
-              await adminApi.updateCollabFeatures({ [key]: !previous })
-            } catch {
-              // Only this key rolls back — a slower request must not undo a toggle
-              // the admin made in the meantime.
-              setCollabFeatures(prev => ({ ...prev, [key]: previous }))
-            }
-          }}
+          onToggleCollabFeature={toggleCollabFeature}
         />
       )}
       {activeTab === 'plugins' && <MAdminPluginsPanel />}

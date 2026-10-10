@@ -1,13 +1,10 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react'
 import {
-  Bookmark, Check, CheckCheck, CheckCircle2, Download, ListChecks, Loader2, MapPin, Plus,
+  Bookmark, CheckCheck, CheckCircle2, Download, ListChecks, Loader2, Plus,
   SlidersHorizontal, Tag, Trash2, X,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
-import { useTripStore } from '../../../../store/tripStore'
 import { useAddonStore } from '../../../../store/addonStore'
-import { useToast } from '../../../../components/shared/Toast'
-import { collectionsApi } from '../../../../api/collections'
 import PlaceAvatar from '../../../../components/shared/PlaceAvatar'
 import MarkdownText from '../../../../components/shared/MarkdownText'
 import { getCategoryIcon } from '../../../../components/shared/categoryIcons'
@@ -21,7 +18,13 @@ import { useTranslation } from '../../../../i18n'
 import type { Place } from '../../../../types'
 import MPlacesBulkCategorySheet from './MPlacesBulkCategorySheet'
 import MPlacesSaveToCollectionSheet from './MPlacesSaveToCollectionSheet'
+import MPlacesToursModeSwitch from './MPlacesToursModeSwitch'
+import MToursSelectionList from './MToursSelectionList'
+import type { TourFilter } from '../../../../components/Tours/tourPresentation'
 import { filterPool, firstPlannedDayNumbers, plannedPlaceIds } from './placesBrowserModel'
+import { MCategoryFilterList, MRatingFloorChips, SquareCheck } from './MPlacesFilterControls'
+import { countActivePlacesFilters } from '../../../../utils/placesFilter'
+import { usePlacesPool } from '../../../../components/Planner/usePlacesPool'
 
 /**
  * Fullscreen places pool (mode === 'browse'): All/Unplanned/Tracks filter
@@ -35,36 +38,38 @@ import { filterPool, firstPlannedDayNumbers, plannedPlaceIds } from './placesBro
  * it. The header ellipsis opens the 'import' sheet (sheets/MImportSheet).
  */
 export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) {
-  const { t, places, categories, assignments, days, trip } = planner
+  const { t, places, categories, assignments, days, trip, tripId } = planner
   // The planner hook carries `t` but not the locale; day labels need both.
   const { locale } = useTranslation()
   const canEditPlaces = planner.can('place_edit', trip)
   const collectionsEnabled = useAddonStore(s => s.isEnabled('collections'))
+  const toursEnabled = useAddonStore(s => s.isEnabled('tours'))
+  // Top level of the places browser, mirroring the desktop right add-panel's
+  // Places <-> Tours switch placement.
+  const [toursMode, setToursMode] = useState(false)
+  const [toursFilter, setToursFilter] = useState<TourFilter>('all')
 
-  const filter = useTripStore(s => s.placesFilter)
-  const setFilter = useTripStore(s => s.setPlacesFilter)
-  const categoryFilters = useTripStore(s => s.placesCategoryFilter)
-  const setCategoryFilters = useTripStore(s => s.setPlacesCategoryFilter)
+  const poolPlaces = useMemo(
+    // Places that are tours stay out of the Places pool while the addon is on.
+    // The planner's answer, not a second list of its own: that one is kept up
+    // to date by the trip's realtime events and knows the mark on each place.
+    () => toursEnabled ? places.filter(place => !planner.isTourPlace(place.id)) : places,
+    [places, toursEnabled, planner.isTourPlace],
+  )
+  const {
+    search, updateSearch, filter, setFilter, pickFilter, categoryFilters, ratingFilter, selectMode, toggleSelectMode,
+    selectedIds, setSelectedIds, toggleSelected, exitSelectMode, markSelectionVisited, markVisitedBusy, hasTracks,
+  } = usePlacesPool({ tripId: trip.id, places, poolPlaces, toursEnabled, t, staleSelection: 'prune' })
 
-  const [search, setSearch] = useState('')
   const [catOpen, setCatOpen] = useState(false)
-  const [selectMode, setSelectMode] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
   const [saveToListOpen, setSaveToListOpen] = useState(false)
-  const [markVisitedBusy, setMarkVisitedBusy] = useState(false)
-  const toast = useToast()
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   // Entering the browser from the edit segment starts on the unplanned pool.
   useEffect(() => {
     if (shell.browseFromEdit) setFilter('unplanned')
   }, [shell.browseFromEdit, setFilter])
-
-  const hasTracks = useMemo(() => places.some(p => p.route_geometry), [places])
-  useEffect(() => {
-    if (filter === 'tracks' && !hasTracks) setFilter('all')
-  }, [filter, hasTracks, setFilter])
 
   // A hotel is linked through its stay and a venue through its booking; neither is
   // ever dragged onto a day, and the pool used to call both unplanned (#2072).
@@ -73,64 +78,17 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
     [assignments, planner.tripAccommodations, planner.reservations],
   )
   const dayNumberByPlace = useMemo(() => firstPlannedDayNumbers(assignments, days), [assignments, days])
-  const filtered = useMemo(
-    () => filterPool(places, { filter, categoryFilters, search, plannedIds }),
-    [places, filter, categoryFilters, search, plannedIds],
-  )
-
-  // A bulk delete (or a remote edit) can remove selected places — drop the
-  // stale ids so the toolbar count stays honest.
-  useEffect(() => {
-    if (selectedIds.size === 0) return
-    const alive = new Set(places.map(p => p.id))
-    if ([...selectedIds].some(id => !alive.has(id))) {
-      setSelectedIds(prev => new Set([...prev].filter(id => alive.has(id))))
-    }
-  }, [places, selectedIds])
-
-  const exitSelectMode = () => {
-    setSelectMode(false)
-    setSelectedIds(new Set())
-  }
-
-  const toggleSelected = (id: number) =>
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-
-  /** Mark the selection visited in every list it is saved to (#1469). */
-  const markSelectionVisited = async () => {
-    const ids = [...selectedIds]
-    if (ids.length === 0 || markVisitedBusy) return
-    setMarkVisitedBusy(true)
-    try {
-      const { updated, places: matched } = await collectionsApi.setStatusFromTrip(trip.id, ids, 'visited')
-      if (updated === 0) toast.info(t('collections.markVisitedNone'))
-      else toast.success(t('collections.markedVisitedTrip', { count: matched ?? 0 }))
-      exitSelectMode()
-    } catch {
-      toast.error(t('common.error'))
-    } finally {
-      setMarkVisitedBusy(false)
-    }
-  }
+  const filtered = useMemo(() => {
+    return filterPool(poolPlaces, { filter, categoryFilters, ratingFilter, search, plannedIds })
+  }, [poolPlaces, filter, categoryFilters, ratingFilter, search, plannedIds])
 
   // Compare the ids, not just the counts: a place removed remotely while another
   // one is selected keeps the sizes equal without the sets matching.
-  const allSelected = filtered.length > 0 && filtered.every(p => selectedIds.has(p.id))
+  const selectablePlaces = filtered.filter(place => !planner.isTourPlace(place.id))
+  const allSelected = selectablePlaces.length > 0 && selectablePlaces.every(p => selectedIds.has(p.id))
   const toggleAllVisible = () => {
     if (allSelected) setSelectedIds(new Set())
-    else setSelectedIds(new Set(filtered.map(p => p.id)))
-  }
-
-  const toggleCategory = (catId: string) => {
-    const next = new Set(categoryFilters)
-    if (next.has(catId)) next.delete(catId)
-    else next.add(catId)
-    setCategoryFilters(next)
+    else setSelectedIds(new Set(selectablePlaces.map(p => p.id)))
   }
 
   const openAddPlace = () => {
@@ -142,39 +100,60 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
 
   const openRow = (place: Place) => {
     if (selectMode) {
+      if (planner.isTourPlace(place.id)) {
+        planner.handlePlaceClick(place.id)
+        return
+      }
       toggleSelected(place.id)
       return
     }
     shell.openSheet('bract', { placeId: place.id, dayPicker: false })
   }
 
-  const hasUncategorized = places.some(p => p.category_id == null)
+  const selectedTours = [...selectedIds].filter(id => planner.isTourPlace(id))
+  const panelFilterCount = countActivePlacesFilters({ filter: 'all', categoryFilters, ratingFilter })
 
   return (
     <div className="flex h-full flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-[calc(var(--bottom-nav-h,84px)+22px)] pt-[calc(var(--m-safe-top,12px)+58px)]">
+        {toursEnabled && (
+          <MPlacesToursModeSwitch active={toursMode} onChange={setToursMode} />
+        )}
+        {toursEnabled && toursMode ? (
+          <>
+            {/* All / Unplanned / Planned only — no Tracks chip, no Import/Add/Select
+                buttons: tours are attached here, never created or bulk-managed. */}
+            <div className="flex items-center gap-[6px]">
+              <FilterChip active={toursFilter === 'all'} label={t('places.all')} onClick={() => setToursFilter('all')} />
+              <FilterChip active={toursFilter === 'unplanned'} label={t('places.unplanned')} onClick={() => setToursFilter('unplanned')} />
+              <FilterChip active={toursFilter === 'planned'} label={t('places.planned')} onClick={() => setToursFilter('planned')} />
+            </div>
+            <MToursSelectionList planner={planner} shell={shell} filter={toursFilter} />
+          </>
+        ) : (
+        <>
         {/* ── Filter chips + Import (Add sits in the search row below to free space) ── */}
         <div className="flex items-center gap-[6px]">
           <FilterChip
             active={filter === 'all'}
             label={t('places.all')}
-            onClick={() => { setFilter('all'); setSelectedIds(new Set()) }}
+            onClick={() => pickFilter('all')}
           />
           <FilterChip
             active={filter === 'unplanned'}
             label={t('places.unplanned')}
-            onClick={() => { setFilter('unplanned'); setSelectedIds(new Set()) }}
+            onClick={() => pickFilter('unplanned')}
           />
           <FilterChip
             active={filter === 'planned'}
             label={t('places.planned')}
-            onClick={() => { setFilter('planned'); setSelectedIds(new Set()) }}
+            onClick={() => pickFilter('planned')}
           />
           {hasTracks && (
             <FilterChip
               active={filter === 'tracks'}
               label={t('places.filterTracks')}
-              onClick={() => { setFilter('tracks'); setSelectedIds(new Set()) }}
+              onClick={() => pickFilter('tracks')}
             />
           )}
           {canEditPlaces && (
@@ -193,7 +172,7 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
         <div className="mt-[10px] flex items-stretch gap-2">
           <input
             value={search}
-            onChange={e => { setSearch(e.target.value); if (selectMode) setSelectedIds(new Set()) }}
+            onChange={e => updateSearch(e.target.value)}
             placeholder={t('places.search')}
             className="box-border min-w-0 flex-1 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[13px] py-[10px] text-[0.8125rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
           />
@@ -201,20 +180,20 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
             type="button"
             onClick={() => setCatOpen(v => !v)}
             aria-expanded={catOpen}
-            aria-label={t('places.allCategories')}
+            aria-label={t('places.filters')}
             className="relative flex w-[42px] flex-none items-center justify-center rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-muted"
           >
             <SlidersHorizontal size={15} strokeWidth={2} />
-            {categoryFilters.size > 0 && (
-              <span className="absolute -right-[3px] -top-[3px] box-border flex h-4 min-w-[16px] items-center justify-center rounded-full bg-m-act px-1 font-geist text-[0.5625rem] font-bold text-m-actfg">
-                {categoryFilters.size}
+            {panelFilterCount > 0 && (
+              <span className="absolute -end-[3px] -top-[3px] box-border flex h-4 min-w-[16px] items-center justify-center rounded-full bg-m-act px-1 font-geist text-[0.5625rem] font-bold text-m-actfg">
+                {panelFilterCount}
               </span>
             )}
           </button>
           {canEditPlaces && (
             <button
               type="button"
-              onClick={() => { setSelectMode(v => !v); setSelectedIds(new Set()) }}
+              onClick={toggleSelectMode}
               aria-pressed={selectMode}
               aria-label={t('common.select')}
               className={`flex w-[42px] flex-none items-center justify-center rounded-full border ${
@@ -258,63 +237,45 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
 
         {/* ── Selection toolbar ── */}
         {selectMode && (
-          <div className="mt-2 flex items-center gap-2 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] py-[6px] pl-[14px] pr-[6px] backdrop-blur-[20px]">
+          <div className="mt-2 flex items-center gap-2 rounded-full border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] py-[6px] ps-[14px] pe-[6px] backdrop-blur-[20px]">
             <span className="font-geist text-[0.6875rem] font-bold text-m-muted">
               {t('places.selectionCount', { count: selectedIds.size })}
             </span>
-            <div className="ml-auto flex gap-[5px]">
+            <div className="ms-auto flex gap-[5px]">
               <BulkBtn label={allSelected ? t('common.deselectAll') : t('common.selectAll')} onClick={toggleAllVisible}>
                 <CheckCheck size={14} strokeWidth={2} />
               </BulkBtn>
-              <BulkBtn label={t('places.changeCategory')} disabled={selectedIds.size === 0} onClick={() => setCategoryPickerOpen(true)}>
+              <BulkBtn label={t('places.changeCategory')} disabled={selectedIds.size === 0 || selectedTours.length > 0} onClick={() => setCategoryPickerOpen(true)}>
                 <Tag size={14} strokeWidth={2} />
               </BulkBtn>
               {collectionsEnabled && (
-                <BulkBtn label={t('inspector.saveToCollection')} disabled={selectedIds.size === 0} onClick={() => setSaveToListOpen(true)}>
+                <BulkBtn label={t('inspector.saveToCollection')} disabled={selectedIds.size === 0 || selectedTours.length > 0} onClick={() => setSaveToListOpen(true)}>
                   <Bookmark size={14} strokeWidth={2} />
                 </BulkBtn>
               )}
               {collectionsEnabled && (
                 <BulkBtn
                   label={t('collections.markVisitedSelection')}
-                  disabled={selectedIds.size === 0 || markVisitedBusy}
+                  disabled={selectedIds.size === 0 || selectedTours.length > 0 || markVisitedBusy}
                   onClick={markSelectionVisited}
                 >
                   {markVisitedBusy ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} strokeWidth={2} />}
                 </BulkBtn>
               )}
-              <BulkBtn label={t('places.deleteSelected')} disabled={selectedIds.size === 0} onClick={() => setConfirmDeleteOpen(true)}>
+              <BulkBtn label={t('places.deleteSelected')} disabled={selectedIds.size === 0 || selectedTours.length > 0} onClick={() => setConfirmDeleteOpen(true)}>
                 <Trash2 size={14} strokeWidth={2} />
               </BulkBtn>
             </div>
           </div>
         )}
 
-        {/* ── Category filter panel ── */}
+        {/* ── Rating + category filter panel ── */}
         {catOpen && (
           <div className="mt-[6px] overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)]">
-            {categories.map(c => {
-              const CatIcon = getCategoryIcon(c.icon)
-              return (
-                <CategoryFilterRow
-                  key={c.id}
-                  checked={categoryFilters.has(String(c.id))}
-                  onToggle={() => toggleCategory(String(c.id))}
-                  label={c.name}
-                >
-                  <CatIcon size={14} strokeWidth={2} className="flex-none" style={{ color: c.color || 'var(--m-muted)' }} />
-                </CategoryFilterRow>
-              )
-            })}
-            {hasUncategorized && (
-              <CategoryFilterRow
-                checked={categoryFilters.has('uncategorized')}
-                onToggle={() => toggleCategory('uncategorized')}
-                label={t('places.noCategory')}
-              >
-                <MapPin size={14} strokeWidth={2} className="flex-none text-m-faint" />
-              </CategoryFilterRow>
-            )}
+            <div className="border-b border-[color:var(--m-rowbr)] px-[13px] py-[10px]">
+              <MRatingFloorChips onPick={() => setSelectedIds(new Set())} />
+            </div>
+            <MCategoryFilterList categories={categories} places={poolPlaces} />
           </div>
         )}
 
@@ -322,14 +283,14 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
         <div className="mb-1 mt-[14px] flex items-center gap-[10px]">
           <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
           <span className="whitespace-nowrap font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">
-            {filtered.length === 1 ? t('places.countSingular') : t('places.count', { count: filtered.length })}
+            {t('places.count', { count: filtered.length })}
           </span>
           <span className="h-px flex-1 bg-[color:var(--m-rowbr)]" />
         </div>
 
         {/* ── Place list ── */}
         {filtered.length === 0 ? (
-          filter === 'unplanned' && !search && categoryFilters.size === 0 ? (
+          filter === 'unplanned' && !search && categoryFilters.size === 0 && ratingFilter === 'all' ? (
             <div className="flex min-h-[60vh] flex-col items-center justify-center px-8 py-10 text-center">
               <MDancingTrek scene="idle" mood="happy" className="mb-2" />
               <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('places.allPlanned')}</p>
@@ -348,8 +309,8 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
             const sub = place.address || place.description
             return (
               <div key={place.id} className="flex items-center gap-[11px] border-b border-[color:var(--m-rowbr)] px-[2px] py-[9px]">
-                <button type="button" onClick={() => openRow(place)} className="flex min-w-0 flex-1 items-center gap-[11px] text-left">
-                  {selectMode && <SquareCheck big checked={selectedIds.has(place.id)} />}
+                <button type="button" onClick={() => openRow(place)} className="flex min-w-0 flex-1 items-center gap-[11px] text-start">
+                  {selectMode && !planner.isTourPlace(place.id) && <SquareCheck big checked={selectedIds.has(place.id)} />}
                   <PlaceAvatar place={place} category={cat} size={40} />
                   <div className="min-w-0 flex-1">
                     <span className="flex items-center gap-[6px]">
@@ -389,6 +350,8 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
             )
           })
         )}
+        </>
+        )}
       </div>
 
       <MPlacesBulkCategorySheet
@@ -418,8 +381,12 @@ export default function MPlacesBrowser({ planner, shell }: MPlacesBrowserProps) 
         open={confirmDeleteOpen}
         onClose={() => setConfirmDeleteOpen(false)}
         title={t('places.deleteSelected')}
-        message={t('trip.confirm.deletePlaces', { count: selectedIds.size })}
-        confirmLabel={t('common.delete')}
+        message={selectedTours.length > 0
+          ? t('tours.delete.bulkConfirmBody')
+          : t('trip.confirm.deletePlaces', { count: selectedIds.size })}
+        confirmLabel={selectedTours.length > 0
+          ? t('tours.delete.confirmAction')
+          : t('common.delete')}
         cancelLabel={t('common.cancel')}
         danger
         onConfirm={async () => {
@@ -467,40 +434,6 @@ function BulkBtn({ label, onClick, disabled = false, children }: {
       }`}
     >
       {children}
-    </button>
-  )
-}
-
-/** 17px (panel) / 19px (row) square checkbox in the demo's act-fill style. */
-function SquareCheck({ checked, big = false }: { checked: boolean; big?: boolean }) {
-  return (
-    <span
-      className={`flex flex-none items-center justify-center border-[1.5px] ${
-        big ? 'h-[19px] w-[19px] rounded-[6px]' : 'h-[17px] w-[17px] rounded-[5px]'
-      } ${checked ? 'border-[color:var(--m-act)] bg-m-act text-m-actfg' : 'border-[color:var(--m-trackoff)] text-transparent'}`}
-    >
-      <Check size={big ? 12 : 11} strokeWidth={3} />
-    </span>
-  )
-}
-
-function CategoryFilterRow({ checked, onToggle, label, children }: {
-  checked: boolean
-  onToggle: () => void
-  label: string
-  children: ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      role="checkbox"
-      aria-checked={checked}
-      className="flex w-full items-center gap-[10px] border-b border-[color:var(--m-rowbr)] px-[13px] py-[10px] text-left last:border-b-0"
-    >
-      <SquareCheck checked={checked} />
-      {children}
-      <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-medium text-m-ink">{label}</span>
     </button>
   )
 }

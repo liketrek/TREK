@@ -1,8 +1,11 @@
+import { JourneyBooks } from '../../db/entities/JourneyBooks.entity';
+import type { JourneyBookRow, JourneyBooksRepository } from '../../db/repositories/JourneyBooks.repository';
+import { UnitOfWork } from '../database/unit-of-work';
+import { JourneyDomainService } from './journey-domain.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import type { BookRecord, BookSummary } from '@trek/shared';
 import { normalizeBookDocument } from '@trek/shared';
-import { DatabaseService } from '../database/database.service';
-import { JourneyDomainService } from './journey-domain.service';
 
 /**
  * Storing TREK Studio books.
@@ -29,13 +32,16 @@ import { JourneyDomainService } from './journey-domain.service';
 @Injectable()
 export class JourneyBookService {
   constructor(
-    private readonly db: DatabaseService,
     private readonly journey: JourneyDomainService,
+    @InjectRepository(JourneyBooks) private readonly booksRepo: JourneyBooksRepository,
+    // M1 (task-5-review.md) — `saveBook`'s first-save read-then-insert
+    // needs the connection mutex to serialize two concurrent first saves.
+    private readonly uow: UnitOfWork,
   ) {}
 
   /** Null when the journey does not exist or the user cannot reach it. */
-  private canAccess(journeyId: number, userId: number): boolean {
-    return !!this.journey.canAccessJourney(journeyId, userId);
+  private async canAccess(journeyId: number, userId: number): Promise<boolean> {
+    return !!(await this.journey.canAccessJourney(journeyId, userId));
   }
 
   /**
@@ -43,7 +49,7 @@ export class JourneyBookService {
    * same owner-or-editor check the entry and photo writes take. canAccess also
    * covers role 'viewer', who may read the book but must not overwrite it.
    */
-  private canWrite(journeyId: number, userId: number): boolean {
+  private async canWrite(journeyId: number, userId: number): Promise<boolean> {
     return this.journey.canEdit(journeyId, userId);
   }
 
@@ -53,11 +59,11 @@ export class JourneyBookService {
    * Public so the controller can tell "no book yet" from "no journey" without
    * running a query built for something else.
    */
-  canOpen(journeyId: number, userId: number): boolean {
+  async canOpen(journeyId: number, userId: number): Promise<boolean> {
     return this.canAccess(journeyId, userId);
   }
 
-  private toRecord(row: BookRow): BookRecord {
+  private toRecord(row: JourneyBookRow): BookRecord {
     return {
       id: row.id,
       journeyId: row.journey_id,
@@ -72,17 +78,11 @@ export class JourneyBookService {
     };
   }
 
-  listBooks(journeyId: number, userId: number): BookSummary[] | null {
-    if (!this.canAccess(journeyId, userId)) return null;
-    const rows = this.db
-      .prepare(`
-        SELECT id, journey_id, title, version, updated_at, updated_by
-          FROM journey_books
-         WHERE journey_id = ?
-         ORDER BY updated_at DESC, id DESC
-      `)
-      .all(journeyId) as Omit<BookRow, 'document'>[];
-    return rows.map(r => ({
+  async listBooks(journeyId: number, userId: number): Promise<BookSummary[] | null> {
+    if (!(await this.canAccess(journeyId, userId))) return null;
+    // JB1.
+    const rows = await this.booksRepo.listForJourney(journeyId);
+    return rows.map((r) => ({
       id: r.id,
       journeyId: r.journey_id,
       title: r.title,
@@ -99,17 +99,10 @@ export class JourneyBookService {
    * the same trip is an obvious thing to want and adding a column later is
    * harder than not needing to.
    */
-  getBook(journeyId: number, userId: number): BookRecord | null {
-    if (!this.canAccess(journeyId, userId)) return null;
-    const row = this.db
-      .prepare(`
-        SELECT id, journey_id, title, document, version, updated_at, updated_by
-          FROM journey_books
-         WHERE journey_id = ?
-         ORDER BY id ASC
-         LIMIT 1
-      `)
-      .get(journeyId) as BookRow | undefined;
+  async getBook(journeyId: number, userId: number): Promise<BookRecord | null> {
+    if (!(await this.canAccess(journeyId, userId))) return null;
+    // JB2.
+    const row = await this.booksRepo.findFirstForJourney(journeyId);
     return row ? this.toRecord(row) : null;
   }
 
@@ -120,61 +113,65 @@ export class JourneyBookService {
    * moved. Throwing would be the obvious shape and the wrong one: a conflict is
    * an ordinary outcome of two people working, not an exception.
    */
-  saveBook(
+  async saveBook(
     journeyId: number,
     userId: number,
     input: { title: string; document: unknown; baseVersion?: number },
-  ): { record: BookRecord } | { conflict: BookRecord } | null {
-    if (!this.canWrite(journeyId, userId)) return null;
+  ): Promise<{ record: BookRecord } | { conflict: BookRecord } | null> {
+    if (!(await this.canWrite(journeyId, userId))) return null;
 
     const document = JSON.stringify(normalizeBookDocument(input.document));
-    const existing = this.db
-      .prepare('SELECT id, version FROM journey_books WHERE journey_id = ? ORDER BY id ASC LIMIT 1')
-      .get(journeyId) as { id: number; version: number } | undefined;
 
-    if (!existing) {
-      const result = this.db
-        .prepare(`
-          INSERT INTO journey_books (journey_id, title, document, version, created_by, updated_by, updated_at)
-          VALUES (?, ?, ?, 1, ?, ?, CURRENT_TIMESTAMP)
-        `)
-        .run(journeyId, input.title, document, userId, userId);
-      return { record: this.byId(Number(result.lastInsertRowid))! };
-    }
+    // M1 (rule 11/24) — JB3's existing-link read and JB4's insert are
+    // separate awaits, so two concurrent first saves of the same journey's
+    // book could both read "no book yet" and both insert, leaving one
+    // editor's save silently orphaned behind `getBook`'s `ORDER BY id LIMIT
+    // 1` (there is no unique index on `journey_id`). Wrapped whole: every
+    // statement below is DB-only, and the mutex serializes a second
+    // caller's read behind the first's commit, so it finds the row the
+    // first just created and takes the JB5 CAS-update path instead, the
+    // same outcome the synchronous legacy code always had.
+    return this.uow.transactional(async () => {
+      // JB3.
+      const existing = await this.booksRepo.findFirstForJourney(journeyId);
 
-    /*
-     * The version goes in the WHERE clause rather than being checked first.
-     * Read-then-write leaves a window between the two in which another save can
-     * land, and SQLite gives no guarantee across two statements — one UPDATE
-     * that matches on the version cannot lose that race with itself.
-     *
-     * A save with no base version is a first write from a client that has not
-     * loaded one; it is allowed to take the current version, since refusing it
-     * would break "open Studio and start editing" for the second person to
-     * arrive.
-     */
-    const base = input.baseVersion ?? existing.version;
-    const result = this.db
-      .prepare(`
-        UPDATE journey_books
-           SET title = ?, document = ?, version = version + 1,
-               updated_by = ?, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ? AND version = ?
-      `)
-      .run(input.title, document, userId, existing.id, base);
+      if (!existing) {
+        // JB4.
+        const id = await this.booksRepo.insertBook(journeyId, input.title, document, userId);
+        return { record: (await this.byId(id))! };
+      }
 
-    if (result.changes === 0) {
-      return { conflict: this.byId(existing.id)! };
-    }
-    return { record: this.byId(existing.id)! };
+      /*
+       * The version goes in the WHERE clause rather than being checked first.
+       * Read-then-write leaves a window between the two in which another save can
+       * land, and SQLite gives no guarantee across two statements — one UPDATE
+       * that matches on the version cannot lose that race with itself.
+       *
+       * A save with no base version is a first write from a client that has not
+       * loaded one; it is allowed to take the current version, since refusing it
+       * would break "open Studio and start editing" for the second person to
+       * arrive.
+       */
+      const base = input.baseVersion ?? existing.version;
+      // JB5 (R2) — one conditional UPDATE, returning the affected-row count.
+      const changes = await this.booksRepo.casUpdate(existing.id, base, {
+        title: input.title,
+        document,
+        updatedBy: userId,
+      });
+
+      if (changes === 0) {
+        return { conflict: (await this.byId(existing.id))! };
+      }
+      return { record: (await this.byId(existing.id))! };
+    });
   }
 
-  deleteBook(journeyId: number, userId: number): boolean | null {
-    if (!this.canWrite(journeyId, userId)) return null;
-    const result = this.db
-      .prepare('DELETE FROM journey_books WHERE journey_id = ?')
-      .run(journeyId);
-    return result.changes > 0;
+  async deleteBook(journeyId: number, userId: number): Promise<boolean | null> {
+    if (!(await this.canWrite(journeyId, userId))) return null;
+    // JB6.
+    const changes = await this.booksRepo.deleteByJourneyId(journeyId);
+    return changes > 0;
   }
 
   /**
@@ -188,8 +185,8 @@ export class JourneyBookService {
    * The saver is excluded by socket id, the same way every other TREK mutation
    * does it, so the client that just saved does not process its own change.
    */
-  broadcastSaved(journeyId: number, userId: number, record: BookRecord, socketId?: string) {
-    this.journey.broadcastJourneyEvent(
+  async broadcastSaved(journeyId: number, userId: number, record: BookRecord, socketId?: string) {
+    await this.journey.broadcastJourneyEvent(
       journeyId,
       'journey:book:saved',
       { version: record.version, savedBy: userId },
@@ -197,25 +194,11 @@ export class JourneyBookService {
     );
   }
 
-  private byId(id: number): BookRecord | null {
-    const row = this.db
-      .prepare(`
-        SELECT id, journey_id, title, document, version, updated_at, updated_by
-          FROM journey_books WHERE id = ?
-      `)
-      .get(id) as BookRow | undefined;
+  /** JB7. */
+  private async byId(id: number): Promise<BookRecord | null> {
+    const row = await this.booksRepo.findById(id);
     return row ? this.toRecord(row) : null;
   }
-}
-
-interface BookRow {
-  id: number;
-  journey_id: number;
-  title: string;
-  document: string;
-  version: number;
-  updated_at: string | null;
-  updated_by: number | null;
 }
 
 /** JSON that will not parse is an empty document, never an exception. */

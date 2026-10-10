@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': '撤销：{action}',
   'undo.assignPlace': '地点已分配至某天',
   'undo.removeAssignment': '地点已从某天移除',
+  'undo.clearDay': '已清空当天',
   'undo.reorder': '地点已重新排序',
   'undo.optimize': '路线已优化',
   'undo.deletePlace': '地点已删除',

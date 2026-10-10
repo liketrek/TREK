@@ -18,6 +18,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testNtfyFailed': 'テストntfyに失敗しました',
   'admin.notifications.emailPanel.title': 'メール（SMTP）',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Webプッシュ',
+  'admin.notifications.webPushPanel.hint':
+    'TREKを閉じている間も、ユーザーがブラウザ経由でスマートフォンやパソコンに通知を受け取れるようにします。HTTPSが必要です。iPhoneとiPadでは、TREKをホーム画面に追加する必要があります。',
   'admin.notifications.inappPanel.title': 'アプリ内',
   'admin.notifications.inappPanel.hint': 'アプリ内通知は常に有効で、全体では無効にできません。',
   'admin.notifications.adminWebhookPanel.title': '管理者Webhook',
@@ -41,6 +44,13 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.testFailed': 'テストntfyに失敗しました',
   'admin.notifications.adminNtfyPanel.alwaysOnHint': 'トピック設定時は常に送信されます',
   'admin.notifications.adminNotificationsHint': '管理者専用通知の配信先を設定します。',
+  'admin.notificationDefaults.title': 'ユーザーの既定値',
+  'admin.notificationDefaults.hint':
+    '各ユーザーの通知の初期状態です。「オフ」はユーザー自身でオンにでき、「ブロック」は全員に対してオフになり、設定画面でロック表示されます。そのセルを自分で変更していない全員に適用されます。',
+  'admin.notificationDefaults.on': 'オン',
+  'admin.notificationDefaults.off': 'オフ',
+  'admin.notificationDefaults.blocked': 'ブロック',
+  'admin.notificationDefaults.cycle': 'クリックで切替: {next}',
   'admin.notifications.tripReminders.title': '旅行リマインダー',
   'admin.notifications.tripReminders.hint': '旅行開始前に通知を送信します（旅行側の設定が必要）。',
   'admin.notifications.tripReminders.enabled': '旅行リマインダー有効',
@@ -128,36 +138,23 @@ const admin: TranslationStrings = {
     'TREK はオープンソースで、この点で中立ではありません。この規模でレビューとふつうの店舗の写真があるのは Google だけで、それが独占です。この欄は代わりがないから置いてあるのであって、勧めているからではありません。使えば問い合わせはすべて Google に届きます。',
   'admin.trekApi.tagline':
     'TREK 自前の場所インデックス。Google のキーなし、上限なし、そして誰にも検索を数えられずに探せます。',
-  'admin.trekApi.factPlaces':
-    '世界で 7,360 万件の場所',
-  'admin.trekApi.factNoKey':
-    'キーも上限も不要',
-  'admin.trekApi.factOffline':
-    '国別パッケージはオフラインでも使えます',
-  'admin.trekApi.factPrivacy':
-    '検索内容は一切記録しません',
-  'admin.trekApi.more':
-    '何が入っているか',
-  'admin.trekApi.fieldPhone':
-    '電話',
-  'admin.trekApi.fieldStableId':
-    '不変の識別子',
+  'admin.trekApi.factPlaces': '世界で 7,360 万件の場所',
+  'admin.trekApi.factNoKey': 'キーも上限も不要',
+  'admin.trekApi.factOffline': '国別パッケージはオフラインでも使えます',
+  'admin.trekApi.factPrivacy': '検索内容は一切記録しません',
+  'admin.trekApi.more': '何が入っているか',
+  'admin.trekApi.fieldPhone': '電話',
+  'admin.trekApi.fieldStableId': '不変の識別子',
   'admin.trekApi.includedNote':
     '説明はその場所自身のサイトから、営業時間は記入されている範囲で OpenStreetMap から取得します。',
-  'admin.trekApi.notRatings':
-    'レビュー',
-  'admin.trekApi.notPhotos':
-    'ふつうの店舗の写真',
+  'admin.trekApi.notRatings': 'レビュー',
+  'admin.trekApi.notPhotos': 'ふつうの店舗の写真',
   'admin.trekApi.notIncludedNote':
     'どちらもどんな価格でも公開データセットには存在しません。この二つには Google のキーが唯一の道として残ります。',
-  'admin.trekApi.sourcesLabel':
-    '出典',
-  'admin.trekApi.sourcesNote':
-    '応答のどの項目も、このうちどれに由来するかを示します。',
-  'admin.trekApi.included':
-    '含まれるもの',
-  'admin.trekApi.notIncluded':
-    '含まれないもの',
+  'admin.trekApi.sourcesLabel': '出典',
+  'admin.trekApi.sourcesNote': '応答のどの項目も、このうちどれに由来するかを示します。',
+  'admin.trekApi.included': '含まれるもの',
+  'admin.trekApi.notIncluded': '含まれないもの',
   'admin.mapsKey': 'Google Maps APIキー',
   'admin.mapsKeyHint': '場所検索に必要。console.cloud.google.com で取得',
   'admin.mapsKeyHintLong':
@@ -170,6 +167,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Amap（高德地图）API キー',
   'admin.amapKeyHint':
     'Google に接続できず OpenStreetMap のデータも少ない中国本土での地点検索用です。JS API キーではなく「Web 服务」（Web サービス）タイプのキーが必要です。console.amap.com で取得できます。',
+  'admin.keyFromEnv': '{name} で設定済み',
   'admin.placesProvider.title': '地点検索のプロバイダー',
   'admin.placesProvider.subtitle':
     'TREK 自身の索引と OpenStreetMap がすべての検索に答えます。ここでは、それらが何も見つけられなかったときに誰に尋ねるかを選びます。自動はキーがあれば Google を、次に Amap を選びます。',
@@ -177,7 +175,8 @@ const admin: TranslationStrings = {
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap（高德地图）',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': '選択したプロバイダに API キーが設定されていないため、地点検索には TREK の索引と OpenStreetMap だけが答えます。',
+  'admin.placesProvider.missingKey':
+    '選択したプロバイダに API キーが設定されていないため、地点検索には TREK の索引と OpenStreetMap だけが答えます。',
   'admin.placesProvider.saved': '地点検索のプロバイダーを保存しました',
   'admin.validateKey': 'テスト',
   'admin.keyValid': '接続済み',
@@ -209,17 +208,32 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     '場所を追加するときに写真と説明を表示します。WikipediaとOpenStreetMapは常に使用され、「場所の写真」または「場所の詳細」が有効な場合はGoogleも追加されます。',
   'admin.placesGoogleOnly.title': 'Google だけで検索',
-  'admin.placesGoogleOnly.subtitle': 'すべての検索と候補が Google Places に送られます。オフの場合は TREK のインデックスと OpenStreetMap が先に答え、何も見つからないときだけ Google に問い合わせます。',
-  'admin.placesGoogleOnly.missingKey': 'Google Maps API キーが必要です。キーがない場合、このスイッチに関係なく検索は TREK のインデックスと OpenStreetMap で行われます。',
-  'admin.placesGoogleOnly.otherProvider': '場所プロバイダーとして Google が必要です。Amap または OpenStreetMap を選択している間は、このスイッチの状態にかかわらず検索は Google に送られません。',
+  'admin.placesGoogleOnly.subtitle':
+    'すべての検索と候補が Google Places に送られます。オフの場合は TREK のインデックスと OpenStreetMap が先に答え、何も見つからないときだけ Google に問い合わせます。',
+  'admin.placesGoogleOnly.missingKey':
+    'Google Maps API キーが必要です。キーがない場合、このスイッチに関係なく検索は TREK のインデックスと OpenStreetMap で行われます。',
+  'admin.placesGoogleOnly.otherProvider':
+    '場所プロバイダーとして Google が必要です。Amap または OpenStreetMap を選択している間は、このスイッチの状態にかかわらず検索は Google に送られません。',
+  'admin.googleQuota.title': 'Google 呼び出しの1日の上限',
+  'admin.googleQuota.subtitle':
+    '上限に達すると、翌日（UTC）まで TREK は Google を呼び出さず、OpenStreetMap で検索します。空欄なら上限なし。',
+  'admin.googleQuota.placeholder': '上限なし',
+  'admin.googleQuota.usedToday': '今日: {used}',
+  'admin.googleQuota.usedOfLimit': '今日: {used} / {limit}',
+  'admin.googleQuota.reached': '上限に到達（{used}）、Google は明日まで停止中',
+  'admin.googleQuota.saved': '1日の上限を保存しました',
   'admin.transitProvider.title': '公共交通のプロバイダー',
   'admin.transitProvider.subtitle': '公共交通の検索に応答するサービス。',
   'admin.transitProvider.transitous': 'Transitous（無料）',
   'admin.transitProvider.google': 'Google',
-  'admin.transitProvider.transitousHint': 'コミュニティの GTFS フィード。無料でキー不要、ヨーロッパのカバー率が最も高い。',
-  'admin.transitProvider.googleHint': '上記の Google キーを使用し、Transitous にデータがない地域に対応します。検索ごとに課金されます。キーが未設定の間は Transitous を使用します。',
-  'admin.transitProvider.noKeyWarning': 'Google が選択されていますが、Google キーが設定されていません。公共交通の検索は引き続き Transitous を使用します。上の「API キー」でキーを追加してください。',
-  'admin.transitProvider.personalKeyWarning': 'あなた自身の Google キーのみが設定されているため、他のメンバーの検索は引き続き Transitous になります。インスタンス全体に適用するには、管理者として上でキーを保存してください。',
+  'admin.transitProvider.transitousHint':
+    'コミュニティの GTFS フィード。無料でキー不要、ヨーロッパのカバー率が最も高い。',
+  'admin.transitProvider.googleHint':
+    '上記の Google キーを使用し、Transitous にデータがない地域に対応します。検索ごとに課金されます。キーが未設定の間は Transitous を使用します。',
+  'admin.transitProvider.noKeyWarning':
+    'Google が選択されていますが、Google キーが設定されていません。公共交通の検索は引き続き Transitous を使用します。上の「API キー」でキーを追加してください。',
+  'admin.transitProvider.personalKeyWarning':
+    'あなた自身の Google キーのみが設定されているため、他のメンバーの検索は引き続き Transitous になります。インスタンス全体に適用するには、管理者として上でキーを保存してください。',
   'admin.placeShadow.title': '場所検索の記録',
   'admin.placeShadow.subtitle':
     'どの検索結果が選ばれたかを記録し、後で別の場所インデックスを実際の検索で評価できるようにします。データがこのインスタンスの外に出ることはなく、管理者はいつでも書き出しや削除ができます。',
@@ -404,6 +418,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'カレンダーへの予定の提供',
   'admin.plugins.perm.hook:place-detail-provider': '場所に追加の詳細情報（レビュー、評価、リンク）を提供',
   'admin.plugins.perm.hook:search-provider': '独自のインデックスから場所の検索に回答（TREK 自身の結果と並べて表示）',
+  'admin.plugins.perm.hook:poi-category-provider':
+    '独自のスポットカテゴリを「地図でスポットを探す」に追加（カテゴリを選ぶと、表示中の地図の範囲がプラグインに送られます）',
   'admin.plugins.perm.hook:trip-warning-provider': '旅程に検証警告を表示（プランナー内に表示）',
   'admin.plugins.perm.hook:table-contributor': '旅行のビュー（予約、場所、日程）に列とアクションを追加',
   'admin.plugins.perm.hook:map-marker-provider': '旅行の地図にマーカーを追加（例: 予約や POI を表示）',
@@ -415,7 +431,9 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:day-tint-provider': '日程プランの日付を色分け（例：その日が旅程のどの区間に属するか）',
   'admin.plugins.cap.mcpTools': 'AI ツールを公開',
   'admin.plugins.mcpToolsTitle': '公開する AI ツール',
-  'admin.plugins.mcpToolsHint': 'アシスタントがユーザーの代わりに実行できます。各ツールは上記で付与した権限で動作します。',
+  'admin.plugins.mcpToolsHint':
+    'アシスタントがユーザーの代わりに実行できます。各ツールは上記で付与した権限で動作します。',
+  'admin.plugins.poiCategoriesTitle': '追加する地図カテゴリ',
   'admin.plugins.perm.mcp:tools':
     'AI アシスタントがあなたの代わりに実行できるツールを公開する（ここでプラグインに付与した権限で動作し、アシスタント自身の権限ではありません）',
   'admin.plugins.perm.geolocation:read':
@@ -515,7 +533,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'バージョン変更…',
   'admin.plugins.noVersions': 'レジストリに公開バージョンが見つかりません。',
   'admin.plugins.downgradeTitle': 'このプラグインをロールバックしますか？',
-  'admin.plugins.downgradeBody': 'v{from} から v{to} への切り替え：新しいバージョンが書き込んだデータはそのまま残り、古いバージョンはそれを認識できない可能性があります。',
+  'admin.plugins.downgradeBody':
+    'v{from} から v{to} への切り替え：新しいバージョンが書き込んだデータはそのまま残り、古いバージョンはそれを認識できない可能性があります。',
   'admin.plugins.downgradeConfirm': 'ロールバック',
   'admin.plugins.updatesHeld': 'v{version} で更新を一時停止中',
   'admin.plugins.resumeUpdates': '更新を再開',
@@ -555,6 +574,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'カレンダー予定を提供',
   'admin.plugins.cap.placeDetails': '場所を充実',
   'admin.plugins.cap.search': '検索に回答',
+  'admin.plugins.cap.poiCategories': '地図にカテゴリを追加',
   'admin.plugins.cap.warnings': '問題を検出',
   'admin.plugins.cap.mapLayers': '地図に描画',
   'admin.plugins.cap.routing': 'ルーティングを提供',
@@ -614,7 +634,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': 'メモ、投票、チャット、提案で一緒に計画',
   'admin.addons.catalog.roadtrip.name': 'ロードトリップ',
-  'admin.addons.catalog.roadtrip.description': '立ち寄り先付きのドライブを計画。運転時間と到着時刻は自動で再計算されます',
+  'admin.addons.catalog.roadtrip.description':
+    '立ち寄り先付きのドライブを計画。運転時間と到着時刻は自動で再計算されます',
   'admin.addons.catalog.memories.name': '写真（Immich）',
   'admin.addons.catalog.memories.description': 'Immichで旅行写真を共有',
   'admin.addons.catalog.mcp.name': 'MCP',
@@ -630,6 +651,12 @@ const admin: TranslationStrings = {
     '各自が接続した Dawarich インスタンスから、滞在と記録されたルートを読み取ります',
   'admin.addons.catalog.llm_parsing.name': 'AI 解析',
   'admin.addons.catalog.llm_parsing.description': '内蔵パーサーが読めない予約を、選んだ AI モデルで読み取ります',
+  'admin.addons.llm.vision.auto': '自動',
+  'admin.addons.llm.vision.on': 'はい',
+  'admin.addons.llm.vision.off': 'いいえ',
+  'admin.addons.llm.vision.hintLocal': '「自動」では、このモデルが画像を読めるかを Ollama サーバーに問い合わせます。',
+  'admin.addons.llm.vision.hintCloud':
+    'クラウドのモデルでは「自動」は「いいえ」になります。このモデルが画像を読める場合は「はい」を選んでください。',
   'admin.addons.enabled': '有効',
   'admin.addons.disabled': '無効',
   'admin.addons.type.trip': '旅行',

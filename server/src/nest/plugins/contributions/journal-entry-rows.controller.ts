@@ -1,19 +1,25 @@
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { DatabaseService } from '../../database/database.service';
-import { JourneyDomainService } from '../../journey/journey-domain.service';
-import { AddonsService } from '../../addons/addons.service';
 import { ADDON_IDS } from '../../../addons';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { JourneyEntries } from '../../../db/entities/JourneyEntries.entity';
+import type { JourneyEntriesRepository } from '../../../db/repositories/JourneyEntries.repository';
+import { AddonsService } from '../../addons/addons.service';
+import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
+import { JourneyDomainService } from '../../journey/journey-domain.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * GET /api/journal-entry-rows/:entryId — extra rows for a journal entry,
  * contributed by plugins implementing the `journalEntryProvider` hook. Additive +
  * fail-safe like place-details: the entry's journey must be one the caller can
- * access (owner/contributor — the same gate as the journal detail routes), the
+ * access (owner/contributor via `JourneyDomainService.canAccessJourney` — the
+ * same gate as the journal detail routes; the `journey_id` lookup that feeds
+ * it is JEC1, converted onto `JourneyEntriesRepository.findById`, Plan 3g
+ * Task 4), the
  * Journey addon must be on (an off addon just yields nothing, this endpoint is
  * purely additive), each provider runs host->plugin on a short timeout, and one
  * that errors/times out contributes nothing.
@@ -40,7 +46,9 @@ function safeUrl(raw: unknown): string | undefined {
   if (typeof raw !== 'string' || raw === '') return undefined;
   try {
     const u = new URL(raw);
-    return u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'mailto:' ? raw.slice(0, 2048) : undefined;
+    return u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'mailto:'
+      ? raw.slice(0, 2048)
+      : undefined;
   } catch {
     return undefined;
   }
@@ -68,7 +76,11 @@ function normalize(raw: unknown): EntryRow[] {
 export class JournalEntryRowsController {
   constructor(
     private readonly hooks: PluginHooks,
-    private readonly dbs: DatabaseService,
+    // JEC1 (Plan 3g Task 4) — the entry's `journey_id` lookup below; was a
+    // raw `DatabaseService` read, now `JourneyEntriesRepository.findById`
+    // (already the widest `SELECT * FROM journey_entries WHERE id = ?` dup
+    // group's own resolution, so no narrower single-column method needed).
+    @InjectRepository(JourneyEntries) private readonly journeyEntries: JourneyEntriesRepository,
     private readonly addons: AddonsService,
     private readonly journey: JourneyDomainService,
   ) {}
@@ -78,14 +90,14 @@ export class JournalEntryRowsController {
     @Param('entryId') entryIdRaw: string,
     @Req() req: Request & { user?: { id: number } },
   ): Promise<{ providers: ProviderResult[] }> {
-    if (!pluginsEnabled() || !this.addons.isAddonEnabled(ADDON_IDS.JOURNEY)) return { providers: [] };
+    if (!pluginsEnabled() || !(await this.addons.isAddonEnabled(ADDON_IDS.JOURNEY))) return { providers: [] };
     const entryId = Number(entryIdRaw);
     const userId = req.user?.id;
     if (!Number.isFinite(entryId) || userId == null) return { providers: [] };
 
     // The entry's journey must be one the caller can access — same gate as a read.
-    const row = this.dbs.connection.prepare('SELECT journey_id FROM journey_entries WHERE id = ?').get(entryId) as { journey_id: number } | undefined;
-    if (!row || !this.journey.canAccessJourney(row.journey_id, userId)) return { providers: [] };
+    const row = await this.journeyEntries.findById(entryId); // JEC1 — converted (Plan 3g Task 4)
+    if (!row || !(await this.journey.canAccessJourney(row.journey_id, userId))) return { providers: [] };
 
     const ids = this.hooks.providersOf('journalEntryProvider');
     const results = await Promise.all(

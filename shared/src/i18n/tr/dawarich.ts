@@ -11,12 +11,12 @@ const dawarich: TranslationStrings = {
   'dawarich.apiKeyHint':
     'Dawarich’te Hesap → API anahtarı altında bulunur. Şifreli olarak saklanır ve bir daha gösterilmez.',
   'dawarich.allowInsecureTls': 'Kendinden imzalı sertifikaya izin ver',
-  'dawarich.allowInsecureTlsHint':
-    'Yalnızca sunucunuzun güvenmediği bir sertifika kullanan bir örnek için gerekir.',
+  'dawarich.allowInsecureTlsHint': 'Yalnızca sunucunuzun güvenmediği bir sertifika kullanan bir örnek için gerekir.',
   'dawarich.syncEnabled': 'Yeni konaklamaları otomatik olarak denetle',
   'dawarich.syncEnabledHint': 'Kapalıyken TREK, Dawarich’i yalnızca siz istediğinizde okur.',
   'dawarich.test.button': 'Bağlantıyı test et',
   'dawarich.test.success': 'Bağlandı. Son 30 günde {count} konaklama bulundu.',
+  'dawarich.test.success.one': 'Bağlandı. Son 30 günde {count} konaklama bulundu.',
   'dawarich.test.failed': 'Dawarich’e ulaşılamadı.',
   'dawarich.syncNow': 'Şimdi denetle',
   'dawarich.connected': 'Bağlandı',
@@ -31,6 +31,7 @@ const dawarich: TranslationStrings = {
   'dawarich.toast.saveError': 'Bağlantı kaydedilemedi',
   'dawarich.toast.disconnected': 'Dawarich bağlantısı kesildi',
   'dawarich.toast.synced': '{count} yeni konaklama bulundu',
+  'dawarich.toast.synced.one': '{count} yeni konaklama bulundu',
   'dawarich.toast.syncError': 'Dawarich okunamadı',
   'dawarich.toast.syncRunning': 'Zaten bir kontrol çalışıyor',
   'dawarich.toast.acceptError': 'Bu eklenemedi',
@@ -59,7 +60,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'Dawarich eklentisi bu örnek için kapalı.',
   'dawarich.error.offline': 'Bunun için bağlantı gerekiyor — TREK şu anda çevrimdışı.',
   'dawarich.error.invalid_url': 'TREK bu adresi kullanamıyor.',
-  'dawarich.warning.private_ip': 'Bu adres özel bir IP’ye çıkıyor ({ip}). Böyle olmasını istediğinden emin ol — sunucunun buna erişmesi için ALLOW_INTERNAL_NETWORK=true gerekebilir.',
+  'dawarich.warning.private_ip':
+    'Bu adres özel bir IP’ye çıkıyor ({ip}). Böyle olmasını istediğinden emin ol — sunucunun buna erişmesi için ALLOW_INTERNAL_NETWORK=true gerekebilir.',
   'dawarich.error.unknown': 'Dawarich ile iletişimde bir şeyler ters gitti.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -82,9 +84,9 @@ const dawarich: TranslationStrings = {
 
   'dawarich.suggestions.title': 'Dawarich’ten',
   'dawarich.suggestions.pending': '{count} tanesi sizi bekliyor',
+  'dawarich.suggestions.pending.one': '{count} tanesi sizi bekliyor',
   'dawarich.suggestions.loading': 'Dawarich okunuyor…',
-  'dawarich.suggestions.notConnected':
-    'Konaklamalarınızı burada görmek için Ayarlar’dan Dawarich’i bağlayın.',
+  'dawarich.suggestions.notConnected': 'Konaklamalarınızı burada görmek için Ayarlar’dan Dawarich’i bağlayın.',
   'dawarich.suggestions.unavailable': 'Dawarich okunamadı.',
   'dawarich.suggestions.allHandled': 'Burada kaydedilen her şey ele alındı.',
   'dawarich.suggestions.asJournal': 'Günlük kaydı yaz',
@@ -93,6 +95,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.dismissed': 'Yok sayıldı',
   'dawarich.suggestions.restore': 'Geri koy',
   'dawarich.suggestions.showHandled': 'Ele alınmış {count} tanesini göster',
+  'dawarich.suggestions.showHandled.one': 'Ele alınmış {count} tanesini göster',
   'dawarich.suggestions.hideHandled': 'Ele alınmış olanları gizle',
   'dawarich.suggestions.matchesWish': 'Dilek listenizde: {name}',
   'dawarich.suggestions.acceptedAs.place': 'Yer olarak eklendi',
@@ -100,8 +103,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.acceptedAs.bucket_list': 'Dilek işaretlendi',
   'dawarich.suggestions.sourceChanged':
     'Bu konaklama, siz kullandıktan sonra Dawarich’te değişti. TREK’te yazdıklarınıza dokunulmadı.',
-  'dawarich.suggestions.sourceMissing':
-    'Bu konaklama artık Dawarich’te yok. TREK’te yazdıklarınıza dokunulmadı.',
+  'dawarich.suggestions.sourceMissing': 'Bu konaklama artık Dawarich’te yok. TREK’te yazdıklarınıza dokunulmadı.',
   'dawarich.sourceStatus.suggested': 'Algılandı, onaylanmadı',
   'dawarich.confidence.high': 'Kesine yakın algılama',
   'dawarich.confidence.medium': 'Oldukça güvenilir algılama',
@@ -115,7 +117,8 @@ const dawarich: TranslationStrings = {
   'dawarich.accept.confirm.journal': 'Kayıt ekle',
   'dawarich.accept.confirm.bucket_list': 'İşaretle',
   'dawarich.accept.recorded': '{from} ile {to} arasında kaydedildi',
-  'dawarich.accept.duration': '{minutes} dk',
+  'dawarich.accept.duration': '{count} dk',
+  'dawarich.accept.duration.one': '{count} dk',
   'dawarich.accept.name': 'Ad',
   'dawarich.accept.date': 'Tarih',
   'dawarich.accept.from': 'Varış',
@@ -144,8 +147,11 @@ const dawarich: TranslationStrings = {
   'dawarich.bucket.noMatches': 'Dilek listenizden hiçbir şey kayıtlarınızda çıkmadı.',
   'dawarich.bucket.alreadyVisited': 'Zaten işaretlenmiş',
   'dawarich.bucket.confirm': '{count} tanesini işaretle',
+  'dawarich.bucket.confirm.one': '{count} tanesini işaretle',
   'dawarich.bucket.confirmed': '{count} dilek işaretlendi',
+  'dawarich.bucket.confirmed.one': '{count} dilek işaretlendi',
   'dawarich.bucket.skipped': '{count} kaydın koordinatı yok, denetlenemedi.',
+  'dawarich.bucket.skipped.one': '{count} kaydın koordinatı yok, denetlenemedi.',
   'dawarich.bucket.truncated': 'Yalnızca ilk kayıtlar denetlendi. Kalanı için yeniden çalıştırın.',
   'dawarich.bucket.visitedFrom': 'Dawarich kayıtlarınızdan işaretlendi',
   'dawarich.bucket.clearVisit': 'Geri al',
@@ -158,9 +164,11 @@ const dawarich: TranslationStrings = {
   'dawarich.atlas.loading': 'Kayıtlarınız okunuyor…',
   'dawarich.atlas.empty': 'Kayıtlarınız, TREK’te halihazırda olmayan bir ülke göstermiyor.',
   'dawarich.atlas.cities': '{count} şehir',
-  'dawarich.atlas.citiesOne': '1 şehir',
+  'dawarich.atlas.cities.one': '{count} şehir',
   'dawarich.atlas.accept': '{count} ülke ekle',
+  'dawarich.atlas.accept.one': '{count} ülke ekle',
   'dawarich.atlas.accepted': '{count} ülke eklendi',
+  'dawarich.atlas.accepted.one': '{count} ülke eklendi',
   'dawarich.atlas.unresolved': 'TREK bunları bir ülkeyle eşleştiremedi: {names}.',
   'dawarich.atlas.source': 'Dawarich’ten',
   'dawarich.atlas.range': '{from} ile {to} arası incelendi',
@@ -171,13 +179,14 @@ const dawarich: TranslationStrings = {
   'dawarich.atlas.tab.countries': 'Ülkeler',
   'dawarich.atlas.window': 'Son 12 ay incelendi.',
   'dawarich.selected': '{count} seçildi',
+  'dawarich.selected.one': '{count} seçildi',
   'dawarich.again': 'Yeniden kontrol et',
   'dawarich.bucket.metersAway': '{meters} m uzakta',
   'dawarich.bucket.kilometersAway': '{km} km uzakta',
-  'dawarich.bucket.rule': 'Bir dilek {meters} m yakınlıkta ve yerinde {minutes} dakika sonra ulaşılmış sayılır.',
-
-  'dawarich.journey.dayStays.one': "Dawarich'ten 1 durak",
-  'dawarich.journey.dayStays.other': "Dawarich'ten {count} durak",
+  'dawarich.bucket.rule': 'Bir dilek {meters} m yakınlıkta ve yerinde {count} dakika sonra ulaşılmış sayılır.',
+  'dawarich.bucket.rule.one': 'Bir dilek {meters} m yakınlıkta ve yerinde {count} dakika sonra ulaşılmış sayılır.',
+  'dawarich.journey.dayStays.other': 'Dawarich’ten {count} konaklama',
+  'dawarich.journey.dayStays.one': 'Dawarich’ten {count} konaklama',
 };
 
 export default dawarich;

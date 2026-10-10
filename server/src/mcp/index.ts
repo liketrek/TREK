@@ -46,8 +46,16 @@ const sessionSweepInterval = setInterval(() => {
   let cleaned = 0;
   for (const [sid, session] of sessions) {
     if (session.lastActivity < cutoff) {
-      try { session.server.close(); } catch { /* ignore */ }
-      try { session.transport.close(); } catch { /* ignore */ }
+      try {
+        session.server.close();
+      } catch {
+        /* ignore */
+      }
+      try {
+        session.transport.close();
+      } catch {
+        /* ignore */
+      }
       sessions.delete(sid);
       cleaned++;
     }
@@ -56,7 +64,9 @@ const sessionSweepInterval = setInterval(() => {
   for (const [key, entry] of rateLimitMap) {
     if (entry.windowStart < rateCutoff) rateLimitMap.delete(key);
   }
-  if (cleaned > 0 || sessions.size > 0) {
+  // Only when something was cleaned: logging every minute while any session
+  // is open wrote 1,440 lines a day into a log nothing rotates.
+  if (cleaned > 0) {
     console.log(`[MCP] Session sweep: cleaned ${cleaned}, active ${sessions.size}`);
   }
 }, 60 * 1000); // sweep every 1 minute
@@ -68,8 +78,16 @@ sessionSweepInterval.unref();
 export function closeMcpSessions(): void {
   clearInterval(sessionSweepInterval);
   for (const [, session] of sessions) {
-    try { session.server.close(); } catch { /* ignore */ }
-    try { session.transport.close(); } catch { /* ignore */ }
+    try {
+      session.server.close();
+    } catch {
+      /* ignore */
+    }
+    try {
+      session.transport.close();
+    } catch {
+      /* ignore */
+    }
   }
   sessions.clear();
   rateLimitMap.clear();

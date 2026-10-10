@@ -219,33 +219,69 @@ export function seatNightBookends(
   const out = plan.map((day) => {
     const ref = dayOf(day.dayId);
     if (!ref) return day;
-    const stops = day.stops;
-    if (stops.every((stop) => stop.night) && ridden(ref)) return day;
+    if (day.stops.every((stop) => stop.night) && ridden(ref)) return day;
     const hotels = getDayBookendHotels(ref, days, nights);
-    const first = stops[0];
-    const last = stops[stops.length - 1];
-    let head =
-      !!hotels.morning &&
-      !!hotels.morningIsSleptHere &&
-      !(first && (hotelIsTheStop(hotels.morning, first) || opensTheDay(first.carrier?.role))) &&
-      withinReach(hotels.morning, first);
-    let tail =
-      !!hotels.evening &&
-      !!hotels.eveningIsOvernight &&
-      !(last && (hotelIsTheStop(hotels.evening, last) || closesTheDay(last.carrier?.role))) &&
-      withinReach(hotels.evening, last);
-    if (!stops.length) head = tail = head && tail && !sameSpot(hotels.morning, hotels.evening);
+    const edges = (stops: RoadtripStop[]): { head: boolean; tail: boolean } => {
+      const first = stops[0];
+      const last = stops[stops.length - 1];
+      const head =
+        !!hotels.morning &&
+        !!hotels.morningIsSleptHere &&
+        !(first && (hotelIsTheStop(hotels.morning, first) || opensTheDay(first.carrier?.role))) &&
+        withinReach(hotels.morning, first);
+      const tail =
+        !!hotels.evening &&
+        !!hotels.eveningIsOvernight &&
+        !(last && (hotelIsTheStop(hotels.evening, last) || closesTheDay(last.carrier?.role))) &&
+        withinReach(hotels.evening, last);
+      if (!stops.length) {
+        const both = head && tail && !sameSpot(hotels.morning, hotels.evening);
+        return { head: both, tail: both };
+      }
+      return { head, tail };
+    };
+    const stops = withoutBookedNight(day.stops, hotels.evening, day.dayId, edges);
+    const { head, tail } = edges(stops);
     if (!head && !tail) return day;
     changed = true;
-    const stored = stops.filter((stop) => !stop.carrier).length;
+    const stored = day.stops.filter((stop) => !stop.carrier).length;
     return {
       ...day,
       stops: [
-        ...(head ? [bookendStop(day, 'morning', hotels.morning!, 0, first?.incomingLegMode ?? null)] : []),
+        ...(head ? [bookendStop(day, 'morning', hotels.morning!, 0, stops[0]?.incomingLegMode ?? null)] : []),
         ...stops,
         ...(tail ? [bookendStop(day, 'evening', hotels.evening!, stored, null)] : []),
       ],
     };
   });
   return changed ? out : plan;
+}
+
+/**
+ * The day's stops without the one tonight's booking put on it, when the evening seats that
+ * stay at the end of the day instead (#2546).
+ *
+ * Booking a night writes the hotel onto its check-in day as a stop (#2354), seated first or
+ * at its check-in, so a trip that routes without bookends still reaches the hotel. With
+ * bookends the evening already ends the day there, and the booking's stop drew the same
+ * hotel a second time in the middle of the day: check out, drive to tonight's hotel, the
+ * day's places, and back to the hotel for the night. Days hides that stop and draws the
+ * stay at the day's edges, and so does the road trip now. A hotel the traveller placed on
+ * the day themselves is theirs and stays, and so does the booking's stop while it is the
+ * day's last one, or while the evening is not seated after all (a departure closes the day,
+ * or the hotel is out of reach of the stop before it). The stops keep their `ownerIndex`,
+ * so every write still addresses the stored order, and the evening keeps the index behind
+ * the day's last stored stop.
+ */
+function withoutBookedNight(
+  stops: RoadtripStop[],
+  evening: BookendStay | undefined,
+  dayId: number,
+  edges: (stops: RoadtripStop[]) => { tail: boolean },
+): RoadtripStop[] {
+  if (!evening || evening.start_day_id !== dayId || !stops.length) return stops;
+  const own = (stop: RoadtripStop): boolean => stop.bookedNightId === evening.id && !stop.carrier;
+  if (!stops.some(own) || own(stops[stops.length - 1]!)) return stops;
+  const rest = stops.filter((stop) => !own(stop));
+  return rest.length && edges(rest).tail ? rest : stops;
 }

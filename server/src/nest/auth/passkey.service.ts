@@ -1,5 +1,20 @@
+import { Users } from '../../db/entities/Users.entity';
+import { WebauthnChallenges } from '../../db/entities/WebauthnChallenges.entity';
+import { WebauthnCredentials } from '../../db/entities/WebauthnCredentials.entity';
+import type { UsersRepository, UserRow } from '../../db/repositories/Users.repository';
+import type { WebauthnChallengesRepository } from '../../db/repositories/WebauthnChallenges.repository';
+import type { WebauthnCredentialsRepository } from '../../db/repositories/WebauthnCredentials.repository';
+import type { User } from '../../types';
+import { avatarUrl } from '../common/avatarUrl';
+import { DomainError } from '../common/domain-error';
+import { toRowId } from '../common/row-id';
+import { UnitOfWork } from '../database/unit-of-work';
+import type { SessionClient } from '../sessions/sessions.service';
+import { stripUserForClient } from './auth.helpers';
+import { AuthService } from './auth.service';
+import { WebauthnConfigService, originWithinRpScope, type WebauthnConfig } from './webauthn-config.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable, Logger } from '@nestjs/common';
-import bcrypt from 'bcryptjs';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -7,12 +22,8 @@ import {
   verifyAuthenticationResponse,
   type AuthenticatorTransportFuture,
 } from '@simplewebauthn/server';
-import { WebauthnConfigService, originWithinRpScope, type WebauthnConfig } from './webauthn-config.service';
-import { avatarUrl } from '../common/avatarUrl';
-import { stripUserForClient } from './auth.helpers';
-import { AuthService } from './auth.service';
-import { DatabaseService } from '../database/database.service';
-import type { User } from '../../types';
+
+import bcrypt from 'bcryptjs';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -32,25 +43,13 @@ const NOT_CONFIGURED = { error: 'Passkey login is not configured for this server
 // used to tell "no such credential" apart from "bad signature" (CWE-203).
 const AUTH_FAILED = { error: 'Authentication failed', status: 401 } as const;
 
+/** One of the canned `{ error, status }` pairs above, raised. */
+const refusal = (r: { error: string; status: number }) => new DomainError(r.status, r.error);
+
 // Reference-compared sentinel (oidc invite_exhausted precedent): thrown inside
 // the register transaction to keep the duplicate 409 distinct from the generic
 // insert-failure 400 without string-matching SQLite errors.
 const DUPLICATE_CREDENTIAL = new Error('duplicate credential');
-
-interface CredentialRow {
-  id: number;
-  user_id: number;
-  credential_id: string;
-  public_key: Buffer;
-  counter: number;
-  transports: string | null;
-  device_type: string | null;
-  backed_up: number;
-  name: string | null;
-  aaguid: string | null;
-  created_at: string;
-  last_used_at: string | null;
-}
 
 function clientDataFromResponse(resp: unknown): { challenge?: unknown; origin?: unknown } | null {
   try {
@@ -94,6 +93,38 @@ function defaultCredentialName(deviceType: string | undefined): string {
 }
 
 /**
+ * `UsersRepository.findById` returns the repository's full-row shape
+ * (`UserRow` — every `users` column, `role: string`, several `T | null`
+ * columns); the client-payload helper `stripUserForClient` takes the
+ * narrower `User` contract type (`role: 'admin' | 'user'`, those same
+ * columns `T | undefined`). This is the one place in this file that reads a
+ * user through the repository and hands it to that helper, so the mapping
+ * lives here rather than widening `stripUserForClient`'s parameter for
+ * every other caller (Plan 3b Task 3 review, F5).
+ *
+ * A spread, not a field-by-field reconstruction: the legacy raw-SQL
+ * equivalent (`this.db.get<User>('SELECT * FROM users WHERE id = ?', ...)`,
+ * `daef15be7:passkey.service.ts:417`) handed `stripUserForClient` the
+ * *actual* full row at runtime despite its `User`-typed generic — every
+ * column `SELECT *` returns, not just the ones `User` declares. Narrowing
+ * to an explicit field list here would silently drop columns the legacy
+ * response carried (parity is law); only the columns whose *type* actually
+ * conflicts (`role`'s string vs. the union, and the `T | null` columns
+ * `User` declares as `T | undefined`) are overridden below — every other
+ * column passes through unchanged, exactly as it did before.
+ */
+function toClientUser(row: UserRow): User {
+  return {
+    ...row,
+    role: row.role === 'admin' ? 'admin' : 'user',
+    mfa_enabled: row.mfa_enabled ?? undefined,
+    must_change_password: row.must_change_password ?? undefined,
+    created_at: row.created_at ?? undefined,
+    updated_at: row.updated_at ?? undefined,
+  };
+}
+
+/**
  * WebAuthn (passkey) registration, discoverable-credential login and
  * credential management. No instance state — the challenge store is DB-backed
  * (single-use, TTL'd) precisely so it survives restarts and is shared across
@@ -104,24 +135,34 @@ export class PasskeyService {
   private readonly logger = new Logger(PasskeyService.name);
 
   constructor(
-    private readonly db: DatabaseService,
     private readonly auth: AuthService,
     private readonly webauthn: WebauthnConfigService,
+    private readonly uow: UnitOfWork,
+    @InjectRepository(WebauthnCredentials) private readonly webauthnCredentials: WebauthnCredentialsRepository,
+    @InjectRepository(WebauthnChallenges) private readonly webauthnChallenges: WebauthnChallengesRepository,
+    @InjectRepository(Users) private readonly users: UsersRepository,
   ) {}
 
   // -------------------------------------------------------------------------
   // Challenge store (DB-backed, single-use, TTL'd)
   // -------------------------------------------------------------------------
 
-  private purgeExpiredChallenges(now: number): void {
-    this.db.run('DELETE FROM webauthn_challenges WHERE expires_at < ?', now);
+  private async purgeExpiredChallenges(now: number): Promise<void> {
+    await this.webauthnChallenges.purgeExpired(now);
   }
 
-  private storeChallenge(challenge: string, userId: number | null, type: 'registration' | 'authentication', now: number): void {
-    this.db.run(
-      'INSERT INTO webauthn_challenges (challenge, user_id, type, expires_at) VALUES (?, ?, ?, ?)',
-      challenge, userId, type, now + CHALLENGE_TTL_MS,
-    );
+  private async storeChallenge(
+    challenge: string,
+    userId: number | null,
+    type: 'registration' | 'authentication',
+    now: number,
+  ): Promise<void> {
+    await this.webauthnChallenges.insertChallenge({
+      challenge,
+      user_id: userId,
+      type,
+      expires_at: now + CHALLENGE_TTL_MS,
+    });
   }
 
   /**
@@ -130,12 +171,12 @@ export class PasskeyService {
    * concurrent double-submit of the same assertion can never spend one challenge
    * twice (the replay window a SELECT→await→DELETE ordering would open).
    */
-  private claimChallenge(challenge: string, type: 'registration' | 'authentication', now: number): { user_id: number | null } | null {
-    const row = this.db.get<{ user_id: number | null }>(
-      'DELETE FROM webauthn_challenges WHERE challenge = ? AND type = ? AND expires_at > ? RETURNING user_id',
-      challenge, type, now,
-    );
-    return row ?? null;
+  private async claimChallenge(
+    challenge: string,
+    type: 'registration' | 'authentication',
+    now: number,
+  ): Promise<{ user_id: number | null } | null> {
+    return this.webauthnChallenges.claimChallenge(challenge, type, now);
   }
 
   // -------------------------------------------------------------------------
@@ -202,27 +243,25 @@ export class PasskeyService {
     userId: number,
     password: string | undefined,
     requestOrigin?: string,
-  ): Promise<{ error?: string; status?: number; options?: Awaited<ReturnType<typeof generateRegistrationOptions>> }> {
-    const cfg = this.webauthn.resolve();
-    if (!cfg) return { ...NOT_CONFIGURED };
-    if (this.originCannotVerify(cfg, requestOrigin)) return { ...NOT_CONFIGURED };
+  ): Promise<{ options?: Awaited<ReturnType<typeof generateRegistrationOptions>> }> {
+    const cfg = await this.webauthn.resolve();
+    if (!cfg) throw refusal(NOT_CONFIGURED);
+    if (this.originCannotVerify(cfg, requestOrigin)) throw refusal(NOT_CONFIGURED);
 
-    const user = this.db.get<User>('SELECT * FROM users WHERE id = ?', userId);
-    if (!user) return { error: 'User not found', status: 404 };
+    const user = await this.users.findById(userId);
+    if (!user) throw new DomainError(404, 'User not found');
 
     // Re-authentication: a hijacked session must not be able to silently plant an
     // attacker-controlled passkey. Require the current password (parity with the
     // change-password / disable-MFA step-up).
     if (!password || !user.password_hash || !bcrypt.compareSync(password, user.password_hash)) {
-      return { error: 'Incorrect password', status: 401 };
+      throw new DomainError(401, 'Incorrect password');
     }
 
-    const existing = this.db.all<{ credential_id: string; transports: string | null }>(
-      'SELECT credential_id, transports FROM webauthn_credentials WHERE user_id = ?', userId,
-    );
+    const existing = await this.webauthnCredentials.listExcludeCredentials(userId);
 
     const now = Date.now();
-    this.purgeExpiredChallenges(now);
+    await this.purgeExpiredChallenges(now);
 
     const options = await generateRegistrationOptions({
       rpName: cfg.rpName,
@@ -237,27 +276,27 @@ export class PasskeyService {
       supportedAlgorithmIDs: SUPPORTED_ALGORITHM_IDS,
     });
 
-    this.storeChallenge(options.challenge, userId, 'registration', now);
+    await this.storeChallenge(options.challenge, userId, 'registration', now);
     return { options };
   }
 
   async passkeyRegisterVerify(
     userId: number,
     body: { attestationResponse?: unknown; name?: unknown },
-  ): Promise<{ error?: string; status?: number; success?: boolean; credential?: unknown }> {
-    const cfg = this.webauthn.resolve();
-    if (!cfg) return { ...NOT_CONFIGURED };
+  ): Promise<{ success?: boolean; credential?: unknown }> {
+    const cfg = await this.webauthn.resolve();
+    if (!cfg) throw refusal(NOT_CONFIGURED);
 
     const resp = body?.attestationResponse;
-    if (!resp) return { error: 'Invalid registration response', status: 400 };
+    if (!resp) throw new DomainError(400, 'Invalid registration response');
 
     const challenge = challengeFromResponse(resp);
-    if (!challenge) return { error: 'Invalid registration response', status: 400 };
+    if (!challenge) throw new DomainError(400, 'Invalid registration response');
 
     const now = Date.now();
-    const claimed = this.claimChallenge(challenge, 'registration', now);
+    const claimed = await this.claimChallenge(challenge, 'registration', now);
     if (!claimed || claimed.user_id !== userId) {
-      return { error: 'Registration challenge expired. Please try again.', status: 400 };
+      throw new DomainError(400, 'Registration challenge expired. Please try again.');
     }
 
     const expectedOrigin = this.expectedOrigins(cfg, resp);
@@ -276,11 +315,11 @@ export class PasskeyService {
       this.logger.warn(
         `Passkey registration rejected (expectedRPID=${cfg.rpID}, expectedOrigin=[${expectedOrigin.join(', ')}]): ${err instanceof Error ? err.message : String(err)}`,
       );
-      return { error: 'Could not register this passkey.', status: 400 };
+      throw new DomainError(400, 'Could not register this passkey.');
     }
 
     if (!verification.verified || !verification.registrationInfo) {
-      return { error: 'Could not register this passkey.', status: 400 };
+      throw new DomainError(400, 'Could not register this passkey.');
     }
 
     // Persist ONLY the values the verifier vouches for — never anything parsed
@@ -291,37 +330,30 @@ export class PasskeyService {
     // Duplicate check + INSERT in one transaction so the UNIQUE race can't slip
     // between them; the sentinel keeps the legacy 409-vs-400 split intact.
     try {
-      this.db.transaction((conn) => {
-        if (conn.prepare('SELECT id FROM webauthn_credentials WHERE credential_id = ?').get(credential.id)) {
+      await this.uow.transactional(async () => {
+        if (await this.webauthnCredentials.existsByCredentialId(credential.id)) {
           throw DUPLICATE_CREDENTIAL;
         }
-        conn.prepare(
-          `INSERT INTO webauthn_credentials
-             (user_id, credential_id, public_key, counter, transports, device_type, backed_up, name, aaguid, last_used_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
-        ).run(
-          userId,
-          credential.id,
-          Buffer.from(credential.publicKey),
-          credential.counter ?? 0,
-          credential.transports ? JSON.stringify(credential.transports) : null,
-          credentialDeviceType ?? null,
-          credentialBackedUp ? 1 : 0,
+        await this.webauthnCredentials.insertCredential({
+          user_id: userId,
+          credential_id: credential.id,
+          public_key: Buffer.from(credential.publicKey),
+          counter: credential.counter ?? 0,
+          transports: credential.transports ? JSON.stringify(credential.transports) : null,
+          device_type: credentialDeviceType ?? null,
+          backed_up: credentialBackedUp ? 1 : 0,
           name,
-          aaguid ?? null,
-        );
+          aaguid: aaguid ?? null,
+        });
       });
     } catch (err) {
       if (err === DUPLICATE_CREDENTIAL) {
-        return { error: 'This passkey is already registered.', status: 409 };
+        throw new DomainError(409, 'This passkey is already registered.');
       }
-      return { error: 'Could not register this passkey.', status: 400 };
+      throw new DomainError(400, 'Could not register this passkey.');
     }
 
-    const created = this.db.get<{ backed_up: number } & Record<string, unknown>>(
-      'SELECT id, name, device_type, backed_up, created_at, last_used_at FROM webauthn_credentials WHERE credential_id = ?',
-      credential.id,
-    ) as { backed_up: number } & Record<string, unknown>;
+    const created = (await this.webauthnCredentials.findCreatedCredential(credential.id))!;
     return { success: true, credential: { ...created, backed_up: created.backed_up === 1 } };
   }
 
@@ -330,16 +362,14 @@ export class PasskeyService {
   // -------------------------------------------------------------------------
 
   async passkeyLoginOptions(requestOrigin?: string): Promise<{
-    error?: string;
-    status?: number;
     options?: Awaited<ReturnType<typeof generateAuthenticationOptions>>;
   }> {
-    const cfg = this.webauthn.resolve();
-    if (!cfg) return { ...NOT_CONFIGURED };
-    if (this.originCannotVerify(cfg, requestOrigin)) return { ...NOT_CONFIGURED };
+    const cfg = await this.webauthn.resolve();
+    if (!cfg) throw refusal(NOT_CONFIGURED);
+    if (this.originCannotVerify(cfg, requestOrigin)) throw refusal(NOT_CONFIGURED);
 
     const now = Date.now();
-    this.purgeExpiredChallenges(now);
+    await this.purgeExpiredChallenges(now);
 
     const options = await generateAuthenticationOptions({
       rpID: cfg.rpID,
@@ -348,11 +378,14 @@ export class PasskeyService {
       // accounts have passkeys, so the endpoint can't be used to enumerate users.
     });
 
-    this.storeChallenge(options.challenge, null, 'authentication', now);
+    await this.storeChallenge(options.challenge, null, 'authentication', now);
     return { options };
   }
 
-  async passkeyLoginVerify(body: { assertionResponse?: unknown }): Promise<{
+  async passkeyLoginVerify(
+    body: { assertionResponse?: unknown },
+    client?: SessionClient,
+  ): Promise<{
     error?: string;
     status?: number;
     token?: string;
@@ -360,7 +393,7 @@ export class PasskeyService {
     auditUserId?: number | null;
     auditAction?: string;
   }> {
-    const cfg = this.webauthn.resolve();
+    const cfg = await this.webauthn.resolve();
     if (!cfg) return { ...NOT_CONFIGURED };
 
     const resp = body?.assertionResponse;
@@ -371,12 +404,12 @@ export class PasskeyService {
 
     // Claim the challenge (single-use) BEFORE looking anything up or verifying.
     const now = Date.now();
-    if (!this.claimChallenge(challenge, 'authentication', now)) return { ...AUTH_FAILED };
+    if (!(await this.claimChallenge(challenge, 'authentication', now))) return { ...AUTH_FAILED };
 
     const credId = (resp as { id?: unknown; rawId?: unknown }).id ?? (resp as { rawId?: unknown }).rawId;
     if (typeof credId !== 'string') return { ...AUTH_FAILED };
 
-    const cred = this.db.get<CredentialRow>('SELECT * FROM webauthn_credentials WHERE credential_id = ?', credId);
+    const cred = await this.webauthnCredentials.findByCredentialId(credId);
     if (!cred) return { ...AUTH_FAILED };
 
     const expectedOrigin = this.expectedOrigins(cfg, resp);
@@ -413,20 +446,20 @@ export class PasskeyService {
       return { ...AUTH_FAILED, auditUserId: cred.user_id, auditAction: 'user.passkey_clone_suspected' };
     }
 
-    const user = this.db.get<User>('SELECT * FROM users WHERE id = ?', cred.user_id);
+    const user = await this.users.findById(cred.user_id);
     if (!user) return { ...AUTH_FAILED };
 
     // Persist the new counter + last-used and bump login bookkeeping atomically.
-    this.db.transaction((conn) => {
-      conn.prepare('UPDATE webauthn_credentials SET counter = ?, last_used_at = CURRENT_TIMESTAMP WHERE id = ?').run(newCounter, cred.id);
-      conn.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP, login_count = login_count + 1 WHERE id = ?').run(user.id);
+    await this.uow.transactional(async () => {
+      await this.webauthnCredentials.updateCounterAndLastUsed(cred.id, newCounter);
+      await this.users.touchLastLogin(user.id);
     });
 
     // A user-verified passkey is phishing-resistant and inherently two-factor
     // (device possession + biometric/PIN), so it mints the real session directly
     // — the SAME path as password and OIDC login (no new token shape).
-    const token = this.auth.generateToken(user);
-    const userSafe = stripUserForClient(user) as Record<string, unknown>;
+    const token = await this.auth.generateToken(user, undefined, client);
+    const userSafe = stripUserForClient(toClientUser(user)) as Record<string, unknown>;
     return { token, user: { ...userSafe, avatar_url: avatarUrl(user) }, auditUserId: Number(user.id) };
   }
 
@@ -434,46 +467,64 @@ export class PasskeyService {
   // Management (authenticated, owner-scoped)
   // -------------------------------------------------------------------------
 
-  listPasskeys(userId: number): Array<Record<string, unknown>> {
-    const rows = this.db.all<{ backed_up: number } & Record<string, unknown>>(
-      'SELECT id, name, device_type, backed_up, created_at, last_used_at FROM webauthn_credentials WHERE user_id = ? ORDER BY created_at DESC',
-      userId,
-    );
+  async listPasskeys(userId: number): Promise<Array<Record<string, unknown>>> {
+    const rows = await this.webauthnCredentials.listForPanel(userId);
     return rows.map((r) => ({ ...r, backed_up: r.backed_up === 1 }));
   }
 
-  renamePasskey(userId: number, id: string, name: unknown): { error?: string; status?: number; success?: boolean } {
+  async renamePasskey(userId: number, id: string, name: unknown): Promise<{ success?: boolean }> {
     const cleanName = sanitizeName(name);
-    if (!cleanName) return { error: 'Name is required', status: 400 };
+    if (!cleanName) throw new DomainError(400, 'Name is required');
+    // Convert, VALIDATE, and answer the legacy not-found before the
+    // repository call (program rule 15): the legacy `UPDATE ... WHERE id = ?
+    // AND user_id = ?` bound `Number(id)` as a plain parameter — a
+    // non-numeric route id produced `NaN`, which SQLite compared against the
+    // INTEGER `id` column and never matched (`NaN` is never `=` to
+    // anything), so `changes === 0` and this returned its ordinary 404. A
+    // typed MikroORM filter has no such leniency: it renders a JS `NaN` as
+    // the bare, unquoted token `NaN`, which SQLite parses as a column
+    // reference and throws — a 500 where the legacy 404'd (Plan 3b Task 3
+    // review, F1).
+    const rowId = toRowId(id);
+    if (rowId === null) throw new DomainError(404, 'Passkey not found');
     // Ownership enforced in SQL (404 on miss, never a 403 that leaks existence).
-    const result = this.db.run('UPDATE webauthn_credentials SET name = ? WHERE id = ? AND user_id = ?', cleanName, Number(id), userId);
-    if (result.changes === 0) return { error: 'Passkey not found', status: 404 };
+    const changes = await this.webauthnCredentials.renameOwned(rowId, userId, cleanName);
+    if (changes === 0) throw new DomainError(404, 'Passkey not found');
     return { success: true };
   }
 
-  deletePasskey(
-    userId: number,
-    id: string,
-    password: string | undefined,
-  ): { error?: string; status?: number; success?: boolean } {
+  async deletePasskey(userId: number, id: string, password: string | undefined): Promise<{ success?: boolean }> {
     // Re-auth before removing a credential (a hijacked session must not be able to
     // strip the victim's passkeys). Deleting is always allowed because every
     // account keeps a usable password as recovery fallback — losing all passkeys
     // can never lock anyone out.
-    const user = this.db.get<{ password_hash: string }>('SELECT password_hash FROM users WHERE id = ?', userId);
-    if (!user || !user.password_hash || !password || !bcrypt.compareSync(password, user.password_hash)) {
-      return { error: 'Incorrect password', status: 401 };
+    const passwordHash = await this.users.getPasswordHash(userId);
+    if (!passwordHash || !password || !bcrypt.compareSync(password, passwordHash)) {
+      throw new DomainError(401, 'Incorrect password');
     }
-    const result = this.db.run('DELETE FROM webauthn_credentials WHERE id = ? AND user_id = ?', Number(id), userId);
-    if (result.changes === 0) return { error: 'Passkey not found', status: 404 };
+    // Same guard as `renamePasskey` (F1) — placed after the password check
+    // to match the legacy statement order exactly (a wrong password still
+    // answers 401 before a bad id is ever considered).
+    const rowId = toRowId(id);
+    if (rowId === null) throw new DomainError(404, 'Passkey not found');
+    const changes = await this.webauthnCredentials.deleteOwned(rowId, userId);
+    if (changes === 0) throw new DomainError(404, 'Passkey not found');
     return { success: true };
   }
 
   /** Admin: clear all of a user's passkeys (e.g. on suspected compromise). */
-  adminResetPasskeys(targetUserId: number): { error?: string; status?: number; success?: boolean; deleted?: number; email?: string } {
-    const target = this.db.get<{ id: number; email: string }>('SELECT id, email FROM users WHERE id = ?', targetUserId);
-    if (!target) return { error: 'User not found', status: 404 };
-    const result = this.db.run('DELETE FROM webauthn_credentials WHERE user_id = ?', targetUserId);
-    return { success: true, deleted: result.changes, email: target.email };
+  async adminResetPasskeys(targetUserId: number): Promise<{ success?: boolean; deleted?: number; email?: string }> {
+    // `AdminService.resetUserPasskeys` converts the route param with a bare
+    // `Number(id)` before calling in — a non-numeric id arrives here as
+    // `NaN`, still typed `number` at the JS level. Same F1 guard: validate
+    // before the repository call and answer the legacy 404 (the raw
+    // `SELECT id, email FROM users WHERE id = ?` bound `Number(id)` too and
+    // simply matched no row).
+    const rowId = toRowId(targetUserId);
+    if (rowId === null) throw new DomainError(404, 'User not found');
+    const target = await this.users.findIdAndEmail(rowId);
+    if (!target) throw new DomainError(404, 'User not found');
+    const deleted = await this.webauthnCredentials.deleteAllForUser(rowId);
+    return { success: true, deleted, email: target.email };
   }
 }

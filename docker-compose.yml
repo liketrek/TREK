@@ -22,7 +22,7 @@ services:
       - TZ=${TZ:-UTC} # Timezone for logs, reminders and scheduled tasks (e.g. Europe/Berlin)
       - LOG_LEVEL=${LOG_LEVEL:-info} # info = concise user actions; debug = verbose admin-level details
 #      - TREK_WIKI_DIR=/app/wiki # Where the in-app Help pages (/help) read their content from. Leave unset: the image ships the wiki at /app/wiki and finds it automatically. Only set this to serve your own docs, mounted into the container. If the path does not exist, Help falls back to fetching the public GitHub wiki (needs outbound network, and tracks the latest release rather than your version).
-#      - DEFAULT_LANGUAGE=en # Default language on the login page for users with no saved preference. Browser/OS language is auto-detected first; this is the fallback. Supported: de, en, es, fr, hu, nl, br, cs, pl, ru, zh, zh-TW, it, ar
+#      - DEFAULT_LANGUAGE=en # Default language on the login page for users with no saved preference. Browser/OS language is auto-detected first; this is the fallback. Supported: ar, az, br, ca, cs, de, en, es, et, fr, gr, hu, id, it, ja, ko, nl, pl, ru, sk, sv, th, tr, uk, vi, zh, zh-TW
 #      - SESSION_DURATION=30d # How long users stay logged in (trek_session JWT + cookie maxAge). Accepts: 1h | 12h | 7d | 30d | 90d. Default: 24h
 #      - SESSION_DURATION_REMEMBER=30d # Session length when "Remember me" is ticked at login: longer-lived JWT + persistent cookie that survives browser restarts. Same format as SESSION_DURATION. Default: 30d
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-} # Comma-separated origins for CORS and email notification links
@@ -43,6 +43,7 @@ services:
 #      - OIDC_ONLY=false # Set true to force SSO-only mode: disables password login and registration, overrides Admin > Settings toggles, cannot be changed at runtime
 #      - OIDC_ADMIN_CLAIM=groups # OIDC claim used to identify admin users
 #      - OIDC_ADMIN_VALUE=app-trek-admins # Value of the OIDC claim that grants admin role
+#      - OIDC_USERNAME_CLAIM=preferred_username # Claim a new account's username comes from (default: name, then preferred_username)
 #      - OIDC_SCOPE=openid email profile # Fully overrides the default. Add extra scopes as needed (e.g. add groups if using OIDC_ADMIN_CLAIM)
 #      - OIDC_DISCOVERY_URL= # Override the OIDC discovery endpoint for providers with non-standard paths (e.g. Authentik)
 #      - ADMIN_EMAIL=admin@trek.local # Initial admin e-mail — only used on first boot when no users exist
@@ -55,16 +56,27 @@ services:
 #      - UNSPLASH_ACCESS_KEY= # Optional. Unsplash Access Key for trip-cover / place-image search. Without one, TREK uses Unsplash's unauthenticated endpoint, which some datacenter/VPS IPs are blocked from (#1449). Free key at unsplash.com/developers. Can also be set per-admin in Admin > Settings; the env var overrides that.
 #      - TREK_PLACES_ENABLED=false # Optional. Place search (suggestions, full search, category buttons, Road trip search, import geocoding, offline downloads) asks the TREK Places API at https://places.liketrek.com by default, so the server makes outbound requests to that host. Set false to search the way it did before 4.3.0 (OpenStreetMap, or your Google/Amap key) and send nothing there. No switch in the admin panel on purpose: whether searches leave the instance is decided here. (default: true)
 #      - TREK_PLACES_URL=https://places.liketrek.com # Optional. Base URL of a copy of the Places API you run yourself; it has to answer the same /v1 API. Read from configuration rather than typed by a user, so an address on your LAN or Docker network works without ALLOW_INTERNAL_NETWORK. (default: https://places.liketrek.com)
+#      - PLACES_API_KEY= # Optional. Google Maps API key (Places API (New) enabled) for place search, photos, details and Google transit. Overrides the key set in Admin > Settings > API Keys, whose field then shows this variable read-only.
 #      - AMAP_API_KEY= # Optional. Amap (高德地图) Web 服务 key for place search and geocoding inside mainland China. Overrides the key set in Admin > Settings > API Keys. A Web 端 (JS API) key is a different credential and is rejected with INVALID_USER_KEY.
 #      - AMAP_API_SECRET= # Optional. The private secret (数字签名) of that key. Required exactly when the key was created with signing enabled, because such a key rejects every unsigned request. Leave unset otherwise.
 #      - AMAP_API_BASE=https://restapi.amap.com # Optional. Send the Amap calls through an egress proxy, a cache or a gateway that speaks the same API instead of restapi.amap.com directly. (default: https://restapi.amap.com)
+#      - VAPID_PUBLIC_KEY= # Optional. Web Push key pair, public half (base64url). Unset, TREK generates a pair on first start and keeps it in the database, so it travels with backups. Set it together with VAPID_PRIVATE_KEY to use your own, e.g. from `npx web-push generate-vapid-keys`. Changing the pair means every device has to turn push on again.
+#      - VAPID_PRIVATE_KEY= # Optional. Web Push key pair, private half (base64url). Only used together with VAPID_PUBLIC_KEY; a mismatched pair, or only one half, turns push off with an error in the log until it is fixed, and every device stays registered.
+#      - VAPID_SUBJECT=mailto:admin@example.com # Optional. The contact push services see with every message: a mailto: address or an https:// URL. Defaults to APP_URL when it is https, else the TREK project page.
     volumes:
       - ./data:/app/data
       - ./uploads:/app/uploads
 #      - ./storage-config.json:/app/data/storage-config.json:ro # optional seed-once storage provisioning (wiki: Admin-Storage)
     restart: unless-stopped
+    # Docker's json-file driver keeps every line forever by default.
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      # Through a shell so a changed PORT is followed.
+      test: ["CMD-SHELL", "wget -qO- http://localhost:$${PORT:-3000}/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

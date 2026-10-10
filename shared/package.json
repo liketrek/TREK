@@ -1,6 +1,9 @@
 {
   "name": "@trek/shared",
   "version": "4.3.3",
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+  },
   "private": true,
   "description": "Shared API contracts (Zod schemas) — single source of truth for TREK server and client.",
   "type": "module",
@@ -68,27 +71,31 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "lint": "eslint --fix \"src/**/*.ts\"",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint --fix \"src/**/*.ts\"",
+    "lint:format": "node scripts/format-lint.mjs",
     "i18n:parity": "node scripts/i18n-parity.mjs",
-    "i18n:parity:strict": "node scripts/i18n-parity.mjs --strict"
+    "i18n:parity:strict": "node scripts/i18n-parity.mjs --strict",
+    "contracts:open": "node scripts/open-request-schemas.mjs",
+    "i18n:untranslated": "node scripts/i18n-untranslated.mjs",
+    "i18n:untranslated:update": "node scripts/i18n-untranslated.mjs --update"
   },
   "dependencies": {
-    "isomorphic-dompurify": "^3.15.0",
-    "zod": "^4.3.6"
+    "isomorphic-dompurify": "^3.23.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.11",
-    "eslint": "^10.3.0",
-    "eslint-config-flat-gitignore": "^2.3.0",
+    "eslint": "^10.11.0",
+    "eslint-config-flat-gitignore": "^2.4.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.5",
-    "prettier": "3.8.3",
+    "prettier": "3.9.8",
     "prettier-plugin-organize-imports": "^4.3.0",
-    "tsdown": "^0.22.2",
-    "typescript": "^6.0.2",
-    "typescript-eslint": "^8.58.2",
+    "tsdown": "^0.23.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.0",
     "vitest": "^4.1.11"
   }
 }

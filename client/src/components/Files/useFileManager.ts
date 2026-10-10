@@ -10,8 +10,11 @@ import { useAuthStore } from '../../store/authStore'
 import { canManageDocSync } from './docsync/useDocSync'
 import { useDocSyncOffered } from './docsync/useDocSyncOffered'
 import { getAuthUrl } from '../../api/authUrl'
-import { isImage, isMedia, isWalletPass } from './FileManager.helpers'
+import { isMedia, isWalletPass } from './FileManager.helpers'
 import { openFile as openFileInTab } from '../../utils/fileDownload'
+import { useFileTrash } from './useFileTrash'
+import { DESKTOP_FILE_TRASH_TOAST_RULES, filesFromClipboard, trashFileWithToast, updateFileFields } from './fileActions'
+import { matchesFileFilter } from './fileListRules'
 
 export interface FileManagerProps {
   files?: TripFile[]
@@ -37,34 +40,29 @@ export function useFileManager({ files = [], onUpload, onDelete, onUpdate, place
   const [filterType, setFilterType] = useState('all')
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [showTrash, setShowTrash] = useState(false)
-  const [trashFiles, setTrashFiles] = useState<TripFile[]>([])
-  const [loadingTrash, setLoadingTrash] = useState(false)
   const toast = useToast()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
   const currentUser = useAuthStore((s) => s.user)
+  const maxUploadMb = useAuthStore((s) => s.maxUploadMb)
   const canManageSync = canManageDocSync(currentUser, trip)
   const docSyncOffered = useDocSyncOffered(tripId, canManageSync)
   const { t, locale } = useTranslation()
 
-  const loadTrash = useCallback(async () => {
-    setLoadingTrash(true)
-    try {
-      const data = await filesApi.list(tripId, true)
-      setTrashFiles(data.files || [])
-    } catch { /* */ }
-    setLoadingTrash(false)
-  }, [tripId])
+  // onUpdate doubles as the "files changed" signal towards the parent; the arguments carry no payload.
+  const refreshFiles = useCallback(async () => {
+    if (onUpdate) void onUpdate(0, {} as any)
+  }, [onUpdate])
+
+  const trash = useFileTrash({ tripId, t, toast, onRestored: refreshFiles })
+  const { load: loadTrash } = trash
+  const trashFiles = trash.files
+  const loadingTrash = trash.loading
 
   const toggleTrash = useCallback(() => {
     if (!showTrash) loadTrash()
     setShowTrash(v => !v)
   }, [showTrash, loadTrash])
-
-  // onUpdate doubles as the "files changed" signal towards the parent; the arguments carry no payload.
-  const refreshFiles = useCallback(async () => {
-    if (onUpdate) onUpdate(0, {} as any)
-  }, [onUpdate])
 
   const handleStar = async (fileId: number) => {
     try {
@@ -73,37 +71,16 @@ export function useFileManager({ files = [], onUpload, onDelete, onUpdate, place
     } catch { /* */ }
   }
 
-  const handleRestore = async (fileId: number) => {
-    try {
-      await filesApi.restore(tripId, fileId)
-      setTrashFiles(prev => prev.filter(f => f.id !== fileId))
-      refreshFiles()
-      toast.success(t('files.toast.restored'))
-    } catch {
-      toast.error(t('files.toast.restoreError'))
-    }
-  }
+  const handleRestore = trash.restore
 
   const handlePermanentDelete = async (fileId: number) => {
     if (!confirm(t('files.confirm.permanentDelete'))) return
-    try {
-      await filesApi.permanentDelete(tripId, fileId)
-      setTrashFiles(prev => prev.filter(f => f.id !== fileId))
-      toast.success(t('files.toast.deleted'))
-    } catch {
-      toast.error(t('files.toast.deleteError'))
-    }
+    await trash.permanentDelete(fileId)
   }
 
   const handleEmptyTrash = async () => {
     if (!confirm(t('files.confirm.emptyTrash'))) return
-    try {
-      await filesApi.emptyTrash(tripId)
-      setTrashFiles([])
-      toast.success(t('files.toast.trashEmptied') || 'Trash emptied')
-    } catch {
-      toast.error(t('files.toast.deleteError'))
-    }
+    await trash.emptyTrash()
   }
 
   const [previewFile, setPreviewFile] = useState(null)
@@ -137,61 +114,39 @@ export function useFileManager({ files = [], onUpload, onDelete, onUpdate, place
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    maxSize: 50 * 1024 * 1024,
+    maxSize: maxUploadMb * 1024 * 1024,
+    // A file over the limit used to vanish without a word; say why it was left out.
+    onDropRejected: rejections => {
+      if (rejections.some(r => r.errors.some(e => e.code === 'file-too-large'))) {
+        toast.error(t('files.uploadErrorSize', { max: maxUploadMb }))
+      }
+    },
     noClick: false,
   })
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     if (!can('file_upload', trip)) return
-    const items = e.clipboardData?.items
-    if (!items) return
-    const pastedFiles: File[] = []
-    for (const item of Array.from(items)) {
-      if (item.kind === 'file') {
-        const file = item.getAsFile()
-        if (file) pastedFiles.push(file)
-      }
-    }
+    const pastedFiles = filesFromClipboard(e.clipboardData)
     if (pastedFiles.length > 0) {
       e.preventDefault()
       onDrop(pastedFiles)
     }
   }, [onDrop])
 
-  const filteredFiles = files.filter(f => {
-    if (filterType === 'starred') return !!f.starred
-    if (filterType === 'pdf') return f.mime_type === 'application/pdf'
-    if (filterType === 'image') return isImage(f.mime_type)
-    if (filterType === 'doc') return (f.mime_type || '').includes('word') || (f.mime_type || '').includes('excel') || (f.mime_type || '').includes('text')
-    if (filterType === 'collab') return !!f.note_id
-    return true
-  })
+  const filteredFiles = files.filter(f => matchesFileFilter(f, filterType))
 
-  const handleDelete = async (id) => {
-    try {
-      await onDelete(id)
-      toast.success(t('files.toast.trashed') || 'Moved to trash')
-    } catch {
-      toast.error(t('files.toast.deleteError'))
-    }
-  }
+  const handleDelete = (id) => trashFileWithToast(() => onDelete(id), { t, toast }, DESKTOP_FILE_TRASH_TOAST_RULES)
 
   useEffect(() => {
     if (previewFile) {
-      getAuthUrl(previewFile.url, 'download').then(setPreviewFileUrl)
+      void getAuthUrl(previewFile.url, 'download').then(setPreviewFileUrl)
     } else {
       setPreviewFileUrl('')
     }
   }, [previewFile?.url])
 
-  const handleAssign = async (fileId: number, data: { place_id?: number | null; reservation_id?: number | null }) => {
-    try {
-      await filesApi.update(tripId, fileId, data)
-      refreshFiles()
-    } catch {
-      toast.error(t('files.toast.assignError'))
-    }
-  }
+  const handleAssign = (fileId: number, data: { place_id?: number | null; reservation_id?: number | null }) =>
+    updateFileFields(tripId, fileId, data, { t, toast, refresh: refreshFiles })
 
   // Image OR video — both open in the lightbox; videos play there (#823).
   const mediaFiles = filteredFiles.filter(f => isMedia(f.mime_type))

@@ -95,7 +95,7 @@ export default function MAtlasSearch({
               key={r.code}
               type="button"
               onClick={() => onSelect(r.code)}
-              className="flex w-full items-center gap-3 px-4 py-[14px] text-left active:bg-[color:var(--m-ic)]"
+              className="flex w-full items-center gap-3 px-4 py-[14px] text-start active:bg-[color:var(--m-ic)]"
             >
               <img
                 src={`https://flagcdn.com/w40/${r.code.toLowerCase()}.png`}

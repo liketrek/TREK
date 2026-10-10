@@ -4,12 +4,14 @@ const files: TranslationStrings = {
   'files.title': 'Fitxers',
   'files.pageTitle': 'Fitxers i documents',
   'files.subtitle': '{count} fitxers per a {trip}',
+  'files.subtitle.one': '{count} fitxer per a {trip}',
   'files.download': 'Baixa',
   'files.openError': "No s'ha pogut obrir el fitxer",
   'files.downloadPdf': 'Baixa el PDF',
   'files.count': '{count} fitxers',
-  'files.countSingular': '1 fitxer',
+  'files.count.one': '{count} fitxer',
   'files.uploaded': '{count} fitxers pujats',
+  'files.uploaded.one': '{count} fitxer pujat',
   'files.uploadError': 'La pujada ha fallat',
   'files.dropzone': 'Arrossega els fitxers aquí',
   'files.dropzoneHint': 'o fes clic per explorar',
@@ -62,6 +64,6 @@ const files: TranslationStrings = {
   'files.linkTitle': 'Enllaça un fitxer',
   'files.linkEmpty': 'Encara no hi ha llocs ni reserves per enllaçar',
   'files.menu': 'Més opcions',
-  'files.uploadErrorSize': 'El fitxer és massa gran (màx. 50 MB)',
+  'files.uploadErrorSize': 'El fitxer és massa gran (màx. {max} MB)',
 };
 export default files;

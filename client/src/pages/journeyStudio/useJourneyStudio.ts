@@ -11,6 +11,9 @@ import { uploadStudioPhotos, type StudioUploader } from '../../components/Studio
 import { useBookStore } from '../../components/Studio/useBookStore'
 import { useBookPresence } from '../../components/Studio/useBookPresence'
 import { useTranslation } from '../../i18n'
+import { useConnectedPhotoProviders } from '../../components/Journey/useConnectedPhotoProviders'
+import type { ProviderPhotoGroup } from '../../components/Journey/JourneyDetailPageProviderPicker'
+import { useProviderPhotoAdds } from '../journeyDetail/useProviderPhotoAdds'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { PAGE_PRESETS, clampPageSize, type PagePresetId } from '../../components/Studio/pagePresets'
 import {
@@ -691,6 +694,32 @@ export function useJourneyStudio() {
     }
   }, [journeyId, toast, t])
 
+  /*
+   * Pictures from a photo provider (#2271), the same picker the journey gallery
+   * opens. The content browser asks and waits: the promise answers the trek photo
+   * ids that landed, or none when the picker was closed, so the browser can show
+   * the new ones the way it shows an upload.
+   */
+  const photoProviders = useConnectedPhotoProviders(canEdit)
+  const providerAdds = useProviderPhotoAdds(() => { void loadJourney(journeyId) })
+  const [providerPick, setProviderPick] = useState<{ provider: string; entryId: number | null } | null>(null)
+  const pickAnswer = useRef<((photoIds: number[]) => void) | null>(null)
+  const answerPick = (photoIds: number[]) => {
+    pickAnswer.current?.(photoIds)
+    pickAnswer.current = null
+    setProviderPick(null)
+  }
+  const browseProvider = useCallback((provider: string, entryId: number | null) => new Promise<number[]>(resolve => {
+    pickAnswer.current?.([])
+    pickAnswer.current = resolve
+    setProviderPick({ provider, entryId })
+  }), [])
+  const closeProviderPick = () => answerPick([])
+  const addFromProvider = async (groups: ProviderPhotoGroup[], entryId: number | null) => {
+    if (!providerPick) return
+    answerPick(await providerAdds.addPickedPhotos(journeyId, providerPick.provider, groups, entryId))
+  }
+
   /** How far a drop onto the page has got, for the veil over the sheet. */
   const [canvasUpload, setCanvasUpload] = useState<{ done: number; total: number } | null>(null)
 
@@ -772,6 +801,11 @@ export function useJourneyStudio() {
     uploadPhotos,
     dropFiles,
     canvasUpload,
+    photoProviders,
+    browseProvider,
+    providerPick,
+    closeProviderPick,
+    addFromProvider,
 
     doc,
     page,

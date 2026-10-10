@@ -38,10 +38,10 @@ import ErrorBoundary, { RootErrorFallback } from './components/shared/ErrorBound
 import { installGlobalErrorHandlers } from './utils/globalErrorHandlers'
 import { schedulePrecacheRepair } from './utils/serviceWorkerShell'
 
-maybeInstallTouchDragPolyfill()
+void maybeInstallTouchDragPolyfill()
 startConnectivityProbe()
 // Keep offline data (map tiles, file blobs, IndexedDB) exempt from eviction.
-requestPersistentStorage()
+void requestPersistentStorage()
 // Event handlers and async code never reach a boundary; this is where they land.
 installGlobalErrorHandlers()
 // A page the precache keeps under a stylesheet's or a script's name would be

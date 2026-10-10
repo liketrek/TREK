@@ -2,46 +2,71 @@
  * Plugin discovery (#plugins, M4, install-from-disk): scans the volume, upserts
  * rows as inactive, refreshes settings fields, keeps an existing plugin's status,
  * and skips invalid or native-carrying plugins (logging the reason).
+ *
+ * Plan 3j Task 3 — converted onto `PluginsRepository`/`PluginActionsRepository`/
+ * `PluginSettingsFieldsRepository`/`PluginErrorLogRepository` (a `DiscoveryRepos`
+ * bundle), via a real MikroORM over the full migrated schema (`createSnapshotTestDb`
+ * + `createTestOrm`) rather than a hand-rolled `:memory:` table set.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import Database from 'better-sqlite3';
+import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
+import { PluginErrorLog } from '../../../src/db/entities/PluginErrorLog.entity';
+import { PluginSettingsFields } from '../../../src/db/entities/PluginSettingsFields.entity';
+import { Plugins } from '../../../src/db/entities/Plugins.entity';
+import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+import { discoverPlugins, type DiscoveryRepos } from '../../../src/nest/plugins/install/discovery';
+import { createSnapshotTestDb } from '../../helpers/db-mock';
+import { countRows, findRow, findRows, insertRow } from '../../helpers/factories/rows';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { discoverPlugins } from '../../../src/nest/plugins/install/discovery';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
-let db: Database.Database;
+const testDb = createSnapshotTestDb();
+let t: TestOrm;
+let repos: DiscoveryRepos;
 let codeRoot: string;
 
 function writePlugin(id: string, manifest: Record<string, unknown>, extra?: () => void) {
   const dir = path.join(codeRoot, id, 'server');
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(codeRoot, id, 'trek-plugin.json'), JSON.stringify({ id, name: id, version: '1.0.0', type: 'integration', ...manifest }));
+  fs.writeFileSync(
+    path.join(codeRoot, id, 'trek-plugin.json'),
+    JSON.stringify({ id, name: id, version: '1.0.0', type: 'integration', ...manifest }),
+  );
   fs.writeFileSync(path.join(dir, 'index.js'), 'module.exports={}');
-  extra?.()
+  extra?.();
 }
 
+beforeAll(async () => {
+  t = await createTestOrm(testDb);
+  repos = {
+    plugins: t.repo(Plugins),
+    actions: t.repo(PluginActions),
+    settingsFields: t.repo(PluginSettingsFields),
+    errorLog: t.repo(PluginErrorLog),
+    uow: new UnitOfWork(t.em),
+  };
+});
 beforeEach(() => {
+  resetTestDb(testDb);
+  t.clear();
   codeRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'disc-'));
   process.env.TREK_PLUGINS_DIR = codeRoot;
-  db = new Database(':memory:');
-  db.exec(`
-    CREATE TABLE plugins (id TEXT PRIMARY KEY, name TEXT, description TEXT, type TEXT, icon TEXT, version TEXT,
-      api_version INTEGER, min_trek_version TEXT, trek_range TEXT, permissions TEXT, capabilities TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', operator_egress INTEGER DEFAULT 0, granted_permissions TEXT, status TEXT, config TEXT, updated_at TEXT);
-    CREATE TABLE plugin_settings_fields (plugin_id TEXT, field_key TEXT, label TEXT, input_type TEXT, placeholder TEXT, hint TEXT,
-      required INTEGER, secret INTEGER, scope TEXT, options TEXT, oauth_config TEXT, default_value TEXT, sort_order INTEGER);
-    CREATE TABLE plugin_actions (plugin_id TEXT, action_key TEXT, label TEXT, hint TEXT, danger INTEGER, scope TEXT NOT NULL DEFAULT 'user', sort_order INTEGER,
-      PRIMARY KEY (plugin_id, action_key));
-    CREATE TABLE plugin_error_log (id INTEGER PRIMARY KEY AUTOINCREMENT, plugin_id TEXT, level TEXT, message TEXT, ts TEXT);`);
 });
 afterEach(() => {
   delete process.env.TREK_PLUGINS_DIR;
-  db.close();
   fs.rmSync(codeRoot, { recursive: true, force: true });
+});
+afterAll(async () => {
+  await t.close();
+  testDb.close();
 });
 
 describe('discoverPlugins', () => {
-  it('registers a new plugin inactive with its settings fields', () => {
+  it('registers a new plugin inactive with its settings fields', async () => {
     writePlugin('flight-tracker', {
       name: 'Flight',
       type: 'widget',
@@ -52,117 +77,144 @@ describe('discoverPlugins', () => {
         { key: 'oauth', input_type: 'oauth', scope: 'user', oauth: { initPath: '/o/start', callbackPath: '/o/cb' } },
       ],
     });
-    const res = discoverPlugins(db);
+    const res = await discoverPlugins(repos);
     expect(res.discovered).toEqual(['flight-tracker']);
 
-    const row = db.prepare("SELECT status, type, permissions FROM plugins WHERE id='flight-tracker'").get() as { status: string; type: string; permissions: string };
-    expect(row.status).toBe('inactive');
-    expect(row.type).toBe('widget');
-    expect(JSON.parse(row.permissions)).toEqual(['db:own']);
+    const row = await findRow(t, Plugins, { id: 'flight-tracker' });
+    expect(row?.status).toBe('inactive');
+    expect(row?.type).toBe('widget');
+    expect(JSON.parse(String(row?.permissions))).toEqual(['db:own']);
 
-    const field = db.prepare("SELECT field_key, secret FROM plugin_settings_fields WHERE plugin_id='flight-tracker'").get() as { field_key: string; secret: number };
+    const field = await findRow(t, PluginSettingsFields, { plugin_id: 'flight-tracker' });
     expect(field).toMatchObject({ field_key: 'api_key', secret: 1 });
   });
 
-  it('persists each action with its scope', () => {
+  it('persists each action with its scope', async () => {
     writePlugin('acts', {
-      name: 'Acts', type: 'integration', permissions: [],
-      actions: [{ key: 'ping', label: 'Ping' }, { key: 'purge', label: 'Purge', scope: 'instance', danger: true }],
+      name: 'Acts',
+      type: 'integration',
+      permissions: [],
+      actions: [
+        { key: 'ping', label: 'Ping' },
+        { key: 'purge', label: 'Purge', scope: 'instance', danger: true },
+      ],
     });
-    discoverPlugins(db);
-    const rows = db.prepare("SELECT action_key, scope, danger FROM plugin_actions WHERE plugin_id='acts' ORDER BY sort_order").all();
+    await discoverPlugins(repos);
+    const rows = (await findRows(t, PluginActions, { plugin_id: 'acts' }, { sort_order: 'asc' })).map((r) => ({
+      action_key: r.action_key,
+      scope: r.scope,
+      danger: r.danger,
+    }));
     expect(rows).toEqual([
       { action_key: 'ping', scope: 'user', danger: 0 },
       { action_key: 'purge', scope: 'instance', danger: 1 },
     ]);
   });
 
-  it('keeps an existing plugin status + granted permissions on re-discovery', () => {
-    db.prepare("INSERT INTO plugins (id, name, type, status, granted_permissions) VALUES ('keep','Keep','page','active','[\"db:own\"]')").run();
+  it('keeps an existing plugin status + granted permissions on re-discovery', async () => {
+    await insertRow(t, Plugins, {
+      id: 'keep',
+      name: 'Keep',
+      type: 'page',
+      status: 'active',
+      granted_permissions: '["db:own"]',
+    });
     writePlugin('keep', { name: 'Keep v2', type: 'page', version: '2.0.0' });
-    discoverPlugins(db);
-    const row = db.prepare("SELECT status, version, granted_permissions FROM plugins WHERE id='keep'").get() as { status: string; version: string; granted_permissions: string };
-    expect(row.status).toBe('active'); // not downgraded
-    expect(row.version).toBe('2.0.0'); // metadata refreshed
-    expect(JSON.parse(row.granted_permissions)).toEqual(['db:own']); // grants preserved
+    await discoverPlugins(repos);
+    const row = await findRow(t, Plugins, { id: 'keep' });
+    expect(row?.status).toBe('active'); // not downgraded
+    expect(row?.version).toBe('2.0.0'); // metadata refreshed
+    expect(JSON.parse(String(row?.granted_permissions))).toEqual(['db:own']); // grants preserved
   });
 
-  it('tolerates a UTF-8 BOM in trek-plugin.json (Windows-authored plugins)', () => {
+  it('tolerates a UTF-8 BOM in trek-plugin.json (Windows-authored plugins)', async () => {
     writePlugin('bom-plug', { type: 'integration' });
     const mp = path.join(codeRoot, 'bom-plug', 'trek-plugin.json');
-    fs.writeFileSync(mp, '\uFEFF' + fs.readFileSync(mp, 'utf8'));
-    expect(discoverPlugins(db).discovered).toEqual(['bom-plug']);
+    fs.writeFileSync(mp, '﻿' + fs.readFileSync(mp, 'utf8'));
+    expect((await discoverPlugins(repos)).discovered).toEqual(['bom-plug']);
   });
 
-  it('skips an invalid manifest and logs the reason', () => {
+  it('skips an invalid manifest and logs the reason', async () => {
     writePlugin('bad', { type: 'not-a-type' });
-    const res = discoverPlugins(db);
+    const res = await discoverPlugins(repos);
     expect(res.skipped).toEqual(['bad']);
-    expect(db.prepare("SELECT COUNT(*) c FROM plugins WHERE id='bad'").get()).toMatchObject({ c: 0 });
-    expect((db.prepare("SELECT message FROM plugin_error_log WHERE plugin_id='bad'").get() as { message: string }).message).toContain('discovery');
+    expect(await countRows(t, Plugins, { id: 'bad' })).toBe(0);
+    expect((await findRow(t, PluginErrorLog, { plugin_id: 'bad' }))?.message).toContain('discovery');
   });
 
-  it('skips a plugin that ships native binaries', () => {
+  it('skips a plugin that ships native binaries', async () => {
     writePlugin('native', { type: 'integration' }, () => {
       fs.writeFileSync(path.join(codeRoot, 'native', 'server', 'addon.node'), '\0');
     });
-    expect(discoverPlugins(db).skipped).toEqual(['native']);
+    expect((await discoverPlugins(repos)).skipped).toEqual(['native']);
   });
 
-  it('follows a symlinked dev-link plugin only when dev-link mode is on', () => {
+  it('follows a symlinked dev-link plugin only when dev-link mode is on', async () => {
     const srcRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'disc-src-'));
     const prev = process.env.TREK_PLUGINS_DEV_LINK;
     try {
       const src = path.join(srcRoot, 'linked');
       fs.mkdirSync(path.join(src, 'server'), { recursive: true });
-      fs.writeFileSync(path.join(src, 'trek-plugin.json'), JSON.stringify({ id: 'linked', name: 'Linked', version: '1.0.0', type: 'integration', permissions: ['db:own'] }));
+      fs.writeFileSync(
+        path.join(src, 'trek-plugin.json'),
+        JSON.stringify({
+          id: 'linked',
+          name: 'Linked',
+          version: '1.0.0',
+          type: 'integration',
+          permissions: ['db:own'],
+        }),
+      );
       fs.writeFileSync(path.join(src, 'server', 'index.js'), 'module.exports={}');
       fs.symlinkSync(src, path.join(codeRoot, 'linked'), 'junction'); // junction on Windows, symlink on POSIX
 
       // Off (default): a stale dev-link symlink is not discovered or registered.
       delete process.env.TREK_PLUGINS_DEV_LINK;
-      expect(discoverPlugins(db).discovered).toEqual([]);
-      expect(db.prepare("SELECT status FROM plugins WHERE id='linked'").get()).toBeUndefined();
+      expect((await discoverPlugins(repos)).discovered).toEqual([]);
+      expect(await findRow(t, Plugins, { id: 'linked' })).toBeNull();
 
       // On: the dev-link is followed and registered inactive.
       process.env.TREK_PLUGINS_DEV_LINK = '1';
-      expect(discoverPlugins(db).discovered).toEqual(['linked']);
-      expect(db.prepare("SELECT status FROM plugins WHERE id='linked'").get()).toMatchObject({ status: 'inactive' });
+      expect((await discoverPlugins(repos)).discovered).toEqual(['linked']);
+      expect(await findRow(t, Plugins, { id: 'linked' })).toMatchObject({ status: 'inactive' });
     } finally {
-      if (prev === undefined) delete process.env.TREK_PLUGINS_DEV_LINK; else process.env.TREK_PLUGINS_DEV_LINK = prev;
+      if (prev === undefined) delete process.env.TREK_PLUGINS_DEV_LINK;
+      else process.env.TREK_PLUGINS_DEV_LINK = prev;
       fs.rmSync(srcRoot, { recursive: true, force: true });
     }
   });
 
-  it('is a no-op when the plugins dir is absent', () => {
+  it('is a no-op when the plugins dir is absent', async () => {
     process.env.TREK_PLUGINS_DIR = path.join(codeRoot, 'does-not-exist');
-    expect(discoverPlugins(db)).toEqual({ discovered: [], skipped: [] });
+    expect(await discoverPlugins(repos)).toEqual({ discovered: [], skipped: [] });
   });
 
   describe('the TREK range', () => {
-    it('persists the range and its lower bound', () => {
+    it('persists the range and its lower bound', async () => {
       writePlugin('ranged', { trek: '>=3.2.0 <4.0.0' });
-      discoverPlugins(db);
-      expect(db.prepare("SELECT trek_range, min_trek_version FROM plugins WHERE id='ranged'").get())
-        .toMatchObject({ trek_range: '>=3.2.0 <4.0.0', min_trek_version: '3.2.0' });
+      await discoverPlugins(repos);
+      expect(await findRow(t, Plugins, { id: 'ranged' })).toMatchObject({
+        trek_range: '>=3.2.0 <4.0.0',
+        min_trek_version: '3.2.0',
+      });
     });
 
-    it('still registers a plugin that declares NO range — it must not vanish', () => {
+    it('still registers a plugin that declares NO range — it must not vanish', async () => {
       // Discovery is a reconciler, not a gate: it only logs and skips on a throw and never
       // touches the plugins row, so refusing here would leave an existing plugin's stale
       // enabled=1 row to be spawned by the next boot — invisible AND running. The row is
       // registered with a null range and the activation gate refuses it (TREK_VERSION_UNKNOWN).
       writePlugin('rangeless', {});
-      expect(discoverPlugins(db).discovered).toEqual(['rangeless']);
-      expect(db.prepare("SELECT trek_range FROM plugins WHERE id='rangeless'").get()).toMatchObject({ trek_range: null });
+      expect((await discoverPlugins(repos)).discovered).toEqual(['rangeless']);
+      expect(await findRow(t, Plugins, { id: 'rangeless' })).toMatchObject({ trek_range: null });
     });
 
-    it('refreshes the range on re-discovery, so a plugin that narrowed its support is caught', () => {
+    it('refreshes the range on re-discovery, so a plugin that narrowed its support is caught', async () => {
       writePlugin('shrink', { trek: '>=3.0.0' });
-      discoverPlugins(db);
+      await discoverPlugins(repos);
       writePlugin('shrink', { trek: '>=3.0.0 <3.1.0' });
-      discoverPlugins(db);
-      expect(db.prepare("SELECT trek_range FROM plugins WHERE id='shrink'").get()).toMatchObject({ trek_range: '>=3.0.0 <3.1.0' });
+      await discoverPlugins(repos);
+      expect(await findRow(t, Plugins, { id: 'shrink' })).toMatchObject({ trek_range: '>=3.0.0 <3.1.0' });
     });
   });
 });

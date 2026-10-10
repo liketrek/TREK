@@ -442,6 +442,20 @@ describe('TripFormModal', () => {
     }));
   });
 
+  it('FE-COMP-TRIPFORM-038: moving the start across a DST change keeps the trip length in calendar days', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    const trip = buildTrip({ id: 1, title: 'Spring Trip', start_date: '2026-03-20', end_date: '2026-03-29' });
+    render(<TripFormModal {...defaultProps} trip={trip} onSave={onSave} />);
+
+    await changeStartDate(user, '2026-03-25');
+    await user.click(screen.getByRole('button', { name: /Update/i }));
+    await user.click(await screen.findByRole('button', { name: /Update/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ start_date: '2026-03-25', end_date: '2026-04-03' }));
+  });
+
   it('FE-COMP-TRIPFORM-036: picking "Shift everything" sends shift_all', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue({});

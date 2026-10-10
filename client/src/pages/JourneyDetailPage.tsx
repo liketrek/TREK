@@ -11,7 +11,7 @@ import EmptyState from '../components/shared/EmptyState'
 import { Outlet } from 'react-router'
 import {
   ArrowLeft, MoreHorizontal, List, Grid, MapPin,
-  Plus, ChevronUp, ChevronDown, Eye, EyeOff, BookOpen, Image, Search, X,
+  Plus, ChevronUp, ChevronDown, Eye, EyeOff, BookOpen, Image, Search, X, Loader2,
 } from 'lucide-react'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import JourneyDayDawarich from '../components/Journey/JourneyDayDawarich'
@@ -25,11 +25,18 @@ import { GalleryView } from '../components/Journey/JourneyDetailPageGalleryView'
 import { EntryEditor } from '../components/Journey/JourneyDetailPageEntryEditor'
 import { AddTripDialog } from '../components/Journey/JourneyDetailPageAddTripDialog'
 import { JourneySettingsDialog } from '../components/Journey/JourneyDetailPageSettingsDialog'
+import HelpAnchor from '../components/Help/HelpAnchor'
+import JourneyDayJump from '../components/Journey/JourneyDayJump'
 
 export default function JourneyDetailPage() {
   // ViewportRoute in App.tsx picks the branch now, so the phone screen is a
   // chunk of its own instead of a dead limb in this one.
-  return <JourneyDetailPageDesktop />
+  return (
+    <>
+      <HelpAnchor id="journey-detail" />
+      <JourneyDetailPageDesktop />
+    </>
+  )
 }
 
 function JourneyDetailPageDesktop() {
@@ -49,10 +56,12 @@ function JourneyDetailPageDesktop() {
     query, setQuery, dismissSuggestion, restoreSuggestions, openAtEntryId,
     dawarichByDate, dawarichBusyId, acceptDawarich, dismissDawarich,
     mapRef, fullMapRef, galleryUploadRef, galleryProviders, setGalleryProviders, galleryBrowseRef,
+    galleryUploadProgress, setGalleryUploadProgress,
     activeLocationId, handleMarkerClick, handleLocationClick,
-    mapEntries, sidebarMapItems, tripDates, isMobile, tracks,
+    mapEntries, sidebarMapItems, tripDates, isMobile, tracks, mapPhotos, openMapPhotos,
     feedEdge, scrollFeedTo,
     loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
+    addPickedProviderPhotos, addEntryProviderPhotos,
   } = useJourneyDetail()
 
   if (loading || !current) {
@@ -98,7 +107,7 @@ function JourneyDetailPageDesktop() {
     : []
   const sortedDates = [...new Set([...dayGroups.keys(), ...suggestionDates])]
     .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
-  const lifecycle = computeJourneyLifecycle(current.status, tripDateMin || null, tripDateMax || null)
+  const lifecycle = computeJourneyLifecycle(current.status, tripDateMin || null, tripDateMax || null, current.status_override)
 
   const showMobileCombined = isMobile && view === 'timeline'
   const showMobileGallery = isMobile && view === 'gallery'
@@ -110,7 +119,11 @@ function JourneyDetailPageDesktop() {
   const toggleSkeletons = async () => {
     const next = !hideSkeletons
     setHideSkeletons(next)
-    await journeyApi.updatePreferences(current.id, { hide_skeletons: next })
+    try {
+      await journeyApi.updatePreferences(current.id, { hide_skeletons: next })
+    } catch {
+      // A view preference, as on the phone: the local flip stands until the next load.
+    }
   }
   const skeletonLabel = hideSkeletons ? t('journey.skeletons.show') : t('journey.skeletons.hide')
   const barButton = 'w-10 h-10 flex-shrink-0 rounded-lg bg-surface-elevated backdrop-blur-lg border border-edge shadow-lg text-content-secondary flex items-center justify-center hover:bg-surface-hover active:scale-95 transition-transform'
@@ -133,11 +146,21 @@ function JourneyDetailPageDesktop() {
       ))}
       <button type="button"
         onClick={() => galleryUploadRef.current?.()}
-        className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5"
+        disabled={galleryUploadProgress !== null}
+        className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[13px] font-semibold transition-transform hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0"
         style={{ background: 'var(--vg-ink)', color: 'var(--vg-bg)' }}
       >
-        <Plus size={16} strokeWidth={2.4} />
-        {t('common.upload')}
+        {galleryUploadProgress ? (
+          <>
+            <Loader2 size={16} strokeWidth={2.4} className="animate-spin" />
+            {t('journey.editor.uploadingProgress', { done: String(galleryUploadProgress.done), total: String(galleryUploadProgress.total) })}
+          </>
+        ) : (
+          <>
+            <Plus size={16} strokeWidth={2.4} />
+            {t('common.upload')}
+          </>
+        )}
       </button>
     </div>
   ) : null
@@ -180,7 +203,7 @@ function JourneyDetailPageDesktop() {
           back | tabs+title | book export, suggestions, settings */}
       {isMobileChromeless && (
         <div
-          className="fixed left-0 right-0 z-30 flex items-start justify-between gap-2 px-4"
+          className="fixed inset-x-0 z-30 flex items-start justify-between gap-2 px-4"
           style={{ top: 'calc(var(--nav-h, 56px) + 12px)' }}
         >
           <button type="button"
@@ -325,7 +348,7 @@ function JourneyDetailPageDesktop() {
                       >
                         {hideSkeletons ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
-                      <span className="absolute top-full mt-2 right-0 px-2 py-1 rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[11px] font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity">
+                      <span className="absolute top-full mt-2 end-0 px-2 py-1 rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[11px] font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity">
                         {skeletonLabel}
                       </span>
                     </div>
@@ -451,7 +474,7 @@ function JourneyDetailPageDesktop() {
                     const locations = [...new Set(entries.map(e => e.location_name).filter(Boolean))]
 
                     return (
-                      <div key={date} className="flex flex-col gap-3 trek-stagger">
+                      <div key={date} data-day={date} className="flex flex-col gap-3 trek-stagger">
                         <div className="backdrop-blur border-y md:border rounded-none md:rounded-2xl -mx-4 md:mx-0 px-4 py-3 flex items-center justify-between" style={{ background: 'var(--vg-surf)', borderColor: 'var(--vg-line)' }}>
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-[13px] font-bold text-white" style={{ background: DAY_COLORS[dayIdx % DAY_COLORS.length], boxShadow: `0 5px 14px -4px ${DAY_COLORS[dayIdx % DAY_COLORS.length]}` }}>
@@ -460,7 +483,7 @@ function JourneyDetailPageDesktop() {
                             <h3 className="text-[14px] font-semibold capitalize" style={{ color: 'var(--vg-ink)' }}>{new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.07em]" style={{ background: 'var(--vg-surf2)', color: 'var(--vg-ink3)' }}><MapPin size={12} /> {entries.length} {t('journey.synced.places')}</span>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.07em]" style={{ background: 'var(--vg-surf2)', color: 'var(--vg-ink3)' }}><MapPin size={12} /> {entries.length} {t('journey.synced.places', { count: entries.length })}</span>
                             {/* The only Add button used to be at the very top and always
                                 started on today, so putting something into an earlier day
                                 meant correcting the date by hand (discussion #2299). */}
@@ -507,7 +530,7 @@ function JourneyDetailPageDesktop() {
                                   feed misaligned with the day header above it. Shown on
                                   hover, since they are for the one card you are working on. */}
                               {canReorder && (
-                                <div className="absolute right-full top-1/2 mr-1.5 flex -translate-y-1/2 flex-col gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
+                                <div className="absolute end-full top-1/2 me-1.5 flex -translate-y-1/2 flex-col gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
                                   <button
                                     type="button"
                                     onClick={() => move(-1)}
@@ -588,6 +611,7 @@ function JourneyDetailPageDesktop() {
                 )}
                 <GalleryView
                   onRegisterUpload={(fn) => { galleryUploadRef.current = fn }}
+                  onUploadProgress={setGalleryUploadProgress}
                   onRegisterProviders={(providers, browse) => { setGalleryProviders(providers); galleryBrowseRef.current = browse }}
                   entries={current.entries}
                   gallery={current.gallery || []}
@@ -596,6 +620,7 @@ function JourneyDetailPageDesktop() {
                   trips={current.trips}
                   onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption ?? null, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id, mediaType: p.media_type })), index: idx })}
                   onRefresh={() => loadJourney(Number(id))}
+                  onAddProviderPhotos={addPickedProviderPhotos}
                 />
               </div>
 
@@ -605,9 +630,9 @@ function JourneyDetailPageDesktop() {
                   buttons, the left to the reorder arrows. Zero-height sticky box
                   so it rides the scroll without taking layout space, and each
                   half appears only when there is somewhere to go. */}
-              {!isMobile && (!feedEdge.atTop || !feedEdge.atBottom) && (
+              {!isMobile && view === 'timeline' && (!feedEdge.atTop || !feedEdge.atBottom || sortedDates.length > 1) && (
                 <div className="sticky bottom-0 z-20 h-0 pointer-events-none">
-                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-auto">
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1.5 pointer-events-auto">
                     {!feedEdge.atTop && (
                       <button type="button"
                         onClick={() => scrollFeedTo('top')}
@@ -619,6 +644,15 @@ function JourneyDetailPageDesktop() {
                         <ChevronUp size={16} strokeWidth={2.4} />
                       </button>
                     )}
+                    {/* Every day, and each day's entries, one click away (#1243). */}
+                    <JourneyDayJump
+                      feedRef={feedRef}
+                      days={sortedDates.map((date, i) => ({
+                        date,
+                        color: DAY_COLORS[i % DAY_COLORS.length],
+                        entries: (dayGroups.get(date) ?? []).map(e => ({ id: e.id, title: e.title || e.location_name || t('journey.detail.newEntry') })),
+                      }))}
+                    />
                     {!feedEdge.atBottom && (
                       <button type="button"
                         onClick={() => scrollFeedTo('bottom')}
@@ -643,13 +677,15 @@ function JourneyDetailPageDesktop() {
           {/* RIGHT column on desktop — sticky rounded map (polarsteps-style).
               Hidden on mobile; mobile gets its own chromeless combined view. */}
           {!isMobile && (
-            <aside className="w-[44%] max-w-[820px] min-w-[420px] pt-6 pr-4 pb-4 pl-0">
+            <aside className="w-[44%] max-w-[820px] min-w-[420px] pt-6 pe-4 pb-4 ps-0">
               <div className="h-full rounded-[22px] overflow-hidden shadow-sm" style={{ border: '1px solid var(--vg-line)' }}>
                 <JourneyMap
                   ref={mapRef}
                   checkins={[]}
                   entries={sidebarMapItems as any}
                   tracks={tracks}
+                  photos={mapPhotos}
+                  onPhotoClick={openMapPhotos}
                   height={9999}
                   activeMarkerId={activeEntryId}
                   onMarkerClick={handleMarkerClick}
@@ -696,9 +732,7 @@ function JourneyDetailPageDesktop() {
           showVerdict={current.show_verdict !== 0}
           showMood={current.show_mood !== 0}
           showWeather={current.show_weather !== 0}
-          onAddProviderPhotos={async (entryId, group) => {
-            await journeyApi.addProviderPhotos(entryId, group.provider, group.assetIds, undefined, group.passphrase, group.mediaTypes)
-          }}
+          onAddProviderPhotos={addEntryProviderPhotos}
           onDone={() => {
             setEditingEntry(null)
             loadJourney(Number(id))

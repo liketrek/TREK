@@ -27,13 +27,13 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
     <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0, height: '100%' }}>
       <ChatMessages {...S} />
       {/* Composer */}
-      <div onDragOver={e => e.preventDefault()} onDrop={handleDrop} style={{ flexShrink: 0, paddingTop: 8, paddingLeft: 12, paddingRight: 12, borderTop: '1px solid var(--border-faint)' }} className="pb-3 bg-surface-card">
+      <div onDragOver={e => e.preventDefault()} onDrop={handleDrop} style={{ flexShrink: 0, paddingTop: 8, paddingInline: 12, borderTop: '1px solid var(--border-faint)' }} className="pb-3 bg-surface-card">
         {/* Reply preview */}
         {replyTo && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
             padding: '6px 10px', borderRadius: 10, background: 'var(--bg-secondary)',
-            borderLeft: '3px solid #007AFF', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-muted)',
+            borderInlineStart: '3px solid var(--accent)', fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-muted)',
           }}>
             <Reply size={12} style={{ flexShrink: 0, opacity: 0.5 }} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
@@ -48,7 +48,7 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
           </div>
         )}
 
-        {imagePreviews.length > 0 && <div style={{ display: 'flex', gap: 8, marginBottom: 8, overflowX: 'auto' }}>{imagePreviews.map((url, i) => <div key={url} style={{ position: 'relative' }}><img src={url} alt="" style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8 }} /><button type="button" onClick={() => removeImage(i)} aria-label={t('places.removeImage')} style={{ position: 'absolute', top: -6, right: -6, border: 0, borderRadius: '50%', background: 'var(--text-primary)', color: 'var(--bg-primary)', width: 18, height: 18, cursor: 'pointer' }}>×</button></div>)}</div>}
+        {imagePreviews.length > 0 && <div style={{ display: 'flex', gap: 8, marginBottom: 8, overflowX: 'auto' }}>{imagePreviews.map((url, i) => <div key={url} style={{ position: 'relative' }}><img src={url} alt="" style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8 }} /><button type="button" onClick={() => removeImage(i)} aria-label={t('places.removeImage')} style={{ position: 'absolute', top: -6, insetInlineEnd: -6, border: 0, borderRadius: '50%', background: 'var(--text-primary)', color: 'var(--bg-primary)', width: 18, height: 18, cursor: 'pointer' }}>×</button></div>)}</div>}
         {uploadProgress > 0 && uploadProgress < 100 && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{t('collab.chat.uploading', { percent: uploadProgress })}</div>}
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
           {/* Emoji button */}
@@ -87,8 +87,8 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
           {canEdit && (
             <button type="button" onClick={handleSend} disabled={(!text.trim() && !imageFiles.length) || sending} style={{
               width: 34, height: 34, borderRadius: '50%', border: 'none',
-              background: text.trim() || imageFiles.length ? '#007AFF' : 'var(--border-primary)',
-              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: text.trim() || imageFiles.length ? 'var(--accent)' : 'var(--border-primary)',
+              color: text.trim() || imageFiles.length ? 'var(--accent-text)' : 'var(--text-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: text.trim() || imageFiles.length ? 'pointer' : 'default', flexShrink: 0,
               transition: 'background 0.15s',
             }}>

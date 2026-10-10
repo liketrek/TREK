@@ -3,7 +3,6 @@
  * so the global ZodValidationPipe (APP_PIPE) validates bodies by metatype —
  * the shared Zod schemas stay the single source of truth.
  */
-import { createZodDto } from 'nestjs-zod';
 import {
   dawarichAcceptSchema,
   dawarichAtlasAcceptSchema,
@@ -11,6 +10,8 @@ import {
   dawarichSettingsSchema,
   dawarichSuggestionStateSchemaBody,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 export class DawarichSettingsDto extends createZodDto(dawarichSettingsSchema) {}
 export class DawarichAcceptDto extends createZodDto(dawarichAcceptSchema) {}

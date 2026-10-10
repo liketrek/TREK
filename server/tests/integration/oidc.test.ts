@@ -7,54 +7,31 @@
  * silently miss). State management, auth codes, and findOrCreateUser run for
  * real on that same instance against the real test DB.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { AuditLog } from '../../src/db/entities/AuditLog.entity';
+import { Users } from '../../src/db/entities/Users.entity';
+import { OidcService } from '../../src/nest/oidc/oidc.service';
+import { createUser } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { findRow, findRows } from '../helpers/factories/rows';
+import { setAppSetting } from '../helpers/factories/settings';
+import { readUser } from '../helpers/factories/users';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
-// ── DB mock (inline vi.hoisted pattern) ──────────────────────────────────────
-
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: () => null,
-    canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
-    isOwner: (tripId: any, userId: number) =>
-      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
-});
-
-vi.mock('../../src/db/database', () => dbMock);
-vi.mock('../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-  SESSION_DURATION: '24h',
-  SESSION_DURATION_MS: 86400000,
-  SESSION_DURATION_SECONDS: 86400,
-  SESSION_DURATION_REMEMBER: '30d',
-  SESSION_DURATION_REMEMBER_MS: 2592000000,
-  SESSION_DURATION_REMEMBER_SECONDS: 2592000,
-  DEFAULT_LANGUAGE: 'en',
-}));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
-
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import type { MockInstance } from 'vitest';
-import { buildApp } from '../../src/bootstrap';
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser } from '../helpers/factories';
-import { OidcService } from '../../src/nest/oidc/oidc.service';
+
+// ── DB mock (async vi.mock factory over the migrated schema snapshot) ────────
+
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 /** Read one cookie's value out of a response's Set-Cookie header, as a browser would. */
 function readCookie(res: request.Response, name: string): string | undefined {
@@ -74,6 +51,8 @@ const MOCK_DISCOVERY_DOC = {
 
 let nestApp: INestApplication;
 let app: Application;
+/** The app's own ORM, which the factories seed and read through. */
+const orm = (): FactoryOrm => nestApp.get(MikroORM);
 let oidcSvc: OidcService;
 let mockDiscover: MockInstance<OidcService['discover']>;
 let mockExchangeCode: MockInstance<OidcService['exchangeCodeForToken']>;
@@ -81,8 +60,6 @@ let mockGetUserInfo: MockInstance<OidcService['getUserInfo']>;
 let mockVerifyIdToken: MockInstance<OidcService['verifyIdToken']>;
 
 beforeAll(async () => {
-  createTables(testDb);
-  runMigrations(testDb);
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
   // Stub only the HTTP-calling methods on the container's OidcService — the
@@ -99,9 +76,9 @@ beforeAll(async () => {
   mockVerifyIdToken = vi.spyOn(oidcSvc, 'verifyIdToken').mockImplementation(async () => undefined as never);
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   resetTestDb(testDb);
-  resetRateLimits(nestApp);
+  await resetRateLimits(nestApp);
   vi.clearAllMocks();
 
   // Set OIDC environment variables for each test
@@ -182,9 +159,11 @@ describe('GET /api/auth/oidc/callback', () => {
     });
 
     // Create a valid state token
-    const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = await oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=authcode123&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=authcode123&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('/login?oidc_code=');
@@ -193,27 +172,42 @@ describe('GET /api/auth/oidc/callback', () => {
   it('OIDC-004b: a successful login writes the user.login row every other method writes (#2417)', async () => {
     const { user } = createUser(testDb, { email: 'audited@example.com' });
     mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
-    mockExchangeCode.mockResolvedValueOnce({ access_token: 'test-access-token', id_token: 'fake.id.token', _ok: true, _status: 200 });
+    mockExchangeCode.mockResolvedValueOnce({
+      access_token: 'test-access-token',
+      id_token: 'fake.id.token',
+      _ok: true,
+      _status: 200,
+    });
     mockVerifyIdToken.mockResolvedValueOnce({ ok: true, claims: { sub: 'sub-audited-1' } });
-    mockGetUserInfo.mockResolvedValueOnce({ sub: 'sub-audited-1', email: 'audited@example.com', name: 'Audited', email_verified: true });
-    const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
+    mockGetUserInfo.mockResolvedValueOnce({
+      sub: 'sub-audited-1',
+      email: 'audited@example.com',
+      name: 'Audited',
+      email_verified: true,
+    });
+    const { state } = await oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=authcode123&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=authcode123&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     // The query from the report, against the same table.
-    const rows = testDb.prepare('SELECT user_id, action, details FROM audit_log WHERE user_id = ? ORDER BY id DESC').all(user.id) as
-      { user_id: number; action: string; details: string | null }[];
-    expect(rows.map(r => r.action)).toContain('user.login');
-    const login = rows.find(r => r.action === 'user.login')!;
+    const rows = await findRows(orm(), AuditLog, { user: user.id }, { id: 'desc' });
+    expect(rows.map((r) => r.action)).toContain('user.login');
+    const login = rows.find((r) => r.action === 'user.login')!;
     expect(JSON.parse(login.details || '{}')).toEqual({ method: 'oidc' });
-    const counted = testDb.prepare('SELECT login_count FROM users WHERE id = ?').get(user.id) as { login_count: number };
-    expect(counted.login_count).toBe(1);
+    expect((await readUser(orm(), user.id)).login_count).toBe(1);
   });
 
   it('OIDC-005: new user gets created when registration is open', async () => {
     mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
-    mockExchangeCode.mockResolvedValueOnce({ access_token: 'new-token', id_token: 'fake.id.token', _ok: true, _status: 200 });
+    mockExchangeCode.mockResolvedValueOnce({
+      access_token: 'new-token',
+      id_token: 'fake.id.token',
+      _ok: true,
+      _status: 200,
+    });
     mockVerifyIdToken.mockResolvedValueOnce({ ok: true, claims: { sub: 'sub-newuser-999' } });
     mockGetUserInfo.mockResolvedValueOnce({
       sub: 'sub-newuser-999',
@@ -221,22 +215,28 @@ describe('GET /api/auth/oidc/callback', () => {
       name: 'New User',
     });
 
-    const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = await oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=code999&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=code999&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('/login?oidc_code=');
 
     // Verify user was created in DB
-    const newUser = testDb.prepare("SELECT * FROM users WHERE email = 'newuser@example.com'").get() as { id: number; username: string; role: string } | undefined;
-    expect(newUser).toBeDefined();
+    const newUser = await findRow(orm(), Users, { email: 'newuser@example.com' });
+    expect(newUser).not.toBeNull();
     // Registered, the way the audit log reports a password signup, and then logged in:
     // an admin reading user.register for who got an account sees the SSO ones too.
-    const rows = testDb.prepare('SELECT action, details FROM audit_log WHERE user_id = ? ORDER BY id').all(newUser!.id) as
-      { action: string; details: string | null }[];
-    expect(rows.map(r => r.action)).toEqual(['user.register', 'user.login']);
-    expect(JSON.parse(rows[0].details || '{}')).toEqual({ username: newUser!.username, email: 'newuser@example.com', role: newUser!.role, method: 'oidc' });
+    const rows = await findRows(orm(), AuditLog, { user: newUser!.id }, { id: 'asc' });
+    expect(rows.map((r) => r.action)).toEqual(['user.register', 'user.login']);
+    expect(JSON.parse(rows[0].details || '{}')).toEqual({
+      username: newUser!.username,
+      email: 'newuser@example.com',
+      role: newUser!.role,
+      method: 'oidc',
+    });
   });
 
   it('OIDC-006: invalid state → redirects with invalid_state error', async () => {
@@ -264,9 +264,11 @@ describe('GET /api/auth/oidc/callback', () => {
     mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
     mockExchangeCode.mockResolvedValueOnce({ _ok: false, _status: 400 });
 
-    const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = await oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=badcode&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=badcode&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('oidc_error=token_failed');
@@ -276,9 +278,11 @@ describe('GET /api/auth/oidc/callback', () => {
     mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
     mockExchangeCode.mockResolvedValueOnce({ access_token: 'tok', _ok: true, _status: 200 }); // no id_token
 
-    const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = await oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=anycode&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('oidc_error=no_id_token');
@@ -289,9 +293,11 @@ describe('GET /api/auth/oidc/callback', () => {
     mockExchangeCode.mockResolvedValueOnce({ access_token: 'tok', id_token: 'bad.id.token', _ok: true, _status: 200 });
     mockVerifyIdToken.mockResolvedValueOnce({ ok: false, error: 'signature_or_claim_mismatch: invalid signature' });
 
-    const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = await oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=anycode&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('oidc_error=id_token_invalid');
@@ -307,9 +313,11 @@ describe('GET /api/auth/oidc/callback', () => {
       name: 'Alice',
     });
 
-    const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = await oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=anycode&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('oidc_error=subject_mismatch');
@@ -319,7 +327,7 @@ describe('GET /api/auth/oidc/callback', () => {
     // Need at least one existing user so isFirstUser=false
     createUser(testDb, { email: 'existing@example.com' });
     // Disable registration
-    testDb.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('allow_registration', 'false')").run();
+    await setAppSetting(orm(), 'allow_registration', 'false');
 
     mockDiscover.mockResolvedValueOnce(MOCK_DISCOVERY_DOC);
     mockExchangeCode.mockResolvedValueOnce({ access_token: 'tok', id_token: 'fake.id.token', _ok: true, _status: 200 });
@@ -330,9 +338,11 @@ describe('GET /api/auth/oidc/callback', () => {
       name: 'Blocked',
     });
 
-    const { state } = oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
+    const { state } = await oidcSvc.createState('http://localhost:3001/api/auth/oidc/callback');
 
-    const res = await request(app).get(`/api/auth/oidc/callback?code=anycode&state=${state}`).set('Cookie', `trek_oidc_state=${state}`);
+    const res = await request(app)
+      .get(`/api/auth/oidc/callback?code=anycode&state=${state}`)
+      .set('Cookie', `trek_oidc_state=${state}`);
 
     expect(res.status).toBe(302);
     expect(res.headers.location).toContain('oidc_error=registration_disabled');
@@ -344,14 +354,14 @@ describe('GET /api/auth/oidc/callback', () => {
 describe('GET /api/auth/oidc/exchange', () => {
   it('OIDC-011: valid auth code returns JWT and sets cookie', async () => {
     const fakeToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.sig';
-    const { code, binding } = oidcSvc.createAuthCode(fakeToken);
+    const { code, binding } = await oidcSvc.createAuthCode(fakeToken);
 
     const res = await request(app)
       .get(`/api/auth/oidc/exchange?code=${code}`)
       .set('Cookie', `trek_oidc_exchange=${binding}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.token).toBe(fakeToken);
+    expect(res.body).toEqual({ success: true, token: fakeToken });
     expect(res.headers['set-cookie']).toBeDefined();
     const cookieHeader = Array.isArray(res.headers['set-cookie'])
       ? res.headers['set-cookie'].join(';')
@@ -372,7 +382,7 @@ describe('GET /api/auth/oidc/exchange', () => {
   });
 
   it('OIDC-013b: a real code without its binding cookie returns 400 and buys nothing', async () => {
-    const { code } = oidcSvc.createAuthCode('valid.but.unbound');
+    const { code } = await oidcSvc.createAuthCode('valid.but.unbound');
 
     const res = await request(app).get(`/api/auth/oidc/exchange?code=${code}`);
 
@@ -384,7 +394,7 @@ describe('GET /api/auth/oidc/exchange', () => {
 
   it('OIDC-014: auth code is single-use (second use returns 400)', async () => {
     const fakeToken = 'test.token.here';
-    const { code, binding } = oidcSvc.createAuthCode(fakeToken);
+    const { code, binding } = await oidcSvc.createAuthCode(fakeToken);
     const cookie = `trek_oidc_exchange=${binding}`;
 
     // First use: success
@@ -422,9 +432,7 @@ describe('OIDC remember-me (#1927)', () => {
     const binding = readCookie(cb, 'trek_oidc_exchange')!;
     expect(binding).toBeTruthy();
 
-    return request(app)
-      .get(`/api/auth/oidc/exchange?code=${oidcCode}`)
-      .set('Cookie', `trek_oidc_exchange=${binding}`);
+    return request(app).get(`/api/auth/oidc/exchange?code=${oidcCode}`).set('Cookie', `trek_oidc_exchange=${binding}`);
   }
 
   function sessionCookie(res: request.Response): string {
@@ -493,7 +501,9 @@ describe('OIDC auth-code binding', () => {
   it('OIDC-018: /callback sets the binding as an httpOnly cookie that dies with the code', async () => {
     const { response } = await loginUpToCallback('sub-bind-1', 'bind1@example.com');
 
-    const raw = (response.headers['set-cookie'] as unknown as string[]).find((c) => c.startsWith('trek_oidc_exchange='))!;
+    const raw = (response.headers['set-cookie'] as unknown as string[]).find((c) =>
+      c.startsWith('trek_oidc_exchange='),
+    )!;
     expect(raw).toMatch(/HttpOnly/i);
     expect(raw).toMatch(/SameSite=Lax/i);
     // Same minute the code lives; a cookie that outlived it could only ever fail.

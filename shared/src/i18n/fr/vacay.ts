@@ -86,6 +86,7 @@ const vacay: TranslationStrings = {
   'vacay.carryOverHint': "Reporter automatiquement les jours de vacances restants à l'année suivante",
   'vacay.carriedOverPrevPeriod': 'de la période précédente',
   'vacay.compUsedCount': '{count} récup',
+  'vacay.compUsedCount.one': '{count} récup',
   'vacay.yearType': 'Année de congés',
   'vacay.yearTypeHint': "Quand commence votre année de congés — les droits, l'utilisation et le report en dépendent",
   'vacay.yearTypeCalendar': 'Année civile',

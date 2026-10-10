@@ -1,19 +1,26 @@
 import {
-  McpController, Tool, Resource, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  demoDenied, ok,
+  McpController,
+  Tool,
+  Resource,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  ok,
 } from '../../nest-mcp';
-import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { NotificationsService } from './notifications.service';
+import { idSchema } from '@trek/shared';
+
+import { z } from 'zod';
 
 function jsonContent(uri: string, data: unknown) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify(data, null, 2),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify(data, null, 2),
+      },
+    ],
   };
 }
 
@@ -31,16 +38,13 @@ function jsonContent(uri: string, data: unknown) {
  */
 @McpController()
 export class NotificationsMcp {
-  constructor(
-    private readonly notifications: NotificationsService,
-    private readonly auth: AuthService,
-  ) {}
+  constructor(private readonly notifications: NotificationsService) {}
 
   @Tool({
     name: 'list_notifications',
     description: 'List in-app notifications for the current user.',
     inputSchema: {
-      limit: z.number().int().positive().optional().default(20),
+      limit: idSchema.optional().default(20),
       offset: z.number().int().min(0).optional().default(0),
       unread_only: z.boolean().optional().default(false),
     },
@@ -51,7 +55,11 @@ export class NotificationsMcp {
     { limit, offset, unread_only }: { limit?: number; offset?: number; unread_only?: boolean },
     ctx: McpContext,
   ) {
-    const result = this.notifications.listInApp(ctx.userId, { limit: limit ?? 20, offset: offset ?? 0, unreadOnly: unread_only ?? false });
+    const result = await this.notifications.listInApp(ctx.userId, {
+      limit: limit ?? 20,
+      offset: offset ?? 0,
+      unreadOnly: unread_only ?? false,
+    });
     return ok(result);
   }
 
@@ -63,7 +71,7 @@ export class NotificationsMcp {
     access: { group: 'notifications', mode: 'read' },
   })
   async getUnreadNotificationCount(_input: Record<string, never>, ctx: McpContext) {
-    const count = this.notifications.unreadCount(ctx.userId);
+    const count = await this.notifications.unreadCount(ctx.userId);
     return ok({ count });
   }
 
@@ -71,14 +79,13 @@ export class NotificationsMcp {
     name: 'mark_notification_read',
     description: 'Mark a single notification as read.',
     inputSchema: {
-      notificationId: z.number().int().positive(),
+      notificationId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'notifications', mode: 'write' },
   })
   async markNotificationRead({ notificationId }: { notificationId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const success = this.notifications.markRead(notificationId, ctx.userId);
+    const success = await this.notifications.markRead(notificationId, ctx.userId);
     if (!success) return { content: [{ type: 'text' as const, text: 'Notification not found.' }], isError: true };
     return ok({ success: true });
   }
@@ -87,14 +94,13 @@ export class NotificationsMcp {
     name: 'mark_notification_unread',
     description: 'Mark a single notification as unread.',
     inputSchema: {
-      notificationId: z.number().int().positive(),
+      notificationId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'notifications', mode: 'write' },
   })
   async markNotificationUnread({ notificationId }: { notificationId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const success = this.notifications.markUnread(notificationId, ctx.userId);
+    const success = await this.notifications.markUnread(notificationId, ctx.userId);
     if (!success) return { content: [{ type: 'text' as const, text: 'Notification not found.' }], isError: true };
     return ok({ success: true });
   }
@@ -107,8 +113,7 @@ export class NotificationsMcp {
     access: { group: 'notifications', mode: 'write' },
   })
   async markAllNotificationsRead(_input: Record<string, never>, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    const count = this.notifications.markAllRead(ctx.userId);
+    const count = await this.notifications.markAllRead(ctx.userId);
     return ok({ success: true, count });
   }
 
@@ -120,7 +125,7 @@ export class NotificationsMcp {
     access: { group: 'notifications', mode: 'read' },
   })
   async inAppNotificationsResource(uri: URL, ctx: McpContext) {
-    const result = this.notifications.listInApp(ctx.userId, { limit: 50 });
+    const result = await this.notifications.listInApp(ctx.userId, { limit: 50 });
     return jsonContent(uri.href, result);
   }
 }

@@ -38,6 +38,9 @@ export function upcomingKey(r: UpcomingReservation): string {
   return `${r.type}:${r.id}`
 }
 
+/** The label a stay's moment carries in place of a location. */
+export const MOMENT_LABEL: Record<string, string> = { checkin: 'day.checkIn', checkout: 'day.checkOut' }
+
 export const MS_PER_DAY = 86400000
 
 /**
@@ -54,6 +57,18 @@ export function daysUntil(dateStr: string | null | undefined): number | null {
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const d = new Date(dateStr + 'T00:00:00'); d.setHours(0, 0, 0, 0)
   return Math.round((d.getTime() - today.getTime()) / MS_PER_DAY)
+}
+
+// Localized date for the cards. The year is included only when it isn't the
+// current year, and order/punctuation follow the locale (EN "Sep 10, 2026",
+// DE "10. Sep 2026", vs a plain "Sep 10" this year), never a hard-coded layout.
+export function fullDate(dateStr: string | null | undefined, locale: string): string | null {
+  if (!dateStr) return null
+  const date = new Date(dateStr + 'T00:00:00Z')
+  if (Number.isNaN(date.getTime())) return null
+  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', timeZone: 'UTC' }
+  if (date.getUTCFullYear() !== new Date().getUTCFullYear()) opts.year = 'numeric'
+  return date.toLocaleDateString(locale, opts)
 }
 
 export function getTripStatus(trip: DashboardTrip): 'ongoing' | 'today' | 'tomorrow' | 'future' | 'past' | null {

@@ -1,15 +1,33 @@
 /**
  * System-notices module e2e — exercises the migrated /api/system-notices
- * endpoints through the real JwtAuthGuard against a temp SQLite db. The notices
- * service is mocked so the test doesn't depend on the static registry or the
- * dismissal tables; it focuses on routing, auth, status codes and bodies.
+ * endpoints through the real JwtAuthGuard against a temp SQLite db. Focuses on
+ * routing, auth, status codes and bodies, per its original scope.
+ *
+ * Plan 3f Task 6: `getActiveNoticesFor`/`dismissNotice` (formerly a separately
+ * mockable plain module, `../../src/systemNotices/service.ts`) are now private
+ * methods absorbed into `SystemNoticesService` itself, so there is no longer a
+ * seam below the Nest provider to mock — `SystemNoticesService` is overridden
+ * as a whole via Nest's `overrideProvider`, the same boundary
+ * `system-notices.controller.test.ts` already mocks at. The release-layout
+ * gating this test used to exercise through that lower seam (with a real
+ * `SystemNoticesService` calling a mocked `getActiveNoticesFor`) is proven
+ * directly against the real class in `system-notices.service.test.ts` instead,
+ * now that the gating logic and the notice list it filters live in the one
+ * class this file would otherwise have to fully re-implement to keep testing
+ * through HTTP.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { SystemNoticesModule } from '../../src/nest/system-notices/system-notices.module';
+import { SystemNoticesService } from '../../src/nest/system-notices/system-notices.service';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -23,31 +41,35 @@ const { db } = vi.hoisted(() => {
 
 vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
 
-const { mockGetActive, mockDismiss } = vi.hoisted(() => ({ mockGetActive: vi.fn(), mockDismiss: vi.fn() }));
-vi.mock('../../src/systemNotices/service', () => ({
-  getActiveNoticesFor: mockGetActive,
-  dismissNotice: mockDismiss,
-  getCurrentAppVersion: () => '4.3.0',
-}));
-
-import { SystemNoticesModule } from '../../src/nest/system-notices/system-notices.module';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-
 const notice = {
-  id: 'welcome', display: 'modal', severity: 'info',
-  titleKey: 'notice.welcome.title', bodyKey: 'notice.welcome.body', dismissible: true,
+  id: 'welcome',
+  display: 'modal',
+  severity: 'info',
+  titleKey: 'notice.welcome.title',
+  bodyKey: 'notice.welcome.body',
+  dismissible: true,
 };
 
 describe('System-notices e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
+  const getActiveFor = vi.fn().mockResolvedValue([]);
+  const dismiss = vi.fn().mockResolvedValue(true);
 
   async function build() {
     // DatabaseModule is @Global in the real app; a partial graph has to
     // provide it for SystemNoticesModule's AddonsModule import (the
-    // addons.e2e precedent).
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, SystemNoticesModule] }).compile();
+    // addons.e2e precedent). createTestMikroOrmModule for the same import's
+    // MikroOrmModule.forFeature (Plan 3a Task 4) and for SystemNoticesModule's
+    // own MikroOrmModule.forFeature (Plan 3f Task 6) — no case here reaches a
+    // real repository (SystemNoticesService is overridden below), so the
+    // minimal `users`-only schema above is enough.
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), SystemNoticesModule],
+    })
+      .overrideProvider(SystemNoticesService)
+      .useValue({ getActiveFor, dismiss })
+      .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -72,62 +94,33 @@ describe('System-notices e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('200 with the active notices for the user', async () => {
-    mockGetActive.mockReturnValue([notice]);
+    getActiveFor.mockResolvedValueOnce([notice]);
     const res = await request(server).get('/api/system-notices/active').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body).toEqual([notice]);
-    expect(mockGetActive).toHaveBeenCalledWith(1, expect.any(Function), false);
+    expect(getActiveFor).toHaveBeenCalledWith(1, new Set(), undefined);
   });
 
-  // A bundle from before the release layout never sends `?supports=`, and it would
-  // draw the release notice as bare keys. The route keeps that notice for a client
-  // that announces the layout and serves everything else to both.
-  describe('the release layout and ?supports=', () => {
-    const release = {
-      ...notice,
-      id: 'release-notes',
-      release: { version: '4.3.0', headlineKey: 'system_notice.release_notes.headline' },
-    };
-
-    it('holds the release notice back when the parameter is missing', async () => {
-      mockGetActive.mockReturnValue([release, notice]);
-      const res = await request(server).get('/api/system-notices/active').set('Cookie', sessionCookie(1));
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual([notice]);
-    });
-
-    it('holds it back from a bundle that announces the layout but was built for another version', async () => {
-      mockGetActive.mockReturnValue([release, notice]);
-      const res = await request(server)
-        .get('/api/system-notices/active')
-        .query({ supports: 'release', ui: '4.2.1' })
-        .set('Cookie', sessionCookie(1));
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual([notice]);
-    });
-
-    it('delivers the release notice to a client that announces the layout for the running version', async () => {
-      mockGetActive.mockReturnValue([release, notice]);
-      const res = await request(server)
-        .get('/api/system-notices/active')
-        .query({ supports: 'release', ui: '4.3.0' })
-        .set('Cookie', sessionCookie(1));
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual([release, notice]);
-    });
+  it("passes ?supports=/?ui= through as the controller's own parsed arguments", async () => {
+    getActiveFor.mockResolvedValueOnce([]);
+    await request(server)
+      .get('/api/system-notices/active')
+      .query({ supports: 'release,banner', ui: '4.3.0' })
+      .set('Cookie', sessionCookie(1));
+    expect(getActiveFor).toHaveBeenLastCalledWith(1, new Set(['release', 'banner']), '4.3.0');
   });
 
   it('204 with no body on a successful dismiss', async () => {
-    mockDismiss.mockReturnValue(true);
+    dismiss.mockResolvedValueOnce(true);
     const res = await request(server).post('/api/system-notices/welcome/dismiss').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(204);
     expect(res.body).toEqual({});
     expect(res.text).toBe('');
-    expect(mockDismiss).toHaveBeenCalledWith(1, 'welcome');
+    expect(dismiss).toHaveBeenCalledWith(1, 'welcome');
   });
 
   it('404 { error: NOTICE_NOT_FOUND } when the id is unknown', async () => {
-    mockDismiss.mockReturnValue(false);
+    dismiss.mockResolvedValueOnce(false);
     const res = await request(server).post('/api/system-notices/nope/dismiss').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'NOTICE_NOT_FOUND' });

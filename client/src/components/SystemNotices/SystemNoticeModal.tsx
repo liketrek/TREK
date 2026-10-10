@@ -110,7 +110,7 @@ function NoticeContent({ notice, title, body, ctaLabel, secondaryCtaLabel, title
       {notice.dismissible && isLastPage && (
         <button type="button"
           onClick={onDismissAll}
-          className="absolute top-4 right-4 z-10 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="absolute top-4 end-4 z-10 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           aria-label="Dismiss"
         >
           <X size={18} />
@@ -198,8 +198,8 @@ function NoticeContent({ notice, title, body, ctaLabel, secondaryCtaLabel, title
                     </div>
                   ),
                   strong: ({ children }) => <strong className="font-semibold text-slate-800 dark:text-slate-200">{children}</strong>,
-                  ul: ({ children }) => <ul className="list-disc list-inside text-left">{children}</ul>,
-                  ol: ({ children }) => <ol className="list-decimal list-inside text-left">{children}</ol>,
+                  ul: ({ children }) => <ul className="list-disc list-inside text-start">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal list-inside text-start">{children}</ol>,
                 }}
               >
                 {body}
@@ -668,6 +668,11 @@ function MobileNoticeSheet(S: NoticeState) {
 
   const prevNotice = notices[idx - 1] ?? null;
   const nextNotice = notices[idx + 1] ?? null;
+  // Where the 300% strip has to sit to show slot 0 (prev), 1 (current) or 2
+  // (next). In a right-to-left page the slots run the other way and the strip
+  // overflows to the left, so every shift points the other way; with the
+  // left-to-right shifts the sheet showed nothing at all in Arabic.
+  const stripShift = (slot: 0 | 1 | 2): number => (isRtlLanguage(language) ? 1 : -1) * slot * 33.333;
 
   return (
     <div className="fixed inset-0 z-[var(--z-notice)]" role="presentation">
@@ -686,7 +691,7 @@ function MobileNoticeSheet(S: NoticeState) {
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={bodyId}
-        className={`absolute bottom-0 left-0 right-0 rounded-t-3xl overflow-hidden h-[85dvh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl transition-[opacity,transform] ${dur} ${ease} ${mobileMotion}`}
+        className={`absolute bottom-0 inset-x-0 rounded-t-3xl overflow-hidden h-[85dvh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl transition-[opacity,transform] ${dur} ${ease} ${mobileMotion}`}
         style={{ touchAction: 'pan-y' }}
         onTouchStart={e => {
           touchStartX.current = e.touches[0].clientX;
@@ -718,7 +723,7 @@ function MobileNoticeSheet(S: NoticeState) {
             if (!strip) return;
             strip.style.transition = 'none';
             // Strip base = -33.333% (center slot visible); dx offsets from there
-            strip.style.transform = `translateX(calc(-33.333% + ${dx}px))`;
+            strip.style.transform = `translateX(calc(${stripShift(1)}% + ${dx}px))`;
           } else if (dragLockRef.current === 'v' && notice.dismissible) {
             // Only intercept downward drag for dismiss when the sheet is scrolled to the top.
             // If scrolled into content, let native pan-y scroll it back up.
@@ -751,7 +756,7 @@ function MobileNoticeSheet(S: NoticeState) {
             if ((goNext && canGoNext) || (goPrev && canGoPrev)) {
               // Animate strip to the adjacent slot (-66.666% = next, 0% = prev)
               strip.style.transition = 'transform 200ms ease-out';
-              strip.style.transform = goNext ? 'translateX(-66.666%)' : 'translateX(0%)';
+              strip.style.transform = `translateX(${stripShift(goNext ? 2 : 0)}%)`;
               strip.addEventListener('transitionend', function onDone() {
                 strip.removeEventListener('transitionend', onDone);
                 strip.style.transition = 'none';
@@ -767,16 +772,16 @@ function MobileNoticeSheet(S: NoticeState) {
                 prevSlotRef.current?.scrollTo({ top: 0 });
                 contentWrapperRef.current?.scrollTo({ top: 0 });
                 nextSlotRef.current?.scrollTo({ top: 0 });
-                strip.style.transform = 'translateX(-33.333%)';
+                strip.style.transform = `translateX(${stripShift(1)}%)`;
               }, { once: true });
             } else {
               // Spring back to center
               strip.style.transition = 'transform 300ms cubic-bezier(0.34,1.56,0.64,1)';
-              strip.style.transform = 'translateX(-33.333%)';
+              strip.style.transform = `translateX(${stripShift(1)}%)`;
               strip.addEventListener('transitionend', function onSnap() {
                 strip.removeEventListener('transitionend', onSnap);
                 strip.style.transition = '';
-                strip.style.transform = 'translateX(-33.333%)';
+                strip.style.transform = `translateX(${stripShift(1)}%)`;
               }, { once: true });
             }
             return;
@@ -809,7 +814,7 @@ function MobileNoticeSheet(S: NoticeState) {
           {/* 3-slot strip: [prev][current][next] — starts at -33.333% to show current */}
           <div
             ref={stripRef}
-            style={{ display: 'flex', width: '300%', height: '100%', alignItems: 'stretch', transform: 'translateX(-33.333%)' }}
+            style={{ display: 'flex', width: '300%', height: '100%', alignItems: 'stretch', transform: `translateX(${stripShift(1)}%)` }}
           >
             {/* The side slots are drag previews only: their pager and CTA are a
                 second copy of the centre ones, so they stay out of the a11y tree

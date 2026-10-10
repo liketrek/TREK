@@ -1,8 +1,8 @@
-// FE-MOB-AMATRIX-001 to FE-MOB-AMATRIX-011
+// FE-MOB-AMATRIX-001 to FE-MOB-AMATRIX-012
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from '../../../helpers/render';
+import { act, render, screen, waitFor } from '../../../helpers/render';
 import { server } from '../../../helpers/msw/server';
 import { resetAllStores } from '../../../helpers/store';
 import { useTranslation } from '../../../../src/i18n';
@@ -200,5 +200,48 @@ describe('MAdminNotifyMatrix', () => {
     expect(await screen.findByText('New version available')).toBeInTheDocument();
     expect(screen.queryByRole('switch')).not.toBeInTheDocument();
     expect(screen.queryByText('In-App')).not.toBeInTheDocument();
+  });
+  it('FE-MOB-AMATRIX-012: a failing earlier save reverts only its own cell, not a later one', async () => {
+    matrixRespondsWith(MATRIX);
+    const bodies: Record<string, unknown>[] = [];
+    let failFirst: () => void = () => {};
+    server.use(
+      http.put('/api/admin/notification-preferences', async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        if (bodies.length === 1) {
+          await new Promise<void>((resolve) => {
+            failFirst = resolve;
+          });
+          return HttpResponse.json({}, { status: 500 });
+        }
+        return HttpResponse.json({ success: true });
+      })
+    );
+    const toast = buildToast();
+    const user = userEvent.setup();
+    render(<Harness toast={toast} />);
+
+    const inappToggle = await screen.findByRole('switch', { name: 'version_available inapp' });
+    const emailToggle = screen.getByRole('switch', { name: 'version_available email' });
+
+    // The first save hangs while the screen renders the optimistic value.
+    await user.click(inappToggle); // on -> off, will fail
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    expect(inappToggle).toHaveAttribute('aria-checked', 'false');
+
+    // A later tap on another cell goes through.
+    await user.click(emailToggle); // off -> on, succeeds
+    await waitFor(() => expect(bodies).toHaveLength(2));
+    expect(bodies[1]).toEqual({ version_available: { inapp: false, email: true } });
+    expect(emailToggle).toHaveAttribute('aria-checked', 'true');
+
+    // Now the first save fails: only its own cell goes back.
+    await act(async () => {
+      failFirst();
+    });
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Error'));
+    expect(inappToggle).toHaveAttribute('aria-checked', 'true');
+    expect(emailToggle).toHaveAttribute('aria-checked', 'true');
   });
 });

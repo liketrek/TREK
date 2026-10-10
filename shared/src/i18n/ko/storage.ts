@@ -109,7 +109,7 @@ const storage: TranslationStrings = {
   'storage.sync.error': '동기화 실패: {error}',
   'storage.sync.prompt': '기존 객체가 아직 복제되지 않았습니다 — 지금 동기화할까요?',
   'storage.sync.dismiss': '닫기',
-  'storage.usage.line': '{objects}개 객체 · {size}',
+  'storage.usage.line': '{count}개 객체 · {size}',
   'storage.usage.computed': '사용량 계산됨 {age}',
   'storage.usage.never': '아직 사용량이 계산되지 않았습니다',
   'storage.usage.refresh': '새로고침',
@@ -118,7 +118,7 @@ const storage: TranslationStrings = {
 
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': '기존 객체를 새 백엔드로 이동할까요?',
-  'storage.migrate.promptLine': '{category}: {from}에서 {to}(으)로 {objects}개 객체 ({size})',
+  'storage.migrate.promptLine': '{category}: {from}에서 {to}(으)로 {count}개 객체 ({size})',
   'storage.migrate.promptLineUnknown': '{category}: 크기 알 수 없음 (아직 사용량 스캔 안 됨) {from}에서 {to}(으)로',
   'storage.migrate.move': '기존 객체 이동',
   'storage.migrate.routeOnly': '새 쓰기만 전환',
@@ -127,7 +127,7 @@ const storage: TranslationStrings = {
   'storage.migrate.doneFailures': '{failed}개 실패 — 해당 객체는 새 백엔드로 복사되지 않았습니다',
   'storage.migrate.failed': '이동 실패: {error} — 카테고리가 전환되지 않았습니다',
   'storage.migrate.cancelled': '이동이 취소되었습니다 — 아무것도 전환되지 않았습니다',
-  'storage.migrate.reclaimable': '{objects}개 객체 ({size})가 {from}에 남아 있습니다 — 수동으로 회수하세요',
+  'storage.migrate.reclaimable': '{count}개 객체 ({size})가 {from}에 남아 있습니다. 수동으로 회수하세요',
   'storage.migrate.cancel': '이동 취소',
   'storage.migrate.promptCancel': '취소',
   'storage.migrate.queued': '대기 중: {categories}',

@@ -41,4 +41,17 @@ describe('trip driving preferences offline cache', () => {
     await expect(roadtripPreferencesRepo.update(9, { roadtrip_range_km: 999 })).rejects.toThrow('Denied')
     expect((await offlineDb.roadtripPreferences.get(9))?.preferences.roadtrip_range_km).toBe(120)
   })
+  it('queues an online change behind an older one that is parked, reading the settings in if the cache lost them', async () => {
+    await roadtripPreferencesRepo.update(9, { roadtrip_range_km: 200 })
+    await offlineDb.mutationQueue.toCollection().modify({ status: 'failed', attempts: 8 })
+    await offlineDb.roadtripPreferences.delete(9)
+    vi.mocked(isEffectivelyOffline).mockReturnValue(false)
+    vi.mocked(apiClient.get).mockResolvedValue({ data: { tripId: 9, preferences: { roadtrip_day_start: '08:00', roadtrip_day_end: '18:00', roadtrip_range_km: 150 } } })
+
+    expect((await roadtripPreferencesRepo.update(9, { roadtrip_range_km: 300 })).roadtrip_range_km).toBe(300)
+
+    expect(apiClient.put).not.toHaveBeenCalled()
+    expect((await offlineDb.mutationQueue.toArray()).map(m => [m.status, (m.body as { roadtrip_range_km: number }).roadtrip_range_km]).sort())
+      .toEqual([['failed', 200], ['pending', 300]])
+  })
 })

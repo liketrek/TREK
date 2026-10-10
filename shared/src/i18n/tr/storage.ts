@@ -113,7 +113,8 @@ const storage: TranslationStrings = {
   'storage.sync.error': 'Eşitleme başarısız oldu: {error}',
   'storage.sync.prompt': 'Mevcut nesneler henüz çoğaltılmadı — şimdi eşitlensin mi?',
   'storage.sync.dismiss': 'Kapat',
-  'storage.usage.line': '{objects} nesne · {size}',
+  'storage.usage.line': '{count} nesne · {size}',
+  'storage.usage.line.one': '{count} nesne · {size}',
   'storage.usage.computed': 'Kullanım hesaplandı {age}',
   'storage.usage.never': 'Kullanım henüz hesaplanmadı',
   'storage.usage.refresh': 'Yenile',
@@ -122,7 +123,8 @@ const storage: TranslationStrings = {
 
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Mevcut nesneler yeni arka uca taşınsın mı?',
-  'storage.migrate.promptLine': '{category}: {from} konumundan {to} konumuna {objects} nesne ({size})',
+  'storage.migrate.promptLine': '{category}: {from} konumundan {to} konumuna {count} nesne ({size})',
+  'storage.migrate.promptLine.one': '{category}: {from} konumundan {to} konumuna {count} nesne ({size})',
   'storage.migrate.promptLineUnknown':
     '{category}: bilinmeyen boyut (henüz kullanım taraması yapılmadı) {from} konumundan {to} konumuna',
   'storage.migrate.move': 'Mevcut nesneleri taşı',
@@ -132,7 +134,8 @@ const storage: TranslationStrings = {
   'storage.migrate.doneFailures': '{failed} başarısız oldu — bu nesneler yeni arka uca kopyalanmadı',
   'storage.migrate.failed': 'Taşıma başarısız oldu: {error} — kategori değiştirilmedi',
   'storage.migrate.cancelled': 'Taşıma iptal edildi — hiçbir şey değiştirilmedi',
-  'storage.migrate.reclaimable': '{objects} nesne ({size}) {from} üzerinde kalıyor — manuel olarak geri kazanın',
+  'storage.migrate.reclaimable': '{count} nesne ({size}) {from} üzerinde kalıyor, manuel olarak geri kazanın',
+  'storage.migrate.reclaimable.one': '{count} nesne ({size}) {from} üzerinde kalıyor, manuel olarak geri kazanın',
   'storage.migrate.cancel': 'Taşımayı iptal et',
   'storage.migrate.promptCancel': 'İptal',
   'storage.migrate.queued': 'Sırada: {categories}',

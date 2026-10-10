@@ -19,6 +19,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testNtfyFailed': 'Test ntfy failed',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Lets users receive notifications on their phones and computers through the browser, even while TREK is closed. Needs HTTPS; on iPhone and iPad TREK has to be added to the Home Screen.',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint': 'In-app notifications are always active and cannot be disabled globally.',
   'admin.notifications.adminWebhookPanel.title': 'Admin Webhook',
@@ -46,6 +49,13 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.alwaysOnHint': 'Admin ntfy always fires when a topic is configured',
   'admin.notifications.adminNotificationsHint':
     'Configure which channels deliver admin-only notifications (e.g. version alerts).',
+  'admin.notificationDefaults.title': 'Defaults for users',
+  'admin.notificationDefaults.hint':
+    "How every user's notifications start. Off is a default each user may still turn on; Blocked turns it off for everyone and shows as locked in their settings. It applies to everyone who has not changed that cell themselves.",
+  'admin.notificationDefaults.on': 'On',
+  'admin.notificationDefaults.off': 'Off',
+  'admin.notificationDefaults.blocked': 'Blocked',
+  'admin.notificationDefaults.cycle': 'Click for: {next}',
   'admin.notifications.tripReminders.title': 'Trip Reminders',
   'admin.notifications.tripReminders.hint':
     'Send a reminder notification before a trip starts (requires reminder days to be set on the trip).',
@@ -65,10 +75,14 @@ const admin: TranslationStrings = {
   'admin.tabs.notifications': 'Notifications',
   'admin.tabs.audit': 'Audit',
   'admin.stats.users': 'Users',
+  'admin.stats.users.one': 'User',
   'admin.stats.trips': 'Trips',
+  'admin.stats.trips.one': 'Trip',
   'admin.stats.places': 'Places',
+  'admin.stats.places.one': 'Place',
   'admin.stats.photos': 'Photos',
   'admin.stats.files': 'Files',
+  'admin.stats.files.one': 'File',
   'admin.table.user': 'User',
   'admin.table.email': 'Email',
   'admin.table.role': 'Role',
@@ -128,43 +142,31 @@ const admin: TranslationStrings = {
   'admin.requireMfa': 'Require two-factor authentication (2FA)',
   'admin.requireMfaHint': 'Users without 2FA must complete setup in Settings before using the app.',
   'admin.apiKeys': 'API Keys',
-  'admin.apiKeysHint': 'Where place data comes from. The TREK index needs no key; the two providers below are optional.',
+  'admin.apiKeysHint':
+    'Where place data comes from. The TREK index needs no key; the two providers below are optional.',
   'admin.trekApi.badgeDefault': 'Recommended default',
   'admin.googleCaveat.badge': 'Not recommended',
   'admin.googleCaveat.body':
     'TREK is open source and we are not neutral here. Ratings and photos of ordinary businesses exist at this scale only at Google, and that is what a monopoly is. The field is here because there is no alternative, not because we recommend it. Every lookup then goes to Google.',
   'admin.trekApi.tagline':
-    'TREK\'s own place index. Search without a Google key, without a quota and without anyone counting your lookups.',
-  'admin.trekApi.factPlaces':
-    '73.6 million places worldwide',
-  'admin.trekApi.factNoKey':
-    'No key, no quota',
-  'admin.trekApi.factOffline':
-    'Country packages work offline',
-  'admin.trekApi.factPrivacy':
-    'Searches are never logged',
-  'admin.trekApi.more':
-    'What is in it',
-  'admin.trekApi.fieldPhone':
-    'Phone',
-  'admin.trekApi.fieldStableId':
-    'Stable id',
+    "TREK's own place index. Search without a Google key, without a quota and without anyone counting your lookups.",
+  'admin.trekApi.factPlaces': '73.6 million places worldwide',
+  'admin.trekApi.factNoKey': 'No key, no quota',
+  'admin.trekApi.factOffline': 'Country packages work offline',
+  'admin.trekApi.factPrivacy': 'Searches are never logged',
+  'admin.trekApi.more': 'What is in it',
+  'admin.trekApi.fieldPhone': 'Phone',
+  'admin.trekApi.fieldStableId': 'Stable id',
   'admin.trekApi.includedNote':
-    'Descriptions come from the place\'s own website; opening hours from OpenStreetMap where they are tagged.',
-  'admin.trekApi.notRatings':
-    'Ratings',
-  'admin.trekApi.notPhotos':
-    'Photos of ordinary businesses',
+    "Descriptions come from the place's own website; opening hours from OpenStreetMap where they are tagged.",
+  'admin.trekApi.notRatings': 'Ratings',
+  'admin.trekApi.notPhotos': 'Photos of ordinary businesses',
   'admin.trekApi.notIncludedNote':
     'No open dataset has either, at any price. A Google key stays the only way to those two.',
-  'admin.trekApi.sourcesLabel':
-    'Sources',
-  'admin.trekApi.sourcesNote':
-    'Every field in a response says which of these it came from.',
-  'admin.trekApi.included':
-    'Included',
-  'admin.trekApi.notIncluded':
-    'Not included',
+  'admin.trekApi.sourcesLabel': 'Sources',
+  'admin.trekApi.sourcesNote': 'Every field in a response says which of these it came from.',
+  'admin.trekApi.included': 'Included',
+  'admin.trekApi.notIncluded': 'Not included',
   'admin.mapsKey': 'Google Maps API Key',
   'admin.mapsKeyHint': 'Required for place search. Get at console.cloud.google.com',
   'admin.mapsKeyHintLong':
@@ -177,13 +179,16 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Amap (高德地图) API Key',
   'admin.amapKeyHint':
     'For place search inside mainland China, where Google is unreachable and OpenStreetMap coverage is thin. Needs a "Web 服务" (web service) key, not a JS API key. Get one at console.amap.com.',
+  'admin.keyFromEnv': 'Set via {name}',
   'admin.placesProvider.title': 'Place search provider',
-  'admin.placesProvider.subtitle': "TREK's own index and OpenStreetMap answer every search. This picks who else is asked when they find nothing: Automatic prefers Google where a key exists, then Amap.",
+  'admin.placesProvider.subtitle':
+    "TREK's own index and OpenStreetMap answer every search. This picks who else is asked when they find nothing: Automatic prefers Google where a key exists, then Amap.",
   'admin.placesProvider.auto': 'Automatic',
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap (高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': 'The selected provider has no API key configured, so place search is answered by the TREK index and OpenStreetMap alone.',
+  'admin.placesProvider.missingKey':
+    'The selected provider has no API key configured, so place search is answered by the TREK index and OpenStreetMap alone.',
   'admin.placesProvider.saved': 'Place search provider saved',
   'admin.validateKey': 'Test',
   'admin.keyValid': 'Connected',
@@ -216,17 +221,31 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Show pictures and a description while adding a place. Wikipedia and OpenStreetMap are always used; Google is added on top when Place Photos or Place Details are on.',
   'admin.placesGoogleOnly.title': 'Search with Google only',
-  'admin.placesGoogleOnly.subtitle': 'Every search and every suggestion goes to Google Places. Off, TREK\'s own index and OpenStreetMap answer first and Google is only asked when they find nothing.',
-  'admin.placesGoogleOnly.missingKey': 'Needs a Google Maps API key. Without one, search runs on TREK\'s own index and OpenStreetMap whatever this switch says.',
-  'admin.placesGoogleOnly.otherProvider': 'Needs Google as the places provider. With Amap or OpenStreetMap picked, search never goes to Google whatever this switch says.',
+  'admin.placesGoogleOnly.subtitle':
+    "Every search and every suggestion goes to Google Places. Off, TREK's own index and OpenStreetMap answer first and Google is only asked when they find nothing.",
+  'admin.placesGoogleOnly.missingKey':
+    "Needs a Google Maps API key. Without one, search runs on TREK's own index and OpenStreetMap whatever this switch says.",
+  'admin.placesGoogleOnly.otherProvider':
+    'Needs Google as the places provider. With Amap or OpenStreetMap picked, search never goes to Google whatever this switch says.',
+  'admin.googleQuota.title': 'Daily limit for Google calls',
+  'admin.googleQuota.subtitle':
+    'Once reached, TREK stops calling Google until the next day (UTC) and searches with OpenStreetMap instead. Leave it empty for no limit.',
+  'admin.googleQuota.placeholder': 'No limit',
+  'admin.googleQuota.usedToday': 'Today: {used}',
+  'admin.googleQuota.usedOfLimit': 'Today: {used} of {limit}',
+  'admin.googleQuota.reached': 'Limit reached ({used}), Google paused until tomorrow',
+  'admin.googleQuota.saved': 'Daily limit saved',
   'admin.transitProvider.title': 'Transit Provider',
   'admin.transitProvider.subtitle': 'Which service answers public transit search.',
   'admin.transitProvider.transitous': 'Transitous (free)',
   'admin.transitProvider.google': 'Google',
   'admin.transitProvider.transitousHint': 'Community GTFS feeds. Free and keyless, with the best coverage in Europe.',
-  'admin.transitProvider.googleHint': 'Uses the Google API key above, for regions Transitous has no data for. Billed per search — Transitous is used while no key is set.',
-  'admin.transitProvider.noKeyWarning': 'Google is selected, but no Google API key is configured — transit search is still using Transitous. Add a key under API Keys above.',
-  'admin.transitProvider.personalKeyWarning': 'Only your own Google key is set, so other members\' transit searches still fall back to Transitous. Save the key above as an admin to apply it instance-wide.',
+  'admin.transitProvider.googleHint':
+    'Uses the Google API key above, for regions Transitous has no data for. Billed per search — Transitous is used while no key is set.',
+  'admin.transitProvider.noKeyWarning':
+    'Google is selected, but no Google API key is configured — transit search is still using Transitous. Add a key under API Keys above.',
+  'admin.transitProvider.personalKeyWarning':
+    "Only your own Google key is set, so other members' transit searches still fall back to Transitous. Save the key above as an admin to apply it instance-wide.",
   'admin.placeShadow.title': 'Place Search Log',
   'admin.placeShadow.subtitle':
     'Record which search result was picked, so a different place index can be measured against real searches later. Nothing leaves this instance, and an admin can export or delete the log at any time.',
@@ -271,7 +290,9 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.namePlaceholder': 'Template name (e.g. Beach Holiday)',
   'admin.packingTemplates.empty': 'No templates created yet',
   'admin.packingTemplates.items': 'items',
+  'admin.packingTemplates.items.one': 'item',
   'admin.packingTemplates.categories': 'categories',
+  'admin.packingTemplates.categories.one': 'category',
   'admin.packingTemplates.itemName': 'Item name',
   'admin.packingTemplates.itemCategory': 'Category',
   'admin.packingTemplates.categoryName': 'Category name (e.g. Clothing)',
@@ -319,7 +340,8 @@ const admin: TranslationStrings = {
     'This plugin does not use operator-supplied hosts. Its allowed hosts are fixed in its manifest.',
   'admin.plugins.allowedHosts.restartNote': 'Saving restarts the plugin so it picks up the new list.',
   'admin.plugins.allowedHosts.add': 'Add allowed host',
-  'admin.plugins.allowedHosts.count': '{n} allowed host(s)',
+  'admin.plugins.allowedHosts.count': '{n} allowed hosts',
+  'admin.plugins.allowedHosts.count.one': '{n} allowed host',
   'admin.plugins.operatorEgressPill': '+ hosts you add',
   'admin.plugins.operatorEgressHint':
     'This plugin talks to a service only you can name. After installing, add the hosts it may reach under ⋯ → Allowed hosts. It can reach no others.',
@@ -426,6 +448,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'Provide events to the calendar',
   'admin.plugins.perm.hook:place-detail-provider': 'Contribute extra details (reviews, ratings, links) to a place',
   'admin.plugins.perm.hook:search-provider': "Answer place searches from its own index, beside TREK's own results",
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Add its own place categories to Explore places on the map; picking one sends the plugin the map area you are viewing',
   'admin.plugins.perm.hook:trip-warning-provider': 'Raise validation warnings on a trip (shown in the planner)',
   'admin.plugins.perm.hook:table-contributor': 'Add columns and actions to trip views (reservations, places, days)',
   'admin.plugins.perm.hook:map-marker-provider': 'Add markers to the trip map (e.g. show bookings or POIs)',
@@ -438,7 +462,9 @@ const admin: TranslationStrings = {
     'Colour-code days in the day plan (e.g. which leg of the trip a day belongs to)',
   'admin.plugins.cap.mcpTools': 'Publishes AI tools',
   'admin.plugins.mcpToolsTitle': 'AI tools it publishes',
-  'admin.plugins.mcpToolsHint': 'An assistant can run these on a user’s behalf. Each one acts with the access granted above.',
+  'admin.plugins.mcpToolsHint':
+    'An assistant can run these on a user’s behalf. Each one acts with the access granted above.',
+  'admin.plugins.poiCategoriesTitle': 'Map categories it adds',
   'admin.plugins.perm.mcp:tools':
     'Publish tools that an AI assistant can run on your behalf (it acts with the access you grant the plugin here, not with the assistant’s own)',
   'admin.plugins.perm.geolocation:read':
@@ -532,6 +558,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sortUpdates': 'Updates first',
   'admin.plugins.sortDownloads': 'Most downloads',
   'admin.plugins.updatesAvailable': '{count} updates available for your plugins.',
+  'admin.plugins.updatesAvailable.one': '{count} update available for your plugins.',
   'admin.plugins.newerNeedsTrek': 'v{version} available — needs TREK {range}',
   'admin.plugins.updateAll': 'Update all',
   'admin.plugins.versionsTitle': 'Versions',
@@ -541,7 +568,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Change version…',
   'admin.plugins.noVersions': 'No published versions found in the registry.',
   'admin.plugins.downgradeTitle': 'Roll back this plugin?',
-  'admin.plugins.downgradeBody': 'Switching from v{from} to v{to}: data written by the newer version stays in place, and the older version may not understand it.',
+  'admin.plugins.downgradeBody':
+    'Switching from v{from} to v{to}: data written by the newer version stays in place, and the older version may not understand it.',
   'admin.plugins.downgradeConfirm': 'Roll back',
   'admin.plugins.updatesHeld': 'Updates paused at v{version}',
   'admin.plugins.resumeUpdates': 'Resume updates',
@@ -580,6 +608,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Provides calendar events',
   'admin.plugins.cap.placeDetails': 'Enriches places',
   'admin.plugins.cap.search': 'Answers searches',
+  'admin.plugins.cap.poiCategories': 'Adds map categories',
   'admin.plugins.cap.warnings': 'Flags issues',
   'admin.plugins.cap.mapLayers': 'Draws on the map',
   'admin.plugins.cap.routing': 'Offers routing',
@@ -589,8 +618,10 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.events': 'Reacts to activity',
   'admin.plugins.cap.requiresAddon': 'Requires {addon}',
   'admin.plugins.cap.dependsOn': 'Needs {id} {version}',
-  'admin.plugins.dep.addonDisabledToast': 'Enable the required addon(s) first: {addons}',
-  'admin.plugins.dep.autoEnabled': 'Enabled required plugin(s) first: {plugins}',
+  'admin.plugins.dep.addonDisabledToast': 'Enable the required addons first: {addons}',
+  'admin.plugins.dep.addonDisabledToast.one': 'Enable the required addon first: {addons}',
+  'admin.plugins.dep.autoEnabled': 'Enabled the required plugins first: {plugins}',
+  'admin.plugins.dep.autoEnabled.one': 'Enabled the required plugin first: {plugins}',
   'admin.plugins.dep.downloaded': 'Downloaded {id}',
   'admin.plugins.dep.resolveTitle': 'Missing dependencies',
   'admin.plugins.dep.resolveBody': '“{name}” needs these plugins installed before it can be enabled.',
@@ -639,7 +670,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': 'Notes, polls, chat and suggestions for planning together',
   'admin.addons.catalog.roadtrip.name': 'Road trip',
-  'admin.addons.catalog.roadtrip.description': 'Plan drives with stops along the route, driving times, and arrival times that update themselves',
+  'admin.addons.catalog.roadtrip.description':
+    'Plan drives with stops along the route, driving times, and arrival times that update themselves',
   'admin.addons.catalog.memories.name': 'Photos (Immich)',
   'admin.addons.catalog.memories.description': 'Share trip photos via your Immich instance',
   'admin.addons.catalog.mcp.name': 'MCP',
@@ -654,7 +686,13 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.dawarich.description':
     'Read visits and recorded routes from a Dawarich instance each reader connects themselves',
   'admin.addons.catalog.llm_parsing.name': 'AI Parsing',
-  'admin.addons.catalog.llm_parsing.description': 'Reads bookings the built-in parser cannot, using an AI model you choose',
+  'admin.addons.catalog.llm_parsing.description':
+    'Reads bookings the built-in parser cannot, using an AI model you choose',
+  'admin.addons.llm.vision.auto': 'Automatic',
+  'admin.addons.llm.vision.on': 'Yes',
+  'admin.addons.llm.vision.off': 'No',
+  'admin.addons.llm.vision.hintLocal': 'Automatic asks the Ollama server whether this model reads images.',
+  'admin.addons.llm.vision.hintCloud': 'Automatic means no for a cloud model. Choose Yes if this model reads images.',
   'admin.addons.enabled': 'Enabled',
   'admin.addons.disabled': 'Disabled',
   'admin.addons.type.trip': 'Trip',
@@ -713,6 +751,7 @@ const admin: TranslationStrings = {
   'admin.audit.refresh': 'Refresh',
   'admin.audit.loadMore': 'Load more',
   'admin.audit.showing': '{count} loaded · {total} total',
+  'admin.audit.showing.one': '{count} loaded · {total} total',
   'admin.audit.col.time': 'Time',
   'admin.audit.col.user': 'User',
   'admin.audit.col.action': 'Action',
@@ -774,7 +813,8 @@ const admin: TranslationStrings = {
   'admin.passkey.resetHint':
     "Remove all of this user's passkeys (e.g. on a lost device). They can still sign in with their password.",
   'admin.passkey.resetConfirm': 'Remove all passkeys for {name}?',
-  'admin.passkey.resetDone': 'Removed {count} passkey(s)',
+  'admin.passkey.resetDone': 'Removed {count} passkeys',
+  'admin.passkey.resetDone.one': 'Removed {count} passkey',
   'admin.group.users': 'Users',
   'admin.group.config': 'Configuration',
   'admin.group.integration': 'Integrations',

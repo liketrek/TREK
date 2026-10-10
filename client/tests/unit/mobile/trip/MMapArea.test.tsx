@@ -15,8 +15,9 @@ import type { AlternativeOverlay } from '../../../../src/components/Roadtrip/alt
 import type { LegAlternatives } from '../../../../src/components/Roadtrip/useRouteAlternatives'
 import { openLeg } from '../../../helpers/legAlternatives'
 import { RT_ALT_BAR_LIFT } from '../../../../src/mobile/screens/trip/roadtrip/useMRtAlternatives'
+import { corePoiCategories, pluginPoiCategories } from '../../../../src/components/Map/usePoiCategories'
 
-// FE-MOB-MAPAREA-001 to FE-MOB-MAPAREA-043
+// FE-MOB-MAPAREA-001 to FE-MOB-MAPAREA-049
 //
 // The stage's pins come out of the trip store rather than the planner's map list, so the
 // stage fixtures seed the store and leave `mapPlaces` to stand for what the plan tab shows.
@@ -177,11 +178,12 @@ beforeEach(() => {
   mocks.glMap = COMPASS
   mocks.prefs = {}
   mocks.poi = {
+    categories: { core: corePoiCategories(key => key), plugin: [] },
     active: new Set<string>(), pois: [], loadingKeys: new Set<string>(), errorKeys: new Set<string>(),
     moved: false, toggle: vi.fn(), searchArea: vi.fn(), onViewportChange: vi.fn(),
   }
   useSettingsStore.setState(s => ({ settings: { ...s.settings, map_poi_pill_enabled: true } }))
-  seedStore(useTripStore, { places: [], placesFilter: 'all', placesCategoryFilter: new Set<string>() })
+  seedStore(useTripStore, { places: [], placesFilter: 'all', placesCategoryFilter: new Set<string>(), placesRatingFilter: 'all' })
 })
 
 describe('MMapArea', () => {
@@ -192,15 +194,12 @@ describe('MMapArea', () => {
     expect(segment.style.flexGrow).toBe('1')
   })
 
-  it('FE-MOB-MAPAREA-002: the compass rides the same bottom offset as the locate button', () => {
+  it('FE-MOB-MAPAREA-002: the compass stands on top of the base-layer switcher', () => {
     const { container } = renderArea()
 
-    // LocationButton hard-codes `right: 12` off the same variable, so matching
-    // the offset here is what keeps the two round controls on one line.
-    expect(compassBand(container)?.style.bottom).toBe('calc(var(--bottom-nav-h, 84px) + 12px)')
-    // Beside the base-layer switcher both engines draw in the corner: its inset, its
-    // size and one gap. In the corner itself it lay under the switcher's frosted shell.
-    expect(compassBand(container)?.style.left).toBe(`${MAP_LAYER_SWITCHER_INSET + MAP_ROUND_CONTROL_SIZE + 8}px`)
+    // The switcher's band, raised by its size and one gap, on the switcher's own left edge.
+    expect(compassBand(container)?.style.bottom).toBe(`calc(var(--bottom-nav-h, 84px) + ${12 + MAP_ROUND_CONTROL_SIZE + 8}px)`)
+    expect(compassBand(container)?.style.left).toBe(`${MAP_LAYER_SWITCHER_INSET}px`)
     expect(compassBand(container)?.className).not.toContain('left-3')
   })
 
@@ -315,6 +314,21 @@ describe('MMapArea', () => {
     expect(planner.handlePoiClick).not.toHaveBeenCalled()
   })
 
+  it('FE-MOB-MAPAREA-045: a plugin POI is drawn from the search and tapped into the place form like any other', () => {
+    const trailhead = {
+      osm_id: 'plugin:trail-finder:th-1', name: 'Trailhead', lat: 53.3, lng: 9.6, category: 'plugin:trail-finder/trailheads',
+      source: 'plugin:trail-finder', pluginId: 'trail-finder', icon: 'Signpost', color: '#2f855a',
+      details: [{ label: 'Length', value: '12 km' }],
+    }
+    mocks.poi = { ...mocks.poi, pois: [trailhead] }
+    const { planner } = renderArea({ trTab: 'plan' }, { selectedDayId: 5 })
+
+    // Handed to the renderer whole, so the pin and the hover card can read its look and rows.
+    expect(mocks.props.pois).toEqual([trailhead])
+    ;(mocks.props.onPoiClick as (m: unknown) => void)(trailhead)
+    expect(planner.openAddPlaceFromPoi).toHaveBeenCalledWith(trailhead, 5)
+  })
+
   it('FE-MOB-MAPAREA-012: a focused hit takes the camera; with nothing pending the stage frames itself', () => {
     const focused = renderArea({ trTab: 'roadtrip' }, { mapFocusPoints: [[53.5, 9.8]] })
     expect(mocks.props.focusPoints).toEqual([[53.5, 9.8]])
@@ -330,8 +344,8 @@ describe('MMapArea', () => {
     for (const shellOver of [{ trTab: 'plan' }, { trTab: 'roadtrip', mapFront: true }] as Partial<MTripShellApi>[]) {
       const { container, unmount } = renderArea(shellOver)
 
-      expect(parseFloat(compassBand(container)?.style.left ?? '0'))
-        .toBeGreaterThanOrEqual(MAP_LAYER_SWITCHER_INSET + MAP_ROUND_CONTROL_SIZE)
+      // Above the switcher: raised past its full height, so the two never overlap.
+      expect(compassBand(container)?.style.bottom).toContain(`+ ${12 + MAP_ROUND_CONTROL_SIZE + 8}px`)
       // With the renderer mocked, the compass is still the one element in this layer
       // that sets --bottom-nav-h inline; its left offset joined the same style object.
       expect(container.querySelectorAll('[style*="--bottom-nav-h"]')).toHaveLength(1)
@@ -919,5 +933,60 @@ describe('MMapArea and a booked night at the edge of the stage', () => {
     tapPin(99)
     expect(other.openSheet).not.toHaveBeenCalled()
     expect(only.handleMarkerClick).toHaveBeenCalledWith(99)
+  })
+
+  it('FE-MOB-MAPAREA-044: the POI bar offers the plugin categories after its divider, without shrinking a segment', () => {
+    const plugin = pluginPoiCategories([{
+      id: 'trail-finder', name: 'Trail finder', type: 'integration', icon: null,
+      poiCategories: [{ id: 'trailheads', label: 'Trailheads', icon: 'Signpost', color: '#2f855a' }],
+    }], 'en')
+    mocks.poi = { ...mocks.poi, categories: { core: corePoiCategories(key => key), plugin } }
+    renderArea()
+
+    const divider = screen.getByRole('separator')
+    const trailheads = screen.getByRole('button', { name: 'Trailheads' })
+    expect(divider.nextElementSibling).toBe(trailheads)
+    expect(trailheads.style.minWidth).toBe('34px')
+    expect((divider.parentElement as HTMLElement).style.overflowX).toBe('auto')
+    trailheads.click()
+    expect(mocks.poi.toggle).toHaveBeenCalledWith('plugin:trail-finder/trailheads')
+  })
+})
+
+describe('MMapArea — places filter', () => {
+  it('FE-MOB-MAPAREA-046: the plan map offers the places filter, and a tap opens its sheet', () => {
+    const { shell } = renderArea({ trTab: 'plan' })
+    const pill = screen.getByTestId('places-filter-pill')
+    expect(pill).toHaveAccessibleName('Filters')
+    // It opens a sheet: a dialog to announce, not an on/off state.
+    expect(pill).toHaveAttribute('aria-haspopup', 'dialog')
+    expect(pill).not.toHaveAttribute('aria-pressed')
+    act(() => { pill.click() })
+    expect(shell.openSheet).toHaveBeenCalledWith('placesFilter')
+  })
+
+  it('FE-MOB-MAPAREA-047: the pill lights up and counts the filters narrowing the pins', () => {
+    seedStore(useTripStore, { placesFilter: 'unplanned', placesRatingFilter: 4 })
+    renderArea({ trTab: 'plan' })
+    const pill = screen.getByTestId('places-filter-pill')
+    expect(pill).toHaveClass('text-accent')
+    expect(pill).not.toHaveAttribute('aria-pressed')
+    expect(pill).toHaveAttribute('aria-haspopup', 'dialog')
+    expect(pill).toHaveAccessibleName('Filters (2)')
+    expect(screen.getByText('2')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('FE-MOB-MAPAREA-049: a road trip keeps the places filter on its plan map, Dawarich or not', () => {
+    // The stack used to stand down in road-trip mode unless Dawarich had a pill in
+    // it; the plan map still shows the trip's places there, so its filter stays.
+    renderArea({ trTab: 'plan' }, { roadtripActive: true, dawarichEnabled: false })
+    expect(screen.getByTestId('places-filter-pill')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-MAPAREA-048: the stage draws its own pins, so it has no places filter, and neither has a covered map', () => {
+    renderArea({ trTab: 'roadtrip', mapFront: true })
+    expect(screen.queryByTestId('places-filter-pill')).not.toBeInTheDocument()
+    renderArea({ view: 'plan', mapFront: false })
+    expect(screen.queryByTestId('places-filter-pill')).not.toBeInTheDocument()
   })
 })

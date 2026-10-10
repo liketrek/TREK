@@ -39,6 +39,13 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.alwaysOnHint': 'يُرسل Ntfy للمسؤول دائمًا عند تهيئة موضوع',
   'admin.notifications.adminNotificationsHint':
     'حدد القنوات التي تُسلّم إشعارات المسؤول (مثل تنبيهات الإصدارات). يُرسل الـ Webhook تلقائيًا عند تعيين رابط URL لـ Webhook المسؤول.',
+  'admin.notificationDefaults.title': 'الإعدادات الافتراضية للمستخدمين',
+  'admin.notificationDefaults.hint':
+    'ما تبدأ به إشعارات كل مستخدم. «إيقاف» يمكن للمستخدم تشغيله بنفسه، و«محظور» يوقفه للجميع ويظهر مقفلًا في إعداداتهم. يسري على كل من لم يغيّر الخانة بنفسه.',
+  'admin.notificationDefaults.on': 'تشغيل',
+  'admin.notificationDefaults.off': 'إيقاف',
+  'admin.notificationDefaults.blocked': 'محظور',
+  'admin.notificationDefaults.cycle': 'انقر للتبديل إلى: {next}',
   'admin.notifications.tripReminders.title': 'تذكيرات الرحلات',
   'admin.notifications.tripReminders.hint': 'إرسال تذكير قبل بدء الرحلة (يتطلب تعيين أيام التذكير على الرحلة).',
   'admin.notifications.tripReminders.enabled': 'تم تفعيل تذكيرات الرحلات',
@@ -56,11 +63,31 @@ const admin: TranslationStrings = {
   'admin.tabs.backup': 'النسخ الاحتياطي',
   'admin.tabs.notifications': 'الإشعارات',
   'admin.tabs.audit': 'تدقيق',
-  'admin.stats.users': 'المستخدمون',
-  'admin.stats.trips': 'الرحلات',
-  'admin.stats.places': 'الأماكن',
+  'admin.stats.users': 'مستخدم',
+  'admin.stats.users.zero': 'مستخدمين',
+  'admin.stats.users.one': 'مستخدم',
+  'admin.stats.users.two': 'مستخدمان',
+  'admin.stats.users.few': 'مستخدمين',
+  'admin.stats.users.many': 'مستخدمًا',
+  'admin.stats.trips': 'رحلة',
+  'admin.stats.trips.zero': 'رحلات',
+  'admin.stats.trips.one': 'رحلة',
+  'admin.stats.trips.two': 'رحلتان',
+  'admin.stats.trips.few': 'رحلات',
+  'admin.stats.trips.many': 'رحلة',
+  'admin.stats.places': 'مكان',
+  'admin.stats.places.zero': 'أماكن',
+  'admin.stats.places.one': 'مكان',
+  'admin.stats.places.two': 'مكانان',
+  'admin.stats.places.few': 'أماكن',
+  'admin.stats.places.many': 'مكانًا',
   'admin.stats.photos': 'الصور',
-  'admin.stats.files': 'الملفات',
+  'admin.stats.files': 'ملف',
+  'admin.stats.files.zero': 'ملفات',
+  'admin.stats.files.one': 'ملف',
+  'admin.stats.files.two': 'ملفان',
+  'admin.stats.files.few': 'ملفات',
+  'admin.stats.files.many': 'ملفًا',
   'admin.table.user': 'المستخدم',
   'admin.table.email': 'البريد الإلكتروني',
   'admin.table.role': 'الدور',
@@ -115,36 +142,22 @@ const admin: TranslationStrings = {
     'TREK مفتوح المصدر ولسنا محايدين هنا. بهذا الحجم لا توجد التقييمات وصور المحال العادية إلا لدى Google، وهذا هو الاحتكار. الحقل موجود لانعدام البديل، لا لأننا نوصي به. عندئذ يذهب كل استعلام إلى Google.',
   'admin.trekApi.tagline':
     'فهرس الأماكن الخاص بـ TREK. بحث بلا مفتاح من Google، بلا حصة، وبلا أن يُحصي أحد عمليات بحثك.',
-  'admin.trekApi.factPlaces':
-    '73.6 مليون مكان حول العالم',
-  'admin.trekApi.factNoKey':
-    'بلا مفتاح وبلا حصة',
-  'admin.trekApi.factOffline':
-    'حِزَم الدول تعمل دون اتصال',
-  'admin.trekApi.factPrivacy':
-    'لا تُسجَّل عمليات البحث أبدًا',
-  'admin.trekApi.more':
-    'ماذا يحتوي',
-  'admin.trekApi.fieldPhone':
-    'هاتف',
-  'admin.trekApi.fieldStableId':
-    'معرّف ثابت',
-  'admin.trekApi.includedNote':
-    'الأوصاف تأتي من موقع المكان نفسه، وساعات العمل من OpenStreetMap حيث تكون مُدخَلة.',
-  'admin.trekApi.notRatings':
-    'التقييمات',
-  'admin.trekApi.notPhotos':
-    'صور المحال العادية',
+  'admin.trekApi.factPlaces': '73.6 مليون مكان حول العالم',
+  'admin.trekApi.factNoKey': 'بلا مفتاح وبلا حصة',
+  'admin.trekApi.factOffline': 'حِزَم الدول تعمل دون اتصال',
+  'admin.trekApi.factPrivacy': 'لا تُسجَّل عمليات البحث أبدًا',
+  'admin.trekApi.more': 'ماذا يحتوي',
+  'admin.trekApi.fieldPhone': 'هاتف',
+  'admin.trekApi.fieldStableId': 'معرّف ثابت',
+  'admin.trekApi.includedNote': 'الأوصاف تأتي من موقع المكان نفسه، وساعات العمل من OpenStreetMap حيث تكون مُدخَلة.',
+  'admin.trekApi.notRatings': 'التقييمات',
+  'admin.trekApi.notPhotos': 'صور المحال العادية',
   'admin.trekApi.notIncludedNote':
     'لا يوفّر أيًّا منهما أي مصدر مفتوح بأي ثمن. يبقى مفتاح Google هو السبيل الوحيد إليهما.',
-  'admin.trekApi.sourcesLabel':
-    'المصادر',
-  'admin.trekApi.sourcesNote':
-    'كل حقل في الاستجابة يذكر من أيٍّ منها جاء.',
-  'admin.trekApi.included':
-    'مشمول',
-  'admin.trekApi.notIncluded':
-    'غير مشمول',
+  'admin.trekApi.sourcesLabel': 'المصادر',
+  'admin.trekApi.sourcesNote': 'كل حقل في الاستجابة يذكر من أيٍّ منها جاء.',
+  'admin.trekApi.included': 'مشمول',
+  'admin.trekApi.notIncluded': 'غير مشمول',
   'admin.mapsKey': 'مفتاح Google Maps API',
   'admin.mapsKeyHint': 'مطلوب للبحث عن الأماكن. احصل عليه من console.cloud.google.com',
   'admin.mapsKeyHintLong':
@@ -157,6 +170,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'مفتاح واجهة برمجة تطبيقات Amap (高德地图)',
   'admin.amapKeyHint':
     'للبحث عن الأماكن في البر الرئيسي للصين، حيث لا يمكن الوصول إلى Google وتكون بيانات OpenStreetMap شحيحة. يتطلب مفتاحًا من نوع «Web 服务» (خدمة ويب)، وليس مفتاح JS API. يمكن الحصول عليه من console.amap.com.',
+  'admin.keyFromEnv': 'مُعيَّن عبر {name}',
   'admin.placesProvider.title': 'مزوّد البحث عن الأماكن',
   'admin.placesProvider.subtitle':
     'يجيب فهرس TREK الخاص وOpenStreetMap عن كل بحث. هنا يُختار من يُسأل أيضاً عندما لا يجدان شيئاً: «تلقائي» يفضّل Google عند وجود مفتاح، ثم Amap.',
@@ -164,7 +178,8 @@ const admin: TranslationStrings = {
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap (高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
-  'admin.placesProvider.missingKey': 'لا يوجد مفتاح API للمزوّد المختار، لذا يجيب عن البحث عن الأماكن فهرس TREK وOpenStreetMap وحدهما.',
+  'admin.placesProvider.missingKey':
+    'لا يوجد مفتاح API للمزوّد المختار، لذا يجيب عن البحث عن الأماكن فهرس TREK وOpenStreetMap وحدهما.',
   'admin.placesProvider.saved': 'تم حفظ مزوّد البحث عن الأماكن',
   'admin.validateKey': 'اختبار',
   'admin.keyValid': 'متصل',
@@ -196,17 +211,31 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'يعرض صورًا ووصفًا أثناء إضافة مكان. تُستخدم ويكيبيديا وOpenStreetMap دائمًا، وتُضاف Google عند تفعيل صور الأماكن أو تفاصيل الأماكن.',
   'admin.placesGoogleOnly.title': 'البحث عبر Google فقط',
-  'admin.placesGoogleOnly.subtitle': 'كل بحث وكل اقتراح يذهب إلى Google Places. عند الإيقاف يجيب فهرس TREK وOpenStreetMap أولًا، ولا يُسأل Google إلا إذا لم يجدا شيئًا.',
-  'admin.placesGoogleOnly.missingKey': 'يتطلب مفتاح Google Maps API. من دونه يعمل البحث عبر فهرس TREK وOpenStreetMap مهما كان وضع هذا المفتاح.',
-  'admin.placesGoogleOnly.otherProvider': 'يتطلب Google كمزود للأماكن. عند اختيار Amap أو OpenStreetMap لا يذهب أي بحث إلى Google مهما كان وضع هذا المفتاح.',
+  'admin.placesGoogleOnly.subtitle':
+    'كل بحث وكل اقتراح يذهب إلى Google Places. عند الإيقاف يجيب فهرس TREK وOpenStreetMap أولًا، ولا يُسأل Google إلا إذا لم يجدا شيئًا.',
+  'admin.placesGoogleOnly.missingKey':
+    'يتطلب مفتاح Google Maps API. من دونه يعمل البحث عبر فهرس TREK وOpenStreetMap مهما كان وضع هذا المفتاح.',
+  'admin.placesGoogleOnly.otherProvider':
+    'يتطلب Google كمزود للأماكن. عند اختيار Amap أو OpenStreetMap لا يذهب أي بحث إلى Google مهما كان وضع هذا المفتاح.',
+  'admin.googleQuota.title': 'الحد اليومي لطلبات Google',
+  'admin.googleQuota.subtitle':
+    'عند بلوغه يتوقف TREK عن طلب Google حتى اليوم التالي (UTC) ويبحث عبر OpenStreetMap بدلًا منه. اتركه فارغًا لعدم وجود حد.',
+  'admin.googleQuota.placeholder': 'بلا حد',
+  'admin.googleQuota.usedToday': 'اليوم: {used}',
+  'admin.googleQuota.usedOfLimit': 'اليوم: {used} من {limit}',
+  'admin.googleQuota.reached': 'تم بلوغ الحد ({used})، Google متوقف حتى الغد',
+  'admin.googleQuota.saved': 'تم حفظ الحد اليومي',
   'admin.transitProvider.title': 'مزود النقل العام',
   'admin.transitProvider.subtitle': 'الخدمة التي تجيب على بحث النقل العام.',
   'admin.transitProvider.transitous': 'Transitous (مجاني)',
   'admin.transitProvider.google': 'Google',
   'admin.transitProvider.transitousHint': 'تغذيات GTFS مجتمعية. مجانية وبدون مفتاح، وأفضل تغطية في أوروبا.',
-  'admin.transitProvider.googleHint': 'يستخدم مفتاح Google أعلاه للمناطق التي لا تتوفر لها بيانات في Transitous. يُحاسب على كل بحث — ويُستخدم Transitous ما دام لا يوجد مفتاح.',
-  'admin.transitProvider.noKeyWarning': 'تم اختيار Google، لكن لا يوجد مفتاح Google مُهيأ — لا يزال بحث النقل يستخدم Transitous. أضف مفتاحًا ضمن مفاتيح API أعلاه.',
-  'admin.transitProvider.personalKeyWarning': 'مفتاح Google الخاص بك وحده مضبوط، لذا يعود بحث النقل لبقية الأعضاء إلى Transitous. احفظ المفتاح أعلاه كمسؤول لتطبيقه على مستوى المثيل.',
+  'admin.transitProvider.googleHint':
+    'يستخدم مفتاح Google أعلاه للمناطق التي لا تتوفر لها بيانات في Transitous. يُحاسب على كل بحث — ويُستخدم Transitous ما دام لا يوجد مفتاح.',
+  'admin.transitProvider.noKeyWarning':
+    'تم اختيار Google، لكن لا يوجد مفتاح Google مُهيأ — لا يزال بحث النقل يستخدم Transitous. أضف مفتاحًا ضمن مفاتيح API أعلاه.',
+  'admin.transitProvider.personalKeyWarning':
+    'مفتاح Google الخاص بك وحده مضبوط، لذا يعود بحث النقل لبقية الأعضاء إلى Transitous. احفظ المفتاح أعلاه كمسؤول لتطبيقه على مستوى المثيل.',
   'admin.placeShadow.title': 'سجل البحث عن الأماكن',
   'admin.placeShadow.subtitle':
     'تسجيل نتيجة البحث التي جرى اختيارها، حتى يمكن لاحقًا قياس فهرس أماكن آخر على عمليات بحث حقيقية. لا يغادر أي شيء هذا الخادم، ويمكن للمشرف تصدير السجل أو حذفه في أي وقت.',
@@ -234,8 +263,18 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.create': 'قالب جديد',
   'admin.packingTemplates.namePlaceholder': 'اسم القالب (مثال: عطلة شاطئية)',
   'admin.packingTemplates.empty': 'لم يتم إنشاء قوالب بعد',
-  'admin.packingTemplates.items': 'عناصر',
-  'admin.packingTemplates.categories': 'فئات',
+  'admin.packingTemplates.items': 'عنصر',
+  'admin.packingTemplates.items.zero': 'عناصر',
+  'admin.packingTemplates.items.one': 'عنصر',
+  'admin.packingTemplates.items.two': 'عنصران',
+  'admin.packingTemplates.items.few': 'عناصر',
+  'admin.packingTemplates.items.many': 'عنصرًا',
+  'admin.packingTemplates.categories': 'فئة',
+  'admin.packingTemplates.categories.zero': 'فئات',
+  'admin.packingTemplates.categories.one': 'فئة',
+  'admin.packingTemplates.categories.two': 'فئتان',
+  'admin.packingTemplates.categories.few': 'فئات',
+  'admin.packingTemplates.categories.many': 'فئة',
   'admin.packingTemplates.itemName': 'اسم العنصر',
   'admin.packingTemplates.itemCategory': 'الفئة',
   'admin.packingTemplates.categoryName': 'اسم الفئة (مثال: ملابس)',
@@ -284,6 +323,11 @@ const admin: TranslationStrings = {
   'admin.plugins.allowedHosts.restartNote': 'الحفظ يعيد تشغيل الإضافة لتأخذ القائمة الجديدة.',
   'admin.plugins.allowedHosts.add': 'إضافة مضيف مسموح به',
   'admin.plugins.allowedHosts.count': '{n} مضيف مسموح به',
+  'admin.plugins.allowedHosts.count.zero': 'لا يوجد مضيفون مسموح بهم',
+  'admin.plugins.allowedHosts.count.one': 'مضيف واحد مسموح به',
+  'admin.plugins.allowedHosts.count.two': 'مضيفان مسموح بهما',
+  'admin.plugins.allowedHosts.count.few': '{n} مضيفين مسموح بهم',
+  'admin.plugins.allowedHosts.count.many': '{n} مضيفًا مسموحًا به',
   'admin.plugins.operatorEgressPill': '+ مضيفون تضيفهم',
   'admin.plugins.operatorEgressHint':
     'تتصل هذه الإضافة بخدمة لا يمكن لأحد سواك تسميتها (خادم مستضاف ذاتيًا). بعد التثبيت أضف المضيفين من ⋯ ← المضيفون المسموح بهم. ولن تصل إلى غيرهم.',
@@ -395,6 +439,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:calendar-source': 'توفير الأحداث للتقويم',
   'admin.plugins.perm.hook:place-detail-provider': 'المساهمة بتفاصيل إضافية (مراجعات، تقييمات، روابط) لمكان ما',
   'admin.plugins.perm.hook:search-provider': 'الإجابة على عمليات البحث عن الأماكن من فهرس خاص به، إلى جانب نتائج TREK',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'إضافة فئات أماكن خاصة بها إلى «استكشاف الأماكن على الخريطة»؛ وعند اختيار إحداها تتلقى الإضافة منطقة الخريطة التي تعرضها',
   'admin.plugins.perm.hook:trip-warning-provider': 'إظهار تحذيرات التحقق على الرحلة (تظهر في المخطط)',
   'admin.plugins.perm.hook:table-contributor': 'إضافة أعمدة وإجراءات إلى عروض الرحلة (الحجوزات، الأماكن، الأيام)',
   'admin.plugins.perm.hook:map-marker-provider': 'إضافة علامات إلى خريطة الرحلة (مثل عرض الحجوزات أو نقاط الاهتمام)',
@@ -407,6 +453,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.mcpTools': 'ينشر أدوات ذكاء اصطناعي',
   'admin.plugins.mcpToolsTitle': 'أدوات الذكاء الاصطناعي المنشورة',
   'admin.plugins.mcpToolsHint': 'يمكن لمساعد ذكي تشغيلها نيابة عن المستخدم. وتعمل كل أداة بالصلاحيات الممنوحة أعلاه.',
+  'admin.plugins.poiCategoriesTitle': 'فئات الخريطة التي يضيفها',
   'admin.plugins.perm.mcp:tools':
     'نشر أدوات يمكن لمساعد ذكاء اصطناعي تشغيلها نيابة عنك (يعمل بالصلاحيات التي تمنحها للإضافة هنا، وليس بصلاحياته هو)',
   'admin.plugins.perm.geolocation:read':
@@ -498,7 +545,12 @@ const admin: TranslationStrings = {
   'admin.plugins.sortRecent': 'المحدّثة حديثًا',
   'admin.plugins.sortUpdates': 'التحديثات أولًا',
   'admin.plugins.sortDownloads': 'الأكثر تنزيلًا',
-  'admin.plugins.updatesAvailable': '{count} تحديثات متاحة لإضافاتك.',
+  'admin.plugins.updatesAvailable': 'يتوفر {count} تحديث لإضافاتك.',
+  'admin.plugins.updatesAvailable.zero': 'لا تتوفر تحديثات لإضافاتك.',
+  'admin.plugins.updatesAvailable.one': 'يتوفر تحديث واحد لإضافاتك.',
+  'admin.plugins.updatesAvailable.two': 'يتوفر تحديثان لإضافاتك.',
+  'admin.plugins.updatesAvailable.few': 'يتوفر {count} تحديثات لإضافاتك.',
+  'admin.plugins.updatesAvailable.many': 'يتوفر {count} تحديثًا لإضافاتك.',
   'admin.plugins.newerNeedsTrek': 'الإصدار v{version} متوفر — يتطلب TREK {range}',
   'admin.plugins.versionsTitle': 'الإصدارات',
   'admin.plugins.versionPickerTitle': 'تغيير الإصدار — {name}',
@@ -507,7 +559,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'تغيير الإصدار…',
   'admin.plugins.noVersions': 'لم يتم العثور على إصدارات منشورة في السجل.',
   'admin.plugins.downgradeTitle': 'التراجع عن هذه الإضافة؟',
-  'admin.plugins.downgradeBody': 'التبديل من v{from} إلى v{to}: تبقى البيانات المكتوبة بواسطة الإصدار الأحدث في مكانها، وقد لا يفهمها الإصدار الأقدم.',
+  'admin.plugins.downgradeBody':
+    'التبديل من v{from} إلى v{to}: تبقى البيانات المكتوبة بواسطة الإصدار الأحدث في مكانها، وقد لا يفهمها الإصدار الأقدم.',
   'admin.plugins.downgradeConfirm': 'تراجع',
   'admin.plugins.updatesHeld': 'التحديثات متوقفة عند v{version}',
   'admin.plugins.resumeUpdates': 'استئناف التحديثات',
@@ -547,6 +600,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'يوفّر أحداث التقويم',
   'admin.plugins.cap.placeDetails': 'يُثري الأماكن',
   'admin.plugins.cap.search': 'يجيب على عمليات البحث',
+  'admin.plugins.cap.poiCategories': 'يضيف فئات إلى الخريطة',
   'admin.plugins.cap.warnings': 'يرصد المشكلات',
   'admin.plugins.cap.mapLayers': 'يرسم على الخريطة',
   'admin.plugins.cap.routing': 'يوفّر التوجيه',
@@ -557,7 +611,17 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.requiresAddon': 'يتطلب {addon}',
   'admin.plugins.cap.dependsOn': 'يحتاج إلى {id} {version}',
   'admin.plugins.dep.addonDisabledToast': 'فعّل الإضافات المطلوبة أولاً: {addons}',
+  'admin.plugins.dep.addonDisabledToast.zero': 'فعّل الإضافات المطلوبة أولاً: {addons}',
+  'admin.plugins.dep.addonDisabledToast.one': 'فعّل الإضافة المطلوبة أولاً: {addons}',
+  'admin.plugins.dep.addonDisabledToast.two': 'فعّل الإضافتين المطلوبتين أولاً: {addons}',
+  'admin.plugins.dep.addonDisabledToast.few': 'فعّل الإضافات المطلوبة أولاً: {addons}',
+  'admin.plugins.dep.addonDisabledToast.many': 'فعّل الإضافات المطلوبة أولاً: {addons}',
   'admin.plugins.dep.autoEnabled': 'تم تفعيل الإضافات المطلوبة أولاً: {plugins}',
+  'admin.plugins.dep.autoEnabled.zero': 'تم تفعيل الإضافات المطلوبة أولاً: {plugins}',
+  'admin.plugins.dep.autoEnabled.one': 'تم تفعيل الإضافة المطلوبة أولاً: {plugins}',
+  'admin.plugins.dep.autoEnabled.two': 'تم تفعيل الإضافتين المطلوبتين أولاً: {plugins}',
+  'admin.plugins.dep.autoEnabled.few': 'تم تفعيل الإضافات المطلوبة أولاً: {plugins}',
+  'admin.plugins.dep.autoEnabled.many': 'تم تفعيل الإضافات المطلوبة أولاً: {plugins}',
   'admin.plugins.dep.downloaded': 'تم تنزيل {id}',
   'admin.plugins.dep.resolveTitle': 'تبعيات مفقودة',
   'admin.plugins.dep.resolveBody': 'يحتاج “{name}” إلى تثبيت هذه الإضافات قبل تفعيله.',
@@ -606,7 +670,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.collab.name': 'التعاون',
   'admin.addons.catalog.collab.description': 'ملاحظات واستطلاعات ومحادثة واقتراحات للتخطيط المشترك',
   'admin.addons.catalog.roadtrip.name': 'رحلة برية',
-  'admin.addons.catalog.roadtrip.description': 'خطّط رحلات القيادة مع محطات توقف، وتُحدَّث أوقات القيادة والوصول تلقائيًا',
+  'admin.addons.catalog.roadtrip.description':
+    'خطّط رحلات القيادة مع محطات توقف، وتُحدَّث أوقات القيادة والوصول تلقائيًا',
   'admin.addons.catalog.memories.name': 'صور (Immich)',
   'admin.addons.catalog.memories.description': 'شارك صور رحلتك عبر Immich',
   'admin.addons.catalog.mcp.description': 'بروتوكول سياق النموذج لتكامل مساعد الذكاء الاصطناعي',
@@ -620,7 +685,13 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.dawarich.description':
     'قراءة الزيارات والمسارات المسجَّلة من خادم Dawarich يربطه كل قارئ بنفسه',
   'admin.addons.catalog.llm_parsing.name': 'التحليل بالذكاء الاصطناعي',
-  'admin.addons.catalog.llm_parsing.description': 'يقرأ الحجوزات التي يعجز المحلل المدمج عن فهمها، بنموذج ذكاء اصطناعي تختاره',
+  'admin.addons.catalog.llm_parsing.description':
+    'يقرأ الحجوزات التي يعجز المحلل المدمج عن فهمها، بنموذج ذكاء اصطناعي تختاره',
+  'admin.addons.llm.vision.auto': 'تلقائي',
+  'admin.addons.llm.vision.on': 'نعم',
+  'admin.addons.llm.vision.off': 'لا',
+  'admin.addons.llm.vision.hintLocal': 'يسأل الخيار «تلقائي» خادم Ollama عمّا إذا كان هذا النموذج يقرأ الصور.',
+  'admin.addons.llm.vision.hintCloud': 'يعني «تلقائي» «لا» للنموذج السحابي. اختر «نعم» إذا كان هذا النموذج يقرأ الصور.',
   'admin.addons.enabled': 'مفعّل',
   'admin.addons.disabled': 'معطّل',
   'admin.addons.type.trip': 'رحلة',
@@ -675,7 +746,12 @@ const admin: TranslationStrings = {
   'admin.audit.empty': 'لا توجد سجلات تدقيق بعد.',
   'admin.audit.refresh': 'تحديث',
   'admin.audit.loadMore': 'تحميل المزيد',
-  'admin.audit.showing': 'تم تحميل {count} · الإجمالي {total}',
+  'admin.audit.showing': 'تم تحميل {count} سجل · الإجمالي {total}',
+  'admin.audit.showing.zero': 'لم يُحمَّل أي سجل · الإجمالي {total}',
+  'admin.audit.showing.one': 'تم تحميل سجل واحد · الإجمالي {total}',
+  'admin.audit.showing.two': 'تم تحميل سجلين · الإجمالي {total}',
+  'admin.audit.showing.few': 'تم تحميل {count} سجلات · الإجمالي {total}',
+  'admin.audit.showing.many': 'تم تحميل {count} سجلًا · الإجمالي {total}',
   'admin.audit.col.time': 'الوقت',
   'admin.audit.col.user': 'المستخدم',
   'admin.audit.col.action': 'الإجراء',
@@ -719,6 +795,9 @@ const admin: TranslationStrings = {
   'admin.notifications.ntfy': 'Ntfy', // en-fallback
   'admin.notifications.emailPanel.title': 'Email (SMTP)', // en-fallback
   'admin.notifications.webhookPanel.title': 'Webhook', // en-fallback
+  'admin.notifications.webPushPanel.title': 'إشعارات الويب الفورية',
+  'admin.notifications.webPushPanel.hint':
+    'تتيح للمستخدمين تلقي الإشعارات على هواتفهم وحواسيبهم عبر المتصفح، حتى عندما يكون TREK مغلقًا. يتطلب HTTPS؛ وعلى iPhone وiPad يجب إضافة TREK إلى الشاشة الرئيسية.',
   'admin.notifications.inappPanel.title': 'In-App', // en-fallback
   'admin.notifications.adminNtfyPanel.serverPlaceholder': 'https://ntfy.sh', // en-fallback
   'admin.notifications.adminNtfyPanel.topicPlaceholder': 'trek-admin-alerts', // en-fallback
@@ -757,7 +836,12 @@ const admin: TranslationStrings = {
   'admin.passkey.resetHint':
     'إزالة جميع مفاتيح المرور لهذا المستخدم (مثلًا عند فقدان جهاز). سيظل بإمكانه تسجيل الدخول بكلمة المرور.',
   'admin.passkey.resetConfirm': 'إزالة جميع مفاتيح المرور لـ {name}؟',
-  'admin.passkey.resetDone': 'تمت إزالة {count} من مفاتيح المرور',
+  'admin.passkey.resetDone': 'تمت إزالة {count} مفتاح مرور',
+  'admin.passkey.resetDone.zero': 'لم تتم إزالة أي مفتاح مرور',
+  'admin.passkey.resetDone.one': 'تمت إزالة مفتاح مرور واحد',
+  'admin.passkey.resetDone.two': 'تمت إزالة مفتاحَي مرور',
+  'admin.passkey.resetDone.few': 'تمت إزالة {count} مفاتيح مرور',
+  'admin.passkey.resetDone.many': 'تمت إزالة {count} مفتاح مرور',
   'admin.defaultSettings.mapProvider': 'محرك الخرائط',
   'admin.defaultSettings.mapProviderHint':
     'الخريطة الافتراضية لجميع المستخدمين على هذا الخادم. لا يزال بإمكان كل مستخدم تجاوزها في إعداداته الخاصة.',

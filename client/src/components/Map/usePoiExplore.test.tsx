@@ -1,11 +1,21 @@
-// FE-COMP-POIEXPLORE-001 to FE-COMP-POIEXPLORE-018
+// FE-COMP-POIEXPLORE-001 to FE-COMP-POIEXPLORE-028
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
+import type { PluginPoiCategory } from '@trek/shared'
 import { TranslationProvider } from '../../i18n'
 import { mapsApi } from '../../api/client'
+import { pluginPoisApi } from '../../api/pluginPois'
+import { pluginPoiRepo } from '../../repo/pluginPoiRepo'
+import { usePluginStore, type ActivePlugin } from '../../store/pluginStore'
 import { usePoiExplore, type Bbox } from './usePoiExplore'
 import type { Poi } from './poiCategories'
+
+const net = vi.hoisted(() => ({ offline: false }))
+vi.mock('../../sync/networkMode', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../sync/networkMode')>()),
+  isEffectivelyOffline: () => net.offline,
+}))
 
 type PoiResponse = Awaited<ReturnType<typeof mapsApi.pois>>
 
@@ -53,8 +63,12 @@ function setup() {
 const spyOnPois = () => vi.spyOn(mapsApi, 'pois')
 let pois: ReturnType<typeof spyOnPois>
 
+const initialPlugins = usePluginStore.getState()
+
 beforeEach(() => {
   pois = spyOnPois().mockResolvedValue(response([poi()]))
+  net.offline = false
+  usePluginStore.setState(initialPlugins, true)
 })
 
 afterEach(() => {
@@ -269,5 +283,181 @@ describe('usePoiExplore', () => {
     await act(async () => { d.reject(Object.assign(new Error('canceled'), { name: 'CanceledError' })) })
 
     await waitFor(() => expect(result.current.loadingKeys.size).toBe(0))
+  })
+})
+
+// Plugin POI categories (#1781): a chip a plugin added is asked of that plugin, through
+// the repo, with the same single selection, cancelling and retry as a core one.
+describe('usePoiExplore with plugin categories', () => {
+  const TRAILHEADS: PluginPoiCategory = { id: 'trailheads', label: 'Trailheads', labels: { de: 'Wanderparkplätze' }, icon: 'Signpost', color: '#2f855a' }
+  const KEY = 'plugin:trail-finder/trailheads'
+  const TRAIL_FINDER: ActivePlugin = { id: 'trail-finder', name: 'Trail finder', type: 'integration', icon: null, poiCategories: [TRAILHEADS] }
+
+  type PluginAnswer = Awaited<ReturnType<typeof pluginPoiRepo.search>>
+
+  function pluginPoi(over: Partial<Poi> = {}): Poi {
+    return {
+      osm_id: 'plugin:trail-finder:th-1', name: 'Hochalm trailhead', lat: 48.2, lng: 16.35,
+      category: KEY, poi_type: KEY, address: null, website: null, phone: null,
+      opening_hours: null, cuisine: null, brand: null, brand_wikidata: null, charging: null,
+      source: 'plugin:trail-finder', pluginId: 'trail-finder', rating: null,
+      details: [{ label: 'Parking', value: '40 spaces' }], icon: 'Signpost', color: '#2f855a',
+      ...over,
+    }
+  }
+
+  function answer(rows: Poi[]): PluginAnswer {
+    return { pois: rows, source: 'plugin:trail-finder', truncated: false, clamped: false }
+  }
+
+  let search: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    usePluginStore.setState({ plugins: [TRAIL_FINDER], loaded: true })
+    search = vi.spyOn(pluginPoiRepo, 'search').mockResolvedValue(answer([pluginPoi()]))
+  })
+
+  it('FE-COMP-POIEXPLORE-019: hands the pill the core chips and then the plugin ones', () => {
+    const { result } = setup()
+    expect(result.current.categories.core.map(c => c.key)).toContain('cafe')
+    expect(result.current.categories.plugin.map(c => c.key)).toEqual([KEY])
+  })
+
+  it('FE-COMP-POIEXPLORE-020: a plugin key asks the plugin POI repo, never the core search', async () => {
+    const { result } = setup()
+    act(() => { result.current.onViewportChange(BBOX) })
+    act(() => { result.current.toggle(KEY) })
+
+    await waitFor(() => expect(result.current.pois).toHaveLength(1))
+    // The TREK language rather than the locale: that is what the SDK promises a plugin.
+    expect(search).toHaveBeenCalledWith('trail-finder', 'trailheads', BBOX, 'en', expect.any(AbortSignal))
+    expect(pois).not.toHaveBeenCalled()
+    expect(result.current.pois[0]).toMatchObject({ osm_id: 'plugin:trail-finder:th-1', color: '#2f855a', icon: 'Signpost' })
+    expect(result.current.pois[0].details).toEqual([{ label: 'Parking', value: '40 spaces' }])
+  })
+
+  it('FE-COMP-POIEXPLORE-021: offline the chip fails at once and no request is made', async () => {
+    search.mockRestore()
+    net.offline = true
+    const api = vi.spyOn(pluginPoisApi, 'search')
+    const { result } = setup()
+    act(() => { result.current.onViewportChange(BBOX) })
+    act(() => { result.current.toggle(KEY) })
+
+    await waitFor(() => expect(result.current.errorKeys.has(KEY)).toBe(true))
+    expect(api).not.toHaveBeenCalled()
+    expect(result.current.loadingKeys.has(KEY)).toBe(false)
+    expect(result.current.pois).toEqual([])
+  })
+
+  it('FE-COMP-POIEXPLORE-022: switching to a core category cancels the plugin request without an error', async () => {
+    const pending = deferred<PluginAnswer>()
+    let signal: AbortSignal | undefined
+    search.mockImplementation((...args: unknown[]) => {
+      signal = args[4] as AbortSignal
+      return pending.promise
+    })
+    const { result } = setup()
+    act(() => { result.current.onViewportChange(BBOX) })
+    act(() => { result.current.toggle(KEY) })
+    act(() => { result.current.toggle('cafe') })
+    expect(signal?.aborted).toBe(true)
+
+    await act(async () => { pending.reject(Object.assign(new Error('canceled'), { name: 'CanceledError' })) })
+    await waitFor(() => expect(result.current.pois).toHaveLength(1))
+    expect(result.current.pois[0].category).toBe('cafe')
+    expect(result.current.errorKeys.size).toBe(0)
+    expect(result.current.loadingKeys.size).toBe(0)
+  })
+
+  it('FE-COMP-POIEXPLORE-023: a failed plugin answer is retried like a core one', async () => {
+    search.mockRejectedValueOnce(new Error('The plugin did not answer'))
+    const { result } = setup()
+    act(() => { result.current.onViewportChange(BBOX) })
+    act(() => { result.current.toggle(KEY) })
+    await waitFor(() => expect(result.current.errorKeys.has(KEY)).toBe(true))
+
+    act(() => { result.current.searchArea() })
+    await waitFor(() => expect(result.current.pois).toHaveLength(1))
+    expect(result.current.errorKeys.size).toBe(0)
+    expect(search).toHaveBeenCalledTimes(2)
+  })
+
+  it('FE-COMP-POIEXPLORE-024: an answer landing after the plugin chip was switched off is dropped', async () => {
+    const pending = deferred<PluginAnswer>()
+    search.mockReturnValue(pending.promise)
+    const { result } = setup()
+    act(() => { result.current.onViewportChange(BBOX) })
+    act(() => { result.current.toggle(KEY) })
+    act(() => { result.current.toggle(KEY) })
+
+    await act(async () => { pending.resolve(answer([pluginPoi()])) })
+    expect(result.current.pois).toEqual([])
+    expect(result.current.active.size).toBe(0)
+  })
+
+  it('FE-COMP-POIEXPLORE-025: a plugin chip that leaves the feed takes its selection and markers with it', async () => {
+    const { result } = setup()
+    act(() => { result.current.onViewportChange(BBOX) })
+    act(() => { result.current.toggle(KEY) })
+    await waitFor(() => expect(result.current.pois).toHaveLength(1))
+
+    // The admin switched the plugin off, and the feed was read again.
+    act(() => { usePluginStore.setState({ plugins: [] }) })
+    expect(result.current.active.size).toBe(0)
+    expect(result.current.pois).toEqual([])
+    expect(result.current.categories.plugin).toEqual([])
+  })
+
+  it('FE-COMP-POIEXPLORE-026: a request in flight when the chip leaves the feed is cancelled', async () => {
+    const pending = deferred<PluginAnswer>()
+    let signal: AbortSignal | undefined
+    search.mockImplementation((...args: unknown[]) => {
+      signal = args[4] as AbortSignal
+      return pending.promise
+    })
+    const { result } = setup()
+    act(() => { result.current.onViewportChange(BBOX) })
+    act(() => { result.current.toggle(KEY) })
+
+    act(() => { usePluginStore.setState({ plugins: [{ ...TRAIL_FINDER, poiCategories: undefined }] }) })
+    expect(signal?.aborted).toBe(true)
+    await act(async () => { pending.reject(Object.assign(new Error('canceled'), { name: 'CanceledError' })) })
+    await waitFor(() => expect(result.current.loadingKeys.size).toBe(0))
+    expect(result.current.errorKeys.size).toBe(0)
+  })
+
+  it('FE-COMP-POIEXPLORE-027: a core selection outlives any change to the plugin feed', async () => {
+    const { result } = setup()
+    act(() => { result.current.onViewportChange(BBOX) })
+    act(() => { result.current.toggle('cafe') })
+    await waitFor(() => expect(result.current.pois).toHaveLength(1))
+
+    act(() => { usePluginStore.setState({ plugins: [] }) })
+    expect(result.current.active).toEqual(new Set(['cafe']))
+    expect(result.current.pois).toHaveLength(1)
+  })
+
+  it('FE-COMP-POIEXPLORE-028: a 404 means the category is gone, so the plugin feed is read again', async () => {
+    const loadPlugins = vi.fn(async () => {})
+    usePluginStore.setState({ loadPlugins })
+    search.mockRejectedValue(Object.assign(new Error('Request failed with status code 404'), { response: { status: 404 } }))
+    const { result } = setup()
+    act(() => { result.current.onViewportChange(BBOX) })
+    act(() => { result.current.toggle(KEY) })
+
+    await waitFor(() => expect(result.current.errorKeys.has(KEY)).toBe(true))
+    expect(loadPlugins).toHaveBeenCalledTimes(1)
+    // The fresh feed no longer lists it, so the chip and its selection go.
+    act(() => { usePluginStore.setState({ plugins: [] }) })
+    expect(result.current.active.size).toBe(0)
+    expect(result.current.categories.plugin).toEqual([])
+
+    // Any other failure keeps the feed as it is.
+    act(() => { usePluginStore.setState({ plugins: [TRAIL_FINDER] }) })
+    search.mockRejectedValue(Object.assign(new Error('Request failed with status code 502'), { response: { status: 502 } }))
+    act(() => { result.current.toggle(KEY) })
+    await waitFor(() => expect(result.current.errorKeys.has(KEY)).toBe(true))
+    expect(loadPlugins).toHaveBeenCalledTimes(1)
   })
 })

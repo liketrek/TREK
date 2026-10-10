@@ -18,6 +18,7 @@ const trip: TranslationStrings = {
   'trip.loadingSteps.arrive': 'もうすぐ到着...',
   'trip.mobilePlan': '計画',
   'trip.mobilePlaces': '場所',
+  'trip.panelWidth': 'パネルの幅',
   'trip.toast.placeUpdated': '場所を更新しました',
   'trip.toast.tripUpdated': '旅行を更新しました',
   'trip.toast.placeAdded': '場所を追加しました',
@@ -30,7 +31,7 @@ const trip: TranslationStrings = {
   'trip.toast.reservationAdded': '予約を追加しました',
   'trip.toast.deleted': '削除しました',
   'trip.confirm.deletePlace': 'この場所を削除してもよろしいですか？',
-  'trip.confirm.deletePlaces': '{count}件の場所を削除してもよろしいですか?',
+  'trip.confirm.deletePlaces': '{count}件の場所を削除してもよろしいですか？',
   'trip.toast.placesDeleted': '{count}件の場所を削除しました',
   'trip.invite.linkTitle': '旅行の招待リンク',
   'trip.invite.linkHint':

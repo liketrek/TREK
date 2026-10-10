@@ -5,10 +5,18 @@
  * takes exactly one tint, so a contested day must resolve the same way every request
  * or the card flickers between two plugins' colours.
  */
+import type { DaysRepository } from '../../../src/db/repositories/Days.repository';
+import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import { DayTintsController } from '../../../src/nest/plugins/contributions/day-tints.controller';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { canAccessTrip, pluginsEnabled, tripDays } = vi.hoisted(() => ({
-  canAccessTrip: vi.fn((tripId: number, userId: number) => (tripId === 1 && userId === 5 ? { id: 1 } : undefined)),
+  canAccessTrip: vi.fn(async (tripId: number, userId: number) =>
+    tripId === 1 && userId === 5 ? { id: 1 } : undefined,
+  ),
   pluginsEnabled: vi.fn(() => true),
   tripDays: { value: [{ id: 10 }, { id: 11 }] as Array<{ id: number }> },
 }));
@@ -16,12 +24,8 @@ vi.mock('../../../src/db/database', () => ({
   db: { prepare: () => ({ all: () => tripDays.value }) },
   canAccessTrip,
 }));
-import { db as dbConn } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
-import { DayTintsController } from '../../../src/nest/plugins/contributions/day-tints.controller';
-import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -30,12 +34,24 @@ function controller(invoke: (id: string) => unknown, providers = ['p1']) {
     providersOf: vi.fn(() => providers),
     dayTints: vi.fn(async (id: string) => invoke(id)),
   } as unknown as PluginHooks;
-  return { c: new DayTintsController(runtime, new DatabaseService(dbConn)), runtime };
+  // CT2 (Plan 3j Task 5) — the day-id-set read is now DaysRepository.listIdsByTrip.
+  const days = { listIdsByTrip: vi.fn(async () => tripDays.value.map((d) => d.id)) } as unknown as DaysRepository;
+  return {
+    c: new DayTintsController(
+      runtime,
+      new TripAccessService({ findAccessible: canAccessTrip } as unknown as TripsRepository),
+      days,
+    ),
+    runtime,
+  };
 }
 const tint = (over: Record<string, unknown> = {}) => ({ dayId: 10, tone: 'success', ...over });
 
 describe('DayTintsController', () => {
-  beforeEach(() => { pluginsEnabled.mockReturnValue(true); canAccessTrip.mockReturnValue({ id: 1 } as never); });
+  beforeEach(() => {
+    pluginsEnabled.mockReturnValue(true);
+    canAccessTrip.mockResolvedValue({ id: 1 } as never);
+  });
 
   it('gates: disabled / no user / non-member all return [] (no plugin calls on the first)', async () => {
     pluginsEnabled.mockReturnValue(false);
@@ -45,7 +61,7 @@ describe('DayTintsController', () => {
     pluginsEnabled.mockReturnValue(true);
 
     expect((await controller(() => [tint()]).c.get('1', req(undefined))).tints).toEqual([]);
-    canAccessTrip.mockReturnValue(undefined as never);
+    canAccessTrip.mockResolvedValue(undefined as never);
     expect((await controller(() => [tint()]).c.get('1', req(5))).tints).toEqual([]);
   });
 
@@ -80,10 +96,7 @@ describe('DayTintsController', () => {
   });
 
   it('degrades a bogus tone to default rather than dropping the region', async () => {
-    const { c } = controller(() => [
-      tint({ tone: 'chartreuse' }),
-      { dayId: 11, headerTone: 42 },
-    ]);
+    const { c } = controller(() => [tint({ tone: 'chartreuse' }), { dayId: 11, headerTone: 42 }]);
     const out = (await c.get('1', req(5))).tints;
     expect(out[0]).toMatchObject({ badgeTone: 'default', headerTone: 'default', activityTone: 'default' });
     // A named-but-bogus region is still a request to tint it; unnamed ones stay off.
@@ -107,8 +120,8 @@ describe('DayTintsController', () => {
 
   it('lets a named region override the shorthand across channels, both ways', async () => {
     const { c } = controller(() => [
-      { dayId: 10, color: '#112233', badgeTone: 'danger' },  // tone overrides a colour shorthand
-      { dayId: 11, tone: 'warn', badgeColor: '#112233' },    // colour overrides a tone shorthand
+      { dayId: 10, color: '#112233', badgeTone: 'danger' }, // tone overrides a colour shorthand
+      { dayId: 11, tone: 'warn', badgeColor: '#112233' }, // colour overrides a tone shorthand
     ]);
     const out = (await c.get('1', req(5))).tints;
     expect(out[0]).toMatchObject({ badgeTone: 'danger', headerColor: '#112233', activityColor: '#112233' });
@@ -150,23 +163,24 @@ describe('DayTintsController', () => {
   it('treats an entry with no tone at all as "tint this day", default everywhere', async () => {
     const { c } = controller(() => [{ dayId: 10 }, { dayId: 11, tone: undefined }]);
     const out = (await c.get('1', req(5))).tints;
-    for (const t of out) expect(t).toMatchObject({ badgeTone: 'default', headerTone: 'default', activityTone: 'default' });
+    for (const t of out)
+      expect(t).toMatchObject({ badgeTone: 'default', headerTone: 'default', activityTone: 'default' });
     expect(out[0].label).toBeUndefined();
   });
 
   it("drops tints on another trip's day, on a non-numeric day, and non-objects", async () => {
     const { c } = controller(() => [
-      tint({ dayId: 999 }),  // not a day of this trip
-      tint({ dayId: 'x' }),  // non-numeric day
+      tint({ dayId: 999 }), // not a day of this trip
+      tint({ dayId: 'x' }), // non-numeric day
       tint({ dayId: null }),
-      null,                  // non-object
+      null, // non-object
       tint({ dayId: 11 }),
     ]);
     const out = (await c.get('1', req(5))).tints;
-    expect(out.map(t => t.dayId)).toEqual([11]);
+    expect(out.map((t) => t.dayId)).toEqual([11]);
   });
 
-  it('takes a provider\'s FIRST answer for a day it tints twice', async () => {
+  it("takes a provider's FIRST answer for a day it tints twice", async () => {
     const { c } = controller(() => [
       tint({ dayId: 10, tone: 'success', label: 'first' }),
       tint({ dayId: 10, tone: 'danger', label: 'second' }),
@@ -176,11 +190,15 @@ describe('DayTintsController', () => {
     expect(out[0]).toMatchObject({ badgeTone: 'success', label: 'first' });
   });
 
-  it('resolves a contested day WHOLE — the loser cannot fill in the winner\'s empty regions', async () => {
+  it("resolves a contested day WHOLE — the loser cannot fill in the winner's empty regions", async () => {
     const { c } = controller(
-      (id) => (id === 'first'
-        ? [{ dayId: 10, badgeTone: 'success' }]                        // badge only
-        : [{ dayId: 10, tone: 'danger' }, { dayId: 11, tone: 'warn' }]), // would fill all three
+      (id) =>
+        id === 'first'
+          ? [{ dayId: 10, badgeTone: 'success' }] // badge only
+          : [
+              { dayId: 10, tone: 'danger' },
+              { dayId: 11, tone: 'warn' },
+            ], // would fill all three
       ['first', 'second'],
     );
     const out = (await c.get('1', req(5))).tints;
@@ -194,11 +212,16 @@ describe('DayTintsController', () => {
 
   it('skips a failing provider without losing the healthy one', async () => {
     const { c } = controller(
-      (id) => (id === 'bad' ? (() => { throw new Error('boom'); })() : [tint()]),
+      (id) =>
+        id === 'bad'
+          ? (() => {
+              throw new Error('boom');
+            })()
+          : [tint()],
       ['bad', 'good'],
     );
     const out = (await c.get('1', req(5))).tints;
-    expect(out.map(t => t.pluginId)).toEqual(['good']);
+    expect(out.map((t) => t.pluginId)).toEqual(['good']);
   });
 
   it('bounds work on an all-invalid oversized payload', async () => {

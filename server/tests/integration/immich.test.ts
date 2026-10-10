@@ -5,46 +5,30 @@
  * External Immich API calls are not made — tests focus on settings persistence
  * and input validation.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
+import { TrekPhotos } from '../../src/db/entities/TrekPhotos.entity';
+import { TripAlbumLinks } from '../../src/db/entities/TripAlbumLinks.entity';
+import { TripPhotos } from '../../src/db/entities/TripPhotos.entity';
+import { authCookie } from '../helpers/auth';
+import { createUser } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { addAlbumLink, addTripPhoto } from '../helpers/factories/photos';
+import { findRow, findRows, updateRows } from '../helpers/factories/rows';
+import { makeTrip } from '../helpers/factories/trips';
+import { resetTestDb, resetRateLimits, setAddonEnabled } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: (placeId: number) => {
-      const place: any = db.prepare(`SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`).get(placeId);
-      if (!place) return null;
-      const tags = db.prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`).all(placeId);
-      return { ...place, category: place.category_id ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon } : null, tags };
-    },
-    canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
-    isOwner: (tripId: any, userId: number) =>
-      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
-});
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-vi.mock('../../src/db/database', () => dbMock);
-vi.mock('../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-  SESSION_DURATION: '24h',
-  SESSION_DURATION_MS: 86400000,
-  SESSION_DURATION_SECONDS: 86400,
-  DEFAULT_LANGUAGE: 'en',
-}));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 // Mock SSRF guard: block loopback and private IPs, allow external hostnames without DNS.
 vi.mock('../../src/utils/ssrfGuard', async () => {
@@ -70,28 +54,26 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
   };
 });
 
-import { buildApp } from '../../src/bootstrap';
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb, resetRateLimits, setAddonEnabled } from '../helpers/test-db';
-import { createUser } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-
 let nestApp: INestApplication;
 let app: Application;
+let orm: FactoryOrm;
 
 beforeAll(async () => {
-  createTables(testDb);
-  runMigrations(testDb);
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
+  orm = nestApp.get(MikroORM);
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   resetTestDb(testDb);
-  resetRateLimits(nestApp);
+  await resetRateLimits(nestApp);
   // Providers only count as enabled under an enabled journey addon (migration 84 seeds it off).
   setAddonEnabled(testDb, 'journey', true);
+  // The migrated snapshot seeds photo_providers.immich.enabled = 0 (an admin must
+  // configure it before it's usable in production); the legacy test helper always
+  // seeded it enabled, which is what these tests assume. Same convention
+  // memories-synology.test.ts already uses for its own provider.
+  await updateRows(orm, PhotoProviders, { id: 'immich' }, { enabled: 1 });
 });
 
 afterAll(async () => {
@@ -103,9 +85,7 @@ describe('Immich settings', () => {
   it('IMMICH-001 — GET /api/integrations/memories/immich/settings returns current settings', async () => {
     const { user } = createUser(testDb);
 
-    const res = await request(app)
-      .get('/api/integrations/memories/immich/settings')
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get('/api/integrations/memories/immich/settings').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     // Settings may be empty initially
     expect(res.body).toBeDefined();
@@ -160,7 +140,7 @@ describe('Immich authentication', () => {
 describe('Immich album links', () => {
   it('IMMICH-020 — POST album-links creates a link', async () => {
     const { user } = createUser(testDb);
-    const trip = testDb.prepare('INSERT INTO trips (user_id, title) VALUES (?, ?) RETURNING *').get(user.id, 'Test Trip') as any;
+    const trip = await makeTrip(orm, user.id, { title: 'Test Trip' });
 
     const res = await request(app)
       .post(`/api/integrations/memories/unified/trips/${trip.id}/album-links`)
@@ -170,16 +150,16 @@ describe('Immich album links', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
 
-    const link = testDb.prepare('SELECT * FROM trip_album_links WHERE trip_id = ? AND user_id = ?').get(trip.id, user.id) as any;
-    expect(link).toBeDefined();
-    expect(link.album_id).toBe('album-uuid-123');
-    expect(link.album_name).toBe('Vacation 2024');
+    const link = await findRow(orm, TripAlbumLinks, { trip: trip.id, user: user.id });
+    expect(link).not.toBeNull();
+    expect(link?.album_id).toBe('album-uuid-123');
+    expect(link?.album_name).toBe('Vacation 2024');
   });
 
   it('IMMICH-021 — GET album-links returns linked albums', async () => {
     const { user } = createUser(testDb);
-    const trip = testDb.prepare('INSERT INTO trips (user_id, title) VALUES (?, ?) RETURNING *').get(user.id, 'Test Trip') as any;
-    testDb.prepare('INSERT INTO trip_album_links (trip_id, user_id, album_id, album_name, provider) VALUES (?, ?, ?, ?, ?)').run(trip.id, user.id, 'album-abc', 'My Album', 'immich');
+    const trip = await makeTrip(orm, user.id, { title: 'Test Trip' });
+    await addAlbumLink(orm, trip.id, user.id, 'immich', 'album-abc', 'My Album');
 
     const res = await request(app)
       .get(`/api/integrations/memories/unified/trips/${trip.id}/album-links`)
@@ -193,23 +173,18 @@ describe('Immich album links', () => {
 
   it('IMMICH-022 — DELETE album-links removes associated photos but not individually-added ones', async () => {
     const { user } = createUser(testDb);
-    const trip = testDb.prepare('INSERT INTO trips (user_id, title) VALUES (?, ?) RETURNING *').get(user.id, 'Test Trip') as any;
+    const trip = await makeTrip(orm, user.id, { title: 'Test Trip' });
 
     // Create album link
-    const linkResult = testDb.prepare('INSERT INTO trip_album_links (trip_id, user_id, album_id, album_name, provider) VALUES (?, ?, ?, ?, ?) RETURNING *')
-      .get(trip.id, user.id, 'album-xyz', 'Album XYZ', 'immich') as any;
+    const linkResult = await addAlbumLink(orm, trip.id, user.id, 'immich', 'album-xyz', 'Album XYZ');
 
     // Insert photos synced from the album
     for (const assetId of ['asset-001', 'asset-002']) {
-      testDb.prepare('INSERT OR IGNORE INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)').run('immich', assetId, user.id);
-      const tkp = testDb.prepare('SELECT id FROM trek_photos WHERE provider = ? AND asset_id = ? AND owner_id = ?').get('immich', assetId, user.id) as any;
-      testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared, album_link_id) VALUES (?, ?, ?, 1, ?)').run(trip.id, user.id, tkp.id, linkResult.id);
+      await addTripPhoto(orm, trip.id, user.id, assetId, 'immich', { shared: true, albumLinkId: linkResult.id });
     }
 
     // Insert an individually-added photo (no album_link_id)
-    testDb.prepare('INSERT OR IGNORE INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)').run('immich', 'asset-manual', user.id);
-    const tkpManual = testDb.prepare('SELECT id FROM trek_photos WHERE provider = ? AND asset_id = ? AND owner_id = ?').get('immich', 'asset-manual', user.id) as any;
-    testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared) VALUES (?, ?, ?, 1)').run(trip.id, user.id, tkpManual.id);
+    await addTripPhoto(orm, trip.id, user.id, 'asset-manual', 'immich', { shared: true });
 
     const res = await request(app)
       .delete(`/api/integrations/memories/unified/trips/${trip.id}/album-links/${linkResult.id}`)
@@ -219,29 +194,26 @@ describe('Immich album links', () => {
     expect(res.body.success).toBe(true);
 
     // Album-linked photos should be gone
-    const remainingPhotos = testDb.prepare(`
-      SELECT tp.*, tkp.asset_id FROM trip_photos tp
-      JOIN trek_photos tkp ON tkp.id = tp.photo_id
-      WHERE tp.trip_id = ?
-    `).all(trip.id) as any[];
+    const remainingPhotos = [];
+    for (const tp of await findRows(orm, TripPhotos, { trip: trip.id })) {
+      const tkp = await findRow(orm, TrekPhotos, { id: tp.photo_id });
+      if (tkp) remainingPhotos.push({ ...tp, asset_id: tkp.asset_id });
+    }
     expect(remainingPhotos.length).toBe(1);
     expect(remainingPhotos[0].asset_id).toBe('asset-manual');
 
     // Album link itself should be gone
-    const link = testDb.prepare('SELECT * FROM trip_album_links WHERE id = ?').get(linkResult.id);
-    expect(link).toBeUndefined();
+    const link = await findRow(orm, TripAlbumLinks, { id: linkResult.id });
+    expect(link).toBeNull();
   });
 
   it('IMMICH-023 — DELETE album-link by non-member returns 404', async () => {
     const { user: owner } = createUser(testDb);
     const { user: other } = createUser(testDb);
-    const trip = testDb.prepare('INSERT INTO trips (user_id, title) VALUES (?, ?) RETURNING *').get(owner.id, 'Test Trip') as any;
+    const trip = await makeTrip(orm, owner.id, { title: 'Test Trip' });
 
-    const linkResult = testDb.prepare('INSERT INTO trip_album_links (trip_id, user_id, album_id, album_name, provider) VALUES (?, ?, ?, ?, ?) RETURNING *')
-      .get(trip.id, owner.id, 'album-secret', 'Secret Album', 'immich') as any;
-    testDb.prepare('INSERT OR IGNORE INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)').run('immich', 'asset-owned', owner.id);
-    const tkpOwned = testDb.prepare('SELECT id FROM trek_photos WHERE provider = ? AND asset_id = ? AND owner_id = ?').get('immich', 'asset-owned', owner.id) as any;
-    testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared, album_link_id) VALUES (?, ?, ?, 1, ?)').run(trip.id, owner.id, tkpOwned.id, linkResult.id);
+    const linkResult = await addAlbumLink(orm, trip.id, owner.id, 'immich', 'album-secret', 'Secret Album');
+    await addTripPhoto(orm, trip.id, owner.id, 'asset-owned', 'immich', { shared: true, albumLinkId: linkResult.id });
 
     // Non-member tries to delete owner's album link — should be denied
     const res = await request(app)
@@ -251,14 +223,11 @@ describe('Immich album links', () => {
     expect(res.status).toBe(404);
 
     // Link and photos should still exist
-    const link = testDb.prepare('SELECT * FROM trip_album_links WHERE id = ?').get(linkResult.id);
-    expect(link).toBeDefined();
-    const photo = testDb.prepare(`
-      SELECT tp.* FROM trip_photos tp
-      JOIN trek_photos tkp ON tkp.id = tp.photo_id
-      WHERE tkp.asset_id = ?
-    `).get('asset-owned');
-    expect(photo).toBeDefined();
+    const link = await findRow(orm, TripAlbumLinks, { id: linkResult.id });
+    expect(link).not.toBeNull();
+    const owned = await findRow(orm, TrekPhotos, { asset_id: 'asset-owned' });
+    const photo = owned ? await findRow(orm, TripPhotos, { photo: owned.id }) : null;
+    expect(photo).not.toBeNull();
   });
 
   it('IMMICH-024 — DELETE album-link without auth returns 401', async () => {

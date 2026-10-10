@@ -1,0 +1,71 @@
+# Version updates, weekly, into dev. Minor and patch bumps of one ecosystem
+# arrive as a single grouped PR; a major bump gets a PR of its own so its
+# breaking notes are read on their own.
+#
+# Security updates are a repository setting, not part of this file, and
+# GitHub opens them against the default branch whatever target-branch says.
+# enforce-target-branch.yml moves those onto dev.
+#
+# Every PR runs test.yml like any other, so ci-ok decides whether it can
+# merge. Dependabot runs get no Actions secrets, so s3-contract and the Sonar
+# scan skip themselves on these PRs and ci-ok counts the skip as passed.
+version: 2
+updates:
+  # The root lockfile covers the client, server and shared workspaces.
+  - package-ecosystem: npm
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(deps-dev)
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+
+  # plugin-sdk is standalone with a lockfile of its own and ships to npm.
+  - package-ecosystem: npm
+    directory: /plugin-sdk
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore(plugin-sdk)
+      prefix-development: chore(plugin-sdk)
+    groups:
+      plugin-sdk-minor-and-patch:
+        update-types: [minor, patch]
+
+  # Keeps the SHA pins of third-party actions current, comment included.
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: ci
+    groups:
+      actions-minor-and-patch:
+        update-types: [minor, patch]
+
+  # The Dockerfile's base images. The Node major follows .nvmrc and the
+  # engines ranges, so it moves by hand, together with them.
+  - package-ecosystem: docker
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore(docker)
+    ignore:
+      - dependency-name: node
+        update-types: [version-update:semver-major]

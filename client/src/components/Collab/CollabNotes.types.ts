@@ -21,6 +21,7 @@ export interface CollabNote {
   avatar: string | null
   user_id: number
   created_at: string
+  updated_at?: string
   author?: { username: string; avatar: string | null }
   user?: { username: string; avatar: string | null }
   files?: NoteFile[]

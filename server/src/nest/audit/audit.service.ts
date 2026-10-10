@@ -1,6 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
+import { AuditLog } from '../../db/entities/AuditLog.entity';
+import { Users } from '../../db/entities/Users.entity';
+import type { AuditLogRepository } from '../../db/repositories/AuditLog.repository';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { logInfo, logDebug, logError } from './audit-log.logger';
+import { ValidationError } from '@mikro-orm/core';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 const ACTION_LABELS: Record<string, string> = {
   'user.register': 'registered',
@@ -10,6 +15,8 @@ const ACTION_LABELS: Record<string, string> = {
   'user.account_delete': 'deleted account',
   'user.mfa_enable': 'enabled MFA',
   'user.mfa_disable': 'disabled MFA',
+  'user.session_revoke': 'signed out a session',
+  'user.sessions_revoke_others': 'signed out other sessions',
   'settings.app_update': 'updated settings',
   'settings.api_keys_update': 'updated API keys',
   'trip.create': 'created trip',
@@ -66,33 +73,63 @@ function buildInfoSummary(action: string, details?: Record<string, unknown>): st
 
 @Injectable()
 export class AuditService {
-  constructor(private readonly dbs: DatabaseService) {}
+  constructor(
+    @InjectRepository(AuditLog) private readonly auditLog: AuditLogRepository,
+    @InjectRepository(Users) private readonly users: UsersRepository,
+  ) {}
 
-  private resolveUserEmail(userId: number | null): string {
+  private async resolveUserEmail(userId: number | null): Promise<string> {
     if (userId == null) return 'anonymous';
     try {
-      const row = this.dbs.get<{ email: string }>('SELECT email FROM users WHERE id = ?', userId);
-      return row?.email || `uid:${userId}`;
-    } catch { return `uid:${userId}`; }
+      const email = await this.users.getEmail(userId);
+      return email || `uid:${userId}`;
+    } catch (e) {
+      // RULING (task-6-fix-brief.md item 4): an audit write must never block
+      // the request it is auditing, so this stays a swallow — the documented
+      // exception to "fail closed on a MikroORM ValidationError" every other
+      // domain in this plan follows. But a ValidationError here (typically
+      // cannotUseGlobalContext) is a wiring bug, not an ordinary DB failure,
+      // and folding it into the generic `uid:${userId}` fallback with no log
+      // line would hide a future unwrapped entrypoint. Log it distinctly so
+      // it is never confused with (or lost among) an actual missing user.
+      if (e instanceof ValidationError) {
+        logError(`Audit email lookup ran with no request context: ${e.message}`);
+      }
+      return `uid:${userId}`;
+    }
   }
 
-  /** Best-effort; never throws — failures are logged only. */
-  writeAudit(entry: {
+  /**
+   * Best-effort; never throws — failures are logged only. RULING
+   * (task-6-fix-brief.md item 4): this is the one documented exception to
+   * "fail closed on a MikroORM ValidationError" — an audit row must never
+   * become a 500 for the mutation it is recording. A ValidationError still
+   * gets a message distinct from every other write failure (below), so an
+   * unwrapped entrypoint stays visible in the log even though it never
+   * throws.
+   *
+   * @txStandalone the row records a change that already happened and never
+   * fails it, so it is not part of the caller's transaction.
+   */
+  async writeAudit(entry: {
     userId: number | null;
     action: string;
     resource?: string | null;
     details?: Record<string, unknown>;
     debugDetails?: Record<string, unknown>;
     ip?: string | null;
-  }): void {
+  }): Promise<void> {
     try {
       const detailsJson = entry.details && Object.keys(entry.details).length > 0 ? JSON.stringify(entry.details) : null;
-      this.dbs.run(
-        `INSERT INTO audit_log (user_id, action, resource, details, ip) VALUES (?, ?, ?, ?, ?)`,
-        entry.userId, entry.action, entry.resource ?? null, detailsJson, entry.ip ?? null
-      );
+      await this.auditLog.insertEntry({
+        user_id: entry.userId,
+        action: entry.action,
+        resource: entry.resource ?? null,
+        details: detailsJson,
+        ip: entry.ip ?? null,
+      });
 
-      const email = this.resolveUserEmail(entry.userId);
+      const email = await this.resolveUserEmail(entry.userId);
       const label = ACTION_LABELS[entry.action] || entry.action;
       const brief = buildInfoSummary(entry.action, entry.details);
       logInfo(oneLine(`${email} ${label}${brief} ip=${entry.ip || '-'}`));
@@ -103,7 +140,11 @@ export class AuditService {
         logDebug(oneLine(`AUDIT ${entry.action} userId=${entry.userId} ${detailsJson}`));
       }
     } catch (e) {
-      logError(`Audit write failed: ${e instanceof Error ? e.message : e}`);
+      if (e instanceof ValidationError) {
+        logError(`Audit write ran with no request context (row not written): ${e.message}`);
+      } else {
+        logError(`Audit write failed: ${e instanceof Error ? e.message : e}`);
+      }
     }
   }
 }

@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Отмена',
   'common.clear': 'Очистить',
   'common.delete': 'Удалить',
+  'common.remove': 'Удалить',
   'common.preview': 'Предпросмотр',
   'common.edit': 'Редактировать',
   'common.add': 'Добавить',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': 'Переименовать',
   'common.discardChanges': 'Отменить изменения',
   'common.discard': 'Отменить',
+  'common.unsavedTitle': 'Отменить изменения?',
+  'common.unsavedMessage': 'Введённое здесь ещё не сохранено.',
+  'common.keepEditing': 'Продолжить',
   'common.name': 'Имя',
   'common.email': 'Эл. почта',
   'common.password': 'Пароль',
@@ -51,7 +55,13 @@ const common: TranslationStrings = {
   'common.copied': 'Скопировано',
   'common.justNow': 'только что',
   'common.hoursAgo': '{count} ч назад',
-  'common.daysAgo': '{count} д назад',
+  'common.hoursAgo.one': '{count} ч назад',
+  'common.hoursAgo.few': '{count} ч назад',
+  'common.hoursAgo.many': '{count} ч назад',
+  'common.daysAgo': '{count} дн. назад',
+  'common.daysAgo.one': '{count} дн. назад',
+  'common.daysAgo.few': '{count} дн. назад',
+  'common.daysAgo.many': '{count} дн. назад',
   'common.datepicker.prevMonth': 'Previous month', // en-fallback
   'common.datepicker.nextMonth': 'Next month', // en-fallback
   'common.datepicker.prevYear': 'Previous year', // en-fallback
@@ -71,7 +81,8 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Повторить',
   'common.errorReload': 'Обновить страницу',
   'common.errorUpdateTitle': 'Доступна новая версия',
-  'common.errorUpdateBody': 'TREK обновился, пока эта вкладка была открыта. Обновите страницу, чтобы получить новую версию.',
+  'common.errorUpdateBody':
+    'TREK обновился, пока эта вкладка была открыта. Обновите страницу, чтобы получить новую версию.',
   'common.errorPluginTitle': 'Не удалось показать этот плагин',
 };
 export default common;

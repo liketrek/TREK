@@ -154,4 +154,31 @@ describe('ConfirmDialog', () => {
     fireEvent.click(backdrop);
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  describe('on a phone', () => {
+    const desktopWidth = window.innerWidth;
+    beforeEach(() => { Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 390 }); });
+    afterEach(() => { Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: desktopWidth }); });
+
+    it('FE-COMP-CONFIRM-014: the phone card answers like the desktop one, and a tap on it does not close it', async () => {
+      const user = userEvent.setup();
+      render(<ConfirmDialog isOpen onClose={onClose} onConfirm={onConfirm} title="Delete note?" message="It is gone for good." confirmLabel="Remove" />);
+      await user.click(screen.getByText('It is gone for good.'));
+      expect(onClose).not.toHaveBeenCalled();
+      await user.click(screen.getByRole('button', { name: 'Remove' }));
+      expect(onConfirm).toHaveBeenCalledOnce();
+      expect(onClose).toHaveBeenCalledOnce();
+    });
+
+    it('FE-COMP-CONFIRM-015: the phone card without danger uses the accent and the default labels', async () => {
+      const user = userEvent.setup();
+      render(<ConfirmDialog isOpen onClose={onClose} onConfirm={onConfirm} message="Leave?" danger={false}><p>More</p></ConfirmDialog>);
+      expect(screen.getByText('Confirm')).toBeInTheDocument();
+      expect(screen.getByText('More')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass('bg-accent');
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(onClose).toHaveBeenCalledOnce();
+      expect(onConfirm).not.toHaveBeenCalled();
+    });
+  });
 });

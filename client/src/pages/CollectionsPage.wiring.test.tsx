@@ -158,14 +158,14 @@ vi.mock('../components/Collections/BulkAssignLabelModal', () => ({
     ) : null,
 }))
 
-vi.mock('../components/shared/Modal', () => ({
-  default: (p: { isOpen: boolean; title: string; onClose: () => void; children: React.ReactNode; footer: React.ReactNode }) =>
+vi.mock('../components/shared/ConfirmDialog', () => ({
+  default: (p: { isOpen: boolean; title?: string; message?: string; confirmLabel?: string; cancelLabel?: string; onConfirm: () => void; onClose: () => void }) =>
     p.isOpen ? (
       <div data-testid="confirm-modal">
         <span>{p.title}</span>
-        <button type="button" onClick={p.onClose}>modal-dismiss</button>
-        {p.children}
-        {p.footer}
+        <p>{p.message}</p>
+        <button type="button" onClick={p.onClose}>{p.cancelLabel}</button>
+        <button type="button" onClick={p.onConfirm}>{p.confirmLabel}</button>
       </div>
     ) : null,
 }))
@@ -742,12 +742,11 @@ describe('CollectionsPage — detail sheet and modals', () => {
     fireEvent.click(screen.getByRole('button', { name: 'common.delete' }))
     expect(hook.handleDeleteList).toHaveBeenCalled()
 
+    // ConfirmDialog sends Cancel, the backdrop and Escape through the one onClose,
+    // so this also covers dismissing the question: the pending id is cleared.
     fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }))
     expect(hook.setConfirmDeleteList).toHaveBeenCalledWith(null)
-
-    // Dismissing the modal itself (backdrop / escape) clears the pending id too.
-    fireEvent.click(screen.getByText('modal-dismiss'))
-    expect(hook.setConfirmDeleteList).toHaveBeenCalledTimes(2)
+    expect(hook.setConfirmDeleteList).toHaveBeenCalledTimes(1)
   })
 
   it('FE-PAGE-COLLPAGE-047: no confirmation is rendered without a pending delete', () => {

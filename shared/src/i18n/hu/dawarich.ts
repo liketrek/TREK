@@ -16,7 +16,8 @@ const dawarich: TranslationStrings = {
   'dawarich.syncEnabled': 'Új tartózkodások automatikus keresése',
   'dawarich.syncEnabledHint': 'Kikapcsolva a TREK csak akkor olvassa a Dawarichot, ha te kéred.',
   'dawarich.test.button': 'Kapcsolat tesztelése',
-  'dawarich.test.success': 'Kapcsolódva. {count} tartózkodás az elmúlt 30 napban.',
+  'dawarich.test.success': 'Kapcsolódva. Az elmúlt 30 napban {count} tartózkodást találtunk.',
+  'dawarich.test.success.one': 'Kapcsolódva. Az elmúlt 30 napban {count} tartózkodást találtunk.',
   'dawarich.test.failed': 'Nem sikerült elérni a Dawarichot.',
   'dawarich.syncNow': 'Keresés most',
   'dawarich.connected': 'Kapcsolódva',
@@ -30,7 +31,8 @@ const dawarich: TranslationStrings = {
   'dawarich.toast.saved': 'Dawarich-kapcsolat mentve',
   'dawarich.toast.saveError': 'Nem sikerült menteni a kapcsolatot',
   'dawarich.toast.disconnected': 'Dawarich leválasztva',
-  'dawarich.toast.synced': '{count} új tartózkodás',
+  'dawarich.toast.synced': '{count} új tartózkodást találtunk',
+  'dawarich.toast.synced.one': '{count} új tartózkodást találtunk',
   'dawarich.toast.syncError': 'Nem sikerült kiolvasni a Dawarichot',
   'dawarich.toast.syncRunning': 'Már fut egy ellenőrzés',
   'dawarich.toast.acceptError': 'Nem sikerült hozzáadni',
@@ -59,7 +61,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'A Dawarich bővítmény ki van kapcsolva ezen a példányon.',
   'dawarich.error.offline': 'Ehhez kapcsolat kell — a TREK most offline.',
   'dawarich.error.invalid_url': 'A TREK nem tudja használni ezt a címet.',
-  'dawarich.warning.private_ip': 'Ez a cím privát IP-re mutat ({ip}). Ellenőrizd, hogy így akartad-e — a szervernek ehhez ALLOW_INTERNAL_NETWORK=true kellhet.',
+  'dawarich.warning.private_ip':
+    'Ez a cím privát IP-re mutat ({ip}). Ellenőrizd, hogy így akartad-e — a szervernek ehhez ALLOW_INTERNAL_NETWORK=true kellhet.',
   'dawarich.error.unknown': 'Hiba történt a Dawarichhal folytatott kommunikáció közben.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -82,6 +85,7 @@ const dawarich: TranslationStrings = {
 
   'dawarich.suggestions.title': 'A Dawarichból',
   'dawarich.suggestions.pending': '{count} vár rád',
+  'dawarich.suggestions.pending.one': '{count} vár rád',
   'dawarich.suggestions.loading': 'A Dawarich olvasása…',
   'dawarich.suggestions.notConnected':
     'Kapcsold össze a Dawarichot a Beállításokban, hogy itt lásd a tartózkodásaidat.',
@@ -93,6 +97,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.dismissed': 'Elvetve',
   'dawarich.suggestions.restore': 'Visszatétel',
   'dawarich.suggestions.showHandled': '{count} elintézett megjelenítése',
+  'dawarich.suggestions.showHandled.one': '{count} elintézett megjelenítése',
   'dawarich.suggestions.hideHandled': 'A már elintézettek elrejtése',
   'dawarich.suggestions.matchesWish': 'A kívánságlistádon: {name}',
   'dawarich.suggestions.acceptedAs.place': 'Hozzáadva helyszínként',
@@ -115,7 +120,8 @@ const dawarich: TranslationStrings = {
   'dawarich.accept.confirm.journal': 'Bejegyzés hozzáadása',
   'dawarich.accept.confirm.bucket_list': 'Pipáld ki',
   'dawarich.accept.recorded': 'Rögzítve {from} és {to} között',
-  'dawarich.accept.duration': '{minutes} perc',
+  'dawarich.accept.duration': '{count} perc',
+  'dawarich.accept.duration.one': '{count} perc',
   'dawarich.accept.name': 'Név',
   'dawarich.accept.date': 'Dátum',
   'dawarich.accept.from': 'Érkezés',
@@ -144,8 +150,11 @@ const dawarich: TranslationStrings = {
   'dawarich.bucket.noMatches': 'A kívánságlistádról semmi nem bukkant fel a rögzítéseidben.',
   'dawarich.bucket.alreadyVisited': 'Már kipipálva',
   'dawarich.bucket.confirm': '{count} kipipálása',
+  'dawarich.bucket.confirm.one': '{count} kipipálása',
   'dawarich.bucket.confirmed': '{count} kívánság kipipálva',
+  'dawarich.bucket.confirmed.one': '{count} kívánság kipipálva',
   'dawarich.bucket.skipped': '{count} bejegyzésnek nincs koordinátája, ezért nem volt ellenőrizhető.',
+  'dawarich.bucket.skipped.one': '{count} bejegyzésnek nincs koordinátája, ezért nem volt ellenőrizhető.',
   'dawarich.bucket.truncated': 'Csak az első bejegyzések lettek ellenőrizve. Futtasd le újra a többihez.',
   'dawarich.bucket.visitedFrom': 'A Dawarich-rögzítéseid alapján kipipálva',
   'dawarich.bucket.clearVisit': 'Visszavonás',
@@ -158,9 +167,11 @@ const dawarich: TranslationStrings = {
   'dawarich.atlas.loading': 'A rögzítéseid olvasása…',
   'dawarich.atlas.empty': 'A rögzítéseid nem mutatnak olyan országot, amelyet a TREK ne ismerne már.',
   'dawarich.atlas.cities': '{count} város',
-  'dawarich.atlas.citiesOne': '1 város',
+  'dawarich.atlas.cities.one': '{count} város',
   'dawarich.atlas.accept': '{count} ország hozzáadása',
+  'dawarich.atlas.accept.one': '{count} ország hozzáadása',
   'dawarich.atlas.accepted': '{count} ország hozzáadva',
+  'dawarich.atlas.accepted.one': '{count} ország hozzáadva',
   'dawarich.atlas.unresolved': 'A TREK ezeket nem tudta országhoz párosítani: {names}.',
   'dawarich.atlas.source': 'A Dawarichból',
   'dawarich.atlas.range': 'Vizsgált időszak: {from} – {to}',
@@ -171,13 +182,16 @@ const dawarich: TranslationStrings = {
   'dawarich.atlas.tab.countries': 'Országok',
   'dawarich.atlas.window': 'Az elmúlt 12 hónapot néztük át.',
   'dawarich.selected': '{count} kiválasztva',
+  'dawarich.selected.one': '{count} kiválasztva',
   'dawarich.again': 'Ellenőrzés újra',
   'dawarich.bucket.metersAway': '{meters} m-re',
   'dawarich.bucket.kilometersAway': '{km} km-re',
-  'dawarich.bucket.rule': 'Egy kívánság {meters} méteren belül és {minutes} perc helyszíni idő után számít teljesítettnek.',
-
-  'dawarich.journey.dayStays.one': '1 tartózkodás a Dawarichból',
+  'dawarich.bucket.rule':
+    'Egy kívánság {meters} méteren belül és {count} perc helyszíni idő után számít teljesítettnek.',
+  'dawarich.bucket.rule.one':
+    'Egy kívánság {meters} méteren belül és {count} perc helyszíni idő után számít teljesítettnek.',
   'dawarich.journey.dayStays.other': '{count} tartózkodás a Dawarichból',
+  'dawarich.journey.dayStays.one': '{count} tartózkodás a Dawarichból',
 };
 
 export default dawarich;

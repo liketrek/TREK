@@ -16,6 +16,9 @@ import type { TrekWsEventName } from '@trek/shared'
  * the entry (the event then needs a new home or an IGNORED_WS_EVENTS slot).
  */
 export const HANDLED_OUTSIDE_TRIP_STORE = [
+  // Tours facet invalidation — hooks/useTripWebSocket forwards tours:changed to
+  // useTourPlaceIds so the active trip refreshes its Tours/Places read model.
+  'tours:changed',
   // Collab — Collab/MCollab components + useTripWebSocket's collabFileSync
   'collab:note:created',
   'collab:note:updated',
@@ -73,6 +76,9 @@ export const HANDLED_OUTSIDE_TRIP_STORE = [
   'journey:entry:deleted',
   'journey:entries:reordered',
   'journey:contributor:changed',
+  // Capture times landed after a photo import (#1587); the same listener reloads
+  // the journey so the gallery re-sorts.
+  'journey:photos:updated',
   // Studio book — components/Studio/useBookStore (its own listener: a client
   // with nothing outstanding takes the new version, one with unsaved edits
   // deliberately does not and conflicts on its next save instead)

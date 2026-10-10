@@ -32,7 +32,7 @@ export default function MJourney() {
     // document and Safari's address bar stays put here.
     <div className="relative h-dvh">
       {/* Floating header: back + create pill */}
-      <div className="fixed left-4 right-4 top-[var(--m-safe-top,12px)] z-30 flex items-center gap-[10px]">
+      <div className="fixed inset-x-4 top-[var(--m-safe-top,12px)] z-30 flex items-center gap-[10px]">
         <button
           type="button"
           onClick={() => openCreateModal()}
@@ -110,14 +110,14 @@ function HeroCard({ journey, onOpen }: { journey: JourneyListItem; onOpen: () =>
     <button
       type="button"
       onClick={onOpen}
-      className="relative mb-3 block h-[220px] w-full overflow-hidden rounded-[26px] text-left shadow-[0_24px_56px_-22px_rgba(0,0,0,.5)]"
+      className="relative mb-3 block h-[220px] w-full overflow-hidden rounded-[26px] text-start shadow-[0_24px_56px_-22px_rgba(0,0,0,.5)]"
     >
       {src ? (
         <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <div className="absolute inset-0" style={journeyCoverStyle(journey)} />
       )}
-      <div className="absolute right-[10px] bottom-[10px] left-[10px] rounded-[18px] border border-white/[.16] bg-[rgba(14,14,17,.52)] p-[12px_14px] text-white backdrop-blur-[22px] backdrop-saturate-[1.6]">{/* theme-lint-disable — fixed dark glass on the cover photo */}
+      <div className="absolute inset-x-[10px] bottom-[10px] rounded-[18px] border border-white/[.16] bg-[rgba(14,14,17,.52)] p-[12px_14px] text-white backdrop-blur-[22px] backdrop-saturate-[1.6]">{/* theme-lint-disable — fixed dark glass on the cover photo */}
         <span className="flex gap-[6px]">
           <span className="rounded-full bg-white/[.92] px-2 py-[3px] text-[0.625rem] font-bold tracking-[.07em] text-[#101013] uppercase">{/* theme-lint-disable — fixed on-photo badge */}
             {t('mobileJourney.latestJourney')}
@@ -154,7 +154,7 @@ function GridCard({ journey, onOpen }: { journey: JourneyListItem; onOpen: () =>
     <button
       type="button"
       onClick={onOpen}
-      className="overflow-hidden rounded-[20px] border border-[color:var(--m-rowbr)] bg-m-sheetop text-left shadow-[0_12px_30px_-20px_rgba(0,0,0,.4)]"
+      className="overflow-hidden rounded-[20px] border border-[color:var(--m-rowbr)] bg-m-sheetop text-start shadow-[0_12px_30px_-20px_rgba(0,0,0,.4)]"
     >
       <div className="h-[74px]" style={journeyCoverStyle(journey)} />
       <div className="px-3 pb-[13px] pt-[11px]">

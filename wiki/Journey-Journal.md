@@ -42,6 +42,15 @@ Each entry corresponds to a day in your journey. The entry editor provides:
 - **Tags** — free-form labels (e.g. "hidden gem", "best meal").
 - **Location** — pin the entry to a map location.
 - **Time** — optionally record a time of day for the entry.
+- **Draft**: a switch at the bottom of the editor. A draft entry is seen only by you and the other contributors, carries a **Draft** mark, and the shared journey leaves it out until you switch it off.
+
+### Photo order
+
+In the entry editor the photos can be dragged into any order. The first one is marked **1st** and is the entry's cover; hover another photo and click **Make 1st** to move it to the front. The order is the same for every member, on the share page and in Studio.
+
+### Linking the trip a date falls in
+
+When the date of an entry falls inside one of your trips that the journey is not linked to yet, the editor names that trip: *This day falls in this trip. Link it, and its places join this journey.* **Link Trip** links it in one click, **Not now** leaves it. When several trips cover the date, the shortest one is suggested.
 
 ### Entry fields
 
@@ -55,6 +64,8 @@ A journey that is still under way opens on today rather than at its first entry,
 
 On desktop, the **Search this journey** box in the toolbar filters the timeline as you type, across the titles, stories, places and tags of the entries. Matching ignores case and accents, so `cafe` finds `Café`.
 
+Next to those two buttons, a **Jump to a day** pill (labelled with the number of days) opens every day of the journey; open a day to see its entries, and picking a day or an entry scrolls straight to it.
+
 Each day header carries a **+** button, **Add an entry on this day**, which opens the editor with that date already set, so an entry for an earlier day no longer starts on today.
 
 ### External photos
@@ -62,6 +73,20 @@ Each day header carries a **+** button, **Add an entry on this day**, which open
 The entry editor includes an **External photos** tab for connected Immich and Synology Photos libraries. It searches the selected calendar day automatically. When the entry has a pinned location, photos with GPS metadata are shown nearest to that location first. Photos without GPS, and photos taken farther away on the same day, remain available below the nearby results; no distance cutoff is applied.
 
 External selections are queued with the other editor changes and saved only when you click **Save**. If a provider is unavailable or its metadata has no GPS coordinates, Journey falls back to the normal date-based photo list.
+
+The same photo picker opens from the journey gallery, on desktop and on a phone. **Select all** takes every photo of the search, not only the ones scrolled into view: on the day, **Trip Period** and **Date Range** tabs it first loads the pages still missing, with a spinner on the button while it does, and closing the picker or switching tab cancels it. **All Photos** is your whole library, so there Select all takes only the photos loaded so far, and a count such as **(200+)** says there are more further down. Select all adds to what you already picked on another tab or in an album, and **Deselect all** takes back only the photos in view. **Add** waits until Select all has finished loading, so it never sends only part of the selection. The picker loads up to 50,200 photos of one date search, by Select all or by scrolling, far more than a trip usually holds; past that the count keeps its **+**, and a narrower **Date Range** reaches the rest. A large selection is sent in several requests, and if one of them fails, the photos that did arrive show up in the journey straight away while an error says the rest did not; adding the same selection again skips the photos that are already there.
+
+Imported photos are added oldest first, so an entry lists a bulk import in the order the photos were taken, and you can still drag them into another order afterwards. The gallery sorts by capture time, which TREK asks Immich or Synology Photos for right after the import; once those times arrive the gallery re-sorts by itself on every device that has the journey open.
+
+### Viewing photos
+
+Clicking a photo opens it full size. The viewer zooms with the mouse wheel, a double click, the **Zoom in** and **Zoom out** buttons or a pinch, and a zoomed photo can be dragged around. **Back to full photo** resets the zoom.
+
+## Journey status
+
+By default a journey's status follows the dates of its linked trips; without a linked trip it stays a draft. To set it yourself, open **Journey Settings** and pick **Status**: **Automatic**, **Draft**, **Live** or **Completed**. A status set by hand stays until you switch back to **Automatic**.
+
+**Archive Journey** in the same dialog hides the Live badge; **Restore Journey** reopens it.
 
 ## Mobile timeline
 
@@ -79,6 +104,10 @@ The journey detail page includes a map on the right (desktop) or an integrated m
 
 The thin dashed line connecting entries in date order is something else and stays as it is: that one is drawn by TREK, while a track is the route you actually recorded.
 
+**Geotagged photos are drawn too.** A photo of the journey that knows where it was taken appears on the map as a thumbnail, and photos taken close together collapse into one thumbnail with a count. Click one to open those photos in the viewer.
+
+**Place entries from their photos**, a switch under **Photos** in **Journey Settings**, goes one step further: an entry without a place takes the spot where its first photo with GPS was taken. Places you set yourself are never moved. It is off by default.
+
 ![Journey detail page for "Autumn in Japan" with its cover header and day/place/entry/photo counts, the day-by-day timeline with Add Entry actions on the left, and the entry map on the right](assets/JourneyDetail.png)
 
 ## TREK Studio
@@ -90,8 +119,10 @@ A journey can also be laid out as a printable photo book. Open a journey and cli
 - **Page format** — Square 21 × 21 cm (the default), Square 30 × 30 cm, A4 landscape, A4 portrait, A5 landscape, or a custom width × height in millimetres. Everything is drawn as a spread (two pages side by side) with 3 mm bleed and a 5 mm safe margin.
 - **The shape of the book** follows a bound one: a cover, a single first page on the right (page 1, where a title page or a dedication goes), the spreads, a single last page on the left, and a back cover. The first and last pages take the cover layouts and, like the covers, stay where they are; new spreads always go between them. Page numbers, when switched on, count from the first page, and the number on screen is the number that prints. Books made before this had no single pages and keep their numbering as it was.
 - **Auto layout** has two entries. **This spread** builds the spread on screen again from the journal entry it came from, and is only offered on a spread that came from one. **The whole book** replaces every page, keeping your title and page setup. Both are ordinary undo steps, so you can press one, look at it, and undo.
-- **Pages, Content, Elements, Travel and Layouts** are the sections of the left rail. Content holds the journey's own photos and entries; Layouts has thirteen spread layouts (Hero and story, Four up, Strip and text, Mosaic and so on) plus a separate set of five for the cover and back; Elements has text styles, shapes, lines, grids, empty frames with their frame styles, and a searchable icon library; Travel builds figures out of the journey itself — route maps, country outlines and lists, flags, date, day and distance marks, and a trip summary.
+- **Pages, Content, Elements, Travel and Layouts** are the sections of the left rail. Content holds the journey's own photos and entries, with **Upload photos** and, when Immich or Synology Photos is connected, **From Immich** or **From Synology Photos** to add photos from your library the way the journey gallery does; Layouts has thirteen spread layouts (Hero and story, Four up, Strip and text, Mosaic and so on) plus a separate set of five for the cover and back; Elements has text styles, shapes, lines, grids, empty frames with their frame styles, and a searchable icon library; Travel builds figures out of the journey itself: route maps, country outlines and lists, flags, date, day and distance marks, and a trip summary.
 - **Properties** on the right edits whatever is selected: position and size, crop and focal point, fill or fit, a look filter, corner radius, frame style, stacking order, lock. An element that auto layout tied to a journal entry follows that entry until you edit it here, which breaks the link.
+- **Copy and paste**: a selected element copies with Ctrl+C and pastes on any page with Ctrl+V or the paste button.
+- **My layouts**: **Save this page as a layout** keeps the arrangement of a page without its photos, for every editor of the book, and applying it lays another page out the same way while keeping that page's photos and words. A book keeps up to 24 layouts.
 - **Export** opens a print view that your browser turns into a PDF. Pick **Single pages** (one leaf per sheet, what a printer wants) or **Spreads** (two pages at a time, the way the book opens), with optional crop marks that add the bleed on every edge and mark where to cut.
 - **Spreads travel between books.** Download the spread you are on as a design file and import it into another book. The file carries the design only, not the photographs.
 - **Several people can design at once.** Everyone in the same book sees the others' pointers with their names on them, and a save is pushed to the rest live. A save that lands on a version somebody else has already changed comes back as a conflict, with the other version alongside it, rather than quietly overwriting their work.
@@ -110,7 +141,7 @@ Installed plugins can add extra rows to a journal entry card via the `journalEnt
 
 ## Public sharing
 
-You can share a journey with a read-only public link. When creating the link you can independently toggle which sections are visible to visitors: **Timeline** (entries and stories), **Gallery** (photos), and **Map**. Visitors can only see the sections you have enabled, and no TREK account is required. See [Public-Share-Links](Public-Share-Links) for details on the separate journey share token mechanism.
+You can share a journey with a read-only public link. When creating the link you can independently toggle which sections are visible to visitors: **Timeline** (entries and stories), **Gallery** (photos), and **Map**. Visitors can only see the sections you have enabled, and no TREK account is required. Entries marked as **Draft** are left out of the shared journey until you publish them. See [Public-Share-Links](Public-Share-Links) for details on the separate journey share token mechanism.
 
 **Photos appear on the public map too**, as long as **Gallery** and **Map** are both on. A gallery photo that knows where it was taken becomes a thumbnail pin, clustered into one pin where several were taken close together, and sitting below the entry pins so the itinerary stays the point of the map. The location comes from the file's own EXIF for uploads and from Immich or Synology for provider photos, and a photo that carries none simply stays off the map (see the HEIC note above — that conversion drops GPS, so iPhone uploads usually arrive without a location).
 

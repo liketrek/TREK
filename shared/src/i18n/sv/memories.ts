@@ -17,6 +17,7 @@ const memories: TranslationStrings = {
   'memories.reviewTitle': 'Granska dina foton',
   'memories.reviewHint': 'Klicka på fotona för att undanta dem från delningen.',
   'memories.shareCount': 'Dela {count} foton',
+  'memories.shareCount.one': 'Dela {count} foto',
   'memories.providerUrl': 'Server URL',
   'memories.providerApiKey': 'API nyckel',
   'memories.providerUsername': 'Användarnamn',
@@ -49,6 +50,7 @@ const memories: TranslationStrings = {
   'memories.selectHint': 'Tryck på fotona för att markera dem.',
   'memories.selected': 'valda',
   'memories.addSelected': 'Lägg till {count} foton',
+  'memories.addSelected.one': 'Lägg till {count} foto',
   'memories.alreadyAdded': 'Tillagd',
   'memories.private': 'Privat',
   'memories.stopSharing': 'Sluta dela',
@@ -60,6 +62,8 @@ const memories: TranslationStrings = {
   'memories.confirmShareTitle': 'Dela med resedeltagarna?',
   'memories.confirmShareHint':
     '{count} foton kommer att vara synliga för alla deltagare i resan. Du kan senare göra enskilda foton privata.',
+  'memories.confirmShareHint.one':
+    '{count} foto kommer att vara synligt för alla deltagare i resan. Du kan göra det privat senare.',
   'memories.confirmShareButton': 'Dela foton',
   'memories.error.loadAlbums': 'Det gick inte att ladda albumen',
   'memories.error.linkAlbum': 'Det gick inte att länka albumet',

@@ -7,6 +7,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addToDayQuestion': '하루에 추가할까요?',
   'mobileTrip.addTransportShort': '교통',
   'mobileTrip.allDays': '모든 날',
+  'mobileTrip.today': '오늘',
+  'mobileTrip.jumpToToday': '오늘로 이동',
   'mobileTrip.assignedDays': '배정된 날짜',
   'mobileTrip.assignmentNotes': '날짜별 메모',
   'mobileTrip.bookingsEmpty': '아직 예약이 없습니다',
@@ -35,6 +37,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.onMap': '지도에서',
   'mobileTrip.profileDriving': '자동차',
   'mobileTrip.profileWalking': '도보',
+  'mobileTrip.profileCycling': '자전거',
   'mobileTrip.renameDay': '일차 이름 바꾸기',
   'mobileTrip.resBadge': '예약',
   'mobileTrip.showOnMap': '지도에서 보기',
@@ -48,7 +51,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.viewDetails': '세부정보 보기',
   'mobileTrip.transportsEmpty': '아직 교통편이 없습니다',
   'mobileTrip.rtInfoTitle': '주행 수치',
-  'mobileTrip.rtDesktopNote': '이 수치는 데스크톱에서 설정합니다. 데스크톱에서는 다른 경로를 비교하고, 가져온 트랙을 따라가도록 하루를 맞출 수도 있습니다.',
+  'mobileTrip.rtDesktopNote':
+    '이 수치는 데스크톱에서 설정합니다. 데스크톱에서는 다른 경로를 비교하고, 가져온 트랙을 따라가도록 하루를 맞출 수도 있습니다.',
   'mobileTrip.rtPlanOnDesktop': '계획은 데스크톱에서 세웁니다. 하루에 장소가 두 곳 생기면 TREK이 주행을 계산합니다.',
   'mobileTrip.rtSearchOffline': '연결이 필요합니다: 이 검색은 앞으로 갈 경로를 읽습니다.',
   'mobileTrip.rtBehind': '계획보다 {time} 늦음',
@@ -64,9 +68,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtFromStart': '구간 시작부터',
   'mobileTrip.rtNoneAhead': '앞쪽 도로에는 아무것도 없습니다. 구간 전체로 찾아보세요.',
   'mobileTrip.rtNoneOnStage': '이 구간에는 그런 곳이 없습니다.',
-  'mobileTrip.rtTruncated.one': '1개 구간은 한 번의 답에 담기지 않았습니다. 종류를 줄이면 나머지도 볼 수 있습니다.',
   'mobileTrip.rtTruncated.other':
-    '{count}개 구간은 한 번의 답에 담기지 않았습니다. 종류를 줄이면 나머지도 볼 수 있습니다.',
+    '{count}개 구간은 결과가 너무 많아 한 번에 모두 표시하지 못했습니다. 종류를 줄이면 나머지도 볼 수 있습니다.',
   'mobileTrip.rtNoDay': '선택된 날이 없습니다',
   'mobileTrip.rtNoDayHint': '지도에 전체 여행이 표시됩니다. 위에서 날짜를 눌러 해당 일정을 확인하세요.',
 };

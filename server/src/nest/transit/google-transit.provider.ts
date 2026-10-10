@@ -1,9 +1,12 @@
-import { Injectable } from '@nestjs/common';
 import { readEnv } from '../../app-config';
-import { DatabaseService } from '../database/database.service';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { Users } from '../../db/entities/Users.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
+import { readTransitProvider } from '../common/transit-provider';
+import { GoogleQuotaService } from '../google-quota/google-quota.service';
 import { toApiLang } from '../maps/maps.helpers';
 import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
-import { readTransitProvider } from './transit-provider';
 import {
   decodePolyline,
   deriveTransitStats,
@@ -14,6 +17,8 @@ import {
   type TransitLegStop,
   type TransitPlace,
 } from './transit.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Google as the transit backend (#1699), for the regions Transitous has no GTFS
@@ -189,8 +194,14 @@ function shiftIso(iso: string, seconds: number): string {
   return new Date(new Date(iso).getTime() + seconds * 1000).toISOString();
 }
 
-interface GoogleLatLng { latitude?: number; longitude?: number }
-interface GoogleStop { name?: string; location?: { latLng?: GoogleLatLng } }
+interface GoogleLatLng {
+  latitude?: number;
+  longitude?: number;
+}
+interface GoogleStop {
+  name?: string;
+  location?: { latLng?: GoogleLatLng };
+}
 interface GoogleStep {
   travelMode?: string;
   staticDuration?: string;
@@ -234,10 +245,16 @@ function stopFrom(stop: GoogleStop | undefined, fallback: GoogleLatLng | undefin
 
 @Injectable()
 export class GoogleTransitProvider {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
+    @InjectRepository(Users) private readonly usersRepo: UsersRepository,
+    private readonly googleQuota: GoogleQuotaService,
+  ) {}
 
-  private resolveKey(userId: number): { key: string | null; source: ApiKeySource | null } {
-    return resolveApiKey(this.database, 'maps_api_key', userId, readEnv().maps.placesApiKey);
+  private async resolveKey(userId: number): Promise<{ key: string | null; source: ApiKeySource | null }> {
+    // Past the admin's daily ceiling (#1582) the key is spent until tomorrow.
+    if (await this.googleQuota.exhausted()) return { key: null, source: null };
+    return resolveApiKey(this.appSettings, this.usersRepo, 'maps_api_key', userId, readEnv().maps.placesApiKey);
   }
 
   /**
@@ -246,13 +263,20 @@ export class GoogleTransitProvider {
    * behaviour and the safe one: the alternative is every transit search 403ing
    * on an install that flipped the switch before pasting a key.
    */
-  isActive(userId: number): boolean {
-    if (readTransitProvider(this.database) !== 'google') return false;
-    return !!this.resolveKey(userId).key;
+  async isActive(userId: number): Promise<boolean> {
+    if ((await readTransitProvider(this.appSettings)) !== 'google') return false;
+    return !!(await this.resolveKey(userId)).key;
   }
 
-  private async call(endpoint: string, label: string, apiKey: string, body: unknown, fieldMask: string): Promise<unknown> {
+  private async call(
+    endpoint: string,
+    label: string,
+    apiKey: string,
+    body: unknown,
+    fieldMask: string,
+  ): Promise<unknown> {
     console.debug(`[Google API] ${label} → ${endpoint}`);
+    await this.googleQuota.record();
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -283,8 +307,13 @@ export class GoogleTransitProvider {
   }
 
   /** Station/place search for the from/to pickers. `near` biases results. */
-  async geocode(text: string, language: string | undefined, near: string | undefined, userId: number): Promise<{ results: TransitPlace[] }> {
-    const { key: apiKey, source } = this.resolveKey(userId);
+  async geocode(
+    text: string,
+    language: string | undefined,
+    near: string | undefined,
+    userId: number,
+  ): Promise<{ results: TransitPlace[] }> {
+    const { key: apiKey, source } = await this.resolveKey(userId);
     if (!apiKey) {
       const err = new Error('Transit provider error (no Google API key configured)') as Error & { status: number };
       err.status = 502;
@@ -307,9 +336,22 @@ export class GoogleTransitProvider {
       body.locationBias = { circle: { center: { latitude, longitude }, radius: 50000 } };
     }
 
-    let data: { places?: Array<{ displayName?: { text?: string }; formattedAddress?: string; location?: GoogleLatLng; types?: string[] }> };
+    let data: {
+      places?: Array<{
+        displayName?: { text?: string };
+        formattedAddress?: string;
+        location?: GoogleLatLng;
+        types?: string[];
+      }>;
+    };
     try {
-      data = (await this.call(PLACES_SEARCH_ENDPOINT, 'transitGeocode', apiKey, body, STATION_FIELD_MASK)) as typeof data;
+      data = (await this.call(
+        PLACES_SEARCH_ENDPOINT,
+        'transitGeocode',
+        apiKey,
+        body,
+        STATION_FIELD_MASK,
+      )) as typeof data;
     } catch (err) {
       console.error(`[Transit] google geocode failed userId=${userId} keySource=${source}`);
       throw err;
@@ -322,7 +364,9 @@ export class GoogleTransitProvider {
       if (typeof lat !== 'number' || typeof lng !== 'number' || !name) return [];
       // MOTIS answers STOP for a station and PLACE for anything else; the picker
       // renders the two differently, so map Google's type list onto the same pair.
-      const isStop = (place.types || []).some((t) => t.includes('station') || t.includes('transit') || t.includes('stop'));
+      const isStop = (place.types || []).some(
+        (t) => t.includes('station') || t.includes('transit') || t.includes('stop'),
+      );
       return [{ name, lat, lng, type: isStop ? 'STOP' : 'PLACE', area: place.formattedAddress || null }];
     });
 
@@ -333,7 +377,7 @@ export class GoogleTransitProvider {
 
   /** Route search between two coordinates. Returns the same compact shape MOTIS is mapped to. */
   async plan(q: PlanQuery, language: string | undefined, userId: number): Promise<{ itineraries: TransitItinerary[] }> {
-    const { key: apiKey, source } = this.resolveKey(userId);
+    const { key: apiKey, source } = await this.resolveKey(userId);
     if (!apiKey) {
       const err = new Error('Transit provider error (no Google API key configured)') as Error & { status: number };
       err.status = 502;

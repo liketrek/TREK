@@ -7,7 +7,6 @@ const members: TranslationStrings = {
   'members.invite': 'Undang',
   'members.allHaveAccess': 'Semua pengguna sudah punya akses.',
   'members.access': 'Akses',
-  'members.person': 'orang',
   'members.persons': 'orang',
   'members.you': 'kamu',
   'members.owner': 'Pemilik',

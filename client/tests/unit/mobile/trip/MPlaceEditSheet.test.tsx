@@ -5,12 +5,13 @@ import type { TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell
 import type { Assignment, Category, Place } from '../../../../src/types'
 import { buildPlanner } from '../../../helpers/mobileTrip'
 import { useAddonStore } from '../../../../src/store/addonStore'
+import { useAuthStore } from '../../../../src/store/authStore'
 import { useTripStore } from '../../../../src/store/tripStore'
 import { server } from '../../../helpers/msw/server'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-PLEDIT-001 to FE-MOB-PLEDIT-040, plus the 009b, 025b and 029b variants
+// FE-MOB-PLEDIT-001 to FE-MOB-PLEDIT-047, plus the 009b, 025b and 029b variants
 // planner.t echoes the key, so every label/placeholder is asserted as its key.
 
 const CATEGORIES = [
@@ -188,6 +189,34 @@ describe('MPlaceEditSheet', () => {
     expect(screen.getByPlaceholderText('places.formLng')).toHaveValue('139.6917')
   })
 
+  it('FE-MOB-PLEDIT-047: a pasted "lat, lng" pair counts as typed, so a later pick without a position keeps it', async () => {
+    let searches = 0
+    server.use(
+      http.post('/api/maps/search', () => {
+        searches += 1
+        return HttpResponse.json(searches === 1
+          ? { source: 'osm', places: [{ name: 'Ueno Koen', address: 'Taito', lat: 35.7, lng: 139.7 }] }
+          : { source: 'osm', places: [{ name: 'Ameyoko', address: 'Ueno' }] })
+      }),
+    )
+    setup()
+    const search = screen.getByPlaceholderText('places.mapsSearchPlaceholder')
+    fireEvent.change(search, { target: { value: 'ueno koen' } })
+    fireEvent.click(screen.getByRole('button', { name: 'common.search' }))
+    fireEvent.click(await screen.findByText('Ueno Koen'))
+
+    const lat = screen.getByPlaceholderText('places.formLat')
+    fireEvent.paste(lat, { clipboardData: { getData: () => '35.7101, 139.7745' } })
+
+    fireEvent.change(search, { target: { value: 'ameyoko' } })
+    fireEvent.click(screen.getByRole('button', { name: 'common.search' }))
+    fireEvent.click(await screen.findByText('Ameyoko'))
+
+    expect(nameField()).toHaveValue('Ameyoko')
+    expect(lat).toHaveValue('35.7101')
+    expect(screen.getByPlaceholderText('places.formLng')).toHaveValue('139.7745')
+  })
+
   it('FE-MOB-PLEDIT-013: an unparseable paste is left to the browser', () => {
     setup()
     const lat = screen.getByPlaceholderText('places.formLat')
@@ -224,6 +253,39 @@ describe('MPlaceEditSheet', () => {
     expect(nameField()).toHaveValue('Ueno Koen')
     fireEvent.click(submit())
     expect(planner.toast.warning).toHaveBeenCalledWith('places.duplicateExists:Ueno Park')
+  })
+
+  it('FE-MOB-PLEDIT-046: tapping a suggestion only puts its name in, so a failed lookup keeps the position of the last pick', async () => {
+    let searches = 0
+    server.use(
+      http.post('/api/maps/search', () => {
+        searches += 1
+        return HttpResponse.json(searches === 1
+          ? { source: 'osm', places: [{ name: 'Ueno Koen', address: 'Taito', lat: 35.7, lng: 139.7, website: 'https://ueno.example' }] }
+          : { source: 'osm', places: [] })
+      }),
+      http.post('/api/maps/autocomplete', () => HttpResponse.json({
+        source: 'osm', suggestions: [{ placeId: 'sug-46', mainText: 'Louvre', secondaryText: 'Paris' }],
+      })),
+      http.get('/api/maps/details/:placeId', () => HttpResponse.json({}, { status: 500 })),
+    )
+    const { planner } = setup()
+    const search = screen.getByPlaceholderText('places.mapsSearchPlaceholder')
+    fireEvent.change(search, { target: { value: 'ueno koen' } })
+    fireEvent.click(screen.getByRole('button', { name: 'common.search' }))
+    fireEvent.click(await screen.findByText('Ueno Koen'))
+    expect(screen.getByPlaceholderText('places.formLat')).toHaveValue('35.7')
+
+    fireEvent.change(search, { target: { value: 'Lou' } })
+    fireEvent.click(await screen.findByText('Louvre'))
+    await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('places.mapsSearchError'))
+
+    // The same as the desktop dialog: the name is the suggestion's, the rest is what the last pick wrote.
+    expect(nameField()).toHaveValue('Louvre')
+    expect(screen.getByPlaceholderText('places.formAddressPlaceholder')).toHaveValue('Taito')
+    expect(screen.getByPlaceholderText('places.formLat')).toHaveValue('35.7')
+    expect(screen.getByPlaceholderText('places.formLng')).toHaveValue('139.7')
+    expect(screen.getByPlaceholderText('https://')).toHaveValue('https://ueno.example')
   })
 
   it('FE-MOB-PLEDIT-017: an existing place never triggers the duplicate guard', async () => {
@@ -276,6 +338,16 @@ describe('MPlaceEditSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: 'common.delete' }))
     await waitFor(() => expect(planner.confirmDeletePlace).toHaveBeenCalledTimes(1))
     expect(planner.setShowPlaceForm).toHaveBeenCalledWith(false)
+  })
+
+  it('requires explicit permanent confirmation when a dormant Tour is deleted from the Place editor', async () => {
+    const tour = { ...EDITED, tour_place_id: EDITED.id } as Place
+    const { planner } = setup({ editingPlace: tour, isTourPlace: vi.fn(() => true) })
+    fireEvent.click(screen.getByRole('button', { name: 'common.delete' }))
+
+    expect(planner.toast.warning).toHaveBeenCalledWith('tours.delete.confirmBody')
+    fireEvent.click(screen.getByRole('button', { name: 'tours.delete.confirmAction' }))
+    await waitFor(() => expect(planner.confirmDeletePlace).toHaveBeenCalledTimes(1))
   })
 
   it('FE-MOB-PLEDIT-022: cancelling an armed delete un-stages the id', () => {
@@ -434,12 +506,12 @@ describe('MPlaceEditSheet', () => {
 
     it('FE-MOB-PLEDIT-033: the button only appears while the Budget addon is on', () => {
       const { unmount } = setup()
-      expect(screen.queryByRole('button', { name: 'reservations.createExpense' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Create expense' })).not.toBeInTheDocument()
       unmount()
 
       withBudget()
       setup()
-      expect(screen.getByRole('button', { name: 'reservations.createExpense' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Create expense' })).toBeInTheDocument()
     })
 
     it('FE-MOB-PLEDIT-034: creating an expense saves the place first, then opens the editor', async () => {
@@ -448,7 +520,7 @@ describe('MPlaceEditSheet', () => {
       const { onOpenExpense } = setup({ handleSavePlace })
 
       fireEvent.change(nameField(), { target: { value: 'Louvre' } })
-      fireEvent.click(screen.getByRole('button', { name: 'reservations.createExpense' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Create expense' }))
 
       await waitFor(() => expect(onOpenExpense).toHaveBeenCalled())
       expect(handleSavePlace.mock.invocationCallOrder[0]).toBeLessThan(onOpenExpense.mock.invocationCallOrder[0])
@@ -463,10 +535,29 @@ describe('MPlaceEditSheet', () => {
       const { onOpenExpense } = setup({ handleSavePlace })
 
       fireEvent.change(nameField(), { target: { value: 'Louvre' } })
-      fireEvent.click(screen.getByRole('button', { name: 'reservations.createExpense' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Create expense' }))
 
       await waitFor(() => expect(handleSavePlace).toHaveBeenCalled())
       expect(onOpenExpense).not.toHaveBeenCalled()
+    })
+
+    it('FE-MOB-PLEDIT-044: an edited place lists its expenses and opens one for editing (#2084)', () => {
+      withBudget()
+      const tickets = { id: 70, trip_id: 1, name: 'Temple tickets', total_price: 5, category: 'activities', place_id: 42 }
+      seedStore(useTripStore, { trip: { id: 1, currency: 'JPY' }, budgetItems: [tickets] })
+      const { onOpenExpense } = setup({ editingPlace: EDITED })
+      expect(screen.getByText('Linked expenses')).toBeInTheDocument()
+      fireEvent.click(screen.getByText('Temple tickets'))
+      expect(onOpenExpense).toHaveBeenCalledWith({ editItem: tickets })
+      // The place hint only shows while nothing is linked.
+      expect(screen.queryByText('Saves the place, then opens the Costs editor.')).not.toBeInTheDocument()
+    })
+
+    it('FE-MOB-PLEDIT-045: a new place shows the place hint and nothing to link to yet', () => {
+      withBudget()
+      setup()
+      expect(screen.getByText('Saves the place, then opens the Costs editor.')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Link' })).not.toBeInTheDocument()
     })
   })
 
@@ -542,5 +633,50 @@ describe('MPlaceEditSheet', () => {
       expect(warning).toHaveTextContent('Kaminarimon')
       expect(warning).not.toHaveTextContent('ENEOS')
     })
+  })
+
+  it('FE-MOB-PLEDIT-041: shows the details block for the place under edit', async () => {
+    server.use(
+      http.post('/api/maps/enrichment', () => HttpResponse.json({
+        photos: [],
+        description: { text: 'The oldest temple in Tokyo.', source: 'wikipedia', sourceUrl: null, license: null },
+        facts: [],
+        rating: null,
+        hours: null,
+      })),
+    )
+    setup({ editingPlace: EDITED })
+    expect(await screen.findByText('The oldest temple in Tokyo.')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLEDIT-042: keeps the details block off while the instance has enrichment disabled', () => {
+    seedStore(useAuthStore, { placesEnrichEnabled: false })
+    setup({ editingPlace: EDITED })
+    expect(screen.queryByText('places.details.title')).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLEDIT-043: a plugin POI pick fills the form and asks the details block about its plugin id, not a Google one', async () => {
+    const asked: unknown[] = []
+    server.use(
+      http.post('/api/maps/enrichment', async ({ request }) => {
+        asked.push(await request.json())
+        return HttpResponse.json({ photos: [], description: null, facts: [], rating: null, hours: null })
+      }),
+    )
+    const { planner } = setup({
+      prefillCoords: {
+        lat: 47.1, lng: 11.2, name: 'Trailhead', address: 'Hut 1', website: 'https://trails.example/th-043',
+        phone: '+43 1', osm_id: 'plugin:trail-finder:th-043',
+      },
+    })
+    expect(nameField()).toHaveValue('Trailhead')
+    expect(screen.getByPlaceholderText('https://')).toHaveValue('https://trails.example/th-043')
+    // The server decides who to ask by this id, and never takes a `plugin:` one for Google's.
+    await waitFor(() => expect(asked).toEqual([expect.objectContaining({ placeId: 'plugin:trail-finder:th-043', lat: 47.1, lng: 11.2 })]))
+
+    fireEvent.click(submit())
+    await waitFor(() => expect(planner.handleSavePlace).toHaveBeenCalledTimes(1))
+    expect(planner.handleSavePlace).toHaveBeenCalledWith(expect.objectContaining({ name: 'Trailhead', osm_id: 'plugin:trail-finder:th-043' }))
+    expect(planner.handleSavePlace).not.toHaveBeenCalledWith(expect.objectContaining({ google_place_id: expect.anything() }))
   })
 })

@@ -1,11 +1,22 @@
-import type { SystemNotice } from './types.js';
 import { registerPredicate } from './conditions.js';
-import { db } from '../db/database.js';
+import type { SystemNotice } from './types.js';
 
-registerPredicate('whitespace-collision-detected', () => {
-  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'whitespace_migration_collision'").get() as { value: string } | undefined;
-  return row?.value === 'true';
-});
+/**
+ * Registered at module load, unchanged from before this plan (Plan 3f Task
+ * 6/R1's adopted wiring): the closure used to read `app_settings` directly
+ * through the raw `db` handle here; now it only reads a value the caller
+ * (`SystemNoticesService.getActiveFor`) already resolved into `ctx` before
+ * `evaluate()` runs, the same shape `addonEnabled`/`managed` already use.
+ * `evaluateOne`'s `case 'custom'` (`conditions.ts`) calls this synchronously
+ * inside a `.filter()`, which cannot `await` — moving the DB read into this
+ * closure directly would either need to make the closure (and the whole
+ * evaluate/evaluateOne chain) async, or read an un-awaited repository
+ * result. Reading a pre-resolved value off `ctx` avoids both, stays
+ * race-free (the value flows through the per-call `ctx` object, not shared
+ * mutable state on a singleton), and needs no Nest lifecycle hook — this
+ * registration stays exactly where it always was.
+ */
+registerPredicate('whitespace-collision-detected', (ctx) => ctx.settingFlag('whitespace_migration_collision'));
 
 /**
  * SYSTEM NOTICE REGISTRY
@@ -173,7 +184,7 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     severity: 'warn',
     icon: 'AlertTriangle',
     titleKey: 'system_notice.v3014_whitespace_collision.title',
-    bodyKey:  'system_notice.v3014_whitespace_collision.body',
+    bodyKey: 'system_notice.v3014_whitespace_collision.body',
     dismissible: true,
     conditions: [
       { kind: 'existingUserBeforeVersion', version: '3.0.14' },

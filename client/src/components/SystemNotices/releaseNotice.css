@@ -299,8 +299,7 @@
 .rn-feature-shine {
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
+  inset-inline: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.4), transparent);
 }
@@ -445,7 +444,7 @@
 .rn-vis-caret {
   width: 1px;
   height: 12px;
-  margin-left: -4px;
+  margin-inline-start: -4px;
   background: #f5f5f7;
   animation: rn-caret 1s steps(1) infinite;
 }
@@ -689,8 +688,7 @@
   content: '';
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
+  inset-inline: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.5), transparent);
   z-index: 1;

@@ -1,6 +1,10 @@
-import { DatabaseService } from '../database/database.service';
+import { RoadtripPreferences as RoadtripPreferencesEntity } from '../../db/entities/RoadtripPreferences.entity';
+import type { RoadtripPreferencesRepository } from '../../db/repositories/RoadtripPreferences.repository';
+import { DomainError } from '../common/domain-error';
+import { UnitOfWork } from '../database/unit-of-work';
 import { RealtimeService } from '../realtime/realtime.service';
-import { HttpException, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 import {
   ROADTRIP_PREFERENCE_KEYS,
   roadtripPreferencesSchema,
@@ -11,16 +15,15 @@ import {
 @Injectable()
 export class RoadtripPreferencesService {
   constructor(
-    private readonly db: DatabaseService,
     private readonly realtime: RealtimeService,
+    private readonly uow: UnitOfWork,
+    @InjectRepository(RoadtripPreferencesEntity) private readonly preferencesRepo: RoadtripPreferencesRepository,
   ) {}
 
-  read(tripId: number): RoadtripPreferences {
+  /** RPF1 — `RoadtripPreferencesRepository.listForTrip`, with the legacy JSON parse (raw-string fallback) unchanged. */
+  async read(tripId: number): Promise<RoadtripPreferences> {
     const settings: Record<string, unknown> = {};
-    for (const row of this.db.all<{ key: string; value: string }>(
-      'SELECT key, value FROM roadtrip_preferences WHERE trip_id = ?',
-      tripId,
-    )) {
+    for (const row of await this.preferencesRepo.listForTrip(tripId)) {
       try {
         settings[row.key] = JSON.parse(row.value);
       } catch {
@@ -35,22 +38,21 @@ export class RoadtripPreferencesService {
     return roadtripPreferencesSchema.parse(preferences);
   }
 
-  update(tripId: number, patch: RoadtripPreferences, socketId?: string): RoadtripPreferences {
+  async update(tripId: number, patch: RoadtripPreferences, socketId?: string): Promise<RoadtripPreferences> {
     const validated = roadtripPreferencesUpdateSchema.parse(patch);
-    const saved = this.db.transaction(() => {
-      const next = { ...this.read(tripId), ...validated };
+    const saved = await this.uow.transactional(async () => {
+      const next = { ...(await this.read(tripId)), ...validated };
       if (next.roadtrip_day_start && next.roadtrip_day_end && next.roadtrip_day_end <= next.roadtrip_day_start) {
-        throw new HttpException({ error: 'Day end must be later than day start.' }, 400);
+        throw new DomainError(400, 'Day end must be later than day start.');
       }
+      // RPF3 — `RoadtripPreferencesRepository.upsertValue`.
       for (const [key, value] of Object.entries(validated)) {
-        this.db.run(
-          'INSERT INTO roadtrip_preferences (trip_id, key, value) VALUES (?, ?, ?) ON CONFLICT(trip_id, key) DO UPDATE SET value = excluded.value',
-          tripId,
-          key,
-          JSON.stringify(value),
-        );
+        await this.preferencesRepo.upsertValue(tripId, key, JSON.stringify(value));
       }
-      return this.read(tripId);
+      // RPF1's read-after-write, inside the same transaction (§18.10) — `find`-based,
+      // so `TrekRepository`'s `disableIdentityMap: true` default already keeps this
+      // fresh against the upsert just above.
+      return await this.read(tripId);
     });
     // The saving tab is left out, like every other trip mutation: it already has
     // the answer, and its own echo costs it a second store commit and the route

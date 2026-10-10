@@ -16,6 +16,12 @@ data:
   {{- if .Values.env.TREK_WIKI_DIR }}
   TREK_WIKI_DIR: {{ .Values.env.TREK_WIKI_DIR | quote }}
   {{- end }}
+  {{- if .Values.env.DEFAULT_LANGUAGE }}
+  DEFAULT_LANGUAGE: {{ .Values.env.DEFAULT_LANGUAGE | quote }}
+  {{- end }}
+  {{- if .Values.env.MCP_MAX_SESSION_PER_USER }}
+  MCP_MAX_SESSION_PER_USER: {{ .Values.env.MCP_MAX_SESSION_PER_USER | quote }}
+  {{- end }}
   {{- if .Values.env.ALLOWED_ORIGINS }}
   ALLOWED_ORIGINS: {{ .Values.env.ALLOWED_ORIGINS | quote }}
   {{- end }}
@@ -64,8 +70,20 @@ data:
   {{- if .Values.env.OIDC_ADMIN_VALUE }}
   OIDC_ADMIN_VALUE: {{ .Values.env.OIDC_ADMIN_VALUE | quote }}
   {{- end }}
+  {{- if .Values.env.OIDC_USERNAME_CLAIM }}
+  OIDC_USERNAME_CLAIM: {{ .Values.env.OIDC_USERNAME_CLAIM | quote }}
+  {{- end }}
   {{- if .Values.env.OIDC_SCOPE }}
   OIDC_SCOPE: {{ .Values.env.OIDC_SCOPE | quote }}
+  {{- end }}
+  {{- if .Values.env.HTTP_PROXY }}
+  HTTP_PROXY: {{ .Values.env.HTTP_PROXY | quote }}
+  {{- end }}
+  {{- if .Values.env.HTTPS_PROXY }}
+  HTTPS_PROXY: {{ .Values.env.HTTPS_PROXY | quote }}
+  {{- end }}
+  {{- if .Values.env.NO_PROXY }}
+  NO_PROXY: {{ .Values.env.NO_PROXY | quote }}
   {{- end }}
   {{- if .Values.env.OIDC_DISCOVERY_URL }}
   OIDC_DISCOVERY_URL: {{ .Values.env.OIDC_DISCOVERY_URL | quote }}
@@ -96,4 +114,10 @@ data:
   {{- end }}
   {{- if .Values.env.AMAP_API_BASE }}
   AMAP_API_BASE: {{ .Values.env.AMAP_API_BASE | quote }}
+  {{- end }}
+  {{- if .Values.env.VAPID_PUBLIC_KEY }}
+  VAPID_PUBLIC_KEY: {{ .Values.env.VAPID_PUBLIC_KEY | quote }}
+  {{- end }}
+  {{- if .Values.env.VAPID_SUBJECT }}
+  VAPID_SUBJECT: {{ .Values.env.VAPID_SUBJECT | quote }}
   {{- end }}

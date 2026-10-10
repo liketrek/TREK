@@ -1,31 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect } from 'react'
 import { AlertTriangle, Hourglass, Minus, Plus, ArrowRight } from 'lucide-react'
 import Modal from '../shared/Modal'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { useSettingsStore } from '../../store/settingsStore'
-import { formatDurationShort, formatClock, parseClock } from './roadtripModel'
+import { formatDurationShort } from './roadtripModel'
 import { formatClockTime } from '../../utils/formatters'
 import { useLeaveMode, type LeaveMode } from './useLeaveMode'
-
-/**
- * The lengths a stop usually takes, so the common answer is one tap.
- *
- * Kept short on purpose: a longer list reads as a form, and anything not on it is what
- * the slider is for.
- */
-const PRESETS = [15, 30, 45, 60, 90, 120, 480, 720]
-
-/**
- * As far as the slider goes, in minutes.
- *
- * A full day. It used to stop at four hours, on the reasoning that anything longer is a
- * day rather than a stop — which held while a booked night got its length from the
- * check-out instead. The drive no longer reads a check-out, so this is the only place a
- * night is given its hours, and four of them is not a night.
- */
-const MAX = 1440
-/** The step the slider and the two buttons move in. */
-const STEP = 5
+import { STAY_MAX as MAX, STAY_PRESETS as PRESETS, STAY_STEP as STEP, useStayDraft } from './useStayDraft'
 
 /** The stop being given a length. */
 export interface StayDraft {
@@ -83,29 +64,16 @@ const SLIDER = [
 export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripStayModalProps): React.ReactElement | null {
   const { t } = useTranslation()
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
-  const [minutes, setMinutes] = useState(0)
-  const [saving, setSaving] = useState(false)
+  // What the stay does to the day, worked out live: the arrival is fixed by the drive,
+  // the departure is the only thing this dialog moves.
+  const { minutes, setMinutes, saving, setSaving, nudge, preview: times } = useStayDraft({
+    arrival: stop?.arrival, is12h, initial: 0, wholeMinutes: false,
+  })
   const leave = useLeaveMode(stop)
 
   // Reopened on a different stop, so it starts from that stop's own value rather than
   // from whatever the last one was left on.
-  useEffect(() => { setMinutes(stop?.minutes ?? 0) }, [stop])
-
-  // What the stay does to the day, worked out live: the arrival is fixed by the drive,
-  // the departure is the only thing this dialog moves.
-  const times = useMemo(() => {
-    const arrival = parseClock(stop?.arrival)
-    if (arrival === null) return null
-    return {
-      arrive: formatClockTime(formatClock(arrival), is12h),
-      leave: formatClockTime(formatClock(arrival + minutes), is12h),
-      // `formatClock` wraps modulo 24 h, so a stay that runs past midnight reads as a
-      // small number again. The rail carries the day it belongs to along with the time;
-      // without the same carry here the dialog would quietly say "leave 01:00" for a
-      // stop the chain places on the next day.
-      leaveCarry: Math.floor((arrival + minutes) / (24 * 60)) - Math.floor(arrival / (24 * 60)),
-    }
-  }, [stop?.arrival, minutes, is12h])
+  useEffect(() => { setMinutes(stop?.minutes ?? 0) }, [stop, setMinutes])
 
   if (!stop) return null
   if (leave.until) return <LeaveTime stop={stop} leave={leave} until={leave.until} is12h={is12h} onClose={onClose} />
@@ -120,8 +88,6 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
       setSaving(false)
     }
   }
-
-  const nudge = (delta: number) => setMinutes(m => Math.min(MAX, Math.max(0, m + delta)))
 
   return (
     <Modal isOpen onClose={onClose} size="sm" title={
@@ -175,7 +141,7 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
 
         {/* What the stay costs the rest of the day. The arrival cannot move — the drive
             decides it — so the arrow shows the one end this dialog does move. */}
-        {times ? <ArriveLeave arrive={times.arrive} leave={times.leave} carry={times.leaveCarry} /> : null}
+        {times ? <ArriveLeave arrive={times.arrive} leave={times.leave} carry={times.carry} /> : null}
 
         <div className="flex flex-wrap justify-center gap-1.5">
           {PRESETS.map(value => (
@@ -264,7 +230,7 @@ function LeaveTime({ stop, leave, until: leaveAt, is12h, onClose }: {
         {leave.missedBy !== null ? (
           <p className="flex items-center justify-center gap-1.5 text-center text-body font-medium text-warning">
             <AlertTriangle size={14} className="shrink-0" aria-hidden />
-            {t('roadtrip.warn.missedLeave', { minutes: leave.missedBy })}
+            {t('roadtrip.warn.missedLeave', { count: leave.missedBy })}
           </p>
         ) : (
           <p className="text-center text-body text-content-secondary">

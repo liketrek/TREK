@@ -32,5 +32,7 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} skickade ett testmeddelande till alla administratörer.',
   'notifications.test.tripTitle': '{actor} publicerat i din resa',
   'notifications.test.tripText': 'Testmeddelande för resan "{trip}".',
+  'notifications.countLabel': 'meddelanden',
+  'notifications.countLabel.one': 'meddelande',
 };
 export default notifications;

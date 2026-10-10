@@ -7,7 +7,6 @@ const members: TranslationStrings = {
   'members.invite': 'Mời',
   'members.allHaveAccess': 'Tất cả người dùng đã có quyền truy cập.',
   'members.access': 'Truy cập',
-  'members.person': 'người',
   'members.persons': 'người',
   'members.you': 'Bạn',
   'members.owner': 'Người sở hữu',

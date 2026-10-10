@@ -72,6 +72,9 @@ const docsync: TranslationStrings = {
   'docsync.state.scope_drift': 'Переміщено за межі теки',
 
   'docsync.conflict.resolve': "Розв'язати {count}",
+  'docsync.conflict.resolve.one': "Розв'язати {count}",
+  'docsync.conflict.resolve.few': "Розв'язати {count}",
+  'docsync.conflict.resolve.many': "Розв'язати {count}",
 
   'docsync.conflict.title': 'Змінилися обидві копії',
   'docsync.conflict.keepTrek': 'Залишити версію TREK',
@@ -176,7 +179,8 @@ const docsync: TranslationStrings = {
   'docsync.issues.error': 'Передавання не відбулося.',
 
   'docsync.error.unknown_provider': 'Цей постачальник недоступний на цьому сервері.',
-  'docsync.error.provider_disabled': 'Призупинено: адміністратор вимкнув цього постачальника. Синхронізація відновиться, щойно його знову ввімкнуть.',
+  'docsync.error.provider_disabled':
+    'Призупинено: адміністратор вимкнув цього постачальника. Синхронізація відновиться, щойно його знову ввімкнуть.',
   'docsync.binding.reconnect': 'Підключити знову',
 };
 

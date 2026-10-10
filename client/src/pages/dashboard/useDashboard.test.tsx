@@ -11,6 +11,12 @@ import { useAuthStore } from '../../store/authStore';
 import { useDashboard } from './useDashboard';
 import type { DashboardTrip } from './dashboardModel';
 
+// Retrying reloads the user, and loadUser registers the background sync
+// triggers: a 30 s heartbeat and window listeners that nothing here
+// unregisters, so they outlive the test and can fire, and log, while the
+// file's worker shuts down. Nothing here is about sync.
+vi.mock('../../sync/syncTriggers', () => ({ registerSyncTriggers: vi.fn(), unregisterSyncTriggers: vi.fn() }));
+
 // FE-HOOK-DASH-001 onwards
 
 const PARIS = buildTrip({ id: 101, title: 'Paris Adventure', start_date: '2026-07-01', end_date: '2026-07-10' });

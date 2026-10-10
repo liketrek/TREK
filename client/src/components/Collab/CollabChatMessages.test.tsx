@@ -129,8 +129,8 @@ describe('ChatMessages', () => {
     ])
     const first = screen.getByText('first').closest('div[style]')!
     const last = screen.getByText('second').closest('div[style]')!
-    expect(first.getAttribute('style')).toContain('border-radius: 18px 18px 18px 18px')
-    expect(last.getAttribute('style')).toContain('border-radius: 18px 18px 4px 18px')
+    expect(first.getAttribute('style')).toContain('border-start-start-radius: 18px; border-start-end-radius: 18px; border-end-end-radius: 18px; border-end-start-radius: 18px')
+    expect(last.getAttribute('style')).toContain('border-start-start-radius: 18px; border-start-end-radius: 18px; border-end-end-radius: 4px; border-end-start-radius: 18px')
   })
 
   it('FE-W5CCM-007: the avatar image is rendered for a foreign author who has one', () => {
@@ -158,7 +158,7 @@ describe('ChatMessages', () => {
       [buildMsg({ id: 1, text: 'one' }), buildMsg({ id: 2, text: 'two' })],
       { hoveredId: 1 },
     )
-    const actions = screen.getAllByTitle('collab.chat.reply').map(b => b.parentElement!)
+    const actions = screen.getAllByRole('button', { name: 'collab.chat.reply' }).map(b => b.parentElement!)
     expect(actions[0].getAttribute('style')).toContain('opacity: 1')
     expect(actions[1].getAttribute('style')).toContain('opacity: 0')
   })
@@ -243,7 +243,7 @@ describe('ChatMessages', () => {
     const { setReplyTo, handleDelete } = renderMessages([
       buildMsg({ id: 3, user_id: 1, username: 'me', text: 'mine' }),
     ])
-    const replyBtn = screen.getByTitle('collab.chat.reply')
+    const replyBtn = screen.getByRole('button', { name: 'collab.chat.reply' })
     fireEvent.mouseEnter(replyBtn)
     expect(replyBtn.style.transform).toBe('scale(1.2)')
     fireEvent.mouseLeave(replyBtn)
@@ -251,7 +251,7 @@ describe('ChatMessages', () => {
     fireEvent.click(replyBtn)
     expect(setReplyTo).toHaveBeenCalledWith(expect.objectContaining({ id: 3 }))
 
-    const deleteBtn = screen.getByTitle('common.delete')
+    const deleteBtn = screen.getByRole('button', { name: 'common.delete' })
     fireEvent.mouseEnter(deleteBtn)
     expect(deleteBtn.style.background).toBe('rgb(239, 68, 68)')
     fireEvent.mouseLeave(deleteBtn)

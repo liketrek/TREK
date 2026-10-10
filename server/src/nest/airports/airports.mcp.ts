@@ -1,6 +1,7 @@
 import { McpController, Tool, TOOL_ANNOTATIONS_READONLY, ok, type McpContext } from '../../nest-mcp';
-import { z } from 'zod';
 import { findByIata, searchAirports } from './airports.data';
+
+import { z } from 'zod';
 
 /**
  * Airport lookup MCP tools, moved 1:1 from the legacy registrar in
@@ -16,9 +17,14 @@ import { findByIata, searchAirports } from './airports.data';
 export class AirportsMcp {
   @Tool({
     name: 'search_airports',
-    description: 'Search for airports by name, city, or IATA code. Returns matching airports with IATA code, name, city, country, coordinates, and timezone. Use before create_transport (flight) to get the correct IATA code and timezone for endpoints.',
+    description:
+      'Search for airports by name, city, or IATA code. Returns matching airports with IATA code, name, city, country, coordinates, and timezone. Use before create_transport (flight) to get the correct IATA code and timezone for endpoints.',
     inputSchema: {
-      query: z.string().min(1).max(200).describe('Airport name, city, or IATA code (e.g. "zurich", "ZRH", "charles de gaulle")'),
+      query: z
+        .string()
+        .min(1)
+        .max(200)
+        .describe('Airport name, city, or IATA code (e.g. "zurich", "ZRH", "charles de gaulle")'),
       limit: z.number().int().min(1).max(50).optional().default(10),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,

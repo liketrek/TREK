@@ -9,6 +9,7 @@ import { useTranslation } from '../../i18n'
 import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, BookOpen, Bookmark } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import InAppNotificationBell from './InAppNotificationBell.tsx'
+import HelpButton from '../Help/HelpButton'
 import { resolvePluginIcon } from '../shared/PluginIcon'
 import { visibleManagedNavItems } from '../../managed'
 
@@ -109,7 +110,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
       paddingTop: 'env(safe-area-inset-top, 0px)',
       height: 'var(--nav-h)',
       transition: 'background 240ms cubic-bezier(0.23,1,0.32,1), backdrop-filter 240ms cubic-bezier(0.23,1,0.32,1), box-shadow 240ms cubic-bezier(0.23,1,0.32,1)',
-    }} className="hidden md:flex items-center px-4 gap-4 fixed top-0 left-0 right-0 z-[200]">
+    }} className="hidden md:flex items-center px-4 gap-4 fixed top-0 inset-x-0 z-[200]">
       {/* Left side. flex-1 basis-0, matching the action cluster on the right, so
           the tab pill between them sits in the middle of the bar rather than
           being centred on top of both (#1983). */}
@@ -234,6 +235,9 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
         </span>
       )}
 
+      {/* Contextual help for the current screen — same footprint as the theme toggle beside it */}
+      {user && <HelpButton />}
+
       {/* Dark mode toggle (light ↔ dark, overrides auto) — hidden on mobile */}
       <button type="button" onClick={toggleDarkMode} title={dark ? t('nav.lightMode') : t('nav.darkMode')}
         className="p-2 rounded-lg transition-colors flex-shrink-0 hidden sm:flex relative w-8 h-8 items-center justify-center text-content-muted"
@@ -273,7 +277,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
           {userMenuOpen && createPortal(
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} role="presentation" onClick={() => setUserMenuOpen(false)} />
-              <div className="trek-menu-enter w-52 rounded-xl shadow-xl border overflow-hidden bg-surface-card border-edge" style={{ position: 'fixed', top: 'var(--nav-h)', right: 8, zIndex: 9999 }}>
+              <div className="trek-menu-enter w-52 rounded-xl shadow-xl border overflow-hidden bg-surface-card border-edge" style={{ position: 'fixed', top: 'var(--nav-h)', insetInlineEnd: 8, zIndex: 9999 }}>
                 <div className="px-4 py-3 border-b border-edge-secondary">
                   <p className="text-sm font-medium text-content">{user.username}</p>
                   <p className="text-xs truncate text-content-muted">{user.email}</p>

@@ -1,5 +1,6 @@
 import React from 'react'
 import type { LucideIcon } from 'lucide-react'
+import { SettingsCard } from './settingsKit'
 
 interface SectionProps {
   title: string
@@ -9,20 +10,18 @@ interface SectionProps {
    */
   icon: LucideIcon | React.ComponentType<{ className?: string }>
   badge?: React.ReactNode
+  /** One line under the title in the head band. */
+  hint?: React.ReactNode
+  /** A control on the right of the head band. */
+  action?: React.ReactNode
   children: React.ReactNode
 }
 
-export default function Section({ title, icon: Icon, badge, children }: SectionProps): React.ReactElement {
+/** A settings group: the planner's card with a head band (see settingsKit). */
+export default function Section({ title, icon, badge, hint, action, children }: SectionProps): React.ReactElement {
   return (
-    <div className="rounded-xl border overflow-hidden bg-surface-card border-edge" style={{ marginBottom: 24 }}>
-      <div className="px-6 py-4 border-b flex items-center gap-2 border-edge-secondary">
-        <Icon className="w-5 h-5 text-content-secondary" />
-        <h2 className="font-semibold text-content">{title}</h2>
-        {badge}
-      </div>
-      <div className="p-6 space-y-4">
-        {children}
-      </div>
-    </div>
+    <SettingsCard icon={icon} title={title} badge={badge} hint={hint} action={action}>
+      {children}
+    </SettingsCard>
   )
 }

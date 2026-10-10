@@ -2,67 +2,56 @@
  * Reservations integration tests.
  * Covers RESV-001 to RESV-007.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
+import { DayAccommodations } from '../../src/db/entities/DayAccommodations.entity';
+import { Days } from '../../src/db/entities/Days.entity';
+import { ReservationDayPositions } from '../../src/db/entities/ReservationDayPositions.entity';
+import { Reservations } from '../../src/db/entities/Reservations.entity';
+import { authCookie } from '../helpers/auth';
+import {
+  createUser,
+  createTrip,
+  createDay,
+  createPlace,
+  createReservation,
+  createDayAssignment,
+  addTripMember,
+} from '../helpers/factories';
+import { findRow, findRows, updateRows } from '../helpers/factories/rows';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: (placeId: number) => {
-      const place: any = db.prepare(`SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`).get(placeId);
-      if (!place) return null;
-      const tags = db.prepare(`SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?`).all(placeId);
-      return { ...place, category: place.category_id ? { id: place.category_id, name: place.category_name, color: place.category_color, icon: place.category_icon } : null, tags };
-    },
-    canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
-    isOwner: (tripId: any, userId: number) =>
-      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
+import type { Application } from 'express';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
 });
 
-vi.mock('../../src/db/database', () => dbMock);
-vi.mock('../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-  SESSION_DURATION: '24h',
-  SESSION_DURATION_MS: 86400000,
-  SESSION_DURATION_SECONDS: 86400,
-  DEFAULT_LANGUAGE: 'en',
-}));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
+let orm: MikroORM;
 
-import { buildApp } from '../../src/bootstrap';
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createReservation, addTripMember } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
+/** The expense linked to the booking on the trip, or null. */
+function linkedExpense(tripId: number, reservationId: number) {
+  return findRow(orm, BudgetItems, { trip: tripId, reservation: reservationId });
+}
 
 let nestApp: INestApplication;
 let app: Application;
 
 beforeAll(async () => {
-  createTables(testDb);
-  runMigrations(testDb);
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
+  orm = nestApp.get(MikroORM);
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   resetTestDb(testDb);
-  resetRateLimits(nestApp);
+  await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
@@ -155,9 +144,7 @@ describe('List reservations', () => {
     createReservation(testDb, trip.id, { title: 'Flight Out', type: 'flight' });
     createReservation(testDb, trip.id, { title: 'Hotel Stay', type: 'hotel' });
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/reservations`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/reservations`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.reservations).toHaveLength(2);
   });
@@ -166,9 +153,7 @@ describe('List reservations', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/reservations`)
-      .set('Cookie', authCookie(user.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/reservations`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.reservations).toHaveLength(0);
   });
@@ -178,9 +163,7 @@ describe('List reservations', () => {
     const { user: other } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
 
-    const res = await request(app)
-      .get(`/api/trips/${trip.id}/reservations`)
-      .set('Cookie', authCookie(other.id));
+    const res = await request(app).get(`/api/trips/${trip.id}/reservations`).set('Cookie', authCookie(other.id));
     expect(res.status).toBe(404);
   });
 });
@@ -229,14 +212,25 @@ describe('Update reservation', () => {
     const created = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
       .set('Cookie', authCookie(user.id))
-      .send({ title: 'Event', type: 'event', day_id: day1.id, reservation_time: '2025-10-01T09:00', reservation_end_time: '2025-10-01T10:00' });
+      .send({
+        title: 'Event',
+        type: 'event',
+        day_id: day1.id,
+        reservation_time: '2025-10-01T09:00',
+        reservation_end_time: '2025-10-01T10:00',
+      });
     const rid = created.body.reservation.id;
 
     // Re-date to day 3 WITHOUT sending day_id (the modal omits it) — both ends follow.
     const res = await request(app)
       .put(`/api/trips/${trip.id}/reservations/${rid}`)
       .set('Cookie', authCookie(user.id))
-      .send({ title: 'Event', type: 'event', reservation_time: '2025-10-03T00:00', reservation_end_time: '2025-10-03T14:00' });
+      .send({
+        title: 'Event',
+        type: 'event',
+        reservation_time: '2025-10-03T00:00',
+        reservation_end_time: '2025-10-03T14:00',
+      });
     expect(res.status).toBe(200);
     expect(res.body.reservation.day_id).toBe(day3.id);
     expect(res.body.reservation.end_day_id).toBe(day3.id);
@@ -284,10 +278,148 @@ describe('Update reservation', () => {
     expect(updateRes.status).toBe(200);
 
     // Verify accommodation was updated with check-in/out
-    const accom = testDb.prepare('SELECT * FROM day_accommodations WHERE trip_id = ?').get(trip.id) as any;
+    const accom = (await findRow(orm, DayAccommodations, { trip: trip.id }))!;
     expect(accom.check_in).toBe('15:00');
     expect(accom.check_out).toBe('11:00');
     expect(accom.confirmation).toBe('HTL-XYZ-999');
+  });
+
+  // L2 (Plan 3d Task 7 whole-plan review): a hex-spelled `accommodation_id`
+  // in the PUT body used to coerce via `Number('0x1')` and pass the
+  // existence check, storing the raw hex string as the link — where the
+  // legacy raw-bind existence check's own affinity never converts a hex
+  // string, so it always stored NULL instead.
+  it('L2 — PUT with a hex-spelled accommodation_id stores NULL, matching the legacy affinity miss', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Hotel' });
+    const { accommodation: accom } = (
+      await request(app)
+        .post(`/api/trips/${trip.id}/accommodations`)
+        .set('Cookie', authCookie(user.id))
+        .send({ place_id: place.id, start_day_id: day.id, end_day_id: day.id })
+    ).body as { accommodation: { id: number } };
+    const resv = createReservation(testDb, trip.id, { title: 'Flight', type: 'flight' });
+
+    const hexAccId = '0x' + accom.id.toString(16);
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/reservations/${resv.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ accommodation_id: hexAccId });
+    expect(res.status).toBe(200);
+
+    const row = (await findRow(orm, Reservations, { id: resv.id }))!;
+    expect(row.accommodation_id).toBeNull();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// H1 (Plan 3d Task 7 whole-plan review, live regression) — RS28's
+// `accommodation_id` write must store the same TEXT shape the legacy
+// raw-bind statement did (`'<id>.0'`, a REAL-bound number, never `'<id>'`),
+// because `DaysService.resyncAccommodationDays`'s DY23 restamp
+// (`ReservationsRepository.restampLinkedReservation`) still compares
+// against that REAL-bound shape (parity, not a fix — see its own
+// docstring). A `String(n)` write silently orphans the linked reservation:
+// the trip's dates change, the day plan moves, and the booking is left
+// behind with no error anywhere.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("H1 — a booking on a stay is restamped when the trip's dates change (DY23)", () => {
+  it('the accommodation_id RS28 stores is the legacy REAL-bound TEXT shape, and a later date change restamps the linked booking', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-12-01', end_date: '2026-12-03' });
+    const day1 = (await findRow(orm, Days, { trip: trip.id, date: '2026-12-01' }))!;
+    const day2 = (await findRow(orm, Days, { trip: trip.id, date: '2026-12-02' }))!;
+    const place = createPlace(testDb, trip.id, { name: 'Lighthouse Inn' });
+
+    const createRes = await request(app)
+      .post(`/api/trips/${trip.id}/reservations`)
+      .set('Cookie', authCookie(user.id))
+      .send({
+        title: 'Lighthouse Inn Stay',
+        type: 'hotel',
+        day_id: day1.id,
+        reservation_time: '2026-12-01T10:00',
+        create_accommodation: { place_id: place.id, start_day_id: day1.id, end_day_id: day2.id },
+      });
+    expect(createRes.status).toBe(201);
+    const resvId = createRes.body.reservation.id;
+
+    // Stored-shape assert: the legacy REAL-bound TEXT shape (`'<id>.0'`), not
+    // the SQL-literal-inlined shape (`'<id>'`) `String(n)` used to store.
+    const stored = (await findRow(orm, Reservations, { id: resvId }))!;
+    expect(stored.accommodation_id).toMatch(/^\d+\.0$/);
+
+    // Move the whole trip a day later (default date_shift_mode, i.e. NOT
+    // 'shift_all'): days re-date positionally in place, the accommodation
+    // stays glued to its (now re-dated) day rows (#1288), and its linked
+    // reservation must follow — DY23's restamp.
+    const updateRes = await request(app)
+      .put(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ start_date: '2026-12-02', end_date: '2026-12-04' });
+    expect(updateRes.status).toBe(200);
+
+    const resvAfter = (await findRow(orm, Reservations, { id: resvId }))!;
+    expect(resvAfter.day_id).toBe(day1.id);
+    // Restamped onto day1's NEW date — red without the fix, where DY23's
+    // REAL-bound compare misses a `String(n)`-shaped accommodation_id and
+    // this stays '2026-12-01T10:00'.
+    expect(resvAfter.reservation_time).toBe('2026-12-02T10:00');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// L3 (Plan 3d Task 7 whole-plan review): RS22 (`referencesOutsideTrip`'s
+// `assignment_id` cross-trip check, `reservations.service.ts:540-541` +
+// `Reservations.repository.ts::getAssignmentTripId`) had zero hits in the
+// whole suite (lcov × diff). Pinned here through the real REST route.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('RS22 — assignment_id foreign-reference check on POST /reservations', () => {
+  it('RS22-own: an assignment_id belonging to the SAME trip is accepted (201)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const assignment = createDayAssignment(testDb, day.id, place.id);
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/reservations`)
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'Dinner', type: 'restaurant', assignment_id: assignment.id });
+    expect(res.status).toBe(201);
+    expect(res.body.reservation.assignment_id).toBe(assignment.id);
+  });
+
+  it('RS22-foreign: an assignment_id belonging to a DIFFERENT trip is refused (400 "Not part of this trip: assignment_id")', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const otherTrip = createTrip(testDb, user.id);
+    const otherDay = createDay(testDb, otherTrip.id);
+    const otherPlace = createPlace(testDb, otherTrip.id);
+    const foreignAssignment = createDayAssignment(testDb, otherDay.id, otherPlace.id);
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/reservations`)
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'Dinner', type: 'restaurant', assignment_id: foreignAssignment.id });
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Not part of this trip: assignment_id' });
+  });
+
+  it('RS22-missing: an assignment_id that resolves to nothing is refused (400 "Unknown reference: assignment_id")', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/reservations`)
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'Dinner', type: 'restaurant', assignment_id: 999999 });
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Unknown reference: assignment_id' });
   });
 });
 
@@ -307,9 +439,7 @@ describe('Delete reservation', () => {
     expect(del.status).toBe(200);
     expect(del.body.success).toBe(true);
 
-    const list = await request(app)
-      .get(`/api/trips/${trip.id}/reservations`)
-      .set('Cookie', authCookie(user.id));
+    const list = await request(app).get(`/api/trips/${trip.id}/reservations`).set('Cookie', authCookie(user.id));
     expect(list.body.reservations).toHaveLength(0);
   });
 
@@ -321,6 +451,25 @@ describe('Delete reservation', () => {
       .delete(`/api/trips/${trip.id}/reservations/99999`)
       .set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
+  });
+
+  // M4 (Plan 3d Task 7 review): `remove`'s id parsed with `toRowId`, not the
+  // `Number()`-fallback `rowIdNum` — a hex-spelled id used to coerce to a
+  // real row and delete it, where the legacy raw-bind statement's affinity
+  // never converts a hex string and so 404'd. Rule 21.
+  it('M4 — DELETE …/reservations/0x<id> answers the legacy 404 and deletes nothing', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const resv = createReservation(testDb, trip.id, { title: 'Flight', type: 'flight' });
+    const hexId = '0x' + resv.id.toString(16);
+
+    const res = await request(app)
+      .delete(`/api/trips/${trip.id}/reservations/${hexId}`)
+      .set('Cookie', authCookie(user.id));
+    expect(res.status).toBe(404);
+
+    const row = await findRow(orm, Reservations, { id: resv.id });
+    expect(row).not.toBeNull();
   });
 });
 
@@ -338,9 +487,39 @@ describe('Batch update positions', () => {
     const res = await request(app)
       .put(`/api/trips/${trip.id}/reservations/positions`)
       .set('Cookie', authCookie(user.id))
-      .send({ positions: [{ id: r2.id, position: 0 }, { id: r1.id, position: 1 }] });
+      .send({
+        positions: [
+          { id: r2.id, position: 0 },
+          { id: r1.id, position: 1 },
+        ],
+      });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
+  });
+
+  // M4 (Plan 3d Task 7 review): `updatePositions`' `dayId` parsed with
+  // `toRowId`, not the `Number()`-fallback `rowIdNum` — a hex-spelled
+  // `day_id` used to coerce to a real day and reach the per-day upsert,
+  // where the legacy raw-bind statement's affinity never converts a hex
+  // string, so the join matched no row (a quiet no-op, not a write). Rule 21.
+  it('M4 — PUT /positions with a hex-spelled day_id is the legacy quiet no-op (no day-scoped row written)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id, { date: '2026-01-01' });
+    const resv = createReservation(testDb, trip.id, { title: 'First', type: 'flight' });
+    const hexDayId = '0x' + day.id.toString(16);
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/reservations/positions`)
+      .set('Cookie', authCookie(user.id))
+      .send({ positions: [{ id: resv.id, day_plan_position: 0 }], day_id: hexDayId });
+    // Same success shape the legacy statement's own no-op miss returns —
+    // this is not a validation error, it silently writes nothing.
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    const row = await findRow(orm, ReservationDayPositions, { reservation: resv.id });
+    expect(row).toBeNull();
   });
 });
 
@@ -363,11 +542,9 @@ describe('Reservation budget entry integration', () => {
       });
     expect(res.status).toBe(201);
 
-    const budgetItem = testDb
-      .prepare('SELECT * FROM budget_items WHERE trip_id = ? AND reservation_id = ?')
-      .get(trip.id, res.body.reservation.id) as any;
-    expect(budgetItem).toBeDefined();
-    expect(budgetItem.total_price).toBe(250);
+    const budgetItem = await linkedExpense(trip.id, res.body.reservation.id);
+    expect(budgetItem).not.toBeNull();
+    expect(budgetItem!.total_price).toBe(250);
     expect(budgetItem.name).toBe('Flight to Paris');
   });
 
@@ -385,9 +562,7 @@ describe('Reservation budget entry integration', () => {
       });
     expect(res.status).toBe(201);
 
-    const budgetItems = testDb
-      .prepare('SELECT * FROM budget_items WHERE trip_id = ?')
-      .all(trip.id) as any[];
+    const budgetItems = await findRows(orm, BudgetItems, { trip: trip.id });
     expect(budgetItems).toHaveLength(0);
   });
 
@@ -402,11 +577,9 @@ describe('Reservation budget entry integration', () => {
       .send({ create_budget_entry: { total_price: 300, category: 'Accommodation' } });
     expect(res.status).toBe(200);
 
-    const budgetItem = testDb
-      .prepare('SELECT * FROM budget_items WHERE trip_id = ? AND reservation_id = ?')
-      .get(trip.id, resv.id) as any;
-    expect(budgetItem).toBeDefined();
-    expect(budgetItem.total_price).toBe(300);
+    const budgetItem = await linkedExpense(trip.id, resv.id);
+    expect(budgetItem).not.toBeNull();
+    expect(budgetItem!.total_price).toBe(300);
   });
 
   it('RESV-013 — PUT with create_budget_entry updates existing linked budget item', async () => {
@@ -432,9 +605,7 @@ describe('Reservation budget entry integration', () => {
       .send({ create_budget_entry: { total_price: 150, category: 'Transport' } });
     expect(updateRes.status).toBe(200);
 
-    const items = testDb
-      .prepare('SELECT * FROM budget_items WHERE trip_id = ? AND reservation_id = ?')
-      .all(trip.id, resvId) as any[];
+    const items = await findRows(orm, BudgetItems, { trip: trip.id, reservation: resvId });
     expect(items).toHaveLength(1);
     expect(items[0].total_price).toBe(150);
   });
@@ -455,10 +626,8 @@ describe('Reservation budget entry integration', () => {
     expect(createRes.status).toBe(201);
     const resvId = createRes.body.reservation.id;
 
-    const before = testDb
-      .prepare('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?')
-      .get(trip.id, resvId);
-    expect(before).toBeDefined();
+    const before = await linkedExpense(trip.id, resvId);
+    expect(before).not.toBeNull();
 
     // Update WITHOUT create_budget_entry — the booking edit must NOT touch its
     // linked expense (expenses are managed from the Costs section now).
@@ -468,10 +637,8 @@ describe('Reservation budget entry integration', () => {
       .send({ title: 'Taxi Updated' });
     expect(updateRes.status).toBe(200);
 
-    const after = testDb
-      .prepare('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?')
-      .get(trip.id, resvId);
-    expect(after).toBeDefined();
+    const after = await linkedExpense(trip.id, resvId);
+    expect(after).not.toBeNull();
   });
 
   it('RESV-014b — PUT with create_budget_entry total_price 0 removes the linked budget item', async () => {
@@ -496,10 +663,8 @@ describe('Reservation budget entry integration', () => {
       .send({ title: 'Taxi', create_budget_entry: { total_price: 0 } });
     expect(updateRes.status).toBe(200);
 
-    const after = testDb
-      .prepare('SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?')
-      .get(trip.id, resvId);
-    expect(after).toBeUndefined();
+    const after = await linkedExpense(trip.id, resvId);
+    expect(after).toBeNull();
   });
 
   it('RESV-014c — changing the booking type updates the linked expense category', async () => {
@@ -518,9 +683,7 @@ describe('Reservation budget entry integration', () => {
       .set('Cookie', authCookie(user.id))
       .send({ title: 'Booking', type: 'hotel' });
 
-    const item = testDb
-      .prepare('SELECT category FROM budget_items WHERE trip_id = ? AND reservation_id = ?')
-      .get(trip.id, resvId) as { category: string };
+    const item = (await linkedExpense(trip.id, resvId))!;
     expect(item.category).toBe('accommodation');
   });
 
@@ -535,16 +698,14 @@ describe('Reservation budget entry integration', () => {
     const resvId = createRes.body.reservation.id;
 
     // Simulate a manual category pick in the Costs editor.
-    testDb.prepare('UPDATE budget_items SET category = ? WHERE trip_id = ? AND reservation_id = ?').run('fees', trip.id, resvId);
+    await updateRows(orm, BudgetItems, { trip: trip.id, reservation: resvId }, { category: 'fees' });
 
     await request(app)
       .put(`/api/trips/${trip.id}/reservations/${resvId}`)
       .set('Cookie', authCookie(user.id))
       .send({ title: 'Booking', type: 'hotel' });
 
-    const item = testDb
-      .prepare('SELECT category FROM budget_items WHERE trip_id = ? AND reservation_id = ?')
-      .get(trip.id, resvId) as { category: string };
+    const item = (await linkedExpense(trip.id, resvId))!;
     expect(item.category).toBe('fees');
   });
 });
@@ -575,10 +736,8 @@ describe('Reservation accommodation delete', () => {
     const reservationId = createRes.body.reservation.id;
 
     // Verify accommodation was created
-    const accom = testDb.prepare(
-      'SELECT id FROM day_accommodations WHERE trip_id = ?'
-    ).get(trip.id) as any;
-    expect(accom).toBeDefined();
+    const accom = (await findRow(orm, DayAccommodations, { trip: trip.id }))!;
+    expect(accom).not.toBeNull();
 
     // Delete reservation — should also remove the accommodation
     const delRes = await request(app)
@@ -586,10 +745,8 @@ describe('Reservation accommodation delete', () => {
       .set('Cookie', authCookie(user.id));
     expect(delRes.status).toBe(200);
 
-    const accomAfter = testDb.prepare(
-      'SELECT id FROM day_accommodations WHERE id = ?'
-    ).get(accom.id);
-    expect(accomAfter).toBeUndefined();
+    const accomAfter = await findRow(orm, DayAccommodations, { id: accom.id });
+    expect(accomAfter).toBeNull();
   });
 
   it('RESV-009b — DELETE reservation linked to accommodation also removes its linked budget item (issue #933)', async () => {
@@ -612,10 +769,8 @@ describe('Reservation accommodation delete', () => {
     expect(createRes.status).toBe(201);
     const reservationId = createRes.body.reservation.id;
 
-    const budgetBefore = testDb.prepare(
-      'SELECT id FROM budget_items WHERE trip_id = ? AND reservation_id = ?'
-    ).get(trip.id, reservationId);
-    expect(budgetBefore).toBeDefined();
+    const budgetBefore = await linkedExpense(trip.id, reservationId);
+    expect(budgetBefore).not.toBeNull();
 
     // Delete via the reservation endpoint
     const delRes = await request(app)
@@ -623,9 +778,7 @@ describe('Reservation accommodation delete', () => {
       .set('Cookie', authCookie(user.id));
     expect(delRes.status).toBe(200);
 
-    const budgetAfter = testDb.prepare(
-      'SELECT id FROM budget_items WHERE trip_id = ?'
-    ).get(trip.id);
-    expect(budgetAfter).toBeUndefined();
+    const budgetAfter = await findRow(orm, BudgetItems, { trip: trip.id });
+    expect(budgetAfter).toBeNull();
   });
 });

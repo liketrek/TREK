@@ -84,6 +84,13 @@ export interface RoadtripStop {
   checkInTime?: string | null;
   /** A booked night's stop on its check-in day, whether or not the booking names an hour. */
   night?: boolean;
+  /**
+   * The stay whose booking wrote this stop (`day_assignments.accommodation_id`), rather
+   * than the traveller placing the hotel on the day. Days hides such a stop and draws the
+   * stay at the day's edges instead; `seatNightBookends` does the same once it seats that
+   * stay at the end of the day.
+   */
+  bookedNightId?: number | null;
   endDay?: boolean;
 
   legMode: string | null;

@@ -20,3 +20,10 @@ export const nonEmptyString = z.string().trim().min(1);
 
 /** ISO-8601 timestamp string (the shape TREK serialises dates as in JSON). */
 export const isoDateTime = z.string().datetime({ offset: true });
+
+/** The `{ success: true }` body a write answers with when it has nothing else to say. */
+export const successResponseSchema = z.object({ success: z.literal(true) });
+export type SuccessResponse = z.infer<typeof successResponseSchema>;
+
+/** A 204 answer: the handler returns nothing, so no body goes out. */
+export const emptyResponseSchema = z.undefined();

@@ -6,7 +6,7 @@ import type {
 import { BOOK_METRICS } from '@trek/shared'
 import { isStale, refreshPatch } from './travelRefresh'
 import { Swatches } from './StudioSwatches'
-import { BOOK_FONTS, BOOK_FONT_ORDER, hasWeight, nearestWeight } from './bookFonts'
+import { FontButtons, WeightLine } from './StudioTypeControls'
 import { sourceIdOf, useMapSources } from './mapSources'
 import { printDpi, tileView } from './mapTiles'
 import { useCartoApiKey } from '../../hooks/useTileUrl'
@@ -82,41 +82,14 @@ export function TravelInspector({ el, stats, set, t }: TravelInspectorProps) {
        * wrong typeface and no way to fix it.
        */}
       <Section label={t('journey.studio.typography')} defaultOpen={false}>
-        <div className="st-fonts">
-          {BOOK_FONT_ORDER.map(id => {
-            const font = BOOK_FONTS[id]
-            return (
-              <button type="button"
-                key={id}
-                className={`st-font ${el.font === id ? 'is-on' : ''}`}
-                style={{ fontFamily: font.stack }}
-                onClick={() => set({
-                  font: id,
-                  // A family that does not ship this weight renders a
-                  // synthesised bold — a smeared regular in print — so the
-                  // weight moves to the nearest one it really has.
-                  weight: nearestWeight(id, el.weight) as typeof el.weight,
-                } as Partial<BookElement>)}
-                title={font.name}
-              >
-                {font.name}
-              </button>
-            )
-          })}
-        </div>
+        <FontButtons font={el.font} weight={el.weight} onPick={patch => set(patch as Partial<BookElement>)} />
         <div style={{ marginTop: 10 }}>
-          <Line label={t('journey.studio.weight')}>
-            <Choice
-              value={el.weight}
-              options={([400, 500, 600, 700] as const).map(w => ({
-                value: w,
-                label: String(w),
-                disabled: !hasWeight(el.font, w),
-                title: hasWeight(el.font, w) ? undefined : t('journey.studio.weightMissing'),
-              }))}
-              onPick={weight => set({ weight } as Partial<BookElement>)}
-            />
-          </Line>
+          <WeightLine
+            font={el.font}
+            weight={el.weight}
+            onPick={weight => set({ weight } as Partial<BookElement>)}
+            t={t}
+          />
           <Line label={t('journey.studio.textScale')}>
             <Choice
               value={el.textScale}

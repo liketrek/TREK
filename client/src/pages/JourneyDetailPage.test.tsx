@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { localIsoDate } from '../utils/localDate';
-import { render, screen, waitFor, cleanup } from '../../tests/helpers/render';
+import { render, screen, waitFor, cleanup, within } from '../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
@@ -362,7 +362,7 @@ describe('JourneyDetailPage', () => {
 
       // Gallery view renders photo count text
       await waitFor(() => {
-        expect(screen.getByText(/1 photos/i)).toBeInTheDocument();
+        expect(screen.getByText(/1 photo\b/i)).toBeInTheDocument();
       });
     });
   });
@@ -959,10 +959,11 @@ describe('JourneyDetailPage', () => {
       await renderAndWait();
       await openEntryEditor(user);
 
-      // Click Cancel to close
-      const cancelButtons = screen.getAllByText('Cancel');
-      // The Cancel button in the editor footer (not the ConfirmDialog mock)
-      await user.click(cancelButtons[0]);
+      // Click Cancel to close. The editor is a dialog in a portal on the body,
+      // after the page's own ConfirmDialog mocks, so its footer Cancel is picked
+      // from inside it rather than by position.
+      const editor = screen.getByText('New Entry').closest('[role="dialog"]') as HTMLElement;
+      await user.click(within(editor).getByRole('button', { name: 'Cancel' }));
 
       await waitFor(() => {
         expect(screen.queryByText('New Entry')).not.toBeInTheDocument();
@@ -1000,11 +1001,10 @@ describe('JourneyDetailPage', () => {
       await renderAndWait();
       await openSettingsDialog(user);
 
-      // "Name" label from i18n (displayed uppercase via CSS class)
-      expect(screen.getByText('Name')).toBeInTheDocument();
+      // The name is typed into the dialog's head band, labelled "Name" for screen readers
+      const nameInput = screen.getByRole('textbox', { name: 'Name' });
       // The input has the current journey title
-      const nameInput = screen.getByDisplayValue('Italy 2026');
-      expect(nameInput).toBeInTheDocument();
+      expect(nameInput).toHaveValue('Italy 2026');
     });
   });
 
@@ -1100,7 +1100,7 @@ describe('JourneyDetailPage', () => {
       await user.click(galleryBtn);
 
       await waitFor(() => {
-        expect(screen.getByText(/1 photos/i)).toBeInTheDocument();
+        expect(screen.getByText(/1 photo\b/i)).toBeInTheDocument();
       });
 
       // Gallery renders photos as images
@@ -1120,7 +1120,7 @@ describe('JourneyDetailPage', () => {
       await user.click(galleryBtn);
 
       await waitFor(() => {
-        expect(screen.getByText(/1 photos/i)).toBeInTheDocument();
+        expect(screen.getByText(/1 photo\b/i)).toBeInTheDocument();
       });
 
       // Gallery has an Upload button
@@ -1272,8 +1272,8 @@ describe('JourneyDetailPage', () => {
       const rainyBtn = screen.getByText('Rainy');
       await user.click(rainyBtn);
 
-      // Active weather button gets bg-zinc-900 class
-      expect(rainyBtn.closest('button')!.className).toContain('bg-zinc-900');
+      // Active weather button takes the accent fill
+      expect(rainyBtn.closest('button')!.className).toContain('bg-accent');
     });
   });
 
@@ -1787,7 +1787,7 @@ describe('JourneyDetailPage', () => {
       await user.click(galleryBtn);
 
       await waitFor(() => {
-        expect(screen.getByText(/1 photos/i)).toBeInTheDocument();
+        expect(screen.getByText(/1 photo\b/i)).toBeInTheDocument();
       });
 
       // Click the photo in the gallery grid
@@ -2005,7 +2005,7 @@ describe('JourneyDetailPage', () => {
       await user.click(galleryBtn);
 
       await waitFor(() => {
-        expect(screen.getByText(/1 photos/i)).toBeInTheDocument();
+        expect(screen.getByText(/1 photo\b/i)).toBeInTheDocument();
       });
 
       // Gallery photos render in a grid; each photo has a group container
@@ -2024,7 +2024,7 @@ describe('JourneyDetailPage', () => {
       await user.click(galleryBtn);
 
       await waitFor(() => {
-        expect(screen.getByText(/1 photos/i)).toBeInTheDocument();
+        expect(screen.getByText(/1 photo\b/i)).toBeInTheDocument();
       });
 
       // The photo has caption 'Colosseum'
@@ -2064,7 +2064,7 @@ describe('JourneyDetailPage', () => {
       await user.click(galleryBtn);
 
       await waitFor(() => {
-        expect(screen.getByText(/1 photos/i)).toBeInTheDocument();
+        expect(screen.getByText(/1 photo\b/i)).toBeInTheDocument();
       });
 
       expect(screen.getByText('Immich')).toBeInTheDocument();
@@ -2105,7 +2105,7 @@ describe('JourneyDetailPage', () => {
       await user.click(galleryBtn);
 
       await waitFor(() => {
-        expect(screen.getByText(/1 photos/i)).toBeInTheDocument();
+        expect(screen.getByText(/1 photo\b/i)).toBeInTheDocument();
       });
 
       expect(screen.getByText('Synology Photos')).toBeInTheDocument();
@@ -2284,13 +2284,13 @@ describe('JourneyDetailPage', () => {
 
       // Calendar dropdown should show weekday headers
       await waitFor(() => {
-        expect(screen.getByText('Su')).toBeInTheDocument();
-        expect(screen.getByText('Mo')).toBeInTheDocument();
-        expect(screen.getByText('Tu')).toBeInTheDocument();
-        expect(screen.getByText('We')).toBeInTheDocument();
-        expect(screen.getByText('Th')).toBeInTheDocument();
-        expect(screen.getByText('Fr')).toBeInTheDocument();
-        expect(screen.getByText('Sa')).toBeInTheDocument();
+        expect(screen.getByText('Sun')).toBeInTheDocument();
+        expect(screen.getByText('Mon')).toBeInTheDocument();
+        expect(screen.getByText('Tue')).toBeInTheDocument();
+        expect(screen.getByText('Wed')).toBeInTheDocument();
+        expect(screen.getByText('Thu')).toBeInTheDocument();
+        expect(screen.getByText('Fri')).toBeInTheDocument();
+        expect(screen.getByText('Sat')).toBeInTheDocument();
       });
     });
   });
@@ -2309,12 +2309,12 @@ describe('JourneyDetailPage', () => {
 
       // The calendar should have the month name and two navigation buttons
       await waitFor(() => {
-        expect(screen.getByText('Su')).toBeInTheDocument();
+        expect(screen.getByText('Sun')).toBeInTheDocument();
       });
 
       // The calendar header has prev/next buttons. They are type="button" within the calendar dropdown.
       // There should be navigation buttons around the month name
-      const calendarDropdown = screen.getByText('Su').closest('[class*="rounded-xl"]')!;
+      const calendarDropdown = screen.getByText('Sun').closest('[class*="rounded-xl"]')!;
       const navButtons = calendarDropdown.querySelectorAll('button[type="button"]');
       // At minimum: 2 nav buttons + day cells
       expect(navButtons.length).toBeGreaterThanOrEqual(2);
@@ -2502,7 +2502,7 @@ describe('JourneyDetailPage', () => {
         expect(screen.getByText('Paris Weekend')).toBeInTheDocument();
       });
 
-      // Destination and start date appear combined in a subtitle: "Paris · 2026-05-01"
+      // Destination and start date appear combined in a subtitle: "Paris, 2026-05-01"
       expect(screen.getByText(/Paris.*2026-05-01/)).toBeInTheDocument();
     });
   });
@@ -2573,8 +2573,8 @@ describe('JourneyDetailPage', () => {
       const editorBtn = screen.getByText('Editor');
       await user.click(editorBtn);
 
-      // Editor button should now be active (bg-zinc-900 class)
-      expect(editorBtn.closest('button')!.className).toContain('bg-zinc-900');
+      // Editor button should now be the pressed one
+      expect(editorBtn.closest('button')!).toHaveAttribute('aria-pressed', 'true');
     });
   });
 
@@ -2823,7 +2823,7 @@ describe('JourneyDetailPage', () => {
 
       // Wait for calendar to open
       await waitFor(() => {
-        expect(screen.getByText('Su')).toBeInTheDocument();
+        expect(screen.getByText('Sun')).toBeInTheDocument();
       });
 
       // Click day 15 (should be a button in the grid)
@@ -2835,7 +2835,7 @@ describe('JourneyDetailPage', () => {
 
       // Calendar should close after selection
       await waitFor(() => {
-        expect(screen.queryByText('Su')).not.toBeInTheDocument();
+        expect(screen.queryByText('Sun')).not.toBeInTheDocument();
       });
     });
   });
@@ -2853,11 +2853,11 @@ describe('JourneyDetailPage', () => {
       await user.click(dateBtn as HTMLElement);
 
       await waitFor(() => {
-        expect(screen.getByText('Su')).toBeInTheDocument();
+        expect(screen.getByText('Sun')).toBeInTheDocument();
       });
 
       // Get current month name
-      const calendarDropdown = screen.getByText('Su').closest('[class*="rounded-xl"]')!;
+      const calendarDropdown = screen.getByText('Sun').closest('[class*="rounded-xl"]')!;
       const monthText = calendarDropdown.querySelector('[class*="font-semibold"][class*="text-\\[13px\\]"]');
       const currentMonth = monthText?.textContent || '';
 
@@ -3004,7 +3004,7 @@ describe('JourneyDetailPage', () => {
       // The settings dialog shows trips with unlink buttons (Trash2 icon buttons)
       const settingsDialog = screen.getByText('Journey Settings').closest('[class*="fixed"]')!;
       // Find the unlink button (it's a red trash button next to Italy Trip)
-      const trashBtns = settingsDialog.querySelectorAll('button[title="Unlink trip"]');
+      const trashBtns = settingsDialog.querySelectorAll('button[aria-label="Unlink Trip"]');
       expect(trashBtns.length).toBeGreaterThanOrEqual(1);
       await user.click(trashBtns[0] as HTMLElement);
 
@@ -3357,12 +3357,12 @@ describe('JourneyDetailPage', () => {
       await user.click(galleryBtn);
 
       await waitFor(() => {
-        expect(screen.getByText(/1 photos/i)).toBeInTheDocument();
+        expect(screen.getByText(/1 photo\b/i)).toBeInTheDocument();
       });
 
       // The gallery photo has a delete (X) button that appears on hover
       // In the gallery grid, each photo container has an X button
-      const galleryGrid = screen.getByText(/1 photos/i).closest('div')!.parentElement!;
+      const galleryGrid = screen.getByText(/1 photo\b/i).closest('div')!.parentElement!;
       const xButtons = galleryGrid.querySelectorAll('button');
       // Find the X delete button on the photo
       const deleteBtn = Array.from(xButtons).find(btn => {

@@ -1,24 +1,32 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useId, useRef } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import { Search, MapPin, Plus, Loader2, Link2, Trash2, Check, X } from 'lucide-react'
-import Modal from '../shared/Modal'
+import { Bookmark, Search, MapPin, MapPinned, Loader2, Trash2, Check, X } from 'lucide-react'
+import { DialogButton, DialogFooter, DialogHeader, DialogSection, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
+import { AddRowButton, EditorField, GRID_2, INPUT, PANEL, Segmented, TEXTAREA } from '../shared/dialogParts'
 import { NumericInput } from '../shared/NumericInput'
-import MarkdownToolbar from '../Journey/MarkdownToolbar'
-import { mapsApi } from '../../api/client'
-import { collectionsApi } from '../../api/collections'
+import NoteFormatToolbar from '../shared/NoteFormatToolbar'
+import { Tooltip } from '../shared/Tooltip'
 import { getCategoryIcon } from '../shared/categoryIcons'
-import { useTranslation } from '../../i18n'
-import { useToast } from '../shared/Toast'
-import { getApiErrorMessage } from '../../types'
 import { normalizeLinkUrl, STATUS_META, STATUS_ORDER } from '../../pages/collections/collectionsModel'
 import type { Category, TranslationFn } from '../../types'
-import type { CollectionLink, CollectionStatus } from '@trek/shared'
+import type { CollectionStatus } from '@trek/shared'
+import { str } from './addPlaceModel'
+import { useAddPlaceToCollection } from './useAddPlaceToCollection'
 
-type MapsPlace = Record<string, unknown>
-const str = (v: unknown): string | undefined => (typeof v === 'string' && v ? v : undefined)
-const num = (v: unknown): number | undefined => (typeof v === 'number' ? v : typeof v === 'string' && v !== '' ? Number(v) : undefined)
+/**
+ * The search row, pinned to the top of the scrolling body. The dialog stays open
+ * after an add, and the row used to sit above the viewport once the form was
+ * scrolled, so it looked like the button had vanished (#1921). The negative
+ * margins let its background cover the body's padding while it is stuck.
+ */
+const STICKY_SEARCH = 'sticky top-0 z-20 -mx-6 -mt-5 bg-surface-card px-6 pb-1 pt-5'
+/** A chip of the category row; the picked one wears the category's own colour. */
+const CHIP = 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-semibold'
+const CHIP_OFF = 'border-edge-faint bg-surface-card text-content-muted hover:text-content'
+const CHIP_NONE_ON = 'border-content bg-surface-card text-content'
+const ROW_ACTION = 'grid h-8 w-8 flex-none place-items-center rounded-[9px] text-content-faint hover:bg-surface-secondary'
 
 interface AddPlaceToCollectionModalProps {
   isOpen: boolean
@@ -31,267 +39,225 @@ interface AddPlaceToCollectionModalProps {
 }
 
 /**
- * Add a place to the current list — everything in one view: a search field that
- * fills in the location when a result is picked, plus name / category / status /
- * markdown description / links, all editable together before saving. Stays open
- * after each add so several places can be added in a row.
+ * Add a place to the current list, everything in one view: the name typed into
+ * the head band, a search that fills it and the location in when a result is
+ * picked, plus status, category, a markdown description and links, all editable
+ * together before saving. Stays open after each add so several places can be
+ * added in a row.
  */
 export default function AddPlaceToCollectionModal({ isOpen, collectionId, collectionName, categories, onClose, onAdded, t }: AddPlaceToCollectionModalProps): React.ReactElement {
-  const { language } = useTranslation()
-  const toast = useToast()
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<MapsPlace[]>([])
-  const [searching, setSearching] = useState(false)
-  // A search that came back empty used to render nothing at all, which reads as
-  // "the dialog is dead". Say so instead (#1921).
-  const [noResults, setNoResults] = useState(false)
-  // The picked location (address/coords/ids) plus the editable fields.
-  const [picked, setPicked] = useState<MapsPlace | null>(null)
-  const [name, setName] = useState('')
-  // Address + coordinates: prefilled from a picked result, but also directly
-  // typeable so a place can be added by GPS without searching (#1435).
-  const [address, setAddress] = useState('')
-  const [lat, setLat] = useState('')
-  const [lng, setLng] = useState('')
-  const [categoryId, setCategoryId] = useState<number | null>(null)
-  const [description, setDescription] = useState('')
-  const [links, setLinks] = useState<CollectionLink[]>([])
-  const [status, setStatus] = useState<CollectionStatus>('idea')
-  const [saving, setSaving] = useState(false)
-  const descRef = useRef<HTMLTextAreaElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
+  const {
+    query, setQuery, results, searching, noResults, setNoResults, dismissResults, name, setName, address, setAddress,
+    lat, setLat, lng, setLng, categoryId, setCategoryId, description, setDescription, links, setLinks, setLink,
+    status, setStatus, saving, search, pick, coordPaste, save,
+  } = useAddPlaceToCollection({
+    variant: 'dialog', open: isOpen, collectionId, collectionName, t, onClose, onAdded, normalizeLinkUrl,
+    // The dialog stays open for the next place, so hand the caret back to the
+    // search field. The add button the user just clicked goes disabled with the
+    // cleared name, which drops the focus to <body> and leaves the dialog dead
+    // to the keyboard (#1921).
+    afterAdd: () => searchRef.current?.focus(),
+  })
+  const descRef = useRef<HTMLTextAreaElement>(null)
+  const labelId = useId()
+  const fieldId = useId()
 
-  const reset = () => { setQuery(''); setResults([]); setNoResults(false); setPicked(null); setName(''); setAddress(''); setLat(''); setLng(''); setCategoryId(null); setDescription(''); setLinks([]); setStatus('idea') }
-  useEffect(() => { if (!isOpen) reset() }, [isOpen])
+  const header = (
+    <DialogHeader
+      tile={<DialogTile><MapPinned size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+      tint={NEUTRAL_TINT}
+      labelId={labelId}
+      onClose={onClose}
+      eyebrow={t('collections.addPlace')}
+      // Typed into the band, as in the planner's place dialog. It takes no focus
+      // on opening: the dialog starts at the search, which fills the name in.
+      titleInput={{ value: name, onChange: setName, label: t('common.name'), placeholder: t('common.name') }}
+      sub={<><Bookmark size={11} strokeWidth={2.2} className="me-1 inline-block align-[-1px]" />{collectionName}</>}
+    />
+  )
 
-  const search = async () => {
-    if (!query.trim()) return
-    setSearching(true)
-    setNoResults(false)
-    try {
-      const res = await mapsApi.search(query, language)
-      const places = (res.places as MapsPlace[]) || []
-      setResults(places)
-      setNoResults(places.length === 0)
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, t('places.mapsSearchError')))
-    } finally {
-      setSearching(false)
-    }
-  }
-
-  const dismissResults = () => { setResults([]); setNoResults(false) }
-
-  const pick = (r: MapsPlace) => {
-    setPicked(r)
-    setName(str(r.name) ?? '')
-    setAddress(str(r.address) ?? '')
-    const la = num(r.lat); const lo = num(r.lng)
-    setLat(la != null ? String(la) : '')
-    setLng(lo != null ? String(lo) : '')
-    setResults([]); setNoResults(false); setQuery(str(r.name) ?? query)
-  }
-  const setLink = (i: number, patch: Partial<CollectionLink>) => setLinks(links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
-
-  const save = async () => {
-    const cleanName = name.trim()
-    if (!cleanName) return
-    const cleanLinks = links.map(l => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) })).filter(l => l.url)
-    const latNum = lat.trim() ? Number(lat) : Number.NaN
-    const lngNum = lng.trim() ? Number(lng) : Number.NaN
-    setSaving(true)
-    try {
-      const res = await collectionsApi.savePlace({
-        collection_id: collectionId,
-        name: cleanName,
-        address: address.trim() || null,
-        lat: Number.isFinite(latNum) ? latNum : null,
-        lng: Number.isFinite(lngNum) ? lngNum : null,
-        google_place_id: (picked && str(picked.google_place_id)) ?? null,
-        google_ftid: (picked && str(picked.google_ftid)) ?? null,
-        osm_id: (picked && str(picked.osm_id)) ?? null,
-        website: (picked && str(picked.website)) ?? null,
-        phone: (picked && str(picked.phone)) ?? null,
-        category_id: categoryId,
-        description: description.trim() || null,
-        links: cleanLinks,
-        status,
-        force: true,
-      })
-      if (res.duplicate) toast.info(t('collections.duplicateWarning'))
-      else { toast.success(t('collections.addedToList', { name: collectionName })); onAdded() }
-      reset()
-      // The dialog stays open for the next place, so hand the caret back to the
-      // search field. The add button the user just clicked goes disabled with the
-      // cleared name, which drops the focus to <body> and leaves the dialog dead
-      // to the keyboard (#1921).
-      searchRef.current?.focus()
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, t('common.error')))
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const coordPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
-    const text = e.clipboardData.getData('text').trim()
-    // Same pairs as before, written so no two quantifiers can claim the same
-    // character. In the old form `\d+\.?\d*` and `\s*[,;\s]\s*` were both ambiguous,
-    // which backtracks in O(n^4): a pasted 2 kB of digits and spaces froze the tab.
-    const match = text.match(/^(-?\d+(?:\.\d*)?)(?:\s*[,;]\s*|\s+)(-?\d+(?:\.\d*)?)$/)
-    if (match) { e.preventDefault(); setLat(match[1]); setLng(match[2]) }
-  }
-  const coordInputClass = 'w-full px-3 py-2 rounded-lg border border-edge bg-surface-input text-content text-[14px] outline-none focus:border-accent'
+  const footer = (
+    <DialogFooter>
+      <FooterSpacer />
+      <DialogButton onClick={onClose}>{t('common.cancel')}</DialogButton>
+      <DialogButton
+        variant="primary"
+        onClick={() => void save()}
+        disabled={saving || !name.trim()}
+        icon={saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} strokeWidth={2.2} />}
+      >
+        {t('common.add')}
+      </DialogButton>
+    </DialogFooter>
+  )
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={t('collections.addPlace')}
-      size="md"
-      footer={
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="px-3 py-1.5 rounded-lg border border-edge text-content-secondary text-[13px] hover:bg-surface-hover">{t('common.cancel')}</button>
-          <button type="button" onClick={save} disabled={saving || !name.trim()} className="px-3 py-1.5 rounded-lg bg-accent text-accent-text text-[13px] font-semibold disabled:opacity-50 inline-flex items-center gap-1.5">
-            {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} {t('common.add')}
-          </button>
-        </div>
-      }
-    >
-      <div className="flex flex-col gap-4">
-        {/* Search — picking a result fills the location below. Pinned to the top of
-            the scrolling dialog body: the dialog stays open after an add, and the
-            search row used to sit above the viewport once the form was scrolled,
-            so it looked like the button had vanished (#1921). The negative margins
-            let its background cover the body padding while it is stuck. */}
-        <div className="sticky top-0 z-20 -mx-6 -mt-6 -mb-4 px-6 pt-6 pb-4 bg-surface-card">
-          <div className="relative">
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-faint" />
-                <input
-                  autoFocus
-                  ref={searchRef}
-                  value={query}
-                  onChange={e => { setQuery(e.target.value); setNoResults(false) }}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); search() } }}
-                  placeholder={t('collections.addPlaceSearch')}
-                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-edge bg-surface-input text-content text-[14px] outline-none focus:border-accent"
-                />
-              </div>
-              <button type="button" onClick={search} disabled={!query.trim() || searching} className="px-4 py-2 rounded-lg bg-accent text-accent-text text-[13px] font-semibold disabled:opacity-50 inline-flex items-center gap-2">
-                {searching ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-                {t('common.search')}
-              </button>
+    <DialogShell open={isOpen} onClose={onClose} labelledBy={labelId} width="detail" align="top" header={header} footer={footer}>
+      {/* Search: picking a result fills the name and the location below. */}
+      <div className={STICKY_SEARCH}>
+        <div className="relative">
+          <div className="flex items-stretch gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search size={14} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-content-faint" aria-hidden="true" />
+              <input
+                autoFocus
+                ref={searchRef}
+                type="text"
+                value={query}
+                onChange={e => { setQuery(e.target.value); setNoResults(false) }}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void search() } }}
+                aria-label={t('collections.addPlaceSearch')}
+                placeholder={t('collections.addPlaceSearch')}
+                className={`${INPUT} ps-8`}
+              />
             </div>
-            {(results.length > 0 || noResults) && (
-              <div className="absolute z-20 left-0 right-0 mt-1.5 max-h-[280px] overflow-y-auto rounded-xl border border-edge bg-surface-card shadow-lg p-1.5 flex flex-col gap-1">
-                <div className="flex items-center justify-between px-2 py-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-content-faint">{t('common.search')}</span>
-                  <button type="button" onClick={dismissResults} className="p-1 rounded-md text-content-faint hover:text-content hover:bg-surface-hover" aria-label={t('common.close')}><X size={13} /></button>
-                </div>
-                {noResults ? (
-                  <div className="px-2.5 py-3 text-center text-[12.5px] text-content-faint">{t('planner.noPlacesFound')}</div>
-                ) : results.map((r, i) => (
-                  <button key={i} type="button" onClick={() => pick(r)} className="flex items-center gap-3 px-2.5 py-2 rounded-lg text-left hover:bg-surface-hover transition-colors">
-                    <div className="w-8 h-8 min-w-[32px] rounded-lg bg-surface-secondary flex items-center justify-center text-content-faint shrink-0"><MapPin size={15} /></div>
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-[13px] font-semibold text-content truncate">{str(r.name)}</span>
-                      {str(r.address) && <span className="text-[11.5px] text-content-faint truncate">{str(r.address)}</span>}
-                    </div>
+            <DialogButton
+              variant="primary"
+              onClick={() => void search()}
+              disabled={!query.trim() || searching}
+              icon={searching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} strokeWidth={2.2} />}
+            >
+              {t('common.search')}
+            </DialogButton>
+          </div>
+          {(results.length > 0 || noResults) && (
+            <div
+              role="group"
+              aria-label={t('common.search')}
+              className="absolute inset-x-0 z-20 mt-1.5 flex max-h-[280px] flex-col gap-0.5 overflow-y-auto rounded-[12px] border border-edge-faint bg-surface-card p-1 shadow-dropdown"
+            >
+              <div className="flex items-center justify-between py-0.5 ps-2.5 pe-0.5">
+                <span className="font-geist font-bold uppercase tracking-[.08em] text-content-faint" style={fs(9.5)}>{t('common.search')}</span>
+                <Tooltip label={t('common.close')}>
+                  <button type="button" onClick={dismissResults} aria-label={t('common.close')}
+                    className="grid h-7 w-7 place-items-center rounded-[8px] text-content-faint hover:bg-surface-hover hover:text-content">
+                    <X size={13} />
                   </button>
-                ))}
+                </Tooltip>
               </div>
-            )}
-          </div>
+              {noResults ? (
+                <div className="px-2.5 py-3 text-center text-content-faint" style={fs(12.5, 'body')}>{t('planner.noPlacesFound')}</div>
+              ) : results.map((r, i) => (
+                <button key={i} type="button" onClick={() => pick(r)} className="flex w-full items-center gap-2.5 rounded-[8px] px-2.5 py-2 text-start hover:bg-surface-hover">
+                  <span className="grid h-8 w-8 flex-none place-items-center rounded-[9px] bg-surface-secondary text-content-faint"><MapPin size={15} /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold text-content" style={fs(13, 'body')}>{str(r.name)}</span>
+                    {str(r.address) && <span className="block truncate text-content-faint" style={fs(11.5)}>{str(r.address)}</span>}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* Name */}
-        <div>
-          <label className="block text-[12px] font-medium text-content-secondary mb-1.5">{t('common.name')}</label>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder={t('common.name')} className="w-full px-3 py-2 rounded-lg border border-edge bg-surface-input text-content text-[14px] outline-none focus:border-accent" />
+      {/* Where it is: filled in by a picked result, but also typeable, so a place
+          can be added by GPS alone (#1435). */}
+      <div className={PANEL}>
+        <EditorField label={t('places.formAddress')} htmlFor={`${fieldId}-address`}>
+          <input
+            id={`${fieldId}-address`}
+            type="text"
+            value={address}
+            onChange={e => setAddress(e.target.value)}
+            placeholder={t('places.formAddressPlaceholder')}
+            className={INPUT}
+          />
+        </EditorField>
+        <div role="group" aria-label={t('collections.coordinates')} className={GRID_2}>
+          <EditorField label={t('places.formLatLabel')} htmlFor={`${fieldId}-lat`}>
+            <NumericInput id={`${fieldId}-lat`} mode="signed" value={lat} onValueChange={setLat} onPaste={coordPaste} placeholder={t('places.formLat')} className={INPUT} />
+          </EditorField>
+          <EditorField label={t('places.formLngLabel')} htmlFor={`${fieldId}-lng`}>
+            <NumericInput id={`${fieldId}-lng`} mode="signed" value={lng} onValueChange={setLng} onPaste={coordPaste} placeholder={t('places.formLng')} className={INPUT} />
+          </EditorField>
         </div>
+      </div>
 
-        {/* Address + coordinates — editable so a place can be added by GPS alone */}
-        <div>
-          <label className="block text-[12px] font-medium text-content-secondary mb-1.5">{t('places.formAddress')}</label>
-          <input value={address} onChange={e => setAddress(e.target.value)} placeholder={t('places.formAddressPlaceholder')} className={coordInputClass} />
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <NumericInput mode="signed" value={lat} onValueChange={setLat} onPaste={coordPaste} placeholder={t('places.formLat')} className={coordInputClass} />
-            <NumericInput mode="signed" value={lng} onValueChange={setLng} onPaste={coordPaste} placeholder={t('places.formLng')} className={coordInputClass} />
-          </div>
-        </div>
+      <EditorField label={t('mobileCollections.status')}>
+        <Segmented<CollectionStatus>
+          label={t('mobileCollections.status')}
+          value={status}
+          onChange={setStatus}
+          options={STATUS_ORDER.map(s => {
+            const Icon = STATUS_META[s].icon
+            return { value: s, label: t(STATUS_META[s].labelKey), icon: <Icon size={13} style={{ color: STATUS_META[s].color }} /> }
+          })}
+        />
+      </EditorField>
 
-        {/* Status */}
-        <div>
-          <div className="flex flex-wrap gap-1.5">
-            {STATUS_ORDER.map(s => {
-              const Icon = STATUS_META[s].icon
-              const on = status === s
+      {categories.length > 0 && (
+        <EditorField label={t('collections.category')}>
+          <div role="group" aria-label={t('collections.category')} className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setCategoryId(null)}
+              aria-pressed={categoryId == null}
+              className={`${CHIP} ${categoryId == null ? CHIP_NONE_ON : CHIP_OFF}`}
+              style={fs(12, 'body')}
+            >
+              {t('collections.noCategory')}
+            </button>
+            {categories.map(cat => {
+              const Icon = getCategoryIcon(cat.icon ?? undefined)
+              const on = categoryId === cat.id
+              const col = cat.color || '#6366f1' // theme-lint-disable: the category's own colour, and the default one without a colour is drawn in
               return (
-                <button key={s} type="button" onClick={() => setStatus(s)} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border transition-colors ${on ? 'bg-inverse text-inverse-text border-transparent' : 'bg-surface-card text-content-secondary border-edge hover:bg-surface-hover'}`}>
-                  <Icon size={13} style={{ color: on ? undefined : STATUS_META[s].color }} /> {t(STATUS_META[s].labelKey)}
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCategoryId(cat.id)}
+                  aria-pressed={on}
+                  className={`${CHIP} ${CHIP_OFF}`}
+                  style={{ ...fs(12, 'body'), ...(on ? { color: col, background: `color-mix(in oklch, ${col} 15%, transparent)`, borderColor: `color-mix(in oklch, ${col} 40%, transparent)` } : {}) }}
+                >
+                  <Icon size={13} /> {cat.name}
                 </button>
               )
             })}
           </div>
-        </div>
+        </EditorField>
+      )}
 
-        {/* Category */}
-        {categories.length > 0 && (
-          <div>
-            <label className="block text-[12px] font-medium text-content-secondary mb-1.5">{t('collections.category')}</label>
-            <div className="flex flex-wrap gap-1.5">
-              <button type="button" onClick={() => setCategoryId(null)} className={`px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors ${categoryId == null ? 'bg-inverse text-inverse-text border-transparent' : 'bg-surface-card text-content-secondary border-edge hover:bg-surface-hover'}`}>
-                {t('collections.noCategory')}
-              </button>
-              {categories.map(cat => {
-                const Icon = getCategoryIcon(cat.icon ?? undefined)
-                const on = categoryId === cat.id
-                const col = cat.color || '#6366f1'
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setCategoryId(cat.id)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors bg-surface-card border-edge hover:bg-surface-hover"
-                    style={on ? { color: col, background: `color-mix(in oklch, ${col} 15%, transparent)`, borderColor: `color-mix(in oklch, ${col} 40%, transparent)` } : undefined}
-                  >
-                    <Icon size={13} /> {cat.name}
-                  </button>
-                )
-              })}
-            </div>
+      <DialogSection
+        label={<label htmlFor={`${fieldId}-description`}>{t('collections.description')}</label>}
+        action={<NoteFormatToolbar textareaRef={descRef} onChange={setDescription} compact customTooltips />}
+      >
+        <textarea
+          id={`${fieldId}-description`}
+          ref={descRef}
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          rows={3}
+          placeholder={t('collections.descriptionPlaceholder')}
+          className={`${TEXTAREA} resize-y`}
+        />
+        {description.trim() && (
+          <div className="collab-note-md mt-2 text-content-secondary" style={fs(13, 'body')}>
+            <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{description}</Markdown>
           </div>
         )}
+      </DialogSection>
 
-        {/* Description */}
-        <div>
-          <label className="block text-[12px] font-medium text-content-secondary mb-1.5">{t('collections.description')}</label>
-          <MarkdownToolbar textareaRef={descRef} onUpdate={setDescription} />
-          <textarea ref={descRef} value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder={t('collections.descriptionPlaceholder')} className="w-full px-3 py-2 rounded-lg border border-edge bg-surface-input text-content text-[13px] outline-none focus:border-accent resize-y" />
-          {description.trim() && (
-            <div className="collab-note-md mt-2 text-[13px] text-content-secondary"><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{description}</Markdown></div>
-          )}
-        </div>
-
-        {/* Links */}
-        <div>
-          <label className="block text-[12px] font-medium text-content-secondary mb-1.5">{t('collections.links')}</label>
-          <div className="flex flex-col gap-2">
-            {links.map((l, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input value={l.label ?? ''} onChange={e => setLink(i, { label: e.target.value })} placeholder={t('collections.linkLabel')} className="w-28 shrink-0 px-2.5 py-1.5 rounded-lg border border-edge bg-surface-input text-content text-[12.5px] outline-none focus:border-accent" />
-                <input value={l.url} onChange={e => setLink(i, { url: e.target.value })} placeholder="https://…" className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-edge bg-surface-input text-content text-[12.5px] outline-none focus:border-accent" />
-                <button type="button" onClick={() => setLinks(links.filter((_, idx) => idx !== i))} className="p-1.5 rounded-md text-content-faint hover:text-danger hover:bg-danger-soft" aria-label={t('common.delete')}><Trash2 size={14} /></button>
+      <DialogSection label={t('collections.links')}>
+        <div className="flex flex-col gap-2">
+          {links.map((l, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <div className="w-28 flex-none">
+                <input value={l.label ?? ''} onChange={e => setLink(i, { label: e.target.value })} placeholder={t('collections.linkLabel')} className={INPUT} />
               </div>
-            ))}
-            <button type="button" onClick={() => setLinks([...links, { url: '' }])} className="inline-flex items-center gap-1.5 self-start px-2.5 py-1.5 rounded-lg border border-dashed border-edge text-content-secondary text-[12.5px] font-medium hover:bg-surface-hover">
-              <Plus size={14} /> <Link2 size={13} /> {t('collections.addLink')}
-            </button>
-          </div>
+              <input value={l.url} onChange={e => setLink(i, { url: e.target.value })} placeholder="https://…" className={`${INPUT} flex-1`} />
+              <Tooltip label={t('common.delete')}>
+                <button type="button" onClick={() => setLinks(links.filter((_, idx) => idx !== i))} aria-label={t('common.delete')} className={`${ROW_ACTION} hover:text-danger`}>
+                  <Trash2 size={14} />
+                </button>
+              </Tooltip>
+            </div>
+          ))}
+          <AddRowButton onClick={() => setLinks([...links, { url: '' }])}>{t('collections.addLink')}</AddRowButton>
         </div>
-      </div>
-    </Modal>
+      </DialogSection>
+    </DialogShell>
   )
 }

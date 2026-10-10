@@ -7,6 +7,8 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.addToDayQuestion': 'Přidat do dne?',
   'mobileTrip.addTransportShort': 'Doprava',
   'mobileTrip.allDays': 'Všechny dny',
+  'mobileTrip.today': 'Dnes',
+  'mobileTrip.jumpToToday': 'Přejít na dnešek',
   'mobileTrip.assignedDays': 'Přiřazené dny',
   'mobileTrip.assignmentNotes': 'Poznámky ke dni',
   'mobileTrip.bookingsEmpty': 'Zatím žádné rezervace',
@@ -35,14 +37,21 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.onMap': 'Na mapě',
   'mobileTrip.profileDriving': 'Autem',
   'mobileTrip.profileWalking': 'Pěšky',
+  'mobileTrip.profileCycling': 'Na kole',
   'mobileTrip.renameDay': 'Přejmenovat den',
   'mobileTrip.resBadge': 'Rezervace',
   'mobileTrip.showOnMap': 'Zobrazit na mapě',
   'mobileTrip.statDocuments': '{count} souborů',
+  'mobileTrip.statDocuments.one': '{count} soubor',
+  'mobileTrip.statDocuments.few': '{count} soubory',
   'mobileTrip.statPeople': '{count} lidí',
+  'mobileTrip.statPeople.one': '{count} člověk',
+  'mobileTrip.statPeople.few': '{count} lidé',
   'mobileTrip.stay': 'Pobyt',
   'mobileTrip.tapAgainToDelete': 'Klepněte znovu pro smazání',
   'mobileTrip.todoOpenCount': '{count} otevřených',
+  'mobileTrip.todoOpenCount.one': '{count} otevřený',
+  'mobileTrip.todoOpenCount.few': '{count} otevřené',
   'mobileTrip.travel': 'Cestování',
   'mobileTrip.upNext': 'Další na řadě',
   'mobileTrip.viewDetails': 'Zobrazit podrobnosti',
@@ -57,7 +66,11 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtStayScope':
     'Doba zastávky patří k místu, takže platí pro každý den, na který je tato zastávka naplánovaná.',
   'mobileTrip.rtStayLess': 'o {count} minut méně',
+  'mobileTrip.rtStayLess.one': 'o {count} minutu méně',
+  'mobileTrip.rtStayLess.few': 'o {count} minuty méně',
   'mobileTrip.rtStayMore': 'o {count} minut více',
+  'mobileTrip.rtStayMore.one': 'o {count} minutu více',
+  'mobileTrip.rtStayMore.few': 'o {count} minuty více',
   'mobileTrip.rtNightDesktopOnly':
     'Nocleh na tomto místě se zadává v plánovači na počítači. Tady jej můžete jen zrušit.',
   'mobileTrip.rtReach': 'Jak daleko',
@@ -66,10 +79,12 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtFromStart': 'Od začátku etapy',
   'mobileTrip.rtNoneAhead': 'Na cestě před vámi nic není. Zkuste celou etapu.',
   'mobileTrip.rtNoneOnStage': 'Nic takového podél této etapy není.',
-  'mobileTrip.rtTruncated.one':
-    '1 úsek měl víc, než se vejde do jedné odpovědi. Vyberte méně druhů, ať uvidíte zbytek.',
   'mobileTrip.rtTruncated.other':
-    'Úseky, kde bylo víc, než se vejde do jedné odpovědi: {count}. Vyberte méně druhů, ať uvidíte zbytek.',
+    'Na {count} úsecích bylo více výsledků, než se vejde do jedné odpovědi. Vyberte méně druhů, abyste viděli zbytek.',
+  'mobileTrip.rtTruncated.one':
+    'Na {count} úseku bylo více výsledků, než se vejde do jedné odpovědi. Vyberte méně druhů, abyste viděli zbytek.',
+  'mobileTrip.rtTruncated.few':
+    'Na {count} úsecích bylo více výsledků, než se vejde do jedné odpovědi. Vyberte méně druhů, abyste viděli zbytek.',
   'mobileTrip.rtNoDay': 'Není vybrán žádný den',
   'mobileTrip.rtNoDayHint': 'Mapa zobrazuje celou cestu. Klepněte nahoře na den a zobrazí se jeho trasa.',
 };

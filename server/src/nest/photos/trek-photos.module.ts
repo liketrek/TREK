@@ -1,5 +1,9 @@
+import { JourneyPhotos } from '../../db/entities/JourneyPhotos.entity';
+import { TrekPhotos } from '../../db/entities/TrekPhotos.entity';
+import { TripPhotos } from '../../db/entities/TripPhotos.entity';
+import { TrekPhotoRegistrationService } from './trek-photo-registration.service';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
-import { TrekPhotosRepository } from './trek-photos.repository';
 
 /**
  * The trek_photos store on its own, so both halves can have it without
@@ -10,9 +14,16 @@ import { TrekPhotosRepository } from './trek-photos.repository';
  * bytes. That is a genuine mutual need, and a module this small breaks it
  * without a forwardRef: PhotosModule -> MemoriesModule -> TrekPhotosModule is
  * a straight line.
+ *
+ * `MikroOrmModule.forFeature` registers `TrekPhotosRepository`/
+ * `TripPhotosRepository` (the ORM ones) for `TrekPhotoRegistrationService`'s
+ * `@InjectRepository` constructor params (Plan 3e Task 6). `JourneyPhotos` is
+ * Plan 3g Task 4's own addition — PH10's `journey_photos` orphan-check half
+ * (`deleteIfOrphan`) now injects `JourneyPhotosRepository` too.
  */
 @Module({
-  providers: [TrekPhotosRepository],
-  exports: [TrekPhotosRepository],
+  imports: [MikroOrmModule.forFeature([TrekPhotos, TripPhotos, JourneyPhotos])],
+  providers: [TrekPhotoRegistrationService],
+  exports: [TrekPhotoRegistrationService],
 })
 export class TrekPhotosModule {}

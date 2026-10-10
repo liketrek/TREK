@@ -6,6 +6,7 @@ interface MenuItem {
   label?: string
   icon?: LucideIcon
   onClick?: () => void
+  disabled?: boolean
   danger?: boolean
   divider?: boolean
 }
@@ -43,13 +44,38 @@ export function ContextMenu({ menu, onClose }: ContextMenuProps) {
   useEffect(() => {
     if (!menu) return
     const handler = () => onClose()
+    // A fixed menu stays where it opened, so it closes when the page under it
+    // moves or the window changes size, and Escape closes it like any menu.
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('click', handler)
     document.addEventListener('contextmenu', handler)
+    document.addEventListener('keydown', onKey)
+    window.addEventListener('scroll', handler, true)
+    window.addEventListener('resize', handler)
     return () => {
       document.removeEventListener('click', handler)
       document.removeEventListener('contextmenu', handler)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('scroll', handler, true)
+      window.removeEventListener('resize', handler)
     }
   }, [menu, onClose])
+
+  // Keyboard users land on the first item and move with the arrow keys.
+  useEffect(() => {
+    if (!menu) return
+    ref.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus({ preventScroll: true })
+  }, [menu])
+
+  const moveFocus = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+    e.preventDefault()
+    const items = [...(ref.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])]
+    if (items.length === 0) return
+    const at = items.indexOf(document.activeElement as HTMLButtonElement)
+    const next = e.key === 'ArrowDown' ? (at + 1) % items.length : (at - 1 + items.length) % items.length
+    items[next]?.focus()
+  }
 
   useLayoutEffect(() => {
     if (!menu || !ref.current) return
@@ -68,7 +94,7 @@ export function ContextMenu({ menu, onClose }: ContextMenuProps) {
   if (!menu) return null
 
   return createPortal(
-    <div ref={ref} className="trek-popover-enter" style={{
+    <div ref={ref} role="menu" tabIndex={-1} onKeyDown={moveFocus} className="trek-popover-enter" style={{
       position: 'fixed', left: menu.x, top: menu.y, zIndex: 999999,
       background: 'var(--bg-card)', borderRadius: 10, padding: '4px',
       border: '1px solid var(--border-primary)',
@@ -84,15 +110,15 @@ export function ContextMenu({ menu, onClose }: ContextMenuProps) {
         if (item.divider) return <div key={i} style={{ height: 1, background: 'var(--border-faint)', margin: '3px 6px' }} />
         const Icon = item.icon
         return (
-          <button type="button" key={i} onClick={() => { item.onClick?.(); onClose() }} style={{
+          <button type="button" key={i} disabled={item.disabled} onClick={() => { if (item.disabled) return; item.onClick?.(); onClose() }} style={{
             display: 'flex', alignItems: 'center', gap: 8, width: '100%',
             padding: '7px 10px', borderRadius: 7, border: 'none',
-            background: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, textAlign: 'left',
-            color: item.danger ? '#ef4444' : 'var(--text-primary)',
+            background: 'none', cursor: item.disabled ? 'default' : 'pointer', fontFamily: 'inherit',
+            fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500, textAlign: 'start',
+            color: item.danger ? '#ef4444' : 'var(--text-primary)', opacity: item.disabled ? 0.45 : 1,
             transition: 'background 0.1s',
           }}
-            onMouseEnter={e => e.currentTarget.style.background = item.danger ? 'rgba(239,68,68,0.08)' : 'var(--bg-hover)'}
+            onMouseEnter={e => { if (!item.disabled) e.currentTarget.style.background = item.danger ? 'rgba(239,68,68,0.08)' : 'var(--bg-hover)' }}
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
           >
             {Icon && <Icon size={13} style={{ flexShrink: 0, color: item.danger ? '#ef4444' : 'var(--text-faint)' }} />}

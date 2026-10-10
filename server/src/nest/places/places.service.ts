@@ -1,34 +1,49 @@
+import { DomainError } from '../common/domain-error';
+import path from 'node:path';
 import { Injectable } from '@nestjs/common';
-import { XMLValidator } from 'fast-xml-parser';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { resolveCountryCodeSync } from '../atlas/atlas-geo';
 import { TRACK_COLORS, placeMatchStrategies, type PlaceMatchCandidate } from '@trek/shared';
 import type { TrekWsPayload, TrekWsTripEventName } from '@trek/shared';
 import { RealtimeService } from '../realtime/realtime.service';
-import { DatabaseService, type TripAccess } from '../database/database.service';
-import type { PlaceWithTags } from '../database/database.service';
+import type { TripAccess } from '../../db/repositories/Trips.repository';
+import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
-import { MapsService, GOOGLE_SHORT_HOSTS, isGoogleMapsHost } from '../maps/maps.service';
-import { isDirectionsUrl, parseDirectionsUrl } from './maps-dir.helpers';
-import type { Place, User } from '../../types';
+import { MapsService } from '../maps/maps.service';
+import { PlaceImportService } from '../place-import/place-import.service';
+import type { GpxExportDay, GpxExportOptions, GpxExportPlace } from '../place-import/place-import.service';
+import type { GoogleListPlace, KmlDocumentRead, PreparedGpxPlace } from '../place-import/place-import.types';
+import { toRowId } from '../common/row-id';
+import type { User } from '../../types';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 import { ratingAggregate } from '../common/rowShape';
-import { checkSsrf, safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
-import {
-  buildCategoryNameLookup,
-  createKmlImportSummary,
-  decodeUtf8WithWarning,
-  extractKmlPlacemarkNodes,
-  parsePlacemarkNode,
-  resolveCategoryIdForFolder,
-} from './kml-import.helpers';
-import { buildGpx, gpxFilename } from './gpx-export.helpers';
-import type { GpxExportDay, GpxExportOptions, GpxExportPlace } from './gpx-export.helpers';
 import { UnsplashService } from '../unsplash/unsplash.service';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { type UpdateConflict, isUpdateConflict } from '../common/conflictResult';
-import { reclaimPlaceImage } from './place-image';
+import { isUploadedPlaceImage, placeImageUrl } from './place-image';
+import { MAX_PLACE_IMAGE_SIZE, PLACE_IMAGE_EXTENSIONS } from '../common/place-image-upload';
+import { randomUUID } from 'node:crypto';
 import { JourneyDomainService } from '../journey/journey-domain.service';
 import { StorageService } from '../storage/storage.service';
 import { AccommodationsService } from '../accommodations/accommodations.service';
+import { Places } from '../../db/entities/Places.entity';
+import { Tags } from '../../db/entities/Tags.entity';
+import { PlaceRatings } from '../../db/entities/PlaceRatings.entity';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { DayAssignments } from '../../db/entities/DayAssignments.entity';
+import { Categories } from '../../db/entities/Categories.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { PlacesRepository, PlaceListRow, PlaceWithTagsRow as PlaceWithTags } from '../../db/repositories/Places.repository';
+import type { TagsRepository } from '../../db/repositories/Tags.repository';
+import type { PlaceRatingsRepository } from '../../db/repositories/PlaceRatings.repository';
+import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
+import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
+import type { CategoriesRepository } from '../../db/repositories/Categories.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import { BudgetItems } from '../../db/entities/BudgetItems.entity';
+import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
+import { CollectionPlaces } from '../../db/entities/CollectionPlaces.entity';
+import type { CollectionPlacesRepository } from '../../db/repositories/CollectionPlaces.repository';
 
 /** Rows a place delete took down with the nights booked there, for the caller to announce. */
 export interface CancelledStays {
@@ -40,35 +55,32 @@ const noCancelledStays = (): CancelledStays => ({ reservationIds: [], budgetItem
 import {
   ENRICH_CONCURRENCY,
   ADDRESS_BACKFILL_MAX_PLACES,
+  buildCategoryNameLookup,
   escapeLikePattern,
-  MAX_LIST_RESPONSE_BYTES,
-  googleMapsFeatureIdFromItem,
-  gpxParser,
   externalIdsOf,
   isPlaceDuplicate,
-  kmlParser,
   mapWithConcurrency,
   pickEnrichmentMatch,
   reclaimPhotoCache,
   SEARCH_BIAS_RADIUS_METERS,
+  resolveCategoryIdForFolder,
   trackInsertedInDedupSet,
   trimOrNull,
-  unpackKmzToKml,
   type DedupSet,
   type EnrichablePlace,
   type GpxImportOptions,
   type GpxImportResult,
   type KmlImportOptions,
-  type ListImportError,
   type ListImportOptions,
   type ListImportResult,
   type PlaceImportResult,
-  type PlaceWithCategory,
 } from './places.helpers';
 
 type Trip = TripAccess;
 
 type ImportedPlace = { id: number; route_geometry?: string | null; route_color?: string | null };
+
+export type { PreparedGpxPlace } from '../place-import/place-import.types';
 
 /** Fields accepted when creating a place. */
 export interface PlaceCreateInput {
@@ -77,6 +89,7 @@ export interface PlaceCreateInput {
   place_time?: string; end_time?: string;
   duration_minutes?: number; notes?: string; image_url?: string;
   google_place_id?: string; google_ftid?: string; osm_id?: string; amap_poi_id?: string; website?: string; phone?: string;
+  email?: string | null; opening_hours?: string | null;
   /** What kind of stop this is on a drive (fuel, charging, rest_area, campsite); null for an ordinary place. */
   stop_type?: string | null;
   /** How full THIS stop fills the tank, 1-100; null to follow the traveller's own setting. */
@@ -91,6 +104,7 @@ export interface PlaceUpdateInput {
   place_time?: string; end_time?: string;
   duration_minutes?: number; notes?: string; image_url?: string;
   google_place_id?: string; google_ftid?: string; osm_id?: string; amap_poi_id?: string; website?: string; phone?: string;
+  email?: string | null; opening_hours?: string | null;
   /** What kind of stop this is on a drive (fuel, charging, rest_area, campsite); null for an ordinary place. */
   stop_type?: string | null;
   /** How full THIS stop fills the tank, 1-100; null to follow the traveller's own setting. */
@@ -113,7 +127,8 @@ export interface PlaceUpdateInput {
  * (a place on the equator lost its coordinates). Every other `x || null` is
  * string-valued, where empty-string-means-absent is the intended reading.
  *
- * Trip access rides DatabaseService.canAccessTrip;
+ * Trip access rides TripsRepository.findAccessible (Plan 4 Task 2 — off
+ * DatabaseService.canAccessTrip);
  * mutations use 'place_edit'. Pure helpers and the frozen XML parsers live in
  * places.helpers.ts. Nothing outside the Nest container consumes this domain
  * any more, so there is no places.bridge.ts: the MCP surface is the
@@ -123,7 +138,9 @@ export interface PlaceUpdateInput {
 @Injectable()
 export class PlacesService {
   constructor(
-    private readonly dbs: DatabaseService,
+    // Plan 4 Task 4: the dead `DatabaseService` param dropped —
+    // `canAccessTrip` below reuses `tripsRepo` directly and never read
+    // `this.dbs`. `conflictUpdate.test.ts`'s hand-construction updated too.
     private readonly permissions: PermissionsService,
     private readonly realtime: RealtimeService,
     private readonly maps: MapsService,
@@ -133,13 +150,68 @@ export class PlacesService {
     private readonly journey: JourneyDomainService,
     private readonly storage: StorageService,
     private readonly accommodations: AccommodationsService,
+    private readonly uow: UnitOfWork,
+    @InjectRepository(Places) private readonly placesRepo: PlacesRepository,
+    @InjectRepository(Tags) private readonly tagsRepo: TagsRepository,
+    @InjectRepository(PlaceRatings) private readonly placeRatingsRepo: PlaceRatingsRepository,
+    @InjectRepository(TripMembers) private readonly tripMembersRepo: TripMembersRepository,
+    @InjectRepository(DayAssignments) private readonly dayAssignmentsRepo: DayAssignmentsRepository,
+    @InjectRepository(Categories) private readonly categoriesRepo: CategoriesRepository,
+    // Task 9 fix wave (B-M2 / A-L3 ruling): `DatabaseService.getTripTitle`
+    // does not stay — it was the one method on that class this domain's own
+    // PL28 comment said should convert like its siblings once concurrent
+    // implementers stopped colliding on this file. `Trips` is already on
+    // `PlacesModule`'s `forFeature` list, so this needs no module change.
+    @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
+    // Plan 3e Task 2 (budget) — additive, PL15/PL18/PL22 only.
+    @InjectRepository(BudgetItems) private readonly budgetItemsRepo: BudgetItemsRepository,
+    // Plan 3h Task 6 (survivors) — additive, SV-PI2's `reclaimPlaceImage` only.
+    @InjectRepository(CollectionPlaces) private readonly collectionPlacesRepo: CollectionPlacesRepository,
+    // Reading files and shared lists; this service only persists what it reads.
+    private readonly placeImport: PlaceImportService,
   ) {}
 
-  verifyTripAccess(tripId: string, userId: number) {
-    return this.dbs.canAccessTrip(Number(tripId), userId);
+  /**
+   * The `requireTrip` gate for 13 of the 16 routes on this controller (the
+   * other 3 use `TripAccessGuard` directly). `toRowId`, not `Number()` —
+   * Plan 3c Task 9's whole-plan review (A-H1/M1, B-H1): `Number('1.0')`/
+   * `Number('1 ')`/`Number('0x1abc's NaN half)` either authorised an id the
+   * writes behind this gate (`toRowId(tripId) ?? -1`) then refused, or sent
+   * a bare `NaN` into `TripsRepository.findAccessible`'s raw bind and 500'd
+   * (fixed program-wide at the platform too — see `NulSafeSqlitePlatform`).
+   * Parsing here answers this gate's own 404 before any read or write runs.
+   *
+   * **The returned `tid` is NOT threaded to every downstream call, despite
+   * an earlier version of this docstring claiming it was** (Plan 4 Task 8a,
+   * L-2 — confirmed false by reading every call site, not assumed): `.tid`
+   * has exactly one reader today, `PlacesController.requireTrip` itself
+   * (`places.controller.ts:122`), which discards it — `requireTrip` returns
+   * the WHOLE `trip` object to its 13 callers, none of which read `.tid`
+   * off it; every one instead passes the ORIGINAL raw `tripId` string on to
+   * the write/read method it calls next (`create(tripId, …)`,
+   * `importGpx(tripId, …)`, …), which `toRowId`-parses it AGAIN itself.
+   * That second parse is not a bug this gate can close by itself: those
+   * same methods are also called directly by `places.mcp.ts` (an entry
+   * point with no `requireTrip` gate at all — its own `tripId: number`
+   * input is re-stringified, `String(tripId)`, to call them), so each
+   * method owns its own id validation regardless of which entry point
+   * reached it, and `tid` alone cannot remove that. Threading it all the
+   * way through would mean giving every one of those methods a second,
+   * number-only call shape for the REST path to use instead of its shared
+   * string-taking one — a real refactor, out of this gate's own scope.
+   */
+  async verifyTripAccess(tripId: string, userId: number): Promise<(TripAccess & { tid: number }) | undefined> {
+    const tid = toRowId(tripId);
+    if (tid === null) return undefined;
+    // Plan 4 Task 2 — canAccessTrip's own DatabaseService delegation is
+    // gone: this reuses the TripsRepository already injected for other
+    // reads and calls findAccessible.
+    const access = await this.tripsRepo.findAccessible(tid, userId);
+    if (!access) return undefined;
+    return { ...access, tid };
   }
 
-  canEdit(trip: Trip, user: User): boolean {
+  async canEdit(trip: Trip, user: User): Promise<boolean> {
     return this.permissions.checkPermission('place_edit', user.role, trip.user_id, user.id, trip.user_id !== user.id);
   }
 
@@ -155,14 +227,16 @@ export class PlacesService {
    * arrive from an older client that had no business knowing it existed, and the
    * read-back join hands `tags.user_id` straight to the caller.
    */
-  private tagsOnTrip(tripId: string | number, tagIds: number[]): number[] {
+  private async tagsOnTrip(tripId: string | number, tagIds: number[]): Promise<number[]> {
     const unique = [...new Set(tagIds)];
     if (unique.length === 0) return [];
-    const roster = this.dbs.rosterUserIds(tripId);
-    const owned = this.dbs.all<{ id: number; user_id: number }>(
-      `SELECT id, user_id FROM tags WHERE id IN (${unique.map(() => '?').join(',')})`,
-      ...unique,
-    );
+    // PL1 — `TripMembersRepository.rosterUserIds`, injected directly (not
+    // through `DatabaseService`), matching `AssignmentsService`'s AS28
+    // precedent: each domain converts its own `DatabaseService`-delegated
+    // callers as it lands.
+    const roster = await this.tripMembersRepo.rosterUserIds(tripId);
+    // PL2 — `SELECT id, user_id FROM tags WHERE id IN (${…})`.
+    const owned = await this.tagsRepo.findByIds(unique);
     return owned.filter(t => roster.has(t.user_id)).map(t => t.id);
   }
 
@@ -170,58 +244,66 @@ export class PlacesService {
     this.realtime.broadcast(tripId, event, payload, socketId);
   }
 
+  /**
+   * Delete a custom place-image object once nothing references it any more
+   * (moved in from `place-image.ts`'s free function `reclaimPlaceImage`,
+   * option (a) — see `place-image.ts`'s own docstring for why that free
+   * function stays, unconverted, for `collections.service.ts`'s own call
+   * sites). A trip place and a collection saved-place can share the same
+   * uploaded file — save-to-collection and copy-to-trip copy `image_url` by
+   * reference — so this ref-counts across both tables before deleting.
+   *
+   * PI1 (`SELECT 1 FROM places WHERE image_url = ? LIMIT 1`) through
+   * `PlacesRepository.existsByImageUrl`; PI2 (`SELECT 1 FROM collection_places
+   * WHERE image_url = ? LIMIT 1`) through `CollectionPlacesRepository
+   * .existsByImageUrl` (Plan 3h Task 6, closing out the carve-out), evaluated
+   * only when PI1 is false — reproducing the legacy `UNION ALL … LIMIT 1`'s
+   * short-circuit by evaluation order, the same pattern
+   * `PlacePhotoCacheService.isReferenced` uses for the same two tables
+   * (Plan 3c Task 1's PP6 ruling). `path.basename()` keeps the storage name
+   * confined to the 'places' category. Best-effort: never throws (central
+   * key validation rejects a hostile stored value; the catch swallows it
+   * exactly like the legacy unlink guard).
+   */
+  private async reclaimPlaceImage(url: string | null | undefined): Promise<void> {
+    if (!isUploadedPlaceImage(url)) return;
+    if (await this.placesRepo.existsByImageUrl(url)) return;
+    // PI2 (Plan 3h Task 6) — `CollectionPlacesRepository.existsByImageUrl`.
+    if (await this.collectionPlacesRepo.existsByImageUrl(url)) return;
+    await this.storage.delete('places', path.basename(url)).catch(() => {
+      /* best-effort */
+    });
+  }
+
   // -------------------------------------------------------------------------
   // List places
   // -------------------------------------------------------------------------
 
-  list(
+  async list(
     tripId: string,
     filters: { search?: string; category?: string; tag?: string; assignment?: 'all' | 'unassigned' | 'assigned' },
   ) {
-    let query = `
-    SELECT DISTINCT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon
-    FROM places p
-    LEFT JOIN categories c ON p.category_id = c.id
-    WHERE p.trip_id = ?
-  `;
-    const params: (string | number)[] = [tripId];
-
-    if (filters.search) {
-      // ESCAPE so a `%` or `_` the user typed matches literally instead of
-      // acting as a LIKE wildcard (a bare '%' used to return the whole trip).
-      query += " AND (p.name LIKE ? ESCAPE '\\' OR p.address LIKE ? ESCAPE '\\' OR p.description LIKE ? ESCAPE '\\')";
-      const searchParam = `%${escapeLikePattern(filters.search)}%`;
-      params.push(searchParam, searchParam, searchParam);
-    }
-
-    if (filters.category) {
-      query += ' AND p.category_id = ?';
-      params.push(filters.category);
-    }
-
-    if (filters.tag) {
-      query += ' AND p.id IN (SELECT place_id FROM place_tags WHERE tag_id = ?)';
-      params.push(filters.tag);
-    }
-
-    if (filters.assignment === 'unassigned') {
-      query += ` AND p.id NOT IN (SELECT da.place_id FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE d.trip_id = ?)`;
-      params.push(tripId);
-    } else if (filters.assignment === 'assigned') {
-      query += ` AND p.id IN (SELECT da.place_id FROM day_assignments da JOIN days d ON da.day_id = d.id WHERE d.trip_id = ?)`;
-      params.push(tripId);
-    }
-
-    query += ' ORDER BY p.created_at DESC';
-
-    const places = this.dbs.prepare(query).all(...params) as PlaceWithCategory[];
+    // ESCAPE so a `%` or `_` the user typed matches literally instead of
+    // acting as a LIKE wildcard (a bare '%' used to return the whole trip) —
+    // the coercion stays here (the service), the repository binds the
+    // already-built pattern verbatim (PL3).
+    const searchPattern = filters.search ? `%${escapeLikePattern(filters.search)}%` : undefined;
+    const places: PlaceListRow[] = await this.placesRepo.listForTrip(tripId, {
+      searchPattern,
+      category: filters.category,
+      tag: filters.tag,
+      assignment: filters.assignment,
+    });
 
     const placeIds = places.map(p => p.id);
-    const tagsByPlaceId = this.queryHelpers.loadTagsByPlaceIds(placeIds);
-    const ratingsByPlaceId = this.queryHelpers.loadRatingsByPlaceIds(placeIds);
+    const tagsByPlaceId = await this.queryHelpers.loadTagsByPlaceIds(placeIds);
+    const ratingsByPlaceId = await this.queryHelpers.loadRatingsByPlaceIds(placeIds);
 
     return places.map(p => ({
       ...p,
+      // The cached region row when the atlas resolved one, else the country the bundled
+      // borders place it in, which needs no network (#2537).
+      country_code: p.country_code ?? resolveCountryCodeSync(p),
       category: p.category_id ? {
         id: p.category_id,
         name: p.category_name,
@@ -234,64 +316,125 @@ export class PlacesService {
     }));
   }
 
+  /**
+   * Makes a picture already attached in the trip the place's own image (#1242). The file
+   * is copied, not pointed at: the place keeps its picture when the attachment is deleted,
+   * and the update path reclaims the copy like any other uploaded image. Returns a reason
+   * string when the file cannot serve, the updated place otherwise.
+   */
+  async setImageFromFile(tripId: string, placeId: string, fileId: number): Promise<'not_found' | 'not_image' | 'too_large' | Awaited<ReturnType<PlacesService['update']>>> {
+    const tid = toRowId(tripId);
+    // PL53 — the trip's own, not-trashed attachment.
+    const file = tid === null ? undefined : await this.placesRepo.findActiveTripFile(fileId, tid);
+    if (!file) return 'not_found';
+    const ext = path.extname(file.original_name || file.filename).toLowerCase();
+    const mime = file.mime_type ?? '';
+    if (!mime.startsWith('image/') || mime.includes('svg') || !PLACE_IMAGE_EXTENSIONS.includes(ext)) return 'not_image';
+    if (file.file_size != null && file.file_size > MAX_PLACE_IMAGE_SIZE) return 'too_large';
+    const name = `${randomUUID()}${ext}`;
+    const { stream } = await this.storage.getStream('files', path.basename(file.filename));
+    await this.storage.put('places', name, stream, { contentType: mime });
+    const updated = await this.update(tripId, placeId, { image_url: placeImageUrl(name) } as never);
+    if (!updated || isUpdateConflict(updated)) await this.reclaimPlaceImage(placeImageUrl(name));
+    return updated;
+  }
+
   // -------------------------------------------------------------------------
   // Create place
   // -------------------------------------------------------------------------
 
-  create(tripId: string, body: PlaceCreateInput) {
+  async create(tripId: string, body: PlaceCreateInput) {
     const {
       name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
       duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, amap_poi_id, website, phone,
+      email, opening_hours,
       transport_mode, route_geometry, route_color, stop_type, fill_percent, tags = [],
     } = body;
 
-    const result = this.dbs.run(`
-    INSERT INTO places (trip_id, name, description, lat, lng, address, category_id, price, currency,
-      place_time, end_time,
-      duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, amap_poi_id, website, phone, transport_mode,
-      route_geometry, route_color, stop_type, fill_percent)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `,
-      // lat/lng/price/duration_minutes use an explicit undefined check, not `||`:
-      // 0 is a legitimate value for all four (Null Island, a free entry, a
-      // drive-by stop) and the falsy coercion silently threw it away.
-      //
-      // The hour stays the default for a place created without one, which is what it
-      // has always been and what the column itself declares. The road trip rail reads
-      // the value as a stay, and a stop added from the corridor search brings its own
-      // figure — ten minutes for fuel, twenty for a rest area — so the kinds that would
-      // be misread as an hour never take the default in the first place.
-      tripId, name, description || null, lat ?? null, lng ?? null, address || null,
-      category_id || null, price ?? null, currency || null,
-      place_time || null, end_time || null, duration_minutes ?? 60, notes || null, image_url || null,
-      google_place_id || null, google_ftid || null, osm_id || null, amap_poi_id || null, website || null, phone || null, transport_mode || 'walking',
-      route_geometry || null, route_color || null, stop_type || null,
-      // `?? null` rather than `|| null`, the same reason lat/lng have it: the column is a
-      // percentage and the falsy check would be a silent floor.
-      fill_percent ?? null,
-    );
+    // Rule 21 / M1 (Task 9 fix wave): `verifyTripAccess` now parses `tripId`
+    // with this SAME `toRowId` and answers 404 `Trip not found` before
+    // `create()` is ever reached (the controller's `requireTrip`/MCP's own
+    // `tripsRepo.findAccessible` gate both run first) — so `toRowId` here
+    // can never miss for a caller that went through the gate. The previous
+    // `?? -1` sentinel was ruled a defect, not parity: with the gate itself
+    // loosely `Number()`-parsed, a non-canonical-but-numeric id like `1.0`
+    // could pass the gate and still manufacture a fresh 500 here (an FK
+    // failure the legacy raw bind never produced for that input). Non-null
+    // asserted, not defaulted — a null here now means a caller skipped the
+    // gate, a bug to surface, not a trip id to silently coerce to -1.
+    const tid = toRowId(tripId)!;
 
-    const placeId = result.lastInsertRowid;
+    // PL4 — the 27-column INSERT. lat/lng/price/duration_minutes/fill_percent
+    // use an explicit undefined check, not `||`: 0 is a legitimate value for
+    // all five (Null Island, a free entry, a drive-by stop, an empty tank)
+    // and the falsy coercion silently threw it away.
+    //
+    // The hour stays the default for a place created without one, which is what it
+    // has always been and what the column itself declares. The road trip rail reads
+    // the value as a stay, and a stop added from the corridor search brings its own
+    // figure — ten minutes for fuel, twenty for a rest area — so the kinds that would
+    // be misread as an hour never take the default in the first place.
+    const placeId = await this.uow.transactional(async () => {
+      const id = await this.placesRepo.insertPlace({
+        trip_id: tid,
+        name,
+        description: description || null,
+        lat: lat ?? null,
+        lng: lng ?? null,
+        address: address || null,
+        category_id: category_id || null,
+        price: price ?? null,
+        currency: currency || null,
+        place_time: place_time || null,
+        end_time: end_time || null,
+        duration_minutes: duration_minutes ?? 60,
+        notes: notes || null,
+        image_url: image_url || null,
+        google_place_id: google_place_id || null,
+        google_ftid: google_ftid || null,
+        osm_id: osm_id || null,
+        amap_poi_id: amap_poi_id || null,
+        website: website || null,
+        phone: phone || null,
+        transport_mode: transport_mode || 'walking',
+        route_geometry: route_geometry || null,
+        route_color: route_color || null,
+        stop_type: stop_type || null,
+        fill_percent: fill_percent ?? null,
+        email: email?.trim() || null,
+        opening_hours: opening_hours || null,
+      });
 
-    if (tags && tags.length > 0) {
-      const insertTag = this.dbs.prepare('INSERT OR IGNORE INTO place_tags (place_id, tag_id) VALUES (?, ?)');
-      for (const tagId of this.tagsOnTrip(tripId, tags)) {
-        insertTag.run(placeId, tagId);
-      }
-    }
-
-    return this.dbs.getPlaceWithTags(Number(placeId))!;
+      // PL5: the row and its tags are one write.
+      if (tags && tags.length > 0) await this.tagsRepo.insertIgnore(id, await this.tagsOnTrip(tid, tags));
+      return id;
+    });
+    return (await this.placesRepo.findWithTagsAndRatings(placeId))!; // PL6
   }
 
   // -------------------------------------------------------------------------
   // Get single place
   // -------------------------------------------------------------------------
 
-  get(tripId: string, placeId: string) {
-    const placeCheck = this.dbs.get('SELECT id FROM places WHERE id = ? AND trip_id = ?', placeId, tripId);
-    if (!placeCheck) return null;
-    return this.dbs.getPlaceWithTags(placeId);
+  async get(tripId: string, placeId: string) {
+    // PL7 — the existence gate. `toRowId` first (Task 3 review H1, absorbed
+    // here): a non-canonical id must resolve to "not found" here, the same
+    // answer `findWithTagsAndRatings` below would give it anyway — this
+    // just skips the trip-scoped existence read for an id that can never
+    // exist.
+    const id = toRowId(placeId);
+    if (id === null) return null;
+    // Rule 21 (H1): the trip id gets the SAME `toRowId` treatment, parsed
+    // once here and used for the existence read — `Number(tripId)` used to
+    // disagree with this method's own place-id gate above (`0xb` = 11 is a
+    // real trip's row id), which let a hex trip id find a place that
+    // belongs to a DIFFERENT trip than the one in the route. A non-canonical
+    // trip id answers the same legacy not-found the place-id gate does.
+    const tid = toRowId(tripId);
+    if (tid === null) return null;
+    if (!(await this.placesRepo.existsInTrip(id, tid))) return null;
+    return await this.placesRepo.findWithTagsAndRatings(id); // PL8
   }
 
   // -------------------------------------------------------------------------
@@ -304,109 +447,112 @@ export class PlacesService {
     body: PlaceUpdateInput,
     ifMatch?: string,
   ): Promise<PlaceWithTags | UpdateConflict | null> {
-    const { result, reclaim } = this.applyUpdate(tripId, placeId, body, ifMatch);
-    if (reclaim !== undefined) await reclaimPlaceImage(this.storage, reclaim);
+    const { result, reclaim } = await this.uow.transactional(() => this.applyUpdate(tripId, placeId, body, ifMatch));
+    if (reclaim !== undefined) await this.reclaimPlaceImage(reclaim);
     return result;
   }
 
   /**
-   * The synchronous DB half of update(). Split out so updateMany() can run it
-   * inside a better-sqlite3 transaction (which cannot await) and settle the
-   * storage reclaims after the transaction commits.
+   * The DB half of update(). Split out so updateMany() can run it inside the
+   * same UnitOfWork transaction and settle the storage reclaims after the
+   * transaction commits.
    */
-  private applyUpdate(
+  private async applyUpdate(
     tripId: string,
     placeId: string,
     body: PlaceUpdateInput,
     ifMatch?: string,
-  ): { result: PlaceWithTags | UpdateConflict | null; reclaim?: string | null } {
-    const existingPlace = this.dbs.get<Place>('SELECT * FROM places WHERE id = ? AND trip_id = ?', placeId, tripId);
+  ): Promise<{ result: PlaceWithTags | UpdateConflict | null; reclaim?: string | null }> {
+    // PL9 — the pre-image read every `!== undefined` fallback below needs.
+    // `toRowId` first (Task 3 review H1, absorbed here): every write in
+    // this method (`updatePlace`, `tagsRepo.deleteForPlace`/`insertIgnore`)
+    // uses this SAME validated `id` — a non-canonical `placeId` (`"3 "`,
+    // `"3.0"`) must resolve to "not found" HERE, not pass a loose SQLite
+    // affinity match and then hit a downstream write keyed on a `toRowId(x)!`
+    // that returns `null`.
+    const id = toRowId(placeId);
+    if (id === null) return { result: null };
+    // Rule 21 (H1): the trip id gets the same `toRowId` treatment, parsed
+    // once here and reused for every later call in this method, including
+    // PL12/PL13's `tagsOnTrip` roster read — `Number(tripId)` used to
+    // disagree with those raw survivors (and with this method's own
+    // place-id gate above), so a hex trip id could pass this existence read
+    // against the wrong trip's place and then wipe its tags via a roster
+    // read against a roster that never matched (H1, live: tags silently
+    // dropped to `[]`).
+    const tid = toRowId(tripId);
+    if (tid === null) return { result: null };
+    const existingPlace = await this.placesRepo.findInTrip(id, tid);
     if (!existingPlace) return { result: null };
 
     // Optimistic concurrency (#1135): when the caller sent the version it based its
     // edit on and the row has moved on since, reject instead of clobbering. Absent
     // token => unconditional update (back-compat — old clients keep last-write-wins).
     if (ifMatch !== undefined && existingPlace.updated_at != null && String(existingPlace.updated_at) !== ifMatch) {
-      return { result: { conflict: true, server: this.dbs.getPlaceWithTags(placeId) } };
+      // PL10 — the `{conflict: true, server}` body when `If-Match` loses (#1135).
+      return { result: { conflict: true, server: await this.placesRepo.findWithTagsAndRatings(id) } };
     }
 
     const {
       name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
       duration_minutes, notes, image_url, google_place_id, google_ftid, osm_id, amap_poi_id, website, phone,
+      email, opening_hours,
       transport_mode, route_color, stop_type, fill_percent, tags,
     } = body;
 
-    this.dbs.run(`
-    UPDATE places SET
-      name = COALESCE(?, name),
-      description = ?,
-      lat = ?,
-      lng = ?,
-      address = ?,
-      category_id = ?,
-      price = ?,
-      currency = COALESCE(?, currency),
-      place_time = ?,
-      end_time = ?,
-      duration_minutes = ?,
-      notes = ?,
-      image_url = ?,
-      google_place_id = ?,
-      google_ftid = ?,
-      osm_id = ?,
-      amap_poi_id = ?,
-      website = ?,
-      phone = ?,
-      transport_mode = COALESCE(?, transport_mode),
-      route_color = ?,
-      stop_type = ?,
-      fill_percent = ?,
-      updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `,
-      name || null,
-      description !== undefined ? description : existingPlace.description,
-      lat !== undefined ? lat : existingPlace.lat,
-      lng !== undefined ? lng : existingPlace.lng,
-      address !== undefined ? address : existingPlace.address,
-      category_id !== undefined ? category_id : existingPlace.category_id,
-      price !== undefined ? price : existingPlace.price,
-      currency || null,
-      place_time !== undefined ? place_time : existingPlace.place_time,
-      end_time !== undefined ? end_time : existingPlace.end_time,
+    // PL11 — ONE `nativeUpdate` with a typed full partial (the ruling): the
+    // SQL `COALESCE(?, col)` keep-if-null semantics (name/currency/
+    // transport_mode, all three bound `x || null`) and the twenty
+    // `!== undefined ? x : existing.x` pre-image fallbacks are resolved to
+    // their final value HERE, in the service — the repository writes
+    // exactly what it is handed.
+    await this.placesRepo.updatePlace(id, {
+      // COALESCE(?, name): the bound value is `name || null` (falsy clears
+      // to null), and `?? existingPlace.name` is the COALESCE half itself —
+      // a `nativeUpdate` writes a literal value, it does not evaluate SQL
+      // COALESCE, so the keep-if-null fold has to be resolved here.
+      name: (name || null) ?? existingPlace.name,
+      description: description !== undefined ? description : existingPlace.description,
+      lat: lat !== undefined ? lat : existingPlace.lat,
+      lng: lng !== undefined ? lng : existingPlace.lng,
+      address: address !== undefined ? address : existingPlace.address,
+      category_id: category_id !== undefined ? category_id : existingPlace.category_id,
+      price: price !== undefined ? price : existingPlace.price,
+      // COALESCE(?, currency) — same fold as `name` above.
+      currency: (currency || null) ?? existingPlace.currency,
+      place_time: place_time !== undefined ? place_time : existingPlace.place_time,
+      end_time: end_time !== undefined ? end_time : existingPlace.end_time,
       // Not COALESCE, like its neighbours: the contract says an explicit null
       // clears the planned stay length, and COALESCE made null and absent the
       // same thing, so the field advertised a reset it never performed. 0 keeps
       // working, which a `|| null` bind would have swallowed.
-      duration_minutes !== undefined ? duration_minutes : existingPlace.duration_minutes,
-      notes !== undefined ? notes : existingPlace.notes,
-      image_url !== undefined ? image_url : existingPlace.image_url,
-      google_place_id !== undefined ? google_place_id : existingPlace.google_place_id,
-      google_ftid !== undefined ? google_ftid : existingPlace.google_ftid,
-      osm_id !== undefined ? osm_id : existingPlace.osm_id,
-      amap_poi_id !== undefined ? amap_poi_id : existingPlace.amap_poi_id,
-      website !== undefined ? website : existingPlace.website,
-      phone !== undefined ? phone : existingPlace.phone,
-      transport_mode || null,
+      duration_minutes: duration_minutes !== undefined ? duration_minutes : existingPlace.duration_minutes,
+      notes: notes !== undefined ? notes : existingPlace.notes,
+      image_url: image_url !== undefined ? image_url : existingPlace.image_url,
+      google_place_id: google_place_id !== undefined ? google_place_id : existingPlace.google_place_id,
+      google_ftid: google_ftid !== undefined ? google_ftid : existingPlace.google_ftid,
+      osm_id: osm_id !== undefined ? osm_id : existingPlace.osm_id,
+      amap_poi_id: amap_poi_id !== undefined ? amap_poi_id : existingPlace.amap_poi_id,
+      website: website !== undefined ? website : existingPlace.website,
+      phone: phone !== undefined ? phone : existingPlace.phone,
+      // Empty clears, like null: the form sends what its field holds (#2472).
+      email: email !== undefined ? (email?.trim() || null) : existingPlace.email,
+      opening_hours: opening_hours !== undefined ? (opening_hours || null) : existingPlace.opening_hours,
+      // COALESCE(?, transport_mode) — same fold as `name`/`currency` above.
+      transport_mode: (transport_mode || null) ?? existingPlace.transport_mode,
       // Deliberately not COALESCE: an explicit null is how the picker resets a
       // track back to its category colour (#776).
-      route_color !== undefined ? route_color : existingPlace.route_color,
+      route_color: route_color !== undefined ? route_color : existingPlace.route_color,
       // Same shape: an explicit null is how a fuel stop becomes an ordinary place again.
-      stop_type !== undefined ? stop_type : existingPlace.stop_type,
+      stop_type: stop_type !== undefined ? stop_type : existingPlace.stop_type,
       // And how a stop that had its own fill amount goes back to following the setting.
-      fill_percent !== undefined ? fill_percent : existingPlace.fill_percent,
-      placeId,
-    );
+      fill_percent: fill_percent !== undefined ? fill_percent : existingPlace.fill_percent,
+    });
 
     if (tags !== undefined) {
-      this.dbs.run('DELETE FROM place_tags WHERE place_id = ?', placeId);
-      if (tags.length > 0) {
-        const insertTag = this.dbs.prepare('INSERT OR IGNORE INTO place_tags (place_id, tag_id) VALUES (?, ?)');
-        for (const tagId of this.tagsOnTrip(tripId, tags)) {
-          insertTag.run(placeId, tagId);
-        }
-      }
+      await this.tagsRepo.deleteForPlace(id); // PL12
+      if (tags.length > 0) await this.tagsRepo.insertIgnore(id, await this.tagsOnTrip(tid, tags)); // PL13
     }
 
     // A custom uploaded thumbnail (#1136) that was just replaced or cleared leaves
@@ -416,7 +562,7 @@ export class PlacesService {
       ? existingPlace.image_url
       : undefined;
 
-    return { result: this.dbs.getPlaceWithTags(placeId), reclaim };
+    return { result: await this.placesRepo.findWithTagsAndRatings(id), reclaim }; // PL14
   }
 
   // -------------------------------------------------------------------------
@@ -428,13 +574,17 @@ export class PlacesService {
    * budget:deleted events for the rows remove()/removeMany() are about to take
    * with them. Read it BEFORE deleting — afterwards the link is gone.
    */
-  linkedExpenseIds(tripId: string | number, placeIds: Array<string | number>): number[] {
+  async linkedExpenseIds(tripId: string | number, placeIds: Array<string | number>): Promise<number[]> {
     if (placeIds.length === 0) return [];
-    const rows = this.dbs.all<{ id: number }>(
-      `SELECT id FROM budget_items WHERE trip_id = ? AND place_id IN (${placeIds.map(() => '?').join(',')})`,
-      tripId, ...placeIds,
-    );
-    return rows.map(r => r.id);
+    // Rule 21 (H1): `toRowId` first — a non-canonical trip id never
+    // affinity-matches a real `budget_items.trip_id`, so this is the same
+    // "no rows" answer the raw legacy bind gave it; called independently of
+    // `remove()`/`removeMany()` (the controller reads it before either), so
+    // it cannot rely on a sibling method's gate having already run.
+    const tid = toRowId(tripId);
+    if (tid === null) return [];
+    // PL15 — Plan 3e Task 2, converted: `BudgetItemsRepository.listIdsForPlaces`.
+    return await this.budgetItemsRepo.listIdsForPlaces(tid, placeIds);
   }
 
 
@@ -449,12 +599,18 @@ export class PlacesService {
    *
    * Runs inside the caller's transaction.
    */
-  private cancelStaysAt(tripId: string | number, placeId: string | number, into: CancelledStays): void {
-    const stays = this.dbs.all<{ id: number }>(
-      'SELECT id FROM day_accommodations WHERE trip_id = ? AND place_id = ?', tripId, placeId,
-    );
-    for (const stay of stays) {
-      const gone = this.accommodations.deleteAccommodation(stay.id);
+  private async cancelStaysAt(tripId: number, placeId: number, into: CancelledStays): Promise<void> {
+    // PL16 (Plan 3d Task 3) — `day_accommodations` is that task's table;
+    // reached through `AccommodationsService.listStayIdsForPlace` (already
+    // injected here) rather than a new `DayAccommodationsRepository`
+    // dependency of this service's own (keeps this file's constructor, and
+    // the shared positional test-helper wiring, untouched). Runs inside the
+    // caller's own transaction (R4 — Plan 3d must not re-open or re-scope
+    // this transaction), and keeps `id`/`tripId` as the SAME `toRowId`-parsed
+    // numbers `remove`/`removeMany` already resolved (rule 21).
+    const stayIds = await this.accommodations.listStayIdsForPlace(tripId, placeId);
+    for (const stayId of stayIds) {
+      const gone = await this.accommodations.deleteAccommodation(stayId);
       // What went down with the night is what the caller has to announce. The
       // partner booking and its expense are rows the Bookings list and the Costs
       // total are still holding; place:deleted says nothing about either, and a
@@ -464,40 +620,78 @@ export class PlacesService {
     }
   }
 
-  async remove(tripId: string, placeId: string): Promise<{ deleted: boolean; cancelled: CancelledStays }> {
-    const place = this.dbs.get<{ google_place_id: string | null; image_url: string | null }>(
-      'SELECT google_place_id, image_url FROM places WHERE id = ? AND trip_id = ?', placeId, tripId,
-    );
+  async remove(tripId: string, placeId: string): Promise<{ deleted: boolean; deletedTourPlaceIds: number[]; cancelled: CancelledStays }> {
     const cancelled = noCancelledStays();
-    if (!place) return { deleted: false, cancelled };
+    // `toRowId` first (Task 3 review H1, absorbed here): the write below
+    // (`deleteById`) must use the SAME id this gate's existence read used.
+    const id = toRowId(placeId);
+    if (id === null) return { deleted: false, deletedTourPlaceIds: [], cancelled };
+    // Rule 21 (H1): the trip id gets the same `toRowId` treatment, parsed
+    // once here and reused for the gate AND every raw survivor below
+    // (`cancelStaysAt`'s PL16, the PL18 `budget_items` DELETE) —
+    // `Number(tripId)` used to disagree with those raw binds, so a hex trip
+    // id could pass this gate against a real trip's place while the raw
+    // deletes below matched nothing, leaving the place deleted but its
+    // linked expense and stay orphaned (H1, live: verified with a linked
+    // expense and a stay, both survived with `place_id: null`).
+    const tid = toRowId(tripId);
+    if (tid === null) return { deleted: false, deletedTourPlaceIds: [], cancelled };
+    // PL17 — the reclaim-candidate projection, read before the delete.
+    const place = await this.placesRepo.reclaimInputs(id, tid);
+    if (!place) return { deleted: false, deletedTourPlaceIds: [], cancelled };
+    let wasTour = false;
     // The linked expense goes with the place, the same way a booking takes its
     // expense with it (#1298). One transaction, so a place can never survive
     // half-detached from its money.
-    this.dbs.transaction(() => {
-      this.cancelStaysAt(tripId, placeId, cancelled);
-      this.dbs.run('DELETE FROM budget_items WHERE trip_id = ? AND place_id = ?', tripId, placeId);
-      this.dbs.run('DELETE FROM places WHERE id = ?', placeId);
+    await this.uow.transactional(async () => {
+      // A Tour's facet row and waypoints go with the place (ON DELETE
+      // CASCADE); the caller still has to tell the client which ones did.
+      wasTour = await this.placesRepo.isTour(id);
+      await this.cancelStaysAt(tid, id, cancelled);
+      // PL18 — Plan 3e Task 2, converted: `BudgetItemsRepository.deleteForPlace`.
+      await this.budgetItemsRepo.deleteForPlace(tid, id);
+      // PL19 — `DELETE FROM places WHERE id = ?`.
+      await this.placesRepo.deleteById(id);
     });
     await reclaimPhotoCache(this.photoCache, place.google_place_id, place.image_url);
-    await reclaimPlaceImage(this.storage, place.image_url);
-    return { deleted: true, cancelled };
+    await this.reclaimPlaceImage(place.image_url);
+    return { deleted: true, deletedTourPlaceIds: wasTour ? [id] : [], cancelled };
   }
 
-  async removeMany(tripId: string, ids: number[]): Promise<{ deleted: number[]; cancelled: CancelledStays }> {
+  async removeMany(tripId: string, ids: number[]): Promise<{ deleted: number[]; deletedTourPlaceIds: number[]; cancelled: CancelledStays }> {
     const cancelled = noCancelledStays();
-    if (ids.length === 0) return { deleted: [], cancelled };
-    const selectStmt = this.dbs.prepare('SELECT google_place_id, image_url FROM places WHERE id = ? AND trip_id = ?');
-    const deleteStmt = this.dbs.prepare('DELETE FROM places WHERE id = ?');
-    const deleteExpenseStmt = this.dbs.prepare('DELETE FROM budget_items WHERE trip_id = ? AND place_id = ?');
+    if (ids.length === 0) return { deleted: [], deletedTourPlaceIds: [], cancelled };
+    // Rule 21 (H1): the trip id gets the same `toRowId` treatment as
+    // `remove()`'s, parsed once and reused for every id in the loop below.
+    // Task 9 fix wave (A-8): the claim this comment used to make — "the
+    // legacy raw bind produced the same shape, because the trip id didn't
+    // affinity-match any row" — was WRONG for `1.0`/`1 ` (and other
+    // SQLite-affinity-recognised spellings): the legacy statement DID match
+    // those against a real trip, deleting for real. `toRowId`'s narrower
+    // canonical-decimal check answers "nothing deleted" for those inputs
+    // too, which is the deliberate rule-15 narrowing (not parity) — and, as
+    // of this fix wave, moot in practice: `verifyTripAccess` already 404s
+    // any non-canonical trip id before `removeMany` is ever reached, so this
+    // `tid === null` branch only fires for a caller that skipped the gate.
+    const tid = toRowId(tripId);
+    if (tid === null) return { deleted: [], deletedTourPlaceIds: [], cancelled };
     const deleted: number[] = [];
+    const deletedTourPlaceIds: number[] = [];
     const reclaimable: { google_place_id: string | null; image_url: string | null }[] = [];
-    this.dbs.transaction(() => {
+    await this.uow.transactional(async () => {
       for (const id of ids) {
-        const row = selectStmt.get(id, tripId) as { google_place_id: string | null; image_url: string | null } | undefined;
+        // PL20 — the reclaim-candidate projection, read before the delete
+        // (same statement as PL17). `id` is already a genuine `number`
+        // here (a body-validated array, not a route string) — no `toRowId`
+        // gate needed, the H1 class of bug is a route-string problem.
+        const row = await this.placesRepo.reclaimInputs(id, tid);
         if (!row) continue;
-        this.cancelStaysAt(tripId, id, cancelled);
-        deleteExpenseStmt.run(tripId, id);
-        deleteStmt.run(id);
+        if (await this.placesRepo.isTour(id)) deletedTourPlaceIds.push(id);
+        await this.cancelStaysAt(tid, id, cancelled);
+        // PL22 — Plan 3e Task 2, converted: `BudgetItemsRepository.deleteForPlace`.
+        await this.budgetItemsRepo.deleteForPlace(tid, id);
+        // PL21 — `DELETE FROM places WHERE id = ?`.
+        await this.placesRepo.deleteById(id);
         deleted.push(id);
         reclaimable.push(row);
       }
@@ -505,9 +699,9 @@ export class PlacesService {
     // Reclaim after the transaction commits so isReferenced() sees the final place set.
     for (const row of reclaimable) {
       await reclaimPhotoCache(this.photoCache, row.google_place_id, row.image_url);
-      await reclaimPlaceImage(this.storage, row.image_url);
+      await this.reclaimPlaceImage(row.image_url);
     }
-    return { deleted, cancelled };
+    return { deleted, deletedTourPlaceIds, cancelled };
   }
 
   /**
@@ -516,14 +710,9 @@ export class PlacesService {
    * those key on the place id alone, so an id from another trip would detach
    * that trip's journey entries even though the delete itself refuses it.
    */
-  scopedIds(tripId: string, ids: number[]): number[] {
-    if (ids.length === 0) return [];
-    const placeholders = ids.map(() => '?').join(',');
-    const rows = this.dbs.all<{ id: number }>(
-      `SELECT id FROM places WHERE trip_id = ? AND id IN (${placeholders})`, tripId, ...ids,
-    );
-    const owned = new Set(rows.map((r) => r.id));
-    return ids.filter((id) => owned.has(id));
+  async scopedIds(tripId: string, ids: number[]): Promise<number[]> {
+    // PL23 — input-order preservation lives in the repository method now.
+    return this.placesRepo.scopedIds(tripId, ids);
   }
 
   // -------------------------------------------------------------------------
@@ -540,18 +729,18 @@ export class PlacesService {
     if (ids.length === 0) return [];
     const updated: PlaceWithTags[] = [];
     const reclaims: (string | null)[] = [];
-    this.dbs.transaction(() => {
+    await this.uow.transactional(async () => {
       for (const id of ids) {
         // Bulk update sends no If-Match, so applyUpdate() never returns a
         // conflict here; the guard keeps the types honest.
-        const { result: place, reclaim } = this.applyUpdate(tripId, String(id), body);
+        const { result: place, reclaim } = await this.applyUpdate(tripId, String(id), body);
         if (place && !isUpdateConflict(place)) updated.push(place);
         if (reclaim !== undefined) reclaims.push(reclaim);
       }
     });
     // Settle reclaims after the transaction commits, so the refcount sees the
     // final image_url state.
-    for (const reclaim of reclaims) await reclaimPlaceImage(this.storage, reclaim);
+    for (const reclaim of reclaims) await this.reclaimPlaceImage(reclaim);
     return updated;
   }
 
@@ -560,13 +749,12 @@ export class PlacesService {
   // -------------------------------------------------------------------------
 
   /** Build a lookup of names/coords for places already in a trip. */
-  private buildDedupSet(tripId: string): DedupSet {
-    const rows = this.dbs.all<{
-      name: string | null; lat: number | null; lng: number | null;
-      google_place_id: string | null; google_ftid: string | null; osm_id: string | null; amap_poi_id: string | null;
-    }>(
-      'SELECT name, lat, lng, google_place_id, google_ftid, osm_id, amap_poi_id FROM places WHERE trip_id = ?', tripId,
-    );
+  private async buildDedupSet(tripId: string): Promise<DedupSet> {
+    // PL24 — `PlacesRepository.listDedupInputs` replaces the raw statement
+    // (Task 5 review L6 ruling). The JS dedup semantics below (name
+    // lowercase+trim, coordinates only for unnamed rows, provider ids for
+    // every row) are unchanged — only the read moved.
+    const rows = await this.placesRepo.listDedupInputs(tripId);
     const names = new Set<string>();
     const coords: Array<{ lat: number; lng: number }> = [];
     // Provider ids are collected for every place, named or not: they are what lets a
@@ -593,8 +781,8 @@ export class PlacesService {
    * `google_ftid` for the bulk importer's backfill, which is a detail of that
    * caller and not part of the question "which place is this?".
    */
-  findMatchingPlaceId(tripId: string, candidate: PlaceMatchCandidate): number | null {
-    return this.findDuplicatePlace(tripId, candidate)?.id ?? null;
+  async findMatchingPlaceId(tripId: string, candidate: PlaceMatchCandidate): Promise<number | null> {
+    return (await this.findDuplicatePlace(tripId, candidate))?.id ?? null;
   }
 
   /**
@@ -621,36 +809,25 @@ export class PlacesService {
    *    `findMatchingPlaceId` wants — a booking with no place name should link to
    *    the hotel that has one — so it is stated rather than removed.
    */
-  private findDuplicatePlace(
+  private async findDuplicatePlace(
     tripId: string,
     place: PlaceMatchCandidate,
-  ): { id: number; google_ftid: string | null } | null {
+  ): Promise<{ id: number; google_ftid: string | null } | null> {
     for (const strategy of placeMatchStrategies(place)) {
       let hit: { id: number; google_ftid: string | null } | undefined;
       if (strategy.by === 'externalId') {
-        hit = this.dbs.get<{ id: number; google_ftid: string | null }>(`
-      SELECT id, google_ftid FROM places
-      WHERE trip_id = ? AND (google_place_id = ? OR google_ftid = ? OR osm_id = ? OR amap_poi_id = ?)
-      ORDER BY id ASC
-      LIMIT 1
-    `, tripId, strategy.id, strategy.id, strategy.id, strategy.id);
+        // PL25 — the same candidate id bound in all four positions.
+        hit = await this.placesRepo.findDuplicateByExternalId(tripId, strategy.id);
       } else if (strategy.by === 'name') {
-        hit = this.dbs.get<{ id: number; google_ftid: string | null }>(`
-      SELECT id, google_ftid FROM places
-      WHERE trip_id = ? AND lower(trim(name)) = ?
-      ORDER BY id ASC
-      LIMIT 1
-    `, tripId, strategy.name);
+        // PL26 — `strategy.name` is already `.trim().toLowerCase()`'d in JS
+        // (`normalizePlaceName`, `@trek/shared/place/place-match.ts`,
+        // Unicode-aware) — the documented legacy disagreement with SQLite's
+        // ASCII-only `lower()` (rule 18's exception clause: the legacy
+        // statement itself received a JS-lowered value).
+        hit = await this.placesRepo.findDuplicateByName(tripId, strategy.name);
       } else {
-        hit = this.dbs.get<{ id: number; google_ftid: string | null }>(`
-      SELECT id, google_ftid FROM places
-      WHERE trip_id = ?
-        AND lat IS NOT NULL AND lng IS NOT NULL
-        AND abs(lat - ?) <= ?
-        AND abs(lng - ?) <= ?
-      ORDER BY id ASC
-      LIMIT 1
-    `, tripId, strategy.lat, strategy.tolerance, strategy.lng, strategy.tolerance);
+        // PL27 — `abs(lat - ?) <= ? AND abs(lng - ?) <= ?` through the Task 0b `absDifference` helper.
+        hit = await this.placesRepo.findDuplicateByCoords(tripId, strategy.lat, strategy.lng, strategy.tolerance);
       }
       if (hit) return hit;
     }
@@ -661,10 +838,13 @@ export class PlacesService {
   // Import GPX
   // -------------------------------------------------------------------------
 
-  importGpx(tripId: string, fileBuffer: Buffer, opts: GpxImportOptions = {}): GpxImportResult | null {
-    const result = this.importGpxRows(tripId, fileBuffer, opts);
-    this.colorizeImportedTracks(tripId, result);
-    return result;
+  async importGpx(tripId: string, fileBuffer: Buffer, opts: GpxImportOptions = {}): Promise<GpxImportResult | null> {
+    // The rows and their track colours are one write, as for KML below.
+    return await this.uow.transactional(async () => {
+      const result = await this.importGpxRows(tripId, fileBuffer, opts);
+      await this.colorizeImportedTracks(tripId, result);
+      return result;
+    });
   }
 
   /**
@@ -676,30 +856,24 @@ export class PlacesService {
    * Returns null when the selection yields nothing, so the caller answers 404 rather
    * than handing over a file that imports as nothing on the other end.
    */
-  exportGpx(tripId: string, opts: GpxExportOptions = {}): { gpx: string; filename: string } | null {
-    const trip = this.dbs.get<{ title: string }>('SELECT title FROM trips WHERE id = ?', tripId);
-    if (!trip) return null;
+  async exportGpx(tripId: string, opts: GpxExportOptions = {}): Promise<{ gpx: string; filename: string } | null> {
+    // PL28 — `SELECT title FROM trips WHERE id = ?`, via
+    // `TripsRepository.getTitle` directly (Task 9 fix wave, B-M2 / A-L3
+    // ruling): `DatabaseService.getTripTitle` was a narrow, single-caller
+    // delegation kept only because concurrent Task 4/7/8 implementers were
+    // all editing this file's constructor at once — that risk is gone, so
+    // it and its `entityManager()` mention are deleted, and this domain
+    // injects `TripsRepository` directly like its other five repositories.
+    // The legacy `if (!trip) return null` maps onto `title === null`.
+    const title = await this.tripsRepo.getTitle(tripId);
+    if (title === null) return null;
 
-    const places = this.dbs.all<GpxExportPlace>(`
-      SELECT p.name, p.description, p.address, p.lat, p.lng, p.route_geometry, c.name AS category
-        FROM places p
-        LEFT JOIN categories c ON c.id = p.category_id
-       WHERE p.trip_id = ?
-       ORDER BY p.id
-    `, tripId);
+    // PL29 — the waypoint projection.
+    const places = await this.placesRepo.listForGpx(tripId) as GpxExportPlace[];
 
-    // One row per stop, ordered the way the day plan draws it, then folded into days.
-    const stops = this.dbs.all<{
-      day_number: number; date: string | null; title: string | null;
-      name: string; lat: number; lng: number;
-    }>(`
-      SELECT d.day_number, d.date, d.title, p.name, p.lat, p.lng
-        FROM days d
-        JOIN day_assignments da ON da.day_id = d.id
-        JOIN places p ON p.id = da.place_id
-       WHERE d.trip_id = ? AND p.lat IS NOT NULL AND p.lng IS NOT NULL
-       ORDER BY d.day_number, da.order_index
-    `, tripId);
+    // One row per stop, ordered the way the day plan draws it, then folded
+    // into days. PL30 — `DayAssignmentsRepository.listItineraryForGpx`.
+    const stops = await this.dayAssignmentsRepo.listItineraryForGpx(tripId);
 
     const days = new Map<number, GpxExportDay>();
     for (const stop of stops) {
@@ -711,101 +885,89 @@ export class PlacesService {
       day.points.push({ name: stop.name, lat: stop.lat, lng: stop.lng });
     }
 
-    const gpx = buildGpx({ tripTitle: trip.title, places, days: [...days.values()] }, opts);
-    return gpx ? { gpx, filename: gpxFilename(trip.title) } : null;
+    const gpx = this.placeImport.writeTripGpx({ tripTitle: title, places, days: [...days.values()] }, opts);
+    return gpx ? { gpx, filename: this.placeImport.tripGpxFilename(title) } : null;
   }
 
-  private importGpxRows(tripId: string, fileBuffer: Buffer, opts: GpxImportOptions = {}): GpxImportResult | null {
-    const { importWaypoints = true, importRoutes = true, importTracks = true, defaultName } = opts;
+  private async importGpxRows(tripId: string, fileBuffer: Buffer, opts: GpxImportOptions = {}): Promise<GpxImportResult | null> {
+    const rows = this.placeImport.readGpx(fileBuffer, opts);
+    if (!rows.length) return null;
+    return await this.uow.transactional(() => this.persistGpxRows(tripId, rows));
+  }
 
-    const parsed = gpxParser.parse(fileBuffer.toString('utf-8'));
-    const gpx = parsed?.gpx;
-    if (!gpx) return null;
+  /**
+   * Persists rows PlaceImportService.readGpx prepared and colours their tracks, both in
+   * one transaction. Called from inside the Tours import's own transaction,
+   * where this becomes a savepoint, so the places and their tour facets
+   * commit or roll back together.
+   */
+  async importPreparedGpx(tripId: string, rows: PreparedGpxPlace[]): Promise<GpxImportResult> {
+    return await this.uow.transactional(async () => {
+      const result = await this.persistGpxRows(tripId, rows);
+      await this.colorizeImportedTracks(tripId, result);
+      return result;
+    });
+  }
 
-    const str = (v: unknown) => (v != null ? String(v).trim() : null);
-    const num = (v: unknown) => { const n = Number.parseFloat(String(v)); return Number.isNaN(n) ? null : n; };
-
-    // Routes and tracks rarely carry their own <name>. Without one they all fall back to the
-    // same generic label, so name-based dedup drops every import after the first. Derive a
-    // base from the source filename (the requested behaviour) and suffix an index so multiple
-    // geometries from one file stay distinct.
-    const rawName = str(defaultName);
-    const baseName = rawName ? rawName.replace(/\.[^.]+$/, '').trim() || rawName : null;
-    let geoSeq = 0;
-    const geoName = (explicit: string | null, fallback: string): string => {
-      if (explicit) return explicit;
-      geoSeq++;
-      const base = baseName || fallback;
-      return geoSeq === 1 ? base : `${base} ${geoSeq}`;
-    };
-
-    type WaypointEntry = { name: string; lat: number; lng: number; description: string | null; routeGeometry?: string };
-    const waypoints: WaypointEntry[] = [];
-
-    // 1) Parse <wpt> elements (named waypoints / POIs)
-    if (importWaypoints) {
-      for (const wpt of gpx.wpt ?? []) {
-        const lat = num(wpt['@_lat']);
-        const lng = num(wpt['@_lon']);
-        if (lat === null || lng === null) continue;
-        waypoints.push({ lat, lng, name: str(wpt.name) || `Waypoint ${waypoints.length + 1}`, description: str(wpt.desc) });
-      }
-    }
-
-    // 2) Parse <rte> routes as polyline-places (one place per route with route_geometry)
-    if (importRoutes) {
-      for (const rte of gpx.rte ?? []) {
-        const pts = (rte.rtept ?? [])
-          .map((pt: Record<string, unknown>) => ({ lat: num(pt['@_lat']), lng: num(pt['@_lon']), ele: num(pt['ele']) }))
-          .filter((p: { lat: number | null; lng: number | null; ele: number | null }) => p.lat !== null && p.lng !== null) as Array<{ lat: number; lng: number; ele: number | null }>;
-        if (pts.length === 0) continue;
-        const hasAllEle = pts.every(p => p.ele !== null);
-        const routeGeometry = pts.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
-        waypoints.push({ lat: pts[0].lat, lng: pts[0].lng, name: geoName(str(rte.name), 'GPX Route'), description: str(rte.desc), routeGeometry: JSON.stringify(routeGeometry) });
-      }
-    }
-
-    // 3) Extract full track geometry from <trk>
-    if (importTracks) {
-      for (const trk of gpx.trk ?? []) {
-        const trackPoints: { lat: number; lng: number; ele: number | null }[] = [];
-        for (const seg of trk.trkseg ?? []) {
-          for (const pt of seg.trkpt ?? []) {
-            const lat = num(pt['@_lat']);
-            const lng = num(pt['@_lon']);
-            if (lat === null || lng === null) continue;
-            trackPoints.push({ lat, lng, ele: num(pt.ele) });
-          }
-        }
-        if (trackPoints.length === 0) continue;
-        const start = trackPoints[0];
-        const hasAllEle = trackPoints.every(p => p.ele !== null);
-        const routeGeometry = trackPoints.map(p => hasAllEle ? [p.lat, p.lng, p.ele] : [p.lat, p.lng]);
-        waypoints.push({ lat: start.lat, lng: start.lng, name: geoName(str(trk.name), 'GPX Track'), description: str(trk.desc), routeGeometry: JSON.stringify(routeGeometry) });
-      }
-    }
-
-    if (waypoints.length === 0) return null;
-
-    const dedup = this.buildDedupSet(tripId);
-    const insertStmt = this.dbs.prepare(`
-    INSERT INTO places (trip_id, name, description, lat, lng, transport_mode, route_geometry)
-    VALUES (?, ?, ?, ?, ?, 'walking', ?)
-  `);
+  /** Inserts prepared GPX rows, skipping duplicates. The caller owns the transaction. */
+  private async persistGpxRows(tripId: string, waypoints: PreparedGpxPlace[]): Promise<GpxImportResult> {
+    // Rule 21 / M1 (Task 9 fix wave): non-null asserted, not `?? -1` — the
+    // controller's `requireTrip` (`verifyTripAccess`) already parsed and
+    // gated this SAME `tripId` with `toRowId` before `importGpx` was ever
+    // called, so a miss here can only mean a caller skipped the gate (see
+    // `create()`'s comment for the full ruling). `buildDedupSet` keeps the
+    // raw-bind seam (L6 ruling, PL24) — this does not touch it.
+    const tid = toRowId(tripId)!;
+    const dedup = await this.buildDedupSet(tripId);
     const created: PlaceWithTags[] = [];
     let skipped = 0;
-    this.dbs.transaction(() => {
-      for (const wp of waypoints) {
-        if (isPlaceDuplicate({ name: wp.name, lat: wp.lat, lng: wp.lng }, dedup)) {
-          skipped++;
-          continue;
-        }
-        const result = insertStmt.run(tripId, wp.name, wp.description, wp.lat, wp.lng, wp.routeGeometry || null);
-        const place = this.dbs.getPlaceWithTags(Number(result.lastInsertRowid))!;
-        created.push(place);
-        trackInsertedInDedupSet({ name: wp.name, lat: wp.lat, lng: wp.lng }, dedup);
+    // PL31/PL32 — one `insertPlace` call per waypoint. The legacy statement's
+    // narrower 7-column INSERT (trip_id, name, description, lat, lng,
+    // transport_mode='walking' literal, route_geometry) is reproduced as a
+    // typed `insertPlace` partial: the literal becomes a value, and every
+    // column the legacy INSERT omitted takes the same value the DB column
+    // default would have produced (`duration_minutes: 60`, everything else
+    // `null`) — parity by stored row, not by SQL text. Re-selected via
+    // `findWithTagsAndRatings` INSIDE the caller's transaction, so the read
+    // sees the still-uncommitted row.
+    for (const wp of waypoints) {
+      if (isPlaceDuplicate({ name: wp.name, lat: wp.lat, lng: wp.lng }, dedup)) {
+        skipped++;
+        continue;
       }
-    });
+      const placeId = await this.placesRepo.insertPlace({
+        trip_id: tid,
+        name: wp.name,
+        description: wp.description,
+        lat: wp.lat,
+        lng: wp.lng,
+        address: null,
+        category_id: null,
+        price: null,
+        currency: null,
+        place_time: null,
+        end_time: null,
+        duration_minutes: 60,
+        notes: null,
+        image_url: null,
+        google_place_id: null,
+        google_ftid: null,
+        osm_id: null,
+        amap_poi_id: null,
+        website: null,
+        phone: null,
+        transport_mode: 'walking',
+        route_geometry: wp.routeGeometry || null,
+        route_color: null,
+        stop_type: null,
+        fill_percent: null,
+        email: null,
+        opening_hours: null,
+      });
+      const place = (await this.placesRepo.findWithTagsAndRatings(placeId))!;
+      created.push(place);
+      trackInsertedInDedupSet({ name: wp.name, lat: wp.lat, lng: wp.lng }, dedup);
+    }
 
     return { places: created, count: created.length, skipped };
   }
@@ -815,61 +977,43 @@ export class PlacesService {
   // -------------------------------------------------------------------------
 
   async importMapFile(tripId: string, fileBuffer: Buffer, filename: string, opts: KmlImportOptions = {}): Promise<PlaceImportResult> {
-    const result = await this.importMapFileRows(tripId, fileBuffer, filename, opts);
-    this.colorizeImportedTracks(tripId, result);
-    return result;
+    return await this.uow.transactional(async () => {
+      const result = await this.importMapFileRows(tripId, fileBuffer, filename, opts);
+      await this.colorizeImportedTracks(tripId, result);
+      return result;
+    });
   }
 
   private async importMapFileRows(tripId: string, fileBuffer: Buffer, filename: string, opts: KmlImportOptions = {}): Promise<PlaceImportResult> {
-    const ext = filename.toLowerCase().split('.').pop();
-    if (ext === 'kmz') return this.importKmzPlaces(tripId, fileBuffer, opts);
-    if (ext === 'kml') return this.importKmlPlaces(tripId, fileBuffer, opts);
-    throw new Error(`Unsupported map file format: .${ext}. Please upload a .kml or .kmz file.`);
+    return this.persistKmlPlaces(tripId, await this.placeImport.readMapFile(fileBuffer, filename), opts);
   }
 
   async importKmzPlaces(tripId: string, kmzBuffer: Buffer, opts: KmlImportOptions = {}): Promise<PlaceImportResult> {
-    const kmlBuffer = await unpackKmzToKml(kmzBuffer);
-    return this.importKmlPlaces(tripId, kmlBuffer, opts);
+    return this.persistKmlPlaces(tripId, await this.placeImport.readKmz(kmzBuffer), opts);
   }
 
-  importKmlPlaces(tripId: string, fileBuffer: Buffer, opts: KmlImportOptions = {}): PlaceImportResult {
+  async importKmlPlaces(tripId: string, fileBuffer: Buffer, opts: KmlImportOptions = {}): Promise<PlaceImportResult> {
+    return this.persistKmlPlaces(tripId, this.placeImport.readKml(fileBuffer), opts);
+  }
+
+  /** The placemarks of a read KML document as places, skipping duplicates. */
+  private async persistKmlPlaces(tripId: string, read: KmlDocumentRead, opts: KmlImportOptions): Promise<PlaceImportResult> {
     const { importPoints = true, importPaths = true } = opts;
-    const decoded = decodeUtf8WithWarning(fileBuffer);
+    const { placemarks, summary } = read;
 
-    const validationResult = XMLValidator.validate(decoded.text);
-    if (validationResult !== true) {
-      throw new Error('Malformed KML: invalid XML structure');
-    }
-
-    const parsed = kmlParser.parse(decoded.text);
-    const kmlRoot = parsed?.kml ?? parsed;
-
-    if (!kmlRoot || typeof kmlRoot !== 'object') {
-      throw new Error('Malformed KML: could not parse XML');
-    }
-
-    const placemarkNodes = extractKmlPlacemarkNodes(kmlRoot);
-    const summary = createKmlImportSummary(placemarkNodes.length);
-
-    if (decoded.warning) {
-      summary.warnings.push(decoded.warning);
-    }
-
-    const categories = this.dbs.all<{ id: number; name: string }>('SELECT id, name FROM categories');
+    // PL33 — `CategoriesRepository.listIdName` (Plan 3a's repository).
+    const categories = await this.categoriesRepo.listIdName();
     const categoryLookup = buildCategoryNameLookup(categories);
-    const dedup = this.buildDedupSet(tripId);
+    // Rule 21 / M1 (Task 9 fix wave) — same ruling as `importGpxRows`: the
+    // caller's `requireTrip` gate already `toRowId`-parsed this `tripId`.
+    const tid = toRowId(tripId)!;
+    const dedup = await this.buildDedupSet(tripId);
     const created: PlaceWithTags[] = [];
     let dupCount = 0;
 
-    const insertStmt = this.dbs.prepare(`
-    INSERT INTO places (trip_id, name, description, lat, lng, category_id, transport_mode, route_geometry)
-    VALUES (?, ?, ?, ?, ?, ?, 'walking', ?)
-  `);
-
-    this.dbs.transaction(() => {
+    await this.uow.transactional(async () => {
       let fallbackIndex = 1;
-      for (const node of placemarkNodes) {
-        const parsedPlacemark = parsePlacemarkNode(node);
+      for (const parsedPlacemark of placemarks) {
         const isPath = parsedPlacemark.routeGeometry !== null;
 
         // Unsupported geometry type (polygon, multi-geometry, no geometry, etc.)
@@ -904,17 +1048,42 @@ export class PlacesService {
 
         const categoryId = resolveCategoryIdForFolder(parsedPlacemark.folderName, categoryLookup);
 
-        const result = insertStmt.run(
-          tripId,
+        // PL34/PL35 — `insertPlace` with the legacy 8-column set (trip_id,
+        // name, description, lat, lng, category_id, transport_mode='walking'
+        // literal, route_geometry); every omitted column takes its DB-default
+        // value. Re-selected via `findWithTagsAndRatings` INSIDE the same
+        // transaction.
+        const placeId = await this.placesRepo.insertPlace({
+          trip_id: tid,
           name,
-          parsedPlacemark.description,
-          parsedPlacemark.lat,
-          parsedPlacemark.lng,
-          categoryId,
-          parsedPlacemark.routeGeometry,
-        );
+          description: parsedPlacemark.description,
+          lat: parsedPlacemark.lat,
+          lng: parsedPlacemark.lng,
+          address: null,
+          category_id: categoryId,
+          price: null,
+          currency: null,
+          place_time: null,
+          end_time: null,
+          duration_minutes: 60,
+          notes: null,
+          image_url: null,
+          google_place_id: null,
+          google_ftid: null,
+          osm_id: null,
+          amap_poi_id: null,
+          website: null,
+          phone: null,
+          transport_mode: 'walking',
+          route_geometry: parsedPlacemark.routeGeometry,
+          route_color: null,
+          stop_type: null,
+          fill_percent: null,
+          email: null,
+          opening_hours: null,
+        });
 
-        const place = this.dbs.getPlaceWithTags(Number(result.lastInsertRowid))!;
+        const place = (await this.placesRepo.findWithTagsAndRatings(placeId))!;
         created.push(place);
         trackInsertedInDedupSet({ name, lat: parsedPlacemark.lat, lng: parsedPlacemark.lng }, dedup);
         summary.createdCount += 1;
@@ -953,27 +1122,21 @@ export class PlacesService {
    * it used to hand the same object back, which read like a transformation and
    * was none.
    */
-  private colorizeImportedTracks(tripId: string, result: { places: ImportedPlace[] } | null): void {
+  private async colorizeImportedTracks(tripId: string, result: { places: ImportedPlace[] } | null): Promise<void> {
     const tracks = result?.places?.filter((p) => p.route_geometry && !p.route_color) ?? [];
     if (tracks.length === 0) return;
 
-    // Read and write in one transaction so two concurrent imports cannot both
-    // read the same set of free colours.
-    this.dbs.transaction((conn) => {
-      const taken = new Set(
-        (conn
-          .prepare('SELECT DISTINCT route_color AS c FROM places WHERE trip_id = ? AND route_color IS NOT NULL')
-          .all(tripId) as { c: string }[]).map((r) => r.c),
-      );
+    // PL36+PL37: read and write in ONE transaction so two concurrent imports
+    // cannot both read the same set of free colours.
+    await this.uow.transactional(async () => {
+      const taken = new Set(await this.placesRepo.distinctRouteColors(tripId));
       const free = TRACK_COLORS.filter((c) => !taken.has(c));
-      const stmt = conn.prepare('UPDATE places SET route_color = ? WHERE id = ?');
-      tracks.forEach((track, i) => {
-        // Free ones first, then wrap through the whole palette — never reuse a
-        // free colour twice within the same import.
+      for (const [i, track] of tracks.entries()) {
+        // Free ones first, then wrap through the palette: never a free colour twice.
         const color = i < free.length ? free[i] : TRACK_COLORS[(i - free.length) % TRACK_COLORS.length];
-        stmt.run(color, track.id);
+        await this.placesRepo.setRouteColor(track.id, color);
         track.route_color = color;
-      });
+      }
     });
   }
 
@@ -981,127 +1144,15 @@ export class PlacesService {
   // Import Google Maps list
   // -------------------------------------------------------------------------
 
-  async importGoogleList(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult | ListImportError> {
-    let listId: string | null = null;
-    let resolvedUrl = url;
+  async importGoogleList(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult> {
+    const read = await this.placeImport.readGoogleList(url);
+    if ('error' in read) throw new DomainError(read.status, read.error);
+    // A short link that lands on a route is a directions link: imported as one,
+    // with the resolved URL, so the hop is not made twice.
+    if ('directions' in read) return this.importGoogleDirections(tripId, read.directions, opts);
+    const { listName, places } = read;
 
-    // SSRF guard: validate user-supplied URL before fetching
-    const ssrf = await checkSsrf(url);
-    if (!ssrf.allowed) return { error: 'URL is not allowed', status: 400 };
-
-    // Follow redirects for short URLs (maps.app.goo.gl, goo.gl). Redirects are
-    // followed manually so every hop is re-checked against the SSRF guard — a
-    // short link that 302s to an internal IP is blocked even though the initial
-    // host is public.
-    if (url.includes('goo.gl') || url.includes('maps.app')) {
-      try {
-        const redirectRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(10000) });
-        resolvedUrl = redirectRes.url;
-      } catch (err) {
-        if (err instanceof SsrfBlockedError) return { error: 'URL is not allowed', status: 400 };
-        throw err;
-      }
-    }
-
-    // A route, once the redirect is followed. The dispatch upstream decides on
-    // the raw URL, and a short link's path is `/<code>` — it matches nothing, so
-    // every route shared from the Google Maps app arrived here and was answered
-    // with "could not extract list ID", which is the complaint the directions
-    // import was written to remove. The Share sheet on a phone produces exactly
-    // this shape, and the box says a directions link works.
-    //
-    // Handed on with the resolved URL, so the hop is not made twice.
-    if (isDirectionsUrl(resolvedUrl)) {
-      return this.importGoogleDirections(tripId, resolvedUrl, opts);
-    }
-
-    // Pattern: /placelists/list/{ID}
-    const plMatch = resolvedUrl.match(/placelists\/list\/([A-Za-z0-9_-]+)/);
-    if (plMatch) listId = plMatch[1];
-
-    // Pattern: !2s{ID} in data URL params
-    if (!listId) {
-      const dataMatch = resolvedUrl.match(/!2s([A-Za-z0-9_-]{15,})/);
-      if (dataMatch) listId = dataMatch[1];
-    }
-
-    if (!listId) {
-      // A single-place share link (…/maps/place/…) carries no list id — point the user at
-      // the place search box instead of a cryptic "could not extract list ID" (#1304).
-      if (resolvedUrl.includes('/maps/place/')) {
-        return { error: 'That link points to a single place, not a list. To add it, paste the link into the place search box instead of using the list import.', status: 400 };
-      }
-      return { error: 'Could not extract list ID from URL. Please use a shared Google Maps list link.', status: 400 };
-    }
-
-    // Fetch list data from Google Maps internal API
-    const apiUrl = `https://www.google.com/maps/preview/entitylist/getlist?authuser=0&hl=en&gl=us&pb=!1m1!1s${encodeURIComponent(listId)}!2e2!3e2!4i500!16b1`;
-    const apiRes = await fetch(apiUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!apiRes.ok) {
-      return { error: 'Failed to fetch list from Google Maps', status: 502 };
-    }
-
-    // Cap the declared body before reading it (transit.service precedent): the
-    // response is attacker-influenced via the list id, and buffering it whole
-    // used to be unbounded.
-    const declared = Number(apiRes.headers?.get('content-length') ?? 0);
-    if (declared > MAX_LIST_RESPONSE_BYTES) {
-      return { error: 'Failed to fetch list from Google Maps', status: 502 };
-    }
-
-    const rawText = await apiRes.text();
-    if (rawText.length > MAX_LIST_RESPONSE_BYTES) {
-      return { error: 'Failed to fetch list from Google Maps', status: 502 };
-    }
-    const jsonStr = rawText.substring(rawText.indexOf('\n') + 1);
-    // The provider hands back a JS-prefixed array; a malformed body is a
-    // provider problem, not a crash — surface the same 400 an unreadable
-    // payload already produced instead of throwing a SyntaxError.
-    let listData: unknown;
-    try {
-      listData = JSON.parse(jsonStr);
-    } catch {
-      return { error: 'Invalid list data received from Google Maps', status: 400 };
-    }
-    if (!Array.isArray(listData)) {
-      return { error: 'Invalid list data received from Google Maps', status: 400 };
-    }
-
-    const meta = listData[0];
-    if (!meta) {
-      return { error: 'Invalid list data received from Google Maps', status: 400 };
-    }
-
-    const listName = meta[4] || 'Google Maps List';
-    const items = meta[8];
-
-    if (!Array.isArray(items) || items.length === 0) {
-      return { error: 'List is empty or could not be read', status: 400 };
-    }
-
-    // Parse place data from items
-    const places: { name: string; lat: number; lng: number; notes: string | null; googleFtid: string | null }[] = [];
-    for (const item of items) {
-      const coords = item?.[1]?.[5];
-      const lat = coords?.[2];
-      const lng = coords?.[3];
-      const name = item?.[2];
-      const note = item?.[3] || null;
-
-      if (name && typeof lat === 'number' && typeof lng === 'number' && !Number.isNaN(lat) && !Number.isNaN(lng)) {
-        places.push({ name, lat, lng, notes: note || null, googleFtid: googleMapsFeatureIdFromItem(item) });
-      }
-    }
-
-    if (places.length === 0) {
-      return { error: 'No places with coordinates found in list', status: 400 };
-    }
-
-    const { created, skipped } = this.storeGooglePlaces(tripId, places);
+    const { created, skipped } = await this.storeGooglePlaces(tripId, places);
 
     if (created.length) {
       void this.enrichImportedList(tripId, created as EnrichablePlace[], opts);
@@ -1117,19 +1168,17 @@ export class PlacesService {
    * the same rules — a place already on the trip is skipped rather than doubled, and a
    * row that matches but carries no provider id is given the one this import knows.
    */
-  private storeGooglePlaces(
+  private async storeGooglePlaces(
     tripId: string,
-    places: { name: string; lat: number; lng: number; notes: string | null; googleFtid: string | null }[],
-  ): { created: PlaceWithTags[]; skipped: number } {
-    const dedup = this.buildDedupSet(tripId);
-    const insertStmt = this.dbs.prepare(`
-    INSERT INTO places (trip_id, name, lat, lng, notes, google_ftid, transport_mode)
-    VALUES (?, ?, ?, ?, ?, ?, 'walking')
-  `);
-    const updateGoogleFtidStmt = this.dbs.prepare('UPDATE places SET google_ftid = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+    places: GoogleListPlace[],
+  ): Promise<{ created: PlaceWithTags[]; skipped: number }> {
+    // Rule 21 / M1 (Task 9 fix wave) — same ruling as `importGpxRows`: the
+    // caller's `requireTrip` gate already `toRowId`-parsed this `tripId`.
+    const tid = toRowId(tripId)!;
+    const dedup = await this.buildDedupSet(tripId);
     const created: PlaceWithTags[] = [];
     let skipped = 0;
-    this.dbs.transaction(() => {
+    await this.uow.transactional(async () => {
       for (const p of places) {
         // One candidate for both halves. Passing the raw parser object to the SQL
         // half used to mean its provider id never arrived — the field is
@@ -1138,15 +1187,50 @@ export class PlacesService {
         // this candidate's ftid on the backfill below.
         const candidate = { name: p.name, lat: p.lat, lng: p.lng, google_ftid: p.googleFtid };
         if (isPlaceDuplicate(candidate, dedup)) {
-          const duplicate = this.findDuplicatePlace(tripId, candidate);
+          const duplicate = await this.findDuplicatePlace(tripId, candidate);
+          // PL39 — `backfillFtid`, unscoped by trip (matching the legacy
+          // statement — `duplicate` was already resolved against this trip).
           if (duplicate && !duplicate.google_ftid && p.googleFtid) {
-            updateGoogleFtidStmt.run(p.googleFtid, duplicate.id);
+            await this.placesRepo.backfillFtid(duplicate.id, p.googleFtid);
           }
           skipped++;
           continue;
         }
-        const result = insertStmt.run(tripId, p.name, p.lat, p.lng, p.notes, p.googleFtid);
-        const place = this.dbs.getPlaceWithTags(Number(result.lastInsertRowid))!;
+        // PL38/PL40 — `insertPlace` with the legacy 7-column set (trip_id,
+        // name, lat, lng, notes, google_ftid, transport_mode='walking'
+        // literal); every omitted column takes its DB-default value.
+        // Re-selected via `findWithTagsAndRatings` INSIDE the same
+        // transaction.
+        const placeId = await this.placesRepo.insertPlace({
+          trip_id: tid,
+          name: p.name,
+          description: null,
+          lat: p.lat,
+          lng: p.lng,
+          address: null,
+          category_id: null,
+          price: null,
+          currency: null,
+          place_time: null,
+          end_time: null,
+          duration_minutes: 60,
+          notes: p.notes,
+          image_url: null,
+          google_place_id: null,
+          google_ftid: p.googleFtid,
+          osm_id: null,
+          amap_poi_id: null,
+          website: null,
+          phone: null,
+          transport_mode: 'walking',
+          route_geometry: null,
+          route_color: null,
+          stop_type: null,
+          fill_percent: null,
+          email: null,
+          opening_hours: null,
+        });
+        const place = (await this.placesRepo.findWithTagsAndRatings(placeId))!;
         created.push(place);
         trackInsertedInDedupSet(candidate, dedup);
       }
@@ -1159,92 +1243,15 @@ export class PlacesService {
   // -------------------------------------------------------------------------
 
   /**
-   * The stops of a route somebody else planned.
-   *
-   * The other half of the request the list import answers: people share a drive far more
-   * often than they share a list, and until now a pasted `/maps/dir/` link came back as a
-   * cryptic "could not extract list ID". No API key is involved and no call is made to
-   * Google for the link itself — the stops are in the URL, which is the whole reason
-   * this is possible at all.
-   *
-   * A stop the link spells out in coordinates is taken as it stands; one that is only a
-   * name is geocoded, one request each. A name nobody can place is left out rather than
-   * failing the import, because a route of six stops with five findable is five stops
-   * more than the traveller had.
+   * The stops of a route somebody else planned, read and placed by
+   * PlaceImportService (no API key, the stops are in the link), stored here.
    */
-  async importGoogleDirections(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult | ListImportError> {
-    const ssrf = await checkSsrf(url);
-    if (!ssrf.allowed) return { error: 'URL is not allowed', status: 400 };
+  async importGoogleDirections(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult> {
+    const read = await this.placeImport.readGoogleDirections(url, (query) => this.maps.geocodeQuery(query));
+    if ('error' in read) throw new DomainError(read.status, read.error);
+    const { places, unplaceable } = read;
 
-    let parsed: URL;
-    try { parsed = new URL(url); } catch { return { error: 'Invalid URL', status: 400 }; }
-
-    // Short links are resolved hop by hop through the guard, exactly as the list import
-    // does it: a maps.app.goo.gl that 302s to an internal address is still blocked.
-    let resolvedUrl = url;
-    if (GOOGLE_SHORT_HOSTS.includes(parsed.hostname)) {
-      try {
-        const redirectRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(10000) });
-        resolvedUrl = redirectRes.url;
-      } catch (err) {
-        if (err instanceof SsrfBlockedError) return { error: 'URL is not allowed', status: 400 };
-        throw err;
-      }
-    }
-
-    // Checked after resolving, not before: the host that counts is the one the link lands
-    // on, and `/maps/dir/` is a path anybody could serve.
-    let host = '';
-    try { host = new URL(resolvedUrl).hostname; } catch { /* an unparseable hop fails the check below */ }
-    if (!isGoogleMapsHost(host)) {
-      return { error: 'That link is not a Google Maps link.', status: 400 };
-    }
-
-    const waypoints = parseDirectionsUrl(resolvedUrl);
-    if (waypoints.length < 2) {
-      return { error: 'Could not read any stops from that directions link. Open the route in Google Maps and use its Share button.', status: 400 };
-    }
-
-    const places: { name: string; lat: number; lng: number; notes: string | null; googleFtid: string | null }[] = [];
-    let unplaceable = 0;
-    for (const wp of waypoints) {
-      if (wp.lat !== null && wp.lng !== null) {
-        // A stop written as coordinates has no name of its own, and the coordinates are a
-        // better label than "Stop 3": they are what the traveller can look up.
-        places.push({
-          name: wp.name || `${wp.lat.toFixed(5)}, ${wp.lng.toFixed(5)}`,
-          lat: wp.lat,
-          lng: wp.lng,
-          notes: null,
-          googleFtid: null,
-        });
-        continue;
-      }
-      if (!wp.name) continue;
-      try {
-        // Through geocodeQuery, which asks the TREK index first and only falls
-        // through to Nominatim for what it does not know — and does so on the
-        // BACKGROUND lane. That matters here more than anywhere: this loop runs
-        // up to thirty times in one request, each Nominatim call taking the next
-        // slot on a 1.1 s process-wide throttle, so on the interactive lane one
-        // pasted link made everybody else's place search queue behind it for
-        // half a minute. An index hit costs no slot at all.
-        const hit = await this.maps.geocodeQuery(wp.name);
-        // The name from the link, not the one the geocoder answers with: somebody who
-        // typed a nickname into Google should not find a street address on their trip.
-        if (hit) places.push({ name: wp.name, lat: hit.lat, lng: hit.lng, notes: null, googleFtid: null });
-        else unplaceable++;
-      } catch {
-        // A geocoder that is down or rate-limited costs this one stop, not the import.
-        unplaceable++;
-      }
-    }
-
-    if (places.length < 2) {
-      return { error: 'None of the stops in that link could be placed on the map.', status: 400 };
-    }
-
-    const { created, skipped } = this.storeGooglePlaces(tripId, places);
+    const { created, skipped } = await this.storeGooglePlaces(tripId, places);
     if (created.length) {
       void this.enrichImportedList(tripId, created as EnrichablePlace[], opts);
     }
@@ -1260,133 +1267,57 @@ export class PlacesService {
   // Import Naver Maps list
   // -------------------------------------------------------------------------
 
-  async importNaverList(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult | ListImportError> {
-    let resolvedUrl = url;
-    const limit = 20;
+  async importNaverList(tripId: string, url: string, opts?: ListImportOptions): Promise<ListImportResult> {
+    const read = await this.placeImport.readNaverList(url);
+    if ('error' in read) throw new DomainError(read.status, read.error);
+    const { listName, places } = read;
 
-    // SSRF guard: validate user-supplied URL before fetching
-    const ssrf = await checkSsrf(url);
-    if (!ssrf.allowed) return { error: 'URL is not allowed', status: 400 };
-
-    // Resolve naver.me short links to the canonical map.naver.com folder URL.
-    // Redirects are followed manually so each hop is re-validated against the
-    // SSRF guard (a short link could otherwise 302 to an internal address).
-    let parsedUrl: URL;
-    try { parsedUrl = new URL(url); } catch { return { error: 'Invalid URL', status: 400 }; }
-    if (parsedUrl.hostname === 'naver.me') {
-      try {
-        const redirectRes = await safeFetchFollow(url, { signal: AbortSignal.timeout(10000) });
-        resolvedUrl = redirectRes.url;
-      } catch (err) {
-        if (err instanceof SsrfBlockedError) return { error: 'URL is not allowed', status: 400 };
-        throw err;
-      }
-    }
-
-    const folderMatch = resolvedUrl.match(/favorite\/myPlace\/folder\/([A-Za-z0-9_-]+)/i);
-    const folderId = folderMatch?.[1] || null;
-    if (!folderId) {
-      return { error: 'Could not extract folder ID from URL. Please use a shared Naver Maps list link.', status: 400 };
-    }
-
-    const fetchPage = async (start: number) => {
-      const apiUrl = `https://pages.map.naver.com/save-pages/api/maps-bookmark/v3/shares/${encodeURIComponent(folderId)}/bookmarks?placeInfo=true&start=${start}&limit=${limit}&sort=lastUseTime&mcids=ALL&createIdNo=true`;
-      const apiRes = await fetch(apiUrl, {
-        headers: {
-          Accept: 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-        signal: AbortSignal.timeout(15000),
-      });
-
-      if (!apiRes.ok) {
-        return { error: 'Failed to fetch list from Naver Maps', status: 502 } as const;
-      }
-
-      // Same cap as the Google import: the URL is attacker-influenced via the
-      // folder id, and this pager buffers a fresh body on every iteration, so an
-      // uncapped read is worse here than there. The declared length is checked
-      // before the read; the post-read check covers a chunked response that
-      // carries no content-length at all.
-      const declared = Number(apiRes.headers?.get('content-length') ?? 0);
-      if (declared > MAX_LIST_RESPONSE_BYTES) {
-        return { error: 'Failed to fetch list from Naver Maps', status: 502 } as const;
-      }
-
-      try {
-        const rawText = await apiRes.text();
-        if (rawText.length > MAX_LIST_RESPONSE_BYTES) {
-          return { error: 'Failed to fetch list from Naver Maps', status: 502 } as const;
-        }
-        const data = JSON.parse(rawText) as {
-          folder?: { bookmarkCount?: number; name?: string };
-          bookmarkList?: Record<string, unknown>[];
-        };
-        return { data } as const;
-      } catch {
-        return { error: 'Invalid list data received from Naver Maps', status: 400 } as const;
-      }
-    };
-
-    const firstPage = await fetchPage(0);
-    if ('error' in firstPage) {
-      return { error: firstPage.error, status: firstPage.status };
-    }
-
-    const listName = firstPage.data.folder?.name || 'Naver Maps List';
-    const totalCount = typeof firstPage.data.folder?.bookmarkCount === 'number'
-      ? firstPage.data.folder.bookmarkCount
-      : (firstPage.data.bookmarkList?.length || 0);
-
-    const allItems: Record<string, unknown>[] = [...(firstPage.data.bookmarkList || [])];
-    for (let start = limit; start < totalCount; start += limit) {
-      const page = await fetchPage(start);
-      if ('error' in page) {
-        return { error: page.error, status: page.status };
-      }
-      const pageItems = page.data.bookmarkList || [];
-      if (!Array.isArray(pageItems) || pageItems.length === 0) break;
-      allItems.push(...pageItems);
-    }
-
-    if (allItems.length === 0) {
-      return { error: 'List is empty or could not be read', status: 400 };
-    }
-
-    const places: { name: string; lat: number; lng: number; notes: string | null; address: string | null }[] = [];
-    for (const item of allItems) {
-      const lat = Number(item?.py);
-      const lng = Number(item?.px);
-      const name = typeof item?.name === 'string' && item.name.trim()
-        ? item.name.trim()
-        : (typeof item?.displayName === 'string' ? item.displayName.trim() : '');
-      const note = typeof item?.memo === 'string' && item.memo.trim() ? item.memo.trim() : null;
-      const address = typeof item?.address === 'string' && item.address.trim() ? item.address.trim() : null;
-
-      if (name && Number.isFinite(lat) && Number.isFinite(lng)) {
-        places.push({ name, lat, lng, notes: note, address });
-      }
-    }
-
-    if (places.length === 0) {
-      return { error: 'No places with coordinates found in list', status: 400 };
-    }
-
-    const dedup = this.buildDedupSet(tripId);
-    const insertStmt = this.dbs.prepare(`
-    INSERT INTO places (trip_id, name, lat, lng, address, notes, transport_mode)
-    VALUES (?, ?, ?, ?, ?, ?, 'walking')
-  `);
+    // Rule 21 / M1 (Task 9 fix wave) — same ruling as `importGpxRows`: the
+    // caller's `requireTrip` gate already `toRowId`-parsed this `tripId`.
+    const tid = toRowId(tripId)!;
+    const dedup = await this.buildDedupSet(tripId);
     const created: PlaceWithTags[] = [];
     let skipped = 0;
-    this.dbs.transaction(() => {
+    // PL41/PL42 — `insertPlace` with the legacy 7-column set (trip_id, name,
+    // lat, lng, address, notes, transport_mode='walking' literal); every
+    // omitted column takes its DB-default value. Re-selected via
+    // `findWithTagsAndRatings` INSIDE the same transaction.
+    await this.uow.transactional(async () => {
       for (const p of places) {
         if (isPlaceDuplicate({ name: p.name, lat: p.lat, lng: p.lng }, dedup)) {
           skipped++;
           continue;
         }
-        const result = insertStmt.run(tripId, p.name, p.lat, p.lng, p.address, p.notes);
-        const place = this.dbs.getPlaceWithTags(Number(result.lastInsertRowid))!;
+        const placeId = await this.placesRepo.insertPlace({
+          trip_id: tid,
+          name: p.name,
+          description: null,
+          lat: p.lat,
+          lng: p.lng,
+          address: p.address,
+          category_id: null,
+          price: null,
+          currency: null,
+          place_time: null,
+          end_time: null,
+          duration_minutes: 60,
+          notes: p.notes,
+          image_url: null,
+          google_place_id: null,
+          google_ftid: null,
+          osm_id: null,
+          amap_poi_id: null,
+          website: null,
+          phone: null,
+          transport_mode: 'walking',
+          route_geometry: null,
+          route_color: null,
+          stop_type: null,
+          fill_percent: null,
+          email: null,
+          opening_hours: null,
+        });
+        const place = (await this.placesRepo.findWithTagsAndRatings(placeId))!;
         created.push(place);
         trackInsertedInDedupSet({ name: p.name, lat: p.lat, lng: p.lng }, dedup);
       }
@@ -1424,6 +1355,16 @@ export class PlacesService {
     if (place.google_place_id) return;
     if (typeof place.lat !== 'number' || typeof place.lng !== 'number') return;
 
+    // Rule 21 / M1 (Task 9 fix wave): non-null asserted — this whole path
+    // only ever runs right after this service's own import, downstream of
+    // the controller's `requireTrip` gate, which already `toRowId`-parsed
+    // this same `tripId` once. Deliberately NOT applied to
+    // `this.realtime.broadcast` below: every broadcast call in this domain,
+    // controller included, keys the room by the raw route string, and
+    // changing this one call's room shape alone would desync it from what
+    // the client actually joined.
+    const tid = toRowId(tripId)!;
+
     // Asked for a Google identity rather than for the best answer: the whole
     // point here is the `google_place_id` that `pickEnrichmentMatch` selects on,
     // and the TREK index and OpenStreetMap have none to give. Without this the
@@ -1443,19 +1384,16 @@ export class PlacesService {
     if (!gpid) return;
     const gftid = trimOrNull(match.google_ftid);
 
-    // COALESCE so enrichment only fills empty columns — never overwrites data the
-    // import already captured (e.g. Naver's address) or anything the user edited.
-    this.dbs.run(
-      `UPDATE places
-     SET google_place_id = COALESCE(google_place_id, ?),
-         google_ftid    = COALESCE(google_ftid, ?),
-         address        = COALESCE(address, ?),
-         website        = COALESCE(website, ?),
-         phone          = COALESCE(phone, ?),
-         updated_at     = CURRENT_TIMESTAMP
-     WHERE id = ? AND trip_id = ?`,
-      gpid, gftid, trimOrNull(match.address), trimOrNull(match.website), trimOrNull(match.phone), place.id, tripId,
-    );
+    // PL43 — `fillIfEmpty`, COALESCE-per-column so enrichment only fills
+    // empty columns — never overwrites data the import already captured
+    // (e.g. Naver's address) or anything the user edited.
+    await this.placesRepo.fillIfEmpty(place.id, tid, {
+      google_place_id: gpid,
+      google_ftid: gftid,
+      address: trimOrNull(match.address),
+      website: trimOrNull(match.website),
+      phone: trimOrNull(match.phone),
+    });
 
     // Photo is best-effort: Google often has none, in which case getPlacePhoto
     // resolves with photoUrl: null. A missing photo (or a provider outage, which
@@ -1463,18 +1401,17 @@ export class PlacesService {
     try {
       const photo = await this.maps.getPlacePhoto(userId, gpid, place.lat, place.lng, place.name);
       if (photo?.photoUrl) {
-        this.dbs.run(
-          'UPDATE places SET image_url = COALESCE(image_url, ?), updated_at = CURRENT_TIMESTAMP WHERE id = ? AND trip_id = ?',
-          photo.photoUrl, place.id, tripId,
-        );
+        // PL44 — `fillIfEmpty`, the `image_url`-only shape.
+        await this.placesRepo.fillIfEmpty(place.id, tid, { image_url: photo.photoUrl });
       }
     } catch {
       /* no photo — leave image_url as-is */
     }
 
-    // Push the enriched row to every connected client (no socket exclusion: the
-    // importer's own client should also receive the late update).
-    const updated = this.dbs.getPlaceWithTags(place.id);
+    // PL45 — push the enriched row to every connected client (no socket
+    // exclusion: the importer's own client should also receive the late
+    // update — `socketId: undefined`, no `X-Socket-Id` to exclude).
+    const updated = await this.placesRepo.findWithTagsAndRatings(place.id);
     if (updated) this.realtime.broadcast(tripId, 'place:updated', { place: updated }, undefined);
   }
 
@@ -1486,7 +1423,7 @@ export class PlacesService {
   async enrichImportedPlaces(tripId: string, userId: number, places: EnrichablePlace[], lang?: string): Promise<void> {
     try {
       if (!places.length) return;
-      if (!this.maps.getMapsKey(userId)) return;
+      if (!(await this.maps.getMapsKey(userId))) return;
       await mapWithConcurrency(places, ENRICH_CONCURRENCY, async (place) => {
         try {
           await this.enrichOne(tripId, userId, place, lang);
@@ -1497,6 +1434,17 @@ export class PlacesService {
     } catch (err) {
       console.error('[Places] import enrichment pass failed:', err instanceof Error ? err.message : err);
     }
+  }
+
+  /**
+   * The Google pass for places a file brought in (#2536). Only its points: a track
+   * or a drawn path is a line, and looking a line up by its name finds a stranger.
+   * Detached like the list imports, and just as quietly a no-op without a key.
+   * @txStandalone detached, after the import has committed.
+   */
+  enrichImportedFilePlaces(tripId: string, userId: number, places: ImportedPlace[]): void {
+    const points = (places as (ImportedPlace & EnrichablePlace)[]).filter(p => !p.route_geometry);
+    void this.enrichImportedPlaces(tripId, userId, points);
   }
 
   /**
@@ -1532,6 +1480,8 @@ export class PlacesService {
         console.warn(`[Places] address backfill skipped for trip ${tripId}: ${pending.length} places exceeds the ${ADDRESS_BACKFILL_MAX_PLACES} cap`);
         return;
       }
+      // Rule 21 / M1 (Task 9 fix wave) — same ruling as `enrichOne`.
+      const tid = toRowId(tripId)!;
       // Serial on purpose: the background lane throttles to roughly one request a
       // second anyway, so concurrency would only build a queue.
       for (const place of pending) {
@@ -1541,11 +1491,11 @@ export class PlacesService {
             timeoutMs: 10000,
           });
           if (!address) continue;
-          this.dbs.run(
-            'UPDATE places SET address = COALESCE(address, ?), updated_at = CURRENT_TIMESTAMP WHERE id = ? AND trip_id = ?',
-            address, place.id, tripId,
-          );
-          const updated = this.dbs.getPlaceWithTags(place.id);
+          // PL46 — `fillIfEmpty`, the `address`-only shape.
+          await this.placesRepo.fillIfEmpty(place.id, tid, { address });
+          // PL47 — same broadcast shape as PL45: `socketId: undefined`, no
+          // exclusion.
+          const updated = await this.placesRepo.findWithTagsAndRatings(place.id);
           if (updated) this.realtime.broadcast(tripId, 'place:updated', { place: updated }, undefined);
         } catch (err) {
           console.error(`[Places] address backfill failed for place ${place.id}:`, err instanceof Error ? err.message : err);
@@ -1561,10 +1511,21 @@ export class PlacesService {
   // -------------------------------------------------------------------------
 
   async searchImage(tripId: string, placeId: string, userId: number) {
-    const place = this.dbs.get<Place>('SELECT * FROM places WHERE id = ? AND trip_id = ?', placeId, tripId);
-    if (!place) return { error: 'Place not found', status: 404 };
+    // `toRowId` first (Task 3 review H1, absorbed here) — same gate shape
+    // as every other place-id route in this service.
+    const id = toRowId(placeId);
+    if (id === null) throw new DomainError(404, 'Place not found');
+    // Rule 21 (H1): the trip id gets the same `toRowId` treatment as the
+    // place id above, parsed once and used for the one downstream read —
+    // `Number(tripId)` used to disagree with it and let a hex trip id read
+    // a different trip's place.
+    const tid = toRowId(tripId);
+    if (tid === null) throw new DomainError(404, 'Place not found');
+    // PL48 — same statement as PL9 (`applyUpdate`'s pre-image read).
+    const place = await this.placesRepo.findInTrip(id, tid);
+    if (!place) throw new DomainError(404, 'Place not found');
 
-    return this.unsplash.searchUnsplashPhotos(place.name + (place.address ? ' ' + place.address : ''), 5, this.unsplash.getUnsplashKey(userId));
+    return this.unsplash.searchUnsplashPhotos(place.name + (place.address ? ' ' + place.address : ''), 5, await this.unsplash.getUnsplashKey(userId));
   }
 
   // -------------------------------------------------------------------------
@@ -1577,22 +1538,47 @@ export class PlacesService {
    * a vote must not 409 another member's offline edit. Returns the refreshed
    * place (with the new aggregate) or null when the place isn't in the trip.
    */
-  rate(tripId: string, placeId: string, userId: number, rating: number | null): PlaceWithTags | null {
-    const place = this.dbs.get('SELECT id FROM places WHERE id = ? AND trip_id = ?', placeId, tripId);
-    if (!place) return null;
+  async rate(tripId: string, placeId: string, userId: number, rating: number | null): Promise<PlaceWithTags | null> {
+    // `toRowId` first (Task 3 review H1, absorbed here): PL50/PL51 write
+    // with this SAME id — a non-canonical `placeId` must resolve to "not
+    // found" here rather than pass a loose affinity match and then write a
+    // rating against an id `place_ratings`'s own FK never actually named.
+    const id = toRowId(placeId);
+    if (id === null) return null;
+    // Rule 21 (H1): the trip id gets the same `toRowId` treatment as the
+    // place id above, parsed once and used for the existence gate below —
+    // `Number(tripId)` used to disagree with it and let a hex trip id rate
+    // a different trip's place.
+    const tid = toRowId(tripId);
+    if (tid === null) return null;
+    // PL49 — the existence gate.
+    if (!(await this.placesRepo.existsInTrip(id, tid))) return null;
     if (rating === null) {
-      this.dbs.run('DELETE FROM place_ratings WHERE place_id = ? AND user_id = ?', placeId, userId);
+      // PL50 — `DELETE FROM place_ratings WHERE place_id = ? AND user_id = ?`.
+      await this.placeRatingsRepo.deleteRating(id, userId);
     } else {
-      this.dbs.run(`
-      INSERT INTO place_ratings (place_id, user_id, rating) VALUES (?, ?, ?)
-      ON CONFLICT(place_id, user_id) DO UPDATE SET rating = excluded.rating
-    `, placeId, userId, rating);
+      // PL51 — the only explicit `ON CONFLICT … DO UPDATE` in the cluster; never touches `places.updated_at`.
+      await this.placeRatingsRepo.upsertRating(id, userId, rating);
     }
-    return this.dbs.getPlaceWithTags(placeId);
+    return await this.placesRepo.findWithTagsAndRatings(id); // PL52
   }
 
-  // Journey hooks — non-fatal, mirroring the route's try/catch wrappers.
-  onCreated(tripId: string, placeId: number): void { try { this.journey.onPlaceCreated(Number(tripId), placeId); } catch { /* non-fatal */ } }
-  onUpdated(placeId: number): void { try { this.journey.onPlaceUpdated(placeId); } catch { /* non-fatal */ } }
-  onDeleted(placeId: number): void { try { this.journey.onPlaceDeleted(placeId); } catch { /* non-fatal */ } }
+  /** @txStandalone a journey hook: a non-fatal sync after the place write, like the route's try/catch. */
+  async onCreated(tripId: string, placeId: number): Promise<void> {
+    try {
+      await this.journey.onPlaceCreated(Number(tripId), placeId);
+    } catch { /* non-fatal */ }
+  }
+  /** @txStandalone the same non-fatal journey hook. */
+  async onUpdated(placeId: number): Promise<void> {
+    try {
+      await this.journey.onPlaceUpdated(placeId);
+    } catch { /* non-fatal */ }
+  }
+  /** @txStandalone the same non-fatal journey hook. */
+  async onDeleted(placeId: number): Promise<void> {
+    try {
+      await this.journey.onPlaceDeleted(placeId);
+    } catch { /* non-fatal */ }
+  }
 }

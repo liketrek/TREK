@@ -484,3 +484,151 @@ describe('reconcileAppVersion: the reload guard', () => {
     expect(reload).not.toHaveBeenCalled()
   })
 })
+
+describe('offersNewBuild: whether the notice offers a reload', () => {
+  it('FE-UTIL-VERSION-040: offers a version other than the one this page was built as', async () => {
+    const { offersNewBuild } = await loadModule()
+    expect(offersNewBuild(`${BUILT}-next`)).toBe(true)
+    expect(offersNewBuild(BUILT)).toBe(false)
+    expect(offersNewBuild(null)).toBe(false)
+  })
+
+  it('FE-UTIL-VERSION-041: not once this session reloaded for that version, since another reload shows the same build', async () => {
+    const { offersNewBuild } = await loadModule()
+    sessionStorage.setItem('trek_app_version_reload', `${BUILT}-next`)
+    expect(offersNewBuild(`${BUILT}-next`)).toBe(false)
+    expect(offersNewBuild(`${BUILT}-later`)).toBe(true)
+    sessionStorage.removeItem('trek_app_version_reload')
+  })
+
+  it('FE-UTIL-VERSION-042: not without session storage, where the reload guard and with it the reload is missing', async () => {
+    const { offersNewBuild } = await loadModule()
+    breakStorage('getItem', () => sessionStorage)
+    expect(offersNewBuild(`${BUILT}-next`)).toBe(false)
+  })
+
+  it('FE-UTIL-VERSION-043: asReleaseTag takes a release tag and nothing else', async () => {
+    const { asReleaseTag } = await loadModule()
+    expect(asReleaseTag('4.3.4-rc.1')).toBe('4.3.4-rc.1')
+    expect(asReleaseTag(' 4.3.4')).toBeNull()
+    expect(asReleaseTag(434)).toBeNull()
+    expect(asReleaseTag('4'.repeat(65))).toBeNull()
+  })
+})
+
+describe('switchToServerVersion: the reload the user asked for', () => {
+  const guard = () => sessionStorage.getItem('trek_app_version_reload')
+
+  afterEach(() => {
+    sessionStorage.removeItem('trek_app_version_reload')
+    vi.useRealTimers()
+  })
+
+  it('FE-UTIL-VERSION-050: without a worker it reloads at once, under a fresh URL, and spends the guard', async () => {
+    const { switchToServerVersion } = await loadModule()
+    await switchToServerVersion('4.3.4')
+    expect(reload).toHaveBeenCalledTimes(1)
+    expect(plainReload).not.toHaveBeenCalled()
+    expect(guard()).toBe('4.3.4')
+  })
+
+  it('FE-UTIL-VERSION-051: waits for the new worker to take over, records the version, then reloads', async () => {
+    const { container, registration } = installWorker()
+    updateInstalls(registration)
+    const { switchToServerVersion } = await loadModule()
+    localStorage.setItem('trek_app_version', '4.3.3')
+
+    const switching = switchToServerVersion('4.3.4')
+    await vi.waitFor(() => expect(registration.update).toHaveBeenCalled())
+    expect(reload).not.toHaveBeenCalled()
+
+    container.takeOver()
+    await switching
+    expect(marker()).toBe('4.3.4')
+    expect(reload).toHaveBeenCalledTimes(1)
+    expect(guard()).toBe('4.3.4')
+  })
+
+  it('FE-UTIL-VERSION-052: an unchanged sw.js has nothing to wait for, so it reloads and leaves the marker', async () => {
+    const { registration } = installWorker()
+    const { switchToServerVersion } = await loadModule()
+    localStorage.setItem('trek_app_version', '4.3.3')
+
+    await switchToServerVersion('4.3.4')
+    expect(registration.update).toHaveBeenCalled()
+    expect(marker()).toBe('4.3.3')
+    expect(reload).toHaveBeenCalledTimes(1)
+    expect(guard()).toBe('4.3.4')
+  })
+
+  it('FE-UTIL-VERSION-053: an install that goes redundant still reloads, but leaves the guard to the next launch', async () => {
+    const { registration } = installWorker()
+    const incoming = updateInstalls(registration)
+    const { switchToServerVersion } = await loadModule()
+
+    const switching = switchToServerVersion('4.3.4')
+    await vi.waitFor(() => expect(registration.update).toHaveBeenCalled())
+    incoming.become('redundant')
+    await switching
+    expect(reload).toHaveBeenCalledTimes(1)
+    // The launch on the other side retries the handover and reloads by itself.
+    expect(guard()).toBeNull()
+  })
+
+  it('FE-UTIL-VERSION-054: a failed update or a worker that never takes over does not leave the user waiting', async () => {
+    const failing = installWorker()
+    failing.registration.update.mockRejectedValue(new Error('offline'))
+    let { switchToServerVersion } = await loadModule()
+    await switchToServerVersion('4.3.4')
+    expect(reload).toHaveBeenCalledTimes(1)
+    expect(guard()).toBeNull()
+
+    const stuck = installWorker()
+    updateInstalls(stuck.registration)
+    ;({ switchToServerVersion } = await loadModule())
+    vi.useFakeTimers()
+    const switching = switchToServerVersion('4.3.5')
+    await vi.advanceTimersByTimeAsync(20_000)
+    await switching
+    expect(reload).toHaveBeenCalledTimes(2)
+    expect(guard()).toBeNull()
+  })
+
+  it('FE-UTIL-VERSION-055: a worker that replaced the one that served the page already answers the reload', async () => {
+    const { container, registration } = installWorker()
+    const { switchToServerVersion } = await loadModule()
+    container.controller = new FakeWorker('activated')
+
+    await switchToServerVersion('4.3.4')
+    expect(registration.update).not.toHaveBeenCalled()
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-UTIL-VERSION-057: a worker that only claimed a page from the network holds this build, so the handover still runs', async () => {
+    const { container, registration } = installWorker(null)
+    const { switchToServerVersion } = await loadModule()
+    // registerSW installed this build's worker after the page loaded, and it claimed the page.
+    const claimed = new FakeWorker('activated')
+    container.controller = claimed
+    registration.active = claimed
+    updateInstalls(registration)
+
+    const switching = switchToServerVersion('4.3.4')
+    await vi.waitFor(() => expect(registration.update).toHaveBeenCalled())
+    expect(reload).not.toHaveBeenCalled()
+
+    container.takeOver()
+    await switching
+    expect(marker()).toBe('4.3.4')
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-UTIL-VERSION-056: a registration lookup that throws still reloads', async () => {
+    const { container } = installWorker()
+    container.getRegistration.mockRejectedValue(new Error('SecurityError'))
+    const { switchToServerVersion } = await loadModule()
+
+    await switchToServerVersion('4.3.4')
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
+})

@@ -1,8 +1,15 @@
-// FE-PLANNER-ICS-001 to FE-PLANNER-ICS-012
+// FE-PLANNER-ICS-001 to FE-PLANNER-ICS-016
 import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { IcsSubscribeModal } from './IcsSubscribeModal';
+
+// The phone keeps the dialog's own markup, the desktop draws it in the shared
+// dialog frame. useIsPhone reads matchMedia, which the test setup always
+// answers with false, so the phone is switched on by hand.
+const phone = vi.hoisted(() => ({ value: false }));
+vi.mock('../../mobile/useIsPhone', () => ({ useIsPhone: () => phone.value }));
 
 const ENDPOINT = '/api/trips/9/feed';
 const TOKEN_URL = `${ENDPOINT}/token`;
@@ -24,7 +31,12 @@ function tokenHandlers(handler: (method: string) => Response | Promise<Response>
   ];
 }
 
-describe('IcsSubscribeModal', () => {
+afterEach(() => { phone.value = false; });
+
+// Everything a user can do with the link works the same on both shells.
+describe.each([['phone', true], ['desktop', false]] as const)('IcsSubscribeModal on the %s', (_shell, isPhone) => {
+  beforeEach(() => { phone.value = isPhone; });
+
   it('FE-PLANNER-ICS-001: shows the loading state until the token read resolves', async () => {
     let release: (() => void) | null = null;
     const gate = new Promise<void>(res => { release = res; });
@@ -135,6 +147,10 @@ describe('IcsSubscribeModal', () => {
     await waitFor(() => expect(regenerate).not.toBeDisabled());
     expect(screen.getByText('https://trek.example/feed/keep.ics')).toBeInTheDocument();
   });
+});
+
+describe('IcsSubscribeModal on the phone', () => {
+  beforeEach(() => { phone.value = true; });
 
   it('FE-PLANNER-ICS-011: the close button and a backdrop click both call onClose, an inner click does not', async () => {
     const onClose = vi.fn();
@@ -153,5 +169,62 @@ describe('IcsSubscribeModal', () => {
 
     fireEvent.click(screen.getByText('Keep the itinerary in your own calendar.'));
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('FE-PLANNER-ICS-013: the phone keeps its own sheet, not the desktop dialog frame', async () => {
+    server.use(http.get(TOKEN_URL, () => HttpResponse.json({ feed_url: null })));
+    render(<IcsSubscribeModal {...defaultProps} />);
+    await screen.findByRole('button', { name: /Enable calendar subscription/i });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(document.querySelector('[style*="z-index: 9999"]')).not.toBeNull();
+  });
+});
+
+describe('IcsSubscribeModal on the desktop', () => {
+  it('FE-PLANNER-ICS-014: a dialog named by its title, the description and the links in it', async () => {
+    server.use(http.get(TOKEN_URL, () => HttpResponse.json({ feed_url: 'https://trek.example/feed/tok.ics' })));
+    render(<IcsSubscribeModal {...defaultProps} />);
+    const dialog = screen.getByRole('dialog', { name: 'Subscribe to this trip' });
+    expect(dialog).toHaveTextContent('Keep the itinerary in your own calendar.');
+    expect(await screen.findByRole('link', { name: /Add to Google Calendar/i })).toBeInTheDocument();
+    expect(screen.getByText(/Regenerating creates a new link/i)).toBeInTheDocument();
+    // Turning the link off is drawn in the danger colour.
+    expect(screen.getByRole('button', { name: /Turn off/i })).toHaveClass('text-danger');
+  });
+
+  it('FE-PLANNER-ICS-015: the close button, Escape and a backdrop press close it, a press inside does not', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    server.use(http.get(TOKEN_URL, () => HttpResponse.json({ feed_url: null })));
+    render(<IcsSubscribeModal {...defaultProps} onClose={onClose} />);
+    await screen.findByRole('button', { name: /Enable calendar subscription/i });
+
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    await user.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(2);
+
+    await user.click(screen.getByText('Keep the itinerary in your own calendar.'));
+    expect(onClose).toHaveBeenCalledTimes(2);
+
+    await user.click(screen.getByRole('dialog').parentElement as HTMLElement);
+    expect(onClose).toHaveBeenCalledTimes(3);
+  });
+
+  it('FE-PLANNER-ICS-016: while a change is sent, the link controls wait for it', async () => {
+    let release: (() => void) | null = null;
+    const gate = new Promise<void>(res => { release = res; });
+    server.use(
+      http.get(TOKEN_URL, () => HttpResponse.json({ feed_url: 'https://trek.example/feed/tok.ics' })),
+      http.put(TOKEN_URL, async () => { await gate; return HttpResponse.json({ feed_url: 'https://trek.example/feed/new.ics' }); }),
+    );
+    render(<IcsSubscribeModal {...defaultProps} />);
+    fireEvent.click(await screen.findByRole('button', { name: /Regenerate/i }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /Turn off/i })).toBeDisabled());
+    expect(screen.getByRole('button', { name: /Regenerate/i })).toBeDisabled();
+    release!();
+    expect(await screen.findByText('https://trek.example/feed/new.ics')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Turn off/i })).toBeEnabled();
   });
 });

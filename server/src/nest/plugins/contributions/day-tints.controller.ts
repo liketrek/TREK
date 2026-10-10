@@ -1,10 +1,14 @@
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { DatabaseService } from '../../database/database.service';
-import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { Days } from '../../../db/entities/Days.entity';
+import type { DaysRepository } from '../../../db/repositories/Days.repository';
+import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
+import { TripAccessService } from '../../trip-membership/trip-access.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
 import { stripEmoji } from '../text-sanitize';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 /**
  * GET /api/day-tints/:tripId — the colours the planner paints into a day card in the
@@ -65,8 +69,7 @@ const cap = (v: unknown, n: number): string => stripEmoji(String(v ?? '')).slice
  * beacon for the plugin's own server. Nothing but `#rrggbb` gets through.
  */
 const HEX = /^#[0-9a-fA-F]{6}$/;
-const hex = (v: unknown): string | undefined =>
-  typeof v === 'string' && HEX.test(v) ? v.toLowerCase() : undefined;
+const hex = (v: unknown): string | undefined => (typeof v === 'string' && HEX.test(v) ? v.toLowerCase() : undefined);
 
 // Bound the work, not just the output: an all-invalid raw array (no entry ever
 // reaching `out`) would otherwise be iterated in full. Slice up front, well above
@@ -81,12 +84,15 @@ const MAX_RAW_TINTS = 2000;
  * hooks use for `tone`.
  */
 const region = (v: unknown): Tone | undefined =>
-  v === undefined || v === null ? undefined : (TONES.has(v as string) ? (v as Tone) : 'default');
+  v === undefined || v === null ? undefined : TONES.has(v as string) ? (v as Tone) : 'default';
 
 const named = (v: unknown): boolean => v !== undefined && v !== null;
 
 /** One region of the card, resolved whole — a colour, a tone, or nothing. */
-interface RegionTint { tone?: Tone; color?: string }
+interface RegionTint {
+  tone?: Tone;
+  color?: string;
+}
 
 /**
  * Resolve one region against the contribution's `tone` / `color` shorthands, in one
@@ -157,7 +163,9 @@ function normalize(pluginId: string, tripDayIds: ReadonlySet<number>, raw: unkno
 export class DayTintsController {
   constructor(
     private readonly hooks: PluginHooks,
-    private readonly dbs: DatabaseService,
+    private readonly trips: TripAccessService,
+    // CT2 (Plan 3j Task 5) — the trip's day-id set, converted onto Days.repository.ts.
+    @InjectRepository(Days) private readonly days: DaysRepository,
   ) {}
 
   @Get(':tripId')
@@ -168,12 +176,13 @@ export class DayTintsController {
     if (!pluginsEnabled()) return { tints: [] };
     const tripId = Number(tripIdRaw);
     const userId = req.user?.id;
-    if (!Number.isFinite(tripId) || userId == null || !this.dbs.canAccessTrip(tripId, userId)) return { tints: [] };
+    if (!Number.isFinite(tripId) || userId == null || !(await this.trips.findAccessible(tripId, userId)))
+      return { tints: [] };
 
     const ids = this.hooks.providersOf('dayTintProvider');
     if (ids.length === 0) return { tints: [] };
-    const dayRows = this.dbs.connection.prepare('SELECT id FROM days WHERE trip_id = ?').all(tripId) as Array<{ id: number }>;
-    const tripDayIds: ReadonlySet<number> = new Set(dayRows.map((d) => d.id));
+    const dayIds = await this.days.listIdsByTrip(tripId); // CT2 — Plan 3j
+    const tripDayIds: ReadonlySet<number> = new Set(dayIds);
 
     const perProvider = await Promise.all(
       ids.map(async (id): Promise<DayTint[]> => {

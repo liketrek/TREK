@@ -1,5 +1,5 @@
 // @ts-expect-error — plain .mjs script with no .d.ts; import as JS module.
-import { checkParity } from '../../scripts/i18n-parity.mjs';
+import { checkCountStrings, checkParity, NOT_PLURAL } from '../../scripts/i18n-parity.mjs';
 
 import { describe, it, expect } from 'vitest';
 
@@ -29,5 +29,45 @@ describe('i18n parity', () => {
       expect(Array.isArray(entry.missing)).toBe(true);
       expect(Array.isArray(entry.extra)).toBe(true);
     }
+  });
+});
+
+describe('i18n count strings', () => {
+  const ROOT = new URL('../../scripts/fixtures/i18n/', import.meta.url);
+
+  it('refuses an en string with {count}, {n} or a quantity param outside a plural group', () => {
+    const { ungrouped, stale } = checkCountStrings(['a.ts'], [], ROOT);
+    // a.stay carries its quantity as {days}, which no plural form is picked by.
+    expect(ungrouped).toEqual([
+      { file: 'a.ts', key: 'a.lone' },
+      { file: 'a.ts', key: 'a.day' },
+      { file: 'a.ts', key: 'a.stay' },
+    ]);
+    expect(stale).toEqual([]);
+  });
+
+  it('lets a number that is no quantity through NOT_PLURAL, and refuses a stale entry', () => {
+    const allowed = [
+      { key: 'a.day', because: 'a day number' },
+      { key: 'a.count', because: 'a group now' },
+    ];
+    expect(checkCountStrings(['a.ts'], allowed, ROOT)).toEqual({
+      ungrouped: [
+        { file: 'a.ts', key: 'a.lone' },
+        { file: 'a.ts', key: 'a.stay' },
+      ],
+      stale: ['a.count'],
+    });
+  });
+
+  it('every NOT_PLURAL entry says why', () => {
+    for (const { because } of NOT_PLURAL) expect(because.length).toBeGreaterThan(10);
+  });
+
+  it('every count-bearing en string is a plural group or on NOT_PLURAL', () => {
+    const report = checkParity();
+    expect(report.countDrift).toEqual({ ungrouped: [], stale: [] });
+    expect(report.untranslated.error).toBeNull();
+    expect(report.untranslated.grown).toEqual([]);
   });
 });

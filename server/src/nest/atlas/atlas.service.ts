@@ -1,8 +1,28 @@
 import { Injectable } from '@nestjs/common';
+import { MikroORM } from '@mikro-orm/core';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { CONTINENT_MAP, strongerVisitStatus, todayUtc, tripVisitStatus, VisitStatus } from '@trek/shared';
 import type { AtlasLocateResponse } from '@trek/shared';
-import { Trip, Place } from '../../types';
-import { DatabaseService } from '../database/database.service';
+import { UnitOfWork } from '../database/unit-of-work';
+import { withRequestContext } from '../database/request-context';
+import { BucketList } from '../../db/entities/BucketList.entity';
+import type { BucketListRepository, BucketListRow } from '../../db/repositories/BucketList.repository';
+import { HiddenCountries } from '../../db/entities/HiddenCountries.entity';
+import type { HiddenCountriesRepository } from '../../db/repositories/HiddenCountries.repository';
+import { HiddenRegions } from '../../db/entities/HiddenRegions.entity';
+import type { HiddenRegionsRepository } from '../../db/repositories/HiddenRegions.repository';
+import { VisitedCountries } from '../../db/entities/VisitedCountries.entity';
+import type { VisitedCountriesRepository } from '../../db/repositories/VisitedCountries.repository';
+import { VisitedRegions } from '../../db/entities/VisitedRegions.entity';
+import type { VisitedRegionsRepository } from '../../db/repositories/VisitedRegions.repository';
+import { PlaceRegions } from '../../db/entities/PlaceRegions.entity';
+import type { PlaceRegionsRepository } from '../../db/repositories/PlaceRegions.repository';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { TripsRepository, TripRawRow } from '../../db/repositories/Trips.repository';
+import { Places } from '../../db/entities/Places.entity';
+import type { PlacesRepository, PlaceRow } from '../../db/repositories/Places.repository';
+import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
+import type { ReservationEndpointsRepository, TravelerOwnedEndpointRow } from '../../db/repositories/ReservationEndpoints.repository';
 import {
   getCountryFromAddress,
   getCountryFromCoords,
@@ -18,12 +38,11 @@ import type { RegionInfo } from './atlas-geo';
 import { KNOWN_COUNTRIES } from './known-countries';
 import { cityFromAddress } from './city-from-address';
 import { transferEndpointIds } from './transfer-endpoints';
-import type { FlightEndpointRow } from './transfer-endpoints';
 import { countryVisitDates } from './visit-dates';
 import { haversineKm } from '../common/geo';
 
 /** The part of a place that its cached region is derived from. */
-type LocatedPlace = Pick<Place, 'id' | 'lat' | 'lng' | 'address'>;
+type LocatedPlace = Pick<PlaceRow, 'id' | 'lat' | 'lng' | 'address'>;
 
 /** A place_regions row next to the location of its place. */
 type CachedRegionRow = LocatedPlace & { country_code: string; region_code: string };
@@ -32,13 +51,24 @@ type CachedRegionRow = LocatedPlace & { country_code: string; region_code: strin
 const REPAIR_YIELD_EVERY = 200;
 
 /**
- * A reservation endpoint plus the two booking columns that decide whether it may
- * take part in layover pairing at all (see transfer-endpoints.ts).
+ * Whole days from `today` to `isoDate`, both `YYYY-MM-DD` in UTC: the legacy
+ * `CAST(julianday(start_date) - julianday(date('now')) AS INTEGER)` (#2542),
+ * truncated toward zero the same way.
  */
-type EndpointRow = FlightEndpointRow & {
-  reservation_type: string | null;
-  reservation_status: string | null;
-};
+function daysBetween(today: string, isoDate: string): number {
+  const from = Date.parse(`${today.slice(0, 10)}T00:00:00Z`);
+  const to = Date.parse(`${isoDate.slice(0, 10)}T00:00:00Z`);
+  return Math.trunc((to - from) / 86_400_000);
+}
+
+/**
+ * A reservation endpoint plus the two booking columns that decide whether it may
+ * take part in layover pairing at all (see transfer-endpoints.ts). Structurally
+ * identical to `ReservationEndpointsRepository`'s own `TravelerOwnedEndpointRow`
+ * (AT6/AT45's shared projection) — aliased locally so the rest of this file's
+ * `EndpointRow` references stay unchanged.
+ */
+type EndpointRow = TravelerOwnedEndpointRow;
 
 export type CreateBucketData = {
   name: string;
@@ -47,6 +77,7 @@ export type CreateBucketData = {
   country_code?: string | null;
   notes?: string | null;
   target_date?: string | null;
+  region_code?: string | null;
 };
 
 export type UpdateBucketData = {
@@ -96,6 +127,18 @@ function blankToNull(value: string | null | undefined): string | null {
 }
 
 /**
+ * A wished-for region as stored (#1901): ISO 3166-2, upper case as the region
+ * boundaries carry it, and only when it lies in the item's own country. Anything
+ * else is no region, which keeps a caller that skips the contract (the plugin RPC)
+ * from pinning a wish to somebody else's map.
+ */
+export function bucketRegionCode(region: string | null | undefined, country: string | null): string | null {
+  const code = blankToNull(region)?.toUpperCase() ?? null;
+  if (!code || !country || !/^[A-Z]{2}-[A-Z0-9]{1,8}$/.test(code)) return null;
+  return code.startsWith(`${country.toUpperCase()}-`) ? code : null;
+}
+
+/**
  * Who ticked a country off, for the detail sheet.
  *
  * Null when there is no row at all — a country derived from a trip's places was
@@ -111,7 +154,13 @@ function markedSource(row: { source?: string | null } | undefined): string | nul
 /**
  * DI-native atlas domain service — the legacy services/atlasService SQL
  * (stats aggregation, visited countries/regions with the #1490 tombstones,
- * bucket-list CRUD) folded in verbatim over the injected DatabaseService.
+ * bucket-list CRUD) folded in verbatim, now through repositories
+ * (`db/repositories/{BucketList,HiddenCountries,HiddenRegions,
+ * VisitedCountries,VisitedRegions,PlaceRegions}.repository.ts` plus additive
+ * reads on `Trips`/`Places`/`ReservationEndpoints`, Plan 3f Task 1). The
+ * `TRAVELER_OWNS` fragment (#1966) is Task 0's shared
+ * `_shared/reservation-travelers-owns.ts` predicate, consumed (not
+ * re-derived) at its three call sites inside `ReservationEndpointsRepository`.
  * The pure-geo machinery (bundled admin0/admin1 boundaries, point-in-polygon
  * indexes, Nominatim geocoding and its caches) lives in ./atlas-geo — a plain
  * module so the multi-MB caches stay process-global across the container
@@ -121,27 +170,28 @@ function markedSource(row: { source?: string | null } | undefined): string | nul
  */
 @Injectable()
 export class AtlasService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    @InjectRepository(BucketList) private readonly bucketListRepo: BucketListRepository,
+    @InjectRepository(HiddenCountries) private readonly hiddenCountries: HiddenCountriesRepository,
+    @InjectRepository(HiddenRegions) private readonly hiddenRegions: HiddenRegionsRepository,
+    @InjectRepository(VisitedCountries) private readonly visitedCountries: VisitedCountriesRepository,
+    @InjectRepository(VisitedRegions) private readonly visitedRegionsRepo: VisitedRegionsRepository,
+    @InjectRepository(PlaceRegions) private readonly placeRegions: PlaceRegionsRepository,
+    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    @InjectRepository(Places) private readonly places: PlacesRepository,
+    @InjectRepository(ReservationEndpoints) private readonly reservationEndpoints: ReservationEndpointsRepository,
+    private readonly uow: UnitOfWork,
+    private readonly orm: MikroORM,
+  ) {}
 
   // ── Shared query: all trips the user owns or is a member of ───────────────
 
-  private getUserTrips(userId: number): Trip[] {
-    return this.db
-      .prepare(
-        `
-    SELECT DISTINCT t.* FROM trips t
-    LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
-    WHERE t.user_id = ? OR m.user_id = ?
-    ORDER BY t.start_date DESC
-  `,
-      )
-      .all(userId, userId, userId) as Trip[];
+  private async getUserTrips(userId: number): Promise<TripRawRow[]> {
+    return this.trips.listOwnedOrMember(userId); // AT1
   }
 
-  private getPlacesForTrips(tripIds: number[]): Place[] {
-    if (tripIds.length === 0) return [];
-    const placeholders = tripIds.map(() => '?').join(',');
-    return this.db.prepare(`SELECT * FROM places WHERE trip_id IN (${placeholders})`).all(...tripIds) as Place[];
+  private async getPlacesForTrips(tripIds: number[]): Promise<PlaceRow[]> {
+    return this.places.listForTripIds(tripIds); // AT2
   }
 
   /**
@@ -149,28 +199,21 @@ export class AtlasService {
    * Everything country-shaped downstream takes its status from here, so the map, the
    * counters and the country detail sheet can never disagree about the same trip.
    */
-  private tripStatusMap(trips: Trip[], today: string): Map<number, VisitStatus> {
+  private tripStatusMap(trips: TripRawRow[], today: string): Map<number, VisitStatus> {
     return new Map(trips.map((t) => [t.id, tripVisitStatus(t.start_date, t.end_date, today)]));
   }
 
   // ── Country resolution (batch DB cache + sync fallback + background geocoding) ──
 
-  private resolvePlaceCountries(places: Place[]): Map<number, string> {
+  private async resolvePlaceCountries(places: PlaceRow[]): Promise<Map<number, string>> {
     const out = new Map<number, string>();
     const geoPlaces = places.filter((p) => p.lat && p.lng);
     const placeIds = geoPlaces.map((p) => p.id);
 
-    const cached =
-      placeIds.length > 0
-        ? (this.db
-            .prepare(
-              `SELECT place_id, country_code FROM place_regions WHERE place_id IN (${placeIds.map(() => '?').join(',')})`,
-            )
-            .all(...placeIds) as { place_id: number; country_code: string }[])
-        : [];
+    const cached = placeIds.length > 0 ? await this.placeRegions.listCountryCodesForPlaceIds(placeIds) : []; // AT3
     const cachedMap = new Map(cached.map((r) => [r.place_id, r.country_code]));
 
-    const uncachedForGeocode: Place[] = [];
+    const uncachedForGeocode: PlaceRow[] = [];
     for (const p of places) {
       const fromDb = cachedMap.get(p.id);
       if (fromDb) {
@@ -187,23 +230,29 @@ export class AtlasService {
       }
     }
 
-    this.cacheRegionsInBackground(uncachedForGeocode);
+    this.cacheRegionsInBackground(uncachedForGeocode); // AT4
 
     return out;
   }
 
   /**
    * Resolve each place's region in the background and cache it in place_regions.
+   *
+   * The loop outlives the Atlas request that started it, so it forks its own
+   * request context with `withRequestContext` instead of riding that request's
+   * `EntityManager` fork — the same shape the import-job runner
+   * (`ImportJobsService#start`) and the webhook nudge timer
+   * (`DocSyncWebhookController#schedule`) use for their detached chains.
    */
-  private cacheRegionsInBackground(places: Place[]): void {
+  private cacheRegionsInBackground(places: PlaceRow[]): void {
     if (places.length === 0) return;
     for (const p of places) geocodingInFlight.add(p.id);
-    void (async () => {
+    void withRequestContext(this.orm, async () => {
       try {
         for (const place of places) {
           try {
             const info = await reverseGeocodeRegion(place.lat!, place.lng!, place.address);
-            if (info) this.cacheRegionWhileUnmoved(place, info);
+            if (info) await this.cacheRegionWhileUnmoved(place, info);
           } catch {
             // individual failure, continue with the remaining places
           } finally {
@@ -213,7 +262,7 @@ export class AtlasService {
       } catch {
         for (const p of places) geocodingInFlight.delete(p.id);
       }
-    })();
+    });
   }
 
   /**
@@ -222,19 +271,8 @@ export class AtlasService {
    * the place_regions trigger (#2527), and writing the old answer back would pin it to
    * the country it just left. A place deleted in the meantime is skipped the same way.
    */
-  private cacheRegionWhileUnmoved(place: LocatedPlace, info: RegionInfo): boolean {
-    const written = this.db.run(
-      `INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name)
-       SELECT id, ?, ?, ? FROM places WHERE id = ? AND lat = ? AND lng = ? AND address IS ?`,
-      info.country_code,
-      info.region_code,
-      info.region_name,
-      place.id,
-      place.lat,
-      place.lng,
-      place.address ?? null,
-    );
-    return written.changes > 0;
+  private async cacheRegionWhileUnmoved(place: LocatedPlace, info: RegionInfo): Promise<boolean> {
+    return this.placeRegions.upsertRegionWhileUnmoved(place, info); // AT48
   }
 
   // ── One time repair of the rows cached before #2527 ───────────────────────
@@ -261,12 +299,7 @@ export class AtlasService {
    * so a place edited while this runs keeps what the trigger and the next lookup give it.
    */
   async repairStaleRegionCache(): Promise<{ replaced: number; dropped: number }> {
-    const rows = this.db.all<CachedRegionRow>(`
-      SELECT pr.place_id AS id, pr.country_code, pr.region_code, p.lat, p.lng, p.address
-      FROM place_regions pr
-      JOIN places p ON p.id = pr.place_id
-      ORDER BY pr.place_id
-    `);
+    const rows: CachedRegionRow[] = await this.placeRegions.listWithPlaceLocation(); // AT49
     let replaced = 0;
     let dropped = 0;
     for (const [i, row] of rows.entries()) {
@@ -274,8 +307,8 @@ export class AtlasService {
       if (i > 0 && i % REPAIR_YIELD_EVERY === 0) await new Promise((resolve) => setImmediate(resolve));
       const fix = await this.staleRegionFix(row);
       if (fix === 'drop') {
-        if (this.dropRegionWhileUnmoved(row)) dropped++;
-      } else if (fix && this.cacheRegionWhileUnmoved(row, fix)) {
+        if (await this.dropRegionWhileUnmoved(row)) dropped++;
+      } else if (fix && (await this.cacheRegionWhileUnmoved(row, fix))) {
         replaced++;
       }
     }
@@ -296,38 +329,22 @@ export class AtlasService {
     return contradicted ? 'drop' : null;
   }
 
-  private dropRegionWhileUnmoved(row: CachedRegionRow): boolean {
-    const removed = this.db.run(
-      `DELETE FROM place_regions
-       WHERE place_id = ? AND country_code = ? AND region_code = ?
-         AND EXISTS (SELECT 1 FROM places WHERE id = ? AND lat IS ? AND lng IS ? AND address IS ?)`,
-      row.id,
-      row.country_code,
-      row.region_code,
-      row.id,
-      row.lat ?? null,
-      row.lng ?? null,
-      row.address ?? null,
-    );
-    return removed.changes > 0;
+  private async dropRegionWhileUnmoved(row: CachedRegionRow): Promise<boolean> {
+    return this.placeRegions.deleteRegionWhileUnmoved(row); // AT50
   }
 
   // ── Stats ─────────────────────────────────────────────────────────────────
 
   async stats(userId: number) {
-    const trips = this.getUserTrips(userId);
+    const trips = await this.getUserTrips(userId);
     const tripIds = trips.map((t) => t.id);
 
     if (tripIds.length === 0) {
-      const hiddenOnly = this.getHiddenCountries(userId);
-      const manualCountries = this.db
-        .prepare('SELECT country_code FROM visited_countries WHERE user_id = ?')
-        .all(userId) as {
-        country_code: string;
-      }[];
-      const countries = manualCountries
-        .filter((mc) => !hiddenOnly.has(mc.country_code))
-        .map((mc) => ({ code: mc.country_code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }));
+      const hiddenOnly = await this.getHiddenCountries(userId);
+      const manualCountryCodes = await this.visitedCountries.listCodesForUser(userId); // AT5
+      const countries = manualCountryCodes
+        .filter((code) => !hiddenOnly.has(code))
+        .map((code) => ({ code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }));
       return {
         countries,
         trips: [],
@@ -335,7 +352,7 @@ export class AtlasService {
       };
     }
 
-    const places = this.getPlacesForTrips(tripIds);
+    const places = await this.getPlacesForTrips(tripIds);
     const now = todayUtc();
     const tripStatus = this.tripStatusMap(trips, now);
 
@@ -345,7 +362,7 @@ export class AtlasService {
       tripIds: Set<number>;
       status: VisitStatus;
     }
-    const placeCountries = this.resolvePlaceCountries(places);
+    const placeCountries = await this.resolvePlaceCountries(places);
     const countrySet = new Map<string, CountryEntry>();
     for (const place of places) {
       const code = placeCountries.get(place.id);
@@ -399,7 +416,7 @@ export class AtlasService {
         const candidates = parts.length >= 2 ? parts.slice(0, -1) : parts;
         let city = '';
         for (let i = candidates.length - 1; i >= 0; i--) {
-          const cleaned = candidates[i].replace(/[\d\-\u2212\u3012]+/g, '').trim();
+          const cleaned = candidates[i].replace(/[\d\-−〒]+/g, '').trim();
           if (cleaned) {
             city = cleaned.toLowerCase();
             break;
@@ -413,24 +430,20 @@ export class AtlasService {
     // Countries the user explicitly removed. Only the zero-count passes below are
     // suppressed — a country with real places isn't removable in the UI anyway, and once
     // the user adds a place there the tombstone should stop mattering (#1490).
-    const hidden = this.getHiddenCountries(userId);
+    const hidden = await this.getHiddenCountries(userId);
 
     // Merge manually marked countries
-    const manualCountries = this.db
-      .prepare('SELECT country_code FROM visited_countries WHERE user_id = ?')
-      .all(userId) as {
-      country_code: string;
-    }[];
-    for (const mc of manualCountries) {
-      if (hidden.has(mc.country_code)) continue;
-      const existing = countries.find((c) => c.code === mc.country_code);
+    const manualCountryCodes = await this.visitedCountries.listCodesForUser(userId); // AT7
+    for (const code of manualCountryCodes) {
+      if (hidden.has(code)) continue;
+      const existing = countries.find((c) => c.code === code);
       if (existing) {
         // Marking a country by hand is a statement of fact and outranks the dates of a
         // trip that happens to go there later (#1048).
         existing.status = 'visited';
       } else {
         countries.push({
-          code: mc.country_code,
+          code,
           placeCount: 0,
           tripCount: 0,
           firstVisit: null,
@@ -445,22 +458,7 @@ export class AtlasService {
     // via resolvePlaceCountries above and would otherwise be missed (#1366).
     // Only 'from'/'to' legs count as actually reached — a 'stop' is an intermediate
     // connection/layover (e.g. a plane change) the traveler never really visited.
-    const endpointRows = this.db
-      .prepare(
-        `
-    SELECT DISTINCT e.id, e.reservation_id, r.trip_id, e.role, e.code, e.lat, e.lng, e.local_date, e.local_time,
-           r.type AS reservation_type, r.status AS reservation_status,
-           CASE e.role
-             WHEN 'to' THEN COALESCE(r.reservation_end_time, r.reservation_time)
-             ELSE COALESCE(r.reservation_time, r.reservation_end_time)
-           END AS fallback_time
-    FROM reservation_endpoints e
-    JOIN reservations r ON e.reservation_id = r.id
-    WHERE r.trip_id IN (${tripIds.map(() => '?').join(',')}) AND e.role IN ('from', 'to')
-      AND ${AtlasService.TRAVELER_OWNS}
-  `,
-      )
-      .all(...tripIds, userId) as EndpointRow[];
+    const endpointRows: EndpointRow[] = await this.reservationEndpoints.listOwnedEndpointsForTrips(tripIds, userId); // AT6, TRAVELER_OWNS (#1966)
 
     // A layover the traveler never left is only marked 'stop' while both its legs sit in
     // one booking. Split over two bookings it is a plain 'to' plus 'from' at the same
@@ -600,15 +598,13 @@ export class AtlasService {
 
   // ── Country places ────────────────────────────────────────────────────────
 
-  countryPlaces(userId: number, code: string) {
-    const trips = this.getUserTrips(userId);
+  async countryPlaces(userId: number, code: string) {
+    const trips = await this.getUserTrips(userId);
     const tripIds = trips.map((t) => t.id);
     if (tripIds.length === 0) {
       // Post-fold quirk fix: the legacy early return hardcoded manually_marked
       // false, so a trip-less user's manually marked country read as unmarked.
-      const row = this.db
-        .prepare('SELECT source FROM visited_countries WHERE user_id = ? AND country_code = ?')
-        .get(userId, code) as { source?: string | null } | undefined;
+      const row = await this.visitedCountries.findSource(userId, code); // AT8
       const marked = !!row;
       return {
         places: [],
@@ -619,7 +615,7 @@ export class AtlasService {
       };
     }
 
-    const places = this.getPlacesForTrips(tripIds);
+    const places = await this.getPlacesForTrips(tripIds);
 
     const matchingPlaces: {
       id: number;
@@ -650,9 +646,7 @@ export class AtlasService {
       .filter((t) => matchingTripIds.has(t.id))
       .map((t) => ({ id: t.id, title: t.title, start_date: t.start_date, end_date: t.end_date }));
 
-    const markRow = this.db
-      .prepare('SELECT source FROM visited_countries WHERE user_id = ? AND country_code = ?')
-      .get(userId, code) as { source?: string | null } | undefined;
+    const markRow = await this.visitedCountries.findSource(userId, code); // AT9
     const isManuallyMarked = !!markRow;
 
     // Take the status from the same trip classification stats() uses rather than deriving
@@ -676,18 +670,14 @@ export class AtlasService {
 
   // ── Mark / unmark country ─────────────────────────────────────────────────
 
-  listVisitedCountries(userId: number): { country_code: string; created_at: string; source: string }[] {
-    return this.db
-      .prepare('SELECT country_code, created_at, source FROM visited_countries WHERE user_id = ? ORDER BY created_at DESC')
-      .all(userId) as { country_code: string; created_at: string; source: string }[];
+  async listVisitedCountries(userId: number): Promise<{ country_code: string; created_at: string | null; source: string }[]> {
+    return this.visitedCountries.listForUser(userId); // AT10
   }
 
   /** Countries the user explicitly removed, which stats() must not re-derive (#1490). */
-  getHiddenCountries(userId: number): Set<string> {
-    const rows = this.db.prepare('SELECT country_code FROM hidden_countries WHERE user_id = ?').all(userId) as {
-      country_code: string;
-    }[];
-    return new Set(rows.map((r) => r.country_code));
+  async getHiddenCountries(userId: number): Promise<Set<string>> {
+    const codes = await this.hiddenCountries.listForUser(userId); // AT11
+    return new Set(codes);
   }
 
   /**
@@ -700,115 +690,84 @@ export class AtlasService {
    * Returns whether this actually added the country, so a caller reporting
    * "3 countries added" is not counting the ones that were already there.
    */
-  markCountry(userId: number, code: string, source: 'manual' | 'dawarich' = 'manual'): boolean {
-    return this.db.transaction(() => {
-      const inserted = this.db
-        .prepare('INSERT OR IGNORE INTO visited_countries (user_id, country_code, source) VALUES (?, ?, ?)')
-        .run(userId, code, source).changes > 0;
+  async markCountry(userId: number, code: string, source: 'manual' | 'dawarich' = 'manual'): Promise<boolean> {
+    return await this.uow.transactional(async () => {
+      const inserted = await this.visitedCountries.markVisited(userId, code, source); // AT12
       // Marking it visited again lifts a previous removal.
-      this.db.prepare('DELETE FROM hidden_countries WHERE user_id = ? AND country_code = ?').run(userId, code);
+      await this.hiddenCountries.unhide(userId, code); // AT13
       return inserted;
     });
   }
 
-  unmarkCountry(userId: number, code: string): void {
-    this.db.transaction(() => {
-      this.db.prepare('DELETE FROM visited_countries WHERE user_id = ? AND country_code = ?').run(userId, code);
-      this.db.prepare('DELETE FROM visited_regions WHERE user_id = ? AND country_code = ?').run(userId, code);
+  async unmarkCountry(userId: number, code: string): Promise<void> {
+    await this.uow.transactional(async () => {
+      await this.visitedCountries.unmark(userId, code); // AT14
+      await this.visitedRegionsRepo.unmarkAllInCountry(userId, code); // AT15
       // A country derived from a place or a transport endpoint has no visited_countries row,
       // so the deletes above are no-ops and stats() would re-derive it on the next request.
       // Tombstone it so the removal actually sticks (#1490).
-      this.db.prepare('INSERT OR IGNORE INTO hidden_countries (user_id, country_code) VALUES (?, ?)').run(userId, code);
+      await this.hiddenCountries.hide(userId, code); // AT16
     });
   }
 
   // ── Mark / unmark region ──────────────────────────────────────────────────
 
-  listManuallyVisitedRegions(userId: number): { region_code: string; region_name: string; country_code: string }[] {
-    return this.db
-      .prepare(
-        'SELECT region_code, region_name, country_code FROM visited_regions WHERE user_id = ? ORDER BY created_at DESC',
-      )
-      .all(userId) as { region_code: string; region_name: string; country_code: string }[];
+  async listManuallyVisitedRegions(userId: number): Promise<{ region_code: string; region_name: string; country_code: string }[]> {
+    return this.visitedRegionsRepo.listForUser(userId); // AT21
   }
 
   /** Regions the user explicitly removed, which visitedRegions() must not re-derive. */
-  getHiddenRegions(userId: number): Set<string> {
-    const rows = this.db.prepare('SELECT region_code FROM hidden_regions WHERE user_id = ?').all(userId) as {
-      region_code: string;
-    }[];
-    return new Set(rows.map((r) => r.region_code));
+  async getHiddenRegions(userId: number): Promise<Set<string>> {
+    const codes = await this.hiddenRegions.listForUser(userId); // AT22
+    return new Set(codes);
   }
 
-  markRegion(userId: number, code: string, name: string, countryCode: string): void {
-    this.db.transaction(() => {
-      this.db
-        .prepare(
-          'INSERT OR IGNORE INTO visited_regions (user_id, region_code, region_name, country_code) VALUES (?, ?, ?, ?)',
-        )
-        .run(userId, code, name, countryCode);
+  async markRegion(userId: number, code: string, name: string, countryCode: string): Promise<void> {
+    await this.uow.transactional(async () => {
+      await this.visitedRegionsRepo.markVisited(userId, code, name, countryCode); // AT17
       // Re-marking lifts a previous removal of the region itself...
-      this.db.prepare('DELETE FROM hidden_regions WHERE user_id = ? AND region_code = ?').run(userId, code);
+      await this.hiddenRegions.unhide(userId, code); // AT18
       // ...and of the parent country, which the "last region removed" cascade in
       // unmarkRegion below may have hidden — otherwise marking a region visited again
       // would leave its country invisible.
-      this.db
-        .prepare('INSERT OR IGNORE INTO visited_countries (user_id, country_code) VALUES (?, ?)')
-        .run(userId, countryCode);
-      this.db.prepare('DELETE FROM hidden_countries WHERE user_id = ? AND country_code = ?').run(userId, countryCode);
+      await this.visitedCountries.markFromRegion(userId, countryCode); // AT19
+      await this.hiddenCountries.unhide(userId, countryCode); // AT20
     });
   }
 
   // True when the given country still has at least one region that would show as visited —
   // derived from place_regions or manually marked — after excluding the given user's hidden
   // regions. Used to decide whether removing a region should cascade into hiding the country.
-  private hasVisibleRegionForCountry(userId: number, countryCode: string, hidden: Set<string>): boolean {
-    const tripIds = this.getUserTrips(userId).map((t) => t.id);
-    const placeIds = this.getPlacesForTrips(tripIds)
+  private async hasVisibleRegionForCountry(userId: number, countryCode: string, hidden: Set<string>): Promise<boolean> {
+    const tripIds = (await this.getUserTrips(userId)).map((t) => t.id);
+    const placeIds = (await this.getPlacesForTrips(tripIds))
       .filter((p) => p.lat && p.lng)
       .map((p) => p.id);
     const placeRegionCodes =
-      placeIds.length > 0
-        ? (
-            this.db
-              .prepare(
-                `SELECT DISTINCT region_code FROM place_regions WHERE country_code = ? AND place_id IN (${placeIds.map(() => '?').join(',')})`,
-              )
-              .all(countryCode, ...placeIds) as { region_code: string }[]
-          ).map((r) => r.region_code)
-        : [];
-    const manualRegionCodes = (
-      this.db
-        .prepare('SELECT region_code FROM visited_regions WHERE user_id = ? AND country_code = ?')
-        .all(userId, countryCode) as { region_code: string }[]
-    ).map((r) => r.region_code);
+      placeIds.length > 0 ? await this.placeRegions.listDistinctRegionCodesForCountryAndPlaces(countryCode, placeIds) : []; // AT23
+    const manualRegionCodes = await this.visitedRegionsRepo.listRegionCodesForCountry(userId, countryCode); // AT24
     return [...placeRegionCodes, ...manualRegionCodes].some((code) => !hidden.has(code));
   }
 
-  unmarkRegion(userId: number, code: string): void {
+  async unmarkRegion(userId: number, code: string): Promise<void> {
     // One transaction across the delete, the tombstone and the country cascade —
-    // better-sqlite3 turns the nested unmarkCountry() transaction into a savepoint.
-    this.db.transaction(() => {
-      const region = this.db
-        .prepare('SELECT country_code FROM visited_regions WHERE user_id = ? AND region_code = ?')
-        .get(userId, code) as { country_code: string } | undefined;
-      const countryCode = region?.country_code || countryCodeFromRegionCode(code);
+    // MikroORM turns the nested unmarkCountry() transaction into a savepoint.
+    await this.uow.transactional(async () => {
+      const countryCode = (await this.visitedRegionsRepo.findCountryCode(userId, code)) || countryCodeFromRegionCode(code); // AT25
 
-      this.db.prepare('DELETE FROM visited_regions WHERE user_id = ? AND region_code = ?').run(userId, code);
+      await this.visitedRegionsRepo.unmark(userId, code); // AT26
 
       // Tombstone unconditionally, not just for a manually-marked region — a region derived
       // from real place data (the common case) needs to be dismissable too, mirroring
       // unmarkCountry's tombstone for a place-derived country (#1490).
       if (countryCode) {
-        this.db
-          .prepare('INSERT OR IGNORE INTO hidden_regions (user_id, region_code, country_code) VALUES (?, ?, ?)')
-          .run(userId, code, countryCode);
+        await this.hiddenRegions.hide(userId, code, countryCode); // AT27
 
         // If that was the country's last visible region, hide the country too — otherwise it
         // keeps showing "visited" on the world map with nothing left to drill into.
-        const hidden = this.getHiddenRegions(userId);
-        if (!this.hasVisibleRegionForCountry(userId, countryCode, hidden)) {
-          this.unmarkCountry(userId, countryCode);
+        const hidden = await this.getHiddenRegions(userId);
+        if (!(await this.hasVisibleRegionForCountry(userId, countryCode, hidden))) {
+          await this.unmarkCountry(userId, countryCode);
         }
       }
     });
@@ -822,9 +781,9 @@ export class AtlasService {
       { code: string; name: string; placeCount: number; status: VisitStatus; manuallyMarked?: boolean }[]
     >;
   }> {
-    const trips = this.getUserTrips(userId);
+    const trips = await this.getUserTrips(userId);
     const tripIds = trips.map((t) => t.id);
-    const places = this.getPlacesForTrips(tripIds);
+    const places = await this.getPlacesForTrips(tripIds);
 
     // Regions carry the same status as their country, otherwise zooming into a merely
     // planned country would reveal regions painted as visited (#1048).
@@ -833,18 +792,13 @@ export class AtlasService {
 
     // Check DB cache first
     const placeIds = places.filter((p) => p.lat && p.lng).map((p) => p.id);
-    const cached =
-      placeIds.length > 0
-        ? (this.db
-            .prepare(`SELECT * FROM place_regions WHERE place_id IN (${placeIds.map(() => '?').join(',')})`)
-            .all(...placeIds) as { place_id: number; country_code: string; region_code: string; region_name: string }[])
-        : [];
+    const cached = placeIds.length > 0 ? await this.placeRegions.listForPlaceIds(placeIds) : []; // AT28
     const cachedMap = new Map(cached.map((c) => [c.place_id, c]));
 
     // Kick off background geocoding for uncached places; return cached data immediately.
     this.cacheRegionsInBackground(
       places.filter((p) => p.lat && p.lng && !cachedMap.has(p.id) && !geocodingInFlight.has(p.id)),
-    );
+    ); // AT29
 
     // Group by country → regions with place counts
     const regionMap: Record<
@@ -878,7 +832,7 @@ export class AtlasService {
     }
 
     // Merge manually marked regions
-    const manualRegions = this.listManuallyVisitedRegions(userId);
+    const manualRegions = await this.listManuallyVisitedRegions(userId);
     for (const r of manualRegions) {
       if (!result[r.country_code]) result[r.country_code] = [];
       const existing = result[r.country_code].find((x) => x.code === r.region_code);
@@ -898,7 +852,7 @@ export class AtlasService {
     // Suppress regions the user explicitly removed, same as stats() does for countries
     // via getHiddenCountries (#1490) — otherwise a region derived fresh from place_regions
     // (or a manual mark) on every request could never actually be dismissed.
-    const hidden = this.getHiddenRegions(userId);
+    const hidden = await this.getHiddenRegions(userId);
     if (hidden.size > 0) {
       for (const country of Object.keys(result)) {
         result[country] = result[country].filter((r) => !hidden.has(r.code));
@@ -941,8 +895,8 @@ export class AtlasService {
 
   // ── Bucket list CRUD ──────────────────────────────────────────────────────
 
-  bucketList(userId: number) {
-    return this.db.prepare('SELECT * FROM bucket_list WHERE user_id = ? ORDER BY created_at DESC').all(userId);
+  async bucketList(userId: number): Promise<BucketListRow[]> {
+    return this.bucketListRepo.listForUser(userId); // AT30
   }
 
   /**
@@ -953,27 +907,15 @@ export class AtlasService {
    * date is part of it because one entry per planned date is exactly what the
    * report asks for. `IS` compares NULLs as equal, so "no coordinates" matches
    * "no coordinates" instead of the NULL-is-never-equal SQLite default.
-   * `lower()` is ASCII-only in SQLite, which is what the client mirrors.
+   * `lower()` is ASCII-only in SQLite, which is what the client mirrors. See
+   * `BucketListRepository.findDuplicate`'s own docstring for how the NULL-safe
+   * match is reproduced without raw SQL.
    */
-  private findDuplicateBucketItem(userId: number, key: BucketIdentity, excludeId?: number): { id: number } | undefined {
-    return this.db
-      .prepare(
-        `SELECT id FROM bucket_list
-     WHERE user_id = ?
-       AND lower(trim(name)) = lower(trim(?))
-       AND country_code IS ?
-       AND target_date IS ?
-       AND lat IS ?
-       AND lng IS ?
-       AND id IS NOT ?
-     LIMIT 1`,
-      )
-      .get(userId, key.name, key.country_code, key.target_date, key.lat, key.lng, excludeId ?? null) as
-      | { id: number }
-      | undefined;
+  private async findDuplicateBucketItem(userId: number, key: BucketIdentity, excludeId?: number): Promise<number | null> {
+    return this.bucketListRepo.findDuplicate(userId, key, excludeId ?? null); // AT31
   }
 
-  createBucketItem(userId: number, data: CreateBucketData) {
+  async createBucketItem(userId: number, data: CreateBucketData) {
     const identity: BucketIdentity = {
       name: data.name.trim(),
       lat: data.lat ?? null,
@@ -983,27 +925,22 @@ export class AtlasService {
     };
     // #1898: the same wish must not stack up. A different target date (or a
     // different place under the same name) is a different wish and still lands.
-    if (this.findDuplicateBucketItem(userId, identity)) throw new BucketItemExistsError();
-    const result = this.db
-      .prepare(
-        'INSERT INTO bucket_list (user_id, name, lat, lng, country_code, notes, target_date) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      )
-      .run(
-        userId,
-        identity.name,
-        identity.lat,
-        identity.lng,
-        identity.country_code,
-        data.notes ?? null,
-        identity.target_date,
-      );
-    return this.db.prepare('SELECT * FROM bucket_list WHERE id = ?').get(result.lastInsertRowid);
+    if (await this.findDuplicateBucketItem(userId, identity)) throw new BucketItemExistsError();
+    const id = await this.bucketListRepo.insertItem({
+      user_id: userId,
+      name: identity.name,
+      lat: identity.lat,
+      lng: identity.lng,
+      country_code: identity.country_code,
+      notes: data.notes ?? null,
+      target_date: identity.target_date,
+      region_code: bucketRegionCode(data.region_code, identity.country_code),
+    }); // AT32
+    return this.bucketListRepo.findById(id); // AT33
   }
 
-  updateBucketItem(userId: number, itemId: string | number, data: UpdateBucketData) {
-    const item = this.db.prepare('SELECT * FROM bucket_list WHERE id = ? AND user_id = ?').get(itemId, userId) as
-      | (BucketIdentity & { id: number })
-      | undefined;
+  async updateBucketItem(userId: number, itemId: string | number, data: UpdateBucketData) {
+    const item = await this.bucketListRepo.findForUser(itemId, userId); // AT34
     if (!item) return null;
     // #1898: an edit must not land on top of another wish either — same guard as
     // create, over the values the row will have once the UPDATE below ran. The
@@ -1015,46 +952,29 @@ export class AtlasService {
       country_code: data.country_code !== undefined ? blankToNull(data.country_code) : blankToNull(item.country_code),
       target_date: data.target_date !== undefined ? blankToNull(data.target_date) : blankToNull(item.target_date),
     };
-    if (this.findDuplicateBucketItem(userId, next, item.id)) throw new BucketItemExistsError();
+    if (await this.findDuplicateBucketItem(userId, next, item.id)) throw new BucketItemExistsError();
     // Post-fold quirk fixes: the value bindings use `?? null` (the legacy
     // `|| null` wrote NULL for lat/lng 0 and empty-string notes), and the
     // UPDATE + re-select are user-scoped (defense-in-depth; the ownership
     // SELECT above stays the primary gate). The whitespace-only name no-op
     // (`?.trim() || null` + COALESCE) is deliberate and preserved.
-    this.db
-      .prepare(
-        `UPDATE bucket_list SET
-    name = COALESCE(?, name),
-    notes = CASE WHEN ? THEN ? ELSE notes END,
-    lat = CASE WHEN ? THEN ? ELSE lat END,
-    lng = CASE WHEN ? THEN ? ELSE lng END,
-    country_code = CASE WHEN ? THEN ? ELSE country_code END,
-    target_date = CASE WHEN ? THEN ? ELSE target_date END
-    WHERE id = ? AND user_id = ?`,
-      )
-      .run(
-        data.name?.trim() || null,
-        data.notes !== undefined ? 1 : 0,
-        data.notes !== undefined ? (data.notes ?? null) : null,
-        data.lat !== undefined ? 1 : 0,
-        data.lat !== undefined ? (data.lat ?? null) : null,
-        data.lng !== undefined ? 1 : 0,
-        data.lng !== undefined ? (data.lng ?? null) : null,
-        data.country_code !== undefined ? 1 : 0,
-        data.country_code !== undefined ? next.country_code : null,
-        data.target_date !== undefined ? 1 : 0,
-        data.target_date !== undefined ? next.target_date : null,
-        itemId,
-        userId,
-      );
-    return this.db.prepare('SELECT * FROM bucket_list WHERE id = ? AND user_id = ?').get(itemId, userId);
+    const trimmedName = data.name?.trim();
+    await this.bucketListRepo.update(itemId, userId, {
+      name: trimmedName ? [true, trimmedName] : [false, ''],
+      notes: [data.notes !== undefined, data.notes !== undefined ? (data.notes ?? null) : null],
+      lat: [data.lat !== undefined, data.lat !== undefined ? (data.lat ?? null) : null],
+      lng: [data.lng !== undefined, data.lng !== undefined ? (data.lng ?? null) : null],
+      country_code: [data.country_code !== undefined, data.country_code !== undefined ? next.country_code : null],
+      target_date: [data.target_date !== undefined, data.target_date !== undefined ? next.target_date : null],
+    }); // AT35
+    return this.bucketListRepo.findForUser(itemId, userId); // AT36
   }
 
-  deleteBucketItem(userId: number, itemId: string | number): boolean {
-    const item = this.db.prepare('SELECT * FROM bucket_list WHERE id = ? AND user_id = ?').get(itemId, userId);
+  async deleteBucketItem(userId: number, itemId: string | number): Promise<boolean> {
+    const item = await this.bucketListRepo.findForUser(itemId, userId); // AT37
     if (!item) return false;
     // Post-fold quirk fix: user-scoped DELETE (defense-in-depth, see updateBucketItem).
-    this.db.prepare('DELETE FROM bucket_list WHERE id = ? AND user_id = ?').run(itemId, userId);
+    await this.bucketListRepo.deleteForUser(itemId, userId); // AT38
     return true;
   }
 
@@ -1091,59 +1011,59 @@ export class AtlasService {
    * much to spend on a label. An unresolved trip reports an empty list, which the
    * caller renders as "no country" rather than as a wrong one.
    */
-  lastTrip(userId: number): { title: string; start_date: string | null; end_date: string | null; countries: string[] } | null {
-    const trip = this.db.get<{ id: number; title: string; start_date: string | null; end_date: string | null }>(`
-    SELECT t.id, t.title, t.start_date, t.end_date
-    FROM trips t
-    LEFT JOIN trip_members tm ON t.id = tm.trip_id
-    WHERE (t.user_id = ? OR tm.user_id = ?)
-      AND COALESCE(t.start_date, t.end_date) IS NOT NULL
-      AND COALESCE(t.start_date, t.end_date) <= date('now')
-    ORDER BY COALESCE(t.end_date, t.start_date) DESC, t.id DESC
-    LIMIT 1
-  `, userId, userId);
+  async lastTrip(userId: number): Promise<{ title: string; start_date: string | null; end_date: string | null; countries: string[] } | null> {
+    const trip = await this.trips.lastStartedTrip(userId, todayUtc()); // AT39
     if (!trip) return null;
-
-    const rows = this.db.all<{ country_code: string; places: number }>(`
-    SELECT pr.country_code, COUNT(DISTINCT p.id) AS places
-    FROM place_regions pr
-    JOIN places p ON p.id = pr.place_id
-    WHERE p.trip_id = ? AND pr.country_code IS NOT NULL
-    GROUP BY pr.country_code
-    ORDER BY places DESC, pr.country_code ASC
-  `, trip.id);
 
     return {
       title: trip.title,
       start_date: trip.start_date,
       end_date: trip.end_date,
-      countries: rows.map(r => r.country_code.toUpperCase()),
+      countries: await this.tripCountries(trip.id),
     };
   }
 
-  getTravelStats(userId: number) {
+  /**
+   * The trip the user goes on next, the counterpart of lastTrip for a widget that
+   * counts down (#2542).
+   *
+   * Next means not started yet: a trip that is under way is still the last trip,
+   * so the two never name the same one. Only a trip with a start date qualifies,
+   * because a trip with only an end date has nothing to count down to. The days
+   * are counted against the same UTC `todayUtc()` lastTrip cuts on, so the switch
+   * from next to last happens at one moment for both fields.
+   */
+  async nextTrip(userId: number): Promise<{ title: string; start_date: string; end_date: string | null; days_until: number; countries: string[] } | null> {
+    const today = todayUtc();
+    const trip = await this.trips.nextUpcomingTrip(userId, today); // AT47
+    if (!trip) return null;
+
+    return {
+      title: trip.title,
+      start_date: trip.start_date,
+      end_date: trip.end_date,
+      days_until: daysBetween(today, trip.start_date),
+      countries: await this.tripCountries(trip.id),
+    };
+  }
+
+  /** The countries a trip's places resolved to in `place_regions`, most-visited first. */
+  private async tripCountries(tripId: number): Promise<string[]> {
+    const rows = await this.placeRegions.countPlacesByCountryForTrip(tripId); // AT40
+    return rows.map((r) => r.country_code.toUpperCase());
+  }
+
+  async getTravelStats(userId: number) {
+    const today = todayUtc();
+
     // The resolved region rides along so cityFromAddress can tell the city apart from
     // the region sitting right above it in the same address (#1115).
-    const places = this.db.all<{ address: string | null; lat: number | null; lng: number | null; region_name: string | null }>(`
-    SELECT DISTINCT p.address, p.lat, p.lng, pr.region_name
-    FROM places p
-    JOIN trips t ON p.trip_id = t.id
-    LEFT JOIN trip_members tm ON t.id = tm.trip_id
-    LEFT JOIN place_regions pr ON pr.place_id = p.id
-    WHERE t.user_id = ? OR tm.user_id = ?
-  `, userId, userId);
+    const places = await this.places.listAddressesForUser(userId); // AT41
 
     // Archived trips still count here, matching the places, countries and flight
     // distance widgets (which never filtered on is_archived) so the dashboard stats
     // stay consistent — archiving a trip no longer zeroes out trips/days.
-    const tripStats = this.db.get<{ trips: number; days: number }>(`
-    SELECT COUNT(DISTINCT t.id) as trips,
-           COUNT(DISTINCT d.id) as days
-    FROM trips t
-    LEFT JOIN days d ON d.trip_id = t.id
-    LEFT JOIN trip_members tm ON t.id = tm.trip_id
-    WHERE (t.user_id = ? OR tm.user_id = ?)
-  `, userId, userId);
+    const tripStats = await this.trips.countTripsAndDaysForUser(userId); // AT42
 
     const cities = new Set<string>();
     const coords: { lat: number; lng: number }[] = [];
@@ -1156,29 +1076,17 @@ export class AtlasService {
       if (cityPart) cities.add(cityPart);
     });
 
-    // Visited countries \u2014 same source the Atlas page uses: ISO-2 codes from
+    // Visited countries — same source the Atlas page uses: ISO-2 codes from
     // auto-resolved place regions plus countries the user marked manually.
     const countryCodes = new Set<string>();
-    const manualCountries = this.db.all<{ country_code: string }>(
-      'SELECT country_code FROM visited_countries WHERE user_id = ?',
-      userId
-    );
-    manualCountries.forEach(m => { if (m.country_code) countryCodes.add(m.country_code.toUpperCase()); });
+    const manualCountries = await this.visitedCountries.listCodesForUser(userId); // AT43
+    manualCountries.forEach(code => { if (code) countryCodes.add(code.toUpperCase()); });
 
     // Only trips that have already started count as visited — a country you have merely
     // booked a trip to isn't stamped in the passport yet, and one you jotted down without
     // any dates even less so (#1048). date('now') is UTC, matching tripVisitStatus.
-    const placeRegionCodes = this.db.all<{ country_code: string }>(`
-    SELECT DISTINCT pr.country_code
-    FROM place_regions pr
-    JOIN places p ON p.id = pr.place_id
-    JOIN trips t ON p.trip_id = t.id
-    LEFT JOIN trip_members tm ON t.id = tm.trip_id
-    WHERE (t.user_id = ? OR tm.user_id = ?) AND pr.country_code IS NOT NULL
-      AND COALESCE(t.start_date, t.end_date) IS NOT NULL
-      AND COALESCE(t.start_date, t.end_date) <= date('now')
-  `, userId, userId);
-    placeRegionCodes.forEach(r => { if (r.country_code) countryCodes.add(r.country_code.toUpperCase()); });
+    const placeRegionCodes = await this.placeRegions.listVisitedCountryCodesForUser(userId, today); // AT44
+    placeRegionCodes.forEach(code => { if (code) countryCodes.add(code.toUpperCase()); });
 
     // Transport bookings don't create a place row, so their geocoded endpoints never
     // reached place_regions — a country reached only by a flight/train (no lodging or
@@ -1188,22 +1096,7 @@ export class AtlasService {
     // connection/layover (e.g. a plane change) the traveler never really visited (#1486),
     // and the same layover split over two bookings is recognised from its ground time
     // instead, because there it is stored as a legitimate 'to'/'from' pair (#1535).
-    const endpointRows = this.db.all<EndpointRow>(`
-    SELECT DISTINCT e.id, e.reservation_id, r.trip_id, e.role, e.code, e.lat, e.lng, e.local_date, e.local_time,
-           r.type AS reservation_type, r.status AS reservation_status,
-           CASE e.role
-             WHEN 'to' THEN COALESCE(r.reservation_end_time, r.reservation_time)
-             ELSE COALESCE(r.reservation_time, r.reservation_end_time)
-           END AS fallback_time
-    FROM reservation_endpoints e
-    JOIN reservations r ON e.reservation_id = r.id
-    JOIN trips t ON r.trip_id = t.id
-    LEFT JOIN trip_members tm ON t.id = tm.trip_id
-    WHERE (t.user_id = ? OR tm.user_id = ?) AND e.role IN ('from', 'to')
-      AND COALESCE(t.start_date, t.end_date) IS NOT NULL
-      AND COALESCE(t.start_date, t.end_date) <= date('now')
-      AND ${AtlasService.TRAVELER_OWNS}
-  `, userId, userId, userId);
+    const endpointRows: EndpointRow[] = await this.reservationEndpoints.listOwnedEndpointsForUser(userId, today); // AT45, TRAVELER_OWNS (#1966)
     const transfers = transferEndpointIds(
       endpointRows.filter(e => e.reservation_type === 'flight' && e.reservation_status !== 'cancelled')
     );
@@ -1222,16 +1115,16 @@ export class AtlasService {
 
     // Countries the user removed in Atlas stay removed on the dashboard too, so the
     // passport card and the Atlas map agree (#1490).
-    for (const code of this.getHiddenCountries(userId)) countryCodes.delete(code.toUpperCase());
+    for (const code of await this.getHiddenCountries(userId)) countryCodes.delete(code.toUpperCase());
 
     return {
       countries: [...countryCodes],
       cities: [...cities],
       coords,
-      totalTrips: tripStats?.trips || 0,
-      totalDays: tripStats?.days || 0,
+      totalTrips: tripStats.trips || 0,
+      totalDays: tripStats.days || 0,
       totalPlaces: places.length,
-      totalDistanceKm: this.flightDistanceKm(userId),
+      totalDistanceKm: await this.flightDistanceKm(userId),
     };
   }
 
@@ -1255,25 +1148,13 @@ export class AtlasService {
    * join would have taken those users' flown distance to zero overnight. With
    * no assignments anywhere the result is identical to before (#1966).
    *
-   * Binds ONE parameter, the user id, and expects the reservation aliased `r`.
+   * Reproduced now by `_shared/reservation-travelers-owns.ts`'s
+   * `travelerOwnsExpr` (Plan 3f Task 0, R7), consumed by
+   * `ReservationEndpointsRepository`'s AT6/AT45/AT46 methods — not
+   * re-derived here.
    */
-  private static readonly TRAVELER_OWNS = `
-    (NOT EXISTS (SELECT 1 FROM reservation_travelers rt WHERE rt.reservation_id = r.id)
-     OR EXISTS (SELECT 1 FROM reservation_travelers rt WHERE rt.reservation_id = r.id AND rt.user_id = ?))`;
-
-  private flightDistanceKm(userId: number): number {
-    const rows = this.db.all<{ reservation_id: number; lat: number; lng: number }>(`
-      SELECT re.reservation_id, re.lat, re.lng
-      FROM reservation_endpoints re
-      JOIN reservations r ON r.id = re.reservation_id
-      JOIN trips t ON t.id = r.trip_id
-      LEFT JOIN trip_members tm ON tm.trip_id = t.id AND tm.user_id = ?
-      WHERE (t.user_id = ? OR tm.user_id IS NOT NULL)
-        AND r.type = 'flight'
-        AND r.status != 'cancelled'
-        AND ${AtlasService.TRAVELER_OWNS}
-      ORDER BY re.reservation_id, re.sequence
-    `, userId, userId, userId);
+  private async flightDistanceKm(userId: number): Promise<number> {
+    const rows = await this.reservationEndpoints.listOwnedFlightLegsForUser(userId); // AT46, TRAVELER_OWNS (#1966)
 
     let total = 0;
     let prev: { id: number; lat: number; lng: number } | null = null;

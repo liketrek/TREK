@@ -1,6 +1,4 @@
 import admin from './admin';
-import dawarich from './dawarich';
-import docsync from './docsync';
 import airport from './airport';
 import atlas from './atlas';
 import backup from './backup';
@@ -10,8 +8,10 @@ import collab from './collab';
 import collection from './collection';
 import common from './common';
 import dashboard from './dashboard';
+import dawarich from './dawarich';
 import day from './day';
 import dayplan from './dayplan';
+import docsync from './docsync';
 import files from './files';
 import help from './help';
 import inspector from './inspector';
@@ -35,19 +35,17 @@ import oauth from './oauth';
 import packing from './packing';
 import pdf from './pdf';
 import perm from './perm';
-import photos from './photos';
 import places from './places';
 import planner from './planner';
-import register from './register';
-import roadtrip from './roadtrip';
 import reservations from './reservations';
+import roadtrip from './roadtrip';
 import settings from './settings';
 import share from './share';
 import shared from './shared';
-import stats from './stats';
 import storage from './storage';
 import system_notice from './system_notice';
 import todo from './todo';
+import tours from './tours';
 import transport from './transport';
 import trip from './trip';
 import trips from './trips';
@@ -60,13 +58,13 @@ const locale = {
   ...nav,
   ...dashboard,
   ...roadtrip,
+  ...tours,
   ...settings,
   ...admin,
   ...dayplan,
   ...share,
   ...shared,
   ...login,
-  ...register,
   ...vacay,
   ...collection,
   ...atlas,
@@ -82,10 +80,8 @@ const locale = {
   ...members,
   ...categories,
   ...backup,
-  ...photos,
   ...pdf,
   ...planner,
-  ...stats,
   ...day,
   ...collab,
   ...memories,

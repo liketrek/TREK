@@ -14,6 +14,7 @@ import {
   getSocketId,
   setRefetchCallback,
 } from '../../../src/api/websocket';
+import { useServerVersionStore } from '../../../src/store/serverVersionStore';
 
 // ── Fake WebSocket ────────────────────────────────────────────────────────────
 
@@ -288,6 +289,20 @@ describe('handleMessage / listeners', () => {
     expect(listener).not.toHaveBeenCalled();
 
     removeListener(listener);
+  });
+
+  it('FE-COMP-WS-012b: the welcome frame tells the store which version the server runs', async () => {
+    useServerVersionStore.setState({ first: null, reported: null });
+    const sock = await setupConnectedSocket();
+
+    sock.onmessage!({ data: JSON.stringify({ type: 'welcome', socketId: 'server-sid-2', version: '4.3.4' }) });
+    expect(useServerVersionStore.getState().reported).toBe('4.3.4');
+
+    // A server from before the version was sent, or a malformed value, changes nothing.
+    sock.onmessage!({ data: JSON.stringify({ type: 'welcome', socketId: 'server-sid-3' }) });
+    sock.onmessage!({ data: JSON.stringify({ type: 'welcome', socketId: 'server-sid-4', version: '<b>5</b>' }) });
+    expect(useServerVersionStore.getState().reported).toBe('4.3.4');
+    expect(getSocketId()).toBe('server-sid-4');
   });
 
   it('FE-COMP-WS-013: non-welcome messages are dispatched to all registered listeners', async () => {

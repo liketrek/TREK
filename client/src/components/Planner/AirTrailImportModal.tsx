@@ -242,7 +242,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
         disabled={already}
         className={already ? 'bg-surface-tertiary' : isSelected ? 'bg-surface-secondary' : 'bg-transparent'}
         style={{
-          width: '100%', textAlign: 'left', borderRadius: 10, padding: '10px 12px', marginBottom: 8,
+          width: '100%', textAlign: 'start', borderRadius: 10, padding: '10px 12px', marginBottom: 8,
           border: `1px solid ${isSelected && !already ? 'var(--accent)' : 'var(--border-primary)'}`,
           opacity: already ? 0.55 : 1, cursor: already ? 'default' : 'pointer',
           display: 'flex', gap: 10, alignItems: 'center', fontFamily: 'inherit',
@@ -283,7 +283,7 @@ export default function AirTrailImportModal({ isOpen, onClose, tripId, pushUndo 
           onClick={() => toggleJoin(chain)}
           className="bg-transparent"
           style={{
-            display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
+            display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'start',
             border: 'none', borderTop: '1px solid var(--border-faint)', borderRadius: 0,
             padding: '9px 4px 10px', cursor: 'pointer', fontFamily: 'inherit',
           }}

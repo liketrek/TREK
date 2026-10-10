@@ -69,7 +69,7 @@ describe('MAdminPackingTemplateManager', () => {
     await screen.findByText('Beach Trip');
     expect(screen.getByText('City Break')).toBeInTheDocument();
     expect(screen.getByText('2 categories · 5 items')).toBeInTheDocument();
-    expect(screen.getByText('1 categories · 3 items')).toBeInTheDocument();
+    expect(screen.getByText('1 category · 3 items')).toBeInTheDocument();
   });
 
   it('FE-MOB-APKG-003: a failing list request surfaces the load error toast', async () => {

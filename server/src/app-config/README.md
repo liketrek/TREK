@@ -10,6 +10,7 @@ env.schema.ts    Zod catalog of the whole env surface; fail-fast at boot
 derive.ts        pure (raw env) → typed namespace functions, exact per-site coercions
 env.ts           readEnv() live accessor + validateEnvAtBoot()
 app-url.ts       getAppUrl()/getMcpSafeUrl() instance base-URL resolution
+data-paths.ts    resolveDataPaths(): data/, uploads/, backups, tmp, logs, key files, DB file
 boot-validate.ts side-effect import used by index.ts (validates before other modules load)
 parsers.ts       shared coercion helpers (boolTrueLoose, numberOr, csvList, …)
 ```
@@ -31,6 +32,10 @@ tokens, `RuntimeEnvService`) and consumes the SAME derive functions.
    together wrong. It is empty without the switch, so a self-hoster never meets
    it. Put a rule there only if booting anyway would be a security or data
    problem — not to enforce a preference.
+   The report prints each malformed value, because that is what makes a typo
+   findable, except for the credentials in `SECRET_ENV_KEYS` (`env.ts`), which
+   print as `***`. A new password, token, key or secret variable goes into that
+   set; `validate.test.ts` fails on a credential-sounding name missing from it.
 3. **Parity is law — with one deliberate exception.** Every derived field pins
    the exact coercion of the call site(s) it replaced (`Number(x) || d`
    treating `"0"` as unset, per-site defaults for the same variable, …). Do not
@@ -49,6 +54,34 @@ tokens, `RuntimeEnvService`) and consumes the SAME derive functions.
    rate limits, …) keep freeze-at-import timing, merely sourcing the value from
    `readEnv()` at module top. Request-time reads stay request-time.
 
+## data-paths.ts: the one data layout
+
+`resolveDataPaths()` is the only place the server anchors `data/` and
+`uploads/` (on `SERVER_ROOT`, the package directory, never on `process.cwd()`)
+and names what lives in them: backups, the scratch dir, the logs, the JWT
+secret and encryption key files, and the database file (TREK_DB_FILE when set,
+else `data/travel.db`). Never derive one of these paths from `__dirname` in a
+new file: a moved file would quietly move the data.
+
+Two ways in, by where the code runs:
+
+- **Nest providers inject `DataPathsService`** (`src/nest/app-config/`), which
+  resolves the same layout once per built app: `AdminService` (the JWT secret
+  file), `StorageRegistryService` (the built-in uploads and backups roots and
+  the scratch dir) and, through `StorageRegistryService.tempDir()`,
+  `StorageJobsService`. A new provider that needs a data path takes it the
+  same way.
+- **Plain modules call `resolveDataPaths()`** because they run without a
+  container or are shared with code that does: `config.ts` key resolution,
+  `db/db-path.ts`, `index.ts`, the file logger, `demo/demo-reset.ts`, the
+  backup restore and archive functions (`nest/backup/backup.impl.ts`,
+  `auto-backup.settings.ts`, file I/O with no container state), the plugin
+  trees (`nest/plugins/paths.ts`, also read by the out-of-process supervisor),
+  and `nest/storage/storage-paths.ts`, which keeps the seed-config test seam
+  that `StorageAdminService` and the registry share. `files.constants.ts`
+  still exports `filesDir` for the tests that pin the layout; no production
+  code reads it.
+
 ## app-url.ts — instance base-URL resolution (moved 2026-07-28)
 
 `getAppUrl()` (APP_URL → first ALLOWED_ORIGINS entry → `http://localhost:PORT`,
@@ -60,14 +93,62 @@ invariant 1: `readEnv()` per call, live, never cached. The invalid-URL silent
 fallthrough and the strip-ALL-slashes quirk (see `parsers.ts`
 `stripTrailingSlashes`) are parity-pinned — do not "fix" them here.
 
+## Ownership: one door per variable
+
+Every variable has exactly one owner, and the owner decides how it is read:
+
+- **A registerAs token** (`src/nest/app-config/tokens.ts`, derived by
+  `boot-derive.ts`): boot-stable values that only Nest classes need. The token
+  is snapshotted per built app and injected (`@Inject(storageConfig.KEY)`, or
+  `app.get(httpConfig.KEY)` for the pre-init Express layer). Today:
+  `httpConfig` (TRUST_PROXY, HSTS_INCLUDE_SUBDOMAINS, HTTP_KEEP_ALIVE_TIMEOUT_MS),
+  `storageConfig` (TREK_PLACE_PHOTO_DIR), `transitConfig` (TRANSIT_API_URL,
+  for TransitService) and `kitineraryConfig` (KITINERARY_EXTRACTOR_PATH and
+  PATH, for KitineraryExtractorService's binary probe). A module whose provider
+  injects one imports `AppConfigModule`, so it also builds on its own in a test.
+- **`readEnv()` / `RuntimeEnvService`** (`derive.ts`): everything else, both
+  the runtime-toggled values and the boot-stable ones that code outside a Nest
+  provider reads, which freezes them in module-top consts. Each of those has a
+  reader the container cannot inject into:
+  - PORT, HOST: `index.ts`, before the app exists.
+  - SESSION_DURATION(_REMEMBER), DEFAULT_LANGUAGE, ENCRYPTION_KEY: `src/config.ts`,
+    a plain module evaluated at process start.
+  - MCP_*: `src/mcp/`, the process-wide session state.
+  - TREK_PLUGIN_RPC_*/LOG_*/MAX_RSS_MB: the plugin host and supervisor, which
+    are deliberately not Nest (the sandbox boundary).
+  - TREK_PLUGIN_REGISTRY_URL: `PluginRegistryService` is a provider, but several
+    plugin suites build it by hand with a trailing `@Optional()` UnitOfWork, so
+    a required token parameter cannot go in without reordering that signature.
+  - TREK_WIKI_DIR: `nest/help/wiki.ts`, a plain module the help MCP tools call.
+  - BACKUP_*: `nest/backup/backup-archive.ts`, which the first-start restore
+    (`boot-restore.ts`, called from `index.ts`) runs before the database opens.
+  - LOG_LEVEL: the logger, imported everywhere.
+  - ALLOW_INTERNAL_NETWORK, ALLOW_LINK_LOCAL_IPS: the SSRF guard in `utils/`.
+  - TREK_DB_FILE, TREK_DB_JOURNAL_MODE, TREK_DB_SYNCHRONOUS: the database,
+    opened before the container.
+
+`deriveAll()` never reads a variable a token owns, and a token is dropped once
+nothing injects it. `tests/unit/app-config/config-ownership.test.ts` records
+the keys each side reads through a Proxy and fails on an overlap, on a token
+without a consumer and on a variable the schema does not validate. Moving a
+variable to a token means moving its field from `derive.ts` to
+`boot-derive.ts` and converting every reader in the same change.
+
+`server/.env.example` names every variable the schema validates except the
+few in `env-reference.test.ts`'s `NOT_OPERATOR_SETTINGS`; that test fails on
+drift in either direction. The managed-hosting switches (TREK_MANAGED and the
+keys only a managed install sets: MAPBOX_ACCESS_TOKEN, CARTO_API_KEY,
+PLACES_API_BASE) are on that list on purpose and stay out of every public
+reference.
+
 ## Classification: boot-stable vs runtime-toggled
 
-**Boot-stable** (frozen at app/module creation; snapshot `registerAs`/`ConfigType`
-DI in Nest, module-top `readEnv()` consts elsewhere):
-PORT, HOST, TRUST_PROXY, SESSION_DURATION(_REMEMBER), MCP_SESSION_TTL,
+**Boot-stable** (frozen at app/module creation; a `registerAs` token where the
+variable is token-owned, module-top `readEnv()` consts elsewhere):
+PORT, HOST, TRUST_PROXY, HSTS_INCLUDE_SUBDOMAINS, HTTP_KEEP_ALIVE_TIMEOUT_MS, SESSION_DURATION(_REMEMBER), MCP_SESSION_TTL,
 MCP_MAX_SESSION_PER_USER, MCP_SSE_KEEPALIVE, TREK_PLUGIN_RPC_*/LOG_*/MAX_RSS_MB,
 TREK_PLUGIN_REGISTRY_URL, TREK_WIKI_DIR*, TREK_PLACE_PHOTO_DIR, BACKUP_*,
-TRANSIT_API_URL, LOG_LEVEL*, ALLOW_INTERNAL_NETWORK*, ALLOW_LINK_LOCAL_IPS*, DEFAULT_LANGUAGE,
+TRANSIT_API_URL, KITINERARY_EXTRACTOR_PATH, LOG_LEVEL*, ALLOW_INTERNAL_NETWORK*, ALLOW_LINK_LOCAL_IPS*, DEFAULT_LANGUAGE,
 TREK_DB_FILE, TREK_DB_JOURNAL_MODE, TREK_DB_SYNCHRONOUS, ENCRYPTION_KEY**.
 (* frozen today because the consuming module captures it at import; tests that
 override these set them at file top, before the SUT import.)
@@ -79,10 +160,13 @@ below.)
 `RuntimeEnvService`; tests mutate these mid-lifetime):
 TREK_MANAGED, PLACES_API_BASE, PLACES_API_KEY, AMAP_API_BASE, AMAP_API_KEY, AMAP_API_SECRET, MAPBOX_ACCESS_TOKEN, CARTO_API_KEY, DEMO_MODE, NODE_ENV, APP_VERSION, APP_URL, TREK_API_DOCS_ENABLED,
 TREK_PLUGINS_ENABLED / _DEV_LINK / _IGNORE_TREK_RANGE / _DIR / _DATA_DIR / TREK_PLUGIN_PERMISSIONS,
-OIDC_*, SMTP_*, FORCE_HTTPS, COOKIE_SECURE, HSTS_INCLUDE_SUBDOMAINS,
+OIDC_*, SMTP_*, FORCE_HTTPS, COOKIE_SECURE,
 ALLOWED_ORIGINS, UNSPLASH_ACCESS_KEY, WEBAUTHN_*, TZ, ADMIN_EMAIL,
+TREK_DB_PRE_MIGRATE_SNAPSHOT(_KEEP) (read when a migration run starts; the
+legacy-upgrade suites set it per file),
 ADMIN_PASSWORD, IDEMPOTENCY_TTL_SECONDS, MCP_RATE_LIMIT (request-path check),
-LLM_TIMEOUT_MS, NOMINATIM_URL.
+LLM_TIMEOUT_MS, NOMINATIM_URL, VAPID_* (resolved per use by the Web Push key
+service, which the notification suites build without the container).
 
 ## Exemptions — raw `process.env` stays
 

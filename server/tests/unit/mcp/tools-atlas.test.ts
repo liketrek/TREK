@@ -2,45 +2,26 @@
  * Unit tests for MCP atlas and bucket list tools:
  * mark_country_visited, unmark_country_visited, create_bucket_list_item, delete_bucket_list_item.
  */
+import { db as testDb } from '../../../src/db/database';
+import { BucketList } from '../../../src/db/entities/BucketList.entity';
+import { VisitedCountries } from '../../../src/db/entities/VisitedCountries.entity';
+import { createUser, createBucketListItem, createVisitedCountry } from '../../helpers/factories';
+import { countRows, findRow } from '../../helpers/factories/rows';
+import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: () => null,
-    canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
-    isOwner: (tripId: any, userId: number) =>
-      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
 });
 
-vi.mock('../../../src/db/database', () => dbMock);
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
+let orm: TestOrm;
 
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createBucketListItem, createVisitedCountry } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-
-beforeAll(() => {
-  createTables(testDb);
-  runMigrations(testDb);
+beforeAll(async () => {
+  orm = await createTestOrm(testDb);
 });
 
 beforeEach(() => {
@@ -48,13 +29,18 @@ beforeEach(() => {
   delete process.env.DEMO_MODE;
 });
 
-afterAll(() => {
+afterAll(async () => {
+  await orm.close();
   testDb.close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -69,7 +55,7 @@ describe('Tool: mark_country_visited', () => {
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
       expect(data.country_code).toBe('FR');
-      const row = testDb.prepare('SELECT country_code FROM visited_countries WHERE user_id = ? AND country_code = ?').get(user.id, 'FR');
+      const row = await findRow(orm, VisitedCountries, { user: user.id, country_code: 'FR' });
       expect(row).toBeTruthy();
     });
   });
@@ -81,7 +67,7 @@ describe('Tool: mark_country_visited', () => {
       const result = await h.client.callTool({ name: 'mark_country_visited', arguments: { country_code: 'JP' } });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      const count = (testDb.prepare('SELECT COUNT(*) as c FROM visited_countries WHERE user_id = ? AND country_code = ?').get(user.id, 'JP') as { c: number }).c;
+      const count = await countRows(orm, VisitedCountries, { user: user.id, country_code: 'JP' });
       expect(count).toBe(1);
     });
   });
@@ -108,8 +94,8 @@ describe('Tool: unmark_country_visited', () => {
       const result = await h.client.callTool({ name: 'unmark_country_visited', arguments: { country_code: 'ES' } });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      const row = testDb.prepare('SELECT country_code FROM visited_countries WHERE user_id = ? AND country_code = ?').get(user.id, 'ES');
-      expect(row).toBeUndefined();
+      const row = await findRow(orm, VisitedCountries, { user: user.id, country_code: 'ES' });
+      expect(row).toBeNull();
     });
   });
 
@@ -138,6 +124,24 @@ describe('Tool: unmark_country_visited', () => {
 // ---------------------------------------------------------------------------
 
 describe('Tool: create_bucket_list_item', () => {
+  it('stores a wished-for region and refuses one outside its country (#1901)', async () => {
+    const { user } = createUser(testDb);
+    await withHarness(user.id, async (h) => {
+      const ok = parseToolResult(
+        await h.client.callTool({
+          name: 'create_bucket_list_item',
+          arguments: { name: 'Bayern', country_code: 'DE', region_code: 'DE-BY' },
+        }),
+      ) as any;
+      expect(ok.item.region_code).toBe('DE-BY');
+      const bad = await h.client.callTool({
+        name: 'create_bucket_list_item',
+        arguments: { name: 'Berlin', country_code: 'FR', region_code: 'DE-BE' },
+      });
+      expect(bad.isError).toBe(true);
+    });
+  });
+
   it('creates a bucket list item with all fields', async () => {
     const { user } = createUser(testDb);
     await withHarness(user.id, async (h) => {
@@ -188,7 +192,7 @@ describe('Tool: create_bucket_list_item', () => {
         arguments: { name: 'Japan', country_code: 'JP' },
       });
       expect(result.isError).toBe(true);
-      expect((testDb.prepare('SELECT COUNT(*) AS n FROM bucket_list WHERE user_id = ?').get(user.id) as { n: number }).n).toBe(1);
+      expect(await countRows(orm, BucketList, { user: user.id })).toBe(1);
     });
   });
 
@@ -214,7 +218,7 @@ describe('Tool: delete_bucket_list_item', () => {
       const result = await h.client.callTool({ name: 'delete_bucket_list_item', arguments: { itemId: item.id } });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      expect(testDb.prepare('SELECT id FROM bucket_list WHERE id = ?').get(item.id)).toBeUndefined();
+      expect(await findRow(orm, BucketList, { id: item.id })).toBeNull();
     });
   });
 

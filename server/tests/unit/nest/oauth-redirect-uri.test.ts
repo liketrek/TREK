@@ -5,8 +5,13 @@
  * single-label private-use scheme, the settings route accepted
  * javascript://localhost/…. These cases pin the one policy they now share.
  */
+import {
+  classifyRedirectUri,
+  redirectUriMatches,
+  type RedirectUriVerdict,
+} from '../../../src/nest/oauth/oauth.helpers';
+
 import { describe, it, expect } from 'vitest';
-import { classifyRedirectUri, redirectUriMatches, type RedirectUriVerdict } from '../../../src/nest/oauth/oauth.helpers';
 
 describe('classifyRedirectUri', () => {
   const cases: Array<[string, RedirectUriVerdict]> = [
@@ -81,7 +86,12 @@ describe('classifyRedirectUri', () => {
   it('RURI-004: OS protocol handlers are denied whether or not they carry the ms- prefix', () => {
     // The prefix rule catches the ms-* namespace; these four are the well-known
     // siblings that sit outside it and would otherwise read as private-use.
-    for (const uri of ['search-ms:query=x', 'shell:startup', 'microsoft-edge:https://evil.test', 'itms-services://?url=x']) {
+    for (const uri of [
+      'search-ms:query=x',
+      'shell:startup',
+      'microsoft-edge:https://evil.test',
+      'itms-services://?url=x',
+    ]) {
       expect(classifyRedirectUri(uri)).toBe('dangerous');
     }
     // Microsoft's own identity redirects have no hyphen and stay allowed.

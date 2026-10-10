@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getTransportRouteEndpoints, getDisplayTimeForDay, getTransportForDay, getAssignmentReservations, getMergedItems, rideSeatKey, stayStartingOn, storedRideSlot, timedSlot } from './dayMerge'
+import { parseTimeToMinutes, getSpanPhase, hidesOnMiddleDay, getTransportRouteEndpoints, getDisplayTimeForDay, getTransportForDay, getAssignmentReservations, getPlaceBookings, getMergedItems, rideSeatKey, stayStartingOn, storedRideSlot, timedSlot } from './dayMerge'
 
 describe('parseTimeToMinutes', () => {
   it('parses HH:MM string', () => {
@@ -196,6 +196,28 @@ describe('getTransportForDay', () => {
     const rows = getTransportForDay({ reservations, dayId: 1, dayAssignmentIds: [], days })
     expect(rows).toHaveLength(1)
     expect(rows[0].__leg).toBeUndefined()
+  })
+})
+
+describe('getPlaceBookings (#2363)', () => {
+  const reservations = [
+    { id: 1, assignment_id: 42, reservation_time: '2025-06-01T10:00:00' },
+    { id: 2, assignment_id: null, reservation_time: '2025-06-01T15:00:00', accommodation_place_id: 9 },
+    { id: 3, assignment_id: 42, reservation_time: '2025-06-01T09:00:00', accommodation_place_id: 9 },
+    { id: 4, assignment_id: null, reservation_time: null, accommodation_place_id: 8 },
+  ]
+
+  it('adds the stay booked for a hotel after the bookings pinned to the stop, each once', () => {
+    expect(getPlaceBookings(reservations, 42, 9).map(r => r.id)).toEqual([3, 1, 2])
+  })
+
+  it('finds the stay even when no stop is open, as from the pill in the day head', () => {
+    expect(getPlaceBookings(reservations, null, 9).map(r => r.id)).toEqual([2, 3])
+  })
+
+  it('without a place it is the pinned list alone', () => {
+    expect(getPlaceBookings(reservations, 42, null).map(r => r.id)).toEqual([3, 1])
+    expect(getPlaceBookings(reservations, null, 7)).toEqual([])
   })
 })
 

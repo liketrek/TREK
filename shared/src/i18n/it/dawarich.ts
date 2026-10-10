@@ -11,12 +11,12 @@ const dawarich: TranslationStrings = {
   'dawarich.apiKeyHint':
     'La trovi in Dawarich sotto Account → Chiave API. Viene salvata cifrata e non viene più mostrata.',
   'dawarich.allowInsecureTls': 'Consenti certificato autofirmato',
-  'dawarich.allowInsecureTlsHint':
-    'Serve solo se la tua istanza usa un certificato di cui il tuo server non si fida.',
+  'dawarich.allowInsecureTlsHint': 'Serve solo se la tua istanza usa un certificato di cui il tuo server non si fida.',
   'dawarich.syncEnabled': 'Cerca automaticamente nuove soste',
   'dawarich.syncEnabledHint': 'Se disattivato, TREK legge Dawarich solo quando glielo chiedi.',
   'dawarich.test.button': 'Prova la connessione',
   'dawarich.test.success': 'Connesso. {count} soste trovate negli ultimi 30 giorni.',
+  'dawarich.test.success.one': 'Connesso. {count} sosta trovata negli ultimi 30 giorni.',
   'dawarich.test.failed': 'Impossibile raggiungere Dawarich.',
   'dawarich.syncNow': 'Controlla ora',
   'dawarich.connected': 'Connesso',
@@ -31,6 +31,7 @@ const dawarich: TranslationStrings = {
   'dawarich.toast.saveError': 'Impossibile salvare la connessione',
   'dawarich.toast.disconnected': 'Dawarich disconnesso',
   'dawarich.toast.synced': '{count} nuove soste trovate',
+  'dawarich.toast.synced.one': '{count} nuova sosta trovata',
   'dawarich.toast.syncError': 'Impossibile leggere Dawarich',
   'dawarich.toast.syncRunning': 'Un controllo è già in corso',
   'dawarich.toast.acceptError': 'Impossibile aggiungerlo',
@@ -59,7 +60,8 @@ const dawarich: TranslationStrings = {
   'dawarich.error.addon_disabled': 'Il componente aggiuntivo Dawarich è disattivato su questa istanza.',
   'dawarich.error.offline': 'Serve una connessione: TREK al momento è offline.',
   'dawarich.error.invalid_url': 'TREK non può usare questo indirizzo.',
-  'dawarich.warning.private_ip': 'Questo indirizzo punta a un IP privato ({ip}). Verifica che sia voluto: il server potrebbe richiedere ALLOW_INTERNAL_NETWORK=true per raggiungerlo.',
+  'dawarich.warning.private_ip':
+    'Questo indirizzo punta a un IP privato ({ip}). Verifica che sia voluto: il server potrebbe richiedere ALLOW_INTERNAL_NETWORK=true per raggiungerlo.',
   'dawarich.error.unknown': 'Qualcosa è andato storto nella comunicazione con Dawarich.',
 
   // ── The recorded route on the map ──────────────────────────────────────────
@@ -81,10 +83,10 @@ const dawarich: TranslationStrings = {
   'dawarich.badge.sourceMissing': 'Sparito da Dawarich',
 
   'dawarich.suggestions.title': 'Da Dawarich',
-  'dawarich.suggestions.pending': '{count} in attesa di te',
+  'dawarich.suggestions.pending': '{count} ti aspettano',
+  'dawarich.suggestions.pending.one': '{count} ti aspetta',
   'dawarich.suggestions.loading': 'Lettura di Dawarich…',
-  'dawarich.suggestions.notConnected':
-    'Collega Dawarich nelle Impostazioni per vedere qui le tue soste.',
+  'dawarich.suggestions.notConnected': 'Collega Dawarich nelle Impostazioni per vedere qui le tue soste.',
   'dawarich.suggestions.unavailable': 'Impossibile leggere Dawarich.',
   'dawarich.suggestions.allHandled': 'Tutto ciò che è registrato qui è già stato gestito.',
   'dawarich.suggestions.asJournal': 'Scrivi una voce di diario',
@@ -93,6 +95,7 @@ const dawarich: TranslationStrings = {
   'dawarich.suggestions.dismissed': 'Ignorato',
   'dawarich.suggestions.restore': 'Ripristina',
   'dawarich.suggestions.showHandled': 'Mostra {count} già gestiti',
+  'dawarich.suggestions.showHandled.one': 'Mostra {count} già gestito',
   'dawarich.suggestions.hideHandled': 'Nascondi quelli già gestiti',
   'dawarich.suggestions.matchesWish': 'Nella tua lista dei desideri: {name}',
   'dawarich.suggestions.acceptedAs.place': 'Aggiunto come luogo',
@@ -115,7 +118,8 @@ const dawarich: TranslationStrings = {
   'dawarich.accept.confirm.journal': 'Aggiungi voce',
   'dawarich.accept.confirm.bucket_list': 'Spuntalo',
   'dawarich.accept.recorded': 'Registrata dal {from} al {to}',
-  'dawarich.accept.duration': '{minutes} min',
+  'dawarich.accept.duration': '{count} min',
+  'dawarich.accept.duration.one': '{count} min',
   'dawarich.accept.name': 'Nome',
   'dawarich.accept.date': 'Data',
   'dawarich.accept.from': 'Arrivo',
@@ -144,10 +148,12 @@ const dawarich: TranslationStrings = {
   'dawarich.bucket.noMatches': 'Nelle tue registrazioni non è emerso nulla della tua lista dei desideri.',
   'dawarich.bucket.alreadyVisited': 'Già spuntato',
   'dawarich.bucket.confirm': 'Spunta {count}',
+  'dawarich.bucket.confirm.one': 'Spunta {count}',
   'dawarich.bucket.confirmed': '{count} desideri spuntati',
+  'dawarich.bucket.confirmed.one': '{count} desiderio spuntato',
   'dawarich.bucket.skipped': '{count} voci non hanno coordinate e non sono state controllate.',
-  'dawarich.bucket.truncated':
-    'Sono state controllate solo le prime voci. Esegui di nuovo il controllo per le altre.',
+  'dawarich.bucket.skipped.one': '{count} voce non ha coordinate e non è stata controllata.',
+  'dawarich.bucket.truncated': 'Sono state controllate solo le prime voci. Esegui di nuovo il controllo per le altre.',
   'dawarich.bucket.visitedFrom': 'Spuntato dalle tue registrazioni Dawarich',
   'dawarich.bucket.clearVisit': 'Annulla',
 
@@ -159,9 +165,11 @@ const dawarich: TranslationStrings = {
   'dawarich.atlas.loading': 'Lettura delle tue registrazioni…',
   'dawarich.atlas.empty': 'Le tue registrazioni non mostrano paesi che TREK non abbia già.',
   'dawarich.atlas.cities': '{count} città',
-  'dawarich.atlas.citiesOne': '1 città',
+  'dawarich.atlas.cities.one': '{count} città',
   'dawarich.atlas.accept': 'Aggiungi {count} paesi',
+  'dawarich.atlas.accept.one': 'Aggiungi {count} paese',
   'dawarich.atlas.accepted': '{count} paesi aggiunti',
+  'dawarich.atlas.accepted.one': '{count} paese aggiunto',
   'dawarich.atlas.unresolved': 'TREK non è riuscito ad abbinare questi a un paese: {names}.',
   'dawarich.atlas.source': 'Da Dawarich',
   'dawarich.atlas.range': 'Esaminato dal {from} al {to}',
@@ -172,13 +180,14 @@ const dawarich: TranslationStrings = {
   'dawarich.atlas.tab.countries': 'Paesi',
   'dawarich.atlas.window': 'Sono stati esaminati gli ultimi 12 mesi.',
   'dawarich.selected': '{count} selezionati',
+  'dawarich.selected.one': '{count} selezionato',
   'dawarich.again': 'Controlla di nuovo',
   'dawarich.bucket.metersAway': 'a {meters} m',
   'dawarich.bucket.kilometersAway': 'a {km} km',
-  'dawarich.bucket.rule': 'Un desiderio è raggiunto entro {meters} m e dopo {minutes} minuti sul posto.',
-
-  'dawarich.journey.dayStays.one': '1 sosta da Dawarich',
+  'dawarich.bucket.rule': 'Un desiderio è raggiunto entro {meters} m e dopo {count} minuti sul posto.',
+  'dawarich.bucket.rule.one': 'Un desiderio è raggiunto entro {meters} m e dopo {count} minuto sul posto.',
   'dawarich.journey.dayStays.other': '{count} soste da Dawarich',
+  'dawarich.journey.dayStays.one': '{count} sosta da Dawarich',
 };
 
 export default dawarich;

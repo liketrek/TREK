@@ -4,6 +4,8 @@
  * Lifted out of useTransportRoutes so the day-route builder can share the one
  * implementation instead of adding a fourth copy. The map overlays keep their own
  * `[lat, lng]`-tuple variants — different call shape, and they only sum arc lengths.
+ * The clamp keeps `asin` defined when rounding pushes two near antipodal points a hair
+ * past 1, which would otherwise answer NaN.
  */
 export function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const R = 6371
@@ -12,7 +14,7 @@ export function haversineKm(a: { lat: number; lng: number }, b: { lat: number; l
   const la1 = a.lat * Math.PI / 180
   const la2 = b.lat * Math.PI / 180
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(h))
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
 }
 
 /**

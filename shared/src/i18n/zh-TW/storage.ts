@@ -103,7 +103,7 @@ const storage: TranslationStrings = {
   'storage.sync.error': '同步失敗：{error}',
   'storage.sync.prompt': '現有物件尚未複製 — 要立即同步嗎？',
   'storage.sync.dismiss': '關閉',
-  'storage.usage.line': '{objects} 個物件 · {size}',
+  'storage.usage.line': '{count} 個物件 · {size}',
   'storage.usage.computed': '用量已計算：{age}',
   'storage.usage.never': '尚未計算用量',
   'storage.usage.refresh': '重新整理',
@@ -112,7 +112,7 @@ const storage: TranslationStrings = {
 
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': '要將現有物件移動到新的後端嗎？',
-  'storage.migrate.promptLine': '{category}：從 {from} 到 {to} 共 {objects} 個物件（{size}）',
+  'storage.migrate.promptLine': '{category}：從 {from} 到 {to} 共 {count} 個物件（{size}）',
   'storage.migrate.promptLineUnknown': '{category}：大小未知（尚未掃描用量）從 {from} 到 {to}',
   'storage.migrate.move': '移動現有物件',
   'storage.migrate.routeOnly': '僅路由新寫入',
@@ -121,7 +121,7 @@ const storage: TranslationStrings = {
   'storage.migrate.doneFailures': '{failed} 個失敗 — 這些物件未複製到新的後端',
   'storage.migrate.failed': '移動失敗：{error} — 該分類未切換',
   'storage.migrate.cancelled': '移動已取消 — 未切換任何內容',
-  'storage.migrate.reclaimable': '{objects} 個物件（{size}）仍保留在 {from} 上 — 請手動回收',
+  'storage.migrate.reclaimable': '{count} 個物件（{size}）仍保留在 {from} 上，請手動回收',
   'storage.migrate.cancel': '取消移動',
   'storage.migrate.promptCancel': '取消',
   'storage.migrate.queued': '排隊中：{categories}',

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../../../tests/helpers/msw/server'
 import type { RouteSegment } from '../../types'
+import { useAddonStore } from '../../store/addonStore'
 
 vi.mock('../Map/RouteCalculator', async (importActual) => {
   const actual = await importActual<typeof import('../Map/RouteCalculator')>()
@@ -65,6 +66,8 @@ beforeEach(() => {
     http.get('/api/pdf-sections/:tripId', () => HttpResponse.json({ sections: [] })),
   )
   vi.mocked(calculateRouteWithLegs).mockReset()
+  vi.mocked(routeTrip).mockClear()
+  vi.mocked(renderTripMapImage).mockClear()
   vi.mocked(calculateRouteWithLegs).mockResolvedValue({
     coordinates: [[48.86, 2.35], [48.88, 2.39], [48.90, 2.42]],
     distance: 12000, duration: 900,
@@ -74,9 +77,105 @@ beforeEach(() => {
 
 afterEach(() => {
   document.getElementById('pdf-preview-overlay')?.remove()
+  useAddonStore.setState({ addons: [] })
 })
 
 describe('trip route map in the PDF', () => {
+  it('prints a single Tour track without requesting an ordinary route through it', async () => {
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true }] as never })
+    const geometry = JSON.stringify([[48.1, 11.1], [48.2, 11.2]])
+    const assignment = { ...assign(7, 1, 0, 48.1, 11.1), tour_place_id: 7, tour_route_geometry: geometry }
+    await downloadTripPDF({ ...args, days: [args.days[0]], assignments: { '1': [assignment] } })
+    expect(calculateRouteWithLegs).not.toHaveBeenCalled()
+    expect(srcdoc()).toContain('class="trip-map-svg"')
+    expect(srcdoc()).toContain('stroke="#14805e"')
+  })
+
+  it('filters a participant-hidden Tour before the shared projection and PDF map', async () => {
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true }] as never })
+    const geometry = JSON.stringify([[48.1, 11.1], [48.2, 11.2]])
+    const hiddenTour = { ...assign(7, 1, 0, 48.1, 11.1), tour_place_id: 7,
+      tour_route_geometry: geometry, participants: [{ user_id: 99, username: 'Other' }] }
+    const visible = { ...assign(8, 1, 1, 48.3, 11.3), participants: [{ user_id: 42, username: 'Reader' }] }
+    await downloadTripPDF({ ...args, days: [args.days[0]], onlyUserId: 42,
+      assignments: { '1': [hiddenTour, visible] } })
+
+    const input = vi.mocked(routeTrip).mock.calls[0][0]
+    expect(input.assignments['1'].map(assignment => assignment.id)).toEqual([visible.id])
+    expect(input.toursEnabled).toBe(true)
+    expect(srcdoc()).not.toContain('stroke="#14805e"')
+    expect(srcdoc()).not.toContain('class="trip-map"')
+  })
+
+  it('renders an excluded Tour once while its connector route bridges A to C', async () => {
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true }] as never })
+    const a = assign(11, 1, 0, 48.1, 11.1)
+    const geometry = JSON.stringify([[48.2, 11.2], [48.25, 11.25], [48.3, 11.3]])
+    const excludedTour = { ...assign(12, 1, 1, 48.2, 11.2), tour_place_id: 12,
+      tour_route_geometry: geometry, route_excluded: true }
+    const c = assign(13, 1, 2, 48.4, 11.4)
+    vi.mocked(calculateRouteWithLegs).mockResolvedValueOnce({
+      coordinates: [[48.1, 11.1], [48.4, 11.4]], distance: 12000, duration: 900,
+      legs: [leg(12000)],
+    })
+    await downloadTripPDF({ ...args, days: [args.days[0]], assignments: { '1': [a, excludedTour, c] } })
+
+    expect(vi.mocked(calculateRouteWithLegs).mock.calls.map(([points]) =>
+      points.map(point => [point.lat, point.lng])))
+      .toEqual([[[48.1, 11.1], [48.4, 11.4]]])
+    const routed = await vi.mocked(routeTrip).mock.results[0].value
+    expect(routed.days[0].tourLines).toEqual([[[48.2, 11.2], [48.25, 11.25], [48.3, 11.3]]])
+    const html = srcdoc()
+    expect(html.match(/stroke="#14805e"/g)).toHaveLength(1)
+    expect(vi.mocked(renderTripMapImage).mock.calls[0][0]).toMatchObject([
+      { lines: [[[48.1, 11.1], [48.4, 11.4]]], tourLines: [[[48.2, 11.2], [48.25, 11.25], [48.3, 11.3]]] },
+    ])
+  })
+
+  it('filters hidden service stops before routing or Tour projection', async () => {
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true }] as never })
+    const a = assign(41, 1, 0, 48.1, 11.1)
+    const service = { ...assign(42, 1, 1, 48.2, 11.2), place: { ...place(42, 48.2, 11.2), stop_type: 'fuel' } }
+    const c = assign(43, 1, 2, 48.4, 11.4)
+    await downloadTripPDF({ ...args, days: [args.days[0]], showServiceStops: false,
+      assignments: { '1': [a, service, c] } })
+
+    const input = vi.mocked(routeTrip).mock.calls[0][0]
+    expect(input.assignments['1'].map(assignment => assignment.id)).toEqual([a.id, c.id])
+    expect(vi.mocked(calculateRouteWithLegs).mock.calls.map(([points]) =>
+      points.map(point => [point.lat, point.lng])))
+      .toEqual([[[48.1, 11.1], [48.4, 11.4]]])
+  })
+
+  it('keeps the legacy Place anchor and does not emit Tour lines when Tours are off', async () => {
+    const a = assign(21, 1, 0, 48.1, 11.1)
+    const geometry = JSON.stringify([[48.2, 11.2], [48.3, 11.3]])
+    const tourPlace = { ...assign(22, 1, 1, 48.25, 11.25), tour_place_id: 22, tour_route_geometry: geometry }
+    const c = assign(23, 1, 2, 48.4, 11.4)
+    await downloadTripPDF({ ...args, days: [args.days[0]], assignments: { '1': [a, tourPlace, c] } })
+
+    expect(vi.mocked(routeTrip).mock.calls[0][0].toursEnabled).toBe(false)
+    expect(vi.mocked(calculateRouteWithLegs).mock.calls.map(([points]) =>
+      points.map(point => [point.lat, point.lng])))
+      .toEqual([[[48.1, 11.1], [48.25, 11.25], [48.4, 11.4]]])
+    expect(srcdoc()).not.toContain('stroke="#14805e"')
+  })
+
+  it('prints one localized warning for an invalid Tour and does not invent its outgoing endpoint', async () => {
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true }] as never })
+    const a = assign(31, 1, 0, 48.1, 11.1)
+    const invalidTour = { ...assign(32, 1, 1, 48.2, 11.2), tour_place_id: 32, tour_route_geometry: 'not valid geometry' }
+    const c = assign(33, 1, 2, 48.4, 11.4)
+    await expect(downloadTripPDF({ ...args, days: [args.days[0]], assignments: { '1': [a, invalidTour, c] } })).resolves.toBeUndefined()
+
+    expect(vi.mocked(calculateRouteWithLegs).mock.calls.map(([points]) =>
+      points.map(point => [point.lat, point.lng])))
+      .toEqual([[[48.1, 11.1], [48.2, 11.2]]])
+    expect(srcdoc().match(/tours\.dayRoute\.endpointUnknown/g)).toHaveLength(1)
+    expect(srcdoc()).toContain('P32')
+    expect(srcdoc()).not.toContain('stroke="#14805e"')
+  })
+
   it('FE-COMP-TRIPPDF-MAP-001: puts the route map and its legend in the document', async () => {
     await downloadTripPDF(args)
     const html = srcdoc()

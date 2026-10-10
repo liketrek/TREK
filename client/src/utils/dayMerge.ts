@@ -5,7 +5,7 @@ import { rideSeatAfter, sameDayRide, type CarrierBooking, type SeatItem } from '
 // the two drift.
 import { orderedEndpoints } from './flightLegs'
 
-export const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transit', 'transport_other'])
+export const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'cable_car', 'transit', 'transport_other'])
 
 export interface MergedItem {
   type: 'place' | 'note' | 'transport'
@@ -265,6 +265,25 @@ export function getAssignmentReservations<T extends {
       }
       return a.id - b.id
     })
+}
+
+/**
+ * The bookings that belong to a place: the ones pinned to the open stop, and the
+ * stay booked for it when the place is a hotel (#2363). Without the second, a
+ * hotel opened from its pill in the day head showed the place but no route to its
+ * booking. Pinned ones keep their order and come first.
+ */
+export function getPlaceBookings<T extends {
+  id: number
+  assignment_id?: number | null
+  reservation_time?: string | null
+  accommodation_place_id?: number | null
+}>(reservations: T[], assignmentId: number | null | undefined, placeId: number | null | undefined): T[] {
+  const pinned = getAssignmentReservations(reservations, assignmentId)
+  if (placeId == null) return pinned
+  const pinnedIds = new Set(pinned.map(r => r.id))
+  const stays = reservations.filter(r => r.accommodation_place_id === placeId && !pinnedIds.has(r.id))
+  return [...pinned, ...stays]
 }
 
 /**

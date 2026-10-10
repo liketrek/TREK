@@ -3,55 +3,37 @@
  * set_budget_item_members, toggle_budget_member_paid.
  * Resources: trek://trips/{tripId}/budget/per-person, trek://trips/{tripId}/budget/settlement.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: () => null,
-    canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
-    isOwner: (tripId: any, userId: number) =>
-      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
-});
-
-vi.mock('../../../src/db/database', () => dbMock);
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
-
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createBudgetItem, addTripMember } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { db as testDb } from '../../../src/db/database';
+import { BudgetItemMembers } from '../../../src/db/entities/BudgetItemMembers.entity';
+import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
+import { BudgetSettlements } from '../../../src/db/entities/BudgetSettlements.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import type { TripAccess } from '../../../src/db/repositories/Trips.repository';
 import { BudgetController } from '../../../src/nest/budget/budget.controller';
 import { BudgetService } from '../../../src/nest/budget/budget.service';
-import { DatabaseService } from '../../../src/nest/database/database.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import type { TripAccess } from '../../../src/nest/database/database.service';
 import type { User } from '../../../src/types';
+import { budgetRepoArgs } from '../../helpers/budget-repos';
+import { createUser, createTrip, createBudgetItem, addTripMember } from '../../helpers/factories';
+import { addBudgetItemMember, addBudgetItemPayer } from '../../helpers/factories/budget';
+import { countRows, updateRows } from '../../helpers/factories/rows';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { createTestUnitOfWork, createTestAppSettingsRepo } from '../../helpers/test-uow';
 
-beforeAll(() => {
-  createTables(testDb);
-  runMigrations(testDb);
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
 });
+
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
 beforeEach(() => {
   resetTestDb(testDb);
@@ -60,22 +42,42 @@ beforeEach(() => {
   // get_settlement_summary calls getRates(), which is a real fetch to
   // api.frankfurter.dev with a 10 s abort. One case used to stub this inline;
   // hoisted so a second settlement case cannot quietly reintroduce the call.
-  vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      throw new Error('offline');
+    }),
+  );
 });
 
-afterAll(() => {
+let orm: TestOrm;
+
+beforeAll(async () => {
+  orm = await createTestOrm(testDb);
+});
+
+afterAll(async () => {
   vi.unstubAllGlobals();
+  await orm.close();
   testDb.close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  const h = await createMcpHarness({ realtime, userId, withResources: false });
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 async function withResourceHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
-  const h = await createMcpHarness({ userId, withResources: true });
-  try { await fn(h); } finally { await h.cleanup(); }
+  const h = await createMcpHarness({ realtime, userId, withResources: true });
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -98,11 +100,15 @@ describe('Tool: set_budget_item_members', () => {
       expect(Array.isArray(data.item.payers)).toBe(true);
       // Quirk fix: the broadcast carries the REST payload shape (the legacy
       // MCP-specific { item } shape was a silent no-op in the client handler).
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:members-updated', expect.objectContaining({
-        itemId: item.id,
-        members: expect.arrayContaining([expect.objectContaining({ user_id: user.id })]),
-        persons: 1,
-      }));
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'budget:members-updated',
+        expect.objectContaining({
+          itemId: item.id,
+          members: expect.arrayContaining([expect.objectContaining({ user_id: user.id })]),
+          persons: 1,
+        }),
+      );
     });
   });
 
@@ -122,7 +128,7 @@ describe('Tool: set_budget_item_members', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     const item = createBudgetItem(testDb, trip.id);
-    testDb.prepare('INSERT INTO budget_item_members (budget_item_id, user_id) VALUES (?, ?)').run(item.id, user.id);
+    await addBudgetItemMember(orm, item.id, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'set_budget_item_members',
@@ -130,8 +136,7 @@ describe('Tool: set_budget_item_members', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.item).toBeDefined();
-      const remaining = testDb.prepare('SELECT count(*) as cnt FROM budget_item_members WHERE budget_item_id = ?').get(item.id) as any;
-      expect(remaining.cnt).toBe(0);
+      expect(await countRows(orm, BudgetItemMembers, { budgetItem: item.id })).toBe(0);
     });
   });
 
@@ -226,7 +231,7 @@ describe('Tool: toggle_budget_member_paid', () => {
     const trip = createTrip(testDb, user.id);
     const item = createBudgetItem(testDb, trip.id, { total_price: 200 });
     // Add member first
-    testDb.prepare('INSERT INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, 0)').run(item.id, user.id);
+    await addBudgetItemMember(orm, item.id, user.id, { paid: 0 });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'toggle_budget_member_paid',
@@ -236,7 +241,11 @@ describe('Tool: toggle_budget_member_paid', () => {
       expect(data.member).toBeDefined();
       // Quirk fix: the broadcast carries the REST payload shape (the legacy
       // MCP-specific { itemId, member } shape was a silent no-op in the client).
-      expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:member-paid-updated', expect.objectContaining({ itemId: item.id, userId: user.id, paid: 1 }));
+      expect(broadcastMock).toHaveBeenCalledWith(
+        trip.id,
+        'budget:member-paid-updated',
+        expect.objectContaining({ itemId: item.id, userId: user.id, paid: 1 }),
+      );
     });
   });
 
@@ -291,28 +300,33 @@ describe('Settlement tools', () => {
   it('update_settlement changes the amount; delete_settlement removes it', async () => {
     const { user, other, trip } = tripWithTwo();
     await withHarness(user.id, async (h) => {
-      const created = parseToolResult(await h.client.callTool({
-        name: 'create_settlement',
-        arguments: { tripId: trip.id, from_user_id: other.id, to_user_id: user.id, amount: 10 },
-      })) as any;
+      const created = parseToolResult(
+        await h.client.callTool({
+          name: 'create_settlement',
+          arguments: { tripId: trip.id, from_user_id: other.id, to_user_id: user.id, amount: 10 },
+        }),
+      ) as any;
       const id = created.settlement.id;
 
-      const updated = parseToolResult(await h.client.callTool({
-        name: 'update_settlement',
-        arguments: { tripId: trip.id, settlementId: id, from_user_id: other.id, to_user_id: user.id, amount: 25 },
-      })) as any;
+      const updated = parseToolResult(
+        await h.client.callTool({
+          name: 'update_settlement',
+          arguments: { tripId: trip.id, settlementId: id, from_user_id: other.id, to_user_id: user.id, amount: 25 },
+        }),
+      ) as any;
       expect(updated.settlement.amount).toBe(25);
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:settlement-updated', expect.any(Object));
 
-      const deleted = parseToolResult(await h.client.callTool({
-        name: 'delete_settlement',
-        arguments: { tripId: trip.id, settlementId: id },
-      })) as any;
+      const deleted = parseToolResult(
+        await h.client.callTool({
+          name: 'delete_settlement',
+          arguments: { tripId: trip.id, settlementId: id },
+        }),
+      ) as any;
       expect(deleted.success).toBe(true);
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:settlement-deleted', expect.any(Object));
 
-      const remaining = testDb.prepare('SELECT count(*) as cnt FROM budget_settlements WHERE trip_id = ?').get(trip.id) as any;
-      expect(remaining.cnt).toBe(0);
+      expect(await countRows(orm, BudgetSettlements, { trip: trip.id })).toBe(0);
     });
   });
 
@@ -346,17 +360,20 @@ describe('Settlement tools', () => {
     // The fixture carries the row the fix is about: a total nobody has paid.
     const { user, other, trip } = tripWithTwo();
     const paid = createBudgetItem(testDb, trip.id, { total_price: 100 });
-    testDb.prepare('INSERT INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, 0), (?, ?, 0)')
-      .run(paid.id, user.id, paid.id, other.id);
-    testDb.prepare('INSERT INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, ?)')
-      .run(paid.id, user.id, 100);
+    await addBudgetItemMember(orm, paid.id, user.id, { paid: 0 });
+    await addBudgetItemMember(orm, paid.id, other.id, { paid: 0 });
+    await addBudgetItemPayer(orm, paid.id, user.id, 100);
     const unpaid = createBudgetItem(testDb, trip.id, { total_price: 40 });
-    testDb.prepare('INSERT INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, 0)')
-      .run(unpaid.id, other.id);
+    await addBudgetItemMember(orm, unpaid.id, other.id, { paid: 0 });
 
-    const dbService = new DatabaseService(testDb);
     const controller = new BudgetController(
-      new BudgetService(dbService, new PermissionsService(dbService), new ExchangeRatesService(), new RealtimeService()),
+      new BudgetService(
+        new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
+        new ExchangeRatesService(),
+        new RealtimeService(),
+        await createTestUnitOfWork(testDb),
+        ...(await budgetRepoArgs(testDb)),
+      ),
     );
     const rest = await controller.settlement(
       { id: user.id } as User,
@@ -371,29 +388,38 @@ describe('Settlement tools', () => {
       expect(data.summary.balances).toEqual(rest.balances);
       expect(data.summary.flows).toEqual(rest.flows);
       // Only the paid 100 settles; the 40 nobody paid is outstanding, not owed.
-      expect(rest.balances.map(b => b.balance)).toEqual([50, -50]);
+      expect(rest.balances.map((b) => b.balance)).toEqual([50, -50]);
     });
   });
 
-  it('get_settlement_summary reads a same-day bill in the viewer\'s currency to the cent, like REST (#2525)', async () => {
+  it("get_settlement_summary reads a same-day bill in the viewer's currency to the cent, like REST (#2525)", async () => {
     // Frankfurter's two quotes for the pair, each rounded, so not exact inverses. The entry
     // rate is frozen from the euro's, and converting back with the dollar's read the
     // 12,345.67 dollars as 12,346.06.
-    const quotes: Record<string, Record<string, number>> = { EUR: { EUR: 1, USD: 1.1398 }, USD: { USD: 1, EUR: 0.87732 } };
-    const spy = vi.spyOn(ExchangeRatesService.prototype, 'getRates').mockImplementation(async (b: string) => quotes[b] ?? null);
+    const quotes: Record<string, Record<string, number>> = {
+      EUR: { EUR: 1, USD: 1.1398 },
+      USD: { USD: 1, EUR: 0.87732 },
+    };
+    const spy = vi
+      .spyOn(ExchangeRatesService.prototype, 'getRates')
+      .mockImplementation(async (b: string) => quotes[b] ?? null);
     try {
       const { user, other, trip } = tripWithTwo();
-      testDb.prepare("UPDATE trips SET currency = 'EUR' WHERE id = ?").run(trip.id);
+      await updateRows(orm, Trips, { id: trip.id }, { currency: 'EUR' });
       const item = createBudgetItem(testDb, trip.id, { total_price: 12345.67 });
-      testDb.prepare("UPDATE budget_items SET currency = 'USD', exchange_rate = 1.1398 WHERE id = ?").run(item.id);
-      testDb.prepare('INSERT INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, 0), (?, ?, 0)')
-        .run(item.id, user.id, item.id, other.id);
-      testDb.prepare('INSERT INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, ?)')
-        .run(item.id, user.id, 12345.67);
+      await updateRows(orm, BudgetItems, { id: item.id }, { currency: 'USD', exchange_rate: 1.1398 });
+      await addBudgetItemMember(orm, item.id, user.id, { paid: 0 });
+      await addBudgetItemMember(orm, item.id, other.id, { paid: 0 });
+      await addBudgetItemPayer(orm, item.id, user.id, 12345.67);
 
-      const dbService = new DatabaseService(testDb);
       const controller = new BudgetController(
-        new BudgetService(dbService, new PermissionsService(dbService), new ExchangeRatesService(), new RealtimeService()),
+        new BudgetService(
+          new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
+          new ExchangeRatesService(),
+          new RealtimeService(),
+          await createTestUnitOfWork(testDb),
+          ...(await budgetRepoArgs(testDb)),
+        ),
       );
       const rest = await controller.settlement(
         { id: user.id } as User,
@@ -402,13 +428,16 @@ describe('Settlement tools', () => {
         { base: 'USD' },
       );
       await withHarness(user.id, async (h) => {
-        const result = await h.client.callTool({ name: 'get_settlement_summary', arguments: { tripId: trip.id, base: 'USD' } });
+        const result = await h.client.callTool({
+          name: 'get_settlement_summary',
+          arguments: { tripId: trip.id, base: 'USD' },
+        });
         const data = parseToolResult(result) as { summary: typeof rest };
         expect(data.summary).toEqual(rest);
-        const mine = data.summary.finalBudgets.find(f => f.user_id === user.id)!;
+        const mine = data.summary.finalBudgets.find((f) => f.user_id === user.id)!;
         expect(mine.expenses).toBe(12345.67);
         expect(mine.sources.fronted).toEqual([{ item_id: item.id, cents: 1234567 }]);
-        expect(data.summary.flows.map(f => f.amount)).toEqual([6172.84]);
+        expect(data.summary.flows.map((f) => f.amount)).toEqual([6172.84]);
       });
     } finally {
       spy.mockRestore();
@@ -420,10 +449,9 @@ describe('Settlement tools', () => {
       const { user, other, trip } = tripWithTwo();
       // user paid 100 for an item split between both → other owes user 50.
       const item = createBudgetItem(testDb, trip.id, { total_price: 100 });
-      testDb.prepare('INSERT INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, 0), (?, ?, 0)')
-        .run(item.id, user.id, item.id, other.id);
-      testDb.prepare('INSERT INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, ?)')
-        .run(item.id, user.id, 100);
+      await addBudgetItemMember(orm, item.id, user.id, { paid: 0 });
+      await addBudgetItemMember(orm, item.id, other.id, { paid: 0 });
+      await addBudgetItemPayer(orm, item.id, user.id, 100);
       await withHarness(user.id, async (h) => {
         const result = await h.client.callTool({ name: 'get_settlement_summary', arguments: { tripId: trip.id } });
         const data = parseToolResult(result) as any;

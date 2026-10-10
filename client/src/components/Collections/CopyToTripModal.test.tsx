@@ -171,8 +171,8 @@ describe('CopyToTripModal', () => {
     renderModal({ onCopy });
 
     fireEvent.click(await screen.findByText('Rome 2026'));
-    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Skipped 1 duplicates', 'info', undefined));
-    expect(addToast).toHaveBeenCalledWith('Copied 1 places', 'success', undefined);
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Skipped 1 duplicate', 'info', undefined));
+    expect(addToast).toHaveBeenCalledWith('Copied 1 place', 'success', undefined);
   });
 
   it('FE-COMP-COPYTRIP-010: a no-op copy says so instead of staying silent', async () => {

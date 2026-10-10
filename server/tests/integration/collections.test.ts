@@ -6,78 +6,64 @@
  * 500 quirk (shared with the trip cover config) and the place-image filter's
  * statusCode-400 contract.
  */
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
-import type { INestApplication } from '@nestjs/common';
-import path from 'path';
-import fs from 'fs';
-
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
-    isOwner: (tripId: any, userId: number) =>
-      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
-});
-
-vi.mock('../../src/db/database', () => dbMock);
-vi.mock('../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-  SESSION_DURATION: '24h',
-  SESSION_DURATION_MS: 86400000,
-  SESSION_DURATION_SECONDS: 86400,
-  DEFAULT_LANGUAGE: 'en',
-}));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn(), getOnlineUserIds: vi.fn(() => []) }));
-
 import { buildApp } from '../../src/bootstrap';
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createUser } from '../helpers/factories';
+import { db as testDb } from '../../src/db/database';
+import { Addons } from '../../src/db/entities/Addons.entity';
+import { CollectionPlaces } from '../../src/db/entities/CollectionPlaces.entity';
+import { Collections } from '../../src/db/entities/Collections.entity';
 import { authCookie } from '../helpers/auth';
+import { createUser } from '../helpers/factories';
+import type { FactoryOrm } from '../helpers/factories/context';
+import { insertRow, upsertRow } from '../helpers/factories/rows';
+import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
+import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import fs from 'fs';
+import path from 'path';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 let nestApp: INestApplication;
 let app: Application;
+let orm: FactoryOrm;
 const FIXTURE_IMG = path.join(__dirname, '../fixtures/small-image.jpg');
 const coversDir = path.join(__dirname, '../../uploads/covers');
 const placesDir = path.join(__dirname, '../../uploads/places');
 
-function createCollection(ownerId: number): number {
-  return Number(testDb.prepare("INSERT INTO collections (owner_id, name) VALUES (?, 'C')").run(ownerId).lastInsertRowid);
+async function createCollection(ownerId: number): Promise<number> {
+  return insertRow(orm, Collections, { owner: ownerId, name: 'C' });
 }
 
-function createCollectionPlace(collectionId: number, ownerId: number): number {
-  return Number(testDb.prepare("INSERT INTO collection_places (collection_id, owner_id, name) VALUES (?, ?, 'P')").run(collectionId, ownerId).lastInsertRowid);
+async function createCollectionPlace(collectionId: number, ownerId: number): Promise<number> {
+  return insertRow(orm, CollectionPlaces, { collection: collectionId, owner: ownerId, name: 'P' });
 }
 
 beforeAll(async () => {
-  createTables(testDb);
-  runMigrations(testDb);
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
+  orm = nestApp.get(MikroORM);
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   resetTestDb(testDb);
-  resetRateLimits(nestApp);
+  await resetRateLimits(nestApp);
   // Enable the collections addon (the controller sits behind AddonGuard).
-  testDb.prepare(
-    "INSERT OR REPLACE INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES ('collections', 'Collections', 'Saved places', 'global', 'Bookmark', 1, 40)"
-  ).run();
+  await upsertRow(orm, Addons, {
+    id: 'collections',
+    name: 'Collections',
+    description: 'Saved places',
+    type: 'global',
+    icon: 'Bookmark',
+    enabled: true,
+    sort_order: 40,
+  });
 });
 
 afterAll(async () => {
@@ -90,7 +76,7 @@ afterAll(async () => {
 describe('Collection cover upload', () => {
   it('COLL-P01 — cover upload stores /uploads/covers/<uuid> and writes the file', async () => {
     const { user } = createUser(testDb);
-    const collectionId = createCollection(user.id);
+    const collectionId = await createCollection(user.id);
 
     const res = await request(app)
       .post(`/api/addons/collections/${collectionId}/cover`)
@@ -104,7 +90,7 @@ describe('Collection cover upload', () => {
 
   it('COLL-P02 — no file → 400 "No image uploaded"', async () => {
     const { user } = createUser(testDb);
-    const collectionId = createCollection(user.id);
+    const collectionId = await createCollection(user.id);
 
     const res = await request(app)
       .post(`/api/addons/collections/${collectionId}/cover`)
@@ -115,7 +101,7 @@ describe('Collection cover upload', () => {
 
   it('COLL-P03 — non-image cover is 500 (plain-Error filter quirk — pinned, do not "fix")', async () => {
     const { user } = createUser(testDb);
-    const collectionId = createCollection(user.id);
+    const collectionId = await createCollection(user.id);
 
     const res = await request(app)
       .post(`/api/addons/collections/${collectionId}/cover`)
@@ -128,8 +114,8 @@ describe('Collection cover upload', () => {
 describe('Collection place image upload', () => {
   it('COLL-P04 — place image upload stores /uploads/places/<uuid> and writes the file', async () => {
     const { user } = createUser(testDb);
-    const collectionId = createCollection(user.id);
-    const placeId = createCollectionPlace(collectionId, user.id);
+    const collectionId = await createCollection(user.id);
+    const placeId = await createCollectionPlace(collectionId, user.id);
 
     const res = await request(app)
       .post(`/api/addons/collections/places/${placeId}/image`)
@@ -143,8 +129,8 @@ describe('Collection place image upload', () => {
 
   it('COLL-P05 — non-image place upload is 400 with the bespoke message', async () => {
     const { user } = createUser(testDb);
-    const collectionId = createCollection(user.id);
-    const placeId = createCollectionPlace(collectionId, user.id);
+    const collectionId = await createCollection(user.id);
+    const placeId = await createCollectionPlace(collectionId, user.id);
 
     const res = await request(app)
       .post(`/api/addons/collections/places/${placeId}/image`)

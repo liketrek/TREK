@@ -1,24 +1,24 @@
 import { describe, it, expect } from 'vitest';
+import { PRIORITY_COLOR, PRIORITY_LABEL, PRIORITY_LEVELS } from '../../../../src/mobile/screens/trip/tabs/listsModel';
 import {
-  PRIORITY_COLOR,
-  PRIORITY_LABEL,
-  PRIORITY_LEVELS,
-  filterTodoItems,
   formatWeight,
   groupPackingItems,
   isLastCustomItemInCategory,
   isPackingPlaceholder,
-  isTodoOverdue,
   packingCategoryOrder,
   packingItemWeight,
   packingProgress,
   packingStatusFiltered,
   packingViewItems,
+} from '../../../../src/components/Packing/packingListModel';
+import {
+  filterTodoItems,
+  isTodoOverdue,
   sortTodoRows,
   todoCategories,
   todoCategoryOpenCount,
   todoCounts,
-} from '../../../../src/mobile/screens/trip/tabs/listsModel';
+} from '../../../../src/components/Todo/todoListModel';
 import { STATUS_COLOR } from '../../../../src/mobile/screens/trip/tabs/tabModel';
 import { PACKING_PLACEHOLDER_NAME } from '../../../../src/components/Packing/packingListPanel.constants';
 import { buildPackingItem, buildTodoItem } from '../../../helpers/factories';

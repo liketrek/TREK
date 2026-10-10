@@ -3,12 +3,17 @@
  * the real JwtAuthGuard against a temp SQLite db (seeded via the shared harness).
  * The airport service is mocked so the test doesn't depend on the bundled dataset.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { AirportsModule } from '../../src/nest/airports/airports.module';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -28,12 +33,15 @@ vi.mock('../../src/nest/airports/airports.data', async (importActual) => {
   return { ...actual, searchAirports: mockSearch, findByIata: mockFindByIata };
 });
 
-import { AirportsModule } from '../../src/nest/airports/airports.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-
 const BER = {
-  iata: 'BER', icao: 'EDDB', name: 'Berlin Brandenburg', city: 'Berlin',
-  country: 'DE', lat: 52.36, lng: 13.5, tz: 'Europe/Berlin',
+  iata: 'BER',
+  icao: 'EDDB',
+  name: 'Berlin Brandenburg',
+  city: 'Berlin',
+  country: 'DE',
+  lat: 52.36,
+  lng: 13.5,
+  tz: 'Europe/Berlin',
 };
 
 describe('Airports e2e (real auth guard + temp SQLite)', () => {
@@ -41,7 +49,13 @@ describe('Airports e2e (real auth guard + temp SQLite)', () => {
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [AirportsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      // task-6-rereview2.md M4: without a MikroORM in the graph,
+      // CronRegistrarService.runOnBoot skips the backfill and logs a genuine
+      // [ERROR] line on every run of this file. createTestMikroOrmModule(db)
+      // wires one so the boot backfill actually runs here, same as production.
+      imports: [await TestUnitOfWorkModule.forRoot(db), createTestMikroOrmModule(db), AirportsModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());

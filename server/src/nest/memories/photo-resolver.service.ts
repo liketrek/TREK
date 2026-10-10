@@ -1,19 +1,20 @@
-import { Injectable } from '@nestjs/common';
-import { Response } from 'express';
 import type { TrekPhoto } from '../../types';
 import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { TrekPhotosRepository } from '../photos/trek-photos.repository';
+import { TrekPhotoRegistrationService } from '../photos/trek-photo-registration.service';
+import { StorageService } from '../storage/storage.service';
+import { fail, success, type AssetInfo, type ServiceResult } from './memories.helpers';
+import type { PhotoAssetRef } from './photo-provider';
+import { PhotoProviderRegistry } from './photo-provider.registry';
 import { ThumbnailService } from './thumbnail.service';
 import { TrekPhotoCacheService } from './trek-photo-cache.service';
-import { fail, success, type AssetInfo, type ServiceResult } from './memories.helpers';
-import { PhotoProviderRegistry } from './photo-provider.registry';
-import type { PhotoAssetRef } from './photo-provider';
-import { StorageService } from '../storage/storage.service';
+import { Injectable } from '@nestjs/common';
+
+import { Response } from 'express';
 
 /**
  * Resolves a stored trek_photo to bytes or metadata by asking whichever provider
  * owns it. The storage half of the old photoResolverService lives in
- * nest/photos/trek-photos.repository.ts; this is the dispatch half.
+ * nest/photos/trek-photo-registration.service.ts; this is the dispatch half.
  *
  * It no longer knows WHICH providers exist (#584). It held ImmichService and
  * SynologyService and a `switch` over their ids; it holds the registry now, so
@@ -23,7 +24,7 @@ import { StorageService } from '../storage/storage.service';
 @Injectable()
 export class PhotoResolverService {
   constructor(
-    private readonly photos: TrekPhotosRepository,
+    private readonly photos: TrekPhotoRegistrationService,
     private readonly thumbnails: ThumbnailService,
     private readonly cache: TrekPhotoCacheService,
     private readonly providers: PhotoProviderRegistry,
@@ -57,7 +58,7 @@ export class PhotoResolverService {
       return;
     }
 
-    const promise = fetchBytes().then(async result => {
+    const promise = fetchBytes().then(async (result) => {
       if ('error' in result) return null;
       await this.cache.put(key, result.bytes, result.contentType);
       return result.bytes;
@@ -76,7 +77,7 @@ export class PhotoResolverService {
     kind: 'thumbnail' | 'original',
     range?: string,
   ): Promise<void> {
-    const photo = this.photos.resolve(photoId);
+    const photo = await this.photos.resolve(photoId);
     if (!photo) {
       res.status(404).json({ error: 'Photo not found' });
       return;
@@ -92,7 +93,7 @@ export class PhotoResolverService {
           const result = await this.thumbnails.ensureLocalThumbnail(photo.file_path);
           if (result) {
             thumbRel = result.thumbnailRelPath;
-            this.photos.recordLocalThumbnail(photo.id, thumbRel, result.width, result.height);
+            await this.photos.recordLocalThumbnail(photo.id, thumbRel, result.width, result.height);
           }
         }
         if (thumbRel) {
@@ -138,7 +139,8 @@ export class PhotoResolverService {
     const ref = this.refFor(photo, userId);
     if (kind === 'thumbnail') {
       await this.streamCachedThumbnail(
-        res, photo,
+        res,
+        photo,
         () => provider.fetchThumbnailBytes(ref),
         // The fallback streams the thumbnail itself, so it carries no Range.
         () => provider.streamAsset(res, ref, kind),
@@ -158,18 +160,15 @@ export class PhotoResolverService {
       userId,
       ownerId: photo.owner_id!,
       assetId: photo.asset_id!,
-      passphrase: photo.passphrase ? (decrypt_api_key(photo.passphrase) || undefined) : undefined,
+      passphrase: photo.passphrase ? decrypt_api_key(photo.passphrase) || undefined : undefined,
       mediaType: photo.media_type,
     };
   }
 
   // ── Asset Info ────────────────────────────────────────────────────────────
 
-  async getPhotoInfo(
-    userId: number,
-    photoId: number,
-  ): Promise<ServiceResult<AssetInfo>> {
-    const photo = this.photos.resolve(photoId);
+  async getPhotoInfo(userId: number, photoId: number): Promise<ServiceResult<AssetInfo>> {
+    const photo = await this.photos.resolve(photoId);
     if (!photo) return fail('Photo not found', 404);
 
     // Local rows answer from the row itself — nothing to ask.

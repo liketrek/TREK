@@ -1,5 +1,5 @@
 import { filesApi } from '../api/client'
-import { offlineDb, upsertTripFiles } from '../db/offlineDb'
+import { offlineDb, replaceTripRows } from '../db/offlineDb'
 import { onlineThenCache } from './withOfflineFallback'
 import type { TripFile } from '../types'
 
@@ -8,7 +8,7 @@ export const fileRepo = {
     return onlineThenCache(
       async () => {
         const result = await filesApi.list(tripId)
-        upsertTripFiles(result.files)
+        void replaceTripRows('tripFiles', Number(tripId), result.files)
         return result
       },
       async () => ({

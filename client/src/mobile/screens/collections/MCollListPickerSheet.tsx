@@ -52,7 +52,7 @@ export default function MCollListPickerSheet({ mode, lists, count, onPick, onClo
               type="button"
               onClick={() => pick(list.id)}
               disabled={busyId != null}
-              className="mb-1 flex w-full items-center gap-[10px] rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-3 py-[11px] text-left disabled:opacity-60"
+              className="mb-1 flex w-full items-center gap-[10px] rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheet)] px-3 py-[11px] text-start disabled:opacity-60"
             >
               <span className="h-[9px] w-[9px] flex-none rounded-full" style={{ background: list.color || '#6366F1' }} />
               <span className="min-w-0 flex-1 truncate text-[0.84375rem] font-semibold text-m-ink">{list.name}</span>

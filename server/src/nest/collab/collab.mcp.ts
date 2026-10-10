@@ -1,17 +1,24 @@
-import {
-  McpController, Tool, ResourceTemplate, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
-} from '../../nest-mcp';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { CollabService } from './collab.service';
+import {
+  McpController,
+  Tool,
+  ResourceTemplate,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
 import { collabFeatureGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { CollabService } from './collab.service';
+import { idSchema } from '@trek/shared';
+
+import { z } from 'zod';
 
 /**
  * Legacy registrar gates: the whole collab surface rides the collab addon
@@ -29,21 +36,25 @@ function parseId(value: string | string[]): number | null {
 
 function accessDenied(uri: string) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify({ error: 'Trip not found or access denied' }),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify({ error: 'Trip not found or access denied' }),
+      },
+    ],
   };
 }
 
 function jsonContent(uri: string, data: unknown) {
   return {
-    contents: [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify(data, null, 2),
-    }],
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify(data, null, 2),
+      },
+    ],
   };
 }
 
@@ -65,7 +76,6 @@ function jsonContent(uri: string, data: unknown) {
 export class CollabMcp {
   constructor(
     private readonly collab: CollabService,
-    private readonly auth: AuthService,
     readonly addons: AddonsService,
     private readonly guards: McpToolGuardsService,
   ) {}
@@ -76,12 +86,21 @@ export class CollabMcp {
     name: 'create_collab_note',
     description: 'Create a shared collaborative note on a trip (visible to all trip members in the Collab tab).',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       title: z.string().min(1).max(200),
       content: z.string().max(10000).optional(),
       category: z.string().max(100).optional().describe('Note category (e.g. "Ideas", "To-do", "General")'),
-      color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().describe('Hex color for the note card'),
-      website: z.string().max(500).nullable().optional().describe('Link to attach to the note; the card renders it as a preview thumbnail. Pass null to remove it'),
+      color: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/)
+        .optional()
+        .describe('Hex color for the note card'),
+      website: z
+        .string()
+        .max(500)
+        .nullable()
+        .optional()
+        .describe('Link to attach to the note; the card renders it as a preview thumbnail. Pass null to remove it'),
       pinned: z.boolean().optional().default(false).describe('Pin the note to the top'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -89,15 +108,28 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'write' },
   })
   async createCollabNote(
-    { tripId, title, content, category, color, website, pinned }: {
-      tripId: number; title: string; content?: string; category?: string; color?: string; website?: string | null; pinned?: boolean;
+    {
+      tripId,
+      title,
+      content,
+      category,
+      color,
+      website,
+      pinned,
+    }: {
+      tripId: number;
+      title: string;
+      content?: string;
+      category?: string;
+      color?: string;
+      website?: string | null;
+      pinned?: boolean;
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.collab.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('collab_edit', tripId, ctx.userId)) return permissionDenied();
-    const note = this.collab.createNote(tripId, ctx.userId, { title, content, category, color, website, pinned });
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
+    const note = await this.collab.createNote(tripId, ctx.userId, { title, content, category, color, website, pinned });
     this.guards.safeBroadcast(tripId, 'collab:note:created', { note });
     return ok({ note });
   }
@@ -106,13 +138,22 @@ export class CollabMcp {
     name: 'update_collab_note',
     description: 'Edit an existing collaborative note on a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      noteId: z.number().int().positive(),
+      tripId: idSchema,
+      noteId: idSchema,
       title: z.string().min(1).max(200).optional(),
       content: z.string().max(10000).optional(),
       category: z.string().max(100).optional(),
-      color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().describe('Hex color for the note card'),
-      website: z.string().max(500).nullable().optional().describe('Link to attach to the note, or null to remove the one it has'),
+      color: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/)
+        .optional()
+        .describe('Hex color for the note card'),
+      website: z
+        .string()
+        .max(500)
+        .nullable()
+        .optional()
+        .describe('Link to attach to the note, or null to remove the one it has'),
       pinned: z.boolean().optional().describe('Pin the note to the top'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -120,15 +161,30 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'write' },
   })
   async updateCollabNote(
-    { tripId, noteId, title, content, category, color, website, pinned }: {
-      tripId: number; noteId: number; title?: string; content?: string; category?: string; color?: string; website?: string | null; pinned?: boolean;
+    {
+      tripId,
+      noteId,
+      title,
+      content,
+      category,
+      color,
+      website,
+      pinned,
+    }: {
+      tripId: number;
+      noteId: number;
+      title?: string;
+      content?: string;
+      category?: string;
+      color?: string;
+      website?: string | null;
+      pinned?: boolean;
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.collab.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('collab_edit', tripId, ctx.userId)) return permissionDenied();
-    const note = this.collab.updateNote(tripId, noteId, { title, content, category, color, website, pinned });
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
+    const note = await this.collab.updateNote(tripId, noteId, { title, content, category, color, website, pinned });
     if (!note) return errorResult('Note not found.');
     this.guards.safeBroadcast(tripId, 'collab:note:updated', { note });
     return ok({ note });
@@ -138,17 +194,16 @@ export class CollabMcp {
     name: 'delete_collab_note',
     description: 'Delete a collaborative note from a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      noteId: z.number().int().positive(),
+      tripId: idSchema,
+      noteId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: collabNotesOn,
     access: { group: 'collab', mode: 'write' },
   })
   async deleteCollabNote({ tripId, noteId }: { tripId: number; noteId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.collab.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('collab_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
     const deleted = await this.collab.deleteNote(tripId, noteId);
     if (!deleted) return errorResult('Note not found.');
     this.guards.safeBroadcast(tripId, 'collab:note:deleted', { noteId });
@@ -161,15 +216,15 @@ export class CollabMcp {
     name: 'list_collab_polls',
     description: 'List all polls for a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: collabPollsOn,
     access: { group: 'collab', mode: 'read' },
   })
   async listCollabPolls({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (!this.collab.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    const polls = this.collab.listPolls(tripId);
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    const polls = await this.collab.listPolls(tripId);
     return ok({ polls });
   }
 
@@ -177,7 +232,7 @@ export class CollabMcp {
     name: 'create_collab_poll',
     description: 'Create a new poll in the collab panel.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       question: z.string().min(1),
       options: z.array(z.string()).min(2).describe('Poll answer options (at least 2)'),
       multiple: z.boolean().optional().describe('Allow multiple choice'),
@@ -188,15 +243,24 @@ export class CollabMcp {
     access: { group: 'collab', mode: 'write' },
   })
   async createCollabPoll(
-    { tripId, question, options, multiple, deadline }: {
-      tripId: number; question: string; options: string[]; multiple?: boolean; deadline?: string;
+    {
+      tripId,
+      question,
+      options,
+      multiple,
+      deadline,
+    }: {
+      tripId: number;
+      question: string;
+      options: string[];
+      multiple?: boolean;
+      deadline?: string;
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.collab.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('collab_edit', tripId, ctx.userId)) return permissionDenied();
-    const poll = this.collab.createPoll(tripId, ctx.userId, { question, options, multiple, deadline });
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
+    const poll = await this.collab.createPoll(tripId, ctx.userId, { question, options, multiple, deadline });
     this.guards.safeBroadcast(tripId, 'collab:poll:created', { poll });
     return ok({ poll });
   }
@@ -205,19 +269,21 @@ export class CollabMcp {
     name: 'vote_collab_poll',
     description: 'Vote on a poll option (or remove vote if already voted for that option).',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      pollId: z.number().int().positive(),
+      tripId: idSchema,
+      pollId: idSchema,
       optionIndex: z.number().int().min(0).describe('Zero-based index of the option to vote for'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: collabPollsOn,
     access: { group: 'collab', mode: 'write' },
   })
-  async voteCollabPoll({ tripId, pollId, optionIndex }: { tripId: number; pollId: number; optionIndex: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.collab.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('collab_edit', tripId, ctx.userId)) return permissionDenied();
-    const result = this.collab.votePoll(tripId, pollId, ctx.userId, optionIndex);
+  async voteCollabPoll(
+    { tripId, pollId, optionIndex }: { tripId: number; pollId: number; optionIndex: number },
+    ctx: McpContext,
+  ) {
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
+    const result = await this.collab.votePoll(tripId, pollId, ctx.userId, optionIndex);
     if (result.error) return errorResult(result.error);
     this.guards.safeBroadcast(tripId, 'collab:poll:voted', { poll: result.poll });
     return ok({ poll: result.poll });
@@ -227,18 +293,17 @@ export class CollabMcp {
     name: 'close_collab_poll',
     description: 'Close a poll so no more votes can be cast.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      pollId: z.number().int().positive(),
+      tripId: idSchema,
+      pollId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: collabPollsOn,
     access: { group: 'collab', mode: 'write' },
   })
   async closeCollabPoll({ tripId, pollId }: { tripId: number; pollId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.collab.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('collab_edit', tripId, ctx.userId)) return permissionDenied();
-    const poll = this.collab.closePoll(tripId, pollId);
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
+    const poll = await this.collab.closePoll(tripId, pollId);
     if (!poll) return errorResult('Poll not found.');
     this.guards.safeBroadcast(tripId, 'collab:poll:closed', { poll });
     return ok({ poll });
@@ -248,18 +313,17 @@ export class CollabMcp {
     name: 'delete_collab_poll',
     description: 'Delete a poll and all its votes.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      pollId: z.number().int().positive(),
+      tripId: idSchema,
+      pollId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: collabPollsOn,
     access: { group: 'collab', mode: 'write' },
   })
   async deleteCollabPoll({ tripId, pollId }: { tripId: number; pollId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.collab.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('collab_edit', tripId, ctx.userId)) return permissionDenied();
-    const deleted = this.collab.deletePoll(tripId, pollId);
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
+    const deleted = await this.collab.deletePoll(tripId, pollId);
     if (!deleted) return errorResult('Poll not found.');
     this.guards.safeBroadcast(tripId, 'collab:poll:deleted', { pollId });
     return ok({ success: true });
@@ -269,16 +333,16 @@ export class CollabMcp {
     name: 'list_collab_messages',
     description: 'List chat messages for a trip (most recent 100, oldest-first).',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      before: z.number().int().positive().optional().describe('Load messages with ID less than this (pagination)'),
+      tripId: idSchema,
+      before: idSchema.optional().describe('Load messages with ID less than this (pagination)'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: collabChatOn,
     access: { group: 'collab', mode: 'read' },
   })
   async listCollabMessages({ tripId, before }: { tripId: number; before?: number }, ctx: McpContext) {
-    if (!this.collab.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    const messages = this.collab.listMessages(tripId, before);
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    const messages = await this.collab.listMessages(tripId, before);
     return ok({ messages });
   }
 
@@ -286,19 +350,21 @@ export class CollabMcp {
     name: 'send_collab_message',
     description: "Send a chat message to a trip's collab channel.",
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       text: z.string().min(1),
-      replyTo: z.number().int().positive().optional().describe('Reply to a specific message ID'),
+      replyTo: idSchema.optional().describe('Reply to a specific message ID'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: collabChatOn,
     access: { group: 'collab', mode: 'write' },
   })
-  async sendCollabMessage({ tripId, text, replyTo }: { tripId: number; text: string; replyTo?: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.collab.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('collab_edit', tripId, ctx.userId)) return permissionDenied();
-    const result = this.collab.createMessage(tripId, ctx.userId, text, replyTo ?? null);
+  async sendCollabMessage(
+    { tripId, text, replyTo }: { tripId: number; text: string; replyTo?: number },
+    ctx: McpContext,
+  ) {
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
+    const result = await this.collab.createMessage(tripId, ctx.userId, text, replyTo ?? null);
     if (result.error) return errorResult(result.error);
     this.guards.safeBroadcast(tripId, 'collab:message:created', { message: result.message });
     return ok({ message: result.message });
@@ -308,18 +374,17 @@ export class CollabMcp {
     name: 'delete_collab_message',
     description: 'Delete a chat message (only the message owner can delete their own messages).',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      messageId: z.number().int().positive(),
+      tripId: idSchema,
+      messageId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: collabChatOn,
     access: { group: 'collab', mode: 'write' },
   })
   async deleteCollabMessage({ tripId, messageId }: { tripId: number; messageId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.collab.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('collab_edit', tripId, ctx.userId)) return permissionDenied();
-    const result = this.collab.deleteMessage(tripId, messageId, ctx.userId);
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
+    const result = await this.collab.deleteMessage(tripId, messageId, ctx.userId);
     if (result.error) return errorResult(result.error);
     this.guards.safeBroadcast(tripId, 'collab:message:deleted', { messageId, username: result.username });
     return ok({ success: true });
@@ -329,19 +394,21 @@ export class CollabMcp {
     name: 'react_collab_message',
     description: 'Toggle a reaction emoji on a chat message (adds if not present, removes if already reacted).',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      messageId: z.number().int().positive(),
+      tripId: idSchema,
+      messageId: idSchema,
       emoji: z.string().describe('Single emoji character'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: collabChatOn,
     access: { group: 'collab', mode: 'write' },
   })
-  async reactCollabMessage({ tripId, messageId, emoji }: { tripId: number; messageId: number; emoji: string }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.collab.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('collab_edit', tripId, ctx.userId)) return permissionDenied();
-    const result = this.collab.reactMessage(messageId, tripId, ctx.userId, emoji);
+  async reactCollabMessage(
+    { tripId, messageId, emoji }: { tripId: number; messageId: number; emoji: string },
+    ctx: McpContext,
+  ) {
+    if (!(await this.collab.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('collab_edit', tripId, ctx.userId))) return permissionDenied();
+    const result = await this.collab.reactMessage(messageId, tripId, ctx.userId, emoji);
     if (!result.found) return errorResult('Message not found.');
     this.guards.safeBroadcast(tripId, 'collab:message:reacted', { messageId, reactions: result.reactions });
     return ok({ reactions: result.reactions });
@@ -359,8 +426,8 @@ export class CollabMcp {
   })
   async tripCollabNotesResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
     const id = parseId(tripId);
-    if (id === null || !this.collab.verifyTripAccess(id, ctx.userId)) return accessDenied(uri.href);
-    const notes = this.collab.listNotes(id);
+    if (id === null || !(await this.collab.verifyTripAccess(id, ctx.userId))) return accessDenied(uri.href);
+    const notes = await this.collab.listNotes(id);
     return jsonContent(uri.href, notes);
   }
 
@@ -374,8 +441,8 @@ export class CollabMcp {
   })
   async tripCollabPollsResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
     const id = parseId(tripId);
-    if (id === null || !this.collab.verifyTripAccess(id, ctx.userId)) return accessDenied(uri.href);
-    const polls = this.collab.listPolls(id);
+    if (id === null || !(await this.collab.verifyTripAccess(id, ctx.userId))) return accessDenied(uri.href);
+    const polls = await this.collab.listPolls(id);
     return jsonContent(uri.href, polls);
   }
 
@@ -389,8 +456,8 @@ export class CollabMcp {
   })
   async tripCollabMessagesResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
     const id = parseId(tripId);
-    if (id === null || !this.collab.verifyTripAccess(id, ctx.userId)) return accessDenied(uri.href);
-    const messages = this.collab.listMessages(id);
+    if (id === null || !(await this.collab.verifyTripAccess(id, ctx.userId))) return accessDenied(uri.href);
+    const messages = await this.collab.listMessages(id);
     return jsonContent(uri.href, messages);
   }
 }

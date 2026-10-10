@@ -1,21 +1,26 @@
 import type React from 'react'
+import { placeLocality } from '../../utils/placeLocality'
+import { localityGroups, matchesLocality, type LocalityFilter } from './placeLocalityFilter'
+import { readPlacesSort, sortPlaces, writePlacesSort, type PlacesSort } from './placesSort'
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { Pencil, Trash2, ExternalLink, Navigation, CalendarDays, Bookmark } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { useContextMenu } from '../shared/ContextMenu'
-import { placesApi } from '../../api/client'
-import { collectionsApi } from '../../api/collections'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
-import { useAuthStore } from '../../store/authStore'
 import { useAddonStore } from '../../store/addonStore'
 import { useSaveToCollectionStore } from '../../store/saveToCollectionStore'
 import { placeToSaveTarget } from '../Collections/saveTarget'
 import type { Place, Category, Day, AssignmentsMap } from '../../types'
 import { getGoogleMapsUrlForPlace } from './placeGoogleMaps'
+import { placeMatchesSearch } from '../../utils/placeSearch'
+import { matchesCategoryFilter, matchesPlacesFilter } from '../../utils/placesFilter'
 import { safeHttpUrl } from '../../utils/safeUrl'
 import { plannedPlaceIds, plannedPlaceIdsForDay, type PlannedAccommodation } from '../../utils/plannedPlaces'
+import type { MenuEntry } from './planParts'
+import { useListImport, type ListImportProvider } from './useListImport'
+import { usePlacesPool, type PlacesFilter } from './usePlacesPool'
 
 /** Stable identity — a fresh [] default would invalidate the planned memo on every render. */
 const NO_ACCOMMODATIONS: PlannedAccommodation[] = []
@@ -57,6 +62,13 @@ export interface PlacesSidebarProps {
   pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
   initialScrollTop?: number
   onScrollTopChange?: (top: number) => void
+  /**
+  * With the Tours addon on, file import belongs to Tours mode, list import
+  * stays here, and the "Tracks" chip is hidden because tracks are tours.
+   */
+  toursEnabled?: boolean
+  /** Places that are tours (a `tours` facet row exists) — hidden from the pool entirely while tours is on. */
+  excludePlaceIds?: Set<number>
 }
 
 /**
@@ -67,9 +79,13 @@ export interface PlacesSidebarProps {
 export function usePlacesSidebar(props: PlacesSidebarProps) {
   const {
     tripId, places, assignments, selectedDayId, days, accommodations = NO_ACCOMMODATIONS,
-    pushUndo, initialScrollTop, onScrollTopChange,
+    pushUndo, initialScrollTop, onScrollTopChange, onEditPlace, onAssignToDay, onDeletePlace,
   } = props
-  const { t } = useTranslation()
+  const poolPlaces = useMemo(
+    () => props.toursEnabled && props.excludePlaceIds ? places.filter(p => !props.excludePlaceIds!.has(p.id)) : places,
+    [places, props.toursEnabled, props.excludePlaceIds],
+  )
+  const { t, language } = useTranslation()
   const toast = useToast()
   const ctxMenu = useContextMenu()
   const trip = useTripStore((s) => s.trip)
@@ -79,11 +95,6 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const can = useCanDo()
   const canEditPlaces = can('place_edit', trip)
   const collectionsEnabled = useAddonStore((s) => s.isEnabled('collections'))
-  // Places-API enrichment (#886) needs a Google Maps key. Not the places
-  // *provider* choice: enrichment's photos and summary come from Google (and,
-  // keyless, from Wikimedia), which is independent of which provider answers
-  // search — an Amap install with a Google key still enriches through Google.
-  const canEnrichImport = useAuthStore((s) => s.hasMapsKey)
 
   const [fileImportOpen, setFileImportOpen] = useState(false)
   const [sidebarDropFile, setSidebarDropFile] = useState<File | null>(null)
@@ -99,14 +110,14 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   }, [])
 
   const handleSidebarDragEnter = (e: React.DragEvent) => {
-    if (!canEditPlaces) return
+    if (!canEditPlaces || props.toursEnabled) return
     e.preventDefault()
     sidebarDragCounter.current++
     setSidebarDragOver(true)
   }
 
   const handleSidebarDragOver = (e: React.DragEvent) => {
-    if (!canEditPlaces) return
+    if (!canEditPlaces || props.toursEnabled) return
     e.preventDefault()
   }
 
@@ -119,129 +130,39 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     e.preventDefault()
     sidebarDragCounter.current = 0
     setSidebarDragOver(false)
-    if (!canEditPlaces) return
+    if (!canEditPlaces || props.toursEnabled) return
     const f = e.dataTransfer.files[0]
     if (!f) return
     setSidebarDropFile(f)
     setFileImportOpen(true)
   }
 
-  const [listImportOpen, setListImportOpen] = useState(false)
-  const [listImportUrl, setListImportUrl] = useState('')
-  const [listImportLoading, setListImportLoading] = useState(false)
-  const [listImportProvider, setListImportProvider] = useState<'google' | 'naver'>('google')
-  const [listImportEnrich, setListImportEnrich] = useState(false)
-  const availableListImportProviders: Array<'google' | 'naver'> = ['google', 'naver']
+  const listImport = useListImport({ tripId, t, toast, loadTrip, pushUndo })
+  const availableListImportProviders: ListImportProvider[] = ['google', 'naver']
   const hasMultipleListImportProviders = availableListImportProviders.length > 1
 
-  const handleListImport = async () => {
-    if (!listImportUrl.trim()) return
-    setListImportLoading(true)
-    const provider = listImportProvider
-    try {
-      const enrich = listImportEnrich && canEnrichImport
-      const result = provider === 'google'
-        ? await placesApi.importGoogleList(tripId, listImportUrl.trim(), enrich)
-        : await placesApi.importNaverList(tripId, listImportUrl.trim(), enrich)
-      await loadTrip(tripId)
-      if (result.count === 0 && result.skipped > 0) {
-        toast.warning(t('places.importAllSkipped'))
-      } else {
-        toast.success(t(provider === 'google' ? 'places.googleListImported' : 'places.naverListImported', { count: result.count, list: result.listName }))
-      }
-      setListImportOpen(false)
-      setListImportUrl('')
-      if (result.places?.length > 0) {
-        const importedIds: number[] = result.places.map((p: { id: number }) => p.id)
-        pushUndo?.(t(provider === 'google' ? 'undo.importGoogleList' : 'undo.importNaverList'), async () => {
-          try { await placesApi.bulkDelete(tripId, importedIds) } catch {}
-          await loadTrip(tripId)
-        })
-      }
-    } catch (err: any) {
-      toast.error(err?.response?.data?.error || t(provider === 'google' ? 'places.googleListError' : 'places.naverListError'))
-    } finally {
-      setListImportLoading(false)
-    }
-  }
-
-  const [search, setSearch] = useState('')
-  // Filter state lives in the trip store so it survives the Plan tab
-  // unmounting (tab switch, mobile sheet close) and stays in lockstep with the
-  // map markers, which filter on the same values (#1541).
-  const filter = useTripStore((s) => s.placesFilter)
-  const setFilter = useTripStore((s) => s.setPlacesFilter)
-  const categoryFilters = useTripStore((s) => s.placesCategoryFilter)
-  const setCategoryFilters = useTripStore((s) => s.setPlacesCategoryFilter)
-  const [selectMode, setSelectMode] = useState(false)
-  // Star sort (#1435): list-only toggle, so it stays local (the map keeps its order).
-  // Minimum average stars, matching the collections filter (#1435): 'all', or a
-  // floor of 1..5 that unrated places fall through. It replaced a sort toggle,
-  // which put the best first but still left everything else on the list — no
-  // help at all when the point is to see only what the group actually rated.
-  const [ratingFilter, setRatingFilter] = useState<number | 'all'>('all')
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const {
+    search, setSearch, updateSearch, filter, setFilter, pickFilter, categoryFilters, setCategoryFilters, toggleCategoryFilter,
+    ratingFilter, setRatingFilter, selectMode, setSelectMode, toggleSelectMode, selectedIds, setSelectedIds, toggleSelected,
+    exitSelectMode, markSelectionVisited, markVisitedBusy, hasTracks,
+  } = usePlacesPool({ tripId, places, poolPlaces, toursEnabled: props.toursEnabled, t, staleSelection: 'exit' })
+  // The list's order (#2093), remembered on this device.
+  const [placesSort, setPlacesSortState] = useState<PlacesSort>(readPlacesSort)
+  const setPlacesSort = useCallback((sort: PlacesSort) => { setPlacesSortState(sort); writePlacesSort(sort) }, [])
+  // Country, or country and region, from each place's resolved position (#2537). List-only,
+  // like the rating floor.
+  const [localityFilter, setLocalityFilter] = useState<LocalityFilter | null>(null)
+  const localityOf = useMemo(() => new Map(poolPlaces.map(p => [p.id, placeLocality(p, language)])), [poolPlaces, language])
+  const localities = useMemo(() => localityGroups(poolPlaces.map(p => localityOf.get(p.id)!)), [poolPlaces, localityOf])
   const [pendingDeleteIds, setPendingDeleteIds] = useState<number[] | null>(null)
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
   const [saveToListOpen, setSaveToListOpen] = useState(false)
 
-  const [markVisitedBusy, setMarkVisitedBusy] = useState(false)
-
-  const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()) }
-
-  /**
-   * "I have been to these" for the selection, applied wherever the places are
-   * saved in the library (#1469). The server does the matching, so a place saved
-   * under a different name in a list is still found.
-   */
-  const markSelectionVisited = useCallback(async () => {
-    const ids = Array.from(selectedIds)
-    if (ids.length === 0 || markVisitedBusy) return
-    setMarkVisitedBusy(true)
-    try {
-      const { updated, places: matchedPlaces } = await collectionsApi.setStatusFromTrip(props.tripId, ids, 'visited')
-      if (updated === 0) toast.info(t('collections.markVisitedNone'))
-      else toast.success(t('collections.markedVisitedTrip', { count: matchedPlaces ?? 0 }))
-      exitSelectMode()
-    } catch {
-      toast.error(t('common.error'))
-    } finally {
-      setMarkVisitedBusy(false)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIds, markVisitedBusy, props.tripId, t])
-
-  // Auto-exit when all selected places have been removed from the store (e.g. after bulk delete)
-  useEffect(() => {
-    if (!selectMode || selectedIds.size === 0) return
-    const placeIdSet = new Set(places.map(p => p.id))
-    if ([...selectedIds].every(id => !placeIdSet.has(id))) {
-      setSelectMode(false)
-      setSelectedIds(new Set())
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [places])
-
-  const toggleSelected = useCallback((id: number) => setSelectedIds(prev => {
-    const next = new Set(prev)
-    if (next.has(id)) next.delete(id); else next.add(id)
-    return next
-  }), [])
-
-  const toggleCategoryFilter = (catId: string) => {
-    const next = new Set(categoryFilters)
-    if (next.has(catId)) next.delete(catId); else next.add(catId)
-    setCategoryFilters(next)
-  }
   const [dayPickerPlace, setDayPickerPlace] = useState<Place | null>(null)
-  const [catDropOpen, setCatDropOpen] = useState(false)
-  const [starDropOpen, setStarDropOpen] = useState(false)
+  // One panel holds what used to be three dropdowns (show, categories, rating).
   const [mobileShowDays, setMobileShowDays] = useState(false)
 
   // Alle geplanten Ort-IDs abrufen (einem Tag zugewiesen)
-  const hasTracks = useMemo(() => places.some(p => p.route_geometry), [places])
-  useEffect(() => { if (filter === 'tracks' && !hasTracks) setFilter('all') }, [hasTracks, filter])
-
   const plannedIds = useMemo(
     () => plannedPlaceIds({ assignments, accommodations, reservations }),
     [assignments, accommodations, reservations],
@@ -268,22 +189,33 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
   const dayScoped = filter === 'planned' && plannedInDayIds !== null
 
   const filtered = useMemo(() => {
-    const list = places.filter(p => {
-      if (filter === 'unplanned' && plannedIds.has(p.id)) return false
-      if (filter === 'planned' && !plannedFilterIds.has(p.id)) return false
-      if (filter === 'tracks' && !p.route_geometry) return false
-      if (categoryFilters.size > 0) {
-        if (p.category_id == null) {
-          if (!categoryFilters.has('uncategorized')) return false
-        } else if (!categoryFilters.has(String(p.category_id))) return false
-      }
-      if (search && !p.name.toLowerCase().includes(search.toLowerCase()) &&
-          !(p.address || '').toLowerCase().includes(search.toLowerCase())) return false
-      if (ratingFilter !== 'all' && (p.rating_avg == null || p.rating_avg < ratingFilter)) return false
+    const list = poolPlaces.filter(p => {
+      if (!matchesPlacesFilter(p, { filter, categoryFilters, ratingFilter }, { plannedIds, plannedFilterIds })) return false
+      if (!placeMatchesSearch(p, search)) return false
+      if (localityFilter && !matchesLocality(localityOf.get(p.id), localityFilter)) return false
       return true
     })
-    return list
-  }, [places, filter, categoryFilters, search, plannedIds, plannedFilterIds, ratingFilter])
+    return sortPlaces(list, placesSort, language)
+  }, [poolPlaces, filter, categoryFilters, search, plannedIds, plannedFilterIds, ratingFilter, localityFilter, localityOf, placesSort, language])
+
+  /**
+   * How many places each "show" choice would leave, under the category and search
+   * filters but not the rating floor. While a day is open "planned" counts that day's
+   * plan, the same set the list and the map show: counting the whole trip is what made
+   * the choice read 55 beside five pins, with nothing to say the two answered
+   * different questions.
+   */
+  const filterCounts = useMemo(() => {
+    const base = poolPlaces.filter(p => matchesCategoryFilter(p, categoryFilters) && placeMatchesSearch(p, search))
+    return {
+      all: base.length,
+      unplanned: base.filter(p => !plannedIds.has(p.id)).length,
+      planned: base.filter(p => plannedFilterIds.has(p.id)).length,
+      tracks: base.filter(p => p.route_geometry).length,
+    } satisfies Record<PlacesFilter, number>
+  }, [poolPlaces, categoryFilters, search, plannedIds, plannedFilterIds])
+
+  /** The filters narrowing the list besides the search box, for the badge on the filter button. */
 
   const registerPlaceRow = useCallback((placeId: number, element: HTMLDivElement | null) => {
     if (element) {
@@ -326,19 +258,30 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
 
   const isAssignedToSelectedDay = (placeId) => inDaySet.has(placeId)
 
-  const openContextMenu = useCallback((e: React.MouseEvent, place: Place) => {
-    const selDayId = selectedDayIdRef.current
+  /**
+   * A row's actions, one list for both ways in: the right-click menu and the row's
+   * "…" button. `dayId` is the day "+ Day" puts the place on.
+   */
+  const placeMenuItems = useCallback((place: Place, dayId: number | null): MenuEntry[] => {
     const googleMapsUrl = getGoogleMapsUrlForPlace(place)
-    ctxMenu.open(e, [
-      canEditPlaces && { label: t('common.edit'), icon: Pencil, onClick: () => props.onEditPlace(place) },
-      selDayId && { label: t('planner.addToDay'), icon: CalendarDays, onClick: () => props.onAssignToDay(place.id, selDayId) },
-      safeHttpUrl(place.website) && { label: t('inspector.website'), icon: ExternalLink, onClick: () => window.open(safeHttpUrl(place.website)!, '_blank', 'noopener,noreferrer') },
-      googleMapsUrl && { label: t('inspector.google'), icon: Navigation, onClick: () => window.open(googleMapsUrl, '_blank') },
+    const website = safeHttpUrl(place.website)
+    const entries: Array<MenuEntry | false> = [
+      canEditPlaces && { label: t('common.edit'), icon: Pencil, onClick: () => onEditPlace(place) },
+      !!dayId && { label: t('planner.addToDay'), icon: CalendarDays, onClick: () => onAssignToDay(place.id, dayId) },
+      !!website && { label: t('inspector.website'), icon: ExternalLink, onClick: () => window.open(website, '_blank', 'noopener,noreferrer') },
+      !!googleMapsUrl && { label: t('inspector.google'), icon: Navigation, onClick: () => window.open(googleMapsUrl, '_blank') },
       collectionsEnabled && { label: t('inspector.saveToCollection'), icon: Bookmark, onClick: () => useSaveToCollectionStore.getState().open(placeToSaveTarget(place)) },
       { divider: true },
-      canEditPlaces && { label: t('common.delete'), icon: Trash2, danger: true, onClick: () => props.onDeletePlace(place.id) },
-    ])
-  }, [ctxMenu.open, canEditPlaces, collectionsEnabled, t, props.onEditPlace, props.onAssignToDay, props.onDeletePlace])
+      canEditPlaces && { label: t('common.delete'), icon: Trash2, danger: true, onClick: () => onDeletePlace(place.id) },
+    ]
+    return entries.filter((entry): entry is MenuEntry => entry !== false)
+  }, [canEditPlaces, collectionsEnabled, t, onEditPlace, onAssignToDay, onDeletePlace])
+
+  // The day is read when the menu opens, so it stays stable across day switches.
+  const openCtxMenu = ctxMenu.open
+  const openContextMenu = useCallback((e: React.MouseEvent, place: Place) => {
+    openCtxMenu(e, placeMenuItems(place, selectedDayIdRef.current))
+  }, [openCtxMenu, placeMenuItems])
 
   return {
     ...props,
@@ -346,20 +289,24 @@ export function usePlacesSidebar(props: PlacesSidebarProps) {
     fileImportOpen, setFileImportOpen, sidebarDropFile, setSidebarDropFile,
     sidebarDragOver, handleSidebarDragEnter, handleSidebarDragOver, handleSidebarDragLeave, handleSidebarDrop,
     scrollContainerRef, onScrollTopChange,
-    listImportOpen, setListImportOpen, listImportUrl, setListImportUrl,
-    listImportLoading, listImportProvider, setListImportProvider,
-    listImportEnrich, setListImportEnrich, canEnrichImport,
-    availableListImportProviders, hasMultipleListImportProviders, handleListImport,
-    search, setSearch, filter, setFilter, categoryFilters, setCategoryFilters,
+    listImportOpen: listImport.open, setListImportOpen: listImport.setOpen,
+    listImportUrl: listImport.url, setListImportUrl: listImport.setUrl,
+    listImportLoading: listImport.loading, listImportProvider: listImport.provider, setListImportProvider: listImport.setProvider,
+    listImportEnrich: listImport.enrich, setListImportEnrich: listImport.setEnrich, canEnrichImport: listImport.canEnrich,
+    availableListImportProviders, hasMultipleListImportProviders, handleListImport: listImport.handleImport,
+    search, setSearch, updateSearch, filter, setFilter, pickFilter, filterCounts,
+    categoryFilters, setCategoryFilters,
     ratingFilter, setRatingFilter,
-    starDropOpen, setStarDropOpen,
-    selectMode, setSelectMode, selectedIds, setSelectedIds, pendingDeleteIds, setPendingDeleteIds,
+    placesSort, setPlacesSort,
+    localityFilter, setLocalityFilter, localities,
+    selectMode, setSelectMode, toggleSelectMode, selectedIds, setSelectedIds, pendingDeleteIds, setPendingDeleteIds,
     categoryPickerOpen, setCategoryPickerOpen,
     saveToListOpen, setSaveToListOpen, collectionsEnabled, tripId,
     markSelectionVisited, markVisitedBusy,
     exitSelectMode, toggleSelected, toggleCategoryFilter, dayPickerPlace, setDayPickerPlace,
-    catDropOpen, setCatDropOpen, mobileShowDays, setMobileShowDays,
-    hasTracks, plannedIds, plannedFilterIds, dayScoped, filtered, registerPlaceRow, isAssignedToSelectedDay, inDaySet, openContextMenu,
+    mobileShowDays, setMobileShowDays,
+    hasTracks, plannedIds, plannedFilterIds, dayScoped, filtered, registerPlaceRow, isAssignedToSelectedDay, inDaySet,
+    openContextMenu, placeMenuItems,
   }
 }
 

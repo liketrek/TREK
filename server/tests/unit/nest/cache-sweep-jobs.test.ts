@@ -5,27 +5,41 @@
  * AirtrailSyncJob (every N minutes, N from the clamped app-setting). The
  * services they drive have their own suites; these cover the scheduling shell.
  */
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import { AirtrailSyncJob } from '../../../src/nest/integrations/airtrail-sync.job';
+import type { AirtrailSyncService } from '../../../src/nest/integrations/airtrail-sync.service';
+import { JourneyThumbsJob } from '../../../src/nest/memories/journey-thumbs.job';
+import type { ThumbnailService } from '../../../src/nest/memories/thumbnail.service';
+import { TrekPhotoCacheJob } from '../../../src/nest/memories/trek-photo-cache.job';
+import type { TrekPhotoCacheService } from '../../../src/nest/memories/trek-photo-cache.service';
+import { PlacePhotoCacheJob } from '../../../src/nest/place-photos/place-photo-cache.job';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const logMock = vi.hoisted(() => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logError: vi.fn(), logWarn: vi.fn(), logDebug: vi.fn() }));
+const logMock = vi.hoisted(() => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+  logDebug: vi.fn(),
+}));
 vi.mock('../../../src/nest/audit/audit-log.logger', () => logMock);
-
-import { TrekPhotoCacheJob } from '../../../src/nest/memories/trek-photo-cache.job';
-import { PlacePhotoCacheJob } from '../../../src/nest/place-photos/place-photo-cache.job';
-import { AirtrailSyncJob } from '../../../src/nest/integrations/airtrail-sync.job';
-import { JourneyThumbsJob } from '../../../src/nest/memories/journey-thumbs.job';
-import type { TrekPhotoCacheService } from '../../../src/nest/memories/trek-photo-cache.service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
-import type { ThumbnailService } from '../../../src/nest/memories/thumbnail.service';
-import type { AirtrailSyncService } from '../../../src/nest/integrations/airtrail-sync.service';
-import type { DatabaseService } from '../../../src/nest/database/database.service';
-import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
 
 function registrarStub(enabled = true) {
   return {
     isEnabled: vi.fn(() => enabled),
     register: vi.fn(() => enabled),
     unregister: vi.fn(),
+    // task-6-fix-brief.md item 7: every boot-time one-off sweep now goes
+    // through CronRegistrarService.runOnBoot instead of running inline —
+    // this double just runs fn immediately (synchronously reaching fn's own
+    // first call, exactly the pre-fix `void this.sweep()` shape), so every
+    // existing assertion below is unaffected.
+    runOnBoot: vi.fn(async (_name: string, fn: () => void | Promise<void>) => {
+      await fn();
+    }),
   };
 }
 
@@ -35,33 +49,42 @@ describe('TrekPhotoCacheJob', () => {
   function make(sweep: () => void = vi.fn(), enabled = true) {
     const registrar = registrarStub(enabled);
     const cache = { sweepExpired: vi.fn(sweep) };
-    const job = new TrekPhotoCacheJob(cache as unknown as TrekPhotoCacheService, registrar as unknown as CronRegistrarService);
+    const job = new TrekPhotoCacheJob(
+      cache as unknown as TrekPhotoCacheService,
+      registrar as unknown as CronRegistrarService,
+    );
     return { job, registrar, cache };
   }
 
-  it('CSJOB-001 — boot sweep runs immediately, then the 2-hourly server-local cron registers', () => {
+  it('CSJOB-001 — boot sweep runs immediately, then the 2-hourly server-local cron registers', async () => {
     const { job, registrar, cache } = make();
-    job.onApplicationBootstrap();
+    await job.onApplicationBootstrap();
     expect(cache.sweepExpired).toHaveBeenCalledTimes(1);
-    expect(registrar.register).toHaveBeenCalledWith('trek-photo-cache', '0 */2 * * *', expect.any(Function), { timezone: 'none' });
+    expect(registrar.register).toHaveBeenCalledWith('trek-photo-cache', '0 */2 * * *', expect.any(Function), {
+      timezone: 'none',
+    });
   });
 
-  it('CSJOB-002 — a throwing boot sweep is swallowed (cache dir may not exist yet) and the cron still registers', () => {
-    const { job, registrar } = make(() => { throw new Error('ENOENT'); });
+  it('CSJOB-002 — a throwing boot sweep is swallowed (cache dir may not exist yet) and the cron still registers', async () => {
+    const { job, registrar } = make(() => {
+      throw new Error('ENOENT');
+    });
     expect(() => job.onApplicationBootstrap()).not.toThrow();
     expect(registrar.register).toHaveBeenCalled();
     expect(logMock.logError).not.toHaveBeenCalled();
   });
 
-  it('CSJOB-003 — the test gate skips the boot sweep entirely', () => {
+  it('CSJOB-003 — the test gate skips the boot sweep entirely', async () => {
     const { job, registrar, cache } = make(vi.fn(), false);
-    job.onApplicationBootstrap();
+    await job.onApplicationBootstrap();
     expect(cache.sweepExpired).not.toHaveBeenCalled();
     expect(registrar.register).not.toHaveBeenCalled();
   });
 
-  it('CSJOB-004 — a throwing tick is contained to the cleanup log line', () => {
-    const { job } = make(() => { throw new Error('disk gone'); });
+  it('CSJOB-004 — a throwing tick is contained to the cleanup log line', async () => {
+    const { job } = make(() => {
+      throw new Error('disk gone');
+    });
     expect(() => job.tick()).not.toThrow();
     expect(logMock.logError).toHaveBeenCalledWith('Trek photo cache cleanup: disk gone');
   });
@@ -71,13 +94,16 @@ describe('PlacePhotoCacheJob', () => {
   function make(removed: number | (() => number) = 0, enabled = true) {
     const registrar = registrarStub(enabled);
     const cache = { sweepOrphans: vi.fn(typeof removed === 'function' ? removed : () => removed) };
-    const job = new PlacePhotoCacheJob(cache as unknown as PlacePhotoCacheService, registrar as unknown as CronRegistrarService);
+    const job = new PlacePhotoCacheJob(
+      cache as unknown as PlacePhotoCacheService,
+      registrar as unknown as CronRegistrarService,
+    );
     return { job, registrar, cache };
   }
 
-  it('CSJOB-005 — boot sweep runs immediately, then the nightly app-tz cron registers', () => {
+  it('CSJOB-005 — boot sweep runs immediately, then the nightly app-tz cron registers', async () => {
     const { job, registrar, cache } = make();
-    job.onApplicationBootstrap();
+    await job.onApplicationBootstrap();
     expect(cache.sweepOrphans).toHaveBeenCalledTimes(1);
     expect(registrar.register).toHaveBeenCalledWith('place-photo-cache', '30 3 * * *', expect.any(Function));
   });
@@ -89,8 +115,10 @@ describe('PlacePhotoCacheJob', () => {
     expect(logMock.logInfo).toHaveBeenCalledWith('Place-photo cache cleanup: removed 3 orphaned file(s)/row(s)');
   });
 
-  it('CSJOB-007 — a throwing sweep is contained to the cleanup log line, and the gate skips the boot sweep', () => {
-    const { job } = make(() => { throw new Error('fs down'); });
+  it('CSJOB-007 — a throwing sweep is contained to the cleanup log line, and the gate skips the boot sweep', async () => {
+    const { job } = make(() => {
+      throw new Error('fs down');
+    });
     expect(() => job.sweep()).not.toThrow();
     expect(logMock.logError).toHaveBeenCalledWith('Place-photo cache cleanup: fs down');
 
@@ -104,14 +132,19 @@ describe('PlacePhotoCacheJob', () => {
 describe('JourneyThumbsJob', () => {
   function make(removed: number | (() => number) = 0, enabled = true) {
     const registrar = registrarStub(enabled);
-    const thumbnails = { sweepOrphanThumbs: vi.fn(typeof removed === 'function' ? removed : () => Promise.resolve(removed)) };
-    const job = new JourneyThumbsJob(thumbnails as unknown as ThumbnailService, registrar as unknown as CronRegistrarService);
+    const thumbnails = {
+      sweepOrphanThumbs: vi.fn(typeof removed === 'function' ? removed : () => Promise.resolve(removed)),
+    };
+    const job = new JourneyThumbsJob(
+      thumbnails as unknown as ThumbnailService,
+      registrar as unknown as CronRegistrarService,
+    );
     return { job, registrar, thumbnails };
   }
 
-  it('CSJOB-010 — boot sweep runs immediately, then the daily app-tz cron registers', () => {
+  it('CSJOB-010 — boot sweep runs immediately, then the daily app-tz cron registers', async () => {
     const { job, registrar, thumbnails } = make();
-    job.onApplicationBootstrap();
+    await job.onApplicationBootstrap();
     expect(thumbnails.sweepOrphanThumbs).toHaveBeenCalledTimes(1);
     expect(registrar.register).toHaveBeenCalledWith('journey-thumbs', '0 4 * * *', expect.any(Function));
   });
@@ -124,7 +157,9 @@ describe('JourneyThumbsJob', () => {
   });
 
   it('CSJOB-012 — a throwing sweep is contained to the cleanup log line, and the gate skips the boot sweep', async () => {
-    const { job } = make(() => { throw new Error('storage down'); });
+    const { job } = make(() => {
+      throw new Error('storage down');
+    });
     await job.sweep();
     expect(logMock.logError).toHaveBeenCalledWith('Journey thumbnail cleanup: storage down');
 
@@ -138,26 +173,26 @@ describe('JourneyThumbsJob', () => {
 describe('AirtrailSyncJob', () => {
   function make(intervalSetting: string | undefined, enabled = true) {
     const registrar = registrarStub(enabled);
-    const db = {
-      get: vi.fn(() => (intervalSetting === undefined ? undefined : { value: intervalSetting })),
+    const appSettings = {
+      getValue: vi.fn(async () => (intervalSetting === undefined ? null : intervalSetting)),
     };
     const airtrail = { runAirtrailSync: vi.fn().mockResolvedValue(undefined) };
     const job = new AirtrailSyncJob(
-      db as unknown as DatabaseService,
+      appSettings as unknown as AppSettingsRepository,
       airtrail as unknown as AirtrailSyncService,
       registrar as unknown as CronRegistrarService,
     );
     return { job, registrar, airtrail };
   }
 
-  it('CSJOB-008 — registers */N from the app-setting and logs the banner', () => {
+  it('CSJOB-008 — registers */N from the app-setting and logs the banner', async () => {
     const { job, registrar } = make('10');
-    job.onApplicationBootstrap();
+    await job.onApplicationBootstrap();
     expect(logMock.logInfo).toHaveBeenCalledWith('AirTrail sync: scheduled every 10m');
     expect(registrar.register).toHaveBeenCalledWith('airtrail-sync', '*/10 * * * *', expect.any(Function));
   });
 
-  it('CSJOB-009 — clamps the interval to 1–59 and defaults to 5', () => {
+  it('CSJOB-009 — clamps the interval to 1–59 and defaults to 5', async () => {
     for (const [setting, minutes] of [
       [undefined, 5],
       ['0', 5],
@@ -168,15 +203,15 @@ describe('AirtrailSyncJob', () => {
     ] as const) {
       vi.clearAllMocks();
       const { job, registrar } = make(setting);
-      job.onApplicationBootstrap();
+      await job.onApplicationBootstrap();
       expect(registrar.register).toHaveBeenCalledWith('airtrail-sync', `*/${minutes} * * * *`, expect.any(Function));
       expect(logMock.logInfo).toHaveBeenCalledWith(`AirTrail sync: scheduled every ${minutes}m`);
     }
   });
 
-  it('CSJOB-010 — the gate skips registration and the banner', () => {
+  it('CSJOB-010 — the gate skips registration and the banner', async () => {
     const { job, registrar } = make('5', false);
-    job.onApplicationBootstrap();
+    await job.onApplicationBootstrap();
     expect(registrar.register).not.toHaveBeenCalled();
     expect(logMock.logInfo).not.toHaveBeenCalled();
   });

@@ -1,72 +1,72 @@
-# Admin — Permissions
+# Admin: Permissions
 
-The Permissions panel, located at the bottom of the **Users** tab, controls which role level is required to perform each action. Changes apply immediately across the entire instance.
+The **Permission Settings** card, at the bottom of the **Users** tab, controls which role level is required to perform each action. Saved changes apply immediately across the entire instance.
 
 ![Permissions panel](assets/PermissionSettings.png)
 
 ## Role model
 
-TREK uses four permission levels, ordered from most to least privileged:
+TREK uses four permission levels, ordered from most to least privileged. The dropdowns show them by the label in brackets:
 
-| Level | Who it includes |
-|-------|----------------|
-| `admin` | Instance administrators only |
-| `trip_owner` | The user who created the trip |
-| `trip_member` | Any user who is a member of the trip |
-| `everybody` | Any authenticated user (for `trip_create`: no trip context required; for all other actions: any authenticated user with trip access) |
+| Level | Label | Who it includes |
+|-------|-------|----------------|
+| `admin` | **Admin only** | Instance administrators only |
+| `trip_owner` | **Trip owner** | The user who created the trip |
+| `trip_member` | **Trip members** | Any user who is a member of the trip |
+| `everybody` | **Everyone** | Any authenticated user (for `trip_create`: no trip context required; for all other actions: any authenticated user with trip access) |
 
-Each action is assigned a minimum required level. A user whose role is at or above that level can perform the action. Not every level is available for every action — each action exposes only the levels that make sense for it. For example, `trip_create` only allows `everybody` or `admin`, while `trip_edit` only allows `trip_owner` or `trip_member`.
+Each action is assigned a minimum required level. A user whose role is at or above that level can perform the action. Not every level is available for every action: each action offers only the levels that make sense for it. For example, `trip_create` only allows **Everyone** or **Admin only**, while `trip_edit` only allows **Trip owner** or **Trip members**.
 
 ## Action categories
 
-Actions are grouped into five categories:
+Actions are grouped into five sections. Each row shows the action's name, a hint below it and the dropdown.
 
-### Trip
+### Trip Management
 
-| Action key | What it controls |
-|------------|-----------------|
-| `trip_create` | Create a new trip |
-| `trip_edit` | Edit trip name, dates, description, and currency |
-| `trip_delete` | Permanently delete a trip |
-| `trip_archive` | Archive or unarchive a trip |
-| `trip_cover_upload` | Upload or change the cover image for a trip |
+| Action key | Row label | What it controls | Default | Choices |
+|------------|-----------|-----------------|---------|---------|
+| `trip_create` | **Create trips** | Create a new trip | Everyone | Admin only, Everyone |
+| `trip_edit` | **Edit trip details** | Edit trip name, dates, description, and currency | Trip owner | Trip owner, Trip members |
+| `trip_delete` | **Delete trips** | Permanently delete a trip | Trip owner | Admin only, Trip owner |
+| `trip_archive` | **Archive / unarchive trips** | Archive or unarchive a trip | Trip owner | Trip owner, Trip members |
+| `trip_cover_upload` | **Upload cover image** | Upload or change the cover image for a trip | Trip owner | Trip owner, Trip members |
 
-### Members
+### Member Management
 
-| Action key | What it controls |
-|------------|-----------------|
-| `member_manage` | Invite or remove trip members |
+| Action key | Row label | What it controls | Default | Choices |
+|------------|-----------|-----------------|---------|---------|
+| `member_manage` | **Add / remove members** | Invite or remove trip members | Trip owner | Admin only, Trip owner, Trip members |
 
 ### Files
 
-| Action key | What it controls |
-|------------|-----------------|
-| `file_upload` | Upload files to a trip |
-| `file_edit` | Edit file descriptions and links |
-| `file_delete` | Move files to trash or permanently delete them |
+| Action key | Row label | What it controls | Default | Choices |
+|------------|-----------|-----------------|---------|---------|
+| `file_upload` | **Upload files** | Upload files to a trip | Trip members | Admin only, Trip owner, Trip members |
+| `file_edit` | **Edit file metadata** | Edit file descriptions and links | Trip members | Trip owner, Trip members |
+| `file_delete` | **Delete files** | Move files to trash or permanently delete them | Trip members | Trip owner, Trip members |
 
 ### Content & Schedule
 
-| Action key | What it controls |
-|------------|-----------------|
-| `place_edit` | Add, edit, or delete places |
-| `day_edit` | Edit days, day notes, and place assignments |
-| `reservation_edit` | Create, edit, or delete reservations |
+| Action key | Row label | What it controls | Default | Choices |
+|------------|-----------|-----------------|---------|---------|
+| `place_edit` | **Add / edit / delete places** | Add, edit, or delete places | Trip members | Trip owner, Trip members |
+| `day_edit` | **Edit days, notes & assignments** | Edit days, day notes, and place assignments | Trip members | Trip owner, Trip members |
+| `reservation_edit` | **Manage reservations** | Create, edit, or delete reservations | Trip members | Trip owner, Trip members |
 
 ### Budget, Packing & Collaboration
 
-| Action key | What it controls |
-|------------|-----------------|
-| `budget_edit` | Create, edit, or delete budget items |
-| `packing_edit` | Manage packing items and bags |
-| `collab_edit` | Create notes, polls, and send messages |
-| `share_manage` | Read, create or delete public share links and calendar feed links |
+| Action key | Row label | What it controls | Default | Choices |
+|------------|-----------|-----------------|---------|---------|
+| `budget_edit` | **Manage budget** | Create, edit, or delete expenses in Costs | Trip members | Trip owner, Trip members |
+| `packing_edit` | **Manage packing lists** | Manage packing items and bags | Trip members | Trip owner, Trip members |
+| `collab_edit` | **Collaboration (notes, polls, chat)** | Create notes, polls, and send messages | Trip members | Trip owner, Trip members |
+| `share_manage` | **Manage share links** | Read, create or delete public share links and calendar feed links | Trip owner | Trip owner, Trip members |
 
 ## Changing permissions
 
-Each action row has a dropdown. Select the minimum role level required. A **customized** badge appears next to any action that has been changed from its default.
+Each action row has a dropdown. Select the minimum role level required. A **customized** badge appears next to any action that differs from its default.
 
-Click **Save** (top-right of the panel) to persist your changes. Use the **Reset to defaults** button (circular arrow icon) to revert all actions to their shipped defaults without saving — you still need to click **Save** after resetting if you want to persist the reset state.
+Click **Save** (top right of the card) to persist your changes; it stays disabled until something has changed. **Reset to defaults** (circular arrow icon) puts every action back to its shipped default in the form without saving: click **Save** afterwards if you want to keep the reset.
 
 ## Related pages
 

@@ -1,4 +1,5 @@
 import { calculateRouteWithLegs } from '../Map/RouteCalculator'
+import { haversineKm } from '../../utils/geo'
 
 /**
  * The roads between a book's stops.
@@ -63,15 +64,6 @@ export interface RoadStop {
   lng: number
 }
 
-function km(a: RoadStop, b: RoadStop): number {
-  const r = (d: number) => (d * Math.PI) / 180
-  const dLat = r(b.lat - a.lat)
-  const dLng = r(b.lng - a.lng)
-  const h = Math.sin(dLat / 2) ** 2
-    + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2
-  return 12742 * Math.asin(Math.min(1, Math.sqrt(h)))
-}
-
 /**
  * Thin a leg to what a printed line can show.
  *
@@ -107,7 +99,7 @@ export async function fetchRoads(
     const a = stops[i]
     const b = stops[i + 1]
 
-    if (km(a, b) > ROAD_CEILING_KM) {
+    if (haversineKm(a, b) > ROAD_CEILING_KM) {
       opts.onProgress?.(i + 1, legs)
       continue
     }

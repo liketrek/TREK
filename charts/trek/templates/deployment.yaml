@@ -9,7 +9,7 @@ spec:
   # TREK is a single-writer SQLite app on a ReadWriteOnce PVC, so the default
   # RollingUpdate would start a second pod holding the same volume before the old one
   # exits — a Multi-Attach deadlock, or two processes on one travel.db. Recreate tears
-  # the old pod down first. Override to RollingUpdate only with a ReadWriteMany volume.
+  # the old pod down first. Keep it, see updateStrategy in values.yaml.
   strategy:
     type: {{ .Values.updateStrategy | default "Recreate" }}
   selector:
@@ -40,10 +40,14 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - containerPort: 3000
+            - name: http
+              containerPort: {{ .Values.env.PORT | default 3000 }}
           envFrom:
             - configMapRef:
                 name: {{ include "trek.fullname" . }}-config
+            {{- with .Values.extraEnvFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           env:
             - name: ENCRYPTION_KEY
               valueFrom:
@@ -75,6 +79,12 @@ spec:
                   name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
                   key: UNSPLASH_ACCESS_KEY
                   optional: true
+            - name: PLACES_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
+                  key: PLACES_API_KEY
+                  optional: true
             - name: AMAP_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -87,11 +97,48 @@ spec:
                   name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
                   key: AMAP_API_SECRET
                   optional: true
+            - name: VAPID_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
+                  key: VAPID_PRIVATE_KEY
+                  optional: true
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
+                  key: SMTP_PASS
+                  optional: true
+            - name: MAPBOX_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
+                  key: MAPBOX_ACCESS_TOKEN
+                  optional: true
+            - name: CARTO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
+                  key: CARTO_API_KEY
+                  optional: true
+            - name: DEMO_ADMIN_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ default (printf "%s-secret" (include "trek.fullname" .)) .Values.existingSecret }}
+                  key: DEMO_ADMIN_PASS
+                  optional: true
+          {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             - name: data
               mountPath: /app/data
             - name: uploads
               mountPath: /app/uploads
+          {{- with (default dict .Values.probes).startup }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with (default dict .Values.probes).liveness }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

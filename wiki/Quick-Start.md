@@ -56,6 +56,8 @@ On first boot TREK automatically seeds an admin account before any user register
 
 You will be prompted to change the password on first login.
 
+**Moving an existing TREK?** Instead of setting up a new admin, start the new install with `RESTORE_FROM_BACKUP` pointing at a backup ZIP inside the container (for example `-e RESTORE_FROM_BACKUP=/app/data/backup.zip` with the file placed in `./data`). On that first start TREK restores the backup before any setup and creates no admin account; sign in with an account from the backup. See [Backups](Backups#restoring-on-a-new-install-before-setup).
+
 > **Admin:** As admin you unlock the Admin Panel — user management, addon toggles, packing templates, backups, and API key configuration.
 
 ## Next Steps

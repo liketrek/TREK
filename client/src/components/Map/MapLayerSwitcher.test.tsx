@@ -2,7 +2,7 @@
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '../../../tests/helpers/render'
-import { MapLayerSwitcher, MAP_ROUND_CONTROL_SIZE } from './MapLayerSwitcher'
+import { MapLayerSwitcher, TourMapLayerSwitcher, MAP_ROUND_CONTROL_SIZE } from './MapLayerSwitcher'
 
 describe('MapLayerSwitcher', () => {
   it('FE-COMP-MAPLAYER-001: on the default layer, offers the switch to satellite', () => {
@@ -42,7 +42,23 @@ describe('MapLayerSwitcher', () => {
     expect(button.style.background).toBe('transparent')
   })
 
-  it('FE-COMP-MAPLAYER-006: the shell is as wide as the size its neighbours are placed off', () => {
+  it('FE-COMP-MAPLAYER-006: offers all three Tours-only base layers', () => {
+    render(<TourMapLayerSwitcher active="default" onChange={() => {}} />)
+
+    expect(screen.getByRole('button', { name: 'Map' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Topo' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('button', { name: 'Satellite' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('FE-COMP-MAPLAYER-007: reports a per-view Topo selection', () => {
+    const onChange = vi.fn()
+    render(<TourMapLayerSwitcher active="default" onChange={onChange} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Topo' }))
+    expect(onChange).toHaveBeenCalledWith('topo')
+  })
+
+  it('FE-COMP-MAPLAYER-008: the shell is as wide as the size its neighbours are placed off', () => {
     render(<MapLayerSwitcher active="default" onToggle={() => {}} />)
     const button = screen.getByRole('button')
     const shell = button.parentElement as HTMLElement

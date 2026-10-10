@@ -84,6 +84,9 @@ const vacay: TranslationStrings = {
   'vacay.carryOverHint': 'Автоматически переносить оставшиеся дни отпуска на следующий год',
   'vacay.carriedOverPrevPeriod': 'из предыдущего периода',
   'vacay.compUsedCount': 'Отгулы: {count}',
+  'vacay.compUsedCount.one': 'Отгулы: {count}',
+  'vacay.compUsedCount.few': 'Отгулы: {count}',
+  'vacay.compUsedCount.many': 'Отгулы: {count}',
   'vacay.yearType': 'Отпускной год',
   'vacay.yearTypeHint':
     'Когда начинается ваш отпускной год — от этого зависят право на отпуск, использованные дни и перенос',

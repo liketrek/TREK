@@ -2,7 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Navigation } from 'lucide-react'
 import type { NavigationTarget } from '../Planner/placeNavigation'
-import { openNavigationTarget } from '../Planner/placeNavigation'
+import { navigationTargetLabel, openNavigationTarget } from '../Planner/placeNavigation'
+import { useTranslation } from '../../i18n'
 
 interface NavigationMenuProps {
   targets: NavigationTarget[]
@@ -27,6 +28,7 @@ const EDGE = 8
  * than the space to its right is pulled back inside.
  */
 export function NavigationMenu({ targets, anchor, onClose, title }: NavigationMenuProps) {
+  const { t } = useTranslation()
   const ref = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
 
@@ -119,14 +121,14 @@ export function NavigationMenu({ targets, anchor, onClose, title }: NavigationMe
             padding: '8px 10px', borderRadius: 8, border: 'none',
             background: 'none', cursor: 'pointer', fontFamily: 'inherit',
             fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500,
-            textAlign: 'left', color: 'var(--text-primary)',
+            textAlign: 'start', color: 'var(--text-primary)',
             transition: 'background 0.12s',
           }}
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
         >
           <Navigation size={13} style={{ flexShrink: 0, color: 'var(--text-faint)' }} />
-          <span>{target.label}</span>
+          <span>{navigationTargetLabel(target, t)}</span>
         </button>
       ))}
     </div>,

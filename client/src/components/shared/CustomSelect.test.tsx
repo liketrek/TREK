@@ -1,4 +1,4 @@
-import { render, screen, within } from '../../../tests/helpers/render';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CustomSelect from './CustomSelect';
 
@@ -192,5 +192,102 @@ describe('CustomSelect', () => {
     await user.click(trigger);
     // Dropdown should not be in the DOM — options remain hidden
     expect(screen.queryByText('Apple')).toBeNull();
+  });
+
+  it('applies the external label id only to the trigger', () => {
+    render(<><label htmlFor="fruit">Fruit</label><CustomSelect id="fruit" value="apple" onChange={onChange} options={OPTIONS} /></>);
+    expect(screen.getByRole('button', { name: 'Fruit' })).toHaveAttribute('id', 'fruit');
+    expect(document.querySelectorAll('[id="fruit"]')).toHaveLength(1);
+  });
+
+  it.each([undefined, 'fruit'])('keeps the explicit accessible name with id %s', id => {
+    render(<CustomSelect id={id} ariaLabel="Choose fruit" value="apple" onChange={onChange} options={OPTIONS} />);
+    const trigger = screen.getByRole('button', { name: 'Choose fruit' });
+    expect(trigger).toHaveAttribute('aria-label', 'Choose fruit');
+    expect(Array.from(trigger.attributes).filter(attribute => attribute.name === 'aria-label')).toHaveLength(1);
+    if (id) expect(trigger).toHaveAttribute('id', id);
+  });
+
+  it('associates two independent portals without duplicate ids', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<>
+      <CustomSelect id="first-fruit" ariaLabel="First fruit" value="apple" onChange={onChange} options={OPTIONS} />
+      <CustomSelect id="second-fruit" ariaLabel="Second fruit" value="banana" onChange={onChange} options={OPTIONS} />
+    </>);
+    const first = screen.getByRole('button', { name: 'First fruit' });
+    const second = screen.getByRole('button', { name: 'Second fruit' });
+    await user.click(first);
+    const firstMenuId = first.getAttribute('aria-controls')!;
+    expect(container.contains(document.getElementById(firstMenuId))).toBe(false);
+    await user.click(second);
+    const secondMenuId = second.getAttribute('aria-controls')!;
+    expect(firstMenuId).not.toBe(secondMenuId);
+    expect(document.getElementById(secondMenuId)).toHaveAttribute('role', 'group');
+    const ids = Array.from(document.querySelectorAll('[id]'), element => element.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    await user.click(within(document.getElementById(secondMenuId)!).getByRole('button', { name: 'Cherry' }));
+    expect(onChange).toHaveBeenCalledWith('cherry');
+    expect(second).toHaveFocus();
+    expect(second).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it.each(['{Enter}', ' '])('supports Tab, %s, arrows, selection and Escape', async openingKey => {
+    const user = userEvent.setup();
+    render(<CustomSelect ariaLabel="Choose fruit" value="" onChange={onChange} options={OPTIONS} />);
+    const trigger = screen.getByRole('button', { name: 'Choose fruit' });
+    await user.tab();
+    expect(trigger).toHaveFocus();
+    await user.keyboard(openingKey);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await user.keyboard('{ArrowDown}{ArrowDown}');
+    expect(screen.getByRole('button', { name: 'Banana' })).toHaveFocus();
+    await user.keyboard('{ArrowUp}{Enter}');
+    expect(onChange).toHaveBeenCalledWith('apple');
+    expect(trigger).toHaveFocus();
+    await user.keyboard('{ArrowUp}');
+    expect(screen.getByRole('button', { name: 'Cherry' })).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('group')).toBeNull();
+  });
+
+  it('keeps searchable focus and supports arrow navigation from the search field', async () => {
+    const user = userEvent.setup();
+    render(<CustomSelect ariaLabel="Choose fruit" value="" onChange={onChange} options={OPTIONS} searchable />);
+    const trigger = screen.getByRole('button', { name: 'Choose fruit' });
+    await user.click(trigger);
+    expect(screen.getByPlaceholderText('...')).toHaveFocus();
+    await user.type(screen.getByPlaceholderText('...'), 'ban');
+    await user.keyboard('{ArrowDown}{Enter}');
+    expect(onChange).toHaveBeenCalledWith('banana');
+    expect(trigger).toHaveFocus();
+  });
+
+  it('keeps compact rendering, icon, badge and disabled keyboard behavior', async () => {
+    const user = userEvent.setup();
+    render(<CustomSelect ariaLabel="Disabled fruit" value="apple" onChange={onChange} size="sm" disabled options={[{ value: 'apple', label: 'Apple', badge: '3', icon: <span data-testid="fruit-icon" /> }]} />);
+    const trigger = screen.getByRole('button', { name: 'Disabled fruit' });
+    expect(trigger).toBeDisabled();
+    expect(trigger.style.padding).toBe('8px 12px');
+    expect(within(trigger).getByText('3')).toBeInTheDocument();
+    expect(within(trigger).getByTestId('fruit-icon')).toBeInTheDocument();
+    await user.tab();
+    await user.keyboard('{Enter}{ArrowDown}');
+    expect(screen.queryByRole('group')).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['{ArrowDown}', 'Apple'],
+    ['{ArrowUp}', 'Cherry'],
+  ])('keyboard opening a searchable menu with %s retains option focus', async (key, option) => {
+    const user = userEvent.setup();
+    render(<CustomSelect ariaLabel="Choose fruit" value="" onChange={onChange} options={OPTIONS} searchable />);
+    await user.tab();
+    await user.keyboard(key);
+    expect(screen.getByRole('button', { name: option })).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('button', { name: 'Choose fruit' })).toHaveFocus();
   });
 });

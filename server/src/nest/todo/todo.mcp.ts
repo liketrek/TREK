@@ -1,17 +1,24 @@
-import {
-  McpController, Tool, ResourceTemplate, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
-} from '../../nest-mcp';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
-import { AuthService } from '../auth/auth.service';
 import { ADDON_IDS } from '../../addons';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { TodoService } from './todo.service';
+import {
+  McpController,
+  Tool,
+  ResourceTemplate,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { TodoService } from './todo.service';
+import { idSchema } from '@trek/shared';
+
+import { z } from 'zod';
 
 /** Legacy registrar gate: the whole todo surface rides the packing addon. */
 const packingAddonOn = addonGate(ADDON_IDS.PACKING);
@@ -34,7 +41,6 @@ function parseId(value: string | string[]): number | null {
 export class TodoMcp {
   constructor(
     private readonly todos: TodoService,
-    private readonly auth: AuthService,
     readonly addons: AddonsService,
     private readonly guards: McpToolGuardsService,
   ) {}
@@ -43,15 +49,15 @@ export class TodoMcp {
     name: 'list_todos',
     description: 'List all to-do items for a trip, ordered by position.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: packingAddonOn,
     access: { group: 'todos', mode: 'read' },
   })
   async listTodos({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (!this.todos.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    const items = this.todos.listItems(tripId);
+    if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    const items = await this.todos.listItems(tripId);
     return ok({ items });
   }
 
@@ -59,65 +65,128 @@ export class TodoMcp {
     name: 'create_todo',
     description: 'Create a new to-do item for a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       name: z.string().min(1).max(500).describe('To-do item name'),
       category: z.string().max(100).optional().describe('Category (e.g. "Logistics", "Booking")'),
-      due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('Due date (YYYY-MM-DD)'),
+      due_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .describe('Due date (YYYY-MM-DD)'),
       description: z.string().max(2000).optional().describe('Additional description'),
-      assigned_user_id: z.number().int().positive().optional().describe('User ID to assign this task to'),
-      priority: z.number().int().min(0).max(3).optional().describe('Priority: 0=none, 1=P1 (highest), 2=P2, 3=P3 (lowest)'),
+      assigned_user_id: idSchema.optional().describe('User ID to assign this task to'),
+      priority: z
+        .number()
+        .int()
+        .min(0)
+        .max(3)
+        .optional()
+        .describe('Priority: 0=none, 1=P1 (highest), 2=P2, 3=P3 (lowest)'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: packingAddonOn,
     access: { group: 'todos', mode: 'write' },
   })
   async createTodo(
-    { tripId, name, category, due_date, description, assigned_user_id, priority }: {
-      tripId: number; name: string; category?: string; due_date?: string; description?: string; assigned_user_id?: number; priority?: number;
+    {
+      tripId,
+      name,
+      category,
+      due_date,
+      description,
+      assigned_user_id,
+      priority,
+    }: {
+      tripId: number;
+      name: string;
+      category?: string;
+      due_date?: string;
+      description?: string;
+      assigned_user_id?: number;
+      priority?: number;
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.todos.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
-    const item = this.todos.createItem(tripId, { name, category, due_date, description, assigned_user_id, priority });
+    if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
+    const item = await this.todos.createItem(tripId, {
+      name,
+      category,
+      due_date,
+      description,
+      assigned_user_id,
+      priority,
+    });
     this.guards.safeBroadcast(tripId, 'todo:created', { item });
     return ok({ item });
   }
 
   @Tool({
     name: 'update_todo',
-    description: 'Update an existing to-do item. Only provided fields are changed; omitted fields stay as-is. Pass null to clear a nullable field.',
+    description:
+      'Update an existing to-do item. Only provided fields are changed; omitted fields stay as-is. Pass null to clear a nullable field.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
+      tripId: idSchema,
+      itemId: idSchema,
       name: z.string().min(1).max(500).optional(),
       category: z.string().max(100).optional(),
-      due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional().describe('Set to null to clear the due date'),
+      due_date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .nullable()
+        .optional()
+        .describe('Set to null to clear the due date'),
       description: z.string().max(2000).nullable().optional().describe('Set to null to clear'),
-      assigned_user_id: z.number().int().positive().nullable().optional().describe('Set to null to unassign'),
-      priority: z.number().int().min(0).max(3).nullable().optional().describe('Priority: 0=none, 1=P1 (highest), 2=P2, 3=P3 (lowest); null clears it'),
+      assigned_user_id: idSchema.nullable().optional().describe('Set to null to unassign'),
+      priority: z
+        .number()
+        .int()
+        .min(0)
+        .max(3)
+        .nullable()
+        .optional()
+        .describe('Priority: 0=none, 1=P1 (highest), 2=P2, 3=P3 (lowest); null clears it'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
     access: { group: 'todos', mode: 'write' },
   })
   async updateTodo(
-    { tripId, itemId, name, category, due_date, description, assigned_user_id, priority }: {
-      tripId: number; itemId: number; name?: string; category?: string; due_date?: string | null; description?: string | null; assigned_user_id?: number | null; priority?: number | null;
+    {
+      tripId,
+      itemId,
+      name,
+      category,
+      due_date,
+      description,
+      assigned_user_id,
+      priority,
+    }: {
+      tripId: number;
+      itemId: number;
+      name?: string;
+      category?: string;
+      due_date?: string | null;
+      description?: string | null;
+      assigned_user_id?: number | null;
+      priority?: number | null;
     },
     ctx: McpContext,
   ) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.todos.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
     // Build bodyKeys to signal which nullable fields were explicitly provided
     const bodyKeys: string[] = [];
     if (due_date !== undefined) bodyKeys.push('due_date');
     if (description !== undefined) bodyKeys.push('description');
     if (assigned_user_id !== undefined) bodyKeys.push('assigned_user_id');
     if (priority !== undefined) bodyKeys.push('priority');
-    const item = this.todos.updateItem(tripId, itemId, { name, category, due_date, description, assigned_user_id, priority }, bodyKeys);
+    const item = await this.todos.updateItem(
+      tripId,
+      itemId,
+      { name, category, due_date, description, assigned_user_id, priority },
+      bodyKeys,
+    );
     if (!item) return errorResult('To-do item not found.');
     this.guards.safeBroadcast(tripId, 'todo:updated', { item });
     return ok({ item });
@@ -127,8 +196,8 @@ export class TodoMcp {
     name: 'toggle_todo',
     description: 'Mark a to-do item as checked (done) or unchecked.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
+      tripId: idSchema,
+      itemId: idSchema,
       checked: z.boolean().describe('True to mark done, false to uncheck'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
@@ -136,10 +205,9 @@ export class TodoMcp {
     access: { group: 'todos', mode: 'write' },
   })
   async toggleTodo({ tripId, itemId, checked }: { tripId: number; itemId: number; checked: boolean }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.todos.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
-    const item = this.todos.updateItem(tripId, itemId, { checked: checked ? 1 : 0 }, []);
+    if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
+    const item = await this.todos.updateItem(tripId, itemId, { checked: checked ? 1 : 0 }, []);
     if (!item) return errorResult('To-do item not found.');
     this.guards.safeBroadcast(tripId, 'todo:updated', { item });
     return ok({ item });
@@ -149,18 +217,17 @@ export class TodoMcp {
     name: 'delete_todo',
     description: 'Delete a to-do item.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
+      tripId: idSchema,
+      itemId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: packingAddonOn,
     access: { group: 'todos', mode: 'write' },
   })
   async deleteTodo({ tripId, itemId }: { tripId: number; itemId: number }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.todos.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
-    const deleted = this.todos.deleteItem(tripId, itemId);
+    if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
+    const deleted = await this.todos.deleteItem(tripId, itemId);
     if (!deleted) return errorResult('To-do item not found.');
     this.guards.safeBroadcast(tripId, 'todo:deleted', { itemId });
     return ok({ success: true });
@@ -170,18 +237,17 @@ export class TodoMcp {
     name: 'reorder_todos',
     description: 'Reorder to-do items within a trip by providing a new ordered list of item IDs.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      orderedIds: z.array(z.number().int().positive()).min(1).describe('All item IDs in the desired order'),
+      tripId: idSchema,
+      orderedIds: z.array(idSchema).min(1).describe('All item IDs in the desired order'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
     access: { group: 'todos', mode: 'write' },
   })
   async reorderTodos({ tripId, orderedIds }: { tripId: number; orderedIds: number[] }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.todos.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
-    this.todos.reorderItems(tripId, orderedIds);
+    if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
+    await this.todos.reorderItems(tripId, orderedIds);
     return ok({ success: true });
   }
 
@@ -189,15 +255,15 @@ export class TodoMcp {
     name: 'get_todo_category_assignees',
     description: 'Get the default assignees configured per to-do category for a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: packingAddonOn,
     access: { group: 'todos', mode: 'read' },
   })
   async getTodoCategoryAssignees({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (!this.todos.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    const assignees = this.todos.getCategoryAssignees(tripId);
+    if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    const assignees = await this.todos.getCategoryAssignees(tripId);
     return ok({ assignees });
   }
 
@@ -205,19 +271,21 @@ export class TodoMcp {
     name: 'set_todo_category_assignees',
     description: 'Set the default assignees for a to-do category on a trip. Pass an empty array to clear.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       categoryName: z.string().min(1).max(100).describe('Category name'),
-      userIds: z.array(z.number().int().positive()).describe('User IDs to assign as defaults for this category'),
+      userIds: z.array(idSchema).describe('User IDs to assign as defaults for this category'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: packingAddonOn,
     access: { group: 'todos', mode: 'write' },
   })
-  async setTodoCategoryAssignees({ tripId, categoryName, userIds }: { tripId: number; categoryName: string; userIds: number[] }, ctx: McpContext) {
-    if (this.auth.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.todos.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('packing_edit', tripId, ctx.userId)) return permissionDenied();
-    const assignees = this.todos.updateCategoryAssignees(tripId, categoryName, userIds);
+  async setTodoCategoryAssignees(
+    { tripId, categoryName, userIds }: { tripId: number; categoryName: string; userIds: number[] },
+    ctx: McpContext,
+  ) {
+    if (!(await this.todos.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('packing_edit', tripId, ctx.userId))) return permissionDenied();
+    const assignees = await this.todos.updateCategoryAssignees(tripId, categoryName, userIds);
     this.guards.safeBroadcast(tripId, 'todo:assignees', { category: categoryName, assignees });
     return ok({ assignees });
   }
@@ -232,22 +300,26 @@ export class TodoMcp {
   })
   async tripTodosResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
     const id = parseId(tripId);
-    if (id === null || !this.todos.verifyTripAccess(id, ctx.userId)) {
+    if (id === null || !(await this.todos.verifyTripAccess(id, ctx.userId))) {
       return {
-        contents: [{
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify({ error: 'Trip not found or access denied' }),
-        }],
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: 'application/json',
+            text: JSON.stringify({ error: 'Trip not found or access denied' }),
+          },
+        ],
       };
     }
-    const items = this.todos.listItems(id);
+    const items = await this.todos.listItems(id);
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(items, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(items, null, 2),
+        },
+      ],
     };
   }
 }

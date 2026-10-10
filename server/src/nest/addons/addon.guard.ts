@@ -1,7 +1,7 @@
-import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { AddonsService } from './addons.service';
 import { REQUIRE_ADDON, type RequireAddonMeta } from './require-addon.decorator';
+import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 
 /**
  * Enforces @RequireAddon. Replaces the three hand-written addon guards
@@ -19,13 +19,13 @@ export class AddonGuard implements CanActivate {
     private readonly reflector: Reflector,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const meta = this.reflector.getAllAndOverride<RequireAddonMeta | undefined>(REQUIRE_ADDON, [
       context.getHandler(),
       context.getClass(),
     ]);
     if (!meta) return true;
-    if (!this.addons.isAddonEnabled(meta.addonId)) {
+    if (!(await this.addons.isAddonEnabled(meta.addonId))) {
       throw new HttpException({ error: `${meta.label} addon is not enabled` }, 404);
     }
     return true;

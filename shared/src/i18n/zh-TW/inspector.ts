@@ -14,6 +14,7 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': '待確認預訂',
   'inspector.google': 'Google Maps',
   'inspector.navigation': '導航',
+  'inspector.otherMapApp': '其他地圖 App',
   'inspector.openWith': '開啟方式',
   'inspector.openStreetMap': 'OpenStreetMap',
   'inspector.website': '開啟網站',

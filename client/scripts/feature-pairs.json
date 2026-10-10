@@ -1,0 +1,926 @@
+{
+  "pairs": [
+    {
+      "feature": "Accommodation (stay) create/edit",
+      "hooks": ["src/components/Planner/stayFormModel.ts"],
+      "desktop": ["src/components/Planner/DayDetailPanel.tsx", "src/components/Planner/useDayDetail.ts"],
+      "mobile": ["src/mobile/screens/trip/sheets/MAccommodationSheet.tsx"]
+    },
+    {
+      "feature": "Add place to collection",
+      "hooks": ["src/components/Collections/addPlaceModel.ts", "src/components/Collections/useAddPlaceToCollection.ts"],
+      "desktop": ["src/components/Collections/AddPlaceToCollectionModal.tsx"],
+      "mobile": ["src/mobile/screens/collections/MCollAddSheet.tsx"]
+    },
+    {
+      "feature": "Addon manager",
+      "hooks": [
+        "src/components/Admin/addons/addonModel.ts",
+        "src/components/Admin/addons/useAddonManager.ts",
+        "src/components/Admin/addons/useLlmParsingConfig.ts"
+      ],
+      "desktop": ["src/components/Admin/AddonManager.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminAddonManager.tsx"]
+    },
+    {
+      "feature": "Admin notification preference matrix",
+      "hooks": ["src/components/Admin/useAdminNotificationMatrix.ts", "src/pages/admin/AdminPage.constants.ts"],
+      "desktop": ["src/pages/admin/AdminNotificationsPanel.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminNotifyMatrix.tsx"]
+    },
+    {
+      "feature": "Admin notifications tab",
+      "hooks": ["src/components/Admin/useAdminNotificationSettings.ts"],
+      "desktop": ["src/pages/admin/AdminNotificationsTab.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminNotificationsSection.tsx"]
+    },
+    {
+      "feature": "Admin page shell",
+      "hooks": ["src/pages/admin/useAdmin.ts"],
+      "desktop": ["src/pages/AdminPage.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdmin.tsx"]
+    },
+    {
+      "feature": "Admin settings tab: trekApiModel",
+      "hooks": ["src/components/Admin/trekApiModel.ts"],
+      "desktop": ["src/pages/admin/TrekApiCard.tsx"],
+      "mobile": ["src/mobile/screens/admin/MApiProviderBlocks.tsx"]
+    },
+    {
+      "feature": "Admin settings tab: useAdminSettingsActions",
+      "hooks": ["src/components/Admin/useAdminSettingsActions.ts"],
+      "desktop": ["src/pages/admin/AdminSettingsTab.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminSettingsSection.tsx"]
+    },
+    {
+      "feature": "Admin users invite status",
+      "hooks": ["src/pages/admin/adminModel.ts"],
+      "desktop": ["src/pages/admin/AdminUsersTab.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminUsersSection.tsx"]
+    },
+    {
+      "feature": "Atlas country/region action sheet",
+      "hooks": ["src/pages/atlas/useAtlasCountryActions.ts"],
+      "desktop": ["src/pages/AtlasPage.tsx"],
+      "mobile": ["src/mobile/screens/atlas/MAtlasCountryPopup.tsx"]
+    },
+    {
+      "feature": "Atlas page: atlasModel",
+      "hooks": ["src/pages/atlas/atlasModel.ts"],
+      "desktop": [
+        "src/components/Atlas/AtlasCountryPlaces.tsx",
+        "src/components/shared/CountryFlag.tsx",
+        "src/pages/AtlasPage.tsx"
+      ],
+      "mobile": ["src/mobile/screens/atlas/MAtlas.tsx", "src/mobile/screens/atlas/MAtlasBucketSheet.tsx"]
+    },
+    {
+      "feature": "Atlas page: useAtlas",
+      "hooks": ["src/pages/atlas/useAtlas.ts"],
+      "desktop": ["src/pages/AtlasPage.tsx"],
+      "mobile": ["src/mobile/screens/atlas/MAtlas.tsx", "src/mobile/screens/atlas/atlasController.ts"]
+    },
+    {
+      "feature": "Audit log",
+      "hooks": ["src/components/Admin/useAuditLog.ts"],
+      "desktop": ["src/components/Admin/AuditLogPanel.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminAuditLogPanel.tsx"]
+    },
+    {
+      "feature": "Backup panel",
+      "hooks": ["src/components/Admin/useBackupAdmin.ts"],
+      "desktop": ["src/components/Admin/BackupPanel.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminBackupPanel.tsx"]
+    },
+    {
+      "feature": "Booking forms: linked expense and file attach",
+      "hooks": ["src/components/Planner/useBookingExpenseIntent.ts"],
+      "desktop": ["src/components/Planner/ReservationModal.tsx", "src/components/Planner/TransportModal.tsx"],
+      "mobile": [
+        "src/mobile/screens/trip/sheets/MReservationSheet.tsx",
+        "src/mobile/screens/trip/sheets/MTransportFormSheet.tsx"
+      ]
+    },
+    {
+      "feature": "Bookings and transports lists",
+      "hooks": ["src/components/Planner/bookings/bookingsModel.ts"],
+      "desktop": [
+        "src/components/Planner/DayDetailPanel.tsx",
+        "src/components/Planner/DayPlanSidebar.tsx",
+        "src/components/Planner/PlaceInspector.tsx",
+        "src/components/Planner/ReservationModal.tsx",
+        "src/components/Planner/ReservationsPanel.tsx",
+        "src/components/Planner/TransportModal.tsx",
+        "src/components/Planner/bookings/BookingCard.tsx",
+        "src/components/Planner/bookings/BookingDetailDialog.tsx",
+        "src/components/Planner/bookings/BookingDetailHost.tsx",
+        "src/components/Planner/bookings/BookingDialogShell.tsx",
+        "src/components/Planner/bookings/BookingsHeader.tsx",
+        "src/components/Planner/bookings/BookingsList.tsx",
+        "src/components/Planner/bookings/BookingsTimeline.tsx",
+        "src/components/Planner/bookings/bookingFacts.ts",
+        "src/components/Planner/bookings/bookingParts.tsx",
+        "src/components/Planner/bookings/timelineModel.ts",
+        "src/components/Planner/bookings/useReservationListFilter.ts",
+        "src/components/Planner/planCosts.ts",
+        "src/pages/sharedTrip/SharedBookingsView.tsx",
+        "src/pages/sharedTrip/SharedDayCard.tsx"
+      ],
+      "mobile": ["src/mobile/screens/trip/tabs/MBookingsTab.tsx", "src/mobile/screens/trip/tabs/MTransportsTab.tsx"]
+    },
+    {
+      "feature": "Bottom nav context-aware create action",
+      "hooks": ["src/components/Layout/useCreateAction.ts"],
+      "desktop": ["src/components/Layout/BottomNav.tsx"],
+      "mobile": ["src/mobile/components/MBottomNav.tsx"]
+    },
+    {
+      "feature": "Bulk save selected places to a collection",
+      "hooks": ["src/components/Collections/useSaveTripPlacesToList.ts"],
+      "desktop": ["src/components/Collections/SaveTripPlacesToListModal.tsx"],
+      "mobile": ["src/mobile/screens/trip/places/MPlacesSaveToCollectionSheet.tsx"]
+    },
+    {
+      "feature": "Category manager",
+      "hooks": ["src/components/Admin/useCategoryAdmin.ts"],
+      "desktop": ["src/components/Admin/CategoryManager.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminCategoryManager.tsx"]
+    },
+    {
+      "feature": "Collab chat: collabModel",
+      "hooks": ["src/components/Collab/collabModel.ts"],
+      "desktop": [
+        "src/components/Collab/CollabChatMessages.tsx",
+        "src/components/Collab/CollabPolls.tsx",
+        "src/components/Collab/useCollabChat.ts"
+      ],
+      "mobile": [
+        "src/mobile/screens/trip/tabs/MCollabChat.tsx",
+        "src/mobile/screens/trip/tabs/MCollabNotes.tsx",
+        "src/mobile/screens/trip/tabs/MCollabPolls.tsx"
+      ]
+    },
+    {
+      "feature": "Collab chat: useCollabChatData",
+      "hooks": ["src/components/Collab/useCollabChatData.ts"],
+      "desktop": ["src/components/Collab/useCollabChat.ts"],
+      "mobile": ["src/mobile/screens/trip/tabs/MCollabChat.tsx"]
+    },
+    {
+      "feature": "Collab notes",
+      "hooks": ["src/components/Collab/useCollabNotesData.ts"],
+      "desktop": ["src/components/Collab/CollabNotes.tsx"],
+      "mobile": ["src/mobile/screens/trip/tabs/MCollabNotes.tsx"]
+    },
+    {
+      "feature": "Collab polls",
+      "hooks": ["src/components/Collab/useCollabPolls.ts"],
+      "desktop": ["src/components/Collab/CollabPolls.tsx"],
+      "mobile": ["src/mobile/screens/trip/tabs/MCollabPolls.tsx"]
+    },
+    {
+      "feature": "Collection list editor",
+      "hooks": ["src/components/Collections/useListEditor.ts"],
+      "desktop": ["src/components/Collections/ListEditorModal.tsx"],
+      "mobile": ["src/mobile/screens/collections/MCollEditSheet.tsx"]
+    },
+    {
+      "feature": "Collection place detail",
+      "hooks": ["src/components/Collections/useCollectionPlaceForm.ts"],
+      "desktop": ["src/components/Collections/CollectionPlaceDetail.tsx"],
+      "mobile": ["src/mobile/screens/collections/MCollPlaceSheet.tsx"]
+    },
+    {
+      "feature": "Collection sharing",
+      "hooks": ["src/components/Collections/useCollectionSharing.ts"],
+      "desktop": ["src/components/Collections/ShareCollectionModal.tsx"],
+      "mobile": ["src/mobile/screens/collections/MCollShareSheet.tsx"]
+    },
+    {
+      "feature": "Collections page: collectionsModel",
+      "hooks": ["src/pages/collections/collectionsModel.ts"],
+      "desktop": [
+        "src/components/Collections/AddPlaceToCollectionModal.tsx",
+        "src/components/Collections/CollectionFilterBar.tsx",
+        "src/components/Collections/CollectionMap.tsx",
+        "src/components/Collections/CollectionPicker.tsx",
+        "src/components/Collections/CollectionPlaceDetail.tsx",
+        "src/components/Collections/ListEditorModal.tsx",
+        "src/components/Collections/MSaveToCollectionSheet.tsx",
+        "src/components/Collections/StatusBadge.tsx"
+      ],
+      "mobile": [
+        "src/mobile/screens/collections/MCollAddSheet.tsx",
+        "src/mobile/screens/collections/MCollEditSheet.tsx",
+        "src/mobile/screens/collections/MCollPlaceRow.tsx",
+        "src/mobile/screens/collections/MCollPlaceSheet.tsx",
+        "src/mobile/screens/collections/MCollections.tsx"
+      ]
+    },
+    {
+      "feature": "Collections page: useCollections",
+      "hooks": ["src/pages/collections/useCollections.ts"],
+      "desktop": ["src/pages/CollectionsPage.tsx"],
+      "mobile": ["src/mobile/screens/collections/MCollections.tsx"]
+    },
+    {
+      "feature": "Copy collection places to a trip",
+      "hooks": ["src/components/Collections/useTripCopyPicker.ts"],
+      "desktop": ["src/components/Collections/CopyToTripModal.tsx"],
+      "mobile": ["src/mobile/screens/collections/MCollTripPickerSheet.tsx"]
+    },
+    {
+      "feature": "Costs/budget ledger: costsModel",
+      "hooks": ["src/components/Budget/costsModel.ts"],
+      "desktop": ["src/components/Budget/CostsPanel.tsx"],
+      "mobile": ["src/mobile/screens/trip/sheets/MCostSheet.tsx", "src/mobile/screens/trip/tabs/MCostsTab.tsx"]
+    },
+    {
+      "feature": "Costs/budget ledger: useCostsLedger, useSettlementForm",
+      "hooks": ["src/components/Budget/useCostsLedger.ts", "src/components/Budget/useSettlementForm.ts"],
+      "desktop": ["src/components/Budget/CostsPanel.tsx"],
+      "mobile": ["src/mobile/screens/trip/tabs/MCostsTab.tsx"]
+    },
+    {
+      "feature": "Create/edit trip form",
+      "hooks": ["src/components/Trips/tripFormModel.ts", "src/components/Trips/useTripCoverPicker.ts"],
+      "desktop": ["src/components/Trips/TripFormModal.tsx"],
+      "mobile": ["src/mobile/screens/dashboard/MNewTripSheet.tsx"]
+    },
+    {
+      "feature": "Dashboard page",
+      "hooks": ["src/pages/dashboard/useDashboard.ts"],
+      "desktop": ["src/pages/DashboardPage.tsx"],
+      "mobile": ["src/mobile/screens/dashboard/MDashboard.tsx"]
+    },
+    {
+      "feature": "Dashboard residuals: dashboardModel",
+      "hooks": ["src/pages/dashboard/dashboardModel.ts"],
+      "desktop": ["src/pages/DashboardPage.tsx"],
+      "mobile": ["src/mobile/screens/dashboard/MDashWidgets.tsx", "src/mobile/screens/dashboard/MDashboard.tsx"]
+    },
+    {
+      "feature": "Dashboard residuals: useDashboardPlugins",
+      "hooks": ["src/components/Dashboard/useDashboardPlugins.ts"],
+      "desktop": ["src/pages/DashboardPage.tsx"],
+      "mobile": ["src/mobile/screens/dashboard/MDashboard.tsx"]
+    },
+    {
+      "feature": "Dashboard widgets: useCollectionLists",
+      "hooks": ["src/components/Dashboard/useCollectionLists.ts"],
+      "desktop": ["src/components/Dashboard/CollectionsWidget.tsx"],
+      "mobile": ["src/mobile/screens/dashboard/MDashWidgets.tsx"]
+    },
+    {
+      "feature": "Dashboard widgets: useCurrencyConverter, useDashboardTimezones",
+      "hooks": [
+        "src/components/Dashboard/useCurrencyConverter.ts",
+        "src/components/Dashboard/useDashboardTimezones.ts"
+      ],
+      "desktop": ["src/pages/DashboardPage.tsx"],
+      "mobile": ["src/mobile/screens/dashboard/MDashWidgets.tsx"]
+    },
+    {
+      "feature": "Day detail",
+      "hooks": ["src/components/Planner/dayDetailModel.ts"],
+      "desktop": ["src/components/Planner/DayDetailPanel.tsx"],
+      "mobile": ["src/mobile/screens/trip/plan/useMPlanTimeline.ts", "src/mobile/screens/trip/sheets/MDaySheet.tsx"]
+    },
+    {
+      "feature": "Day note create/edit/delete",
+      "hooks": ["src/hooks/useDayNotes.ts"],
+      "desktop": ["src/components/Planner/DayPlanSidebar.tsx"],
+      "mobile": ["src/mobile/screens/trip/sheets/MDaySheet.tsx", "src/mobile/screens/trip/sheets/MNoteSheet.tsx"]
+    },
+    {
+      "feature": "Day plan reorder",
+      "hooks": ["src/utils/mergedOrder.ts"],
+      "desktop": ["src/components/Planner/DayPlanSidebar.tsx"],
+      "mobile": ["src/mobile/screens/trip/plan/useMPlanTimeline.ts"]
+    },
+    {
+      "feature": "Day route optimize + Google Maps / CoMaps export",
+      "hooks": ["src/components/Planner/dayRoute.ts"],
+      "desktop": ["src/components/Planner/DayPlanSidebar.tsx"],
+      "mobile": ["src/mobile/screens/trip/plan/useMPlanTimeline.ts", "src/mobile/screens/trip/sheets/MDaySheet.tsx"]
+    },
+    {
+      "feature": "Day weather chip anchor + weather icon map: dayWeather",
+      "hooks": ["src/utils/dayWeather.ts"],
+      "desktop": ["src/components/Planner/DayPlanSidebar.tsx", "src/pages/TripPlannerPage.tsx"],
+      "mobile": ["src/mobile/screens/trip/plan/useMPlanTimeline.ts", "src/mobile/screens/trip/sheets/MDaySheet.tsx"]
+    },
+    {
+      "feature": "Day weather chip anchor + weather icon map: weatherIcons",
+      "hooks": ["src/components/Weather/weatherIcons.ts"],
+      "desktop": ["src/components/Planner/DayDetailPanel.tsx", "src/components/Weather/WeatherWidget.tsx"],
+      "mobile": ["src/mobile/screens/trip/plan/MPlanTimeline.tsx", "src/mobile/screens/trip/sheets/MDaySheet.tsx"]
+    },
+    {
+      "feature": "Default user settings",
+      "hooks": ["src/components/Admin/useDefaultUserSettings.ts"],
+      "desktop": ["src/components/Admin/DefaultUserSettingsTab.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminDefaultUserSettings.tsx"]
+    },
+    {
+      "feature": "Dev test notifications panel",
+      "hooks": ["src/components/Admin/useDevNotifications.ts"],
+      "desktop": ["src/components/Admin/DevNotificationsPanel.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminDevNotificationsPanel.tsx"]
+    },
+    {
+      "feature": "Document sync leftovers: docSyncModel",
+      "hooks": ["src/components/Files/docsync/docSyncModel.ts"],
+      "desktop": ["src/components/Files/docsync/DocSyncFlow.tsx", "src/components/Files/docsync/DocSyncPanel.tsx"],
+      "mobile": ["src/mobile/screens/trip/tabs/MDocSyncSheet.tsx"]
+    },
+    {
+      "feature": "Document sync leftovers: useScopePicker",
+      "hooks": ["src/components/Files/docsync/useScopePicker.ts"],
+      "desktop": ["src/components/Files/docsync/DocSyncScopeModal.tsx"],
+      "mobile": ["src/mobile/screens/trip/tabs/MDocSyncSheet.tsx"]
+    },
+    {
+      "feature": "Expense editor",
+      "hooks": ["src/components/Budget/useExpenseForm.ts"],
+      "desktop": ["src/components/Budget/CostsPanel.tsx"],
+      "mobile": ["src/mobile/screens/trip/sheets/MCostSheet.tsx"]
+    },
+    {
+      "feature": "GitHub releases panel",
+      "hooks": ["src/components/Admin/useGithubReleases.ts", "src/utils/releaseNotes.ts"],
+      "desktop": ["src/components/Admin/GitHubPanel.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminGitHubPanel.tsx"]
+    },
+    {
+      "feature": "Google/Naver shared-list import",
+      "hooks": ["src/components/Planner/useListImport.ts"],
+      "desktop": ["src/components/Planner/usePlacesSidebar.ts"],
+      "mobile": ["src/mobile/screens/trip/sheets/ImpListStep.tsx"]
+    },
+    {
+      "feature": "GPX/KML/KMZ file import into places",
+      "hooks": ["src/components/Planner/usePlacesFileImport.ts"],
+      "desktop": ["src/components/Planner/FileImportModal.tsx"],
+      "mobile": ["src/mobile/screens/trip/sheets/ImpFileStep.tsx"]
+    },
+    {
+      "feature": "Journey detail page: JourneyDetailPage.helpers",
+      "hooks": ["src/pages/journeyDetail/JourneyDetailPage.helpers.ts"],
+      "desktop": [
+        "src/components/Journey/JourneyDetailPageAddTripDialog.tsx",
+        "src/components/Journey/JourneyDetailPageEntryCard.tsx",
+        "src/components/Journey/JourneyDetailPageEntryEditor.tsx",
+        "src/components/Journey/JourneyDetailPageGalleryView.tsx",
+        "src/components/Journey/JourneyDetailPageMapView.tsx",
+        "src/components/Journey/JourneyDetailPagePhotoGrid.tsx",
+        "src/components/Journey/JourneyDetailPageProviderPicker.tsx",
+        "src/components/Journey/JourneyDetailPageSettingsDialog.tsx",
+        "src/components/Journey/JourneyEntryCover.tsx",
+        "src/components/Journey/MobileEntryView.tsx",
+        "src/pages/JourneyDetailPage.tsx",
+        "src/pages/JourneyPublicPage.tsx",
+        "src/pages/journeyPublic/useJourneyPublic.ts"
+      ],
+      "mobile": [
+        "src/mobile/screens/journey/MJourneyCreateSheet.tsx",
+        "src/mobile/screens/journey/MJourneyDetail.tsx",
+        "src/mobile/screens/journey/MJourneyEntrySheet.tsx",
+        "src/mobile/screens/journey/MJourneySettingsSheet.tsx",
+        "src/mobile/screens/journey/mobileJourneyMeta.ts"
+      ]
+    },
+    {
+      "feature": "Journey detail page: useJourneyDetail",
+      "hooks": ["src/pages/journeyDetail/useJourneyDetail.ts"],
+      "desktop": ["src/pages/JourneyDetailPage.tsx"],
+      "mobile": ["src/mobile/screens/journey/MJourneyDetail.tsx"]
+    },
+    {
+      "feature": "Journey detail screen: useGalleryUpload",
+      "hooks": ["src/components/Journey/useGalleryUpload.ts"],
+      "desktop": ["src/components/Journey/JourneyDetailPageGalleryView.tsx"],
+      "mobile": ["src/mobile/screens/journey/MJourneyDetail.tsx"]
+    },
+    {
+      "feature": "Journey detail screen: useJourneyCarouselSync",
+      "hooks": ["src/components/Journey/useJourneyCarouselSync.ts"],
+      "desktop": ["src/components/Journey/MobileMapTimeline.tsx"],
+      "mobile": ["src/mobile/screens/journey/MJourneyDetail.tsx"]
+    },
+    {
+      "feature": "Journey entry editor",
+      "hooks": ["src/components/Journey/useJourneyEntryForm.ts"],
+      "desktop": ["src/components/Journey/JourneyDetailPageEntryEditor.tsx"],
+      "mobile": ["src/mobile/screens/journey/MJourneyEntrySheet.tsx"]
+    },
+    {
+      "feature": "Journey list page",
+      "hooks": ["src/pages/journey/useJourney.ts"],
+      "desktop": ["src/pages/JourneyPage.tsx"],
+      "mobile": ["src/mobile/screens/journey/MJourney.tsx"]
+    },
+    {
+      "feature": "Journey settings: useJourneySettings",
+      "hooks": ["src/components/Journey/useJourneySettings.ts"],
+      "desktop": [
+        "src/components/Journey/JourneyDetailPageAddTripDialog.tsx",
+        "src/components/Journey/JourneyDetailPageSettingsDialog.tsx"
+      ],
+      "mobile": ["src/mobile/screens/journey/MJourneySettingsSheet.tsx"]
+    },
+    {
+      "feature": "Journey settings: useJourneyShareLink",
+      "hooks": ["src/components/Journey/useJourneyShareLink.ts"],
+      "desktop": ["src/components/Journey/JourneyShareSection.tsx"],
+      "mobile": ["src/mobile/screens/journey/MJourneySettingsSheet.tsx"]
+    },
+    {
+      "feature": "Lists sub-tab (packing/todo) persistence",
+      "hooks": ["src/hooks/useListsSubTab.ts"],
+      "desktop": ["src/pages/tripPlanner/ListsContainer.tsx"],
+      "mobile": ["src/mobile/screens/trip/MTripShell.tsx"]
+    },
+    {
+      "feature": "MCP tokens / OAuth sessions admin",
+      "hooks": ["src/components/Admin/useMcpTokensAdmin.ts"],
+      "desktop": ["src/components/Admin/AdminMcpTokensPanel.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminMcpTokensPanel.tsx"]
+    },
+    {
+      "feature": "Media lightbox",
+      "hooks": ["src/components/Files/useMediaLightbox.ts"],
+      "desktop": ["src/components/Files/FileManagerImageLightbox.tsx"],
+      "mobile": ["src/mobile/screens/trip/tabs/MFileLightbox.tsx"]
+    },
+    {
+      "feature": "Notifications list row actions",
+      "hooks": ["src/components/Notifications/useNotificationItemActions.ts"],
+      "desktop": ["src/components/Notifications/InAppNotificationItem.tsx"],
+      "mobile": ["src/mobile/screens/notifications/MNotificationRow.tsx"]
+    },
+    {
+      "feature": "Notifications page",
+      "hooks": ["src/pages/inAppNotifications/useInAppNotifications.ts"],
+      "desktop": ["src/pages/InAppNotificationsPage.tsx"],
+      "mobile": ["src/mobile/screens/notifications/MNotifications.tsx"]
+    },
+    {
+      "feature": "OAuth scope group picker",
+      "hooks": ["src/components/OAuth/useScopeSelection.ts"],
+      "desktop": ["src/components/OAuth/ScopeGroupPicker.tsx"],
+      "mobile": ["src/mobile/screens/settings/MScopeGroupPicker.tsx"]
+    },
+    {
+      "feature": "Packing bag card and bag weight summary",
+      "hooks": ["src/components/Packing/useBagCardEditor.ts"],
+      "desktop": ["src/components/Packing/PackingListPanelBagCard.tsx"],
+      "mobile": ["src/mobile/screens/trip/tabs/MBagsSheet.tsx"]
+    },
+    {
+      "feature": "Packing list: packingListModel",
+      "hooks": ["src/components/Packing/packingListModel.ts"],
+      "desktop": [
+        "src/components/Packing/packingPrintDocument.ts",
+        "src/components/Packing/usePackingExport.ts",
+        "src/components/Packing/usePackingListPanel.ts"
+      ],
+      "mobile": [
+        "src/mobile/screens/trip/tabs/MBagsSheet.tsx",
+        "src/mobile/screens/trip/tabs/MPackItemSheet.tsx",
+        "src/mobile/screens/trip/tabs/MPackingListTab.tsx"
+      ]
+    },
+    {
+      "feature": "Packing list: usePackingBags, usePackingCategoryAssignees, usePackingItemActions, usePackingTemplates",
+      "hooks": [
+        "src/components/Packing/usePackingBags.ts",
+        "src/components/Packing/usePackingCategoryAssignees.ts",
+        "src/components/Packing/usePackingItemActions.ts",
+        "src/components/Packing/usePackingTemplates.ts"
+      ],
+      "desktop": ["src/components/Packing/usePackingListPanel.ts"],
+      "mobile": ["src/mobile/screens/trip/tabs/MPackingListTab.tsx"]
+    },
+    {
+      "feature": "Packing list: usePackingImport",
+      "hooks": ["src/components/Packing/usePackingImport.ts"],
+      "desktop": ["src/components/Packing/usePackingListPanel.ts"],
+      "mobile": ["src/mobile/screens/trip/tabs/MPackingImportSheet.tsx"]
+    },
+    {
+      "feature": "Packing template manager",
+      "hooks": ["src/components/Admin/usePackingTemplateAdmin.ts"],
+      "desktop": ["src/components/Admin/PackingTemplateManager.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminPackingTemplateManager.tsx"]
+    },
+    {
+      "feature": "Per-leg travel mode and connector mode menu",
+      "hooks": ["src/components/Planner/useLegModeActions.ts"],
+      "desktop": ["src/components/Planner/DayPlanSidebar.tsx"],
+      "mobile": ["src/mobile/screens/trip/plan/MPlanTimeline.tsx", "src/mobile/screens/trip/plan/useMPlanTimeline.ts"]
+    },
+    {
+      "feature": "Permissions panel",
+      "hooks": ["src/components/Admin/usePermissionsAdmin.ts"],
+      "desktop": ["src/components/Admin/PermissionsPanel.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminPermissionsPanel.tsx"]
+    },
+    {
+      "feature": "Place add/edit form and maps search: usePlaceForm",
+      "hooks": ["src/components/Planner/usePlaceForm.ts"],
+      "desktop": ["src/components/Planner/PlaceFormModal.tsx"],
+      "mobile": [
+        "src/mobile/screens/trip/sheets/MPlaceEditSheet.tsx",
+        "src/mobile/screens/trip/sheets/PlCategoryPicker.tsx"
+      ]
+    },
+    {
+      "feature": "Place add/edit form and maps search: usePlaceSearch",
+      "hooks": ["src/components/Planner/usePlaceSearch.ts"],
+      "desktop": ["src/components/Planner/PlaceFormModal.tsx"],
+      "mobile": ["src/mobile/screens/trip/sheets/PlPlaceSearch.tsx"]
+    },
+    {
+      "feature": "Place detail actions",
+      "hooks": ["src/components/Planner/usePlaceActions.ts"],
+      "desktop": [
+        "src/components/Planner/PlaceInspector.tsx",
+        "src/components/shared/PlaceAvatarUpload.tsx",
+        "src/pages/tripPlanner/useTripPlannerPage.ts"
+      ],
+      "mobile": ["src/mobile/screens/trip/sheets/MPlaceSheet.tsx"]
+    },
+    {
+      "feature": "Places pool list",
+      "hooks": ["src/components/Planner/usePlacesPool.ts"],
+      "desktop": ["src/components/Planner/PlacesSidebarHeader.tsx", "src/components/Planner/usePlacesSidebar.ts"],
+      "mobile": [
+        "src/mobile/screens/trip/places/MPlacesBrowser.tsx",
+        "src/mobile/screens/trip/places/MPlacesFilterControls.tsx",
+        "src/mobile/screens/trip/places/MPlacesFilterSheet.tsx"
+      ]
+    },
+    {
+      "feature": "Plugins admin",
+      "hooks": [
+        "src/components/Admin/plugins/pluginModel.ts",
+        "src/components/Admin/plugins/usePluginDetail.ts",
+        "src/components/Admin/plugins/usePluginsAdmin.ts"
+      ],
+      "desktop": ["src/components/Admin/AdminPluginsPanel.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminPluginsPanel.tsx"]
+    },
+    {
+      "feature": "Reservation form incl. hotel accommodation creation",
+      "hooks": ["src/components/Planner/reservationFormModel.ts", "src/components/Planner/useReservationForm.ts"],
+      "desktop": ["src/components/Planner/ReservationModal.tsx"],
+      "mobile": ["src/mobile/screens/trip/sheets/MReservationSheet.tsx"]
+    },
+    {
+      "feature": "Road-trip add-stop draft",
+      "hooks": ["src/components/Roadtrip/useStopDraftForm.ts"],
+      "desktop": ["src/components/Roadtrip/RoadtripStopPopup.tsx"],
+      "mobile": ["src/mobile/screens/trip/roadtrip/MRtDraftSheet.tsx"]
+    },
+    {
+      "feature": "Road-trip stay length draft",
+      "hooks": ["src/components/Roadtrip/useStayDraft.ts"],
+      "desktop": ["src/components/Roadtrip/RoadtripStayModal.tsx"],
+      "mobile": ["src/mobile/screens/trip/roadtrip/MRtStaySheet.tsx"]
+    },
+    {
+      "feature": "Settings / Account",
+      "hooks": ["src/components/Settings/useAccountSettings.ts"],
+      "desktop": ["src/components/Settings/AccountTab.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettingsAccount.tsx"]
+    },
+    {
+      "feature": "Settings / Account / Passkeys",
+      "hooks": ["src/components/Settings/usePasskeys.ts"],
+      "desktop": ["src/components/Settings/PasskeysSection.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettingsAccount.tsx"]
+    },
+    {
+      "feature": "Settings / Appearance",
+      "hooks": ["src/components/Settings/appearanceModel.ts", "src/components/Settings/useAppearanceEditor.ts"],
+      "desktop": ["src/components/Settings/AppearanceSettingsTab.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettingsAppearance.tsx"]
+    },
+    {
+      "feature": "Settings / General/Display",
+      "hooks": ["src/components/Settings/useSettingSaver.ts"],
+      "desktop": ["src/components/Settings/DisplaySettingsTab.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettingsGeneral.tsx"]
+    },
+    {
+      "feature": "Settings / Integrations / AI parsing",
+      "hooks": ["src/components/Settings/useLlmConnection.ts"],
+      "desktop": ["src/components/Settings/LlmConnectionSection.tsx"],
+      "mobile": ["src/mobile/screens/settings/MLlmConnectionSection.tsx"]
+    },
+    {
+      "feature": "Settings / Integrations / AirTrail",
+      "hooks": ["src/components/Settings/useAirTrailSettings.ts"],
+      "desktop": ["src/components/Settings/AirTrailConnectionSection.tsx"],
+      "mobile": ["src/mobile/screens/settings/MAirTrailConnectionSection.tsx"]
+    },
+    {
+      "feature": "Settings / Integrations / MCP",
+      "hooks": ["src/components/Settings/useMcpIntegration.ts"],
+      "desktop": ["src/components/Settings/IntegrationsTab.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettingsMcp.tsx"]
+    },
+    {
+      "feature": "Settings / Integrations / Photo providers",
+      "hooks": ["src/components/Settings/usePhotoProviderConnections.ts"],
+      "desktop": ["src/components/Settings/PhotoProvidersSection.tsx"],
+      "mobile": ["src/mobile/screens/settings/MPhotoProvidersSection.tsx"]
+    },
+    {
+      "feature": "Settings / Map: mapSettingsModel",
+      "hooks": ["src/components/Settings/mapSettingsModel.ts"],
+      "desktop": ["src/components/Admin/DefaultUserSettingsTab.tsx", "src/components/Settings/MapSettingsTab.tsx"],
+      "mobile": [
+        "src/mobile/screens/admin/MAdminDefaultUserSettings.tsx",
+        "src/mobile/screens/settings/MSettingsMap.tsx"
+      ]
+    },
+    {
+      "feature": "Settings / Map: useMapSettingsForm",
+      "hooks": ["src/components/Settings/useMapSettingsForm.ts"],
+      "desktop": ["src/components/Settings/MapSettingsTab.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettingsMap.tsx"]
+    },
+    {
+      "feature": "Settings / Notifications",
+      "hooks": ["src/components/Settings/useNotificationSettings.ts"],
+      "desktop": ["src/components/Settings/NotificationsTab.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettingsNotifications.tsx"]
+    },
+    {
+      "feature": "Settings / Plugins: usePluginActivity",
+      "hooks": ["src/components/Settings/usePluginActivity.ts"],
+      "desktop": ["src/components/Settings/PluginActivityPanel.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettingsPlugins.tsx"]
+    },
+    {
+      "feature": "Settings / Plugins: usePluginUserSettings",
+      "hooks": ["src/components/Plugins/usePluginUserSettings.ts"],
+      "desktop": ["src/components/Settings/PluginSettingsTab.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettingsPlugins.tsx"]
+    },
+    {
+      "feature": "Settings page",
+      "hooks": ["src/pages/settings/useSettings.ts"],
+      "desktop": ["src/pages/SettingsPage.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettings.tsx"]
+    },
+    {
+      "feature": "Settings shell: visible tabs + integrations gating",
+      "hooks": ["src/components/Settings/useIntegrationGates.ts"],
+      "desktop": ["src/components/Settings/IntegrationsTab.tsx"],
+      "mobile": ["src/mobile/screens/settings/MSettingsIntegrations.tsx"]
+    },
+    {
+      "feature": "Storage backends admin: useBackendForm",
+      "hooks": ["src/components/Admin/storage/useBackendForm.ts"],
+      "desktop": ["src/components/Admin/storage/BackendForm.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminStoragePanel.tsx"]
+    },
+    {
+      "feature": "Storage backends admin: useStoragePanel",
+      "hooks": ["src/components/Admin/storage/useStoragePanel.ts"],
+      "desktop": ["src/components/Admin/storage/AdminStoragePanel.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminStoragePanel.tsx"]
+    },
+    {
+      "feature": "To-do list and task add/edit form: useTaskForm",
+      "hooks": ["src/components/Todo/useTaskForm.ts"],
+      "desktop": ["src/components/Todo/TodoListPanel.tsx"],
+      "mobile": ["src/mobile/screens/trip/tabs/MTaskSheet.tsx"]
+    },
+    {
+      "feature": "To-do list and task add/edit form: useTodoList",
+      "hooks": ["src/components/Todo/useTodoList.ts"],
+      "desktop": ["src/components/Todo/TodoListPanel.tsx"],
+      "mobile": ["src/mobile/screens/trip/tabs/MTodoListTab.tsx"]
+    },
+    {
+      "feature": "Toast presenter queue",
+      "hooks": ["src/components/shared/useToastQueue.ts"],
+      "desktop": ["src/components/shared/Toast.tsx"],
+      "mobile": ["src/mobile/components/MToastHost.tsx"]
+    },
+    {
+      "feature": "Tours list filter",
+      "hooks": ["src/components/Tours/tourPresentation.ts"],
+      "desktop": [
+        "src/components/Tours/TourDetailDialog.tsx",
+        "src/components/Tours/ToursSidebar.tsx",
+        "src/components/Tours/planner/TourPlannerPanels.tsx",
+        "src/components/Tours/tourParts.tsx"
+      ],
+      "mobile": ["src/mobile/screens/trip/places/MToursSelectionList.tsx"]
+    },
+    {
+      "feature": "Transport booking detail view: reservationFiles",
+      "hooks": ["src/utils/reservationFiles.ts"],
+      "desktop": [
+        "src/components/Planner/DayPlanSidebarTransportDetailModal.tsx",
+        "src/components/Planner/ReservationsPanel.tsx",
+        "src/components/Planner/bookings/BookingDetailHost.tsx"
+      ],
+      "mobile": [
+        "src/mobile/screens/trip/sheets/MTransportSheet.tsx",
+        "src/mobile/screens/trip/tabs/MBookingsTab.tsx",
+        "src/mobile/screens/trip/tabs/MTransportsTab.tsx"
+      ]
+    },
+    {
+      "feature": "Transport booking detail view: transportDetailModel",
+      "hooks": ["src/components/Planner/transportDetailModel.ts"],
+      "desktop": ["src/components/Planner/DayPlanSidebarTransportDetailModal.tsx"],
+      "mobile": ["src/mobile/screens/trip/sheets/MTransportSheet.tsx"]
+    },
+    {
+      "feature": "Transport booking form: bookingFormModel",
+      "hooks": ["src/components/Planner/bookingFormModel.ts"],
+      "desktop": [
+        "src/components/Planner/ReservationModal.tsx",
+        "src/components/Planner/TransportModal.tsx",
+        "src/components/Planner/useBookingFileAttach.ts"
+      ],
+      "mobile": [
+        "src/mobile/screens/trip/sheets/MReservationSheet.tsx",
+        "src/mobile/screens/trip/sheets/MTransportFormSheet.tsx"
+      ]
+    },
+    {
+      "feature": "Transport booking form: transportEndpoints, useTransportForm",
+      "hooks": ["src/components/Planner/transportEndpoints.ts", "src/components/Planner/useTransportForm.ts"],
+      "desktop": ["src/components/Planner/TransportModal.tsx"],
+      "mobile": ["src/mobile/screens/trip/sheets/MTransportFormSheet.tsx"]
+    },
+    {
+      "feature": "Trip export",
+      "hooks": ["src/components/Planner/useTripExport.ts"],
+      "desktop": ["src/components/Planner/TripExportModal.tsx"],
+      "mobile": ["src/mobile/screens/trip/sheets/MExportSheet.tsx"]
+    },
+    {
+      "feature": "Trip files: fileActions",
+      "hooks": ["src/components/Files/fileActions.ts"],
+      "desktop": ["src/components/Files/FileManagerAssignModal.tsx", "src/components/Files/useFileManager.ts"],
+      "mobile": [
+        "src/mobile/screens/trip/tabs/MFileLinkSheet.tsx",
+        "src/mobile/screens/trip/tabs/MFileMenuSheet.tsx",
+        "src/mobile/screens/trip/tabs/MFilesTab.tsx"
+      ]
+    },
+    {
+      "feature": "Trip files: fileListRules",
+      "hooks": ["src/components/Files/fileListRules.ts"],
+      "desktop": ["src/components/Files/FileManagerRow.tsx", "src/components/Files/useFileManager.ts"],
+      "mobile": ["src/mobile/screens/trip/tabs/MFileLinkSheet.tsx", "src/mobile/screens/trip/tabs/filesModel.ts"]
+    },
+    {
+      "feature": "Trip files: useFileTrash",
+      "hooks": ["src/components/Files/useFileTrash.ts"],
+      "desktop": ["src/components/Files/useFileManager.ts"],
+      "mobile": ["src/mobile/screens/trip/tabs/MFileTrashSheet.tsx"]
+    },
+    {
+      "feature": "Trip loading splash",
+      "hooks": ["src/components/shared/useTripSplashBeats.ts"],
+      "desktop": ["src/components/shared/TripLoadingSplash.tsx"],
+      "mobile": ["src/mobile/screens/trip/MTripLoadingSplash.tsx"]
+    },
+    {
+      "feature": "Trip planner page",
+      "hooks": ["src/pages/tripPlanner/useTripPlanner.ts"],
+      "desktop": ["src/pages/tripPlanner/useTripPlannerPage.ts"],
+      "mobile": ["src/mobile/screens/trip/MTripShell.tsx"]
+    },
+    {
+      "feature": "Trip sheet wiring: transportEditorOpeners",
+      "hooks": ["src/pages/tripPlanner/transportEditorOpeners.ts"],
+      "desktop": ["src/pages/TripPlannerPage.tsx", "src/pages/tripPlanner/usePlannerDialogs.ts"],
+      "mobile": ["src/mobile/screens/trip/sheets/MTripSheets.tsx"]
+    },
+    {
+      "feature": "Trip sheet wiring: tripCover, useBookingExpenseEditor",
+      "hooks": ["src/pages/tripPlanner/tripCover.ts", "src/pages/tripPlanner/useBookingExpenseEditor.ts"],
+      "desktop": ["src/pages/TripPlannerPage.tsx"],
+      "mobile": ["src/mobile/screens/trip/sheets/MTripSheets.tsx"]
+    },
+    {
+      "feature": "User modals/sheets",
+      "hooks": ["src/components/Admin/useAdminUserActions.ts"],
+      "desktop": ["src/pages/admin/AdminUserModals.tsx"],
+      "mobile": ["src/mobile/screens/admin/MAdminSheets.tsx"]
+    },
+    {
+      "feature": "Vacay calendar logging logic: useVacayCalendarLogic",
+      "hooks": ["src/components/Vacay/useVacayCalendarLogic.ts"],
+      "desktop": ["src/components/Vacay/VacayCalendar.tsx", "src/components/Vacay/VacayPersons.tsx"],
+      "mobile": ["src/mobile/screens/vacay/useMVacay.ts"]
+    },
+    {
+      "feature": "Vacay calendar logging logic: vacayFormat",
+      "hooks": ["src/components/Vacay/vacayFormat.ts"],
+      "desktop": ["src/components/Vacay/VacayStats.tsx"],
+      "mobile": ["src/mobile/screens/vacay/MVacay.tsx"]
+    },
+    {
+      "feature": "Vacay fusion invite",
+      "hooks": ["src/components/Vacay/useVacayUserPicker.ts"],
+      "desktop": ["src/components/Vacay/VacayPersons.tsx", "src/components/Vacay/VacaySharedCalendars.tsx"],
+      "mobile": ["src/mobile/screens/vacay/MVacayInviteSheet.tsx", "src/mobile/screens/vacay/MVacayShareSheet.tsx"]
+    },
+    {
+      "feature": "Vacay page",
+      "hooks": ["src/pages/vacay/useVacay.ts"],
+      "desktop": ["src/pages/VacayPage.tsx"],
+      "mobile": ["src/mobile/screens/vacay/useMVacay.ts"]
+    },
+    {
+      "feature": "Vacay read-only calendar sharing",
+      "hooks": ["src/components/Vacay/useVacayShareActions.ts"],
+      "desktop": ["src/components/Vacay/VacaySharedCalendars.tsx"],
+      "mobile": ["src/mobile/screens/vacay/MVacayShareSheet.tsx", "src/mobile/screens/vacay/useMVacay.ts"]
+    },
+    {
+      "feature": "Vacay settings",
+      "hooks": ["src/components/Vacay/useVacaySettings.ts"],
+      "desktop": ["src/components/Vacay/VacaySettings.tsx"],
+      "mobile": ["src/mobile/screens/vacay/MVacaySettingsSheet.tsx"]
+    }
+  ],
+  "mobileOnly": {
+    "src/mobile/screens/admin/MAdminUi.tsx": "Phone only admin UI primitives (button, card, field, input, secret input, sheet frame).",
+    "src/mobile/screens/atlas/MAtlasSearch.tsx": "Phone full screen country search overlay; options, suggestions and selection come through props from MAtlas.",
+    "src/mobile/screens/atlas/MAtlasStatsCard.tsx": "Markup only; renders the AtlasStats that MAtlas passes in.",
+    "src/mobile/screens/collections/MCollCategoryPicker.tsx": "Phone only category dropdown; value and categories come through props from the collection sheets.",
+    "src/mobile/screens/collections/MCollLabelsSheet.tsx": "Phone label sheet; create, update, delete and assign come through props from useCollections.",
+    "src/mobile/screens/collections/MCollLinksEditor.tsx": "Markup only; link rows and the change handler come through props from the collection sheets.",
+    "src/mobile/screens/collections/MCollListPickerSheet.tsx": "Phone list picker sheet; the move or copy action comes through onPick from useCollections.",
+    "src/mobile/screens/collections/MCollSheetKit.tsx": "Phone only sheet UI primitives for the collections screens (header, footer, pill, eyebrow).",
+    "src/mobile/screens/collections/collectionsMobileModel.ts": "Visual constants only the phone collections screens use (category and status specs, swatches, cover gradient).",
+    "src/mobile/screens/dashboard/MUserMenu.tsx": "Phone avatar menu with a three state theme cycle the desktop navbar does not have.",
+    "src/mobile/screens/settings/MConfirmSheet.tsx": "Phone only bottom sheet confirm dialog used across the mobile screens.",
+    "src/mobile/screens/settings/MDawarichConnectionSection.tsx": "Already shares hooks/useDawarichConnection with components/Settings/DawarichConnectionSection.tsx.",
+    "src/mobile/screens/settings/MMobileDashOrder.tsx": "Phone only setting that orders the mobile dashboard blocks; the desktop has no such setting.",
+    "src/mobile/screens/settings/MMobileNavCustomizer.tsx": "Phone only editor for the mobile bottom nav, built on components/Settings/useMobileNavEditor.",
+    "src/mobile/screens/settings/MSetPickerSheet.tsx": "Phone only option picker bottom sheet, a generic UI primitive.",
+    "src/mobile/screens/settings/MSettingsAbout.tsx": "Markup only about card with static links and no state.",
+    "src/mobile/screens/settings/MSettingsOffline.tsx": "Already shares components/Settings/useOfflineSettings with components/Settings/OfflineTab.tsx.",
+    "src/mobile/screens/settings/MSettingsUi.tsx": "Phone only settings UI primitives (card, row, input, button, segments, hint).",
+    "src/mobile/screens/settings/MWebPushCard.tsx": "Already shares hooks/useWebPush with components/Settings/WebPushCard.tsx.",
+    "src/mobile/screens/trip/dockTabs.ts": "Phone only helper that picks which trip tabs get a seat in the mobile dock.",
+    "src/mobile/screens/trip/lib/dayNotes.ts": "Phone only helper that splits a leading time off a day note for the plan timeline.",
+    "src/mobile/screens/trip/map/MMapArea.tsx": "Phone map stage framing; already shares usePoiExplore and useMergedMapPois with the desktop trip planner.",
+    "src/mobile/screens/trip/map/MPlacesFilterPill.tsx": "Phone only map control for the active places filter count, built on the shared MapTogglePill.",
+    "src/mobile/screens/trip/places/MPlacesBulkCategorySheet.tsx": "Markup only; categories and the pick handler come through props from MPlacesBrowser.",
+    "src/mobile/screens/trip/places/MPlacesToursModeSwitch.tsx": "Markup only places or tours toggle; value and onChange come through props from MPlacesBrowser.",
+    "src/mobile/screens/trip/places/placesBrowserModel.ts": "Phone pool helpers over the shared utils/placesFilter, placeSearch and plannedPlaces.",
+    "src/mobile/screens/trip/plan/MPlanTimelineRows.tsx": "Markup only timeline rows; row data comes from MPlanTimeline and planTimelineModel.",
+    "src/mobile/screens/trip/plan/planTimelineModel.ts": "Phone plan timeline row builder over the shared utils/dayMerge, dayOrder and dayTourProjection.",
+    "src/mobile/screens/trip/plan/useMPlanDaySwipe.ts": "Phone only touch swipe gesture for switching days.",
+    "src/mobile/screens/trip/plan/useMPlanDragReorder.ts": "Phone only long press drag gesture; the reorder itself runs through the handler it is given.",
+    "src/mobile/screens/trip/roadtrip/MRoadtripRows.tsx": "Markup only road trip rows over the shared Roadtrip models the desktop sidebar rows also use.",
+    "src/mobile/screens/trip/roadtrip/MRoadtripTab.tsx": "Phone road trip tab over the shared roadtripRowModel, stopBookings and nightBookend RoadtripSidebar uses.",
+    "src/mobile/screens/trip/roadtrip/MRtAlternativesBar.tsx": "Markup only; state from useMRtAlternatives, text from the shared alternativeOverlays.",
+    "src/mobile/screens/trip/roadtrip/MRtCorridorBar.tsx": "Markup only; its corridor state comes through props from useMRtCorridor.",
+    "src/mobile/screens/trip/roadtrip/MRtCorridorSheet.tsx": "Phone corridor search sheet over useMRtCorridor and the planner's shared corridor state.",
+    "src/mobile/screens/trip/roadtrip/MRtInfoSheet.tsx": "Read only figures sheet that already shares useHotelBookends, dayWindow and parseAvoid with RoadtripLimitsCard.",
+    "src/mobile/screens/trip/roadtrip/MRtKindSheet.tsx": "Thin sheet over planner.setRoadtripStopKind that already shares STOP_KINDS with StopKindPicker.",
+    "src/mobile/screens/trip/roadtrip/MRtStopSheet.tsx": "Phone only stop detail sheet over the shared roadtripRowModel, stayReading and planner writers.",
+    "src/mobile/screens/trip/roadtrip/stageBadges.ts": "Badge helpers for the phone stage header and alternatives bar, which have no desktop counterpart.",
+    "src/mobile/screens/trip/roadtrip/useMRoadtrip.ts": "Phone stage screen adapter over the shared roadtripRowModel plus a live clock tick.",
+    "src/mobile/screens/trip/roadtrip/useMRtAlternatives.ts": "Tap to preview, confirm to write layer over the planner's shared route alternatives.",
+    "src/mobile/screens/trip/roadtrip/useMRtCorridor.ts": "Phone reach and anchor layer over the planner's shared corridor state.",
+    "src/mobile/screens/trip/sheets/MBookingFields.tsx": "Markup only: the booking code, notes, traveler and route stop fields both phone booking sheets draw.",
+    "src/mobile/screens/trip/sheets/MBookingFilesCosts.tsx": "Phone booking sheet footer that composes PlFileAttach and MLinkedCosts.",
+    "src/mobile/screens/trip/sheets/MBrowseActionsSheet.tsx": "Phone action sheet for a pool place that calls planner handlers and the shared placeToSaveTarget.",
+    "src/mobile/screens/trip/sheets/MDaysSheet.tsx": "Button based day reorder sheet over planner.handleReorderDays; the desktop reorders by drag.",
+    "src/mobile/screens/trip/sheets/MImportSheet.tsx": "Menu that routes to ImpFileStep and ImpListStep, with no logic of its own.",
+    "src/mobile/screens/trip/sheets/MLinkedCosts.tsx": "Already shares useExpenseLinks with the desktop BookingCostsSection; only markup and a search filter are local.",
+    "src/mobile/screens/trip/sheets/MMehrSheet.tsx": "Phone dock overflow menu that only opens tabs and sheets.",
+    "src/mobile/screens/trip/sheets/MTripSheetUi.tsx": "Phone sheet UI primitives (eyebrow, headers, stat boxes, action circles) and a time display helper.",
+    "src/mobile/screens/trip/sheets/PlFileAttach.tsx": "Markup only; pending files and link actions come through props from the phone form sheets.",
+    "src/mobile/screens/trip/sheets/PlSheetChrome.tsx": "Phone form sheet chrome primitives (header, footer, field classes).",
+    "src/mobile/screens/trip/sheets/PlTimeFields.tsx": "Phone time fields that already share timeCollisions with the desktop PlaceFormModal.",
+    "src/mobile/screens/trip/tabs/MCollabTab.tsx": "Phone collab sub tab router that reuses the desktop CollabLinks component.",
+    "src/mobile/screens/trip/tabs/MListsTab.tsx": "Phone router between the packing and to-do bodies, with no logic of its own.",
+    "src/mobile/screens/trip/tabs/MReceiptScanButton.tsx": "Already shares useReceiptScan and ReceiptScanModal with the desktop CostsPanel.",
+    "src/mobile/screens/trip/tabs/MReservationCardParts.tsx": "Markup only: the title, actions, date, files and delete sheet parts both phone booking tabs draw.",
+    "src/mobile/screens/trip/tabs/MTripTabPanel.tsx": "Phone tab router that mounts the per tab screens and plugin frames, with no logic of its own.",
+    "src/mobile/screens/trip/tabs/listsModel.ts": "Priority colour and label constants only the phone to-do list and task sheet use.",
+    "src/mobile/screens/trip/tabs/tabChrome.tsx": "Phone tab chrome primitives (scroller, section headers, fields, traveler chips, plugin slots).",
+    "src/mobile/screens/trip/tabs/tabModel.ts": "Phone tab prop type and status colour tokens only the phone tabs use.",
+    "src/mobile/screens/trip/tabs/transportsModel.ts": "Phone transport card readers (metadata, day and time cells) for MTransportsTab and MBookingsTab.",
+    "src/mobile/screens/vacay/MVacayMonth.tsx": "Markup only; its day cell colours come from the phone vacayDayModel.",
+    "src/mobile/screens/vacay/vacayDayModel.ts": "Phone day cell colour model for MVacayMonth; the desktop card styles its cells inline."
+  }
+}

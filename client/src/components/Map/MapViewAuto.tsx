@@ -7,6 +7,7 @@ import ErrorBoundary from '../shared/ErrorBoundary'
 import { MapViewGLMapbox, MapViewGLMaplibre } from './glLazy'
 import { useRoadtripHazards } from './useRoadtripHazards'
 import { useTranslation } from '../../i18n/TranslationContext'
+import type { MapViewAutoProps, MapViewProps } from './mapViewContract'
 
 // Auto-selects the map renderer based on user settings. Keeps the existing
 // Leaflet MapView untouched so the Mapbox GL variant can mature iteratively
@@ -16,14 +17,15 @@ import { useTranslation } from '../../i18n/TranslationContext'
 // tiles via sync/tilePrefetcher.ts). GL maps are best-effort offline — their
 // vector tiles are cached opportunistically by the Service Worker as you view
 // them online (see the GL tile rules in vite.config.js), not prefetched.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function MapViewAuto(props: any) {
+export function MapViewAuto(props: MapViewAutoProps) {
   const { t } = useTranslation()
   const hazards = useRoadtripHazards(props.tripId, !!props.clusterLoosely)
   // `dawarichTrack` arrives as a prop rather than being fetched here: the pill
   // that switches it on lives at page level and needs the load status, so the
   // fetch sits in useTripPlanner and both shells read the same one.
-  const mapProps = { ...props, hazards: hazards.feed?.hazards }
+  // The one cast between what callers pass and what the renderers type: pins
+  // without trip_id (see MapViewAutoProps). Neither renderer reads trip_id.
+  const mapProps = { ...props, hazards: hazards.feed?.hazards } as MapViewProps
   const provider = useSettingsStore(s => s.settings.map_provider)
   const token = useSettingsStore(s => s.settings.mapbox_access_token)
   // Fall back to Leaflet when Mapbox is selected but no token is set,

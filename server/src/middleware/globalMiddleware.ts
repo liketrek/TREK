@@ -1,10 +1,23 @@
-import express, { Request, Response, NextFunction } from 'express';
-import compression from 'compression';
-import cors from 'cors';
-import helmet from 'helmet';
-import cookieParser from 'cookie-parser';
-import { readEnv, type AppEnv } from '../app-config';
+import { readEnv } from '../app-config';
+import { httpConfig } from '../nest/app-config/tokens';
 import { logDebug, logWarn, logError } from '../nest/audit/audit-log.logger';
+import {
+  ACCESS_LOG_ATTACHED,
+  REQUEST_ID_HEADER,
+  UNHANDLED_ERROR,
+  acceptRequestId,
+  newCorrelationId,
+  runWithCorrelation,
+} from '../nest/common/request-correlation';
+import { isSameHostOrigin } from '../nest/common/same-origin';
+import type { ConfigType } from '@nestjs/config';
+
+import compression from 'compression';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import express, { Request, Response, NextFunction } from 'express';
+import helmet from 'helmet';
+import { AsyncResource } from 'node:async_hooks';
 
 /**
  * Field names redacted from request-log query/body dumps (case-insensitive —
@@ -28,6 +41,11 @@ export const SENSITIVE_KEYS = new Set([
   'code',
   'smtp_pass',
   'secretaccesskey',
+  // A Web Push subscription's keys: whoever holds them together with the
+  // endpoint can encrypt messages for that browser. No other request body has
+  // either field, and an `auth` anywhere else would be a credential as well.
+  'p256dh',
+  'auth',
 ]);
 
 /**
@@ -43,7 +61,26 @@ function isSensitiveName(name: string): boolean {
   return SENSITIVE_KEYS.has(lower) || SENSITIVE_SUFFIXES.some((suffix) => lower.endsWith(suffix));
 }
 
-/** Deep-redacts every key in `SENSITIVE_KEYS` (case-insensitive) from a request-log value. */
+/**
+ * The fields PushSubscription.toJSON() puts next to `endpoint`. Either one is
+ * enough to know the object is a subscription, so a body that arrives without
+ * its keys (which the route then refuses) still keeps its endpoint out of the log.
+ */
+const PUSH_SUBSCRIPTION_FIELDS = new Set(['keys', 'expirationtime']);
+
+/**
+ * A Web Push endpoint is a capability URL: anyone holding it can post to that
+ * browser's push service. It arrives inside a subscription, or on its own in
+ * the body that forgets a device. Anywhere else `endpoint` is an ordinary
+ * setting (the S3 backend's URL, for one) and stays readable.
+ */
+function isPushEndpoint(entries: Record<string, unknown>, name: string): boolean {
+  if (name.toLowerCase() !== 'endpoint') return false;
+  const siblings = Object.keys(entries).filter((k) => k !== name);
+  return siblings.length === 0 || siblings.some((k) => PUSH_SUBSCRIPTION_FIELDS.has(k.toLowerCase()));
+}
+
+/** Deep-redacts every key in `SENSITIVE_KEYS` (case-insensitive) and every Web Push endpoint from a request-log value. */
 export function redact(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value;
   if (Array.isArray(value)) return (value as unknown[]).map(redact);
@@ -54,7 +91,8 @@ export function redact(value: unknown): unknown {
   const namedSecret = typeof entries.key === 'string' && isSensitiveName(entries.key);
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(entries)) {
-    out[k] = isSensitiveName(k) || (namedSecret && k === 'value') ? '[REDACTED]' : redact(v);
+    const hidden = isSensitiveName(k) || (namedSecret && k === 'value') || isPushEndpoint(entries, k);
+    out[k] = hidden ? '[REDACTED]' : redact(v);
   }
   return out;
 }
@@ -98,7 +136,8 @@ export function routingCspOrigins(baseUrls: (string | null | undefined)[]): stri
 export function applyGlobalMiddleware(
   app: express.Application,
   opts: {
-    http?: AppEnv['http'];
+    /** The boot-stable half (trust proxy, HSTS subdomains), from the `httpConfig` token. */
+    http?: ConfigType<typeof httpConfig>;
     /**
      * Extra origins the browser may talk to, from the instance's own settings — today the
      * self-hosted routing engine (#1797). Read once at apply time like everything else
@@ -110,10 +149,25 @@ export function applyGlobalMiddleware(
 ): void {
   // The whole pipeline is configured at APPLY time (the per-request closures
   // capture these values), so a snapshot is the correct semantic. bootstrap
-  // threads in the DI-loaded httpConfig; direct callers fall back to an
-  // apply-time readEnv() — same values, same freeze point.
-  const { http = readEnv().http, extraConnectSrc = [] } = opts;
+  // threads in the DI-loaded httpConfig; a direct caller gets the same token
+  // factory evaluated now. The live half (origins, forced HTTPS) is read here
+  // too, once, so both halves freeze at the same point.
+  const { http = httpConfig(), extraConnectSrc = [] } = opts;
+  const liveHttp = readEnv().http;
   const { nodeEnv, isProduction } = readEnv().app;
+
+  // Request correlation comes first, so the whole pipeline and every line the
+  // request logs run under its id. An X-Request-Id set by the proxy in front is
+  // kept when it looks like an id, so its logs and ours line up; anything else
+  // is replaced. The response always says which id it got. The body parsers
+  // bootstrap.ts registers later resume from stream events, but raw-body and
+  // multer bind their callbacks with AsyncResource, so a handler reached after
+  // a body still runs under this id (REQID-007, REQID-008).
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const id = acceptRequestId(req.headers['x-request-id']) ?? newCorrelationId();
+    res.setHeader(REQUEST_ID_HEADER, id);
+    runWithCorrelation({ id, kind: 'http' }, next);
+  });
 
   // Trust first proxy (nginx/Docker) for correct req.ip
   if (isProduction || http.trustProxyRaw) {
@@ -135,21 +189,32 @@ export function applyGlobalMiddleware(
     }),
   );
 
-  const allowedOrigins = http.corsOrigins;
+  const allowedOrigins = liveHttp.corsOrigins;
 
-  let corsOrigin: cors.CorsOptions['origin'];
-  if (allowedOrigins) {
-    corsOrigin = (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      if (!origin || allowedOrigins.includes(origin)) callback(null, true);
-      else callback(new Error('Not allowed by CORS'));
-    };
-  } else if (isProduction) {
-    corsOrigin = false;
-  } else {
-    corsOrigin = true;
-  }
+  // With ALLOWED_ORIGINS set, a request from anywhere else is refused outright.
+  // Two things keep that from hitting the instance's own pages (#2543): a request
+  // whose Origin is the host it was sent to is same-origin and always passes, and
+  // a refusal is a 403 naming the cause instead of an unhandled error, which the
+  // exception filter turned into a bare 500 on the login screen.
+  const warnedOrigins = new Set<string>();
+  const corsOptions: cors.CorsOptions | cors.CorsOptionsDelegate<Request> = allowedOrigins
+    ? (req: Request, callback: (err: Error | null, options?: cors.CorsOptions) => void) => {
+        const origin = req.headers.origin;
+        if (!origin || allowedOrigins.includes(origin) || isSameHostOrigin(origin, req.headers.host)) {
+          callback(null, { origin: true, credentials: true });
+          return;
+        }
+        if (!warnedOrigins.has(origin) && warnedOrigins.size < 50) {
+          warnedOrigins.add(origin);
+          logWarn(
+            `CORS: refused origin ${origin} for host ${req.headers.host ?? '(none)'}; add it to ALLOWED_ORIGINS if it is yours`,
+          );
+        }
+        callback(Object.assign(new Error('Not allowed by CORS'), { statusCode: 403 }));
+      }
+    : { origin: isProduction ? false : true, credentials: true };
 
-  const shouldForceHttps = http.forceHttps;
+  const shouldForceHttps = liveHttp.forceHttps;
   // HSTS is worth enabling any time we're serving production traffic,
   // not only when FORCE_HTTPS is set. Self-hosters behind Traefik /
   // Caddy / Cloudflare Tunnel typically leave FORCE_HTTPS unset (the
@@ -181,116 +246,135 @@ export function applyGlobalMiddleware(
   // session per tool call until the per-user cap wedges the connection. Same reasoning for
   // WWW-Authenticate, which carries the RFC 9728 resource-metadata challenge that drives
   // OAuth discovery.
+  app.use((req: Request, _res: Response, next: NextFunction) => {
+    if (
+      req.path.startsWith('/.well-known/') ||
+      req.path === '/oauth/register' ||
+      req.path === '/oauth/authorize' ||
+      req.path === '/oauth/userinfo' ||
+      req.path === '/mcp'
+    ) {
+      cors({
+        origin: '*',
+        credentials: false,
+        exposedHeaders: ['Mcp-Session-Id', 'MCP-Protocol-Version', 'WWW-Authenticate'],
+      })(req, _res, next);
+    } else {
+      next();
+    }
+  });
+  app.use(cors(corsOptions));
   app.use(
-    (req: Request, _res: Response, next: NextFunction) => {
-      if (
-        req.path.startsWith('/.well-known/') ||
-        req.path === '/oauth/register' ||
-        req.path === '/oauth/authorize' ||
-        req.path === '/oauth/userinfo' ||
-        req.path === '/mcp'
-      ) {
-        cors({
-          origin: '*',
-          credentials: false,
-          exposedHeaders: ['Mcp-Session-Id', 'MCP-Protocol-Version', 'WWW-Authenticate'],
-        })(req, _res, next);
-      } else {
-        next();
-      }
-    },
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          // 'unsafe-eval' is load-bearing, not leftover: heic-to's libheif build
+          // initialises embind through new Function(), and that is what converts
+          // an iPhone .heic the moment somebody picks one. 'wasm-unsafe-eval'
+          // alone was tried first and was not enough (93b51a0b). The package
+          // ships a CSP-safe entry point at heic-to/csp; dropping this directive
+          // means switching client/src/utils/convertHeic.ts over to it and
+          // verifying a real .heic upload in a browser, not just deleting the
+          // string here.
+          scriptSrc: ["'self'", "'wasm-unsafe-eval'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://unpkg.com'],
+          imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+          connectSrc: [
+            "'self'",
+            'ws:',
+            'wss:',
+            'https://nominatim.openstreetmap.org',
+            'https://overpass-api.de',
+            'https://places.googleapis.com',
+            'https://api.openweathermap.org',
+            'https://en.wikipedia.org',
+            'https://commons.wikimedia.org',
+            // Both forms here too: CARTO documents the apex host on its key page,
+            // so that is the template users paste in, and the {s} sharded form is
+            // what TREK ships (#2054).
+            'https://basemaps.cartocdn.com',
+            'https://*.basemaps.cartocdn.com',
+            // Both forms: a CSP wildcard host never matches the apex, and OSM
+            // serves everything from the bare tile.openstreetmap.org since it
+            // retired the a/b/c/d shards (#1733). The sharded hosts stay listed
+            // for tile templates users saved before that.
+            'https://tile.openstreetmap.org',
+            'https://*.tile.openstreetmap.org',
+            // The other two raster presets TREK ships. `mode: 'no-cors'` relaxes
+            // CORS, not CSP, so without these the tile prefetch is refused in the
+            // document and never reaches the Service Worker that would cache it
+            // (#2180). routing.openstreetmap.de below is a different host.
+            'https://tile.openstreetmap.de',
+            'https://tiles.stadiamaps.com',
+            // OpenTopoMap is the key-free raster layer offered only by the Tours
+            // planner. Leaflet uses its a/b/c shards; the apex is named too so a
+            // future unsharded template does not repeat the OSM CSP gap above.
+            'https://tile.opentopomap.org',
+            'https://*.tile.opentopomap.org',
+            // The imagery host, for the same reason and one more. Leaflet fetches a tile
+            // as an <img>, which img-src's blanket `https:` waves through, so the satellite
+            // view worked on Leaflet with this host missing. A GL map reads the raster
+            // through fetch to hand it to WebGL, and the prefetch does too, so both were
+            // refused here while nothing in the app could see it: the switch flipped, the
+            // layer went on, and no tile ever arrived (#2307).
+            'https://server.arcgisonline.com',
+            // Amap's raster tiles, for an install whose users are in China, for the
+            // same reason as the hosts above (#2180). Road (webrd01..04) and
+            // satellite (webst01..04) are numbered shards of one domain, so the
+            // wildcard is the whole list.
+            'https://*.is.autonavi.com',
+            'https://unpkg.com',
+            'https://open-meteo.com',
+            'https://api.open-meteo.com',
+            'https://geocoding-api.open-meteo.com',
+            'https://api.frankfurter.dev',
+            'https://router.project-osrm.org/route/v1/',
+            'https://routing.openstreetmap.de/',
+            // The second routing engine, shipped as a default the same way the OSRM hosts
+            // above are. It is asked only when a leg should avoid tolls, motorways or a
+            // ferry — which the OSRM hosts answer with HTTP 400, because their car profile
+            // carries no excludable classes. Origin only, no path: unlike OSRM this one is
+            // a POST to /route and would grow more endpoints if isochrones ever land.
+            'https://valhalla1.openstreetmap.de',
+            'https://api.mapbox.com',
+            'https://*.tiles.mapbox.com',
+            'https://events.mapbox.com',
+            'https://tiles.openfreemap.org',
+            // A self-hosted routing engine, when the instance has one configured. Without
+            // this the browser blocks it silently: no error the app can catch, just legs
+            // that never route (#1797).
+            ...extraConnectSrc,
+          ],
+          workerSrc: ["'self'", 'blob:'],
+          childSrc: ["'self'", 'blob:'],
+          // blob: because a picked clip is previewed and its poster frame grabbed
+          // through a <video> on an object URL, before any byte reaches the server.
+          // Unset, this fell back to default-src, which refuses blob: outright: the
+          // editor showed nothing and every clip landed without a poster, so its
+          // thumbnail answered 404 (#2341). Invisible in dev, where Vite serves the
+          // document without this header.
+          mediaSrc: ["'self'", 'blob:'],
+          fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+          // 'self' so same-origin file previews can embed PDFs via <object>/<embed>
+          // (Firefox/Chrome enforce object-src; 'none' broke inline PDF previews there).
+          objectSrc: ["'self'"],
+          // 'self' so the app can embed same-origin, sandboxed plugin frames
+          // (/plugin-frame/*). Those frames are sandboxed WITHOUT allow-same-origin,
+          // so they run at an opaque origin and get their own locked-down CSP.
+          frameSrc: ["'self'"],
+          frameAncestors: ["'self'"],
+          // Restrict <form> submission targets (form-action has no default-src
+          // fallback, so it must be set explicitly).
+          formAction: ["'self'"],
+          upgradeInsecureRequests: shouldForceHttps ? [] : null,
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+      hsts: hstsActive ? { maxAge: 31536000, includeSubDomains: hstsIncludeSubdomains } : false,
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    }),
   );
-  app.use(cors({ origin: corsOrigin, credentials: true }));
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        // 'unsafe-eval' is load-bearing, not leftover: heic-to's libheif build
-        // initialises embind through new Function(), and that is what converts
-        // an iPhone .heic the moment somebody picks one. 'wasm-unsafe-eval'
-        // alone was tried first and was not enough (93b51a0b). The package
-        // ships a CSP-safe entry point at heic-to/csp; dropping this directive
-        // means switching client/src/utils/convertHeic.ts over to it and
-        // verifying a real .heic upload in a browser, not just deleting the
-        // string here.
-        scriptSrc: ["'self'", "'wasm-unsafe-eval'", "'unsafe-eval'"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
-        imgSrc: ["'self'", "data:", "blob:", "https:"],
-        connectSrc: [
-          "'self'", "ws:", "wss:",
-          "https://nominatim.openstreetmap.org", "https://overpass-api.de",
-          "https://places.googleapis.com", "https://api.openweathermap.org",
-          "https://en.wikipedia.org", "https://commons.wikimedia.org",
-          // Both forms here too: CARTO documents the apex host on its key page,
-          // so that is the template users paste in, and the {s} sharded form is
-          // what TREK ships (#2054).
-          "https://basemaps.cartocdn.com", "https://*.basemaps.cartocdn.com",
-          // Both forms: a CSP wildcard host never matches the apex, and OSM
-          // serves everything from the bare tile.openstreetmap.org since it
-          // retired the a/b/c/d shards (#1733). The sharded hosts stay listed
-          // for tile templates users saved before that.
-          "https://tile.openstreetmap.org", "https://*.tile.openstreetmap.org",
-          // The other two raster presets TREK ships. `mode: 'no-cors'` relaxes
-          // CORS, not CSP, so without these the tile prefetch is refused in the
-          // document and never reaches the Service Worker that would cache it
-          // (#2180). routing.openstreetmap.de below is a different host.
-          "https://tile.openstreetmap.de", "https://tiles.stadiamaps.com",
-          // The imagery host, for the same reason and one more. Leaflet fetches a tile
-          // as an <img>, which img-src's blanket `https:` waves through, so the satellite
-          // view worked on Leaflet with this host missing. A GL map reads the raster
-          // through fetch to hand it to WebGL, and the prefetch does too, so both were
-          // refused here while nothing in the app could see it: the switch flipped, the
-          // layer went on, and no tile ever arrived (#2307).
-          "https://server.arcgisonline.com",
-          // Amap's raster tiles, for an install whose users are in China, for the
-          // same reason as the hosts above (#2180). Road (webrd01..04) and
-          // satellite (webst01..04) are numbered shards of one domain, so the
-          // wildcard is the whole list.
-          "https://*.is.autonavi.com",
-          "https://unpkg.com", "https://open-meteo.com", "https://api.open-meteo.com",
-          "https://geocoding-api.open-meteo.com", "https://api.frankfurter.dev",
-          "https://router.project-osrm.org/route/v1/", "https://routing.openstreetmap.de/",
-          // The second routing engine, shipped as a default the same way the OSRM hosts
-          // above are. It is asked only when a leg should avoid tolls, motorways or a
-          // ferry — which the OSRM hosts answer with HTTP 400, because their car profile
-          // carries no excludable classes. Origin only, no path: unlike OSRM this one is
-          // a POST to /route and would grow more endpoints if isochrones ever land.
-          "https://valhalla1.openstreetmap.de",
-          "https://api.mapbox.com", "https://*.tiles.mapbox.com", "https://events.mapbox.com",
-          "https://tiles.openfreemap.org",
-          // A self-hosted routing engine, when the instance has one configured. Without
-          // this the browser blocks it silently: no error the app can catch, just legs
-          // that never route (#1797).
-          ...extraConnectSrc,
-        ],
-        workerSrc: ["'self'", "blob:"],
-        childSrc: ["'self'", "blob:"],
-        // blob: because a picked clip is previewed and its poster frame grabbed
-        // through a <video> on an object URL, before any byte reaches the server.
-        // Unset, this fell back to default-src, which refuses blob: outright: the
-        // editor showed nothing and every clip landed without a poster, so its
-        // thumbnail answered 404 (#2341). Invisible in dev, where Vite serves the
-        // document without this header.
-        mediaSrc: ["'self'", "blob:"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-        // 'self' so same-origin file previews can embed PDFs via <object>/<embed>
-        // (Firefox/Chrome enforce object-src; 'none' broke inline PDF previews there).
-        objectSrc: ["'self'"],
-        // 'self' so the app can embed same-origin, sandboxed plugin frames
-        // (/plugin-frame/*). Those frames are sandboxed WITHOUT allow-same-origin,
-        // so they run at an opaque origin and get their own locked-down CSP.
-        frameSrc: ["'self'"],
-        frameAncestors: ["'self'"],
-        // Restrict <form> submission targets (form-action has no default-src
-        // fallback, so it must be set explicitly).
-        formAction: ["'self'"],
-        upgradeInsecureRequests: shouldForceHttps ? [] : null
-      }
-    },
-    crossOriginEmbedderPolicy: false,
-    hsts: hstsActive ? { maxAge: 31536000, includeSubDomains: hstsIncludeSubdomains } : false,
-    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  }));
 
   // The instance's own hostname, when the operator configured one. The redirect
   // below is a 301, so echoing a client-supplied Host header would let a stranger
@@ -307,7 +391,7 @@ export function applyGlobalMiddleware(
 
   if (shouldForceHttps) {
     app.use((req: Request, res: Response, next: NextFunction) => {
-      if (req.path === '/api/health') return next();
+      if (req.path === '/api/health' || req.path === '/api/health/ready') return next();
       if (req.secure || req.headers['x-forwarded-proto'] === 'https') return next();
       res.redirect(301, 'https://' + (configuredHost ?? req.headers.host) + req.url);
     });
@@ -315,23 +399,50 @@ export function applyGlobalMiddleware(
 
   app.use(cookieParser());
 
-  // Request logging with sensitive field redaction (SENSITIVE_KEYS/redact above)
+  // Request logging with sensitive field redaction (SENSITIVE_KEYS/redact above).
+  // The line is written in the request's own correlation context (the 'finish'
+  // listener would otherwise run in whatever context the socket emits from),
+  // and a 5xx carries the stack the exception filter left on res.locals, so
+  // the request line, its id and the failure are one entry.
   app.use((req: Request, res: Response, next: NextFunction) => {
-    if (req.path === '/api/health') return next();
+    if (req.path === '/api/health' || req.path === '/api/health/ready') return next();
     const startedAt = Date.now();
-    res.on('finish', () => {
-      const ms = Date.now() - startedAt;
-      if (res.statusCode >= 500) {
-        logError(`${req.method} ${req.path} ${res.statusCode} ${ms}ms ip=${req.ip}`);
-      } else if (res.statusCode === 401 || res.statusCode === 403) {
-        logDebug(`${req.method} ${req.path} ${res.statusCode} ${ms}ms ip=${req.ip}`);
-      } else if (res.statusCode >= 400) {
-        logWarn(`${req.method} ${req.path} ${res.statusCode} ${ms}ms ip=${req.ip}`);
-      }
-      const q = Object.keys(req.query).length ? ` query=${JSON.stringify(redact(req.query))}` : '';
-      const b = req.body && Object.keys(req.body).length ? ` body=${JSON.stringify(redact(req.body))}` : '';
-      logDebug(`${req.method} ${req.path} ${res.statusCode} ${ms}ms ip=${req.ip}${q}${b}`);
-    });
+    res.locals[ACCESS_LOG_ATTACHED] = true;
+    let reported = false;
+    const failureSuffix = (): string => {
+      const failure: unknown = res.locals[UNHANDLED_ERROR];
+      if (failure === undefined) return '';
+      return `\n${failure instanceof Error ? (failure.stack ?? failure.message) : String(failure)}`;
+    };
+    // A response the filter had to cut off after its headers went out never
+    // finishes; it is reported when the socket closes, with its failure.
+    res.on(
+      'close',
+      AsyncResource.bind(() => {
+        if (reported || res.locals[UNHANDLED_ERROR] === undefined) return;
+        reported = true;
+        logError(
+          `${req.method} ${req.path} aborted after headers ${Date.now() - startedAt}ms ip=${req.ip}${failureSuffix()}`,
+        );
+      }),
+    );
+    res.on(
+      'finish',
+      AsyncResource.bind(() => {
+        reported = true;
+        const ms = Date.now() - startedAt;
+        if (res.statusCode >= 500) {
+          logError(`${req.method} ${req.path} ${res.statusCode} ${ms}ms ip=${req.ip}${failureSuffix()}`);
+        } else if (res.statusCode === 401 || res.statusCode === 403) {
+          logDebug(`${req.method} ${req.path} ${res.statusCode} ${ms}ms ip=${req.ip}`);
+        } else if (res.statusCode >= 400) {
+          logWarn(`${req.method} ${req.path} ${res.statusCode} ${ms}ms ip=${req.ip}`);
+        }
+        const q = Object.keys(req.query).length ? ` query=${JSON.stringify(redact(req.query))}` : '';
+        const b = req.body && Object.keys(req.body).length ? ` body=${JSON.stringify(redact(req.body))}` : '';
+        logDebug(`${req.method} ${req.path} ${res.statusCode} ${ms}ms ip=${req.ip}${q}${b}`);
+      }),
+    );
     next();
   });
 }

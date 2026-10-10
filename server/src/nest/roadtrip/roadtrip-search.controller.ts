@@ -1,14 +1,15 @@
-import { Body, Controller, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
-import { roadtripSearchAreaSchema } from '@trek/shared';
-import { createZodDto } from 'nestjs-zod';
 import { ADDON_IDS } from '../../addons';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RoadtripSearchService } from './roadtrip-search.service';
+import { Body, Controller, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
+import { roadtripSearchAreaSchema } from '@trek/shared';
 
-class SearchAreaDto extends createZodDto(roadtripSearchAreaSchema) {}
+import type { Request } from 'express';
+import { createZodDto } from 'nestjs-zod';
+
+export class SearchAreaDto extends createZodDto(roadtripSearchAreaSchema) {}
 
 @Controller('api/roadtrip/search-area')
 @UseGuards(JwtAuthGuard, AddonGuard)

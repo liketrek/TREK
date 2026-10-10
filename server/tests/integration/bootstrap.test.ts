@@ -6,72 +6,56 @@
  * platform/inline endpoints, and (in production) HSTS. This is the test that proves
  * server/src/bootstrap.ts + index.ts serve everything correctly without the legacy app.
  */
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import request from 'supertest';
+import { buildApp } from '../../src/bootstrap';
+import { db as testDb } from '../../src/db/database';
+import { UnitOfWork } from '../../src/nest/database/unit-of-work';
+import { authCookie } from '../helpers/auth';
+import { createUser } from '../helpers/factories';
+import { resetTestDb } from '../helpers/test-db';
 import type { INestApplication } from '@nestjs/common';
 
-const { testDb, dbMock } = vi.hoisted(() => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: () => null,
-    canAccessTrip: (tripId: any, userId: number) =>
-      db
-        .prepare(
-          `SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
-        )
-        .get(userId, tripId, userId),
-    isOwner: (tripId: any, userId: number) => !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
-});
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
-vi.mock('../../src/db/database', () => dbMock);
-vi.mock('../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-  SESSION_DURATION: '24h',
-  SESSION_DURATION_MS: 86400000,
-  SESSION_DURATION_SECONDS: 86400,
-  DEFAULT_LANGUAGE: 'en',
-}));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn() }));
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 // BOOT-007 boots with NODE_ENV=production, which opens the cron gate — keep the
 // registrar inert so a bootstrap test never schedules real jobs or runs boot
 // sweeps against the real uploads/data dirs. The gate itself is covered by
 // tests/integration/scheduler-gate.test.ts.
+//
+// runOnBoot (task-6-rereview.md M1): AirportsService's boot backfill has no
+// isEnabled() gate of its own (unlike the seven job providers above, which
+// all check isEnabled() before ever reaching runOnBoot, so they never call
+// this mock's method at all) — it calls runOnBoot() unconditionally, so this
+// double needs one too. A no-op, not a pass-through: "the registrar inert"
+// above means no boot sweep runs in this harness, full stop.
 vi.mock('../../src/nest/scheduling/cron-registrar.service', () => ({
   CronRegistrarService: class {
-    isEnabled() { return false; }
-    register() { return false; }
+    isEnabled() {
+      return false;
+    }
+    register() {
+      return false;
+    }
+    async runOnBoot() {
+      /* inert — see comment above */
+    }
     unregister() {}
-    get jobCount() { return 0; }
+    get jobCount() {
+      return 0;
+    }
     onApplicationShutdown() {}
   },
 }));
-
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { resetTestDb } from '../helpers/test-db';
-import { createUser } from '../helpers/factories';
-import { authCookie } from '../helpers/auth';
-import { buildApp } from '../../src/bootstrap';
 
 describe('BOOTSTRAP (F6) — unified NestJS app serves the whole surface', () => {
   let app: INestApplication;
   let instance: import('express').Application;
 
   beforeAll(async () => {
-    createTables(testDb);
-    runMigrations(testDb);
     resetTestDb(testDb);
     app = await buildApp();
     instance = app.getHttpAdapter().getInstance();
@@ -147,5 +131,9 @@ describe('BOOTSTRAP (F6) — unified NestJS app serves the whole surface', () =>
       .set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.headers['content-encoding']).toBe('gzip');
+  });
+
+  it('BOOTSTRAP-ORM-001: the ORM unit of work resolves from the container', () => {
+    expect(app.get(UnitOfWork)).toBeInstanceOf(UnitOfWork);
   });
 });

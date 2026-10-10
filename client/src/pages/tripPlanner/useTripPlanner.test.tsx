@@ -1,4 +1,4 @@
-// FE-TP-HOOK-001 to FE-TP-HOOK-135
+// FE-TP-HOOK-001 to FE-TP-HOOK-177
 import React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { TranslationProvider } from '../../i18n/TranslationContext'
@@ -10,16 +10,19 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { usePermissionsStore } from '../../store/permissionsStore'
 import { usePluginStore } from '../../store/pluginStore'
 import { useBackgroundTasksStore } from '../../store/backgroundTasksStore'
+import { useAddonStore } from '../../store/addonStore'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
 import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment, buildReservation, buildBudgetItem } from '../../../tests/helpers/factories'
 import {
   addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi,
-  healthApi, airtrailApi, mapsApi,
+  healthApi, airtrailApi, mapsApi, toursApi,
 } from '../../api/client'
 import { accommodationRepo } from '../../repo/accommodationRepo'
-import { offlineDb } from '../../db/offlineDb'
+import { offlineDb, saveImportFiles, getImportFiles } from '../../db/offlineDb'
 import { getCached, fetchPhoto } from '../../services/photoService'
+import type { TourListItem } from '@trek/shared'
 import type { Accommodation, Place, Reservation, Settings } from '../../types'
+import { PHONE_QUERY } from '../../mobile/useIsPhone'
 
 // ── Router ────────────────────────────────────────────────────────────────────
 // Only useParams/useNavigate/useSearchParams are consumed by the hook, so the
@@ -91,6 +94,8 @@ interface PlannerActions {
   loadBudgetItems: ReturnType<typeof vi.fn>
   loadFiles: ReturnType<typeof vi.fn>
   refreshDays: ReturnType<typeof vi.fn>
+  setAssignmentTimes: ReturnType<typeof vi.fn>
+  setAssignmentNotes: ReturnType<typeof vi.fn>
   addPlace: ReturnType<typeof vi.fn>
   updatePlace: ReturnType<typeof vi.fn>
   deletePlace: ReturnType<typeof vi.fn>
@@ -120,6 +125,8 @@ function makeActions(): PlannerActions {
     loadBudgetItems: vi.fn(async () => undefined),
     loadFiles: vi.fn(async () => undefined),
     refreshDays: vi.fn(async () => undefined),
+    setAssignmentTimes: vi.fn(async () => undefined),
+    setAssignmentNotes: vi.fn(async () => undefined),
     addPlace: vi.fn(async () => ({ id: 900, name: 'New' })),
     updatePlace: vi.fn(async () => undefined),
     deletePlace: vi.fn(async () => undefined),
@@ -198,7 +205,6 @@ beforeEach(() => {
   vi.spyOn(tripsApi, 'getMembers').mockResolvedValue({ owner: null, members: [] })
   vi.spyOn(accommodationsApi, 'list').mockResolvedValue({ accommodations: [] })
   vi.spyOn(assignmentsApi, 'updateTime').mockResolvedValue({})
-  vi.spyOn(assignmentsApi, 'updateNotes').mockResolvedValue({})
   vi.spyOn(airtrailApi, 'sync').mockResolvedValue({ changed: 0 })
   vi.spyOn(mapsApi, 'reverse').mockResolvedValue({ name: '', address: '' } as never)
   vi.spyOn(mapsApi, 'search').mockResolvedValue({ places: [] } as never)
@@ -644,6 +650,47 @@ describe('useTripPlanner — map derivations', () => {
     expect(result.current.mapPlaces.map(p => p.id)).toEqual([2])
   })
 
+  it('FE-TP-HOOK-177: losing the last track moves the "Tracks" filter back to all', async () => {
+    // The phone map has no places list mounted, so this hook is what keeps the
+    // filter from pointing at a pool no control offers any more.
+    seedTrip({
+      places: [geo(1), geo(2, { route_geometry: '[[1,2]]' })],
+      placesFilter: 'tracks',
+    })
+
+    const { result } = await renderPlanner()
+    expect(useTripStore.getState().placesFilter).toBe('tracks')
+
+    act(() => { useTripStore.setState({ places: [geo(1)] }) })
+
+    await waitFor(() => expect(useTripStore.getState().placesFilter).toBe('all'))
+    expect(result.current.mapPlaces.map(p => p.id)).toEqual([1])
+  })
+
+  it('Tours enabled clears a stale Tracks filter even while track geometry remains', async () => {
+    const tour: TourListItem = {
+      place_id: 7, name: 'Ridge walk', tour_type: 'hike', distance: 4, elevation_gain: 100,
+      elevation_loss: 80, duration: null, difficulty: null, wanderer_ref: null, match_confidence: 1,
+      max_hiking_difficulty: 2, planned: false, caution: false,
+    }
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true })
+    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'tours' }] })
+    vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [tour] })
+    seedTrip({
+      places: [
+        buildPlace({ id: 7, lat: 1, lng: 2, tour_place_id: 7, route_geometry: '[[1,2],[3,4]]' }),
+        buildPlace({ id: 8, lat: 3, lng: 4, route_geometry: '[[5,6],[7,8]]' }),
+      ],
+      placesFilter: 'tracks',
+    })
+
+    const { result } = await renderPlanner()
+    await waitFor(() => expect(useTripStore.getState().placesFilter).toBe('all'))
+
+    expect(result.current.enabledAddons.tours).toBe(true)
+    expect(result.current.mapPlaces.map(place => place.id)).toEqual([7, 8])
+  })
+
   it('FE-TP-HOOK-027: the category filter honours the uncategorized bucket', async () => {
     seedTrip({
       places: [geo(1, { category_id: 3 }), geo(2, { category_id: null })],
@@ -656,6 +703,20 @@ describe('useTripPlanner — map derivations', () => {
 
     act(() => { useTripStore.setState({ placesCategoryFilter: new Set(['3']) }) })
     expect(result.current.mapPlaces.map(p => p.id)).toEqual([1])
+  })
+
+  it('FE-TP-HOOK-176: the rating floor the lists set also thins the markers', async () => {
+    seedTrip({
+      places: [geo(1, { rating_avg: 4.5 }), geo(2, { rating_avg: 3 }), geo(3, { rating_avg: null })],
+      placesRatingFilter: 4,
+    })
+
+    const { result } = await renderPlanner()
+
+    expect(result.current.mapPlaces.map(p => p.id)).toEqual([1])
+
+    act(() => { useTripStore.getState().setPlacesRatingFilter('all') })
+    expect(result.current.mapPlaces.map(p => p.id)).toEqual([1, 2, 3])
   })
 
   it('FE-TP-HOOK-028: the unplanned filter drops places that sit on a day', async () => {
@@ -1062,6 +1123,44 @@ describe('useTripPlanner — add place entry points', () => {
     expect(mapsApi.reverse).not.toHaveBeenCalled()
   })
 
+  it('FE-TP-HOOK-141: a plugin POI prefills with its own id, and a website only when it is a web address', async () => {
+    seedTrip()
+    const { result } = await renderPlanner()
+    const trailhead = {
+      lat: 47.1, lng: 11.2, name: 'Trailhead', address: 'Hut 1', website: 'https://trails.example/th-1', phone: '+43 1',
+      osm_id: 'plugin:trail-finder:th-1', category: 'plugin:trail-finder/trailheads', source: 'plugin:trail-finder',
+      details: [{ label: 'Length', value: '12 km' }], icon: 'Signpost', color: '#2f855a',
+    }
+
+    act(() => { result.current.openAddPlaceFromPoi(trailhead) })
+
+    // Only the fields the form has: the details, icon and colour stay on the map.
+    expect(result.current.prefillCoords).toMatchObject({
+      lat: 47.1, lng: 11.2, name: 'Trailhead', address: 'Hut 1', website: 'https://trails.example/th-1', phone: '+43 1',
+      osm_id: 'plugin:trail-finder:th-1', stop_type: null, duration_minutes: undefined,
+    })
+    expect(mapsApi.reverse).not.toHaveBeenCalled()
+
+    act(() => { result.current.openAddPlaceFromPoi({ ...trailhead, website: 'javascript:alert(1)' }) })
+    expect(result.current.prefillCoords?.website).toBeUndefined()
+    act(() => { result.current.openAddPlaceFromPoi({ ...trailhead, website: 'trails.example' }) })
+    expect(result.current.prefillCoords?.website).toBe('https://trails.example')
+  })
+
+  it('FE-TP-HOOK-142: a plugin POI tapped on the map opens the same prefilled form', async () => {
+    seedTrip()
+    const { result } = await renderPlanner()
+
+    act(() => {
+      result.current.handlePoiClick({
+        lat: 47.1, lng: 11.2, name: 'Trailhead', address: null, website: null, phone: null, osm_id: 'plugin:trail-finder:th-1',
+      })
+    })
+
+    expect(result.current.showPlaceForm).toBe(true)
+    expect(result.current.prefillCoords).toMatchObject({ name: 'Trailhead', osm_id: 'plugin:trail-finder:th-1', website: undefined })
+  })
+
   it('FE-TP-HOOK-050: the pool editor resolves a place\'s lone assignment for its times', async () => {
     const place = buildPlace({ id: 1, lat: 1, lng: 2 })
     seedTrip({
@@ -1125,8 +1224,8 @@ describe('useTripPlanner — place CRUD', () => {
     })
 
     expect(actions.updatePlace).toHaveBeenCalledWith(42, 1, { name: 'Nara' })
-    expect(assignmentsApi.updateTime).toHaveBeenCalledWith(42, 10, { place_time: '09:00', end_time: '10:00' })
-    expect(actions.refreshDays).toHaveBeenCalledWith(42)
+    expect(actions.setAssignmentTimes).toHaveBeenCalledWith(42, 7, 10, { place_time: '09:00', end_time: '10:00' })
+    expect(assignmentsApi.updateTime).not.toHaveBeenCalled()
   })
 
   it('FE-TP-HOOK-053b: a changed assignment note is stripped off the place and PUT per assignment (#2163)', async () => {
@@ -1144,8 +1243,7 @@ describe('useTripPlanner — place CRUD', () => {
     })
 
     expect(actions.updatePlace).toHaveBeenCalledWith(42, 1, { name: 'Nara' })
-    expect(assignmentsApi.updateNotes).toHaveBeenCalledWith(42, 10, { notes: 'Book the 10:00 entry' })
-    expect(actions.refreshDays).toHaveBeenCalledWith(42)
+    expect(actions.setAssignmentNotes).toHaveBeenCalledWith(42, 7, 10, 'Book the 10:00 entry')
   })
 
   it('FE-TP-HOOK-053c: without assignment_notes in the payload no notes write happens; an empty string clears (#2163)', async () => {
@@ -1162,13 +1260,13 @@ describe('useTripPlanner — place CRUD', () => {
     await act(async () => {
       await result.current.handleSavePlace({ name: 'Nara' })
     })
-    expect(assignmentsApi.updateNotes).not.toHaveBeenCalled()
+    expect(actions.setAssignmentNotes).not.toHaveBeenCalled()
 
     // An empty string is an explicit clear and goes out as null.
     await act(async () => {
       await result.current.handleSavePlace({ name: 'Nara', assignment_notes: '' })
     })
-    expect(assignmentsApi.updateNotes).toHaveBeenCalledWith(42, 10, { notes: null })
+    expect(actions.setAssignmentNotes).toHaveBeenCalledWith(42, 7, 10, null)
   })
 
   it('FE-TP-HOOK-054: editing an unassigned place skips the per-assignment time write', async () => {
@@ -1182,7 +1280,7 @@ describe('useTripPlanner — place CRUD', () => {
       await result.current.handleSavePlace({ name: 'Nara', _pendingFiles: [new File(['x'], 'a.pdf')] })
     })
 
-    expect(assignmentsApi.updateTime).not.toHaveBeenCalled()
+    expect(actions.setAssignmentTimes).not.toHaveBeenCalled()
     expect(actions.addFile).toHaveBeenCalledTimes(1)
   })
 
@@ -1224,6 +1322,104 @@ describe('useTripPlanner — place CRUD', () => {
     expect(actions.assignPlaceToDay).toHaveBeenCalledWith(42, 7, 900, 2)
   })
 
+  it('preserves legacy deletion behavior for a dormant Tour and forgets only its stale assignment undo', async () => {
+    const tourPlace = buildPlace({ id: 1, name: 'Ridge walk', tour_place_id: 1 })
+    const unrelatedUndo = vi.fn()
+    const tourAssignmentUndo = vi.fn()
+    seedTrip({ places: [tourPlace] })
+    actions.deletePlace.mockResolvedValue({ success: true, tourPlaceIds: [1] })
+
+    const { result } = await renderPlanner()
+    act(() => {
+      result.current.pushUndo('Unrelated place edit', unrelatedUndo)
+      result.current.pushUndo('Remove Tour from day', tourAssignmentUndo, [7], [1])
+      result.current.handleDeletePlace(1)
+    })
+    expect(result.current.deletePlaceIsTour).toBe(true)
+
+    await act(async () => { await result.current.confirmDeletePlace() })
+
+    expect(actions.deletePlace).toHaveBeenCalledWith(42, 1)
+    expect(actions.addPlace).not.toHaveBeenCalled()
+    expect(result.current.lastActionLabel).toBe('Unrelated place edit')
+    expect(result.current.canUndo).toBe(true)
+    await act(async () => { await result.current.undo() })
+    expect(unrelatedUndo).toHaveBeenCalledTimes(1)
+    expect(tourAssignmentUndo).not.toHaveBeenCalled()
+  })
+
+  it('allows permanent Tour deletion only in TOUR-PLANNER and leaves cancellation inert', async () => {
+    const tourPlace = buildPlace({ id: 1, name: 'Ridge walk', tour_place_id: 1 })
+    seedTrip({ places: [tourPlace] })
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true })
+    vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [] })
+    actions.deletePlace.mockResolvedValue({ success: true, tourPlaceIds: [1] })
+
+    const { result } = await renderPlanner()
+    await waitFor(() => expect(result.current.toursEnabled).toBe(true))
+
+    act(() => {
+      result.current.handleDeletePlace(1)
+    })
+    expect(result.current.deletePlaceId).toBeNull()
+    expect(actions.deletePlace).not.toHaveBeenCalled()
+
+    act(() => {
+      result.current.handleDeleteTour(1)
+    })
+    expect(result.current.deletePlaceId).toBe(1)
+    act(() => {
+      result.current.setDeletePlaceId(null)
+    })
+    await act(async () => {
+      await result.current.confirmDeletePlace()
+    })
+    expect(actions.deletePlace).not.toHaveBeenCalled()
+
+    act(() => {
+      result.current.handleDeleteTour(1)
+    })
+    let deletedTourId: number | null = null
+    await act(async () => {
+      deletedTourId = await result.current.confirmDeletePlace()
+    })
+    expect(actions.deletePlace).toHaveBeenCalledWith(42, 1)
+    expect(actions.deletePlace).toHaveBeenCalledTimes(1)
+    expect(deletedTourId).toBe(1)
+    expect(actions.addPlace).not.toHaveBeenCalled()
+    expect(result.current.canUndo).toBe(false)
+  })
+
+  it('uses the server facet result to suppress Undo for a dormant Tour when Tours is off', async () => {
+    const dormantPlace = buildPlace({ id: 1, name: 'Dormant route' })
+    seedTrip({ places: [dormantPlace] })
+    actions.deletePlace.mockResolvedValue({ success: true, tourPlaceIds: [1] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.handleDeletePlace(1) })
+    await act(async () => { await result.current.confirmDeletePlace() })
+
+    expect(result.current.enabledAddons.tours).toBe(false)
+    expect(actions.addPlace).not.toHaveBeenCalled()
+    expect(result.current.canUndo).toBe(false)
+  })
+
+  it('does not offer a partial bulk Undo when the deleted selection includes a Tour', async () => {
+    const ordinary = buildPlace({ id: 1, name: 'Ordinary place' })
+    const tourPlace = buildPlace({ id: 2, name: 'Tour', tour_place_id: 2 })
+    seedTrip({ places: [ordinary, tourPlace] })
+    actions.deletePlacesMany.mockResolvedValue({ deleted: [1, 2], count: 2, tourPlaceIds: [2] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.setDeletePlaceIds([1, 2]) })
+    expect(result.current.deletePlacesIncludeTours).toBe(true)
+    await act(async () => { await result.current.confirmDeletePlaces() })
+
+    expect(actions.deletePlacesMany).toHaveBeenCalledWith(42, [1, 2])
+    expect(actions.addPlace).not.toHaveBeenCalled()
+    expect(result.current.canUndo).toBe(false)
+  })
+
   it('FE-TP-HOOK-056: confirmDeletePlace is a no-op until a place is queued', async () => {
     seedTrip()
 
@@ -1234,14 +1430,38 @@ describe('useTripPlanner — place CRUD', () => {
   })
 
   it('FE-TP-HOOK-057: a failing delete surfaces the server message', async () => {
-    seedTrip({ places: [buildPlace({ id: 1, lat: 1, lng: 2 })] })
-    actions.deletePlace.mockRejectedValue(new Error('place is locked'))
+    const place = buildPlace({ id: 1, lat: 1, lng: 2, tour_place_id: 1 })
+    const listedTour: TourListItem = {
+      place_id: 1,
+      name: 'Ridge walk',
+      tour_type: 'hike',
+      distance: 4,
+      elevation_gain: 100,
+      elevation_loss: 80,
+      duration: null,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: 1,
+      max_hiking_difficulty: 2,
+      planned: false,
+      caution: false,
+    }
+    seedTrip({ places: [place] })
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true })
+    vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [listedTour] })
+    actions.deletePlace.mockRejectedValue(new Error('Tour is locked'))
 
     const { result } = await renderPlanner()
-    act(() => { result.current.handleDeletePlace(1) })
-    await act(async () => { await result.current.confirmDeletePlace() })
+    await waitFor(() => expect(result.current.tours).toEqual([listedTour]))
+    act(() => { result.current.handleDeleteTour(1) })
+    let failedTourId: number | null = 1
+    await act(async () => { failedTourId = await result.current.confirmDeletePlace() })
 
-    expect(toasts.some(t => t.message === 'place is locked' && t.type === 'error')).toBe(true)
+    expect(failedTourId).toBeNull()
+    expect(result.current.tours).toEqual([listedTour])
+    expect(useTripStore.getState().places).toContain(place)
+    expect(toasts.some(t => t.message === 'Tour is locked' && t.type === 'error')).toBe(true)
+    expect(toasts.some(t => t.type === 'success')).toBe(false)
   })
 
   it('FE-TP-HOOK-058: a bulk delete restores every place with its assignments on undo', async () => {
@@ -1416,6 +1636,132 @@ describe('useTripPlanner — place CRUD', () => {
 })
 
 describe('useTripPlanner — day plan CRUD', () => {
+  it('does not write a Tour assignment twice to one day, but allows another day and preserves Place writes', async () => {
+    const tour: TourListItem = {
+      place_id: 1, name: 'Ridge walk', tour_type: 'hike', distance: 4, elevation_gain: 100,
+      elevation_loss: 80, duration: null, difficulty: null, wanderer_ref: null, match_confidence: 1,
+      max_hiking_difficulty: 2, planned: false, caution: false,
+    }
+    const tourPlace = buildPlace({ id: 1, name: 'Ridge walk', tour_place_id: 1 })
+    const ordinaryPlace = buildPlace({ id: 2, name: 'Ordinary place' })
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true })
+    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'tours' }] })
+    vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [tour] })
+    seedTrip({
+      places: [tourPlace, ordinaryPlace],
+      assignments: { '7': [buildAssignment({ id: 70, day_id: 7, place: tourPlace })] },
+    })
+
+    const { result } = await renderPlanner()
+    await waitFor(() => expect(result.current.tours).toEqual([tour]))
+    actions.assignPlaceToDay.mockClear()
+
+    let repeated!: boolean
+    await act(async () => { repeated = await result.current.handleAssignToDay(tourPlace.id, 7) })
+    expect(repeated).toBe(false)
+    expect(actions.assignPlaceToDay).not.toHaveBeenCalled()
+
+    await act(async () => { await result.current.handleAssignToDay(tourPlace.id, 8) })
+    await act(async () => { await result.current.handleAssignToDay(ordinaryPlace.id, 7) })
+    expect(actions.assignPlaceToDay).toHaveBeenNthCalledWith(1, 42, 8, tourPlace.id, undefined)
+    expect(actions.assignPlaceToDay).toHaveBeenNthCalledWith(2, 42, 7, ordinaryPlace.id, undefined)
+  })
+
+  it('refreshes Tours only after a successful Tour assignment write', async () => {
+    const unplanned: TourListItem = {
+      place_id: 1, name: 'Ridge walk', tour_type: 'hike', distance: 4, elevation_gain: 100,
+      elevation_loss: 80, duration: null, difficulty: null, wanderer_ref: null, match_confidence: 1,
+      max_hiking_difficulty: 2, planned: false, caution: false,
+    }
+    const planned = { ...unplanned, planned: true }
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true })
+    const listTours = vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [unplanned] })
+    const place = buildPlace({ id: 1, tour_place_id: 1 })
+    seedTrip({ places: [place] })
+    let resolveAssignment!: (value: { id: number }) => void
+    const assignment = new Promise<{ id: number }>(resolve => { resolveAssignment = resolve })
+    actions.assignPlaceToDay.mockReturnValue(assignment)
+
+    const { result } = await renderPlanner()
+    await waitFor(() => expect(result.current.tours).toEqual([unplanned]))
+    listTours.mockClear().mockResolvedValue({ tours: [planned] })
+    let assignPromise!: Promise<boolean>
+    act(() => { assignPromise = result.current.handleAssignToDay(1, 7) })
+    expect(listTours).not.toHaveBeenCalled()
+
+    await act(async () => { resolveAssignment({ id: 555 }); await assignPromise })
+    await waitFor(() => expect(result.current.tours).toEqual([planned]))
+    expect(actions.assignPlaceToDay.mock.invocationCallOrder[0]).toBeLessThan(listTours.mock.invocationCallOrder[0])
+
+    listTours.mockClear().mockResolvedValue({ tours: [unplanned] })
+    let resolveUndoRemoval!: () => void
+    const undoRemoval = new Promise<void>(resolve => { resolveUndoRemoval = resolve })
+    actions.removeAssignment.mockReturnValueOnce(undoRemoval)
+    let undoPromise!: Promise<unknown>
+    act(() => { undoPromise = result.current.undo() })
+    expect(listTours).not.toHaveBeenCalled()
+    await act(async () => { resolveUndoRemoval(); await undoPromise })
+    await waitFor(() => expect(result.current.tours).toEqual([unplanned]))
+    expect(actions.removeAssignment.mock.invocationCallOrder[0]).toBeLessThan(listTours.mock.invocationCallOrder[0])
+  })
+
+  it('does not refresh or report a successful planned state when Tour assignment fails', async () => {
+    const unplanned: TourListItem = {
+      place_id: 1, name: 'Ridge walk', tour_type: 'hike', distance: 4, elevation_gain: 100,
+      elevation_loss: 80, duration: null, difficulty: null, wanderer_ref: null, match_confidence: 1,
+      max_hiking_difficulty: 2, planned: false, caution: false,
+    }
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true })
+    const listTours = vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [unplanned] })
+    const place = buildPlace({ id: 1, tour_place_id: 1 })
+    seedTrip({ places: [place] })
+    const { result } = await renderPlanner()
+    await waitFor(() => expect(result.current.tours).toEqual([unplanned]))
+    listTours.mockClear()
+    actions.assignPlaceToDay.mockRejectedValueOnce(new Error('assignment failed'))
+
+    await act(async () => { await result.current.handleAssignToDay(1, 7) })
+
+    expect(listTours).not.toHaveBeenCalled()
+    expect(result.current.tours).toEqual([unplanned])
+    expect(toasts.some(toast => toast.message === 'assignment failed' && toast.type === 'error')).toBe(true)
+  })
+
+  it('refreshes after Tour removal and each successful assignment Undo direction', async () => {
+    const unplanned: TourListItem = {
+      place_id: 1, name: 'Ridge walk', tour_type: 'hike', distance: 4, elevation_gain: 100,
+      elevation_loss: 80, duration: null, difficulty: null, wanderer_ref: null, match_confidence: 1,
+      max_hiking_difficulty: 2, planned: false, caution: false,
+    }
+    const planned: TourListItem = { ...unplanned, planned: true }
+    useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true })
+    const listTours = vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [planned] })
+    const place = buildPlace({ id: 1, tour_place_id: 1 })
+    seedTrip({
+      places: [place],
+      assignments: { '7': [buildAssignment({ id: 10, day_id: 7, place, order_index: 1 })] },
+    })
+    const { result } = await renderPlanner()
+    await waitFor(() => expect(result.current.tours).toEqual([planned]))
+    listTours.mockClear().mockResolvedValue({ tours: [unplanned] })
+    let resolveRemoval!: () => void
+    const removal = new Promise<void>(resolve => { resolveRemoval = resolve })
+    actions.removeAssignment.mockReturnValueOnce(removal)
+    let removePromise!: Promise<void>
+    act(() => { removePromise = result.current.handleRemoveAssignment(7, 10) })
+    expect(listTours).not.toHaveBeenCalled()
+    await act(async () => { resolveRemoval(); await removePromise })
+    await waitFor(() => expect(result.current.tours).toEqual([unplanned]))
+    expect(actions.removeAssignment.mock.invocationCallOrder[0]).toBeLessThan(listTours.mock.invocationCallOrder[0])
+
+    listTours.mockClear().mockResolvedValue({ tours: [planned] })
+    actions.assignPlaceToDay.mockResolvedValueOnce({ id: 777 })
+    await act(async () => { await result.current.undo() })
+    await waitFor(() => expect(result.current.tours).toEqual([planned]))
+    expect(actions.assignPlaceToDay).toHaveBeenCalledWith(42, 7, 1, 1)
+    expect(actions.assignPlaceToDay.mock.invocationCallOrder[0]).toBeLessThan(listTours.mock.invocationCallOrder[0])
+  })
+
   it('FE-TP-HOOK-063: assigning to the selected day registers an undo that removes it again', async () => {
     seedTrip({ selectedDayId: 7 })
 
@@ -1473,17 +1819,25 @@ describe('useTripPlanner — day plan CRUD', () => {
     expect(actions.assignPlaceToDay).toHaveBeenNthCalledWith(2, 42, 7, 1, 1)
   })
 
-  it('FE-TP-HOOK-066: removing an assignment can be undone back to its old position', async () => {
-    const place = buildPlace({ id: 1, lat: 1, lng: 2 })
+  it('FE-TP-HOOK-066: removing a Tour assignment can be undone without deleting the Tour', async () => {
+    const place = buildPlace({ id: 1, lat: 1, lng: 2, tour_place_id: 1, route_geometry: '[[1,2],[3,4]]' })
     seedTrip({
       places: [place],
-      assignments: { '7': [buildAssignment({ id: 10, day_id: 7, place, order_index: 4 })] },
+      assignments: {
+        '7': [buildAssignment({ id: 10, day_id: 7, place, order_index: 4 })],
+        '8': [buildAssignment({ id: 11, day_id: 8, place, order_index: 2 })],
+      },
     })
 
     const { result } = await renderPlanner()
     await act(async () => { await result.current.handleRemoveAssignment(7, 10) })
 
     expect(actions.removeAssignment).toHaveBeenCalledWith(42, 7, 10)
+    expect(actions.deletePlace).not.toHaveBeenCalled()
+    expect(actions.addPlace).not.toHaveBeenCalled()
+    expect(useTripStore.getState().places).toContainEqual(expect.objectContaining({ id: place.id, route_geometry: place.route_geometry }))
+    expect(useTripStore.getState().assignments['8']).toHaveLength(1)
+    expect(useTripStore.getState().assignments['8'][0].id).toBe(11)
 
     await act(async () => { await result.current.undo() })
     expect(actions.assignPlaceToDay).toHaveBeenCalledWith(42, 7, 1, 4)
@@ -1903,6 +2257,202 @@ describe('useTripPlanner — bookings and transports', () => {
 
     expect(toasts.some(t => t.message === 'referenced')).toBe(true)
   })
+
+  it('FE-TP-HOOK-164: a transit journey opens in the full transport editor and leaves the journey view', async () => {
+    seedTrip()
+    const journey = buildReservation({ id: 9, type: 'transit', day_id: 7 })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.setTransitJourney(journey) })
+    act(() => { result.current.openTransportEditor(journey) })
+
+    expect(result.current.editingTransport).toBe(journey)
+    expect(result.current.transportModalDayId).toBe(7)
+    expect(result.current.transportModalAutomated).toBe(false)
+    expect(result.current.transitPrefill).toBeNull()
+    expect(result.current.transitJourney).toBeNull()
+    expect(result.current.showTransportModal).toBe(true)
+  })
+
+  it('FE-TP-HOOK-165: changing a journey\'s route seeds the transit search with its stops', async () => {
+    seedTrip()
+    const journey = buildReservation({
+      id: 9, type: 'transit', day_id: 7,
+      endpoints: [
+        { role: 'from', name: 'Kyoto', lat: 34.9, lng: 135.7 },
+        { role: 'to', name: 'Osaka', lat: 34.7, lng: 135.5 },
+      ] as never,
+    })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.changeTransitRoute(journey) })
+
+    expect(result.current.transitPrefill).toEqual({
+      from: { name: 'Kyoto', lat: 34.9, lng: 135.7 },
+      to: { name: 'Osaka', lat: 34.7, lng: 135.5 },
+    })
+    expect(result.current.editingTransport).toBe(journey)
+    expect(result.current.transportModalDayId).toBe(7)
+    expect(result.current.transportModalAutomated).toBe(true)
+    expect(result.current.showTransportModal).toBe(true)
+  })
+
+  it('FE-TP-HOOK-166: a journey without stops or day seeds an empty search', async () => {
+    seedTrip()
+    const journey = buildReservation({ id: 9, type: 'transit', day_id: null })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.changeTransitRoute(journey) })
+
+    expect(result.current.transitPrefill).toEqual({ from: null, to: null })
+    expect(result.current.transportModalDayId).toBeNull()
+  })
+})
+
+describe("useTripPlanner — the plan's booking detail", () => {
+  const routedTrain = (over: Partial<Reservation> = {}) => buildReservation({
+    id: 20, type: 'train', title: 'Shinkansen', day_id: 7,
+    endpoints: [
+      { role: 'from', name: 'Tokyo', lat: 35.68, lng: 139.76, sequence: 0 },
+      { role: 'to', name: 'Kyoto', lat: 34.98, lng: 135.75, sequence: 1 },
+    ] as never,
+    ...over,
+  })
+
+  it("FE-TP-HOOK-167: a booking opens by id, shows the store's copy and closes by itself once it is gone", async () => {
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [dinner] })
+
+    const { result } = await renderPlanner()
+    expect(result.current.bookingDetail).toBeNull()
+
+    act(() => { result.current.openBookingDetail(dinner) })
+    expect(result.current.bookingDetail).toBe(dinner)
+
+    const renamed = { ...dinner, title: 'Dinner at Kikunoi' }
+    act(() => { useTripStore.setState({ reservations: [renamed] }) })
+    expect(result.current.bookingDetail).toBe(renamed)
+
+    act(() => { useTripStore.setState({ reservations: [] }) })
+    expect(result.current.bookingDetail).toBeNull()
+
+    act(() => { useTripStore.setState({ reservations: [renamed] }) })
+    act(() => { result.current.closeBookingDetail() })
+    expect(result.current.bookingDetail).toBeNull()
+  })
+
+  it('FE-TP-HOOK-168: Edit opens the transport editor for a transport and the booking editor for anything else', async () => {
+    const train = routedTrain()
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [train, dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openBookingDetail(train) })
+    expect(result.current.bookingDetailEditor).toBe(result.current.openTransportEditor)
+    act(() => { result.current.bookingDetailEditor!(train) })
+    expect(result.current.editingTransport).toBe(train)
+    expect(result.current.showTransportModal).toBe(true)
+    expect(result.current.showReservationModal).toBe(false)
+
+    act(() => { result.current.openBookingDetail(dinner) })
+    act(() => { result.current.bookingDetailEditor!(dinner) })
+    expect(result.current.editingReservation).toBe(dinner)
+    expect(result.current.showReservationModal).toBe(true)
+  })
+
+  it('FE-TP-HOOK-169: without day_edit a transport has no editor and a journey no route change', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { day_edit: 'admin' } })
+    const train = routedTrain()
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [train, dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openBookingDetail(train) })
+    expect(result.current.bookingDetailEditor).toBeUndefined()
+    expect(result.current.bookingDetailChangeRoute).toBeUndefined()
+
+    // The booking editor asks for reservation_edit only, as on the Bookings tab.
+    act(() => { result.current.openBookingDetail(dinner) })
+    expect(typeof result.current.bookingDetailEditor).toBe('function')
+  })
+
+  it('FE-TP-HOOK-170: without reservation_edit a booking has no editor, while a journey keeps its route change', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { reservation_edit: 'admin' } })
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openBookingDetail(dinner) })
+
+    expect(result.current.bookingDetailEditor).toBeUndefined()
+    expect(result.current.bookingDetailChangeRoute).toBe(result.current.changeTransitRoute)
+  })
+
+  it('FE-TP-HOOK-171: On map switches a route on and opens its day, and a second press switches it off', async () => {
+    const train = routedTrain()
+    seedTrip({ reservations: [train] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.showBookingOnMap(train) })
+
+    expect(result.current.visibleConnections).toEqual([20])
+    expect(actions.setSelectedDay).toHaveBeenCalledWith(7)
+    expect(result.current.activeTab).toBe('plan')
+
+    act(() => { result.current.showBookingOnMap(train) })
+    expect(result.current.visibleConnections).toEqual([])
+  })
+
+  it('FE-TP-HOOK-172: On map for a booking at a place selects that place on its day', async () => {
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner', place_id: 33, day_id: 7 })
+    seedTrip({ reservations: [dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.showBookingOnMap(dinner) })
+
+    expect(actions.setSelectedDay).toHaveBeenCalledWith(7)
+    expect(result.current.selectedPlaceId).toBe(33)
+  })
+  it('FE-TP-HOOK-173: a booking opened from the day list asks for day_edit before its editor, as that row did', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { day_edit: 'admin' } })
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openBookingFromDayList(dinner) })
+    expect(result.current.bookingDetail).toBe(dinner)
+    expect(result.current.bookingDetailEditor).toBeUndefined()
+
+    // The same booking from anywhere else keeps the booking editor's own right.
+    act(() => { result.current.openBookingDetail(dinner) })
+    expect(typeof result.current.bookingDetailEditor).toBe('function')
+  })
+
+  it('FE-TP-HOOK-174: with day_edit the day list hands a booking to its editor like any other place', async () => {
+    const dinner = buildReservation({ id: 5, type: 'restaurant', title: 'Dinner' })
+    seedTrip({ reservations: [dinner] })
+
+    const { result } = await renderPlanner()
+    act(() => { result.current.openBookingFromDayList(dinner) })
+    act(() => { result.current.bookingDetailEditor!(dinner) })
+
+    expect(result.current.editingReservation).toBe(dinner)
+    expect(result.current.showReservationModal).toBe(true)
+  })
+
+  it('FE-TP-HOOK-175: a booking is on the map while its route is switched on', async () => {
+    const train = routedTrain()
+    seedTrip({ reservations: [train] })
+
+    const { result } = await renderPlanner()
+    expect(result.current.isBookingOnMap(train)).toBe(false)
+
+    act(() => { result.current.showBookingOnMap(train) })
+    expect(result.current.isBookingOnMap(train)).toBe(true)
+  })
 })
 
 describe('useTripPlanner — booking import review', () => {
@@ -2066,6 +2616,86 @@ describe('useTripPlanner — booking import review', () => {
   })
 })
 
+describe('useTripPlanner — a receipt scanned from Costs', () => {
+  const RECEIPT = { merchant: 'Café', date: '2026-09-20', total: 12.5, currency: 'EUR', items: [{ name: 'Tart', price: 12.5 }] }
+
+  it('FE-TP-HOOK-160: a read receipt opens the expense editor pre-filled, with the photo to attach, and clears the widget', async () => {
+    seedTrip()
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-r', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: RECEIPT, sourceFiles: [photo],
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(result.current.receiptExpense).not.toBeNull())
+    expect(result.current.receiptExpense).toEqual({
+      name: 'Café', amount: 12.5, currency: 'EUR', date: '2026-09-20', lines: [{ name: 'Tart', price: 12.5 }], receiptFiles: [photo],
+    })
+    expect(result.current.showReservationModal).toBe(false)
+    expect(useBackgroundTasksStore.getState().tasks).toHaveLength(0)
+
+    act(() => { result.current.clearReceiptExpense() })
+    expect(result.current.receiptExpense).toBeNull()
+  })
+
+  it('FE-TP-HOOK-162: after a reload the photo comes back from IndexedDB for the review', async () => {
+    seedTrip()
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    await saveImportFiles('job-db', [photo])
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-db', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: RECEIPT,
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(result.current.receiptExpense).not.toBeNull())
+    expect(result.current.receiptExpense?.receiptFiles?.map(f => f.name)).toEqual(['bill.jpg'])
+    await waitFor(async () => expect(await getImportFiles('job-db')).toEqual([]))
+  })
+
+  it('FE-TP-HOOK-161: a scan that read nothing just clears the widget', async () => {
+    seedTrip()
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-n', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: null,
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(useBackgroundTasksStore.getState().tasks).toHaveLength(0))
+    expect(result.current.receiptExpense).toBeNull()
+  })
+
+  it('FE-TP-HOOK-163: a member who may add expenses but not upload files gets the reading without the photo', async () => {
+    // The photo goes up through the file upload on save, and a refused upload
+    // used to take the whole expense down with it.
+    seedStore(useAuthStore, { user: buildUser({ id: 2, role: 'user' }) })
+    usePermissionsStore.setState({ permissions: { file_upload: 'trip_owner' } })
+    seedTrip()
+    const photo = new File(['x'], 'bill.jpg', { type: 'image/jpeg' })
+    useBackgroundTasksStore.setState({
+      tasks: [{
+        id: 'job-u', tripId: '42', label: 'bill.jpg', status: 'done', done: 1, total: 1, kind: 'costs',
+        reviewRequested: true, items: [], receipt: RECEIPT, sourceFiles: [photo],
+      }] as never,
+    })
+
+    const { result } = await renderPlanner()
+
+    await waitFor(() => expect(result.current.receiptExpense).not.toBeNull())
+    expect(result.current.receiptExpense).toMatchObject({ name: 'Café', amount: 12.5, receiptFiles: [] })
+  })
+})
+
 describe('useTripPlanner — misc state', () => {
   it('FE-TP-HOOK-095: the map tile url falls back to the default basemap', async () => {
     seedTrip()
@@ -2089,7 +2719,11 @@ describe('useTripPlanner — misc state', () => {
   it('FE-TP-HOOK-097: the media query listener drives the mobile flag', async () => {
     const listeners: Record<string, Array<(e: MediaQueryListEvent) => void>> = {}
     const removeEventListener = vi.fn()
-    vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({
+    // Swapped by hand and put back below: window.matchMedia is the setup's own
+    // mock, and a spy on it outlives restoreAllMocks, which left every later
+    // test of this file answering "not a phone" whatever the viewport.
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = vi.fn((query: string) => ({
       matches: false,
       media: query,
       onchange: null,
@@ -2100,17 +2734,21 @@ describe('useTripPlanner — misc state', () => {
       },
       removeEventListener,
       dispatchEvent: vi.fn(),
-    }) as unknown as MediaQueryList)
-    seedTrip()
+    }) as unknown as MediaQueryList) as unknown as typeof window.matchMedia
+    try {
+      seedTrip()
 
-    const { result, unmount } = await renderPlanner()
-    expect(result.current.isMobile).toBe(false)
+      const { result, unmount } = await renderPlanner()
+      expect(result.current.isMobile).toBe(false)
 
-    act(() => { listeners['(max-width: 767px)'][0]({ matches: true } as MediaQueryListEvent) })
-    expect(result.current.isMobile).toBe(true)
+      act(() => { listeners[PHONE_QUERY][0]({ matches: true } as MediaQueryListEvent) })
+      expect(result.current.isMobile).toBe(true)
 
-    unmount()
-    expect(removeEventListener).toHaveBeenCalled()
+      unmount()
+      expect(removeEventListener).toHaveBeenCalled()
+    } finally {
+      window.matchMedia = originalMatchMedia
+    }
   })
 
   it('FE-TP-HOOK-098: selectedPlace resolves the current selection out of the store', async () => {
@@ -2178,6 +2816,24 @@ describe('useTripPlanner — misc state', () => {
     expect(result.current.showPlaceForm).toBe(false)
     expect(result.current.editingPlace).toBeNull()
     expect(result.current.deletePlaceId).toBeNull()
+  })
+
+  it('routes mobile Place-editor entry for a dormant Tour to read-only Tour detail', async () => {
+    const originalWidth = window.innerWidth
+    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 390 })
+    try {
+      const tourPlace = buildPlace({ id: 1, name: 'Ridge walk', tour_place_id: 1 })
+      seedTrip({ places: [tourPlace] })
+      const { result } = await renderPlanner()
+
+      act(() => result.current.openPlaceEditor(tourPlace))
+
+      expect(result.current.isMobile).toBe(true)
+      expect(result.current.selectedPlaceId).toBe(1)
+      expect(result.current.showPlaceForm).toBe(false)
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: originalWidth })
+    }
   })
 
   it('FE-TP-HOOK-102: a member roster refresh replaces the cached list', async () => {

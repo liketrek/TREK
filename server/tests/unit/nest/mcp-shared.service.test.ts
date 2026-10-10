@@ -1,87 +1,99 @@
 /**
  * McpToolGuardsService — the injectable fold of the impure _shared.ts helpers.
  * A real in-memory SQLite backs hasTripPermission/isAdminUser so the SQL stays
- * byte-faithful to the module functions it replaces; broadcast flows through
- * the vi.mock'd src/websocket, exactly like every .mcp.ts consumer expects.
+ * byte-faithful to the module functions it replaces; broadcast goes to a
+ * FakeRealtimeService handed in through the constructor.
  */
+import { db as testDb } from '../../../src/db/database';
+import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
+import { Trips } from '../../../src/db/entities/Trips.entity';
+import { Users } from '../../../src/db/entities/Users.entity';
+import { McpSharedModule } from '../../../src/nest/mcp-shared/mcp-shared.module';
+import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
+import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { createUser } from '../../helpers/factories';
+import { deleteRows, updateRows } from '../../helpers/factories/rows';
+import { makeTrip } from '../../helpers/factories/trips';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import {
+  createTestUnitOfWork,
+  createTestAppSettingsRepo,
+  createTestTripsRepo,
+  createTestUsersRepo,
+  sharedTestOrm,
+} from '../../helpers/test-uow';
+
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 
-const { testDb, dbMock, broadcastMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  return { testDb: db, dbMock: { db, closeDb: () => {}, reinitialize: () => {} }, broadcastMock: vi.fn() };
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../../helpers/db-mock');
+  const db = createSnapshotTestDb();
+  return { db, closeDb: () => {}, reinitialize: () => {} };
 });
 
-vi.mock('../../../src/db/database', () => dbMock);
-vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastMock;
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { createUser } from '../../helpers/factories';
-import { McpToolGuardsService } from '../../../src/nest/mcp-shared/mcp-tool-guards.service';
-import { McpSharedModule } from '../../../src/nest/mcp-shared/mcp-shared.module';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
+let svc: McpToolGuardsService;
+beforeAll(async () => {
+  // Plan 4 Task 1 constructor-ripple: the trip `user_id` and user `role`
+  // reads moved off `DatabaseService` onto `TripsRepository`/`UsersRepository`.
+  svc = new McpToolGuardsService(
+    await createTestTripsRepo(testDb),
+    await createTestUsersRepo(testDb),
+    new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
+    realtime,
+  );
+});
 
-const dbs = new DatabaseService(testDb);
-const svc = new McpToolGuardsService(dbs, new PermissionsService(dbs), new RealtimeService());
-
-function createTrip(ownerId: number): number {
-  const r = testDb.prepare("INSERT INTO trips (user_id, title) VALUES (?, 'T')").run(ownerId);
-  return Number(r.lastInsertRowid);
+async function createTrip(ownerId: number): Promise<number> {
+  return (await makeTrip(await sharedTestOrm(testDb), ownerId, { title: 'T' })).id;
 }
 
-beforeAll(() => {
-  createTables(testDb);
-  runMigrations(testDb);
-});
-
-beforeEach(() => {
+beforeEach(async () => {
   vi.clearAllMocks();
-  testDb.prepare('DELETE FROM trip_members').run();
-  testDb.prepare('DELETE FROM trips').run();
-  testDb.prepare('DELETE FROM users').run();
+  const orm = await sharedTestOrm(testDb);
+  await deleteRows(orm, TripMembers);
+  await deleteRows(orm, Trips);
+  await deleteRows(orm, Users);
 });
 
 describe('hasTripPermission', () => {
-  it('GRD-001: false for a missing trip', () => {
+  it('GRD-001: false for a missing trip', async () => {
     const { user } = createUser(testDb);
-    expect(svc.hasTripPermission('trip_edit', 99999, user.id)).toBe(false);
+    expect(await svc.hasTripPermission('trip_edit', 99999, user.id)).toBe(false);
   });
 
-  it('GRD-002: the owner passes owner-level actions; a stranger does not', () => {
+  it('GRD-002: the owner passes owner-level actions; a stranger does not', async () => {
     const { user: owner } = createUser(testDb);
     const { user: stranger } = createUser(testDb);
-    const tripId = createTrip(owner.id);
-    expect(svc.hasTripPermission('trip_delete', tripId, owner.id)).toBe(true);
-    expect(svc.hasTripPermission('trip_delete', tripId, stranger.id)).toBe(false);
+    const tripId = await createTrip(owner.id);
+    expect(await svc.hasTripPermission('trip_delete', tripId, owner.id)).toBe(true);
+    expect(await svc.hasTripPermission('trip_delete', tripId, stranger.id)).toBe(false);
   });
 
-  it('GRD-003: an unknown user falls back to the plain user role', () => {
+  it('GRD-003: an unknown user falls back to the plain user role', async () => {
     const { user: owner } = createUser(testDb);
-    const tripId = createTrip(owner.id);
-    expect(svc.hasTripPermission('trip_delete', tripId, 424242)).toBe(false);
+    const tripId = await createTrip(owner.id);
+    expect(await svc.hasTripPermission('trip_delete', tripId, 424242)).toBe(false);
   });
 
-  it('GRD-004: a global admin passes regardless of membership', () => {
+  it('GRD-004: a global admin passes regardless of membership', async () => {
     const { user: owner } = createUser(testDb);
     const { user: admin } = createUser(testDb);
-    testDb.prepare("UPDATE users SET role = 'admin' WHERE id = ?").run(admin.id);
-    const tripId = createTrip(owner.id);
-    expect(svc.hasTripPermission('trip_delete', tripId, admin.id)).toBe(true);
+    await updateRows(await sharedTestOrm(testDb), Users, { id: admin.id }, { role: 'admin' });
+    const tripId = await createTrip(owner.id);
+    expect(await svc.hasTripPermission('trip_delete', tripId, admin.id)).toBe(true);
   });
 });
 
 describe('isAdminUser', () => {
-  it('GRD-010: reflects the users.role column and is false for unknown ids', () => {
+  it('GRD-010: reflects the users.role column and is false for unknown ids', async () => {
     const { user } = createUser(testDb);
-    expect(svc.isAdminUser(user.id)).toBe(false);
-    testDb.prepare("UPDATE users SET role = 'admin' WHERE id = ?").run(user.id);
-    expect(svc.isAdminUser(user.id)).toBe(true);
-    expect(svc.isAdminUser(424242)).toBe(false);
+    expect(await svc.isAdminUser(user.id)).toBe(false);
+    await updateRows(await sharedTestOrm(testDb), Users, { id: user.id }, { role: 'admin' });
+    expect(await svc.isAdminUser(user.id)).toBe(true);
+    expect(await svc.isAdminUser(424242)).toBe(false);
   });
 });
 
@@ -92,7 +104,9 @@ describe('safeBroadcast', () => {
   });
 
   it('GRD-021: swallows broadcast failures so a tool result is never lost to a ws error', () => {
-    broadcastMock.mockImplementationOnce(() => { throw new Error('ws down'); });
+    broadcastMock.mockImplementationOnce(() => {
+      throw new Error('ws down');
+    });
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => svc.safeBroadcast(7, 'todo:created', {})).not.toThrow();
     expect(errSpy).toHaveBeenCalled();

@@ -2,9 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowUp, ChevronUp, ImagePlus, Loader2, Reply, Trash2 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
-import { useChatImages, MAX_CHAT_IMAGES } from '../../../../components/Collab/useChatImages'
-import { collabApi } from '../../../../api/client'
-import { addListener, removeListener } from '../../../../api/websocket'
+import { useCollabChatData } from '../../../../components/Collab/useCollabChatData'
 import { useAuthStore } from '../../../../store/authStore'
 import { useTranslation } from '../../../../i18n'
 import type { TripPlanner } from '../MTripShell'
@@ -18,10 +16,8 @@ import {
   isSameSender,
   shouldShowChatDateSeparator,
   type ChatMessage,
-  type ChatReaction,
-} from './collabModel'
+} from '../../../../components/Collab/collabModel'
 
-const PAGE_SIZE = 100
 const LONG_PRESS_MS = 500
 const DOUBLE_TAP_MS = 300
 const MOVE_CANCEL_PX = 10
@@ -36,15 +32,11 @@ interface MCollabChatProps {
   planner: TripPlanner
 }
 
-interface GetMessagesResponse { messages: ChatMessage[] }
-interface SendMessageResponse { message: ChatMessage }
-interface ReactMessageResponse { reactions: ChatReaction[] }
-
 /**
- * Trip-tab Collab / Chat. Owns its own state + WebSocket listener per the
- * architecture note in 10-tab-databindings.md §8.2 — chat never touches
- * `planner.tripActions`, it talks to `collabApi` directly, exactly like
- * `useCollabChat.ts` on desktop (reimplemented rather than imported).
+ * Trip-tab Collab / Chat. Messages, the WebSocket listener and the draft come
+ * from useCollabChatData, the hook the desktop panel's useCollabChat.ts reads
+ * too (10-tab-databindings.md §8.2: chat never touches `planner.tripActions`);
+ * this tab keeps its long-press popover.
  *
  * Layout deviates from the other tabs on purpose (spec 03 §6.1): its own
  * flex-column, not TabScroller, so the composer can sit flush above the dock.
@@ -57,167 +49,23 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
   const is12h = planner.settings.time_format === '12h'
   const currentUserId = user?.id ?? null
 
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [loading, setLoading] = useState(true)
-  const [hasMore, setHasMore] = useState(false)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [text, setText] = useState('')
-  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
-  const [sending, setSending] = useState(false)
-  const images = useChatImages()
+  const {
+    messages, loading, hasMore, loadingMore, text, replyTo, setReplyTo, sending, images,
+    scrollRef, textareaRef, checkAtBottom, handleLoadMore, handleTextChange, addImageFiles, handleSend,
+    deleteMessage, reactToMessage,
+  } = useCollabChatData({ tripId, t, toast, toastLoadMoreErrors: true, canSend: canEdit })
   const [popover, setPopover] = useState<{ msg: ChatMessage; x: number; y: number } | null>(null)
-
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
-  const isAtBottomRef = useRef(true)
-  const messagesRef = useRef<ChatMessage[]>([])
-  messagesRef.current = messages
-
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
-    const el = scrollRef.current
-    if (!el) return
-    requestAnimationFrame(() => el.scrollTo({ top: el.scrollHeight, behavior }))
-  }, [])
-
-  const checkAtBottom = useCallback(() => {
-    const el = scrollRef.current
-    if (!el) return
-    isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48
-  }, [])
-
-  // ── Initial load ──
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    collabApi.getMessages(tripId).then((data: GetMessagesResponse) => {
-      if (cancelled) return
-      const msgs = (data.messages || []).map(m => (m.deleted ? { ...m, _deleted: true } : m))
-      setMessages(msgs)
-      setHasMore(msgs.length >= PAGE_SIZE)
-      setLoading(false)
-      setTimeout(() => scrollToBottom(), 30)
-    }).catch(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [tripId, scrollToBottom])
-
-  // ── WebSocket (own listener, not handleRemoteEvent — collab has no store slice) ──
-  useEffect(() => {
-    const handler = (event: Record<string, unknown>) => {
-      if (String(event.tripId) !== String(tripId)) return
-      if (event.type === 'collab:message:created') {
-        const message = event.message as ChatMessage
-        setMessages(prev => (prev.some(m => m.id === message.id) ? prev : [...prev, message]))
-        if (isAtBottomRef.current) setTimeout(() => scrollToBottom('smooth'), 30)
-      }
-      if (event.type === 'collab:message:deleted') {
-        const messageId = event.messageId as number
-        setMessages(prev => prev.map(m => (m.id === messageId ? { ...m, _deleted: true } : m)))
-      }
-      if (event.type === 'collab:message:reacted') {
-        const messageId = event.messageId as number
-        const reactions = event.reactions as ChatReaction[]
-        setMessages(prev => prev.map(m => (m.id === messageId ? { ...m, reactions } : m)))
-      }
-    }
-    addListener(handler)
-    return () => removeListener(handler)
-  }, [tripId, scrollToBottom])
-
-  const handleLoadMore = useCallback(async () => {
-    const current = messagesRef.current
-    if (loadingMore || current.length === 0) return
-    setLoadingMore(true)
-    const el = scrollRef.current
-    const prevHeight = el ? el.scrollHeight : 0
-    try {
-      const beforeId = current[0]?.id
-      const data = (await collabApi.getMessages(tripId, beforeId != null ? String(beforeId) : undefined)) as GetMessagesResponse
-      const older = (data.messages || []).map(m => (m.deleted ? { ...m, _deleted: true } : m))
-      if (older.length === 0) {
-        setHasMore(false)
-      } else {
-        setMessages(prev => [...older, ...prev])
-        setHasMore(older.length >= PAGE_SIZE)
-        requestAnimationFrame(() => { if (el) el.scrollTop = el.scrollHeight - prevHeight })
-      }
-    } catch {
-      toast.error(t('common.error'))
-    } finally {
-      setLoadingMore(false)
-    }
-  }, [tripId, loadingMore, toast, t])
-
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(e.target.value)
-    const ta = textareaRef.current
-    if (ta) {
-      ta.style.height = 'auto'
-      const h = Math.min(ta.scrollHeight, 100)
-      ta.style.height = `${h}px`
-      ta.style.overflowY = ta.scrollHeight > 100 ? 'auto' : 'hidden'
-    }
-  }
-
-  const addImageFiles = (incoming: FileList | File[]) => {
-    images.add(incoming, ({ rejected, overflow }) => {
-      if (rejected) toast.error(t('collab.chat.imageRejected'))
-      if (overflow) toast.error(t('collab.chat.imageLimit', { max: MAX_CHAT_IMAGES }))
-    })
-  }
-
-  const handleSend = useCallback(async () => {
-    const body = text.trim()
-    if ((!body && !images.files.length) || sending || !canEdit) return
-    setSending(true)
-    try {
-      let data: SendMessageResponse
-      if (images.files.length) {
-        const form = new FormData()
-        if (body) form.append('text', body)
-        if (replyTo) form.append('reply_to', String(replyTo.id))
-        images.files.forEach(file => form.append('images', file))
-        data = (await collabApi.sendMessage(tripId, form)) as SendMessageResponse
-      } else {
-        const payload: { text: string; reply_to?: number } = { text: body }
-        if (replyTo) payload.reply_to = replyTo.id
-        data = (await collabApi.sendMessage(tripId, payload)) as SendMessageResponse
-      }
-      if (data.message) {
-        setMessages(prev => (prev.some(m => m.id === data.message.id) ? prev : [...prev, data.message]))
-      }
-      setText('')
-      setReplyTo(null)
-      images.clear()
-      if (textareaRef.current) textareaRef.current.style.height = 'auto'
-      isAtBottomRef.current = true
-      setTimeout(() => scrollToBottom('smooth'), 50)
-    } catch {
-      toast.error(t('common.error'))
-    } finally {
-      setSending(false)
-    }
-  }, [text, sending, canEdit, replyTo, tripId, scrollToBottom, toast, t, images])
 
   const handleDelete = useCallback(async (msgId: number) => {
     setPopover(null)
-    try {
-      await collabApi.deleteMessage(tripId, msgId)
-      setMessages(prev => prev.map(m => (m.id === msgId ? { ...m, _deleted: true } : m)))
-    } catch {
-      toast.error(t('common.error'))
-    }
-  }, [tripId, toast, t])
+    await deleteMessage(msgId)
+  }, [deleteMessage])
 
   const handleReact = useCallback(async (msgId: number, emoji: string) => {
     setPopover(null)
-    try {
-      const data = (await collabApi.reactMessage(tripId, msgId, emoji)) as ReactMessageResponse
-      setMessages(prev => prev.map(m => (m.id === msgId ? { ...m, reactions: data.reactions } : m)))
-    } catch {
-      toast.error(t('common.error'))
-    }
-  }, [tripId, toast, t])
+    await reactToMessage(msgId, emoji)
+  }, [reactToMessage])
 
   const openReply = (msg: ChatMessage) => {
     setPopover(null)
@@ -296,7 +144,7 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
 
       <div className="mt-[10px] flex flex-none flex-col gap-2">
         {replyTo && (
-          <div className="flex items-center gap-2 rounded-[12px] border-l-[3px] border-m-act bg-[color:var(--m-ic)] px-[10px] py-[6px]">
+          <div className="flex items-center gap-2 rounded-[12px] border-s-[3px] border-m-act bg-[color:var(--m-ic)] px-[10px] py-[6px]">
             <Reply size={12} strokeWidth={2} className="flex-none text-m-faint" />
             <span className="min-w-0 flex-1 truncate font-geist text-[0.71875rem] text-m-muted">
               <strong className="text-m-ink">{replyTo.username}</strong>: {replyTo.text.slice(0, 60)}
@@ -319,7 +167,7 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
                 {images.previews.map((url, i) => (
                   <div key={url} className="relative">
                     <img src={url} alt="" className="h-14 w-14 rounded-lg object-cover" />
-                    <button type="button" aria-label="Remove image" onClick={() => images.remove(i)} className="absolute -right-1 -top-1 h-4 w-4 rounded-full bg-m-ink text-[10px] text-m-bg">×</button>
+                    <button type="button" aria-label="Remove image" onClick={() => images.remove(i)} className="absolute -end-1 -top-1 h-4 w-4 rounded-full bg-m-ink text-[10px] text-m-bg">×</button>
                   </div>
                 ))}
               </div>
@@ -433,7 +281,7 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
 
   return (
     <div
-      className={`flex gap-2 ${own ? 'flex-row-reverse pl-10' : 'flex-row pr-10'}`}
+      className={`flex gap-2 ${own ? 'flex-row-reverse ps-10' : 'flex-row pe-10'}`}
       style={{ marginTop }}
     >
       {!own && (
@@ -452,7 +300,7 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
 
       <div className={`flex min-w-0 max-w-[78%] flex-col ${own ? 'items-end' : 'items-start'}`}>
         {showHeader && (
-          <span className="mb-[2px] pl-1 font-geist text-[0.59375rem] font-bold text-m-faint">{msg.username}</span>
+          <span className="mb-[2px] ps-1 font-geist text-[0.59375rem] font-bold text-m-faint">{msg.username}</span>
         )}
 
         <button
@@ -462,7 +310,7 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={clearPress}
-          className="max-w-full text-left"
+          className="max-w-full text-start"
         >
           {bigEmoji ? (
             <div className="py-[2px] text-[2.5rem] leading-[1.15]">{msg.text}</div>
@@ -471,7 +319,7 @@ function ChatBubbleRow({ msg, own, showHeader, isLastInGroup, marginTop, is12h, 
               className={`px-[13px] py-[9px] text-[0.8125rem] leading-[1.45] ${
                 own ? 'bg-m-act text-m-actfg' : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] text-m-ink'
               }`}
-              style={{ borderRadius: own ? OWN_BUBBLE_RADIUS : OTHER_BUBBLE_RADIUS }}
+              style={own ? OWN_BUBBLE_RADIUS : OTHER_BUBBLE_RADIUS}
             >
               {hasReply && (
                 <div className="mb-1 rounded-[10px] bg-[color:var(--m-card)] px-[10px] py-[5px]">
@@ -562,7 +410,7 @@ function MessageActionsPopover({ x, y, canDeleteOwn, t, onReact, onReply, onDele
           <button
             type="button"
             onClick={onReply}
-            className="flex w-full items-center gap-2 rounded-[10px] px-2 py-[8px] text-left text-[0.8125rem] font-semibold text-m-ink"
+            className="flex w-full items-center gap-2 rounded-[10px] px-2 py-[8px] text-start text-[0.8125rem] font-semibold text-m-ink"
           >
             <Reply size={14} strokeWidth={2} /> {t('collab.chat.reply')}
           </button>
@@ -570,7 +418,7 @@ function MessageActionsPopover({ x, y, canDeleteOwn, t, onReact, onReply, onDele
             <button
               type="button"
               onClick={onDelete}
-              className="flex w-full items-center gap-2 rounded-[10px] px-2 py-[8px] text-left text-[0.8125rem] font-semibold text-[color:var(--m-st-danger)]"
+              className="flex w-full items-center gap-2 rounded-[10px] px-2 py-[8px] text-start text-[0.8125rem] font-semibold text-[color:var(--m-st-danger)]"
             >
               <Trash2 size={14} strokeWidth={2} /> {t('common.delete')}
             </button>

@@ -34,7 +34,7 @@ export default function MSettingsOffline() {
     syncing, clearing, loading, preparing, progress, notice, prefs, canClear,
     runPrepare, handleToggleForce, handleResync, handleClear,
     handleToggleTiles, tripStorageState, handleToggleTrip, resolveConflict,
-    handleConflictStrategy,
+    handleConflictStrategy, retryFailed, discardFailed,
   } = useOfflineSettings()
 
   async function doClear() {
@@ -195,6 +195,22 @@ export default function MSettingsOffline() {
           {conflicts.length > 0 && <MStat label={t('settings.offline.stats.conflicts')} value={conflicts.length} danger />}
           {failedCount > 0 && <MStat label={t('settings.offline.stats.failed')} value={failedCount} danger />}
         </div>
+
+        {failedCount > 0 && (
+          <div className="mt-3 flex flex-col gap-2">
+            <p className="m-0 font-geist text-[0.6875rem] leading-relaxed text-m-muted">{t('settings.offline.failed.hint')}</p>
+            <div className="flex gap-2">
+              <MSetButton disabled={offline} onClick={() => void retryFailed()}>
+                <RefreshCw size={14} />
+                {t('settings.offline.failed.retry')}
+              </MSetButton>
+              <MSetButton variant="danger" onClick={() => void discardFailed()}>
+                <Trash2 size={14} />
+                {t('settings.offline.failed.discard')}
+              </MSetButton>
+            </div>
+          </div>
+        )}
 
         <div className="mt-3">
           <MSetButton variant="danger" disabled={clearing || !canClear} onClick={() => setShowClearConfirm(true)}>

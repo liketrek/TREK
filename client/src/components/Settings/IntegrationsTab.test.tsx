@@ -240,7 +240,7 @@ describe('IntegrationsTab', () => {
     await screen.findByText('MCP Configuration');
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await screen.findByText('Delete Me');
-    await user.click(screen.getByTitle('Delete Token'));
+    await user.click(screen.getByLabelText('Delete Token'));
     await screen.findByText('This token will stop working immediately. Any MCP client using it will lose access.');
     expect(screen.getByRole('button', { name: /^Cancel$/i })).toBeInTheDocument();
   });
@@ -266,12 +266,11 @@ describe('IntegrationsTab', () => {
     await screen.findByText('MCP Configuration');
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await screen.findByText('Delete Me');
-    await user.click(screen.getByTitle('Delete Token'));
-    // There are two "Delete Token" buttons: the trash icon (title) and the confirm button in modal
+    await user.click(screen.getByLabelText('Delete Token'));
+    // There are two "Delete Token" buttons: the trash icon and the confirm button in the modal
     const deleteButtons = await screen.findAllByRole('button', { name: /^Delete Token$/i });
-    // Click the one in the modal (last one, or the standalone one without title attribute)
-    const confirmBtn = deleteButtons.find(btn => !btn.title);
-    await user.click(confirmBtn ?? deleteButtons[deleteButtons.length - 1]);
+    // The modal renders after the list, so its confirm button comes last
+    await user.click(deleteButtons[deleteButtons.length - 1]);
     expect(deleteCalled).toBe(true);
     await waitFor(() => {
       expect(screen.queryByText('Delete Me')).toBeNull();
@@ -298,9 +297,9 @@ describe('IntegrationsTab', () => {
     const { copy } = mcpEndpointRow();
     await user.click(copy);
     await waitFor(() => {
-      // After copy, icon changes to Check (green). The button should contain an svg with text-green-500
+      // After copy, icon changes to Check in the success colour
       const svg = copy.querySelector('svg');
-      expect(svg).toHaveClass('text-green-500');
+      expect(svg).toHaveClass('text-success');
     });
   });
 
@@ -325,7 +324,7 @@ describe('IntegrationsTab', () => {
     await screen.findByText('MCP Configuration');
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await screen.findByText('Cancel Token');
-    await user.click(screen.getByTitle('Delete Token'));
+    await user.click(screen.getByLabelText('Delete Token'));
     await screen.findByRole('button', { name: /^Cancel$/i });
     await user.click(screen.getByRole('button', { name: /^Cancel$/i }));
     await waitFor(() => {
@@ -568,7 +567,7 @@ describe('IntegrationsTab', () => {
     enableMcp();
     render(<><ToastContainer /><IntegrationsTab /></>);
     await screen.findByText('Delete Me');
-    await user.click(screen.getByTitle('Delete Client'));
+    await user.click(screen.getByLabelText('Delete Client'));
     // Confirmation modal
     await screen.findByRole('heading', { name: 'Delete Client' });
     const confirmBtns = screen.getAllByRole('button', { name: /Delete Client/i });
@@ -596,7 +595,7 @@ describe('IntegrationsTab', () => {
     enableMcp();
     render(<IntegrationsTab />);
     await screen.findByText('Rotate Me');
-    await user.click(screen.getByTitle('Rotate Secret'));
+    await user.click(screen.getByLabelText('Rotate Secret'));
     await screen.findByText('Rotate Secret');
     // Confirm — button text is 'Rotate'
     const rotateBtns = screen.getAllByRole('button', { name: /^Rotate$/i });
@@ -768,7 +767,7 @@ describe('IntegrationsTab – copy actions and cancels', () => {
     await screen.findByText('Token Created');
 
     const writeSpy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
-    const copyBtns = screen.getAllByTitle('Copy');
+    const copyBtns = screen.getAllByLabelText('Copy');
     await user.click(copyBtns[copyBtns.length - 1]);
 
     expect(writeSpy).toHaveBeenCalledWith('tk_fresh_raw_secret');
@@ -845,7 +844,7 @@ describe('IntegrationsTab – copy actions and cancels', () => {
     render(<IntegrationsTab />);
     await screen.findByText('Existing Client');
 
-    await user.click(screen.getByTitle('Delete Client'));
+    await user.click(screen.getByLabelText('Delete Client'));
     await screen.findByRole('heading', { name: 'Delete Client' });
     await user.click(screen.getByRole('button', { name: /^Cancel$/i }));
 
@@ -860,7 +859,7 @@ describe('IntegrationsTab – copy actions and cancels', () => {
     render(<IntegrationsTab />);
     await screen.findByText('Existing Client');
 
-    await user.click(screen.getByTitle('Rotate Secret'));
+    await user.click(screen.getByLabelText('Rotate Secret'));
     await screen.findByRole('heading', { name: 'Rotate Secret' });
     await user.click(screen.getByRole('button', { name: /^Cancel$/i }));
 
@@ -876,7 +875,7 @@ describe('IntegrationsTab – copy actions and cancels', () => {
     enableMcp();
     render(<IntegrationsTab />);
     await screen.findByText('Existing Client');
-    await user.click(screen.getByTitle('Rotate Secret'));
+    await user.click(screen.getByLabelText('Rotate Secret'));
     const rotateBtns = await screen.findAllByRole('button', { name: /^Rotate$/i });
     await user.click(rotateBtns[rotateBtns.length - 1]);
     await screen.findByText('New Secret Generated');
@@ -932,9 +931,9 @@ describe('IntegrationsTab – failure toasts', () => {
     await openTokensTab(user);
     await screen.findByText('Token One');
 
-    await user.click(screen.getByTitle('Delete Token'));
+    await user.click(screen.getByLabelText('Delete Token'));
     const confirmBtns = await screen.findAllByRole('button', { name: /^Delete Token$/i });
-    await user.click(confirmBtns.find(b => !b.title) ?? confirmBtns[confirmBtns.length - 1]);
+    await user.click(confirmBtns[confirmBtns.length - 1]);
 
     await screen.findByText('Failed to delete token');
     expect(screen.getByText('Token One')).toBeInTheDocument();
@@ -951,12 +950,12 @@ describe('IntegrationsTab – failure toasts', () => {
     render(<><ToastContainer /><IntegrationsTab /></>);
     await screen.findByText('Existing Client');
 
-    await user.click(screen.getByTitle('Delete Client'));
+    await user.click(screen.getByLabelText('Delete Client'));
     const deleteBtns = await screen.findAllByRole('button', { name: /^Delete Client$/i });
     await user.click(deleteBtns[deleteBtns.length - 1]);
     await screen.findByText('Failed to delete OAuth client');
 
-    await user.click(screen.getByTitle('Rotate Secret'));
+    await user.click(screen.getByLabelText('Rotate Secret'));
     const rotateBtns = await screen.findAllByRole('button', { name: /^Rotate$/i });
     await user.click(rotateBtns[rotateBtns.length - 1]);
     expect(await screen.findByText('Failed to rotate client secret')).toBeInTheDocument();

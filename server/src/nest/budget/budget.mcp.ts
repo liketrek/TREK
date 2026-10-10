@@ -1,21 +1,35 @@
-import {
-  McpController, Tool, ResourceTemplate, type McpContext,
-  TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
-  TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, errorResult, ok,
-} from '../../nest-mcp';
-import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
-import { z } from 'zod';
-import { RuntimeEnvService } from '../app-config/runtime-env.service';
-import { isDemoUserId } from '../common/demo-write';
 import { ADDON_IDS } from '../../addons';
+import { Places } from '../../db/entities/Places.entity';
+import { TripMembers } from '../../db/entities/TripMembers.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { PlacesRepository } from '../../db/repositories/Places.repository';
+import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
-import { TripMembershipService } from '../trip-membership/trip-membership.service';
-import { DatabaseService } from '../database/database.service';
-import { BudgetService } from './budget.service';
-import { ExchangeRatesService } from './exchange-rates.service';
+import {
+  McpController,
+  Tool,
+  ResourceTemplate,
+  type McpContext,
+  TOOL_ANNOTATIONS_READONLY,
+  TOOL_ANNOTATIONS_WRITE,
+  TOOL_ANNOTATIONS_DELETE,
+  TOOL_ANNOTATIONS_NON_IDEMPOTENT,
+  errorResult,
+  ok,
+} from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { RuntimeEnvService } from '../app-config/runtime-env.service';
+import { UnitOfWork } from '../database/unit-of-work';
+import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
+import { TripMembershipService } from '../trip-membership/trip-membership.service';
+import { BudgetService } from './budget.service';
+import { ExchangeRatesService } from './exchange-rates.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { idSchema, sumMinor, toMinor } from '@trek/shared';
+
+import { z } from 'zod';
 
 /** Legacy registrar gate: the whole budget surface rides the budget addon. */
 const budgetAddonOn = addonGate(ADDON_IDS.BUDGET);
@@ -25,29 +39,30 @@ const budgetAddonOn = addonGate(ADDON_IDS.BUDGET);
  * signed like the REST contract's (#2176): a negative payer is the recipient
  * of a refund recorded as a negative expense.
  */
-const payersSchema = z.array(z.strictObject({
-  user_id: z.number().int().positive(),
-  amount: z.number(),
-})).describe('Who actually paid, and how much each paid, in the expense currency. Ask the user; do not guess.');
+const payersSchema = z
+  .array(
+    z.strictObject({
+      user_id: idSchema,
+      amount: z.number(),
+    }),
+  )
+  .describe('Who actually paid, and how much each paid, in the expense currency. Ask the user; do not guess.');
 
 /** Reusable Zod shape for an unequal split: what each participant owes. Signed, like the REST contract (#2176). */
-const splitMembersSchema = z.array(z.strictObject({
-  user_id: z.number().int().positive(),
-  amount: z.number(),
-})).describe('Unequal split: what each participant owes, in the expense currency. The amounts must add up to the expense total. Ask the user; do not guess.');
+const splitMembersSchema = z
+  .array(
+    z.strictObject({
+      user_id: idSchema,
+      amount: z.number(),
+    }),
+  )
+  .describe(
+    'Unequal split: what each participant owes, in the expense currency. The amounts must add up to the expense total. Ask the user; do not guess.',
+  );
 
 function parseId(value: string | string[]): number | null {
   const n = Number(Array.isArray(value) ? value[0] : value);
   return Number.isInteger(n) && n > 0 ? n : null;
-}
-
-/** Money is compared in whole cents, never in floats (the budget money rule). */
-function toCents(amount: number): number {
-  return Math.round(amount * 100);
-}
-
-function sumCents(amounts: number[]): number {
-  return amounts.reduce((sum, a) => sum + toCents(a), 0);
 }
 
 function formatCents(cents: number): string {
@@ -80,17 +95,17 @@ export class BudgetMcp {
   constructor(
     private readonly budget: BudgetService,
     private readonly exchangeRates: ExchangeRatesService,
-    private readonly db: DatabaseService,
     private readonly env: RuntimeEnvService,
     private readonly membership: TripMembershipService,
     readonly addons: AddonsService,
     private readonly guards: McpToolGuardsService,
+    private readonly uow: UnitOfWork,
+    @InjectRepository(Places) private readonly places: PlacesRepository,
+    @InjectRepository(Trips) private readonly trips: TripsRepository,
+    // Plan 4 Task 3 — DatabaseService.rosterUserIds inlined onto
+    // TripMembersRepository.rosterUserIds directly.
+    @InjectRepository(TripMembers) private readonly tripMembers: TripMembersRepository,
   ) {}
-
-  /** The AuthService.isDemoUser check without the auth graph (demo-write.ts). */
-  private isDemoUser(userId: number): boolean {
-    return isDemoUserId(this.env, this.db, userId);
-  }
 
   /**
    * Resolve the equal-split participants for a new budget item. When member_ids
@@ -100,11 +115,11 @@ export class BudgetMcp {
    * and is passed through. Reads ride the leaf TripMembershipService — the
    * hydrated member services all live in modules that import this one.
    */
-  private resolveMemberIds(tripId: number, member_ids?: number[]): number[] | undefined {
+  private async resolveMemberIds(tripId: number, member_ids?: number[]): Promise<number[] | undefined> {
     if (member_ids !== undefined) return member_ids;
-    const ownerId = this.membership.getOwnerId(tripId);
+    const ownerId = await this.membership.getOwnerId(tripId);
     if (ownerId === null) return undefined;
-    return Array.from(new Set([ownerId, ...this.membership.listMemberUserIds(tripId)]));
+    return Array.from(new Set([ownerId, ...(await this.membership.listMemberUserIds(tripId))]));
   }
 
   /**
@@ -112,21 +127,21 @@ export class BudgetMcp {
    * (the write path overwrites total_price with their sum), so the stated total
    * is not necessarily the figure that ends up in the row.
    */
-  private settledTotalCents(
+  private async settledTotalCents(
     tripId: number,
     payers: { user_id: number; amount: number }[] | undefined,
     total_price: number | undefined,
     fallbackCents: number,
-  ): number {
+  ): Promise<number> {
     // Once payers are sent at all, the write path derives the total from them and
     // an empty list therefore means zero, not "no opinion". Reading total_price
     // here instead would certify a split against a figure the row never receives.
     // Negative payers count with their sign (#2176) — the write path stores them.
     if (payers !== undefined) {
-      const roster = this.db.rosterUserIds(tripId);
-      return sumCents(payers.filter(p => p.amount !== 0 && roster.has(p.user_id)).map(p => p.amount));
+      const roster = await this.tripMembers.rosterUserIds(tripId);
+      return sumMinor(payers.filter((p) => p.amount !== 0 && roster.has(p.user_id)).map((p) => p.amount));
     }
-    if (total_price !== undefined) return toCents(total_price);
+    if (total_price !== undefined) return toMinor(total_price);
     return fallbackCents;
   }
 
@@ -139,57 +154,80 @@ export class BudgetMcp {
    * user_id is refused for the same reason: the write path drops both silently,
    * which would unbalance a split that had just been checked.
    */
-  private splitRefusal(
+  private async splitRefusal(
     tripId: number,
     members: { user_id: number; amount: number }[],
     totalCents: number,
     payers?: { user_id: number; amount: number }[],
-  ): string | null {
-    const roster = this.db.rosterUserIds(tripId);
-    const strangers = members.filter(m => !roster.has(m.user_id)).map(m => m.user_id);
+  ): Promise<string | null> {
+    const roster = await this.tripMembers.rosterUserIds(tripId);
+    const strangers = members.filter((m) => !roster.has(m.user_id)).map((m) => m.user_id);
     if (strangers.length > 0) {
       return `members contains user IDs that are not on this trip: ${strangers.join(', ')}. Resolve them with list_trip_members.`;
     }
-    if (new Set(members.map(m => m.user_id)).size !== members.length) {
+    if (new Set(members.map((m) => m.user_id)).size !== members.length) {
       return 'members lists the same user twice. Give each participant one amount.';
     }
     // A payer the write path will drop takes the total down with it, so the split
     // certified here would not be the split stored. Refuse rather than let the
     // difference surface on the balances screen.
     if (payers) {
-      const payerStrangers = payers.filter(p => p.amount !== 0 && !roster.has(p.user_id)).map(p => p.user_id);
+      const payerStrangers = payers.filter((p) => p.amount !== 0 && !roster.has(p.user_id)).map((p) => p.user_id);
       if (payerStrangers.length > 0) {
         return `payers contains user IDs that are not on this trip: ${payerStrangers.join(', ')}. Resolve them with list_trip_members.`;
       }
     }
-    const splitCents = sumCents(members.map(m => m.amount));
+    const splitCents = sumMinor(members.map((m) => m.amount));
     if (splitCents !== totalCents) {
       return `The split does not add up: the member amounts total ${formatCents(splitCents)} but the expense total is ${formatCents(totalCents)}. Adjust the amounts so they sum to the expense total.`;
     }
     return null;
   }
 
-  /** The sibling tools' foreign-id rule: a linked id must live on the same trip. */
-  private placeOnTrip(tripId: number, placeId: number): boolean {
-    return !!this.db.get('SELECT id FROM places WHERE id = ? AND trip_id = ?', placeId, tripId);
+  /** The sibling tools' foreign-id rule: a linked id must live on the same trip. BGM1 — now `PlacesRepository.findTripId` (R12), compared against the caller's own trip id. */
+  private async placeOnTrip(tripId: number, placeId: number): Promise<boolean> {
+    return (await this.places.findTripId(placeId)) === tripId;
   }
 
   // --- BUDGET ---
 
   @Tool({
     name: 'create_budget_item',
-    description: 'Add a budget/expense item to a trip. The cost is split equally among member_ids (omit to split across all trip members, or pass [] for a planning-only entry with no split); for an uneven split, give `members` the amount each participant owes instead. Use `payers` to record who actually paid and how much. Ask the user which trip members share this expense and who paid (resolve user IDs with list_trip_members) rather than guessing. A foreign currency is frozen at the exchange rate the server quotes today; when the server has none, the expense counts in no balance or total and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.',
+    description:
+      'Add a budget/expense item to a trip. The cost is split equally among member_ids (omit to split across all trip members, or pass [] for a planning-only entry with no split); for an uneven split, give `members` the amount each participant owes instead. Use `payers` to record who actually paid and how much. Ask the user which trip members share this expense and who paid (resolve user IDs with list_trip_members) rather than guessing. A foreign currency is frozen at the exchange rate the server quotes today; when the server has none, the expense counts in no balance or total and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       name: z.string().min(1).max(200),
       category: z.string().max(100).optional().describe('Budget category (e.g. Accommodation, Food, Transport)'),
       total_price: z.number().describe('Signed: a negative total records a refund/partial reimbursement (#2176)'),
-      currency: z.string().max(10).nullable().optional().describe('ISO currency code (e.g. "EUR"); defaults to the trip currency'),
-      member_ids: z.array(z.number().int().positive()).optional().describe('Trip member user IDs splitting this expense equally. Omit to split across all trip members (owner + members); pass [] for no split.'),
-      members: splitMembersSchema.optional().describe('Uneven split: what each participant owes, in the expense currency. The amounts must add up to the expense total. Use this instead of member_ids, never alongside it.'),
-      payers: payersSchema.optional().describe('Who paid how much, in the expense currency. When given, total_price is derived from the sum. Ask the user; do not guess.'),
+      currency: z
+        .string()
+        .max(10)
+        .nullable()
+        .optional()
+        .describe('ISO currency code (e.g. "EUR"); defaults to the trip currency'),
+      member_ids: z
+        .array(idSchema)
+        .optional()
+        .describe(
+          'Trip member user IDs splitting this expense equally. Omit to split across all trip members (owner + members); pass [] for no split.',
+        ),
+      members: splitMembersSchema
+        .optional()
+        .describe(
+          'Uneven split: what each participant owes, in the expense currency. The amounts must add up to the expense total. Use this instead of member_ids, never alongside it.',
+        ),
+      payers: payersSchema
+        .optional()
+        .describe(
+          'Who paid how much, in the expense currency. When given, total_price is derived from the sum. Ask the user; do not guess.',
+        ),
       expense_date: z.string().max(40).nullable().optional().describe('Date the expense occurred, YYYY-MM-DD'),
-      place_id: z.number().int().positive().optional().describe('Place on this trip the expense belongs to (the museum ticket for that museum), linking it in the planner'),
+      place_id: idSchema
+        .optional()
+        .describe(
+          'Place on this trip the expense belongs to (the museum ticket for that museum), linking it in the planner',
+        ),
       note: z.string().max(500).optional(),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -197,30 +235,67 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'write' },
   })
   async createBudgetItem(
-    { tripId, name, category, total_price, currency, member_ids, members, payers, expense_date, place_id, note }: {
-      tripId: number; name: string; category?: string; total_price: number; currency?: string | null;
-      member_ids?: number[]; members?: { user_id: number; amount: number }[];
-      payers?: { user_id: number; amount: number }[]; expense_date?: string | null; place_id?: number; note?: string;
+    {
+      tripId,
+      name,
+      category,
+      total_price,
+      currency,
+      member_ids,
+      members,
+      payers,
+      expense_date,
+      place_id,
+      note,
+    }: {
+      tripId: number;
+      name: string;
+      category?: string;
+      total_price: number;
+      currency?: string | null;
+      member_ids?: number[];
+      members?: { user_id: number; amount: number }[];
+      payers?: { user_id: number; amount: number }[];
+      expense_date?: string | null;
+      place_id?: number;
+      note?: string;
     },
     ctx: McpContext,
   ) {
-    if (this.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
-    if (members !== undefined && member_ids !== undefined) return errorResult('Pass either members (uneven split) or member_ids (equal split), not both.');
-    if (place_id != null && !this.placeOnTrip(tripId, place_id)) return errorResult('place_id does not belong to this trip.');
+    if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
+    if (members !== undefined && member_ids !== undefined)
+      return errorResult('Pass either members (uneven split) or member_ids (equal split), not both.');
+    if (place_id != null && !(await this.placeOnTrip(tripId, place_id)))
+      return errorResult('place_id does not belong to this trip.');
     if (members !== undefined) {
-      const refusal = this.splitRefusal(tripId, members, this.settledTotalCents(tripId, payers, total_price, toCents(total_price)), payers);
+      const refusal = await this.splitRefusal(
+        tripId,
+        members,
+        await this.settledTotalCents(tripId, payers, total_price, toMinor(total_price)),
+        payers,
+      );
       if (refusal) return errorResult(refusal);
     }
     // The split participants are the members of an uneven split; the equal-split
     // list still carries them so the row's `persons` count comes out the same.
-    const splitIds = members ? members.map(m => m.user_id) : this.resolveMemberIds(tripId, member_ids);
-    const itemData = { category, name, total_price, currency, member_ids: splitIds, members, payers, expense_date, place_id, note };
+    const splitIds = members ? members.map((m) => m.user_id) : await this.resolveMemberIds(tripId, member_ids);
+    const itemData = {
+      category,
+      name,
+      total_price,
+      currency,
+      member_ids: splitIds,
+      members,
+      payers,
+      expense_date,
+      place_id,
+      note,
+    };
     // Freeze the live FX rate at entry time so a settled position isn't re-opened
     // when live rates drift (#1445) — same as the REST create path.
     await this.budget.freezeForeignRate(tripId, itemData);
-    const item = this.budget.createBudgetItem(tripId, itemData);
+    const item = await this.budget.createBudgetItem(tripId, itemData);
     this.guards.safeBroadcast(tripId, 'budget:created', { item });
     return ok({ item });
   }
@@ -229,18 +304,17 @@ export class BudgetMcp {
     name: 'delete_budget_item',
     description: 'Delete a budget item from a trip.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
+      tripId: idSchema,
+      itemId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: budgetAddonOn,
     access: { group: 'budget', mode: 'write' },
   })
   async deleteBudgetItem({ tripId, itemId }: { tripId: number; itemId: number }, ctx: McpContext) {
-    if (this.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
-    const deleted = this.budget.deleteBudgetItem(itemId, tripId);
+    if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
+    const deleted = await this.budget.deleteBudgetItem(itemId, tripId);
     if (!deleted) return errorResult('Budget item not found.');
     this.guards.safeBroadcast(tripId, 'budget:deleted', { itemId });
     return ok({ success: true });
@@ -250,51 +324,139 @@ export class BudgetMcp {
 
   @Tool({
     name: 'update_budget_item',
-    description: 'Update an existing budget/expense item in a trip. You can also re-split it (equally via member_ids, unevenly via members), change the currency it was entered in, move it to another date, and record who actually paid via payers (amounts in the expense currency). When changing who shares an expense or who paid, ask the user rather than guessing; resolve user IDs with list_trip_members. A foreign currency is frozen at the exchange rate the server quotes today; when the server has none, the expense counts in no balance or total and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.',
+    description:
+      'Update an existing budget/expense item in a trip. You can also re-split it (equally via member_ids, unevenly via members), change the currency it was entered in, move it to another date, and record who actually paid via payers (amounts in the expense currency). When changing who shares an expense or who paid, ask the user rather than guessing; resolve user IDs with list_trip_members. A foreign currency is frozen at the exchange rate the server quotes today; when the server has none, the expense counts in no balance or total and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
+      tripId: idSchema,
+      itemId: idSchema,
       name: z.string().min(1).max(200).optional(),
       category: z.string().max(100).optional(),
       total_price: z.number().optional(),
-      currency: z.string().max(10).nullable().optional().describe('ISO currency code the expense is in (e.g. "USD"); null puts it back in the trip currency. Changing it re-freezes the FX rate at today\'s rate.'),
-      member_ids: z.array(z.number().int().positive()).optional().describe('Trip member user IDs splitting this expense equally; replaces the current split. Omit to leave unchanged, pass [] for no split.'),
-      members: splitMembersSchema.optional().describe('Uneven split: what each participant owes, in the expense currency; replaces the current split. The amounts must add up to the expense total. Use this instead of member_ids, never alongside it.'),
-      payers: payersSchema.optional().describe('Replaces who paid how much, in the expense currency. Omit to leave unchanged. Ask the user; do not guess.'),
-      persons: z.number().int().positive().nullable().optional(),
-      days: z.number().int().positive().nullable().optional(),
-      expense_date: z.string().max(40).nullable().optional().describe('Date the expense occurred, YYYY-MM-DD; null clears it. Omit to leave unchanged.'),
+      currency: z
+        .string()
+        .max(10)
+        .nullable()
+        .optional()
+        .describe(
+          'ISO currency code the expense is in (e.g. "USD"); null puts it back in the trip currency. Changing it re-freezes the FX rate at today\'s rate.',
+        ),
+      member_ids: z
+        .array(idSchema)
+        .optional()
+        .describe(
+          'Trip member user IDs splitting this expense equally; replaces the current split. Omit to leave unchanged, pass [] for no split.',
+        ),
+      members: splitMembersSchema
+        .optional()
+        .describe(
+          'Uneven split: what each participant owes, in the expense currency; replaces the current split. The amounts must add up to the expense total. Use this instead of member_ids, never alongside it.',
+        ),
+      payers: payersSchema
+        .optional()
+        .describe(
+          'Replaces who paid how much, in the expense currency. Omit to leave unchanged. Ask the user; do not guess.',
+        ),
+      persons: idSchema.nullable().optional(),
+      days: idSchema.nullable().optional(),
+      expense_date: z
+        .string()
+        .max(40)
+        .nullable()
+        .optional()
+        .describe('Date the expense occurred, YYYY-MM-DD; null clears it. Omit to leave unchanged.'),
       note: z.string().max(500).nullable().optional(),
+      reservation_id: idSchema
+        .nullable()
+        .optional()
+        .describe(
+          'Booking or transport on this trip to link the expense to (a booking can carry several); null unlinks it and keeps the expense. Omit to leave unchanged.',
+        ),
+      place_id: idSchema
+        .nullable()
+        .optional()
+        .describe(
+          'Place on this trip to link the expense to; null unlinks it and keeps the expense. Omit to leave unchanged.',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: budgetAddonOn,
     access: { group: 'budget', mode: 'write' },
   })
   async updateBudgetItem(
-    { tripId, itemId, name, category, total_price, currency, member_ids, members, payers, persons, days, expense_date, note }: {
-      tripId: number; itemId: number; name?: string; category?: string; total_price?: number; currency?: string | null;
-      member_ids?: number[]; members?: { user_id: number; amount: number }[];
-      payers?: { user_id: number; amount: number }[]; persons?: number | null; days?: number | null;
-      expense_date?: string | null; note?: string | null;
+    {
+      tripId,
+      itemId,
+      name,
+      category,
+      total_price,
+      currency,
+      member_ids,
+      members,
+      payers,
+      persons,
+      days,
+      expense_date,
+      note,
+      reservation_id,
+      place_id,
+    }: {
+      tripId: number;
+      itemId: number;
+      name?: string;
+      category?: string;
+      total_price?: number;
+      currency?: string | null;
+      member_ids?: number[];
+      members?: { user_id: number; amount: number }[];
+      payers?: { user_id: number; amount: number }[];
+      persons?: number | null;
+      days?: number | null;
+      expense_date?: string | null;
+      note?: string | null;
+      reservation_id?: number | null;
+      place_id?: number | null;
     },
     ctx: McpContext,
   ) {
-    if (this.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
-    if (members !== undefined && member_ids !== undefined) return errorResult('Pass either members (uneven split) or member_ids (equal split), not both.');
+    if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
+    if (members !== undefined && member_ids !== undefined)
+      return errorResult('Pass either members (uneven split) or member_ids (equal split), not both.');
+    const linkRefusal = await this.budget.linkRefusal(tripId, { reservation_id, place_id });
+    if (linkRefusal) return errorResult(linkRefusal);
     if (members !== undefined) {
       // An edit that leaves the total alone still has to reconcile against it, so
       // the stored figure stands in when the call does not restate one.
-      const existing = this.budget.getBudgetItem(itemId, tripId);
+      const existing = await this.budget.getBudgetItem(itemId, tripId);
       if (!existing) return errorResult('Budget item not found.');
-      const refusal = this.splitRefusal(tripId, members, this.settledTotalCents(tripId, payers, total_price, toCents(existing.total_price)), payers);
+      const refusal = await this.splitRefusal(
+        tripId,
+        members,
+        await this.settledTotalCents(tripId, payers, total_price, toMinor(existing.total_price)),
+        payers,
+      );
       if (refusal) return errorResult(refusal);
     }
     // Freeze-then-write composite: a currency change re-freezes the rate at entry
     // time (#1445) on the same code path the REST update uses.
-    const item = await this.budget.update(itemId, tripId, { name, category, total_price, currency, member_ids, members, payers, persons, days, expense_date, note });
+    const before = reservation_id !== undefined ? await this.budget.getBudgetItem(itemId, tripId) : null;
+    const item = await this.budget.update(itemId, tripId, {
+      name,
+      category,
+      total_price,
+      currency,
+      member_ids,
+      members,
+      payers,
+      persons,
+      days,
+      expense_date,
+      note,
+      reservation_id,
+      place_id,
+    });
     if (!item) return errorResult('Budget item not found.');
+    await this.budget.resyncLinkedPrices(tripId, before?.reservation_id, item, { total_price, reservation_id });
     this.guards.safeBroadcast(tripId, 'budget:updated', { item });
     return ok({ item });
   }
@@ -303,39 +465,75 @@ export class BudgetMcp {
 
   @Tool({
     name: 'create_budget_item_with_members',
-    description: 'Create a budget/expense item and set the trip members splitting it equally in one atomic operation. If userIds is omitted, the cost is split across all trip members; pass an explicit list to split among a subset, or an empty array for a planning-only entry with no split. Ask the user which members share this expense rather than guessing; resolve user IDs with list_trip_members. Only use when the item does not yet exist; if it already exists, use set_budget_item_members directly. For an uneven split, a foreign currency or a date, use create_budget_item instead.',
+    description:
+      'Create a budget/expense item and set the trip members splitting it equally in one atomic operation. If userIds is omitted, the cost is split across all trip members; pass an explicit list to split among a subset, or an empty array for a planning-only entry with no split. Ask the user which members share this expense rather than guessing; resolve user IDs with list_trip_members. Only use when the item does not yet exist; if it already exists, use set_budget_item_members directly. For an uneven split, a foreign currency or a date, use create_budget_item instead.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       name: z.string().min(1).max(200),
       category: z.string().max(100).optional().describe('Budget category (e.g. Accommodation, Food, Transport)'),
       total_price: z.number().describe('Signed: a negative total records a refund/partial reimbursement (#2176)'),
       note: z.string().max(500).optional(),
-      userIds: z.array(z.number().int().positive()).optional().describe('User IDs splitting this item; omit to split across all trip members, or pass an empty array for no split'),
-      place_id: z.number().int().positive().optional().describe('Place on this trip the expense belongs to (the museum ticket for that museum), linking it in the planner'),
+      userIds: z
+        .array(idSchema)
+        .optional()
+        .describe(
+          'User IDs splitting this item; omit to split across all trip members, or pass an empty array for no split',
+        ),
+      place_id: idSchema
+        .optional()
+        .describe(
+          'Place on this trip the expense belongs to (the museum ticket for that museum), linking it in the planner',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: budgetAddonOn,
     access: { group: 'budget', mode: 'write' },
   })
   async createBudgetItemWithMembers(
-    { tripId, name, category, total_price, note, userIds, place_id }: {
-      tripId: number; name: string; category?: string; total_price: number; note?: string; userIds?: number[]; place_id?: number;
+    {
+      tripId,
+      name,
+      category,
+      total_price,
+      note,
+      userIds,
+      place_id,
+    }: {
+      tripId: number;
+      name: string;
+      category?: string;
+      total_price: number;
+      note?: string;
+      userIds?: number[];
+      place_id?: number;
     },
     ctx: McpContext,
   ) {
-    if (this.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
-    if (place_id != null && !this.placeOnTrip(tripId, place_id)) return errorResult('place_id does not belong to this trip.');
+    if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
+    if (place_id != null && !(await this.placeOnTrip(tripId, place_id)))
+      return errorResult('place_id does not belong to this trip.');
     // Omitted userIds → default to the whole trip, matching create_budget_item.
-    const members = (userIds && userIds.length > 0) ? userIds : this.resolveMemberIds(tripId, undefined);
+    const members = userIds && userIds.length > 0 ? userIds : await this.resolveMemberIds(tripId, undefined);
     try {
-      const item = this.db.transaction(() => {
-        const created = this.budget.createBudgetItem(tripId, { category, name, total_price, note, member_ids: members, place_id });
-        return this.budget.getBudgetItem(created.id, tripId)!;
+      const item = await this.uow.transactional(async () => {
+        const created = await this.budget.createBudgetItem(tripId, {
+          category,
+          name,
+          total_price,
+          note,
+          member_ids: members,
+          place_id,
+        });
+        return (await this.budget.getBudgetItem(created.id, tripId))!;
       });
       this.guards.safeBroadcast(tripId, 'budget:created', { item });
-      if (members && members.length > 0) this.guards.safeBroadcast(tripId, 'budget:members-updated', { itemId: item.id, members: item.members, persons: item.persons });
+      if (members && members.length > 0)
+        this.guards.safeBroadcast(tripId, 'budget:members-updated', {
+          itemId: item.id,
+          members: item.members,
+          persons: item.persons,
+        });
       return ok({ item });
     } catch {
       return errorResult('Failed to create budget item.');
@@ -344,24 +542,31 @@ export class BudgetMcp {
 
   @Tool({
     name: 'set_budget_item_members',
-    description: 'Set which trip members are splitting a budget item (replaces current member list). Ask the user which members share the expense; resolve user IDs with list_trip_members.',
+    description:
+      'Set which trip members are splitting a budget item (replaces current member list). Ask the user which members share the expense; resolve user IDs with list_trip_members.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
-      userIds: z.array(z.number().int().positive()).describe('User IDs splitting this item; empty array clears all'),
+      tripId: idSchema,
+      itemId: idSchema,
+      userIds: z.array(idSchema).describe('User IDs splitting this item; empty array clears all'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: budgetAddonOn,
     access: { group: 'budget', mode: 'write' },
   })
-  async setBudgetItemMembers({ tripId, itemId, userIds }: { tripId: number; itemId: number; userIds: number[] }, ctx: McpContext) {
-    if (this.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
-    const result = this.budget.updateMembers(itemId, tripId, userIds);
+  async setBudgetItemMembers(
+    { tripId, itemId, userIds }: { tripId: number; itemId: number; userIds: number[] },
+    ctx: McpContext,
+  ) {
+    if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
+    const result = await this.budget.updateMembers(itemId, tripId, userIds);
     if (!result) return errorResult('Budget item not found.');
-    const item = this.budget.getBudgetItem(itemId, tripId);
-    this.guards.safeBroadcast(tripId, 'budget:members-updated', { itemId, members: result.members, persons: result.item.persons });
+    const item = await this.budget.getBudgetItem(itemId, tripId);
+    this.guards.safeBroadcast(tripId, 'budget:members-updated', {
+      itemId,
+      members: result.members,
+      persons: result.item.persons,
+    });
     return ok({ item });
   }
 
@@ -369,20 +574,22 @@ export class BudgetMcp {
     name: 'toggle_budget_member_paid',
     description: 'Mark or unmark a member as having paid their share of a budget item.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      itemId: z.number().int().positive(),
-      memberId: z.number().int().positive().describe('User ID of the member'),
+      tripId: idSchema,
+      itemId: idSchema,
+      memberId: idSchema.describe('User ID of the member'),
       paid: z.boolean(),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: budgetAddonOn,
     access: { group: 'budget', mode: 'write' },
   })
-  async toggleBudgetMemberPaid({ tripId, itemId, memberId, paid }: { tripId: number; itemId: number; memberId: number; paid: boolean }, ctx: McpContext) {
-    if (this.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
-    const member = this.budget.toggleMemberPaid(itemId, tripId, memberId, paid);
+  async toggleBudgetMemberPaid(
+    { tripId, itemId, memberId, paid }: { tripId: number; itemId: number; memberId: number; paid: boolean },
+    ctx: McpContext,
+  ) {
+    if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
+    const member = await this.budget.toggleMemberPaid(itemId, tripId, memberId, paid);
     this.guards.safeBroadcast(tripId, 'budget:member-paid-updated', { itemId, userId: memberId, paid: paid ? 1 : 0 });
     return ok({ member });
   }
@@ -391,21 +598,26 @@ export class BudgetMcp {
 
   @Tool({
     name: 'get_settlement_summary',
-    description: "See each member's net balance, the suggested payments to settle shared expenses, and what the trip finally costs each member once every reimbursement is accounted for (`finalBudgets`, each figure with the rows it is made of under `sources`). Amounts are in `summary.currency`: the `base` asked for when the server can quote it, otherwise the trip's base currency. An expense or payment in a foreign currency with no exchange rate is left out of every figure and listed under `summary.unconverted` (item_ids, settlement_ids, currencies); freeze_budget_rates pins today's rate on those. Call this before recording a settlement so you know who should pay whom and how much.",
+    description:
+      "See each member's net balance, the suggested payments to settle shared expenses, and what the trip finally costs each member once every reimbursement is accounted for (`finalBudgets`, each figure with the rows it is made of under `sources`). Amounts are in `summary.currency`: the `base` asked for when the server can quote it, otherwise the trip's base currency. An expense or payment in a foreign currency with no exchange rate is left out of every figure and listed under `summary.unconverted` (item_ids, settlement_ids, currencies); freeze_budget_rates pins today's rate on those. Call this before recording a settlement so you know who should pay whom and how much.",
     inputSchema: {
-      tripId: z.number().int().positive(),
-      base: z.string().max(10).optional().describe('ISO currency code to compute balances in; defaults to the trip currency'),
+      tripId: idSchema,
+      base: z
+        .string()
+        .max(10)
+        .optional()
+        .describe('ISO currency code to compute balances in; defaults to the trip currency'),
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: budgetAddonOn,
     access: { group: 'budget', mode: 'read' },
   })
   async getSettlementSummary({ tripId, base }: { tripId: number; base?: string }, ctx: McpContext) {
-    if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    const trip = this.db.get<{ currency?: string }>('SELECT currency FROM trips WHERE id = ?', tripId);
+    if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    const currency = await this.trips.getCurrency(tripId);
     // The same call the REST route makes, so both convert with the trip currency's own
     // quote and an amount entered in `base` reads back to the cent (#2525).
-    const summary = await this.budget.settlement(tripId, base, trip?.currency || 'EUR');
+    const summary = await this.budget.settlement(tripId, base, currency || 'EUR');
     return ok({ summary });
   }
 
@@ -413,42 +625,82 @@ export class BudgetMcp {
     name: 'list_settlements',
     description: 'List the recorded settle-up payments for a trip (who paid whom, how much, when).',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     when: budgetAddonOn,
     access: { group: 'budget', mode: 'read' },
   })
   async listSettlements({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    return ok({ settlements: this.budget.listSettlements(tripId) });
+    if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    return ok({ settlements: await this.budget.listSettlements(tripId) });
   }
 
   @Tool({
     name: 'create_settlement',
-    description: "Record a settle-up payment: from_user_id paid to_user_id the given amount to settle shared expenses. The amount is in the trip's base currency unless `currency` says otherwise. Use get_settlement_summary first to find who owes whom and how much. When the server has no exchange rate for a foreign `currency`, the payment counts in no balance and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.",
+    description:
+      "Record a settle-up payment: from_user_id paid to_user_id the given amount to settle shared expenses, optionally with a note. The amount is in the trip's base currency unless `currency` says otherwise. Use get_settlement_summary first to find who owes whom and how much. When the server has no exchange rate for a foreign `currency`, the payment counts in no balance and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.",
     inputSchema: {
-      tripId: z.number().int().positive(),
-      from_user_id: z.number().int().positive().describe('User ID of the member who paid'),
-      to_user_id: z.number().int().positive().describe('User ID of the member who received the payment'),
+      tripId: idSchema,
+      from_user_id: idSchema.describe('User ID of the member who paid'),
+      to_user_id: idSchema.describe('User ID of the member who received the payment'),
       amount: z.number().positive().describe('Amount paid, in `currency`'),
-      currency: z.string().max(10).nullable().optional().describe("ISO currency code the payment was made in (e.g. \"USD\"); defaults to the trip currency. Its FX rate is frozen now, so the transfer keeps cancelling its expense when live rates drift."),
-      settled_at: z.string().max(40).nullable().optional().describe('Day the payment actually happened, YYYY-MM-DD. Omitted means no day is stored and the ledger files the payment under the day it was recorded.'),
+      currency: z
+        .string()
+        .max(10)
+        .nullable()
+        .optional()
+        .describe(
+          'ISO currency code the payment was made in (e.g. "USD"); defaults to the trip currency. Its FX rate is frozen now, so the transfer keeps cancelling its expense when live rates drift.',
+        ),
+      settled_at: z
+        .string()
+        .max(40)
+        .nullable()
+        .optional()
+        .describe(
+          'Day the payment actually happened, YYYY-MM-DD. Omitted means no day is stored and the ledger files the payment under the day it was recorded.',
+        ),
+      note: z
+        .string()
+        .max(500)
+        .nullable()
+        .optional()
+        .describe('A short note on the payment, such as how or where it was paid'),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: budgetAddonOn,
     access: { group: 'budget', mode: 'write' },
   })
   async createSettlement(
-    { tripId, from_user_id, to_user_id, amount, currency, settled_at }: { tripId: number; from_user_id: number; to_user_id: number; amount: number; currency?: string | null; settled_at?: string | null },
+    {
+      tripId,
+      from_user_id,
+      to_user_id,
+      amount,
+      currency,
+      settled_at,
+      note,
+    }: {
+      tripId: number;
+      from_user_id: number;
+      to_user_id: number;
+      amount: number;
+      currency?: string | null;
+      settled_at?: string | null;
+      note?: string | null;
+    },
     ctx: McpContext,
   ) {
-    if (this.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
     // Freeze-then-write composite, same as the REST path: the rate for the display
     // currency is frozen at entry time (#1445).
-    const settlement = await this.budget.createSettlement(tripId, { from_user_id, to_user_id, amount, currency, settled_at }, ctx.userId);
+    const settlement = await this.budget.createSettlement(
+      tripId,
+      { from_user_id, to_user_id, amount, currency, settled_at, note },
+      ctx.userId,
+    );
     if (!settlement) return errorResult('Settlement not found.');
     this.guards.safeBroadcast(tripId, 'budget:settlement-created', { settlement });
     return ok({ settlement });
@@ -456,30 +708,73 @@ export class BudgetMcp {
 
   @Tool({
     name: 'update_settlement',
-    description: 'Update a recorded settle-up payment (who paid, who received, the amount and the currency it was made in). Every field is a full replace, so restate the ones that stay the same. When the server has no exchange rate for a foreign `currency`, the payment counts in no balance and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.',
+    description:
+      'Update a recorded settle-up payment (who paid, who received, the amount, the currency it was made in and its note). Every field is a full replace, so restate the ones that stay the same. When the server has no exchange rate for a foreign `currency`, the payment counts in no balance and is listed under `unconverted` in get_settlement_summary until freeze_budget_rates pins one.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      settlementId: z.number().int().positive(),
-      from_user_id: z.number().int().positive().describe('User ID of the member who paid'),
-      to_user_id: z.number().int().positive().describe('User ID of the member who received the payment'),
+      tripId: idSchema,
+      settlementId: idSchema,
+      from_user_id: idSchema.describe('User ID of the member who paid'),
+      to_user_id: idSchema.describe('User ID of the member who received the payment'),
       amount: z.number().positive().describe('Amount paid, in `currency`'),
-      currency: z.string().max(10).nullable().optional().describe('ISO currency code the payment was made in (e.g. "USD"); null puts it back in the trip currency. Omit to leave it as recorded, which also keeps the rate frozen at settle time.'),
-      settled_at: z.string().max(40).nullable().optional().describe('Date the payment actually happened, YYYY-MM-DD. Omit to leave it as recorded.'),
+      currency: z
+        .string()
+        .max(10)
+        .nullable()
+        .optional()
+        .describe(
+          'ISO currency code the payment was made in (e.g. "USD"); null puts it back in the trip currency. Omit to leave it as recorded, which also keeps the rate frozen at settle time.',
+        ),
+      settled_at: z
+        .string()
+        .max(40)
+        .nullable()
+        .optional()
+        .describe('Date the payment actually happened, YYYY-MM-DD. Omit to leave it as recorded.'),
+      note: z
+        .string()
+        .max(500)
+        .nullable()
+        .optional()
+        .describe('A short note on the payment; null or blank clears it. Omit to leave it as recorded.'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: budgetAddonOn,
     access: { group: 'budget', mode: 'write' },
   })
   async updateSettlement(
-    { tripId, settlementId, from_user_id, to_user_id, amount, currency, settled_at }: { tripId: number; settlementId: number; from_user_id: number; to_user_id: number; amount: number; currency?: string | null; settled_at?: string | null },
+    {
+      tripId,
+      settlementId,
+      from_user_id,
+      to_user_id,
+      amount,
+      currency,
+      settled_at,
+      note,
+    }: {
+      tripId: number;
+      settlementId: number;
+      from_user_id: number;
+      to_user_id: number;
+      amount: number;
+      currency?: string | null;
+      settled_at?: string | null;
+      note?: string | null;
+    },
     ctx: McpContext,
   ) {
-    if (this.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
     // Freeze-then-write composite, same as the REST path: an edit that leaves the
     // currency alone keeps the rate frozen at settle time.
-    const settlement = await this.budget.updateSettlement(settlementId, tripId, { from_user_id, to_user_id, amount, currency, settled_at });
+    const settlement = await this.budget.updateSettlement(settlementId, tripId, {
+      from_user_id,
+      to_user_id,
+      amount,
+      currency,
+      settled_at,
+      note,
+    });
     if (!settlement) return errorResult('Settlement not found.');
     this.guards.safeBroadcast(tripId, 'budget:settlement-updated', { settlement });
     return ok({ settlement });
@@ -487,20 +782,20 @@ export class BudgetMcp {
 
   @Tool({
     name: 'delete_settlement',
-    description: 'Delete a recorded settle-up payment. This is the undo for create_settlement and restores the affected balances.',
+    description:
+      'Delete a recorded settle-up payment. This is the undo for create_settlement and restores the affected balances.',
     inputSchema: {
-      tripId: z.number().int().positive(),
-      settlementId: z.number().int().positive(),
+      tripId: idSchema,
+      settlementId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_DELETE,
     when: budgetAddonOn,
     access: { group: 'budget', mode: 'write' },
   })
   async deleteSettlement({ tripId, settlementId }: { tripId: number; settlementId: number }, ctx: McpContext) {
-    if (this.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
-    const deleted = this.budget.deleteSettlement(settlementId, tripId);
+    if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
+    const deleted = await this.budget.deleteSettlement(settlementId, tripId);
     if (!deleted) return errorResult('Settlement not found.');
     this.guards.safeBroadcast(tripId, 'budget:settlement-deleted', { settlementId });
     return ok({ success: true });
@@ -510,24 +805,25 @@ export class BudgetMcp {
 
   @Tool({
     name: 'freeze_budget_rates',
-    description: "Pin today's server exchange rate on every expense and settle-up payment of a trip that is in a foreign currency and has no rate frozen yet. That takes in the rows get_settlement_summary lists under `unconverted`, which count in no balance or total until then, and also foreign rows it still converts at today's live rate. Rows that already carry a frozen rate, rows in the trip currency and rows without a currency are never touched, and no rate is taken from the caller. Returns the rows it froze (`items`, `settlements`) and the currencies the server could not quote (`unresolved`), whose rows stay unfrozen.",
+    description:
+      "Pin today's server exchange rate on every expense and settle-up payment of a trip that is in a foreign currency and has no rate frozen yet. That takes in the rows get_settlement_summary lists under `unconverted`, which count in no balance or total until then, and also foreign rows it still converts at today's live rate. Rows that already carry a frozen rate, rows in the trip currency and rows without a currency are never touched, and no rate is taken from the caller. Returns the rows it froze (`items`, `settlements`) and the currencies the server could not quote (`unresolved`), whose rows stay unfrozen.",
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: budgetAddonOn,
     access: { group: 'budget', mode: 'write' },
   })
   async freezeBudgetRates({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (this.isDemoUser(ctx.userId)) return demoDenied();
-    if (!this.budget.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    if (!this.guards.hasTripPermission('budget_edit', tripId, ctx.userId)) return permissionDenied();
+    if (!(await this.budget.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
     // The same service call as POST …/budget/freeze-rates, without a lent rate table:
     // a rate from an MCP caller is never frozen, like everywhere else on this surface.
     const healed = await this.budget.freezeMissingRates(tripId);
     if (!healed) return errorResult('The trip currency changed. Reload and try again.');
     for (const item of healed.items) this.guards.safeBroadcast(tripId, 'budget:updated', { item });
-    for (const settlement of healed.settlements) this.guards.safeBroadcast(tripId, 'budget:settlement-updated', { settlement });
+    for (const settlement of healed.settlements)
+      this.guards.safeBroadcast(tripId, 'budget:settlement-updated', { settlement });
     return ok(healed);
   }
 
@@ -543,22 +839,26 @@ export class BudgetMcp {
   })
   async tripBudgetResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
     const id = parseId(tripId);
-    if (id === null || !this.budget.verifyTripAccess(id, ctx.userId)) {
+    if (id === null || !(await this.budget.verifyTripAccess(id, ctx.userId))) {
       return {
-        contents: [{
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify({ error: 'Trip not found or access denied' }),
-        }],
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: 'application/json',
+            text: JSON.stringify({ error: 'Trip not found or access denied' }),
+          },
+        ],
       };
     }
-    const items = this.budget.listBudgetItems(id);
+    const items = await this.budget.listBudgetItems(id);
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(items, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(items, null, 2),
+        },
+      ],
     };
   }
 
@@ -572,23 +872,27 @@ export class BudgetMcp {
   })
   async tripBudgetPerPersonResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
     const id = parseId(tripId);
-    if (id === null || !this.budget.verifyTripAccess(id, ctx.userId)) {
+    if (id === null || !(await this.budget.verifyTripAccess(id, ctx.userId))) {
       return {
-        contents: [{
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify({ error: 'Trip not found or access denied' }),
-        }],
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: 'application/json',
+            text: JSON.stringify({ error: 'Trip not found or access denied' }),
+          },
+        ],
       };
     }
     // In the trip currency, each share at the rate its expense was booked at (#2525).
     const summary = await this.budget.perPersonSummary(id);
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(summary, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(summary, null, 2),
+        },
+      ],
     };
   }
 
@@ -602,29 +906,33 @@ export class BudgetMcp {
   })
   async tripBudgetSettlementResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
     const id = parseId(tripId);
-    if (id === null || !this.budget.verifyTripAccess(id, ctx.userId)) {
+    if (id === null || !(await this.budget.verifyTripAccess(id, ctx.userId))) {
       return {
-        contents: [{
-          uri: uri.href,
-          mimeType: 'application/json',
-          text: JSON.stringify({ error: 'Trip not found or access denied' }),
-        }],
+        contents: [
+          {
+            uri: uri.href,
+            mimeType: 'application/json',
+            text: JSON.stringify({ error: 'Trip not found or access denied' }),
+          },
+        ],
       };
     }
     // Resolve the trip currency + live rates like get_settlement_summary — the
     // legacy resource called calculateSettlement(id) bare, silently netting a
     // non-EUR trip in EUR with no FX conversion.
-    const trip = this.db.get<{ currency?: string }>('SELECT currency FROM trips WHERE id = ?', id);
-    const tripCurrency = trip?.currency || 'EUR';
+    const currency = await this.trips.getCurrency(id);
+    const tripCurrency = currency || 'EUR';
     const effectiveBase = tripCurrency.toUpperCase();
     const rates = await this.exchangeRates.getRates(effectiveBase);
-    const settlement = this.budget.calculateSettlement(id, { base: effectiveBase, rates, tripCurrency });
+    const settlement = await this.budget.calculateSettlement(id, { base: effectiveBase, rates, tripCurrency });
     return {
-      contents: [{
-        uri: uri.href,
-        mimeType: 'application/json',
-        text: JSON.stringify(settlement, null, 2),
-      }],
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: 'application/json',
+          text: JSON.stringify(settlement, null, 2),
+        },
+      ],
     };
   }
 

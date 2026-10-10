@@ -9,23 +9,36 @@
  * The rule that makes this safe: it may describe, it may not illustrate, and it
  * must say what it is describing.
  */
+import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
+import type { PlaceDetailsCacheRepository } from '../../../src/db/repositories/PlaceDetailsCache.repository';
+import { readBrandIdentity } from '../../../src/nest/maps/maps.service';
+import type { MapsService } from '../../../src/nest/maps/maps.service';
+import type { GooglePlacesClient } from '../../../src/nest/maps/providers/google-places.provider';
+import type { OsmClient } from '../../../src/nest/maps/providers/osm.client';
+import type { WikimediaClient } from '../../../src/nest/maps/providers/wikimedia.client';
+import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
+import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockDbGet, mockDbRun } = vi.hoisted(() => ({
-  // Declared with the shape the fake statement below calls it with (the SQL plus
-  // whatever the caller bound), otherwise the spread has no rest parameter to land in.
-  mockDbGet: vi.fn((_sql: string, ..._params: unknown[]): unknown => undefined),
-  mockDbRun: vi.fn(),
-}));
-
-vi.mock('../../../src/db/database', () => ({
-  db: {
-    prepare: (sql: string) => ({
-      get: (...params: unknown[]) => mockDbGet(sql, ...params),
-      run: (...params: unknown[]) => mockDbRun(sql, ...params),
-      all: () => [],
-    }),
-  },
+// Rebuilt on PlaceDetailsCacheRepository/AppSettingsRepository (Plan 3c Task
+// 1, R8's rewrite list) — see place-enrichment.service.test.ts's header for
+// why the legacy SQL-text-keyed `db.prepare` stub cannot survive the service
+// calling two named repository methods instead.
+const { mockGetValue, mockFindEntry, mockUpsertEntry } = vi.hoisted(() => ({
+  mockGetValue: vi.fn(async (_key: string): Promise<string | null> => null),
+  mockFindEntry: vi.fn(
+    async (..._args: unknown[]): Promise<{ payload_json: string; fetched_at: number } | null> => null,
+  ),
+  mockUpsertEntry: vi.fn(
+    async (_row: {
+      place_id: string;
+      lang: string;
+      expanded: number;
+      payload_json: string;
+      fetched_at: number;
+    }): Promise<void> => {},
+  ),
 }));
 
 vi.mock('../../../src/utils/ssrfGuard', () => ({
@@ -34,14 +47,9 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   SsrfBlockedError: class extends Error {},
 }));
 
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-
-import { db } from '../../../src/db/database';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { PlaceEnrichmentService } from '../../../src/nest/place-enrichment/place-enrichment.service';
-import { readBrandIdentity } from '../../../src/nest/maps/maps.service';
-import type { MapsService } from '../../../src/nest/maps/maps.service';
-import type { PlacePhotoCacheService } from '../../../src/nest/place-photos/place-photo-cache.service';
+/** Every seam enrichment reaches: the maps orchestrator and the outbound clients it injects beside it. */
+type Seams<T> = { [K in keyof T]: T[K] };
+type EnrichmentSeams = Seams<MapsService> & Seams<GooglePlacesClient> & Seams<OsmClient> & Seams<WikimediaClient>;
 
 const REQ = { lat: 54.088, lng: 12.1409, name: "L'Osteria Rostock", placeId: 'ChIJosteria', lang: 'de' };
 
@@ -58,7 +66,7 @@ const CHAIN_EXTRACT = {
   source: 'wikipedia' as const,
 };
 
-function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
+function mapsStub(over: Partial<Record<keyof EnrichmentSeams, unknown>> = {}) {
   return {
     getMapsKey: vi.fn(() => null as string | null),
     photosDisabled: vi.fn(() => false),
@@ -74,28 +82,53 @@ function mapsStub(over: Partial<Record<keyof MapsService, unknown>> = {}) {
     fetchWikiExtract: vi.fn(async () => null as typeof CHAIN_EXTRACT | null),
     fetchWikiExtractFor: vi.fn(async () => null as typeof CHAIN_EXTRACT | null),
     fetchWikidataSitelinks: vi.fn(async () => ({}) as Record<string, string>),
-    resolveOsmIdentity: vi.fn(async () => null as { tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null),
+    resolveOsmIdentity: vi.fn(
+      async () => null as { tags: Record<string, string>; osmUrl: string | null; matchedName: string } | null,
+    ),
     details: vi.fn(async () => ({ place: null })),
     ...over,
-  } as unknown as MapsService;
+  } as unknown as EnrichmentSeams;
 }
 
 const cacheStub = () =>
-  ({ get: vi.fn(() => null), put: vi.fn(async () => ({ photoUrl: '/x', filePath: '/x', attribution: null })) }) as unknown as PlacePhotoCacheService;
+  ({
+    get: vi.fn(() => null),
+    put: vi.fn(async () => ({ photoUrl: '/x', filePath: '/x', attribution: null })),
+  }) as unknown as PlacePhotoCacheService;
 
-const make = (maps: MapsService) => new PlaceEnrichmentService(new DatabaseService(db as never), maps, cacheStub());
+function appSettingsStub(): AppSettingsRepository {
+  return { getValue: mockGetValue } as unknown as AppSettingsRepository;
+}
+
+function cacheRepoStub(): PlaceDetailsCacheRepository {
+  return { findEntry: mockFindEntry, upsertEntry: mockUpsertEntry } as unknown as PlaceDetailsCacheRepository;
+}
+
+const make = (maps: EnrichmentSeams) =>
+  new PlaceEnrichmentService(
+    cacheRepoStub(),
+    appSettingsStub(),
+    maps as unknown as MapsService,
+    cacheStub(),
+    maps as unknown as GooglePlacesClient,
+    maps as unknown as OsmClient,
+    maps as unknown as WikimediaClient,
+  );
 
 /** A place whose own identity is empty but that belongs to a chain. */
-const branchOfAChain = (over: Partial<Record<keyof MapsService, unknown>> = {}) =>
+const branchOfAChain = (over: Partial<Record<keyof EnrichmentSeams, unknown>> = {}) =>
   mapsStub({
     resolveOsmIdentity: vi.fn(async () => ({ tags: BRANCH_TAGS, osmUrl: null, matchedName: "L'Osteria" })),
     ...over,
   });
 
 beforeEach(() => {
-  mockDbGet.mockReset();
-  mockDbGet.mockReturnValue(undefined);
-  mockDbRun.mockReset();
+  mockGetValue.mockReset();
+  mockGetValue.mockResolvedValue(null);
+  mockFindEntry.mockReset();
+  mockFindEntry.mockResolvedValue(null);
+  mockUpsertEntry.mockReset();
+  mockUpsertEntry.mockResolvedValue(undefined);
 });
 
 describe('readBrandIdentity', () => {

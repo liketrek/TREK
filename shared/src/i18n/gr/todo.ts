@@ -11,6 +11,7 @@ const todo: TranslationStrings = {
   'todo.uncategorized': 'Χωρίς λίστα',
   'todo.namePlaceholder': 'Όνομα εργασίας',
   'todo.descriptionPlaceholder': 'Περιγραφή (προαιρετικό)',
+  'todo.editDescription': 'Κάντε κλικ για επεξεργασία, οι σύνδεσμοι ανοίγουν απευθείας',
   'todo.unassigned': 'Χωρίς ανάθεση',
   'todo.noCategory': 'Χωρίς λίστα',
   'todo.hasDescription': 'Έχει περιγραφή',

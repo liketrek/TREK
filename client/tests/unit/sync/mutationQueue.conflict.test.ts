@@ -163,6 +163,55 @@ describe('mutationQueue — chained edits to the same entity', () => {
   })
 })
 
+describe('mutationQueue: a later edit waits behind a conflict on the same entity', () => {
+  /** A compare-and-swap server where someone else already moved place 42 on to 'T1'. */
+  function casServer() {
+    let token = 'T1'
+    const seen: string[] = []
+    let serverPlace = { ...buildPlace({ trip_id: 1, id: 42, name: 'Theirs' }), updated_at: token } as Record<string, unknown>
+    server.use(http.put('/api/trips/1/places/42', async ({ request }) => {
+      const base = request.headers.get('X-Base-Updated-At')
+      const body = await request.json() as { name: string }
+      if (base && base !== token) return HttpResponse.json({ error: 'conflict', server: serverPlace }, { status: 409 })
+      seen.push(body.name)
+      token = `${token}+`
+      serverPlace = { ...serverPlace, ...body, updated_at: token }
+      return HttpResponse.json({ place: serverPlace })
+    }))
+    return seen
+  }
+
+  it('keep-mine sends the conflicting edit first, then the later one on the fresh token', async () => {
+    const seen = casServer()
+    await mutationQueue.enqueue({ id: 'a', tripId: 1, method: 'PUT', url: '/trips/1/places/42', body: { name: 'First' }, resource: 'places', entityId: 42, baseUpdatedAt: 'T0' })
+    await mutationQueue.enqueue({ id: 'b', tripId: 1, method: 'PUT', url: '/trips/1/places/42', body: { name: 'Second' }, resource: 'places', entityId: 42, baseUpdatedAt: 'T0' })
+
+    await mutationQueue.flush()
+    expect((await offlineDb.mutationQueue.get('a'))!.status).toBe('conflict')
+    // Held, not sent: replaying it now and 'a' later would undo it.
+    expect((await offlineDb.mutationQueue.get('b'))!).toMatchObject({ status: 'pending', attempts: 0 })
+
+    await mutationQueue.resolveKeepMine('a')
+
+    expect(seen).toEqual(['First', 'Second'])
+    expect(await offlineDb.mutationQueue.count()).toBe(0)
+    expect((await offlineDb.places.get(42))!.name).toBe('Second')
+  })
+
+  it('keep-theirs lets the later edit go, which the server judges on its own token', async () => {
+    casServer()
+    await mutationQueue.enqueue({ id: 'a', tripId: 1, method: 'PUT', url: '/trips/1/places/42', body: { name: 'First' }, resource: 'places', entityId: 42, baseUpdatedAt: 'T0' })
+    await mutationQueue.enqueue({ id: 'b', tripId: 1, method: 'PUT', url: '/trips/1/places/42', body: { name: 'Second' }, resource: 'places', entityId: 42, baseUpdatedAt: 'T0' })
+    await mutationQueue.flush()
+
+    await mutationQueue.resolveKeepServer('a')
+
+    expect(await offlineDb.mutationQueue.get('a')).toBeUndefined()
+    // Made against the same stale version, so it is a conflict of its own.
+    expect((await offlineDb.mutationQueue.get('b'))!.status).toBe('conflict')
+  })
+})
+
 describe('mutationQueue — auto strategies', () => {
   it('"server" adopts the server version automatically', async () => {
     setConflictStrategy('server')

@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Zrušit',
   'common.clear': 'Vymazat',
   'common.delete': 'Smazat',
+  'common.remove': 'Odstranit',
   'common.preview': 'Náhled',
   'common.edit': 'Upravit',
   'common.add': 'Přidat',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': 'Přejmenovat',
   'common.discardChanges': 'Zahodit změny',
   'common.discard': 'Zahodit',
+  'common.unsavedTitle': 'Zahodit změny?',
+  'common.unsavedMessage': 'To, co jste zde zadali, ještě není uložené.',
+  'common.keepEditing': 'Pokračovat v úpravách',
   'common.name': 'Jméno',
   'common.email': 'E-mail',
   'common.password': 'Heslo',
@@ -51,7 +55,11 @@ const common: TranslationStrings = {
   'common.copied': 'Zkopírováno',
   'common.justNow': 'právě teď',
   'common.hoursAgo': 'před {count} h',
+  'common.hoursAgo.one': 'před {count} h',
+  'common.hoursAgo.few': 'před {count} h',
   'common.daysAgo': 'před {count} d',
+  'common.daysAgo.one': 'před {count} d',
+  'common.daysAgo.few': 'před {count} d',
   'common.datepicker.prevMonth': 'Previous month', // en-fallback
   'common.datepicker.nextMonth': 'Next month', // en-fallback
   'common.datepicker.prevYear': 'Previous year', // en-fallback

@@ -11,6 +11,7 @@ const todo: TranslationStrings = {
   'todo.uncategorized': 'Без списку',
   'todo.namePlaceholder': 'Назва завдання',
   'todo.descriptionPlaceholder': 'Опис (необов’язково)',
+  'todo.editDescription': 'Натисніть, щоб редагувати, посилання відкриваються одразу',
   'todo.unassigned': 'Не призначено',
   'todo.noCategory': 'Без списку',
   'todo.hasDescription': 'Є опис',

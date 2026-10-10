@@ -1,5 +1,6 @@
 // FE-STORE-PACKING-001 to FE-STORE-PACKING-002 (reorder, #969)
 // FE-STORE-PACKING-003 to FE-STORE-PACKING-015 (three-tier sharing #858, mutation and error paths)
+// FE-STORE-PACKING-016 to FE-STORE-PACKING-017 (packed count, #2296)
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
@@ -281,5 +282,44 @@ describe('packingSlice', () => {
 
     expect(useTripStore.getState().packingItems[0].checked).toBe(0);
     expect(addToast).toHaveBeenCalledWith('Write failed', 'error', undefined);
+  });
+
+  it('FE-STORE-PACKING-016: setPackedCount counts ahead of the server and ticks the item once full', async () => {
+    const item = buildPackingItem({ id: 1, trip_id: 1, checked: 0, quantity: 3 });
+    seedStore(useTripStore, { packingItems: [item] });
+    const bodies: unknown[] = [];
+    server.use(
+      http.put('/api/trips/1/packing/1', async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({ item: { ...item, checked: 1, packed_quantity: null } });
+      })
+    );
+
+    const pending = useTripStore.getState().setPackedCount(1, 1, 2);
+    expect(useTripStore.getState().packingItems[0]).toMatchObject({ packed_quantity: 2, checked: 0 });
+    await pending;
+    await useTripStore.getState().setPackedCount(1, 1, 3);
+    expect(useTripStore.getState().packingItems[0]).toMatchObject({ packed_quantity: null, checked: 1 });
+    expect(bodies).toEqual([{ packed_quantity: 2 }, { packed_quantity: 3 }]);
+  });
+
+  it('FE-STORE-PACKING-017: setPackedCount rolls back and notifies on failure; ticking clears a count', async () => {
+    const item = buildPackingItem({ id: 1, trip_id: 1, checked: 0, quantity: 5, packed_quantity: 1 });
+    seedStore(useTripStore, { packingItems: [item] });
+    server.use(
+      http.put('/api/trips/1/packing/1', () =>
+        HttpResponse.json({ error: 'Write failed' }, { status: 500 })
+      )
+    );
+    await useTripStore.getState().setPackedCount(1, 1, 4);
+    expect(useTripStore.getState().packingItems[0]).toMatchObject({ packed_quantity: 1, checked: 0 });
+    expect(addToast).toHaveBeenCalledWith('Write failed', 'error', undefined);
+
+    // A missing item is a no-op, not a request.
+    await useTripStore.getState().setPackedCount(1, 99, 1);
+
+    server.use(http.put('/api/trips/1/packing/1', () => HttpResponse.json({ item: { ...item, checked: 1, packed_quantity: null } })));
+    await useTripStore.getState().togglePackingItem(1, 1, true);
+    expect(useTripStore.getState().packingItems[0]).toMatchObject({ packed_quantity: null, checked: 1 });
   });
 });

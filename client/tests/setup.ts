@@ -17,6 +17,7 @@ vi.mock('../src/api/websocket', () => ({
   getSocketId: vi.fn(() => null),
   setRefetchCallback: vi.fn(),
   setPreReconnectHook: vi.fn(),
+  reconnectNow: vi.fn(),
   addListener: vi.fn(),
   removeListener: vi.fn(),
 }));

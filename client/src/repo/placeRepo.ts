@@ -1,5 +1,5 @@
 import { placesApi } from '../api/client'
-import { offlineDb, upsertPlaces } from '../db/offlineDb'
+import { offlineDb, replaceTripRows, upsertPlaces } from '../db/offlineDb'
 import { mutationQueue, generateUUID, nextTempId } from '../sync/mutationQueue'
 import { isEffectivelyOffline } from '../sync/networkMode'
 import { onlineThenCache } from './withOfflineFallback'
@@ -10,7 +10,8 @@ export const placeRepo = {
     return onlineThenCache(
       async () => {
         const result = await placesApi.list(tripId, params)
-        upsertPlaces(result.places)
+        // Filtered lists are a subset; only the whole list may drop what it lacks.
+        void (params ? upsertPlaces(result.places) : replaceTripRows('places', Number(tripId), result.places))
         return result
       },
       async () => ({
@@ -80,9 +81,11 @@ export const placeRepo = {
     return result
   },
 
-  async delete(tripId: number | string, id: number | string): Promise<unknown> {
+  async delete(tripId: number | string, id: number | string): Promise<{ success?: boolean; tourPlaceIds?: number[] }> {
     if (isEffectivelyOffline()) {
+      // A tour is a place plus its facet; the server's cascade drops both.
       await offlineDb.places.delete(Number(id))
+      await offlineDb.tours.delete(Number(id))
       const mutId = generateUUID()
       const isTemp = Number(id) < 0
       await mutationQueue.enqueue({
@@ -99,12 +102,14 @@ export const placeRepo = {
     }
     const result = await placesApi.delete(tripId, id)
     offlineDb.places.delete(Number(id))
+    offlineDb.tours.delete(Number(id))
     return result
   },
 
-  async deleteMany(tripId: number | string, ids: number[]): Promise<unknown> {
+  async deleteMany(tripId: number | string, ids: number[]): Promise<{ deleted?: number[]; count?: number; tourPlaceIds?: number[] }> {
     if (isEffectivelyOffline()) {
       await offlineDb.places.bulkDelete(ids)
+      await offlineDb.tours.bulkDelete(ids)
       for (const id of ids) {
         const mutId = generateUUID()
         const isTemp = id < 0
@@ -123,6 +128,7 @@ export const placeRepo = {
     }
     const result = await placesApi.bulkDelete(tripId, ids)
     await offlineDb.places.bulkDelete(ids)
+    await offlineDb.tours.bulkDelete(ids)
     return result
   },
 

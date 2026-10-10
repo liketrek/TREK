@@ -28,6 +28,7 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} 向所有管理員傳送了測試通知。',
   'notifications.test.tripTitle': '{actor} 在您的行程中發帖',
   'notifications.test.tripText': '行程"{trip}"的測試通知。',
+  'notifications.countLabel': '則通知',
   'notifications.versionAvailable.title': '有可用更新',
   'notifications.versionAvailable.text': 'TREK {version} 現已推出。',
   'notifications.versionAvailable.button': '查看詳情',

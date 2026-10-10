@@ -1,6 +1,6 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { AddonsService } from './addons.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 
 /**
  * GET /api/addons — the enabled trip add-ons + photo providers feed.
@@ -16,7 +16,7 @@ export class AddonsController {
   constructor(private readonly addons: AddonsService) {}
 
   @Get()
-  list() {
+  async list() {
     return this.addons.list();
   }
 }

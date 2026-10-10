@@ -1,147 +1,99 @@
 /**
  * Trips module e2e — exercises the migrated /api/trips aggregate-root endpoints
- * through the real JwtAuthGuard against a temp SQLite db. TripsService runs its
- * real (DI-native) SQL — trips/trip_members/days DDL below; auditLog, demo, the
- * permission check, canAccessTrip and the WebSocket broadcast are mocked.
+ * through the real JwtAuthGuard against a real migrated-and-seeded temp SQLite
+ * db (createSnapshotTestDb(), Task 9 fix wave M6 — this used to hand-roll
+ * about two dozen CREATE TABLEs, a second hand-maintained schema copy that
+ * diverged from the real migrated one in ways no `SELECT *`/`toMatchObject`
+ * read could see: the hand-rolled `journey_entries` table had no
+ * `author_id`/`entry_date` NOT NULL columns and no FK to a real `journeys`
+ * row, so the delete-trip test's inserts would have failed loudly against
+ * the real schema — see that test's setup below for the fix). TripsService
+ * and every domain `bundle()` touches (days, places, packing, files,
+ * reservations, todos) now run their real SQL over the same migrated
+ * connection; trip access resolves through `TripsRepository.findAccessible`
+ * via the real request-scoped `EntityManager` `createTestMikroOrmModule`
+ * wires in, not a hand-rolled `canAccessTrip`/`getPlaceWithTags` mock (the
+ * legacy overrides this file used to export from `db/database.ts` — deleted
+ * there since Plan 3c Task 0b; a stale mock here would silently do nothing,
+ * not fail loudly, which is worse than removing it — the same reasoning
+ * `days.e2e.test.ts`'s identical comment gives). Only the permission check,
+ * `BudgetService` (the budget fold's own container spy, unrelated to this
+ * conversion) stay mocked.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
-import request from 'supertest';
-import cookieParser from 'cookie-parser';
-import type { Server } from 'http';
-import { DatabaseModule } from '../../src/nest/database/database.module';
+import { db } from '../../src/db/database';
+import { AuditLog } from '../../src/db/entities/AuditLog.entity';
+import { Days } from '../../src/db/entities/Days.entity';
+import { JourneyEntries } from '../../src/db/entities/JourneyEntries.entity';
+import { Journeys } from '../../src/db/entities/Journeys.entity';
+import { Settings } from '../../src/db/entities/Settings.entity';
+import { TripMembers } from '../../src/db/entities/TripMembers.entity';
+import { Trips } from '../../src/db/entities/Trips.entity';
+// TripsService itself is real since the trip fold — no tripService mock; the
+// real migrated trips/trip_members/days tables serve its SQL.
+// bundle()'s days + accommodations now run DaysService's real SQL (DI-injected,
+// no mock). bundle()'s places now run PlacesService's real SQL (DI-injected
+// since the place fold, no mock). bundle()'s budget items come from the
+// DI-injected BudgetService since the budget fold — stubbed via a container
+// spy in beforeAll (unrelated to this file's schema conversion).
+
+import { BudgetService } from '../../src/nest/budget/budget.service';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { TripsModule } from '../../src/nest/trips/trips.module';
+import { countRows, deleteRows, findRow, findRows, insertRow } from '../helpers/factories/rows';
+import { setUserSetting } from '../helpers/factories/settings';
+import { makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
 import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
 import { MAX_TRIP_DAYS } from '@trek/shared';
 
-const { db } = vi.hoisted(() => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require('better-sqlite3');
-  const tmp = new Database(':memory:');
-  tmp.exec('PRAGMA journal_mode = WAL');
-  tmp.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0,
-    avatar TEXT, display_name TEXT, is_guest INTEGER NOT NULL DEFAULT 0);`);
-  // TripsService runs its real SQL (DI-native since the trip fold) — full trip
-  // column set for TRIP_SELECT + create/update/delete, plus the membership and
-  // day-content tables generateDays/listMembers/deleteTrip touch.
-  tmp.exec(`CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, title TEXT NOT NULL,
-    description TEXT, start_date TEXT, end_date TEXT, currency TEXT DEFAULT 'EUR', is_archived INTEGER DEFAULT 0,
-    cover_image TEXT, reminder_days INTEGER DEFAULT 3, feed_token TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
-  tmp.exec(`CREATE TABLE trip_members (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL, invited_by INTEGER, added_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
-  tmp.exec(`CREATE TABLE day_assignments (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
-    place_id INTEGER NOT NULL, order_index INTEGER DEFAULT 0, notes TEXT, reservation_status TEXT,
-    reservation_notes TEXT, reservation_datetime TEXT, assignment_time TEXT, assignment_end_time TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
-  tmp.exec(`CREATE TABLE day_notes (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
-    trip_id INTEGER NOT NULL, text TEXT, time TEXT, icon TEXT, sort_order INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
-  // deleteTrip cleans up synced journey entries before dropping the trip row.
-  tmp.exec(`CREATE TABLE journey_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, journey_id INTEGER,
-    source_trip_id INTEGER, source_place_id INTEGER, source_assignment_id INTEGER, type TEXT NOT NULL);`);
-  // bundle()'s todoItems now runs TodoService's real SQL (DI-injected, no mock).
-  tmp.exec(`CREATE TABLE todo_items (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
-    name TEXT NOT NULL, checked INTEGER NOT NULL DEFAULT 0, category TEXT, sort_order INTEGER NOT NULL DEFAULT 0,
-    due_date TEXT, description TEXT, assigned_user_id INTEGER, priority INTEGER NOT NULL DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
-  // bundle()'s packingItems now runs PackingService's real SQL (DI-injected, no
-  // mock) — viewer-scoped (#858), so the recipients table must exist too.
-  tmp.exec(`CREATE TABLE packing_items (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
-    name TEXT NOT NULL, checked INTEGER DEFAULT 0, category TEXT, sort_order INTEGER DEFAULT 0,
-    weight_grams INTEGER, bag_id INTEGER, quantity INTEGER NOT NULL DEFAULT 1,
-    is_private INTEGER NOT NULL DEFAULT 0, owner_id INTEGER, updated_at DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
-  tmp.exec(`CREATE TABLE packing_item_recipients (item_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
-    PRIMARY KEY (item_id, user_id));`);
-  // bundle()'s files now runs FilesService's real SQL (DI-injected, no mock) —
-  // empty tables satisfy the FILE_SELECT joins and the file_links batch.
-  tmp.exec(`CREATE TABLE trip_files (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
-    place_id INTEGER, reservation_id INTEGER, message_id INTEGER, filename TEXT NOT NULL,
-    original_name TEXT NOT NULL, file_size INTEGER, mime_type TEXT, description TEXT,
-    uploaded_by INTEGER, starred INTEGER DEFAULT 0,
-    deleted_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
-  tmp.exec(`CREATE TABLE file_links (id INTEGER PRIMARY KEY AUTOINCREMENT, file_id INTEGER NOT NULL,
-    reservation_id INTEGER, assignment_id INTEGER, place_id INTEGER,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
-  // bundle()'s reservations now runs ReservationsService's real SQL
-  // (DI-injected, no mock) — the joined list query needs the full reservation
-  // table set (trimmed from src/db/schema.ts; accommodation_id is TEXT there).
-  tmp.exec(`CREATE TABLE reservations (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, title TEXT,
-    day_id INTEGER, end_day_id INTEGER, place_id INTEGER, assignment_id INTEGER, type TEXT,
-    status TEXT DEFAULT 'pending', reservation_time TEXT, reservation_end_time TEXT, location TEXT,
-    confirmation_number TEXT, notes TEXT, url TEXT, accommodation_id TEXT, metadata TEXT,
-    needs_review INTEGER DEFAULT 0, day_plan_position REAL, external_source TEXT, sync_enabled INTEGER,
-    ingest_state TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
-  tmp.exec('CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, day_number INTEGER, date TEXT);');
-  tmp.exec(`CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, name TEXT,
-    image_url TEXT, address TEXT, lat REAL, lng REAL, category_id INTEGER, description TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
-  // PlacesService.list joins categories and batch-loads tags/ratings.
-  tmp.exec('CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT, icon TEXT);');
-  tmp.exec('CREATE TABLE tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT, created_at DATETIME);');
-  tmp.exec('CREATE TABLE place_tags (place_id INTEGER NOT NULL, tag_id INTEGER NOT NULL, PRIMARY KEY (place_id, tag_id));');
-  tmp.exec('CREATE TABLE place_ratings (place_id INTEGER NOT NULL, user_id INTEGER NOT NULL, rating INTEGER, created_at DATETIME, UNIQUE(place_id, user_id));');
-  tmp.exec(`CREATE TABLE day_accommodations (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
-    place_id INTEGER, start_day_id INTEGER, end_day_id INTEGER, check_in TEXT, check_in_end TEXT,
-    check_out TEXT, confirmation TEXT, notes TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
-  tmp.exec(`CREATE TABLE reservation_day_positions (reservation_id INTEGER NOT NULL, day_id INTEGER NOT NULL,
-    position REAL, PRIMARY KEY (reservation_id, day_id));`);
-  tmp.exec(`CREATE TABLE reservation_endpoints (id INTEGER PRIMARY KEY AUTOINCREMENT, reservation_id INTEGER NOT NULL,
-    role TEXT, sequence INTEGER, name TEXT, code TEXT, lat REAL NOT NULL, lng REAL NOT NULL,
-    timezone TEXT, local_time TEXT, local_date TEXT);`);
-  tmp.exec(`CREATE TABLE reservation_travelers (reservation_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
-    PRIMARY KEY (reservation_id, user_id));`);
-  // AuditService now runs its real INSERT (DI-injected, no mock) — slim
-  // audit_log mirror (no FKs), same shape as plugin-runtime.test.ts.
-  tmp.exec(`CREATE TABLE audit_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    user_id INTEGER, action TEXT NOT NULL, resource TEXT, details TEXT, ip TEXT);`);
-  // StorageRegistryService (behind StorageModule, now in this module chain) reads
-  // this at onModuleInit.
-  tmp.exec('CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT);');
-  // A trip created without a currency takes the owner's display currency, read
-  // off the per-user settings rows.
-  tmp.exec('CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, key TEXT NOT NULL, value TEXT, UNIQUE(user_id, key));');
-  return { db: tmp };
-});
+import cookieParser from 'cookie-parser';
+import type { Server } from 'http';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 
-const { canAccessTrip } = vi.hoisted(() => ({ canAccessTrip: vi.fn() }));
-vi.mock('../../src/db/database', () => ({
-  db, canAccessTrip, isOwner: vi.fn(() => true), getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
-}));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 // The audit domain is DI-native now: writeAudit runs for real against the temp
 // db's audit_log table; only the file logger is silenced.
-vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
+vi.mock('../../src/nest/audit/audit-log.logger', () => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+}));
 vi.mock('../../src/nest/common/demo', () => ({ isDemoEmail: vi.fn(() => false) }));
-
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
 // Since the permissions DI migration, the check is a spy on the container's
 // PermissionsService singleton (created in beforeAll, after build()).
 let checkPermission: MockInstance;
 
-// TripsService itself is real since the trip fold — no tripService mock; the
-// trips/trip_members/days DDL above serves its SQL.
-// bundle()'s days + accommodations now run DaysService's real SQL (DI-injected,
-// no mock) — the days/places/day_accommodations/reservations DDL above serves them.
-// bundle()'s places now run PlacesService's real SQL (DI-injected since the
-// place fold, no mock) — the places/categories/tags DDL above serves them.
-// bundle()'s budget items come from the DI-injected BudgetService since the
-// budget fold — stubbed via a container spy in beforeAll (no budget DDL here).
+let orm: TestOrm;
 
-import { BudgetService } from '../../src/nest/budget/budget.service';
-import { TripsModule } from '../../src/nest/trips/trips.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+/** The trip's day ids in day order. */
+async function dayIds(tripId: number): Promise<number[]> {
+  return (await findRows(orm, Days, { trip: tripId }, { day_number: 'asc' })).map((d) => d.id);
+}
 
 describe('Trips e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, TripsModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        TripsModule,
+      ],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -150,41 +102,53 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
   }
 
   beforeAll(async () => {
-    seedUser(db as never, { id: 1 });
+    // harness.ts's seedUser() omits password_hash, which the real migrated
+    // schema requires NOT NULL (days.e2e.test.ts/addons.e2e.test.ts hit the
+    // same thing) — a raw insert here instead.
+    orm = await createTestOrm(db);
+    await makeUser(orm, { id: 1, username: 'e2e-user', email: 'e2e@example.test' });
     app = await build();
     checkPermission = vi.spyOn(app.get(PermissionsService), 'checkPermission');
-    vi.spyOn(app.get(BudgetService), 'listBudgetItems').mockReturnValue([]);
-    vi.spyOn(app.get(BudgetService), 'rebaseTripCurrency').mockResolvedValue();
+    vi.spyOn(app.get(BudgetService), 'listBudgetItems').mockResolvedValue([]);
+    vi.spyOn(app.get(BudgetService), 'prepareCurrencyRebase').mockResolvedValue(null);
     server = app.getHttpServer();
   });
 
-  beforeEach(() => {
-    db.prepare('DELETE FROM trips').run();
-    db.prepare('DELETE FROM trip_members').run();
-    db.prepare('DELETE FROM days').run();
-    db.prepare('DELETE FROM audit_log').run();
-    db.prepare('DELETE FROM settings').run();
-    canAccessTrip.mockReturnValue({ user_id: 1 });
+  beforeEach(async () => {
+    await deleteRows(orm, Trips);
+    await deleteRows(orm, TripMembers);
+    await deleteRows(orm, Days);
+    await deleteRows(orm, AuditLog);
+    await deleteRows(orm, Settings);
+    // 0b review L2 / security review F-B7: dead mock scaffolding — see
+    // budget.e2e.test.ts's identical comment.
     checkPermission.mockReturnValue(true);
   });
 
   afterAll(async () => {
     await app.close();
+    await orm.close();
   });
 
-  const seedTrip = (title = 'T', userId = 1) =>
-    Number(db.prepare('INSERT INTO trips (user_id, title) VALUES (?, ?)').run(userId, title).lastInsertRowid);
+  const seedTrip = (title = 'T', userId = 1) => insertRow(orm, Trips, { user: userId, title });
 
   it('401 without a cookie', async () => {
     expect((await request(server).get('/api/trips')).status).toBe(401);
   });
 
   it('200 list (real TRIP_SELECT: is_owner + counts)', async () => {
-    const tripId = seedTrip('T');
+    const tripId = await seedTrip('T');
     const res = await request(server).get('/api/trips').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body.trips).toHaveLength(1);
-    expect(res.body.trips[0]).toMatchObject({ id: tripId, title: 'T', is_owner: 1, day_count: 0, place_count: 0, shared_count: 0 });
+    expect(res.body.trips[0]).toMatchObject({
+      id: tripId,
+      title: 'T',
+      is_owner: 1,
+      day_count: 0,
+      place_count: 0,
+      shared_count: 0,
+    });
   });
 
   it('201 create (real insert + day generation), 403 without permission', async () => {
@@ -192,63 +156,80 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     expect(ok.status).toBe(201);
     // The dateless create seeds the default 7 placeholder days.
     expect(ok.body.trip).toMatchObject({ title: 'T', currency: 'EUR', day_count: 7, is_owner: 1 });
-    const dayRows = db.prepare('SELECT COUNT(*) AS n FROM days WHERE trip_id = ?').get(ok.body.trip.id) as { n: number };
-    expect(dayRows.n).toBe(7);
+    const dayRows = await countRows(orm, Days, { trip: ok.body.trip.id });
+    expect(dayRows).toBe(7);
     // The DI-native AuditService wrote the real row (audit_log DDL above).
-    const audit = db.prepare("SELECT user_id FROM audit_log WHERE action = 'trip.create'").get() as { user_id: number };
-    expect(audit).toEqual({ user_id: 1 });
+    const audit = await findRow(orm, AuditLog, { action: 'trip.create' });
+    expect({ user_id: audit?.user_id }).toEqual({ user_id: 1 });
     checkPermission.mockReturnValue(false);
     const forbidden = await request(server).post('/api/trips').set('Cookie', sessionCookie(1)).send({ title: 'T' });
     expect(forbidden.status).toBe(403);
   });
 
   it('201 create without a currency takes the display currency from the settings', async () => {
-    db.prepare("INSERT INTO settings (user_id, key, value) VALUES (1, 'default_currency', ?)").run(JSON.stringify('USD'));
-    const preferred = await request(server).post('/api/trips').set('Cookie', sessionCookie(1)).send({ title: 'Road trip' });
+    await setUserSetting(orm, 1, 'default_currency', JSON.stringify('USD'));
+    const preferred = await request(server)
+      .post('/api/trips')
+      .set('Cookie', sessionCookie(1))
+      .send({ title: 'Road trip' });
     expect(preferred.status).toBe(201);
     expect(preferred.body.trip).toMatchObject({ title: 'Road trip', currency: 'USD' });
-    const explicit = await request(server).post('/api/trips').set('Cookie', sessionCookie(1)).send({ title: 'Tokyo', currency: 'JPY' });
+    const explicit = await request(server)
+      .post('/api/trips')
+      .set('Cookie', sessionCookie(1))
+      .send({ title: 'Tokyo', currency: 'JPY' });
     expect(explicit.status).toBe(201);
     expect(explicit.body.trip).toMatchObject({ title: 'Tokyo', currency: 'JPY' });
   });
 
   it('201 create keeps every day of a trip longer than a year (#2403)', async () => {
     // 2025-01-26 .. 2026-01-28 is 368 days; the day list used to stop at 365.
-    const res = await request(server).post('/api/trips').set('Cookie', sessionCookie(1))
+    const res = await request(server)
+      .post('/api/trips')
+      .set('Cookie', sessionCookie(1))
       .send({ title: 'Gap year', start_date: '2025-01-26', end_date: '2026-01-28' });
     expect(res.status).toBe(201);
     expect(res.body.trip).toMatchObject({ start_date: '2025-01-26', end_date: '2026-01-28', day_count: 368 });
-    const last = db.prepare('SELECT day_number, date FROM days WHERE trip_id = ? ORDER BY day_number DESC LIMIT 1')
-      .get(res.body.trip.id) as { day_number: number; date: string };
-    expect(last).toEqual({ day_number: 368, date: '2026-01-28' });
+    const [last] = await findRows(orm, Days, { trip: res.body.trip.id }, { day_number: 'desc' });
+    expect({ day_number: last.day_number, date: last.date }).toEqual({ day_number: 368, date: '2026-01-28' });
   });
 
   it('400 on a date range past MAX_TRIP_DAYS, for create and update alike', async () => {
-    const tooLong = await request(server).post('/api/trips').set('Cookie', sessionCookie(1))
+    const tooLong = await request(server)
+      .post('/api/trips')
+      .set('Cookie', sessionCookie(1))
       .send({ title: 'Decade', start_date: '2026-01-01', end_date: '2036-01-01' });
     expect(tooLong.status).toBe(400);
     expect(tooLong.body).toEqual({ error: `A trip can span at most ${MAX_TRIP_DAYS} days` });
-    expect(db.prepare('SELECT COUNT(*) AS n FROM trips').get()).toEqual({ n: 0 });
+    expect(await countRows(orm, Trips)).toBe(0);
 
-    const week = await request(server).post('/api/trips').set('Cookie', sessionCookie(1))
+    const week = await request(server)
+      .post('/api/trips')
+      .set('Cookie', sessionCookie(1))
       .send({ title: 'Week', start_date: '2026-07-01', end_date: '2026-07-07' });
-    const stretched = await request(server).put(`/api/trips/${week.body.trip.id}`).set('Cookie', sessionCookie(1))
+    const stretched = await request(server)
+      .put(`/api/trips/${week.body.trip.id}`)
+      .set('Cookie', sessionCookie(1))
       .send({ end_date: '2036-07-01' });
     expect(stretched.status).toBe(400);
     expect(stretched.body).toEqual({ error: `A trip can span at most ${MAX_TRIP_DAYS} days` });
-    expect(db.prepare('SELECT end_date FROM trips WHERE id = ?').get(week.body.trip.id)).toEqual({ end_date: '2026-07-07' });
+    expect((await findRow(orm, Trips, { id: week.body.trip.id }))!.end_date).toBe('2026-07-07');
   });
 
   it('200 update with an earlier end drops the last days, and the answer stays { trip }', async () => {
-    const week = await request(server).post('/api/trips').set('Cookie', sessionCookie(1))
+    const week = await request(server)
+      .post('/api/trips')
+      .set('Cookie', sessionCookie(1))
       .send({ title: 'Week', start_date: '2026-07-01', end_date: '2026-07-07' });
-    const kept = db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number LIMIT 5').all(week.body.trip.id);
-    const res = await request(server).put(`/api/trips/${week.body.trip.id}`).set('Cookie', sessionCookie(1))
+    const kept = (await dayIds(week.body.trip.id)).slice(0, 5);
+    const res = await request(server)
+      .put(`/api/trips/${week.body.trip.id}`)
+      .set('Cookie', sessionCookie(1))
       .send({ end_date: '2026-07-05' });
     expect(res.status).toBe(200);
     expect(Object.keys(res.body)).toEqual(['trip']);
     expect(res.body.trip).toMatchObject({ start_date: '2026-07-01', end_date: '2026-07-05', day_count: 5 });
-    expect(db.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(week.body.trip.id)).toEqual(kept);
+    expect(await dayIds(week.body.trip.id)).toEqual(kept);
   });
 
   it('404 on a missing trip', async () => {
@@ -259,8 +240,7 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
 
   describe('GET /active (startup destination)', () => {
     const seedDated = (title: string, start: string, end: string) =>
-      Number(db.prepare('INSERT INTO trips (user_id, title, start_date, end_date) VALUES (1, ?, ?, ?)')
-        .run(title, start, end).lastInsertRowid);
+      insertRow(orm, Trips, { user: 1, title, start_date: start, end_date: end });
 
     it('401 without a cookie', async () => {
       expect((await request(server).get('/api/trips/active')).status).toBe(401);
@@ -269,10 +249,12 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     // The literal route sits above @Get(':id'); if it ever slips below, this
     // asks for a trip with the id "active" and comes back 404 instead.
     it('resolves as its own route rather than as /api/trips/:id', async () => {
-      const running = seedDated('Running', '2000-01-01', '2999-12-31');
+      const running = await seedDated('Running', '2000-01-01', '2999-12-31');
       const res = await request(server).get('/api/trips/active').set('Cookie', sessionCookie(1));
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ trip: { id: running, title: 'Running', start_date: '2000-01-01', end_date: '2999-12-31' } });
+      expect(res.body).toEqual({
+        trip: { id: running, title: 'Running', start_date: '2000-01-01', end_date: '2999-12-31' },
+      });
     });
 
     it('answers { trip: null } when the user has no trip at all', async () => {
@@ -282,7 +264,7 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('carries no wide trip columns — it is read on first paint', async () => {
-      seedDated('Running', '2000-01-01', '2999-12-31');
+      await seedDated('Running', '2000-01-01', '2999-12-31');
       const res = await request(server).get('/api/trips/active').set('Cookie', sessionCookie(1));
       expect(Object.keys(res.body.trip).sort()).toEqual(['end_date', 'id', 'start_date', 'title']);
     });
@@ -291,8 +273,12 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
   // Real CalendarService against the temp db: a title carrying U+3000 slipped
   // through the old \s keep-class into setHeader and 500'd the export (#2165).
   it('200 export.ics with a header-safe filename for a title full of ideographic whitespace', async () => {
-    const tripId = Number(db.prepare('INSERT INTO trips (user_id, title, start_date, end_date) VALUES (1, ?, ?, ?)')
-      .run('沖縄　4泊5日', '2026-05-01', '2026-05-05').lastInsertRowid);
+    const tripId = await insertRow(orm, Trips, {
+      user: 1,
+      title: '沖縄　4泊5日',
+      start_date: '2026-05-01',
+      end_date: '2026-05-05',
+    });
     const res = await request(server).get(`/api/trips/${tripId}/export.ics`).set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toContain('text/calendar');
@@ -301,21 +287,48 @@ describe('Trips e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('200 bundle for an accessible trip (real member list)', async () => {
-    const tripId = seedTrip('B');
+    const tripId = await seedTrip('B');
     const res = await request(server).get(`/api/trips/${tripId}/bundle`).set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ trip: { id: tripId }, days: [], members: [{ id: 1, role: 'owner' }] });
   });
 
   it('200 delete cleans up synced journey entries (real SQL)', async () => {
-    const tripId = seedTrip('D');
-    db.prepare("INSERT INTO journey_entries (journey_id, source_trip_id, type) VALUES (1, ?, 'skeleton')").run(tripId);
-    const filledId = Number(db.prepare("INSERT INTO journey_entries (journey_id, source_trip_id, type) VALUES (1, ?, 'story')").run(tripId).lastInsertRowid);
+    const tripId = await seedTrip('D');
+    // Task 9 fix wave (M6) finding: the hand-rolled DDL this test used to run
+    // against had no NOT NULL/FK constraints on `journey_entries` at all
+    // (no `author_id`, no `entry_date`, no FK to a real `journeys` row) — a
+    // bare `INSERT INTO journey_entries (journey_id, source_trip_id, type)
+    // VALUES (1, ?, 'skeleton')` passed silently there. The real migrated
+    // schema requires `journey_id` to reference a real `journeys` row (NOT
+    // NULL FK) plus `author_id`/`entry_date`/`created_at`/`updated_at` NOT
+    // NULL — a real journey row (and those columns) are seeded here so the
+    // insert that used to pass for the wrong reason now passes for the real
+    // one. The assertions below are untouched, character-for-character.
+    const journeyId = await insertRow(orm, Journeys, { user: 1, title: 'J', created_at: 0, updated_at: 0 });
+    await insertRow(orm, JourneyEntries, {
+      journey: journeyId,
+      sourceTrip: tripId,
+      author: 1,
+      type: 'skeleton',
+      entry_date: '2026-01-01',
+      created_at: 0,
+      updated_at: 0,
+    });
+    const filledId = await insertRow(orm, JourneyEntries, {
+      journey: journeyId,
+      sourceTrip: tripId,
+      author: 1,
+      type: 'story',
+      entry_date: '2026-01-01',
+      created_at: 0,
+      updated_at: 0,
+    });
     const res = await request(server).delete(`/api/trips/${tripId}`).set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true });
-    expect(db.prepare('SELECT id FROM trips WHERE id = ?').get(tripId)).toBeUndefined();
-    expect(db.prepare("SELECT id FROM journey_entries WHERE type = 'skeleton'").get()).toBeUndefined();
-    expect((db.prepare('SELECT source_trip_id FROM journey_entries WHERE id = ?').get(filledId) as { source_trip_id: number | null }).source_trip_id).toBeNull();
+    expect(await findRow(orm, Trips, { id: tripId })).toBeNull();
+    expect(await findRow(orm, JourneyEntries, { type: 'skeleton' })).toBeNull();
+    expect((await findRow(orm, JourneyEntries, { id: filledId }))!.source_trip_id).toBeNull();
   });
 });

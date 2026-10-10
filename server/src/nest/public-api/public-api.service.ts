@@ -1,3 +1,17 @@
+import { BucketList } from '../../db/entities/BucketList.entity';
+import { DayNotes } from '../../db/entities/DayNotes.entity';
+import { Days } from '../../db/entities/Days.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { Reservations } from '../../db/entities/Reservations.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { BucketListRepository } from '../../db/repositories/BucketList.repository';
+import type { DayNotesRepository } from '../../db/repositories/DayNotes.repository';
+import type { DaysRepository } from '../../db/repositories/Days.repository';
+import type { PlacesRepository, PublicApiAssignedPlaceRow } from '../../db/repositories/Places.repository';
+import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import { TripMembershipService } from '../trip-membership/trip-membership.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import type {
   PublicApiAccommodation,
@@ -11,8 +25,6 @@ import type {
   PublicApiTrip,
   PublicApiTripSummary,
 } from '@trek/shared';
-import { DatabaseService } from '../database/database.service';
-import { TripMembershipService } from '../trip-membership/trip-membership.service';
 
 /**
  * Assembles the read-only public API payloads.
@@ -32,25 +44,31 @@ import { TripMembershipService } from '../trip-membership/trip-membership.servic
  * The child queries are scoped by `trip_id` in SQL rather than by filtering a
  * wider result set, so a bug in the include handling cannot widen what a caller
  * sees; at worst it returns less.
+ *
+ * Plan 4 Task 1: the four raw `this.db.all(...)` reads (days, places,
+ * day-notes, bucket-list) moved onto `DaysRepository`/`PlacesRepository`/
+ * `DayNotesRepository`/`BucketListRepository`. Plan 4 Task 2: `getTrip`'s
+ * `canAccessTrip` delegate is now `TripsRepository.findAccessible` directly
+ * (reusing `tripsRepo` below) — `DatabaseService` is gone from this file
+ * entirely.
  */
 @Injectable()
 export class PublicApiService {
   constructor(
-    private readonly db: DatabaseService,
     private readonly membership: TripMembershipService,
+    @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
+    @InjectRepository(Reservations) private readonly reservationsRepo: ReservationsRepository,
+    @InjectRepository(Days) private readonly daysRepo: DaysRepository,
+    @InjectRepository(Places) private readonly placesRepo: PlacesRepository,
+    @InjectRepository(DayNotes) private readonly dayNotesRepo: DayNotesRepository,
+    @InjectRepository(BucketList) private readonly bucketListRepo: BucketListRepository,
   ) {}
 
   /** Every trip the token's owner may read, newest first, without itineraries. */
-  listTrips(userId: number): PublicApiTripSummary[] {
-    const ids = this.membership.listAccessibleTripIds(userId);
+  async listTrips(userId: number): Promise<PublicApiTripSummary[]> {
+    const ids = await this.membership.listAccessibleTripIds(userId);
     if (ids.length === 0) return [];
-    const rows = this.db.all<TripRow>(
-      `SELECT id, title, description, start_date, end_date, currency, is_archived, updated_at
-         FROM trips
-        WHERE id IN (${ids.map(() => '?').join(',')})
-        ORDER BY start_date DESC, id DESC`,
-      ...ids,
-    );
+    const rows = await this.tripsRepo.listSummariesByIds(ids);
     return rows.map(toTripSummary);
   }
 
@@ -61,13 +79,14 @@ export class PublicApiService {
    * turns both into the same 404, so the endpoint cannot be used to probe which
    * trip ids exist.
    */
-  getTrip(tripId: number, userId: number, include: PublicApiInclude[], granted: readonly string[] = include): PublicApiTrip | null {
-    if (!this.db.canAccessTrip(tripId, userId)) return null;
-    const row = this.db.get<TripRow>(
-      `SELECT id, title, description, start_date, end_date, currency, is_archived, updated_at
-         FROM trips WHERE id = ?`,
-      tripId,
-    );
+  async getTrip(
+    tripId: number,
+    userId: number,
+    include: PublicApiInclude[],
+    granted: readonly string[] = include,
+  ): Promise<PublicApiTrip | null> {
+    if (!(await this.tripsRepo.findAccessible(tripId, userId))) return null;
+    const row = await this.tripsRepo.findSummaryById(tripId);
     if (!row) return null;
 
     const trip: PublicApiTrip = toTripSummary(row);
@@ -80,19 +99,19 @@ export class PublicApiService {
     // through the container those places arrive in. The shell it does get is the
     // join key the children are useless without.
     if (DAY_SCOPED.some((section) => include.includes(section))) {
-      trip.days = this.buildDays(tripId, include, granted.includes('days'));
+      trip.days = await this.buildDays(tripId, include, granted.includes('days'));
     }
     if (include.includes('places')) {
-      trip.unplanned_places = this.buildUnplannedPlaces(tripId);
+      trip.unplanned_places = await this.buildUnplannedPlaces(tripId);
     }
     if (include.includes('reservations')) {
-      trip.unscheduled_reservations = this.buildUnscheduledReservations(tripId);
+      trip.unscheduled_reservations = await this.buildUnscheduledReservations(tripId);
     }
     if (include.includes('accommodations')) {
-      trip.accommodations = this.buildAccommodations(tripId);
+      trip.accommodations = await this.buildAccommodations(tripId);
     }
     if (include.includes('travellers')) {
-      trip.travellers = this.buildTravellers(tripId);
+      trip.travellers = await this.buildTravellers(tripId);
     }
     return trip;
   }
@@ -105,25 +124,19 @@ export class PublicApiService {
    * rather than queried per day — a two-week trip would otherwise cost 42 round
    * trips for the same rows.
    */
-  private buildDays(tripId: number, include: PublicApiInclude[], dayFields: boolean): PublicApiDay[] {
-    const days = this.db.all<DayRow>(
-      `SELECT id, day_number, date, title, notes
-         FROM days WHERE trip_id = ? ORDER BY day_number ASC`,
-      tripId,
-    );
+  private async buildDays(tripId: number, include: PublicApiInclude[], dayFields: boolean): Promise<PublicApiDay[]> {
+    const days = await this.daysRepo.listForPublicApi(tripId);
     if (days.length === 0) return [];
 
-    const placesByDay = include.includes('places') ? this.placesByDay(tripId) : new Map();
-    const notesByDay = include.includes('notes') ? this.dayNotesByDay(tripId) : new Map();
-    const reservationsByDay = include.includes('reservations')
-      ? this.reservationsByDay(tripId)
-      : new Map();
+    const placesByDay = include.includes('places') ? await this.placesByDay(tripId) : new Map();
+    const notesByDay = include.includes('notes') ? await this.dayNotesByDay(tripId) : new Map();
+    const reservationsByDay = include.includes('reservations') ? await this.reservationsByDay(tripId) : new Map();
 
     return days.map((day) => ({
       date: day.date,
       day_number: day.day_number,
-      title: dayFields ? day.title ?? null : null,
-      notes: dayFields ? day.notes ?? null : null,
+      title: dayFields ? (day.title ?? null) : null,
+      notes: dayFields ? (day.notes ?? null) : null,
       places: placesByDay.get(day.id) ?? [],
       day_notes: notesByDay.get(day.id) ?? [],
       reservations: reservationsByDay.get(day.id) ?? [],
@@ -143,34 +156,21 @@ export class PublicApiService {
    * listed here as well it would read as two different intentions. Same rule as
    * the shortlist below.
    */
-  private placesByDay(tripId: number): Map<number, PublicApiPlace[]> {
-    const rows = this.db.all<PlaceRow>(
-      `SELECT da.day_id,
-              p.name, p.address, p.lat, p.lng, p.place_time, p.end_time,
-              p.duration_minutes, p.notes, p.transport_mode,
-              c.name AS category
-         FROM day_assignments da
-         JOIN places p ON p.id = da.place_id
-         LEFT JOIN categories c ON c.id = p.category_id
-        WHERE p.trip_id = ?
-          AND da.accommodation_id IS NULL
-        ORDER BY da.day_id ASC, da.order_index ASC`,
-      tripId,
-    );
-    return groupBy(rows, (r: PlaceRow) => r.day_id, toPlace);
+  private async placesByDay(tripId: number): Promise<Map<number, PublicApiPlace[]>> {
+    const rows = await this.placesRepo.listAssignedForPublicApi(tripId);
+    return groupBy<PublicApiAssignedPlaceRow, PublicApiPlace>(rows, (r) => r.day_id, toPlace);
   }
 
-  private dayNotesByDay(tripId: number): Map<number, PublicApiDayNote[]> {
-    const rows = this.db.all<DayNoteRow>(
-      `SELECT day_id, text, time
-         FROM day_notes WHERE trip_id = ?
-        ORDER BY day_id ASC, sort_order ASC`,
-      tripId,
+  private async dayNotesByDay(tripId: number): Promise<Map<number, PublicApiDayNote[]>> {
+    const rows = await this.dayNotesRepo.listForPublicApi(tripId);
+    return groupBy(
+      rows,
+      (r) => r.day_id,
+      (r) => ({
+        text: r.text,
+        time: r.time ?? null,
+      }),
     );
-    return groupBy(rows, (r) => r.day_id, (r) => ({
-      text: r.text,
-      time: r.time ?? null,
-    }));
   }
 
   /**
@@ -180,16 +180,9 @@ export class PublicApiService {
    * repeated on each — a consumer that sees the same flight on three days has no
    * way to tell that from three flights.
    */
-  private reservationsByDay(tripId: number): Map<number, PublicApiReservation[]> {
-    const rows = this.db.all<ReservationRow>(
-      `SELECT day_id, type, title, location, reservation_time, reservation_end_time,
-              status, notes
-         FROM reservations
-        WHERE trip_id = ? AND day_id IS NOT NULL
-        ORDER BY day_id ASC, reservation_time ASC`,
-      tripId,
-    );
-    return groupBy(rows, (r: ReservationRow) => r.day_id, toReservation);
+  private async reservationsByDay(tripId: number): Promise<Map<number, PublicApiReservation[]>> {
+    const rows = await this.reservationsRepo.listScheduledForPublicApi(tripId);
+    return groupBy(rows as ReservationRow[], (r: ReservationRow) => r.day_id, toReservation);
   }
 
   /**
@@ -198,19 +191,8 @@ export class PublicApiService {
    * Stored as day ids, reported as ISO dates: a consumer has no way to look up a
    * TREK day id, and the dates are what it actually needs to match its own nights.
    */
-  private buildAccommodations(tripId: number): PublicApiAccommodation[] {
-    const rows = this.db.all<AccommodationRow>(
-      `SELECT p.name, p.address, p.lat, p.lng,
-              ds.date AS start_date, de.date AS end_date,
-              a.check_in, a.check_out, a.notes
-         FROM day_accommodations a
-         LEFT JOIN places p ON p.id = a.place_id
-         LEFT JOIN days ds ON ds.id = a.start_day_id
-         LEFT JOIN days de ON de.id = a.end_day_id
-        WHERE a.trip_id = ?
-        ORDER BY ds.date ASC`,
-      tripId,
-    );
+  private async buildAccommodations(tripId: number): Promise<PublicApiAccommodation[]> {
+    const rows = await this.reservationsRepo.listAccommodationsForPublicApi(tripId);
     return rows.map((r) => ({
       name: r.name ?? null,
       address: r.address ?? null,
@@ -240,19 +222,8 @@ export class PublicApiService {
    * but it is not a shortlist entry and it is already reported in full under
    * `accommodations` — listing it twice would read as two different intentions.
    */
-  private buildUnplannedPlaces(tripId: number): PublicApiPlace[] {
-    const rows = this.db.all<Omit<PlaceRow, 'day_id'>>(
-      `SELECT p.name, p.address, p.lat, p.lng, p.place_time, p.end_time,
-              p.duration_minutes, p.notes, p.transport_mode,
-              c.name AS category
-         FROM places p
-         LEFT JOIN categories c ON c.id = p.category_id
-        WHERE p.trip_id = ?
-          AND NOT EXISTS (SELECT 1 FROM day_assignments da WHERE da.place_id = p.id)
-          AND NOT EXISTS (SELECT 1 FROM day_accommodations a WHERE a.place_id = p.id)
-        ORDER BY p.created_at ASC, p.id ASC`,
-      tripId,
-    );
+  private async buildUnplannedPlaces(tripId: number): Promise<PublicApiPlace[]> {
+    const rows = await this.reservationsRepo.listUnplannedPlacesForPublicApi(tripId);
     return rows.map(toPlace);
   }
 
@@ -261,15 +232,8 @@ export class PublicApiService {
    * sets it null rather than cascading, so a flight can outlive the day it was
    * pinned to. Reporting only day-bound bookings would quietly lose those.
    */
-  private buildUnscheduledReservations(tripId: number): PublicApiReservation[] {
-    const rows = this.db.all<Omit<ReservationRow, 'day_id'>>(
-      `SELECT type, title, location, reservation_time, reservation_end_time,
-              status, notes
-         FROM reservations
-        WHERE trip_id = ? AND day_id IS NULL
-        ORDER BY reservation_time ASC, id ASC`,
-      tripId,
-    );
+  private async buildUnscheduledReservations(tripId: number): Promise<PublicApiReservation[]> {
+    const rows = await this.reservationsRepo.listUnscheduledForPublicApi(tripId);
     return rows.map(toReservation);
   }
 
@@ -285,13 +249,8 @@ export class PublicApiService {
    * whether TREK shows the feature, not whether the rows exist, and a key whose
    * answers change when an unrelated toggle moves is a key nobody can build on.
    */
-  listBucketList(userId: number): PublicApiBucketListItem[] {
-    const rows = this.db.all<BucketListRow>(
-      `SELECT name, lat, lng, country_code, notes, target_date
-         FROM bucket_list WHERE user_id = ?
-        ORDER BY created_at DESC, id DESC`,
-      userId,
-    );
+  async listBucketList(userId: number): Promise<PublicApiBucketListItem[]> {
+    const rows = await this.bucketListRepo.listForPublicApi(userId);
     return rows.map((r) => ({
       name: r.name,
       lat: r.lat ?? null,
@@ -310,18 +269,8 @@ export class PublicApiService {
    * itinerary, not for enumerating the people around them. What it returns is
    * exactly what those people already see on the trip in TREK.
    */
-  private buildTravellers(tripId: number): PublicApiTraveller[] {
-    const rows = this.db.all<TravellerRow>(
-      `SELECT u.username, 1 AS is_owner
-         FROM trips t JOIN users u ON u.id = t.user_id
-        WHERE t.id = ?
-        UNION ALL
-       SELECT u.username, 0 AS is_owner
-         FROM trip_members m JOIN users u ON u.id = m.user_id
-        WHERE m.trip_id = ?
-        ORDER BY is_owner DESC`,
-      tripId, tripId,
-    );
+  private async buildTravellers(tripId: number): Promise<PublicApiTraveller[]> {
+    const rows = await this.tripsRepo.listTravellerUsernames(tripId);
     return rows.map((r) => ({ name: r.username, owner: r.is_owner === 1 }));
   }
 }
@@ -377,11 +326,7 @@ function toTripSummary(row: TripRow): PublicApiTripSummary {
   };
 }
 
-function groupBy<Row, Out>(
-  rows: Row[],
-  key: (row: Row) => number,
-  map: (row: Row) => Out,
-): Map<number, Out[]> {
+function groupBy<Row, Out>(rows: Row[], key: (row: Row) => number, map: (row: Row) => Out): Map<number, Out[]> {
   const grouped = new Map<number, Out[]>();
   for (const row of rows) {
     const id = key(row);
@@ -440,11 +385,6 @@ interface ReservationRow {
   reservation_end_time: string | null;
   status: string | null;
   notes: string | null;
-}
-
-interface TravellerRow {
-  username: string;
-  is_owner: number;
 }
 
 interface AccommodationRow {

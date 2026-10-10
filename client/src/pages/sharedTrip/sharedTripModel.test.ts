@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { AxiosError, AxiosHeaders } from 'axios'
-import { formatDurationMinutes, isHttpUrl, isSharedTripPayload, linkHost, sharedTripLoadError } from './sharedTripModel'
+import {
+  coverSrc, dayHasEntries, formatDateRange, formatDurationMinutes, groupInOrder, isHttpUrl, isSharedTripPayload, legFacts, linkHost,
+  sharedTripLoadError, spanLabelKey, stopNumbers, transportFacts, unplannedPlaces,
+} from './sharedTripModel'
 
 describe('sharedTripModel (#2320)', () => {
   it('accepts http and https and nothing else', () => {
@@ -96,5 +99,78 @@ describe('isSharedTripPayload (#2505)', () => {
     expect(isSharedTripPayload({})).toBe(false)
     expect(isSharedTripPayload({ trip: null })).toBe(false)
     expect(isSharedTripPayload({ trip: 'Lisbon' })).toBe(false)
+  })
+})
+
+describe('sharedTripModel, the redesigned page', () => {
+  it('reads a cover in each of the three shapes the column holds', () => {
+    expect(coverSrc(null)).toBeNull()
+    expect(coverSrc('https://cdn.example/a.jpg')).toBe('https://cdn.example/a.jpg')
+    expect(coverSrc('/uploads/covers/b.jpg')).toBe('/uploads/covers/b.jpg')
+    expect(coverSrc('c.jpg')).toBe('/uploads/c.jpg')
+  })
+
+  it('prints a range with an arrow, a single date alone, and nothing without dates', () => {
+    expect(formatDateRange('2026-07-07', '2026-07-25', 'en-US')).toBe('Jul 7, 2026 → Jul 25, 2026')
+    expect(formatDateRange('2026-07-07', null, 'en-US')).toBe('Jul 7, 2026')
+    expect(formatDateRange(null, undefined, 'en-US')).toBeNull()
+  })
+
+  it('numbers stops by their order, counts a stop without a place, and gives a revisited place both numbers', () => {
+    const { byAssignment, byPlace } = stopNumbers([
+      { id: 3, order_index: 2, place: { id: 10 } },
+      { id: 1, order_index: 0, place: { id: 10 } },
+      { id: 2, order_index: 1, place: null },
+      { id: 4, order_index: 3, place: { id: 11 } },
+    ])
+    expect(byAssignment).toEqual({ 1: 1, 2: 2, 3: 3, 4: 4 })
+    expect(byPlace).toEqual({ 10: [1, 3], 11: [4] })
+  })
+
+  it('groups in the order the groups first appear', () => {
+    expect(groupInOrder(['b1', 'a1', 'b2'], v => v[0])).toEqual([['b', ['b1', 'b2']], ['a', ['a1']]])
+  })
+
+  it('names each end of a span the way the planner does, and a single day not at all', () => {
+    expect(spanLabelKey('flight', 'single')).toBeNull()
+    expect(spanLabelKey('flight', 'start')).toBe('reservations.span.departure')
+    expect(spanLabelKey('flight', 'middle')).toBe('reservations.span.inTransit')
+    expect(spanLabelKey('car', 'end')).toBe('reservations.span.return')
+    expect(spanLabelKey('parking', 'start')).toBe('reservations.span.dropOff')
+    expect(spanLabelKey('parking', 'end')).toBe('reservations.span.pickup')
+    expect(spanLabelKey('hotel', 'middle')).toBe('reservations.span.ongoing')
+  })
+
+  it('states the facts of a transport row, those of the leg itself for a leg, and none for other types', () => {
+    expect(transportFacts({ type: 'flight', metadata: { airline: 'LH', flight_number: '190', departure_airport: 'FRA', arrival_airport: 'BER' } }, 'Platform'))
+      .toEqual(['LH', '190', 'FRA → BER'])
+    expect(transportFacts({ type: 'flight', metadata: JSON.stringify({ airline: 'KLM', departure_airport: 'AMS' }) }, 'Platform')).toEqual(['KLM'])
+    expect(transportFacts({ type: 'flight', metadata: {}, __leg: { index: 1, airline: 'EK', flight_number: '46', from: 'FRA', to: null } }, 'Platform'))
+      .toEqual(['EK', '46', 'FRA'])
+    expect(transportFacts({ type: 'train', metadata: '{"train_number":"ICE 5","platform":"7"}' }, 'Platform')).toEqual(['ICE 5', 'Platform 7'])
+    expect(transportFacts({ type: 'train', metadata: {}, __leg: { index: 0, train_number: 'EC 51', from: 'Basel', to: 'Milano' } }, 'Gleis'))
+      .toEqual(['EC 51', 'Basel → Milano'])
+    expect(transportFacts({ type: 'train', metadata: 'not json' }, 'Platform')).toEqual([])
+    expect(transportFacts({ type: 'bus', metadata: { airline: 'Flix' } }, 'Platform')).toEqual([])
+  })
+
+  it('lists a leg with its carrier, number, platform and route', () => {
+    expect(legFacts({ train_number: 'IC 8', platform: '12', from: 'Bern', to: 'Zurich' }, 'Platform')).toEqual(['IC 8', 'Platform 12', 'Bern → Zurich'])
+    expect(legFacts({ airline: 'Emirates', flight_number: 'EK350' }, 'Platform')).toEqual(['Emirates', 'EK350'])
+  })
+})
+
+describe('unplanned places and day entries (#1758, #1712)', () => {
+  it('keeps the pool places no day has picked up, in pool order', () => {
+    const places = [{ id: 3 }, { id: 1 }, { id: 2 }]
+    const assignments = { 10: [{ place: { id: 1 } }, { place: null }], 11: [] }
+    expect(unplannedPlaces(places, assignments)).toEqual([{ id: 3 }, { id: 2 }])
+    expect(unplannedPlaces([], assignments)).toEqual([])
+  })
+
+  it('counts a day with an entry or a night booked', () => {
+    expect(dayHasEntries(0, 0)).toBe(false)
+    expect(dayHasEntries(1, 0)).toBe(true)
+    expect(dayHasEntries(0, 1)).toBe(true)
   })
 })

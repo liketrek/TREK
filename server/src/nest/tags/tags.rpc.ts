@@ -1,7 +1,7 @@
-import { PluginController, PluginMethod } from '../plugins/host/rpc-kit/decorators';
-import { BadParams, ForbiddenResource } from '../plugins/host/rpc-errors';
-import { asPayload, num } from '../plugins/host/rpc-params';
-import type { PluginRpcContext } from '../plugins/host/rpc-kit/types';
+import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
+import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
+import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
+import { asPayload, num } from '../../nest-rpc/rpc-params';
 import { TagsService } from './tags.service';
 
 /**
@@ -19,15 +19,15 @@ export class TagsRpc {
   constructor(private readonly tags: TagsService) {}
 
   @PluginMethod('tags.list', { permission: 'db:read:tags' })
-  list(_params: Record<string, unknown>, ctx: PluginRpcContext): unknown[] {
+  async list(_params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown[]> {
     if (ctx.actingUserId === undefined) {
       throw new ForbiddenResource('tag reads require an authenticated user context');
     }
-    return this.tags.list(ctx.actingUserId) as unknown[];
+    return (await this.tags.list(ctx.actingUserId)) as unknown[];
   }
 
   @PluginMethod('tags.create', { permission: 'db:write:tags' })
-  create(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async create(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     if (ctx.actingUserId === undefined) {
       throw new ForbiddenResource('tag writes require an authenticated user context');
     }
@@ -37,13 +37,13 @@ export class TagsRpc {
   }
 
   @PluginMethod('tags.update', { permission: 'db:write:tags' })
-  update(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async update(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     if (ctx.actingUserId === undefined) {
       throw new ForbiddenResource('tag writes require an authenticated user context');
     }
     const input = asPayload(params.input);
     const tagId = num(params.tagId, 'tagId');
-    this.requireOwnTag(tagId, ctx.actingUserId);
+    await this.requireOwnTag(tagId, ctx.actingUserId);
     return this.tags.update(
       tagId,
       typeof input.name === 'string' ? input.name : undefined,
@@ -52,19 +52,19 @@ export class TagsRpc {
   }
 
   @PluginMethod('tags.delete', { permission: 'db:write:tags' })
-  delete(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
+  async delete(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     if (ctx.actingUserId === undefined) {
       throw new ForbiddenResource('tag writes require an authenticated user context');
     }
     const tagId = num(params.tagId, 'tagId');
-    this.requireOwnTag(tagId, ctx.actingUserId);
-    this.tags.remove(tagId);
+    await this.requireOwnTag(tagId, ctx.actingUserId);
+    await this.tags.remove(tagId);
     return { deleted: true };
   }
 
   /** Ownership is re-checked per write, so a plugin cannot edit another user's tag. */
-  private requireOwnTag(tagId: number, userId: number): void {
-    if (!this.tags.getByIdAndUser(tagId, userId)) {
+  private async requireOwnTag(tagId: number, userId: number): Promise<void> {
+    if (!(await this.tags.getByIdAndUser(tagId, userId))) {
       throw new ForbiddenResource(`no tag ${tagId} for this user`);
     }
   }

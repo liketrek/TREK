@@ -1,19 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Sun, Cloud, CloudRain, CloudSnow, CloudDrizzle, CloudLightning, Wind } from 'lucide-react'
 import { fetchWeather } from '../../services/weatherQueue'
 import { useSettingsStore } from '../../store/settingsStore'
-
-const WEATHER_ICON_MAP = {
-  Clear: Sun,
-  Clouds: Cloud,
-  Rain: CloudRain,
-  Drizzle: CloudDrizzle,
-  Thunderstorm: CloudLightning,
-  Snow: CloudSnow,
-  Mist: Wind,
-  Fog: Wind,
-  Haze: Wind,
-}
+import { Tooltip } from '../shared/Tooltip'
+import { weatherIconFor } from './weatherIcons'
 
 interface WeatherIconProps {
   main: string
@@ -21,7 +10,7 @@ interface WeatherIconProps {
 }
 
 function WeatherIcon({ main, size = 13 }: WeatherIconProps) {
-  const Icon = WEATHER_ICON_MAP[main] || Cloud
+  const Icon = weatherIconFor(main)
   return <Icon size={size} strokeWidth={1.8} />
 }
 
@@ -49,11 +38,13 @@ interface WeatherWidgetProps {
   compact?: boolean
   /** Vertical icon-over-temp layout that inherits its color (for the day badge). */
   stacked?: boolean
+  /** Leaves the icon out of the stacked layout, so the badge stays short; the tooltip still names the weather. */
+  hideIcon?: boolean
   /** Name of the place the forecast is anchored to — surfaces as a tooltip (#2167). */
   locationName?: string | null
 }
 
-export default function WeatherWidget({ lat, lng, date, compact = false, stacked = false, locationName = null }: WeatherWidgetProps) {
+export default function WeatherWidget({ lat, lng, date, compact = false, stacked = false, hideIcon = false, locationName = null }: WeatherWidgetProps) {
   const [weather, setWeather] = useState(null)
   const [loading, setLoading] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -144,12 +135,16 @@ export default function WeatherWidget({ lat, lng, date, compact = false, stacked
   const title = locationName || undefined
 
   if (stacked) {
-    return (
-      <div title={title} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, fontSize: 'calc(9.5px * var(--fs-scale-caption, 1))', fontWeight: 600, lineHeight: 1, color: 'inherit', ...fontStyle }}>
-        <WeatherIcon main={weather.main} size={13} />
+    const body = (
+      // Without its icon the reading takes the badge's own type, so it matches the number above it.
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, fontSize: hideIcon ? 'inherit' : 'calc(9.5px * var(--fs-scale-caption, 1))', fontWeight: hideIcon ? 'inherit' : 600, lineHeight: 1, color: 'inherit', ...(hideIcon ? {} : fontStyle) }}>
+        {!hideIcon && <WeatherIcon main={weather.main} size={13} />}
         {temp !== null && <span>{isClimate ? 'Ø' : ''}{temp}°</span>}
       </div>
     )
+    // Without the icon the tooltip carries what the sky does as well as where.
+    const tip = hideIcon ? [weather.description, title].filter(Boolean).join(', ') : title
+    return tip ? <Tooltip label={tip}>{body}</Tooltip> : body
   }
 
   if (compact) {

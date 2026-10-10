@@ -34,17 +34,21 @@ export const roadtripPreferencesRepo = {
     const save = (writes.get(tripId) ?? Promise.resolve({})).catch(() => ({})).then(async () => {
       if (offlineDb.name !== cacheName) throw new Error('Account changed.')
       const validated = roadtripPreferencesUpdateSchema.parse(patch)
-      if (!isEffectivelyOffline()) {
+      if (!(await mutationQueue.mustQueue('roadtripPreferences', tripId))) {
         const saved = await apiClient.put(`/trips/${tripId}/roadtrip/preferences`, validated)
         if (offlineDb.name !== cacheName) throw new Error('Account changed.')
         await offlineDb.roadtripPreferences.put(roadtripPreferencesResponseSchema.parse(saved.data))
       } else {
+        // Online and behind an older queued write: the trip may have left the
+        // cache since that write was made, so read the settings in first.
+        if (!isEffectivelyOffline() && !(await offlineDb.roadtripPreferences.get(tripId))) await roadtripPreferencesRepo.read(tripId)
         const next = { ...await cachedRoadtripPreferences(tripId), ...validated }
         if (next.roadtrip_day_start && next.roadtrip_day_end && next.roadtrip_day_end <= next.roadtrip_day_start) throw new Error('Day end must be later than day start.')
         await mutationQueue.enqueue({
           id: generateUUID(), tripId, method: 'PUT', url: `/trips/${tripId}/roadtrip/preferences`,
           body: validated, resource: 'roadtripPreferences', entityId: tripId,
         })
+        mutationQueue.sendSoon()
       }
       return cachedRoadtripPreferences(tripId)
     })

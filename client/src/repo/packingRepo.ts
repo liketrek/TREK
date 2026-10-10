@@ -1,5 +1,5 @@
 import { packingApi } from '../api/client'
-import { offlineDb, upsertPackingItems } from '../db/offlineDb'
+import { offlineDb, replaceTripRows } from '../db/offlineDb'
 import { mutationQueue, generateUUID, nextTempId } from '../sync/mutationQueue'
 import { isEffectivelyOffline } from '../sync/networkMode'
 import { onlineThenCache } from './withOfflineFallback'
@@ -10,7 +10,7 @@ export const packingRepo = {
     return onlineThenCache(
       async () => {
         const result = await packingApi.list(tripId)
-        upsertPackingItems(result.items)
+        void replaceTripRows('packingItems', Number(tripId), result.items)
         return result
       },
       async () => ({

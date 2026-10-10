@@ -1,12 +1,11 @@
 import type { BookElement, BookPageNumbers, BookPageSetup, BookShapeId, JourneyStats } from '@trek/shared'
 import {
   AlignCenter, AlignJustify, AlignLeft, AlignRight, ArrowDown, ArrowUp,
-  ChevronsDown, ChevronsUp, Copy, Italic, Lock, Trash2, Unlock,
+  ChevronsDown, ChevronsUp, ClipboardCopy, Copy, Italic, Lock, Trash2, Unlock,
 } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { useStudioStore } from '../../store/studioStore'
 import { photoSrc } from './bookRender'
-import { BOOK_FONTS, BOOK_FONT_ORDER, hasWeight, nearestWeight } from './bookFonts'
 import { FRAME_SHAPES, SHAPE_GROUPS } from './shapes'
 import { ShapeGlyph } from './StudioElementsPanel'
 import { TravelInspector } from './StudioTravelInspector'
@@ -14,7 +13,9 @@ import { Swatches } from './StudioSwatches'
 import { formatBookCoords } from './entryText'
 import { iconComponent, iconLabel, searchIcons } from './iconLibrary'
 import { Choice, Line, NumField, Section, Switch } from './StudioControls'
+import { FontButtons, WeightLine } from './StudioTypeControls'
 import type { JourneySource } from './StudioSidebar'
+import { Tooltip } from '../shared/Tooltip'
 
 /** How many icons the swap grid offers at once. A search narrows it below this. */
 const ICON_CHOICES = 60
@@ -78,6 +79,7 @@ export function StudioInspector({
   const commit = useStudioStore(s => s.commit)
   const raise = useStudioStore(s => s.raise)
   const duplicate = useStudioStore(s => s.duplicate)
+  const copy = useStudioStore(s => s.copy)
   const removeElements = useStudioStore(s => s.removeElements)
 
   const spread = doc?.spreads[spreadIndex]
@@ -232,6 +234,15 @@ export function StudioInspector({
           {sel.length > 1 && <em>{sel.length}</em>}
         </span>
         <span className="st-head-acts">
+          <Tooltip label={t('journey.studio.copyToPage')}>
+            <button type="button"
+              className="st-act"
+              onClick={() => copy(spreadIndex, selection)}
+              aria-label={t('journey.studio.copyToPage')}
+            >
+              <ClipboardCopy size={14} />
+            </button>
+          </Tooltip>
           <button type="button"
             className="st-act"
             onClick={() => duplicate(spreadIndex, selection)}
@@ -309,41 +320,9 @@ export function StudioInspector({
                 nothing about a typeface — and grouped, because "which serif"
                 is a different question from "serif or sans".
               */}
-              <div className="st-fonts">
-                {BOOK_FONT_ORDER.map(id => {
-                  const font = BOOK_FONTS[id]
-                  return (
-                    <button type="button"
-                      key={id}
-                      className={`st-font ${el.font === id ? 'is-on' : ''}`}
-                      style={{ fontFamily: font.stack }}
-                      onClick={() => set({
-                        font: id,
-                        // A family that does not ship this weight would render a
-                        // synthesised bold — a smeared regular in print — so the
-                        // weight moves to the nearest one it really has.
-                        weight: nearestWeight(id, el.weight) as typeof el.weight,
-                      })}
-                      title={font.name}
-                    >
-                      {font.name}
-                    </button>
-                  )
-                })}
-              </div>
+              <FontButtons font={el.font} weight={el.weight} onPick={patch => set(patch)} />
               <div style={{ marginTop: 10 }}>
-                <Line label={t('journey.studio.weight')}>
-                  <Choice
-                    value={el.weight}
-                    options={([400, 500, 600, 700] as const).map(w => ({
-                      value: w,
-                      label: String(w),
-                      disabled: !hasWeight(el.font, w),
-                      title: hasWeight(el.font, w) ? undefined : t('journey.studio.weightMissing'),
-                    }))}
-                    onPick={weight => set({ weight })}
-                  />
-                </Line>
+                <WeightLine font={el.font} weight={el.weight} onPick={weight => set({ weight })} t={t} />
                 <Line label={t('journey.studio.align')}>
                   <div className="st-row">
                     {([['left', AlignLeft], ['center', AlignCenter], ['right', AlignRight], ['justify', AlignJustify]] as const).map(([a, Icon]) => (

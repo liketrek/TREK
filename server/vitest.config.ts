@@ -6,6 +6,15 @@ export default defineConfig({
   // (vitest's default esbuild does not emit it -> type-based DI would break).
   plugins: [
     swc.vite({
+      // unplugin-swc's default filter is /\.m?[jt]sx?$/ — anchored at the end of the
+      // id, so anything carrying a query string skips the SWC transform. The istanbul
+      // provider's uncovered-file pass asks vite for every never-imported source as
+      // `<file>.ts?cache=<n>&vitest-uncovered-coverage=true`; with the default filter
+      // those ids come back as raw TypeScript and babel's instrumenter (no TS or
+      // decorator plugins) dies on the first `as const`/`interface`/`@Global()`.
+      // Match the same extensions with an optional query so those ids are transformed
+      // exactly like the imported ones.
+      include: /\.[cm]?[jt]sx?(\?.*)?$/,
       jsc: {
         parser: { syntax: 'typescript', decorators: true },
         transform: { legacyDecorator: true, decoratorMetadata: true },
@@ -17,18 +26,31 @@ export default defineConfig({
     root: '.',
     include: ['tests/**/*.test.ts'],
     globals: true,
+    // Migrates one database for the whole run and snapshots it; workers open a
+    // copy instead of replaying 242 migrations per file. See tests/global-setup.ts.
+    globalSetup: ['tests/global-setup.ts'],
     setupFiles: ['tests/setup.ts', 'tests/setup.console-noise.ts'],
     testTimeout: 15000,
     hookTimeout: 15000,
     pool: 'forks',
-    silent: false,
-    reporters: ['verbose'],
+    // Console output is kept for failing tests and dropped for passing ones: a
+    // green run used to print every e2e boot and every migrator line (~100k
+    // lines) and a red one buried its failure in them. `default` prints one line
+    // per file and the full detail only for failures; on CI the github-actions
+    // reporter adds inline annotations on the PR.
+    silent: 'passed-only',
+    reporters: process.env.CI ? ['default', 'github-actions'] : ['default'],
     coverage: {
       // Vite 8 + Vitest 4 made the sourcemap-based `v8` provider under-report branch
       // coverage on the SWC/decorator-transformed output (it dropped to ~68% even
       // though every test passes). `istanbul` instruments the source directly, so
       // coverage is measured independently of the transform pipeline.
       provider: 'istanbul',
+      // Serialises report processing: three identical runs otherwise gave 13/6/6
+      // threshold errors (files like platform/api-docs.ts flipping between 0% and
+      // 100%) because the default concurrency processes per-file coverage results
+      // out of order against istanbul's shared state.
+      processingConcurrency: 1,
       // json-summary is what the per-domain ratchet below is derived from: the text
       // reporter prints one row per DIRECTORY, not a recursive total, so reading the
       // thresholds off it silently understates any domain with subdirectories.
@@ -70,6 +92,7 @@ export default defineConfig({
         'src/nest/atlas/**/*.ts': { statements: 92, branches: 82, functions: 96, lines: 94 },
         'src/nest/audit/**/*.ts': { statements: 93, branches: 80, functions: 99, lines: 96 },
         'src/nest/auth/**/*.ts': { statements: 93, branches: 85, functions: 95, lines: 96 },
+        'src/nest/auth-core/**/*.ts': { statements: 89, branches: 83, functions: 94, lines: 89 },
         'src/nest/backup/**/*.ts': { statements: 97, branches: 93, functions: 99, lines: 98 },
         'src/nest/booking-import/**/*.ts': { statements: 50, branches: 28, functions: 64, lines: 53 },
         'src/nest/budget/**/*.ts': { statements: 91, branches: 77, functions: 97, lines: 95 },
@@ -86,12 +109,24 @@ export default defineConfig({
         'src/nest/feeds/**/*.ts': { statements: 91, branches: 83, functions: 83, lines: 91 },
         'src/nest/files/**/*.ts': { statements: 97, branches: 95, functions: 99, lines: 98 },
         'src/nest/geo/**/*.ts': { statements: 99, branches: 95, functions: 99, lines: 99 },
+        // google-quota, managed, mcp-shared, mcp-transport, public-api,
+        // receipt-scan, route-usage, scheduling, school-holidays, tokens and tours
+        // sat on the 80 catch-all until 2026-10-08. Each is pinned one point under
+        // what the unit, integration and e2e suites that load it measure, as the
+        // script prints it: a subset a full run can only measure higher. managed holds an empty
+        // module and nothing to count. mcp-shared and route-usage measure below
+        // the 80 floor on branches and functions and are pinned where they are.
+        // tests/unit/coverage-thresholds.test.ts fails on a domain without an entry.
+        'src/nest/google-quota/**/*.ts': { statements: 99, branches: 99, functions: 99, lines: 99 },
         'src/nest/health/**/*.ts': { statements: 99, branches: 65, functions: 99, lines: 99 },
         'src/nest/help/**/*.ts': { statements: 81, branches: 70, functions: 99, lines: 86 },
         'src/nest/integrations/**/*.ts': { statements: 78, branches: 68, functions: 78, lines: 80 },
         'src/nest/journey/**/*.ts': { statements: 91, branches: 84, functions: 88, lines: 93 },
         'src/nest/llm-parse/**/*.ts': { statements: 91, branches: 85, functions: 85, lines: 94 },
+        'src/nest/managed/**/*.ts': { statements: 100, branches: 100, functions: 100, lines: 100 },
         'src/nest/maps/**/*.ts': { statements: 93, branches: 86, functions: 97, lines: 96 },
+        'src/nest/mcp-shared/**/*.ts': { statements: 84, branches: 59, functions: 99, lines: 88 },
+        'src/nest/mcp-transport/**/*.ts': { statements: 89, branches: 79, functions: 87, lines: 90 },
         'src/nest/memories/**/*.ts': { statements: 92, branches: 83, functions: 97, lines: 94 },
         'src/nest/notifications/**/*.ts': { statements: 83, branches: 72, functions: 85, lines: 87 },
         'src/nest/oauth/**/*.ts': { statements: 96, branches: 95, functions: 97, lines: 97 },
@@ -103,6 +138,10 @@ export default defineConfig({
         // measuring 99.5/99.0/97.4/100 — the gap the per-domain ratchet exists to
         // close. Set with a few points of slack against the Linux/Windows drift.
         'src/nest/place-enrichment/**/*.ts': { statements: 96, branches: 95, functions: 94, lines: 97 },
+        // New domain: the file and list readers that moved out of places/ and
+        // collections/. On the floor until a full CI run measures it; raise it
+        // with scripts/coverage-thresholds.mjs then, never lower it.
+        'src/nest/place-import/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/place-photos/**/*.ts': { statements: 87, branches: 79, functions: 72, lines: 89 },
         // New domain in this change. Measured over its own suites at
         // 98.3/89.8/96.2/100, and pinned well under that on purpose: the
@@ -115,8 +154,10 @@ export default defineConfig({
         'src/nest/places/**/*.ts': { statements: 91, branches: 82, functions: 96, lines: 94 },
         'src/nest/platform/**/*.ts': { statements: 99, branches: 99, functions: 99, lines: 99 },
         'src/nest/plugins/**/*.ts': { statements: 86, branches: 81, functions: 78, lines: 89 },
+        'src/nest/public-api/**/*.ts': { statements: 97, branches: 86, functions: 99, lines: 99 },
         'src/nest/query-helpers/**/*.ts': { statements: 90, branches: 75, functions: 99, lines: 92 },
         'src/nest/realtime/**/*.ts': { statements: 99, branches: 100, functions: 99, lines: 99 },
+        'src/nest/receipt-scan/**/*.ts': { statements: 99, branches: 99, functions: 99, lines: 99 },
         'src/nest/reservation-import/**/*.ts': { statements: 61, branches: 55, functions: 41, lines: 61 },
         'src/nest/reservations/**/*.ts': { statements: 92, branches: 83, functions: 96, lines: 96 },
         // New domain in this change. Measured over its own suites at
@@ -127,12 +168,22 @@ export default defineConfig({
         // hiding in the 80 catch-all, where 557 new lines could shed twenty
         // points against the headroom of the domains beside them.
         'src/nest/roadtrip/**/*.ts': { statements: 88, branches: 80, functions: 95, lines: 95 },
+        'src/nest/route-usage/**/*.ts': { statements: 84, branches: 66, functions: 77, lines: 83 },
+        'src/nest/scheduling/**/*.ts': { statements: 99, branches: 92, functions: 99, lines: 99 },
+        'src/nest/school-holidays/**/*.ts': { statements: 97, branches: 95, functions: 99, lines: 97 },
+        // New domain in this change, unmeasured: pinned at the 80 floor so it
+        // has its own entry rather than hiding in the catch-all. Its suites
+        // cover every branch they can reach; regenerate with
+        // scripts/coverage-thresholds.mjs after the first full run.
+        'src/nest/sessions/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/settings/**/*.ts': { statements: 87, branches: 71, functions: 99, lines: 88 },
         'src/nest/share/**/*.ts': { statements: 97, branches: 87, functions: 99, lines: 99 },
         'src/nest/storage/**/*.ts': { statements: 94, branches: 84, functions: 97, lines: 94 },
         'src/nest/system-notices/**/*.ts': { statements: 99, branches: 99, functions: 99, lines: 99 },
         'src/nest/tags/**/*.ts': { statements: 97, branches: 89, functions: 99, lines: 99 },
         'src/nest/todo/**/*.ts': { statements: 90, branches: 82, functions: 99, lines: 99 },
+        'src/nest/tokens/**/*.ts': { statements: 99, branches: 97, functions: 99, lines: 99 },
+        'src/nest/tours/**/*.ts': { statements: 95, branches: 92, functions: 99, lines: 97 },
         'src/nest/transit/**/*.ts': { statements: 92, branches: 83, functions: 97, lines: 94 },
         'src/nest/trip-invite/**/*.ts': { statements: 91, branches: 93, functions: 93, lines: 89 },
         'src/nest/trip-membership/**/*.ts': { statements: 99, branches: 86, functions: 99, lines: 99 },
@@ -155,12 +206,22 @@ export default defineConfig({
         // src/demo/** is deliberately absent: it measures 0%, and a floor of
         // zero asserts nothing. It needs tests before it needs a threshold.
         'src/app-config/**/*.ts': { statements: 99, branches: 95, functions: 99, lines: 99 },
-        'src/db/**/*.ts': { statements: 73, branches: 38, functions: 59, lines: 80 },
+        // Hand-maintained (scripts/coverage-thresholds.mjs only emits src/nest/* lines): floor(measured) - 1 after Plan 2.
+        'src/db/**/*.ts': { statements: 84, branches: 42, functions: 95, lines: 87 },
+        'src/db/dialect/**/*.ts': { statements: 99, branches: 99, functions: 99, lines: 99 },
+        // Branches re-pinned at floor(measured) - 1 once Plans 3a–4 had grown the
+        // folder from the Plan 2 handful to 136 repositories (89.83% measured,
+        // identical locally and on CI); the 99 was set before any of them existed.
+        'src/db/repositories/**/*.ts': { statements: 99, branches: 88, functions: 99, lines: 99 },
+        'src/db/types/**/*.ts': { statements: 93, branches: 99, functions: 99, lines: 93 },
         'src/mcp/**/*.ts': { statements: 58, branches: 43, functions: 63, lines: 60 },
         'src/middleware/**/*.ts': { statements: 91, branches: 89, functions: 87, lines: 94 },
         // The folded-in nest-mcp decorator/registry layer keeps the 80% floor
         // its own workspace gate enforced (tests/unit/nest-mcp/).
         'src/nest-mcp/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
+        // The plugin RPC kit (rpc-kit, rpc-params, rpc-errors, PluginGuards), moved
+        // out of src/nest/plugins with its tests (tests/unit/nest-rpc/).
+        'src/nest-rpc/**/*.ts': { statements: 92, branches: 85, functions: 95, lines: 94 },
         'src/systemNotices/**/*.ts': { statements: 84, branches: 67, functions: 93, lines: 85 },
         'src/utils/**/*.ts': { statements: 92, branches: 87, functions: 89, lines: 96 },
         // index.ts, bootstrap.ts, scheduler.ts, config.ts, websocket.ts and the

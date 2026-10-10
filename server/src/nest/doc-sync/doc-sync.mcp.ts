@@ -1,4 +1,5 @@
-import { z } from 'zod';
+import { ADDON_IDS } from '../../addons';
+import { noAccess } from '../../mcp/tools/_shared';
 import {
   McpController,
   Tool,
@@ -8,14 +9,15 @@ import {
   errorResult,
   ok,
 } from '../../nest-mcp';
-import { ADDON_IDS } from '../../addons';
-import { noAccess } from '../../mcp/tools/_shared';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { FilesService } from '../files/files.service';
 import { DocSyncConfigService } from './doc-sync-config.service';
-import { DocSyncService } from './doc-sync.service';
 import { PROVIDER_DISABLED } from './doc-sync.constants';
+import { DocSyncService } from './doc-sync.service';
+import { idSchema } from '@trek/shared';
+
+import { z } from 'zod';
 
 const documentsAddonOn = addonGate(ADDON_IDS.DOCUMENTS);
 
@@ -43,17 +45,17 @@ export class DocSyncMcp {
   @Tool({
     name: 'get_trip_document_sync',
     description:
-      'Show whether this trip\'s documents are synced with an external document store (Paperless-ngx, Papra, Nextcloud, OpenCloud or a Synology NAS), which folder or tag they are bound to, when the last run happened, and how many documents are waiting, in conflict or missing at the provider. Use this before telling someone where their documents live.',
+      "Show whether this trip's documents are synced with an external document store (Paperless-ngx, Papra, Nextcloud, OpenCloud or a Synology NAS), which folder or tag they are bound to, when the last run happened, and how many documents are waiting, in conflict or missing at the provider. Use this before telling someone where their documents live.",
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'files', mode: 'read' },
     when: documentsAddonOn,
   })
-  getTripDocumentSync({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (!this.files.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    return ok(this.sync.status(tripId));
+  async getTripDocumentSync({ tripId }: { tripId: number }, ctx: McpContext) {
+    if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    return ok(await this.sync.status(tripId));
   }
 
   @Tool({
@@ -61,17 +63,17 @@ export class DocSyncMcp {
     description:
       'List the documents that need a person to look at them: conflicts where both copies changed, documents the provider refused because of their type or size, and documents that disappeared at the provider. Returns an empty list when everything is in step.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
     },
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'files', mode: 'read' },
     when: documentsAddonOn,
   })
-  listIssues({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (!this.files.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    const links = this.config.listLinks(tripId);
+  async listIssues({ tripId }: { tripId: number }, ctx: McpContext) {
+    if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    const links = await this.config.listLinks(tripId);
     if (links.length === 0) return ok({ configured: false, issues: [] });
-    return ok({ configured: true, issues: this.sync.issues(tripId) });
+    return ok({ configured: true, issues: await this.sync.issues(tripId) });
   }
 
   @Tool({
@@ -79,7 +81,7 @@ export class DocSyncMcp {
     description:
       'Run the document sync for this trip now instead of waiting for the next scheduled check. Reports how many documents were pulled in from the provider, pushed out to it, and how many are in conflict. Safe to call repeatedly: a run that is already in progress is not started twice.',
     inputSchema: {
-      tripId: z.number().int().positive(),
+      tripId: idSchema,
       full: z
         .boolean()
         .optional()
@@ -91,24 +93,26 @@ export class DocSyncMcp {
     when: documentsAddonOn,
   })
   async syncNow({ tripId, full }: { tripId: number; full?: boolean }, ctx: McpContext) {
-    if (!this.files.verifyTripAccess(tripId, ctx.userId)) return noAccess();
-    const links = this.config.listLinks(tripId);
+    if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    const links = await this.config.listLinks(tripId);
     if (links.length === 0) {
-      return errorResult('This trip is not connected to a document store. Connect one in the trip\'s file manager first.');
+      return errorResult(
+        "This trip is not connected to a document store. Connect one in the trip's file manager first.",
+      );
     }
     const results = [];
     for (const link of links) {
       // An orphaned binding stays stopped, as it does on the REST route and for
       // the scheduler: its credential belongs to somebody who has left the trip,
       // and a run would use it anyway.
-      if (this.config.isOrphaned(link)) {
+      if (await this.config.isOrphaned(link)) {
         results.push({ linkId: link.id, provider: link.provider_id, state: 'orphaned', errorCode: 'orphaned' });
         continue;
       }
       // Refused as the REST route refuses it, before the shelved rows below are
       // touched: a binding an admin switched off stays exactly as it was, so it
       // resumes where it stopped once the provider is back on.
-      if (this.sync.isSwitchedOff(link)) {
+      if (await this.sync.isSwitchedOff(link)) {
         results.push({ linkId: link.id, provider: link.provider_id, state: 'disabled', errorCode: PROVIDER_DISABLED });
         continue;
       }
@@ -116,8 +120,12 @@ export class DocSyncMcp {
       // that were shelved after too many failures. The REST route does the
       // same thing before its run; a tool that skipped it would answer "in
       // sync" while leaving them shelved.
-      this.sync.retryShelvedItems(link.id);
-      results.push({ linkId: link.id, provider: link.provider_id, ...(await this.sync.syncLink(link, { full: full === true })) });
+      await this.sync.retryShelvedItems(link.id);
+      results.push({
+        linkId: link.id,
+        provider: link.provider_id,
+        ...(await this.sync.syncLink(link, { full: full === true })),
+      });
     }
     if (results.every((r) => r.errorCode === PROVIDER_DISABLED)) {
       return errorResult(

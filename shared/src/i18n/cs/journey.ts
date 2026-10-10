@@ -6,6 +6,9 @@ const journey: TranslationStrings = {
   'journey.title': 'Cestovní deník',
   'journey.subtitle': 'Zaznamenávejte své cesty průběžně',
   'journey.new': 'Nový cestovní deník',
+  'journey.lightbox.zoomIn': 'Přiblížit',
+  'journey.lightbox.zoomOut': 'Oddálit',
+  'journey.lightbox.zoomReset': 'Zpět na celou fotku',
   'journey.create': 'Vytvořit',
   'journey.titlePlaceholder': 'Kam jedete?',
   'journey.empty': 'Zatím žádné cestovní deníky',
@@ -56,7 +59,9 @@ const journey: TranslationStrings = {
   'journey.frontpage.activeJourney': 'Aktivní cestovní deník',
   'journey.frontpage.latestJourney': 'Poslední cestovní deník',
   'journey.frontpage.allJourneys': 'Všechny cestovní deníky',
-  'journey.frontpage.journeys': 'cestovní deníky',
+  'journey.frontpage.journeys': 'cestovních deníků',
+  'journey.frontpage.journeys.one': 'cestovní deník',
+  'journey.frontpage.journeys.few': 'cestovní deníky',
   'journey.frontpage.createNew': 'Vytvořit nový cestovní deník',
   'journey.frontpage.createNewSub': 'Vyberte cesty, pište příběhy, sdílejte dobrodružství',
   'journey.frontpage.live': 'Živě',
@@ -72,12 +77,18 @@ const journey: TranslationStrings = {
   'journey.frontpage.tripsSelected': 'cest vybráno',
   'journey.frontpage.trips': 'cesty',
   'journey.frontpage.placesImported': 'míst bude importováno',
-  'journey.frontpage.places': 'místa',
+  'journey.frontpage.places': 'míst',
+  'journey.frontpage.places.one': 'místo',
+  'journey.frontpage.places.few': 'místa',
   'journey.detail.backToJourney': 'Zpět na cestovní deník',
   'journey.detail.syncedWithTrips': 'Synchronizováno s cestami',
   'journey.detail.addEntry': 'Přidat záznam',
   'journey.detail.jumpToTop': 'Zpět nahoru',
   'journey.detail.jumpToLast': 'Přejít na poslední záznam',
+  'journey.detail.dayJump': 'Přejít na den',
+  'journey.detail.dayJumpCount': '{count} dní',
+  'journey.detail.dayJumpCount.one': '{count} den',
+  'journey.detail.dayJumpCount.few': '{count} dny',
   'journey.detail.newEntry': 'Nový záznam',
   'journey.detail.editEntry': 'Upravit záznam',
   'journey.detail.noEntries': 'Zatím žádné záznamy',
@@ -90,7 +101,9 @@ const journey: TranslationStrings = {
   'journey.detail.contributors': 'Přispěvatelé',
   'journey.detail.readMore': 'Číst dále',
   'journey.detail.prosCons': 'Klady a zápory',
-  'journey.detail.photos': 'fotky',
+  'journey.detail.photos': 'fotek',
+  'journey.detail.photos.one': 'fotka',
+  'journey.detail.photos.few': 'fotky',
   'journey.detail.day': 'Den {number}',
   'journey.detail.places': 'míst',
   'journey.stats.days': 'Dny',
@@ -102,7 +115,9 @@ const journey: TranslationStrings = {
   'journey.skeletons.hide': 'Skrýt návrhy',
   'journey.verdict.lovedIt': 'Skvělé',
   'journey.verdict.couldBeBetter': 'Mohlo by být lepší',
-  'journey.synced.places': 'místa',
+  'journey.synced.places': 'míst',
+  'journey.synced.places.one': 'místo',
+  'journey.synced.places.few': 'místa',
   'journey.synced.synced': 'synchronizováno',
   'journey.editor.discardChangesConfirm': 'Máte neuložené změny. Zahodit?',
   'journey.editor.uploadFailed': 'Nahrávání fotek selhalo',
@@ -193,6 +208,14 @@ const journey: TranslationStrings = {
   'journey.settings.tracks': 'Stopy GPX',
   'journey.settings.showTripTracks': 'Zobrazit všechny GPX stopy z cest',
   'journey.settings.showTripTracksHint': 'Vykreslí na mapě zaznamenané trasy z propojených cest.',
+  'journey.settings.status': 'Stav',
+  'journey.settings.statusAuto': 'Automaticky',
+  'journey.settings.statusAutoHint': 'Řídí se daty propojených výletů. Bez výletu zůstane deník konceptem.',
+  'journey.settings.statusManualHint': 'Nastaveno ručně. Data výletu ho nezmění, dokud nepřepnete zpět na automaticky.',
+  'journey.settings.photosSection': 'Fotky',
+  'journey.settings.photoLocation': 'Umístit záznamy podle jejich fotek',
+  'journey.settings.photoLocationHint':
+    'Záznam bez místa převezme místo, kde vznikla jeho první fotka s GPS. Místa nastavená ručně se nikdy nepřesunou.',
   'journey.settings.endJourney': 'Archivovat cestu',
   'journey.settings.reopenJourney': 'Obnovit cestu',
   'journey.settings.archived': 'Cesta archivována',
@@ -208,8 +231,12 @@ const journey: TranslationStrings = {
   'journey.settings.failedToDelete': 'Smazání se nezdařilo',
   'journey.entries.deleteTitle': 'Smazat záznam',
   'journey.photosUploaded': '{count} fotografií nahráno',
+  'journey.photosUploaded.one': '{count} fotografie nahrána',
+  'journey.photosUploaded.few': '{count} fotografie nahrány',
   'journey.photosUploadFailed': 'Některé fotky se nepodařilo nahrát',
   'journey.photosAdded': '{count} fotografií přidáno',
+  'journey.photosAdded.one': '{count} fotografie přidána',
+  'journey.photosAdded.few': '{count} fotografie přidány',
   'journey.public.notFound': 'Nenalezeno',
   'journey.public.notFoundMessage': 'Tento cestovní deník neexistuje nebo odkaz vypršel.',
   'journey.public.readOnly': 'Pouze ke čtení · Veřejný cestovní deník',
@@ -275,23 +302,29 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': 'Zpracování',
   'journey.studio.exportMarks': 'Ořezové značky',
   'journey.studio.exportMarksHint': 'Přidá {bleed} mm spadávky na každou hranu a označí, kde se řeže',
-  'journey.studio.exportNote': '{sheets} listů {width} × {height} mm. Prohlížeč z náhledu tisku udělá PDF.',
+  'journey.studio.exportNote': '{count} listů {width} × {height} mm. Prohlížeč z náhledu tisku udělá PDF.',
+  'journey.studio.exportNote.one': '{count} list {width} × {height} mm. Prohlížeč z náhledu tisku udělá PDF.',
+  'journey.studio.exportNote.few': '{count} listy {width} × {height} mm. Prohlížeč z náhledu tisku udělá PDF.',
   'journey.studio.exportOpen': 'Náhled tisku',
   'journey.studio.exportSave': 'Uložit jako PDF',
   'journey.studio.exportPreparing': 'Připravuje se',
   'journey.studio.exportSheetCount': '{count} listů',
+  'journey.studio.exportSheetCount.one': '{count} list',
+  'journey.studio.exportSheetCount.few': '{count} listy',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Stáhnout tuto dvoustranu',
-  'journey.studio.downloadSpreadHint': 'Uloží návrh této dvoustrany jako soubor, bez fotografií, ke sdílení nebo dalšímu použití',
+  'journey.studio.downloadSpreadHint':
+    'Uloží návrh této dvoustrany jako soubor, bez fotografií, ke sdílení nebo dalšímu použití',
   'journey.studio.importSpread': 'Importovat',
   'journey.studio.importSpreadHint': 'Přidá dvoustranu ze staženého souboru s návrhem',
   'journey.studio.importSpreadFailed': 'Tento soubor není dvoustrana z TREK Studia',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Sazba knihy potřebuje místo, a tak je Studio jen na počítači, stejně jako tvorba PDF. Všechno ostatní z cesty tu funguje jako obvykle.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Sazba knihy potřebuje místo, a tak je Studio jen na počítači, stejně jako tvorba PDF. Všechno ostatní z cesty tu funguje jako obvykle.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -355,7 +388,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -432,6 +466,18 @@ const journey: TranslationStrings = {
   'journey.studio.kind.list': 'Seznam',
   'journey.studio.kind.icon': 'Ikona',
   'journey.studio.duplicate': 'Duplikovat',
+  'journey.studio.copyToPage': 'Kopírovat pro vložení na libovolnou stranu (Ctrl+C)',
+  'journey.studio.paste': 'Vložit (Ctrl+V)',
+  'journey.studio.pasteEmpty': 'Nejprve něco zkopírujte a pak to vložte na libovolnou stranu',
+  'journey.studio.myLayouts': 'Moje rozvržení',
+  'journey.studio.myLayoutsEmpty':
+    'Uložte si stranu, kterou jste uspořádali, a rozvrhněte stejně i další strany. Jejich fotky a texty zůstanou.',
+  'journey.studio.saveLayout': 'Uložit tuto stranu jako rozvržení',
+  'journey.studio.saveLayoutHint': 'Uloží uspořádání bez fotek, pro všechny editory této knihy',
+  'journey.studio.saveLayoutFull': 'Tato kniha pojme až 24 rozvržení. Jedno smažte, abyste mohli uložit další.',
+  'journey.studio.deleteLayout': 'Smazat rozvržení',
+  'journey.studio.layoutName': 'Rozvržení',
+  'journey.studio.builtInLayouts': 'Vestavěná',
   'journey.studio.style': 'Styl',
   'journey.studio.shows': 'Zobrazení',
   'journey.studio.size': 'Velikost',
@@ -561,8 +607,10 @@ const journey: TranslationStrings = {
   'journey.studio.pinPhoto': 'Fotky',
   'journey.studio.pinPhotoNone': 'U těchto zastávek zatím nejsou žádné fotky, kreslí se proto jako tečky.',
   'journey.studio.mapSourceSatellite': 'Satelit',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 bez oblačnosti, volný k tisku s uvedením zdroje. Ostrý až na úroveň ulice.',
-  'journey.studio.mapSourceReliefHint': 'Stínovaný reliéf od NASA, volný k tisku. Vhodný pro zemi nebo kontinent, pro jedno město je příliš hrubý.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 bez oblačnosti, volný k tisku s uvedením zdroje. Ostrý až na úroveň ulice.',
+  'journey.studio.mapSourceReliefHint':
+    'Stínovaný reliéf od NASA, volný k tisku. Vhodný pro zemi nebo kontinent, pro jedno město je příliš hrubý.',
   'journey.studio.mapPrintDpi': 'Tiskne se přibližně v',
   'journey.studio.mapPrintDpiLow': 'v této velikosti bude neostrá, zkuste širší výřez nebo jiný zdroj',
   'journey.studio.mapPerTrip': 'Každá cesta zvlášť',
@@ -605,12 +653,16 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': 'Tento záznam zatím nemá žádné fotografie.',
   'journey.studio.noLoosePhotos': 'Každá fotografie zde patří k nějakému záznamu.',
   'journey.studio.uploadPhotos': 'Nahrát fotografie',
+  'journey.studio.fromProvider': 'Z {name}',
+  'journey.studio.fromProviderHint': 'Vyberte fotky z {name} a přidejte je tam, kam by šlo nahrání',
   'journey.studio.uploadHint': 'Přetáhněte sem obrázky nebo klikněte a vyberte je',
   'journey.studio.uploadToEntry': 'Nové obrázky půjdou do tohoto záznamu',
   'journey.studio.uploadToGallery': 'Nové obrázky půjdou do galerie',
   'journey.studio.uploading': 'Nahrává se {done} z {total}',
   'journey.studio.dropFilesHere': 'Pusťte pro přidání obrázků',
-  'journey.studio.videosSkipped': '{count} videí bylo vynecháno. Kniha obsahuje obrázky.',
+  'journey.studio.videosSkipped': '{count} videí bylo vynecháno. Kniha pojme jen obrázky.',
+  'journey.studio.videosSkipped.one': '{count} video bylo vynecháno. Kniha pojme jen obrázky.',
+  'journey.studio.videosSkipped.few': '{count} videa byla vynechána. Kniha pojme jen obrázky.',
   'journey.studio.fillPage': 'Vyplnit stránku',
   'journey.studio.fillSpread': 'Vyplnit dvoustranu',
   'journey.studio.fillHint': 'Roztáhne obrázek přes celou stránku včetně spadávky a umístí ho za vše ostatní.',
@@ -625,11 +677,22 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Zastávka zůstane v deníku, ale nepočítá se do vzdálenosti, zemí ani do mapy v Studio.',
   'journey.entry.offRoute': 'Mimo trasu',
+  'journey.entry.draft': 'Koncept',
+  'journey.editor.draft': 'Koncept',
+  'journey.editor.draftHint':
+    'Tento záznam vidíte jen vy a ostatní přispěvatelé. Sdílený deník ho vynechá, dokud tuto volbu nevypnete.',
+  'journey.editor.tripSuggestionHint':
+    'Tento den spadá do této cesty. Propojte ji a její místa se přidají do tohoto deníku.',
+  'journey.editor.tripSuggestionLater': 'Teď ne',
   'journey.suggestions.dismiss': 'Zahodit tento návrh',
   'journey.suggestions.dismissed': 'Návrh zahozen',
   'journey.suggestions.restore': 'Vrátit zahozené návrhy',
   'journey.suggestions.restoreCount': 'Zahozené návrhy ({count})',
+  'journey.suggestions.restoreCount.one': 'Zahozené návrhy ({count})',
+  'journey.suggestions.restoreCount.few': 'Zahozené návrhy ({count})',
   'journey.suggestions.restored': 'Vrátilo se {count} návrhů',
+  'journey.suggestions.restored.one': 'Vrátil se {count} návrh',
+  'journey.suggestions.restored.few': 'Vrátily se {count} návrhy',
   'journey.detail.addOnThisDay': 'Přidat záznam k tomuto dni',
   'journey.detail.jumpToDay': 'Přejít na {date}',
   'journey.detail.searchPlaceholder': 'Hledat v této cestě',

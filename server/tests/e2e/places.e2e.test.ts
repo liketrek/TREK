@@ -1,99 +1,86 @@
 /**
  * Places module e2e — exercises the migrated /api/trips/:tripId/places endpoints
- * through the real JwtAuthGuard against a temp SQLite db. PlacesService runs its
- * real (DI-native) SQL — places/categories/tags/place_tags/place_ratings DDL
- * below; journeyService, the permission check, canAccessTrip and the WebSocket
- * broadcast are mocked.
+ * through the real JwtAuthGuard against a real migrated-and-seeded temp SQLite db
+ * (createSnapshotTestDb(), Plan 3c Task 4 — this used to hand-roll a dozen
+ * CREATE TABLEs, a second hand-maintained schema copy that omitted several
+ * `places` columns `PlacesRepository.insertPlace`'s own `em.insert()`
+ * RETURNING read-back names (`reservation_status`, `reservation_notes`,
+ * `reservation_datetime`) and stubbed `getPlaceWithTags`/`canAccessTrip`
+ * directly rather than routing through the real repositories this domain now
+ * uses — the same class of failure `days.e2e.test.ts` (Task 2) and
+ * `assignments.e2e.test.ts` (Task 3) already fixed for their own files.
+ * PlacesService runs its real SQL (DI-injected, no service mock);
+ * journeyService and the permission check stay mocked, and the broadcast
+ * goes to a FakeRealtimeService. Every `it(...)` body below is unchanged from before this
+ * conversion — only the DB bootstrap changed.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
+import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
+import { Days } from '../../src/db/entities/Days.entity';
+import { PlaceRatings } from '../../src/db/entities/PlaceRatings.entity';
+import { Places } from '../../src/db/entities/Places.entity';
+import { Tours } from '../../src/db/entities/Tours.entity';
+import { Trips } from '../../src/db/entities/Trips.entity';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { PlacesModule } from '../../src/nest/places/places.module';
+import { PlacesService } from '../../src/nest/places/places.service';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { RealtimeService } from '../../src/nest/realtime/realtime.service';
+import { countRows, deleteRows, findRow, findRows, insertRow, insertRows, upsertRow } from '../helpers/factories/rows';
+import { makeTour } from '../helpers/factories/tours';
+import { makeUser } from '../helpers/factories/users';
+import { FakeRealtimeService } from '../helpers/fake-realtime';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 
-const { db } = vi.hoisted(() => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require('better-sqlite3');
-  const tmp = new Database(':memory:');
-  tmp.exec('PRAGMA journal_mode = WAL');
-  tmp.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0,
-    avatar TEXT);`);
-  // PlacesService runs its real SQL since the place fold — the full place column
-  // set the INSERT/UPDATE/SELECT paths touch, plus the joined projections.
-  tmp.exec(`CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, name TEXT,
-    description TEXT, lat REAL, lng REAL, address TEXT, category_id INTEGER, price REAL, currency TEXT,
-    place_time TEXT, end_time TEXT, duration_minutes INTEGER, notes TEXT, image_url TEXT,
-    google_place_id TEXT, google_ftid TEXT, osm_id TEXT, amap_poi_id TEXT, website TEXT, phone TEXT, transport_mode TEXT,
-    route_geometry TEXT, route_color TEXT, stop_type TEXT, fill_percent INTEGER,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
-  tmp.exec(`CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT, icon TEXT);`);
-  tmp.exec(`CREATE TABLE tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
-  tmp.exec(`CREATE TABLE place_tags (place_id INTEGER NOT NULL, tag_id INTEGER NOT NULL,
-    PRIMARY KEY (place_id, tag_id));`);
-  tmp.exec(`CREATE TABLE place_ratings (place_id INTEGER NOT NULL, user_id INTEGER NOT NULL, rating INTEGER,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(place_id, user_id));`);
-  // The assignment=unassigned/assigned filters join these.
-  tmp.exec('CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, day_number INTEGER, date TEXT, title TEXT);');
-  // The GPX export reads the trip title for <metadata> and the filename.
-  tmp.exec('CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT);');
-  tmp.exec(`CREATE TABLE day_assignments (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
-    place_id INTEGER NOT NULL, order_index INTEGER DEFAULT 0);`);
-  // reclaimPlaceImage ref-counts an uploaded thumbnail across both tables.
-  // Deleting a place cancels the nights booked at it (#2354), so the delete path
-  // reads this table even in a file that never books one.
-  tmp.exec(`CREATE TABLE day_accommodations (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER,
-    place_id INTEGER, start_day_id INTEGER, end_day_id INTEGER, check_in TEXT, check_in_end TEXT,
-    check_out TEXT, confirmation TEXT, notes TEXT, created_at TEXT DEFAULT (datetime('now')));`);
-  tmp.exec(`CREATE TABLE collection_places (id INTEGER PRIMARY KEY AUTOINCREMENT, image_url TEXT);`);
-  // reclaimPhotoCache's removeIfUnreferenced sweeps the Google photo cache.
-  tmp.exec(`CREATE TABLE google_place_photo_meta (place_id TEXT PRIMARY KEY, attribution TEXT, error_at DATETIME);`);
-  // Deleting a place takes its linked expense with it (#1298).
-  tmp.exec(`CREATE TABLE budget_items (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
-    name TEXT, total_price REAL DEFAULT 0, place_id INTEGER, reservation_id INTEGER);`);
-  // StorageRegistryService (behind StorageModule, now in this module chain) reads
-  // this at onModuleInit.
-  tmp.exec('CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT);');
-  return { db: tmp };
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
 });
 
-const { canAccessTrip } = vi.hoisted(() => ({ canAccessTrip: vi.fn() }));
-const { getPlaceWithTags } = vi.hoisted(() => ({
-  // The one db/database helper PlacesService still calls through (post-write
-  // re-selects). Real implementation over the temp db so the responses carry
-  // the joined category/tags/ratings the client expects.
-  getPlaceWithTags: vi.fn(),
+const { onPlaceCreated, onPlaceUpdated, onPlaceDeleted } = vi.hoisted(() => ({
+  onPlaceCreated: vi.fn().mockResolvedValue(undefined),
+  onPlaceUpdated: vi.fn().mockResolvedValue(undefined),
+  onPlaceDeleted: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('../../src/db/database', () => ({
-  db, canAccessTrip, isOwner: vi.fn(() => true), getPlaceWithTags, closeDb: () => {}, reinitialize: () => {},
-}));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn() }));
-import { broadcast } from '../../src/websocket';
-import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
-
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 
 // Since the permissions DI migration, the check is a spy on the container's
 // PermissionsService singleton (created in beforeAll, after build()).
 let checkPermission: MockInstance;
 
-import { PlacesModule } from '../../src/nest/places/places.module';
-import { PlacesService } from '../../src/nest/places/places.service';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+const realtime = new FakeRealtimeService();
+const broadcast = realtime.broadcastMock;
+
+let orm: TestOrm;
 
 describe('Places e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, PlacesModule] })
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        PlacesModule,
+      ],
+    })
+      .overrideProvider(RealtimeService)
+      .useValue(realtime)
       .overrideProvider(JourneyDomainService)
-      .useValue({ onPlaceCreated: vi.fn(), onPlaceUpdated: vi.fn(), onPlaceDeleted: vi.fn() })
+      .useValue({ onPlaceCreated, onPlaceUpdated, onPlaceDeleted })
       .compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
@@ -106,27 +93,39 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
   }
 
   beforeAll(async () => {
-    seedUser(db as never, { id: 1 });
-    getPlaceWithTags.mockImplementation((placeId: number | string) => {
-      const place = db.prepare(`SELECT p.*, c.name AS category_name, c.color AS category_color, c.icon AS category_icon
-        FROM places p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`).get(placeId) as Record<string, unknown> | undefined;
-      if (!place) return null;
-      const tags = db.prepare('SELECT t.* FROM tags t JOIN place_tags pt ON t.id = pt.tag_id WHERE pt.place_id = ?').all(placeId);
-      return { ...place, category: place.category_id ? { id: place.category_id, name: place.category_name } : null, tags, ratings: [], rating_avg: null, rating_count: 0 };
-    });
+    // harness.ts's seedUser() omits password_hash, which the real migrated
+    // schema requires NOT NULL (days.e2e.test.ts's/assignments.e2e.test.ts's
+    // own precedent) — raw inserts here instead. `username: 'e2e-user'`
+    // (user 1) matches the harness default so assertion bodies that spell
+    // out the owner's username stay unchanged. User 2 owns the "foreign"
+    // trip (id 6) several tests below reference — `trips.user_id` and
+    // `places.trip_id` both carry a real FK now (`ON DELETE CASCADE`), so a
+    // dangling trip_id the old hand-rolled DDL tolerated would fail here.
+    orm = await createTestOrm(db);
+    await makeUser(orm, { id: 1, username: 'e2e-user', email: 'e2e@example.test' });
+    await makeUser(orm, { id: 2, username: 'peer', email: 'peer@example.test' });
+    await insertRow(orm, Trips, { id: 6, title: 'Theirs', user: 2 });
     app = await build();
     checkPermission = vi.spyOn(app.get(PermissionsService), 'checkPermission');
     server = app.getHttpServer();
   });
 
-  beforeEach(() => {
-    db.exec('DELETE FROM trips; DELETE FROM places; DELETE FROM place_tags; DELETE FROM place_ratings; DELETE FROM day_assignments; DELETE FROM days;');
-    canAccessTrip.mockReturnValue({ id: 5, user_id: 1 });
+  beforeEach(async () => {
+    // Trip 5 (owned by user 1) is the suite's main trip, re-seeded fresh
+    // every test — deleting it (`ON DELETE CASCADE`) also clears every place/
+    // day/assignment/rating/tag-link/budget-item this suite seeded under it,
+    // the real-FK equivalent of the old blanket `DELETE FROM places; …`.
+    // Trip 6 (the "foreign" trip, owned by user 2) is seeded once in
+    // beforeAll and left alone.
+    await deleteRows(orm, Trips, { id: 5 });
+    await insertRow(orm, Trips, { id: 5, title: 'Trip', user: 1 });
+    await deleteRows(orm, Places, { trip: 6 });
     checkPermission.mockReturnValue(true);
   });
 
   afterAll(async () => {
     await app.close();
+    await orm.close();
   });
 
   it('401 without a cookie', async () => {
@@ -134,16 +133,33 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('200 list', async () => {
-    db.prepare("INSERT INTO places (id, trip_id, name) VALUES (1, 5, 'Spot')").run();
+    await insertRow(orm, Places, { id: 1, trip: 5, name: 'Spot' });
     const res = await request(server).get('/api/trips/5/places').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body.places).toHaveLength(1);
     expect(res.body.places[0]).toMatchObject({ id: 1, name: 'Spot', trip_id: 5, tags: [], ratings: [] });
   });
 
+  it('marks Tour-backed Places without changing ordinary Place rows', async () => {
+    await insertRows(orm, Places, [
+      { id: 1, trip: 5, name: 'Plain' },
+      { id: 2, trip: 5, name: 'Tour' },
+    ]);
+    await makeTour(orm, 2, { tourTypeRef: 'hike' });
+
+    const all = await request(server).get('/api/trips/5/places').set('Cookie', sessionCookie(1));
+    expect(all.status).toBe(200);
+    expect(all.body.places).toHaveLength(2);
+    const tourPlaceIdById = new Map(
+      all.body.places.map((place: { id: number; tour_place_id: number | null }) => [place.id, place.tour_place_id]),
+    );
+    expect(tourPlaceIdById.get(1)).toBeNull();
+    expect(tourPlaceIdById.get(2)).toBe(2);
+  });
+
   it('200 list scoped to the trip', async () => {
-    db.prepare("INSERT INTO places (trip_id, name) VALUES (5, 'Mine')").run();
-    db.prepare("INSERT INTO places (trip_id, name) VALUES (6, 'Theirs')").run();
+    await insertRow(orm, Places, { trip: 5, name: 'Mine' });
+    await insertRow(orm, Places, { trip: 6, name: 'Theirs' });
     const res = await request(server).get('/api/trips/5/places').set('Cookie', sessionCookie(1));
     expect(res.body.places.map((p: { name: string }) => p.name)).toEqual(['Mine']);
   });
@@ -153,28 +169,44 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     expect(ok.status).toBe(201);
     expect(ok.body.place).toMatchObject({ name: 'Spot', trip_id: 5, transport_mode: 'walking', duration_minutes: 60 });
     // The row really landed.
-    expect(db.prepare('SELECT COUNT(*) AS n FROM places WHERE trip_id = 5').get()).toEqual({ n: 1 });
+    expect(await countRows(orm, Places, { trip: 5 })).toBe(1);
 
-    const long = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1)).send({ name: 'x'.repeat(201) });
+    const long = await request(server)
+      .post('/api/trips/5/places')
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'x'.repeat(201) });
     expect(long.status).toBe(400);
     expect(long.body).toEqual({ error: 'name must be 200 characters or less' });
 
     checkPermission.mockReturnValue(false);
-    const forbidden = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1)).send({ name: 'Spot' });
+    const forbidden = await request(server)
+      .post('/api/trips/5/places')
+      .set('Cookie', sessionCookie(1))
+      .send({ name: 'Spot' });
     expect(forbidden.status).toBe(403);
   });
 
   it('200 (not 201) bulk-delete, 400 on bad ids', async () => {
-    db.prepare("INSERT INTO places (id, trip_id, name) VALUES (1, 5, 'A'), (2, 5, 'B'), (3, 6, 'Foreign')").run();
-    const ok = await request(server).post('/api/trips/5/places/bulk-delete').set('Cookie', sessionCookie(1)).send({ ids: [1, 2, 3] });
+    await insertRows(orm, Places, [
+      { id: 1, trip: 5, name: 'A' },
+      { id: 2, trip: 5, name: 'B' },
+    ]);
+    await insertRow(orm, Places, { id: 3, trip: 6, name: 'Foreign' });
+    const ok = await request(server)
+      .post('/api/trips/5/places/bulk-delete')
+      .set('Cookie', sessionCookie(1))
+      .send({ ids: [1, 2, 3] });
     expect(ok.status).toBe(200);
-    expect(ok.body).toEqual({ deleted: [1, 2], count: 2 });
+    expect(ok.body).toEqual({ deleted: [1, 2], count: 2, tourPlaceIds: [] });
     // The foreign trip's place is untouched.
-    expect(db.prepare('SELECT id FROM places ORDER BY id').all()).toEqual([{ id: 3 }]);
+    expect((await findRows(orm, Places, {}, { id: 'asc' })).map((p) => ({ id: p.id }))).toEqual([{ id: 3 }]);
 
     // The ZodValidationPipe owns this 400 since the DTO ratchet — the legacy
     // 'ids must be an array of numbers' string is gone.
-    const bad = await request(server).post('/api/trips/5/places/bulk-delete').set('Cookie', sessionCookie(1)).send({ ids: ['a'] });
+    const bad = await request(server)
+      .post('/api/trips/5/places/bulk-delete')
+      .set('Cookie', sessionCookie(1))
+      .send({ ids: ['a'] });
     expect(bad.status).toBe(400);
     expect(bad.body.error).toMatch(/^ids\.0: /);
   });
@@ -184,31 +216,42 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     expect(nameless.status).toBe(400);
     expect(nameless.body.error).toMatch(/^name: /);
 
-    const urlless = await request(server).post('/api/trips/5/places/import/google-list').set('Cookie', sessionCookie(1)).send({});
+    const urlless = await request(server)
+      .post('/api/trips/5/places/import/google-list')
+      .set('Cookie', sessionCookie(1))
+      .send({});
     expect(urlless.status).toBe(400);
     expect(urlless.body.error).toMatch(/^url: /);
 
     // And it fires ahead of the trip-access 404 it used to follow (documented
     // parity shift of the ratchet — the todo/trips precedent).
-    canAccessTrip.mockReturnValue(undefined);
+    await deleteRows(orm, Trips, { id: 5 });
     const noTrip = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1)).send({});
     expect(noTrip.status).toBe(400);
   });
 
   it('bulk-update: an empty id list still short-circuits, a bare id list still 400s', async () => {
-    const empty = await request(server).post('/api/trips/5/places/bulk-update').set('Cookie', sessionCookie(1)).send({ ids: [] });
+    const empty = await request(server)
+      .post('/api/trips/5/places/bulk-update')
+      .set('Cookie', sessionCookie(1))
+      .send({ ids: [] });
     expect(empty.status).toBe(200);
     expect(empty.body).toEqual({ updated: [], count: 0 });
 
     // category_id absent (not undefined-valued): Zod strips absent optionals, so
     // the handler's `'category_id' in body` check still discriminates.
-    const noField = await request(server).post('/api/trips/5/places/bulk-update').set('Cookie', sessionCookie(1)).send({ ids: [1] });
+    const noField = await request(server)
+      .post('/api/trips/5/places/bulk-update')
+      .set('Cookie', sessionCookie(1))
+      .send({ ids: [1] });
     expect(noField.status).toBe(400);
     expect(noField.body).toEqual({ error: 'Provide at least one field to update' });
   });
 
   it('import/google-list forwards a boolean enrich flag as the client sends it', async () => {
-    const spy = vi.spyOn(app.get(PlacesService), 'importGoogleList').mockResolvedValue({ places: [], listName: 'L', skipped: 0 });
+    const spy = vi
+      .spyOn(app.get(PlacesService), 'importGoogleList')
+      .mockResolvedValue({ places: [], listName: 'L', skipped: 0 });
     const res = await request(server)
       .post('/api/trips/5/places/import/google-list')
       .set('Cookie', sessionCookie(1))
@@ -219,54 +262,75 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('PUT route_color: hex through, null through, garbage rejected (#776)', async () => {
-    db.prepare("INSERT INTO places (id, trip_id, name) VALUES (9, 5, 'Walk')").run();
+    await insertRow(orm, Places, { id: 9, trip: 5, name: 'Walk' });
 
-    const ok = await request(server).put('/api/trips/5/places/9').set('Cookie', sessionCookie(1)).send({ route_color: '#e11d48' });
+    const ok = await request(server)
+      .put('/api/trips/5/places/9')
+      .set('Cookie', sessionCookie(1))
+      .send({ route_color: '#e11d48' });
     expect(ok.status).toBe(200);
     expect(ok.body.place.route_color).toBe('#e11d48');
 
     // null is the reset back to the inherited category colour.
-    const cleared = await request(server).put('/api/trips/5/places/9').set('Cookie', sessionCookie(1)).send({ route_color: null });
+    const cleared = await request(server)
+      .put('/api/trips/5/places/9')
+      .set('Cookie', sessionCookie(1))
+      .send({ route_color: null });
     expect(cleared.status).toBe(200);
     expect(cleared.body.place.route_color).toBeNull();
 
-    const bad = await request(server).put('/api/trips/5/places/9').set('Cookie', sessionCookie(1)).send({ route_color: 'red' });
+    const bad = await request(server)
+      .put('/api/trips/5/places/9')
+      .set('Cookie', sessionCookie(1))
+      .send({ route_color: 'red' });
     expect(bad.status).toBe(400);
     expect(bad.body).toEqual({ error: 'route_color must be a hex colour like #4f46e5' });
   });
 
   // #2483: a place from the TREK index can carry its website without a scheme.
   it('PLACES-E2E-2483-01: create and update take a website without a scheme and store it as https', async () => {
-    const created = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1))
+    const created = await request(server)
+      .post('/api/trips/5/places')
+      .set('Cookie', sessionCookie(1))
       .send({ name: 'Chapelle Sainte-Barbe', website: 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët' });
     expect(created.status).toBe(201);
     expect(created.body.place.website).toBe('https://fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët');
 
     const id = created.body.place.id;
-    const updated = await request(server).put(`/api/trips/5/places/${id}`).set('Cookie', sessionCookie(1))
+    const updated = await request(server)
+      .put(`/api/trips/5/places/${id}`)
+      .set('Cookie', sessionCookie(1))
       .send({ website: '//www.example.fr/patrimoine' });
     expect(updated.status).toBe(200);
-    expect(db.prepare('SELECT website FROM places WHERE id = ?').get(id)).toEqual({ website: 'https://www.example.fr/patrimoine' });
+    expect((await findRow(orm, Places, { id }))!.website).toBe('https://www.example.fr/patrimoine');
 
     // An explicit scheme is stored exactly as sent, and '' still clears the field.
-    const kept = await request(server).put(`/api/trips/5/places/${id}`).set('Cookie', sessionCookie(1))
+    const kept = await request(server)
+      .put(`/api/trips/5/places/${id}`)
+      .set('Cookie', sessionCookie(1))
       .send({ website: 'http://Example.fr/Pfad?q=1' });
     expect(kept.body.place.website).toBe('http://Example.fr/Pfad?q=1');
-    const cleared = await request(server).put(`/api/trips/5/places/${id}`).set('Cookie', sessionCookie(1)).send({ website: '' });
+    const cleared = await request(server)
+      .put(`/api/trips/5/places/${id}`)
+      .set('Cookie', sessionCookie(1))
+      .send({ website: '' });
     expect(cleared.status).toBe(200);
   });
 
   it('PLACES-E2E-2483-02: a script link, another scheme or a bare word is still a 400 with the same message', async () => {
     for (const website of ['javascript:alert(1)', 'mailto:mairie@example.fr', 'Chapelle', 42]) {
-      const res = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1)).send({ name: 'Chapelle', website });
+      const res = await request(server)
+        .post('/api/trips/5/places')
+        .set('Cookie', sessionCookie(1))
+        .send({ name: 'Chapelle', website });
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ error: 'website must be an http or https URL' });
     }
-    expect(db.prepare('SELECT COUNT(*) AS n FROM places WHERE trip_id = 5').get()).toEqual({ n: 0 });
+    expect(await countRows(orm, Places, { trip: 5 })).toBe(0);
   });
 
   it('409 on a stale If-Match token (#1135)', async () => {
-    db.prepare("INSERT INTO places (id, trip_id, name, updated_at) VALUES (9, 5, 'Walk', '2026-01-01 00:00:00')").run();
+    await insertRow(orm, Places, { id: 9, trip: 5, name: 'Walk', updated_at: '2026-01-01 00:00:00' });
     const res = await request(server)
       .put('/api/trips/5/places/9')
       .set('Cookie', sessionCookie(1))
@@ -274,55 +338,88 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
       .send({ name: 'Mine' });
     expect(res.status).toBe(409);
     expect(res.body.error).toBe('conflict');
-    expect(db.prepare('SELECT name FROM places WHERE id = 9').get()).toEqual({ name: 'Walk' });
+    expect((await findRow(orm, Places, { id: 9 }))!.name).toBe('Walk');
   });
 
-  it('PUT/DELETE :id/rating stores and clears the caller\'s vote', async () => {
-    db.prepare("INSERT INTO places (id, trip_id, name) VALUES (9, 5, 'Rated')").run();
+  it("PUT/DELETE :id/rating stores and clears the caller's vote", async () => {
+    await insertRow(orm, Places, { id: 9, trip: 5, name: 'Rated' });
 
-    const rated = await request(server).put('/api/trips/5/places/9/rating').set('Cookie', sessionCookie(1)).send({ rating: 4 });
+    const rated = await request(server)
+      .put('/api/trips/5/places/9/rating')
+      .set('Cookie', sessionCookie(1))
+      .send({ rating: 4 });
     expect(rated.status).toBe(200);
-    expect(db.prepare('SELECT user_id, rating FROM place_ratings WHERE place_id = 9').all()).toEqual([{ user_id: 1, rating: 4 }]);
+    expect(
+      (await findRows(orm, PlaceRatings, { place: 9 }, { id: 'asc' })).map((r) => ({
+        user_id: r.user_id,
+        rating: r.rating,
+      })),
+    ).toEqual([{ user_id: 1, rating: 4 }]);
 
     const cleared = await request(server).delete('/api/trips/5/places/9/rating').set('Cookie', sessionCookie(1));
     expect(cleared.status).toBe(200);
-    expect(db.prepare('SELECT COUNT(*) AS n FROM place_ratings WHERE place_id = 9').get()).toEqual({ n: 0 });
+    expect(await countRows(orm, PlaceRatings, { place: 9 })).toBe(0);
   });
 
   it('DELETE :id removes the row, 404 for a foreign place', async () => {
-    db.prepare("INSERT INTO places (id, trip_id, name) VALUES (9, 5, 'Gone'), (10, 6, 'Foreign')").run();
+    await insertRow(orm, Places, { id: 9, trip: 5, name: 'Gone' });
+    await insertRow(orm, Places, { id: 10, trip: 6, name: 'Foreign' });
 
     const ok = await request(server).delete('/api/trips/5/places/9').set('Cookie', sessionCookie(1));
     expect(ok.status).toBe(200);
-    expect(ok.body).toEqual({ success: true });
-    expect(db.prepare('SELECT id FROM places WHERE id = 9').get()).toBeUndefined();
+    expect(ok.body).toEqual({ success: true, tourPlaceIds: [] });
+    expect(await findRow(orm, Places, { id: 9 })).toBeNull();
 
     const foreign = await request(server).delete('/api/trips/5/places/10').set('Cookie', sessionCookie(1));
     expect(foreign.status).toBe(404);
     expect(foreign.body).toEqual({ error: 'Place not found' });
   });
 
+  it('DELETE :id and bulk-delete report the Tour place ids they removed', async () => {
+    await insertRows(orm, Places, [
+      { id: 20, trip: 5, name: 'Tour A' },
+      { id: 21, trip: 5, name: 'Tour B' },
+      { id: 22, trip: 5, name: 'Plain' },
+    ]);
+    await makeTour(orm, 20, { tourTypeRef: 'hike' });
+    await makeTour(orm, 21, { tourTypeRef: 'hike' });
+
+    const single = await request(server).delete('/api/trips/5/places/20').set('Cookie', sessionCookie(1));
+    expect(single.status).toBe(200);
+    expect(single.body).toEqual({ success: true, tourPlaceIds: [20] });
+    expect(await findRow(orm, Tours, { place: 20 })).toBeNull();
+
+    const bulk = await request(server)
+      .post('/api/trips/5/places/bulk-delete')
+      .set('Cookie', sessionCookie(1))
+      .send({ ids: [21, 22] });
+    expect(bulk.status).toBe(200);
+    expect(bulk.body).toEqual({ deleted: [21, 22], count: 2, tourPlaceIds: [21] });
+  });
+
   it('DELETE :id takes the expense linked to the place with it (#1298)', async () => {
-    db.prepare("INSERT INTO places (id, trip_id, name) VALUES (12, 5, 'Louvre')").run();
-    db.prepare("INSERT INTO budget_items (id, trip_id, name, total_price, place_id) VALUES (44, 5, 'Tickets', 34, 12)").run();
-    db.prepare("INSERT INTO budget_items (id, trip_id, name, total_price) VALUES (45, 5, 'Coffee', 3)").run();
+    await insertRow(orm, Places, { id: 12, trip: 5, name: 'Louvre' });
+    await insertRow(orm, BudgetItems, { id: 44, trip: 5, name: 'Tickets', total_price: 34, place: 12 });
+    await insertRow(orm, BudgetItems, { id: 45, trip: 5, name: 'Coffee', total_price: 3 });
 
     const res = await request(server).delete('/api/trips/5/places/12').set('Cookie', sessionCookie(1));
 
     expect(res.status).toBe(200);
-    expect(db.prepare('SELECT id FROM budget_items ORDER BY id').all()).toEqual([{ id: 45 }]);
+    expect((await findRows(orm, BudgetItems, {}, { id: 'asc' })).map((b) => ({ id: b.id }))).toEqual([{ id: 45 }]);
   });
 
   it('DELETE :id tells the deleting tab about the expense that went with the place', async () => {
     // X-Socket-Id keeps a tab from hearing back what it did itself. The tab
     // removed the place; the expense went on the server alone, so that event
     // goes out without the filter or the tab keeps the expense until a reload.
-    db.prepare("INSERT INTO places (id, trip_id, name) VALUES (13, 5, 'Louvre')").run();
-    db.prepare("INSERT INTO budget_items (id, trip_id, name, total_price, place_id) VALUES (46, 5, 'Tickets', 34, 13)").run();
+    await insertRow(orm, Places, { id: 13, trip: 5, name: 'Louvre' });
+    await insertRow(orm, BudgetItems, { id: 46, trip: 5, name: 'Tickets', total_price: 34, place: 13 });
     vi.mocked(broadcast).mockClear();
 
-    const res = await request(server).delete('/api/trips/5/places/13')
-      .set('Cookie', sessionCookie(1)).set('X-Socket-Id', 'tab-1');
+    const res = await request(server)
+      .delete('/api/trips/5/places/13')
+      .set('Cookie', sessionCookie(1))
+      .set('X-Socket-Id', 'tab-1');
 
     expect(res.status).toBe(200);
     expect(broadcast).toHaveBeenCalledWith('5', 'place:deleted', { placeId: 13 }, 'tab-1');
@@ -330,7 +427,7 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('404 trip when not accessible', async () => {
-    canAccessTrip.mockReturnValue(undefined);
+    await deleteRows(orm, Trips, { id: 5 });
     const res = await request(server).get('/api/trips/5/places').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
@@ -341,18 +438,18 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
   // the status, so a check that happens to return the right code for the wrong
   // reason still fails.
   it('DELETE :id demands place_edit, by name', async () => {
-    db.prepare("INSERT INTO places (id, trip_id, name) VALUES (11, 5, 'Guarded')").run();
+    await insertRow(orm, Places, { id: 11, trip: 5, name: 'Guarded' });
     checkPermission.mockReturnValue(false);
 
     const res = await request(server).delete('/api/trips/5/places/11').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(403);
     expect(res.body).toEqual({ error: 'No permission' });
     expect(checkPermission).toHaveBeenCalledWith('place_edit', 'user', 1, 1, false);
-    expect(db.prepare('SELECT id FROM places WHERE id = 11').get()).toBeDefined();
+    expect(await findRow(orm, Places, { id: 11 })).not.toBeNull();
   });
 
   it('the guarded read routes 404 an inaccessible trip without touching the place', async () => {
-    canAccessTrip.mockReturnValue(undefined);
+    await deleteRows(orm, Trips, { id: 5 });
     for (const path of ['/api/trips/5/places/9', '/api/trips/5/places/9/image']) {
       const res = await request(server).get(path).set('Cookie', sessionCookie(1));
       expect(res.status).toBe(404);
@@ -365,16 +462,26 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
 
   // ── GPX export ────────────────────────────────────────────────────────────
   describe('GET export.gpx (#1442)', () => {
-    const seedTrip = () => {
-      db.prepare("INSERT INTO trips (id, title) VALUES (5, 'Alpine week')").run();
-      db.prepare("INSERT INTO places (id, trip_id, name, lat, lng) VALUES (1, 5, 'Trailhead', 47.1, 11.2)").run();
-      db.prepare("INSERT INTO places (id, trip_id, name, lat, lng, route_geometry) VALUES (2, 5, 'Ridge', 47.2, 11.3, '[[47.2,11.3],[47.25,11.35]]')").run();
-      db.prepare("INSERT INTO days (id, trip_id, day_number, date, title) VALUES (1, 5, 1, '2026-05-01', 'Warm up')").run();
-      db.prepare('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (1, 1, 0), (1, 2, 1)').run();
+    const seedTrip = async () => {
+      await upsertRow(orm, Trips, { id: 5, title: 'Alpine week', user: 1 });
+      await insertRow(orm, Places, { id: 1, trip: 5, name: 'Trailhead', lat: 47.1, lng: 11.2 });
+      await insertRow(orm, Places, {
+        id: 2,
+        trip: 5,
+        name: 'Ridge',
+        lat: 47.2,
+        lng: 11.3,
+        route_geometry: '[[47.2,11.3],[47.25,11.35]]',
+      });
+      await insertRow(orm, Days, { id: 1, trip: 5, day_number: 1, date: '2026-05-01', title: 'Warm up' });
+      await insertRows(orm, DayAssignments, [
+        { day: 1, place: 1, order_index: 0 },
+        { day: 1, place: 2, order_index: 1 },
+      ]);
     };
 
     it('serves the trip as an attachment named after it', async () => {
-      seedTrip();
+      await seedTrip();
       const res = await request(server).get('/api/trips/5/places/export.gpx').set('Cookie', sessionCookie(1));
 
       expect(res.status).toBe(200);
@@ -390,8 +497,8 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     // ERR_INVALID_CHAR before the first body byte. Now the header folds to
     // ASCII and carries the real name RFC 5987-encoded.
     it('a non-ASCII trip title exports 200 with a filename* header instead of a 500 (#2165)', async () => {
-      db.prepare('INSERT INTO trips (id, title) VALUES (5, ?)').run('沖縄 4泊5日');
-      db.prepare('INSERT INTO places (id, trip_id, name, lat, lng) VALUES (1, 5, ?, 26.217, 127.719)').run('首里城');
+      await upsertRow(orm, Trips, { id: 5, title: '沖縄 4泊5日', user: 1 });
+      await insertRow(orm, Places, { id: 1, trip: 5, name: '首里城', lat: 26.217, lng: 127.719 });
 
       const res = await request(server).get('/api/trips/5/places/export.gpx').set('Cookie', sessionCookie(1));
       expect(res.status).toBe(200);
@@ -402,7 +509,7 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('narrows the document to the requested parts', async () => {
-      seedTrip();
+      await seedTrip();
       const res = await request(server)
         .get('/api/trips/5/places/export.gpx?waypoints=false&dayRoutes=false')
         .set('Cookie', sessionCookie(1));
@@ -414,7 +521,7 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('400s when every part was switched off', async () => {
-      seedTrip();
+      await seedTrip();
       const res = await request(server)
         .get('/api/trips/5/places/export.gpx?waypoints=false&tracks=false&dayRoutes=false')
         .set('Cookie', sessionCookie(1));
@@ -424,15 +531,15 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('404s an empty trip rather than handing over a file that imports as nothing', async () => {
-      db.prepare("INSERT INTO trips (id, title) VALUES (5, 'Nothing here')").run();
+      await upsertRow(orm, Trips, { id: 5, title: 'Nothing here', user: 1 });
       const res = await request(server).get('/api/trips/5/places/export.gpx').set('Cookie', sessionCookie(1));
       expect(res.status).toBe(404);
       expect(res.body).toEqual({ error: 'Nothing to export' });
     });
 
     it('404s a trip the caller cannot reach, and 401s without a cookie', async () => {
-      seedTrip();
-      canAccessTrip.mockReturnValue(undefined);
+      await seedTrip();
+      await deleteRows(orm, Trips, { id: 5 });
       const res = await request(server).get('/api/trips/5/places/export.gpx').set('Cookie', sessionCookie(1));
       expect(res.status).toBe(404);
       expect(res.body).toEqual({ error: 'Trip not found' });
@@ -441,7 +548,7 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('is a read: no place_edit permission required', async () => {
-      seedTrip();
+      await seedTrip();
       checkPermission.mockReturnValue(false);
       const res = await request(server).get('/api/trips/5/places/export.gpx').set('Cookie', sessionCookie(1));
       expect(res.status).toBe(200);
@@ -452,7 +559,7 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
   // before the pipe, so guarding create would answer 404 where the suite above
   // pins a 400. This is the non-regression pin for that decision.
   it('a bad create body still 400s ahead of the trip 404', async () => {
-    canAccessTrip.mockReturnValue(undefined);
+    await deleteRows(orm, Trips, { id: 5 });
     const res = await request(server).post('/api/trips/5/places').set('Cookie', sessionCookie(1)).send({});
     expect(res.status).toBe(400);
   });

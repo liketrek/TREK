@@ -35,7 +35,7 @@ describe('createTestRegistry', () => {
     ).toThrow(/invalid access declarations: tool "two_tool" \(Two\.two\): unknown group 'trips' \(mode 'write'\)/);
   });
 
-  it('forwards the accessPolicy option', () => {
+  it('forwards the accessPolicy option', async () => {
     const calls: string[] = [];
     const policy: McpAccessPolicy = (access, ctx) => {
       calls.push(`${access.group}:${access.mode}:${(ctx as TestCtx).userId}`);
@@ -43,7 +43,10 @@ describe('createTestRegistry', () => {
     };
     const registry = createTestRegistry([new Two()], { accessPolicy: policy });
     // A denied entry is filtered before any server interaction, so a stub suffices.
-    registry.attach({} as Parameters<McpRegistry['attach']>[0], { userId: 1 } as Parameters<McpRegistry['attach']>[1]);
+    await registry.attach(
+      {} as Parameters<McpRegistry['attach']>[0],
+      { userId: 1 } as Parameters<McpRegistry['attach']>[1],
+    );
     expect(calls).toEqual(['trips:write:1']);
   });
 });

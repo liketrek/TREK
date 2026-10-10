@@ -13,9 +13,10 @@ export interface PlacesSlice {
   addPlace: (tripId: number | string, placeData: Partial<Place> & { name: string }) => Promise<Place>
   updatePlace: (tripId: number | string, placeId: number, placeData: Partial<Place>) => Promise<Place>
   uploadPlaceImage: (tripId: number | string, placeId: number, file: File) => Promise<Place>
+  setPlaceImageFromFile: (tripId: number | string, placeId: number, fileId: number) => Promise<Place>
   ratePlace: (tripId: number | string, placeId: number, rating: number | null) => Promise<Place>
-  deletePlace: (tripId: number | string, placeId: number) => Promise<void>
-  deletePlacesMany: (tripId: number | string, placeIds: number[]) => Promise<void>
+  deletePlace: (tripId: number | string, placeId: number) => Promise<{ success?: boolean; tourPlaceIds?: number[] }>
+  deletePlacesMany: (tripId: number | string, placeIds: number[]) => Promise<{ deleted?: number[]; count?: number; tourPlaceIds?: number[] }>
   updatePlacesMany: (tripId: number | string, placeIds: number[], patch: Partial<Place>) => Promise<void>
 }
 
@@ -108,6 +109,18 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
     }
   },
 
+  setPlaceImageFromFile: async (tripId, placeId, fileId) => {
+    // Online-only like the upload: the server copies the file, so there is nothing to
+    // do offline that the next sync could replay.
+    try {
+      const data = await placesApi.imageFromFile(tripId, placeId, fileId)
+      applyUpdatedPlace(set, placeId, data.place)
+      return data.place
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, 'Error uploading image'))
+    }
+  },
+
   ratePlace: async (tripId, placeId, rating) => {
     // Casts (or clears, rating null) the current user's own star vote (#1435)
     // and applies the returned place with the fresh average.
@@ -122,7 +135,7 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
 
   deletePlace: async (tripId, placeId) => {
     try {
-      await placeRepo.delete(tripId, placeId)
+      const result = await placeRepo.delete(tripId, placeId)
       set(state => {
         const updatedAssignments = { ...state.assignments }
         let changed = false
@@ -137,15 +150,16 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
           ...(changed ? { assignments: updatedAssignments } : {}),
         }
       })
+      return result
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error deleting place'))
     }
   },
 
   deletePlacesMany: async (tripId, placeIds) => {
-    if (placeIds.length === 0) return
+    if (placeIds.length === 0) return { deleted: [], count: 0, tourPlaceIds: [] }
     try {
-      await placeRepo.deleteMany(tripId, placeIds)
+      const result = await placeRepo.deleteMany(tripId, placeIds)
       const idSet = new Set(placeIds)
       set(state => {
         const updatedAssignments = { ...state.assignments }
@@ -161,6 +175,7 @@ export const createPlacesSlice = (set: SetState, get: GetState): PlacesSlice => 
           ...(changed ? { assignments: updatedAssignments } : {}),
         }
       })
+      return result
     } catch (err: unknown) {
       throw new Error(getApiErrorMessage(err, 'Error deleting places'))
     }

@@ -7,17 +7,7 @@
  * legacy db/permissions/mcp/scheduler mocks guarded imports the pure module
  * no longer has.
  */
-import { describe, it, expect, vi } from 'vitest';
-
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
-vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
-  decrypt_api_key: vi.fn((v) => v),
-  maybe_encrypt_api_key: vi.fn((v) => v),
-  encrypt_api_key: vi.fn((v) => v),
-}));
-
 import {
-  utcSuffix,
   stripUserForClient,
   maskKey,
   normalizeBackupCode,
@@ -28,33 +18,13 @@ import {
 import { avatarUrl } from '../../../src/nest/common/avatarUrl';
 import type { User } from '../../../src/types';
 
-// ── utcSuffix ────────────────────────────────────────────────────────────────
+import { describe, it, expect, vi } from 'vitest';
 
-describe('utcSuffix', () => {
-  it('returns null for null', () => {
-    expect(utcSuffix(null)).toBeNull();
-  });
-
-  it('returns null for undefined', () => {
-    expect(utcSuffix(undefined)).toBeNull();
-  });
-
-  it('returns null for empty string', () => {
-    expect(utcSuffix('')).toBeNull();
-  });
-
-  it('returns timestamp unchanged when already ending with Z', () => {
-    expect(utcSuffix('2024-01-01T12:00:00Z')).toBe('2024-01-01T12:00:00Z');
-  });
-
-  it('replaces space with T and appends Z for SQLite-style datetime', () => {
-    expect(utcSuffix('2024-01-01 12:00:00')).toBe('2024-01-01T12:00:00Z');
-  });
-
-  it('appends Z when T is present but Z is missing', () => {
-    expect(utcSuffix('2024-06-15T08:30:00')).toBe('2024-06-15T08:30:00Z');
-  });
-});
+vi.mock('../../../src/nest/common/crypto/apiKeyCrypto', () => ({
+  decrypt_api_key: vi.fn((v) => v),
+  maybe_encrypt_api_key: vi.fn((v) => v),
+  encrypt_api_key: vi.fn((v) => v),
+}));
 
 // ── stripUserForClient ───────────────────────────────────────────────────────
 

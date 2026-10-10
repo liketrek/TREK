@@ -18,11 +18,6 @@ import fs from 'fs';
 /** bcrypt cost factor for user passwords — kept in sync with authService. */
 export const BCRYPT_COST = 12;
 
-export function utcSuffix(ts: string | null | undefined): string | null {
-  if (!ts) return null;
-  return ts.endsWith('Z') ? ts : ts.replace(' ', 'T') + 'Z';
-}
-
 export function compareVersions(a: string, b: string): number {
   const parse = (v: string) => {
     const [base, pre] = v.split('-pre.');

@@ -5,6 +5,7 @@ const undo: TranslationStrings = {
   'undo.tooltip': 'Visszavonás: {action}',
   'undo.assignPlace': 'Hely naphoz rendelve',
   'undo.removeAssignment': 'Hely eltávolítva a napról',
+  'undo.clearDay': 'Nap kiürítve',
   'undo.reorder': 'Helyek átrendezve',
   'undo.optimize': 'Útvonal optimalizálva',
   'undo.deletePlace': 'Hely törölve',

@@ -1,9 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown, ChevronRight, Copy, KeyRound, Plus, RefreshCw, Terminal, Trash2 } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
-import { useToast } from '../../../components/shared/Toast'
-import { authApi, oauthApi } from '../../../api/client'
-import { PRESET_SCOPES_DEFAULT, PRESET_SCOPES_READONLY } from '../../../api/oauthScopes'
+import { OAUTH_PRESETS, useMcpIntegration } from '../../../components/Settings/useMcpIntegration'
 import MScopeGroupPicker from './MScopeGroupPicker'
 import MSheet from '../../components/MSheet'
 import MToggle from '../../components/MToggle'
@@ -11,53 +8,6 @@ import MChip from '../../components/MChip'
 import { MSetCard, MSetEyebrow, MSetInput, MSetTextarea, MSetButton, MSetHint, MSetRow } from './MSettingsUi'
 import MConfirmSheet from './MConfirmSheet'
 import MSegmented from '../../components/MSegmented'
-import { getApiErrorMessage } from '../../../utils/apiError'
-
-interface OAuthPreset {
-  id: string
-  label: string
-  name: string
-  uris: string
-  scopes: string[]
-}
-
-const OAUTH_PRESETS: OAuthPreset[] = [
-  { id: 'claude-web', label: 'Claude.ai', name: 'Claude.ai', uris: 'https://claude.ai/api/mcp/auth_callback', scopes: PRESET_SCOPES_DEFAULT },
-  { id: 'claude-desktop', label: 'Claude Desktop', name: 'Claude Desktop', uris: 'http://localhost', scopes: PRESET_SCOPES_DEFAULT },
-  { id: 'cursor', label: 'Cursor', name: 'Cursor', uris: 'http://localhost', scopes: PRESET_SCOPES_DEFAULT },
-  { id: 'vscode', label: 'VS Code', name: 'VS Code / Copilot', uris: 'http://localhost', scopes: PRESET_SCOPES_READONLY },
-  { id: 'windsurf', label: 'Windsurf', name: 'Windsurf', uris: 'http://localhost', scopes: PRESET_SCOPES_DEFAULT },
-  { id: 'zed', label: 'Zed', name: 'Zed', uris: 'http://localhost', scopes: PRESET_SCOPES_DEFAULT },
-]
-
-interface OAuthClient {
-  id: string
-  name: string
-  client_id: string
-  redirect_uris: string[]
-  allowed_scopes: string[]
-  allows_client_credentials: boolean
-  created_at: string
-  client_secret?: string // only present on create
-}
-
-interface OAuthSession {
-  id: number
-  client_id: string
-  client_name: string
-  scopes: string[]
-  access_token_expires_at: string
-  refresh_token_expires_at: string
-  created_at: string
-}
-
-interface McpToken {
-  id: number
-  name: string
-  token_prefix: string
-  created_at: string
-  last_used_at: string | null
-}
 
 function CopyButton({ text, copied, onCopy }: { text: string; copied: boolean; onCopy: (text: string) => void }) {
   return (
@@ -87,182 +37,61 @@ function CodeBlock({ children }: { children: string }) {
  */
 export default function MSettingsMcp() {
   const { t, locale } = useTranslation()
-  const toast = useToast()
-
-  const [activeTab, setActiveTab] = useState<'oauth' | 'apitokens'>('oauth')
-  const [configOpenOAuth, setConfigOpenOAuth] = useState(false)
-  const [configOpenToken, setConfigOpenToken] = useState(false)
-  const [copiedKey, setCopiedKey] = useState<string | null>(null)
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // OAuth clients
-  const [clients, setClients] = useState<OAuthClient[]>([])
-  const [sessions, setSessions] = useState<OAuthSession[]>([])
-  const [createOpen, setCreateOpen] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newUris, setNewUris] = useState('')
-  const [newScopes, setNewScopes] = useState<string[]>([])
-  const [isMachine, setIsMachine] = useState(false)
-  const [creating, setCreating] = useState(false)
-  const [createdClient, setCreatedClient] = useState<OAuthClient | null>(null)
-  const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [revokeId, setRevokeId] = useState<number | null>(null)
-  const [rotateId, setRotateId] = useState<string | null>(null)
-  const [rotatedSecret, setRotatedSecret] = useState<string | null>(null)
-  const [rotating, setRotating] = useState(false)
-  const [scopesExpanded, setScopesExpanded] = useState<Record<string, boolean>>({})
-
-  // API tokens (deprecated)
-  const [tokens, setTokens] = useState<McpToken[]>([])
-  const [tokenModalOpen, setTokenModalOpen] = useState(false)
-  const [tokenNewName, setTokenNewName] = useState('')
-  const [createdToken, setCreatedToken] = useState<string | null>(null)
-  const [tokenCreating, setTokenCreating] = useState(false)
-  const [tokenDeleteId, setTokenDeleteId] = useState<number | null>(null)
-
-  useEffect(() => {
-    return () => {
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
-    }
-  }, [])
-
-  // Re-read after create/rotate so the rows show what the server actually stored.
-  const reloadClients = () => oauthApi.clients.list().then((d) => setClients(d.clients || [])).catch(() => {})
-
-  useEffect(() => {
-    authApi.mcpTokens.list().then((d) => setTokens(d.tokens || [])).catch(() => {})
-    reloadClients()
-    oauthApi.sessions.list().then((d) => setSessions(d.sessions || [])).catch(() => {})
-  }, [])
-
-  const mcpEndpoint = `${window.location.origin}/mcp`
-  const jsonConfigOAuth = `{
-  "mcpServers": {
-    "trek": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "${mcpEndpoint}",
-        "--static-oauth-client-info",
-        "{\\"client_id\\": \\"<your_client_id>\\", \\"client_secret\\": \\"<your_client_secret>\\"}"
-      ]
-    }
-  }
-}`
-  const jsonConfigToken = `{
-  "mcpServers": {
-    "trek": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "${mcpEndpoint}",
-        "--header",
-        "Authorization: Bearer <your_token>"
-      ]
-    }
-  }
-}`
-
-  const handleCopy = (text: string, key: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedKey(key)
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
-      copyTimerRef.current = setTimeout(() => setCopiedKey(null), 2000)
-    })
-  }
-
-  const createClient = async () => {
-    if (!newName.trim()) return
-    if (!isMachine && !newUris.trim()) return
-    setCreating(true)
-    try {
-      const uris = isMachine ? [] : newUris.split('\n').map((u) => u.trim()).filter(Boolean)
-      const d = await oauthApi.clients.create({
-        name: newName.trim(),
-        redirect_uris: uris,
-        allowed_scopes: newScopes,
-        ...(isMachine ? { allows_client_credentials: true } : {}),
-      })
-      setCreatedClient(d.client)
-      await reloadClients()
-      setNewName('')
-      setNewUris('')
-      setNewScopes([])
-      setIsMachine(false)
-    } catch (err) {
-      // The server names the rule that refused the client (a scope, the
-      // ten-client cap, a redirect URI it will not take); swallowing it left
-      // "Failed to register OAuth client" and nothing to act on.
-      toast.error(getApiErrorMessage(err, t('settings.oauth.toast.createError')))
-    } finally {
-      setCreating(false)
-    }
-  }
-
-  const deleteClient = async (id: string) => {
-    try {
-      await oauthApi.clients.delete(id)
-      setClients((prev) => prev.filter((c) => c.id !== id))
-      setDeleteId(null)
-      toast.success(t('settings.oauth.toast.deleted'))
-    } catch {
-      toast.error(t('settings.oauth.toast.deleteError'))
-    }
-  }
-
-  const rotateSecret = async (id: string) => {
-    setRotating(true)
-    try {
-      const d = await oauthApi.clients.rotate(id)
-      setRotatedSecret(d.client_secret)
-      setRotateId(null)
-      await reloadClients()
-    } catch {
-      toast.error(t('settings.oauth.toast.rotateError'))
-    } finally {
-      setRotating(false)
-    }
-  }
-
-  const revokeSession = async (id: number) => {
-    try {
-      await oauthApi.sessions.revoke(id)
-      setSessions((prev) => prev.filter((s) => s.id !== id))
-      setRevokeId(null)
-      toast.success(t('settings.oauth.toast.revoked'))
-    } catch {
-      toast.error(t('settings.oauth.toast.revokeError'))
-    }
-  }
-
-  const createToken = async () => {
-    if (!tokenNewName.trim()) return
-    setTokenCreating(true)
-    try {
-      const d = await authApi.mcpTokens.create(tokenNewName.trim())
-      setCreatedToken(d.token.raw_token)
-      setTokenNewName('')
-      setTokens((prev) => [
-        { id: d.token.id, name: d.token.name, token_prefix: d.token.token_prefix, created_at: d.token.created_at, last_used_at: null },
-        ...prev,
-      ])
-    } catch {
-      toast.error(t('settings.mcp.toast.createError'))
-    } finally {
-      setTokenCreating(false)
-    }
-  }
-
-  const deleteToken = async (id: number) => {
-    try {
-      await authApi.mcpTokens.delete(id)
-      setTokens((prev) => prev.filter((tk) => tk.id !== id))
-      setTokenDeleteId(null)
-      toast.success(t('settings.mcp.toast.deleted'))
-    } catch {
-      toast.error(t('settings.mcp.toast.deleteError'))
-    }
-  }
+  const {
+    activeMcpTab: activeTab,
+    setActiveMcpTab: setActiveTab,
+    configOpenOAuth,
+    setConfigOpenOAuth,
+    configOpenToken,
+    setConfigOpenToken,
+    copiedKey,
+    oauthClients: clients,
+    oauthSessions: sessions,
+    oauthCreateOpen: createOpen,
+    setOauthCreateOpen: setCreateOpen,
+    oauthNewName: newName,
+    setOauthNewName: setNewName,
+    oauthNewUris: newUris,
+    setOauthNewUris: setNewUris,
+    oauthNewScopes: newScopes,
+    setOauthNewScopes: setNewScopes,
+    oauthIsMachine: isMachine,
+    setOauthIsMachine: setIsMachine,
+    oauthCreating: creating,
+    oauthCreatedClient: createdClient,
+    setOauthCreatedClient: setCreatedClient,
+    oauthDeleteId: deleteId,
+    setOauthDeleteId: setDeleteId,
+    oauthRevokeId: revokeId,
+    setOauthRevokeId: setRevokeId,
+    oauthRotateId: rotateId,
+    setOauthRotateId: setRotateId,
+    oauthRotatedSecret: rotatedSecret,
+    setOauthRotatedSecret: setRotatedSecret,
+    oauthRotating: rotating,
+    oauthScopesExpanded: scopesExpanded,
+    setOauthScopesExpanded: setScopesExpanded,
+    mcpTokens: tokens,
+    mcpModalOpen: tokenModalOpen,
+    setMcpModalOpen: setTokenModalOpen,
+    mcpNewName: tokenNewName,
+    setMcpNewName: setTokenNewName,
+    mcpCreatedToken: createdToken,
+    setMcpCreatedToken: setCreatedToken,
+    mcpCreating: tokenCreating,
+    mcpDeleteId: tokenDeleteId,
+    setMcpDeleteId: setTokenDeleteId,
+    mcpEndpoint,
+    mcpJsonConfigOAuth: jsonConfigOAuth,
+    mcpJsonConfig: jsonConfigToken,
+    handleCopy,
+    handleCreateOAuthClient: createClient,
+    handleDeleteOAuthClient: deleteClient,
+    handleRotateSecret: rotateSecret,
+    handleRevokeSession: revokeSession,
+    handleCreateMcpToken: createToken,
+    handleDeleteMcpToken: deleteToken,
+  } = useMcpIntegration({ enabled: true, reloadClientsAfterWrite: true })
 
   const configToggle = (open: boolean, setOpen: (v: boolean) => void, json: string, copyKey: string, hint: string) => (
     <div className="overflow-hidden rounded-xl border border-[color:var(--m-rowbr)]">
@@ -438,11 +267,11 @@ export default function MSettingsMcp() {
                     <p className="truncate text-[0.8125rem] font-bold text-m-ink">{token.name}</p>
                     <p className="mt-[2px] font-mono text-[0.625rem] text-m-faint">
                       {token.token_prefix}...
-                      <span className="ml-2 font-geist">
+                      <span className="ms-2 font-geist">
                         {t('settings.mcp.tokenCreatedAt')} {new Date(token.created_at).toLocaleDateString(locale)}
                       </span>
                       {token.last_used_at && (
-                        <span className="ml-1 font-geist">
+                        <span className="ms-1 font-geist">
                           · {t('settings.mcp.tokenUsedAt')} {new Date(token.last_used_at).toLocaleDateString(locale)}
                         </span>
                       )}

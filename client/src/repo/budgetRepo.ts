@@ -1,5 +1,5 @@
 import { budgetApi } from '../api/client'
-import { offlineDb, upsertBudgetItems } from '../db/offlineDb'
+import { offlineDb, replaceTripRows } from '../db/offlineDb'
 import { onlineThenCache } from './withOfflineFallback'
 import type { BudgetItem } from '../types'
 
@@ -8,7 +8,7 @@ export const budgetRepo = {
     return onlineThenCache(
       async () => {
         const result = await budgetApi.list(tripId)
-        upsertBudgetItems(result.items)
+        void replaceTripRows('budgetItems', Number(tripId), result.items)
         return result
       },
       async () => ({

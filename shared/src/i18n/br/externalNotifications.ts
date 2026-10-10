@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const br: NotificationLocale = {
   email: {
@@ -37,8 +38,14 @@ const br: NotificationLocale = {
       body: `${p.actor} convidou você para compartilhar uma coleção. Abra o TREK para aceitar ou recusar.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} fotos compartilhadas`,
-      body: `${p.actor} compartilhou ${p.count} foto(s) em "${p.trip}".`,
+      title: pluralForm(p.count, 'pt-BR', {
+        one: `${p.count} foto compartilhada`,
+        other: `${p.count} fotos compartilhadas`,
+      }),
+      body: pluralForm(p.count, 'pt-BR', {
+        one: `${p.actor} compartilhou ${p.count} foto em "${p.trip}".`,
+        other: `${p.actor} compartilhou ${p.count} fotos em "${p.trip}".`,
+      }),
     }),
     collab_message: (p) => ({
       title: `Nova mensagem em "${p.trip}"`,
@@ -56,7 +63,12 @@ const br: NotificationLocale = {
       title: 'Falha na réplica de armazenamento',
       body:
         `Falha ao gravar na réplica '${p.backend}': ${p.op} de ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` Mais ${p.suppressed} falha(s) foram suprimidas desde a última notificação.` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'pt-BR', {
+              one: ` Mais ${p.suppressed} falha foi suprimida desde a última notificação.`,
+              other: ` Mais ${p.suppressed} falhas foram suprimidas desde a última notificação.`,
+            })
+          : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Sessão Synology encerrada',

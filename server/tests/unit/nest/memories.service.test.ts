@@ -1,3 +1,10 @@
+import type { ImmichService } from '../../../src/nest/memories/immich.service';
+import type { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
+import { MemoriesService } from '../../../src/nest/memories/memories.service';
+import type { SynologyService } from '../../../src/nest/memories/synology.service';
+import type { UnifiedMemoriesService } from '../../../src/nest/memories/unified-memories.service';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // The MemoriesService is a thin pass-through over the legacy services/memories/*
@@ -39,7 +46,10 @@ const synology = vi.hoisted(() => ({
   testSynologyConnection: vi.fn(async () => ({ success: true, data: {} })),
   listSynologyAlbums: vi.fn(async () => ({ success: true, data: {} })),
   getSynologyAlbumPhotos: vi.fn(async () => ({ success: true, data: {} })),
-  collectSynologyAlbumSelection: vi.fn(async () => ({ success: true, data: { selection: { provider: 'synologyphotos', asset_ids: [] }, total: 0 } })),
+  collectSynologyAlbumSelection: vi.fn(async () => ({
+    success: true,
+    data: { selection: { provider: 'synologyphotos', asset_ids: [] }, total: 0 },
+  })),
   searchSynologyPhotos: vi.fn(async () => ({ success: true, data: {} })),
   getSynologyAssetInfo: vi.fn(async () => ({ success: true, data: {} })),
   streamSynologyAsset: vi.fn(async () => undefined),
@@ -47,17 +57,8 @@ const synology = vi.hoisted(() => ({
 
 const helpers = vi.hoisted(() => ({ canAccessUserPhoto: vi.fn(() => true) }));
 
-const ws = vi.hoisted(() => ({ broadcast: vi.fn() }));
-vi.mock('../../../src/websocket', () => ws);
-
-import { MemoriesService } from '../../../src/nest/memories/memories.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import type { UnifiedMemoriesService } from '../../../src/nest/memories/unified-memories.service';
-import type { ImmichService } from '../../../src/nest/memories/immich.service';
-import type { SynologyService } from '../../../src/nest/memories/synology.service';
-import type { MemoriesAccessService } from '../../../src/nest/memories/memories-access.service';
-
 const res = {} as import('express').Response;
+const realtime = new FakeRealtimeService();
 
 describe('MemoriesService (delegation wrapper over services/memories/*)', () => {
   let svc: MemoriesService;
@@ -65,7 +66,7 @@ describe('MemoriesService (delegation wrapper over services/memories/*)', () => 
   beforeEach(() => {
     vi.clearAllMocks();
     svc = new MemoriesService(
-      new RealtimeService(),
+      realtime,
       unified as unknown as UnifiedMemoriesService,
       immich as unknown as ImmichService,
       synology as unknown as SynologyService,
@@ -73,22 +74,22 @@ describe('MemoriesService (delegation wrapper over services/memories/*)', () => 
     );
   });
 
-  it('access check + broadcast forward verbatim', () => {
+  it('access check + broadcast forward verbatim', async () => {
     helpers.canAccessUserPhoto.mockReturnValue(false);
-    expect(svc.canAccessUserPhoto(1, 2, '5', 'a', 'immich')).toBe(false);
+    expect(await svc.canAccessUserPhoto(1, 2, '5', 'a', 'immich')).toBe(false);
     expect(helpers.canAccessUserPhoto).toHaveBeenCalledWith(1, 2, '5', 'a', 'immich');
 
     svc.broadcast('5', 'memories:updated', { userId: 1 }, 'sock');
-    expect(ws.broadcast).toHaveBeenCalledWith('5', 'memories:updated', { userId: 1 }, 'sock');
+    expect(realtime.broadcastMock).toHaveBeenCalledWith('5', 'memories:updated', { userId: 1 }, 'sock');
   });
 
   it('broadcast forwards an absent socket id as undefined', () => {
     svc.broadcast('5', 'memories:updated', { userId: 1 });
-    expect(ws.broadcast).toHaveBeenCalledWith('5', 'memories:updated', { userId: 1 }, undefined);
+    expect(realtime.broadcastMock).toHaveBeenCalledWith('5', 'memories:updated', { userId: 1 }, undefined);
   });
 
   it('unified methods delegate', async () => {
-    svc.listTripPhotos('5', 7);
+    await svc.listTripPhotos('5', 7);
     expect(unified.listTripPhotos).toHaveBeenCalledWith('5', 7);
 
     const selections = [{ provider: 'immich', asset_ids: ['a'] }];
@@ -98,33 +99,33 @@ describe('MemoriesService (delegation wrapper over services/memories/*)', () => 
     await svc.setTripPhotoSharing('5', 7, 9, false);
     expect(unified.setTripPhotoSharing).toHaveBeenCalledWith('5', 7, 9, false);
 
-    svc.removeTripPhoto('5', 7, 9);
+    await svc.removeTripPhoto('5', 7, 9);
     expect(unified.removeTripPhoto).toHaveBeenCalledWith('5', 7, 9);
 
-    svc.listTripAlbumLinks('5', 7);
+    await svc.listTripAlbumLinks('5', 7);
     expect(unified.listTripAlbumLinks).toHaveBeenCalledWith('5', 7);
 
-    svc.removeAlbumLink('5', 'l1', 7);
+    await svc.removeAlbumLink('5', 'l1', 7);
     expect(unified.removeAlbumLink).toHaveBeenCalledWith('5', 'l1', 7);
   });
 
-  it('createTripAlbumLink forwards a passphrase when present and omits it when absent', () => {
-    svc.createTripAlbumLink('5', 7, 'immich', 'a1', 'Trip', 'secret');
+  it('createTripAlbumLink forwards a passphrase when present and omits it when absent', async () => {
+    await svc.createTripAlbumLink('5', 7, 'immich', 'a1', 'Trip', 'secret');
     expect(unified.createTripAlbumLink).toHaveBeenCalledWith('5', 7, 'immich', 'a1', 'Trip', 'secret');
 
-    svc.createTripAlbumLink('5', 7, 'immich', 'a1', 'Trip');
+    await svc.createTripAlbumLink('5', 7, 'immich', 'a1', 'Trip');
     expect(unified.createTripAlbumLink).toHaveBeenLastCalledWith('5', 7, 'immich', 'a1', 'Trip', undefined);
   });
 
   it('immich methods delegate', async () => {
-    svc.immichGetConnectionSettings(7);
+    await svc.immichGetConnectionSettings(7);
     expect(immich.getConnectionSettings).toHaveBeenCalledWith(7);
 
     await svc.immichSaveSettings(7, 'u', 'k', '1.2.3.4', true);
-    expect(immich.saveImmichSettings).toHaveBeenCalledWith(7, 'u', 'k', '1.2.3.4', true);
+    expect(immich.saveImmichSettings).toHaveBeenCalledWith(7, 'u', 'k', '1.2.3.4', true, undefined);
 
-    svc.immichSetAutoUpload(7, true);
-    expect(immich.setImmichAutoUpload).toHaveBeenCalledWith(7, true);
+    await svc.immichSaveSettings(7, 'u', 'k', '1.2.3.4', undefined, false);
+    expect(immich.saveImmichSettings).toHaveBeenLastCalledWith(7, 'u', 'k', '1.2.3.4', undefined, false);
 
     await svc.immichGetConnectionStatus(7);
     expect(immich.getConnectionStatus).toHaveBeenCalledWith(7);

@@ -1,18 +1,11 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  HttpException,
-  Param,
-  Post,
-  Query,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
-import type { Response } from 'express';
-import type { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
+import type { User } from '../../types';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { StorageService } from '../storage/storage.service';
+import { isClientAbortError } from '../storage/storage.types';
+import { MapsSearchDto, MapsNearbyDto, MapsAutocompleteDto, MapsResolveUrlDto } from './maps.dto';
+import { MapsService } from './maps.service';
+import { Body, Controller, Get, HttpCode, HttpException, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
 import type {
   MapsAutocompleteResult,
   MapsPlaceDetailsResult,
@@ -21,13 +14,10 @@ import type {
   MapsReverseResult,
   MapsSearchResult,
 } from '@trek/shared';
-import type { User } from '../../types';
-import { MapsService } from './maps.service';
-import { StorageService } from '../storage/storage.service';
-import { isClientAbortError } from '../storage/storage.types';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { MapsSearchDto, MapsAutocompleteDto, MapsResolveUrlDto } from './maps.dto';
+
+import type { Response } from 'express';
+import type { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
 /** Google's session-token shape: URL-safe ASCII, at most 36 characters. The
  *  autocomplete body is validated by the Zod pipe; the details query is not,
@@ -83,6 +73,25 @@ export class MapsController {
     }
   }
 
+  // Places of any kind around a point, nearest first (#976).
+  @Post('nearby')
+  @HttpCode(200)
+  async nearby(
+    @CurrentUser() user: User,
+    @Body() body: MapsNearbyDto,
+    @Query('lang') lang?: string,
+  ): Promise<MapsSearchResult> {
+    try {
+      return await this.maps.nearbyPlaces(user.id, body.lat, body.lng, {
+        radius: body.radius,
+        limit: body.limit,
+        lang,
+      });
+    } catch (err: unknown) {
+      throw toHttpException(err, 'Nearby search error', 500);
+    }
+  }
+
   // OSM-only POI explore: places of a category within the current map viewport.
   @Get('pois')
   async pois(
@@ -95,7 +104,7 @@ export class MapsController {
   ) {
     if (!category) throw new HttpException({ error: 'A category is required' }, 400);
     const bbox = { south: Number(south), west: Number(west), north: Number(north), east: Number(east) };
-    if (Object.values(bbox).some(v => !Number.isFinite(v))) {
+    if (Object.values(bbox).some((v) => !Number.isFinite(v))) {
       throw new HttpException({ error: 'A valid bbox (south, west, north, east) is required' }, 400);
     }
     try {
@@ -142,7 +151,7 @@ export class MapsController {
     @CurrentUser() user: User,
     @Body() body: MapsAutocompleteDto,
   ): Promise<MapsAutocompleteResult | { suggestions: never[]; source: string }> {
-    if (this.maps.autocompleteDisabled()) {
+    if (await this.maps.autocompleteDisabled()) {
       return { suggestions: [], source: 'disabled' };
     }
     try {
@@ -165,13 +174,18 @@ export class MapsController {
     // breaking the lookup.
     @Query('sessionToken') sessionToken?: string,
   ): Promise<MapsPlaceDetailsResult> {
-    if (this.maps.detailsDisabled()) {
+    if (await this.maps.detailsDisabled()) {
       return { place: null, disabled: true };
     }
     try {
       return expand
         ? await this.maps.detailsExpanded(user.id, placeId, lang, refresh === '1')
-        : await this.maps.details(user.id, placeId, lang, SESSION_TOKEN.test(sessionToken ?? '') ? sessionToken : undefined);
+        : await this.maps.details(
+            user.id,
+            placeId,
+            lang,
+            SESSION_TOKEN.test(sessionToken ?? '') ? sessionToken : undefined,
+          );
     } catch (err: unknown) {
       console.error('Maps details error:', err);
       throw toHttpException(err, 'Error fetching place details', 500);
@@ -187,14 +201,20 @@ export class MapsController {
     @Query('name') name?: string,
   ): Promise<MapsPlacePhotoResult | { photoUrl: null }> {
     // Kill-switch only applies to Google Places fetches — Wikimedia (coords:) stays allowed.
-    if (!placeId.startsWith('coords:') && this.maps.photosDisabled()) {
+    if (!placeId.startsWith('coords:') && (await this.maps.photosDisabled())) {
       return { photoUrl: null };
     }
     // A place with no photo resolves to the same { photoUrl: null } body. It is an
     // empty result, not a missing resource, and one 404 per photo-less place gets
     // the user's IP banned by any 404-rate IPS in front of TREK (#1727).
     try {
-      return await this.maps.photo(user.id, placeId, Number.parseFloat(lat as string), Number.parseFloat(lng as string), name);
+      return await this.maps.photo(
+        user.id,
+        placeId,
+        Number.parseFloat(lat as string),
+        Number.parseFloat(lng as string),
+        name,
+      );
     } catch (err: unknown) {
       const status = (err as { status?: number }).status || 500;
       if (status >= 500) console.error('Place photo error:', err);

@@ -1,91 +1,15 @@
-import { useState, useEffect, useRef } from 'react'
 import Modal from '../shared/Modal'
-import { tripsApi, authApi, shareApi, tripInviteApi } from '../../api/client'
-import { useToast } from '../shared/Toast'
-import { useAuthStore } from '../../store/authStore'
-import { useCanDo } from '../../store/permissionsStore'
-import { useTripStore } from '../../store/tripStore'
 import { Crown, UserMinus, UserPlus, Users, LogOut, Link2, Trash2, Copy, Check, UserRound, Pencil, Plus } from 'lucide-react'
 import { useTranslation } from '../../i18n'
-import { getApiErrorMessage } from '../../types'
 import CustomSelect from '../shared/CustomSelect'
-import { copyText } from '../../utils/clipboard'
-
-interface AvatarProps {
-  username: string
-  avatarUrl: string | null
-  size?: number
-}
-
-function Avatar({ username, avatarUrl, size = 32 }: AvatarProps) {
-  if (avatarUrl) {
-    return <img src={avatarUrl} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-  }
-  const letter = (username || '?')[0].toUpperCase()
-  const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#06b6d4']
-  const color = colors[(letter.codePointAt(0) ?? 0) % colors.length]
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: '50%', background: color,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.4, fontWeight: 700, color: 'white', flexShrink: 0,
-    }}>
-      {letter}
-    </div>
-  )
-}
+import { useIsPhone } from '../../mobile/useIsPhone'
+import { TripMemberAvatar as Avatar } from './TripMemberAvatar'
+import TripShareDialog from './TripShareDialog'
+import { SHARE_OPTIONS, SHARE_SECTIONS, useShareLink, useTripInviteLink, useTripMembers } from './useTripShare'
 
 function ShareLinkSection({ tripId, t }: { tripId: number; t: (key: string, params?: Record<string, string | number>) => string }) {
-  const [shareToken, setShareToken] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [copied, setCopied] = useState(false)
-  const [perms, setPerms] = useState({ share_map: true, share_bookings: true, share_packing: false, share_budget: false, share_collab: false })
-  const toast = useToast()
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    return () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current) }
-  }, [])
-
-  useEffect(() => {
-    shareApi.getLink(tripId).then(d => {
-      setShareToken(d.token)
-      if (d.token) setPerms({ share_map: d.share_map ?? true, share_bookings: d.share_bookings ?? true, share_packing: d.share_packing ?? false, share_budget: d.share_budget ?? false, share_collab: d.share_collab ?? false })
-      setLoading(false)
-    }).catch(() => setLoading(false))
-  }, [tripId])
-
-  const shareUrl = shareToken ? `${window.location.origin}/shared/${shareToken}` : null
-
-  const handleCreate = async () => {
-    try {
-      const d = await shareApi.createLink(tripId, perms)
-      setShareToken(d.token)
-    } catch { toast.error(t('share.createError')) }
-  }
-
-  const handleUpdatePerms = async (key: string, val: boolean) => {
-    const newPerms = { ...perms, [key]: val }
-    setPerms(newPerms)
-    if (shareToken) {
-      try { await shareApi.createLink(tripId, newPerms) } catch { toast.error(t('share.createError')) }
-    }
-  }
-
-  const handleDelete = async () => {
-    try {
-      await shareApi.deleteLink(tripId)
-      setShareToken(null)
-    } catch { toast.error(t('common.error')) }
-  }
-
-  const handleCopy = async () => {
-    if (!shareUrl) return
-    if (!(await copyText(shareUrl))) return
-    setCopied(true)
-    if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
-    copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
-  }
+  const { loading, url: shareUrl, perms, copied, create: handleCreate, setPerm, remove: handleDelete, copy: handleCopy } = useShareLink(tripId)
+  const handleUpdatePerms = (key: string, val: boolean) => setPerm(key as Parameters<typeof setPerm>[0], val)
 
   if (loading) return null
 
@@ -99,13 +23,7 @@ function ShareLinkSection({ tripId, t }: { tripId: number; t: (key: string, para
 
       {/* Permission checkboxes */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-        {[
-          { key: 'share_map', label: t('share.permMap'), always: true },
-          { key: 'share_bookings', label: t('share.permBookings') },
-          { key: 'share_packing', label: t('share.permPacking') },
-          { key: 'share_budget', label: t('share.permBudget') },
-          { key: 'share_collab', label: t('share.permCollab') },
-        ].map(opt => (
+        {[...SHARE_SECTIONS, ...SHARE_OPTIONS].map(opt => ({ ...opt, label: t(opt.label), always: 'always' in opt && !!opt.always })).map(opt => (
           <button type="button" key={opt.key} onClick={() => !opt.always && handleUpdatePerms(opt.key, !perms[opt.key])}
             style={{
               display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20,
@@ -169,44 +87,7 @@ function ShareLinkSection({ tripId, t }: { tripId: number; t: (key: string, para
  * but the link points at /join/:token (login-required, no registration).
  */
 function TripInviteLinkSection({ tripId, t }: { tripId: number; t: (key: string, params?: Record<string, string | number>) => string }) {
-  const [token, setToken] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [busy, setBusy] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const toast = useToast()
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current) }, [])
-
-  useEffect(() => {
-    tripInviteApi.getLink(tripId)
-      .then((d: { token: string | null }) => setToken(d.token))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [tripId])
-
-  const inviteUrl = token ? `${window.location.origin}/join/${token}` : null
-
-  const create = async () => {
-    setBusy(true)
-    try { const d = await tripInviteApi.createLink(tripId); setToken(d.token) }
-    catch { toast.error(t('share.createError')) }
-    finally { setBusy(false) }
-  }
-
-  const remove = async () => {
-    setBusy(true)
-    try { await tripInviteApi.deleteLink(tripId); setToken(null) }
-    catch { toast.error(t('common.error')) }
-    finally { setBusy(false) }
-  }
-
-  const copy = async () => {
-    if (!(await copyText(inviteUrl))) return
-    setCopied(true)
-    if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
-    copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
-  }
+  const { loading, url: inviteUrl, busy, copied, create, remove, copy } = useTripInviteLink(tripId)
 
   if (loading) return null
 
@@ -272,168 +153,32 @@ interface TripMembersModalProps {
   onMembersChanged?: () => void
 }
 
-export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, onMembersChanged }: TripMembersModalProps) {
-  const [data, setData] = useState(null)
-  const [allUsers, setAllUsers] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [selectedUserId, setSelectedUserId] = useState('')
-  const [adding, setAdding] = useState(false)
-  const [removingId, setRemovingId] = useState(null)
-  const [transferringId, setTransferringId] = useState(null)
-  const [newGuestName, setNewGuestName] = useState('')
-  const [addingGuest, setAddingGuest] = useState(false)
-  const [renamingGuestId, setRenamingGuestId] = useState(null)
-  const [renameValue, setRenameValue] = useState('')
-  const toast = useToast()
-  const { user } = useAuthStore()
+/** Share: the new dialog on the desktop; the phone, which opens this from its More sheet, keeps the sheet below. */
+export default function TripMembersModal(props: TripMembersModalProps) {
+  const isPhone = useIsPhone()
+  return isPhone ? <TripMembersSheet {...props} /> : <TripShareDialog {...props} />
+}
+
+function TripMembersSheet({ isOpen, onClose, tripId, tripTitle, onMembersChanged }: TripMembersModalProps) {
   const { t } = useTranslation()
-  const can = useCanDo()
-  const trip = useTripStore((s) => s.trip)
-  const loadBudgetItems = useTripStore((s) => s.loadBudgetItems)
-  const canManageMembers = can('member_manage', trip)
-  const canManageShare = can('share_manage', trip)
-
-  useEffect(() => {
-    if (isOpen && tripId) {
-      loadMembers()
-      loadAllUsers()
-    }
-  }, [isOpen, tripId])
-
-  const loadMembers = async (notify = false) => {
-    setLoading(true)
-    try {
-      const d = await tripsApi.getMembers(tripId)
-      setData(d)
-      // Notify the planner to re-sync (Costs participants etc.) only after an actual
-      // roster mutation — not on the initial open load, which would be a redundant fetch.
-      if (notify) onMembersChanged?.()
-    } catch {
-      toast.error(t('members.loadError'))
-    } finally {
-      setLoading(false)
-    }
+  const m = useTripMembers({ isOpen, tripId, onClose, onMembersChanged })
+  const {
+    user, loading, realMembers, guests, allUsers, availableUsers, isCurrentOwner, canManageMembers, canManageShare,
+    selectedUserId, setSelectedUserId, adding, transferringId, removingId,
+    newGuestName, setNewGuestName, addingGuest, renamingGuestId, renameValue, setRenameValue,
+  } = m
+  const handleAdd = () => void m.add()
+  const handleAddGuest = () => void m.addGuest()
+  const handleRenameGuest = (userId: number) => void m.commitRename(userId)
+  const handleTransfer = (newOwnerId: number, username: string) => {
+    if (confirm(t('members.confirmTransfer', { name: username }))) void m.transfer(newOwnerId)
   }
-
-  const loadAllUsers = async () => {
-    try {
-      const d = await authApi.listUsers()
-      setAllUsers(d.users)
-    } catch {}
+  const handleRemove = (userId: number, isSelf: boolean) => {
+    if (confirm(isSelf ? t('members.confirmLeave') : t('members.confirmRemove'))) void m.remove(userId, isSelf)
   }
-
-  const handleAdd = async () => {
-    setAdding(true)
-    try {
-      const target = allUsers.find(u => String(u.id) === String(selectedUserId))
-      await tripsApi.addMember(tripId, target.username)
-      setSelectedUserId('')
-      await loadMembers(true)
-      toast.success(`${target.username} ${t('members.added')}`)
-    } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('members.addError')))
-    } finally {
-      setAdding(false)
-    }
+  const handleDeleteGuest = (userId: number) => {
+    if (confirm(t('members.confirmRemoveGuest'))) void m.removeGuest(userId)
   }
-
-  const handleTransfer = async (newOwnerId, username) => {
-    if (!confirm(t('members.confirmTransfer', { name: username }))) return
-    setTransferringId(newOwnerId)
-    try {
-      await tripsApi.transferOwnership(tripId, newOwnerId)
-      // The current user just dropped from owner to member — reload so the trip
-      // state and permissions everywhere reflect the new ownership.
-      onClose()
-      window.location.reload()
-    } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('members.transferError')))
-      setTransferringId(null)
-    }
-  }
-
-  const handleAddGuest = async () => {
-    const name = newGuestName.trim()
-    if (!name) return
-    setAddingGuest(true)
-    try {
-      await tripsApi.createGuest(tripId, name)
-      setNewGuestName('')
-      await loadMembers(true)
-      toast.success(t('members.guestAdded'))
-    } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('members.guestAddError')))
-    } finally {
-      setAddingGuest(false)
-    }
-  }
-
-  // Enter commits, and the blur that follows would send the same rename a second
-  // time. Only the first commit per editing session goes through; a failed one
-  // reopens the gate so the user can retry from the still-open input.
-  const renameCommittedRef = useRef(false)
-
-  const handleRenameGuest = async (userId) => {
-    if (renameCommittedRef.current) return
-    renameCommittedRef.current = true
-    const name = renameValue.trim()
-    if (!name) { setRenamingGuestId(null); return }
-    try {
-      await tripsApi.renameGuest(tripId, userId, name)
-      setRenamingGuestId(null)
-      await loadMembers(true)
-    } catch (err: unknown) {
-      renameCommittedRef.current = false
-      toast.error(getApiErrorMessage(err, t('members.guestRenameError')))
-    }
-  }
-
-  const handleDeleteGuest = async (userId) => {
-    if (!confirm(t('members.confirmRemoveGuest'))) return
-    setRemovingId(userId)
-    try {
-      await tripsApi.deleteGuest(tripId, userId)
-      await loadMembers(true)
-      await loadBudgetItems(tripId)
-      toast.success(t('members.guestRemoved'))
-    } catch {
-      toast.error(t('members.removeError'))
-    } finally {
-      setRemovingId(null)
-    }
-  }
-
-  const handleRemove = async (userId, isSelf) => {
-    const msg = isSelf
-      ? t('members.confirmLeave')
-      : t('members.confirmRemove')
-    if (!confirm(msg)) return
-    setRemovingId(userId)
-    try {
-      await tripsApi.removeMember(tripId, userId)
-      if (isSelf) { onClose(); window.location.reload() }
-      else { await loadMembers(true); toast.success(t('members.removed')) }
-    } catch {
-      toast.error(t('members.removeError'))
-    } finally {
-      setRemovingId(null)
-    }
-  }
-
-  // Users not yet in the trip (guests are accountless and never live in the directory)
-  const existingIds = new Set([
-    data?.owner?.id,
-    ...(data?.members?.map(m => m.id) || []),
-  ])
-  const availableUsers = allUsers.filter(u => !existingIds.has(u.id) && !u.is_guest)
-
-  const isCurrentOwner = data?.owner?.id === user?.id
-  // Real members (owner + accounts) and guests (#1362) are listed separately.
-  const realMembers = data ? [
-    { ...data.owner, role: 'owner' },
-    ...data.members.filter(m => !m.is_guest),
-  ] : []
-  const guests = data ? data.members.filter(m => m.is_guest) : []
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t('members.shareTrip')} size="3xl">
@@ -461,8 +206,10 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, o
               placeholder={t('members.selectUser')}
               options={[
                 { value: '', label: t('members.selectUser') },
+                // As a string: the select compares values strictly, and the chosen id is
+                // kept as a string, so a number here left the trigger on its placeholder.
                 ...availableUsers.map(u => ({
-                  value: u.id,
+                  value: String(u.id),
                   label: u.username,
                 })),
               ]}
@@ -493,7 +240,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, o
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
             <Users size={13} className="text-content-faint" />
             <span className="text-content-secondary" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600 }}>
-              {t('members.access')} ({realMembers.length} {realMembers.length === 1 ? t('members.person') : t('members.persons')})
+              {t('members.access')} ({realMembers.length} {t('members.persons', { count: realMembers.length })})
             </span>
           </div>
 
@@ -578,7 +325,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, o
                     autoFocus
                     value={renameValue}
                     onChange={e => setRenameValue(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleRenameGuest(g.id); if (e.key === 'Escape') { renameCommittedRef.current = true; setRenamingGuestId(null) } }}
+                    onKeyDown={e => { if (e.key === 'Enter') handleRenameGuest(g.id); if (e.key === 'Escape') m.cancelRename() }}
                     onBlur={() => handleRenameGuest(g.id)}
                     maxLength={50}
                     className="bg-surface border border-edge text-content"
@@ -595,7 +342,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, o
                 {isCurrentOwner && renamingGuestId !== g.id && (
                   <>
                     <button type="button"
-                      onClick={() => { renameCommittedRef.current = false; setRenamingGuestId(g.id); setRenameValue(g.username) }}
+                      onClick={() => m.startRename(g)}
                       title={t('common.rename')}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
                       onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
@@ -650,7 +397,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle, o
         </div>
 
         {/* Right column: Share Link */}
-        {canManageShare && <div className="border-l border-edge-faint" style={{ paddingLeft: 24 }}>
+        {canManageShare && <div className="border-s border-edge-faint" style={{ paddingInlineStart: 24 }}>
         <ShareLinkSection tripId={tripId} t={t} />
         <TripInviteLinkSection tripId={tripId} t={t} />
         </div>}

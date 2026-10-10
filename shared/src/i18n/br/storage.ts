@@ -111,7 +111,8 @@ const storage: TranslationStrings = {
   'storage.sync.error': 'Falha na sincronização: {error}',
   'storage.sync.prompt': 'Os objetos existentes ainda não foram replicados — sincronizar agora?',
   'storage.sync.dismiss': 'Dispensar',
-  'storage.usage.line': '{objects} objetos · {size}',
+  'storage.usage.line': '{count} objetos · {size}',
+  'storage.usage.line.one': '{count} objeto · {size}',
   'storage.usage.computed': 'Uso calculado {age}',
   'storage.usage.never': 'Uso ainda não calculado',
   'storage.usage.refresh': 'Atualizar',
@@ -120,7 +121,8 @@ const storage: TranslationStrings = {
 
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Mover objetos existentes para o novo backend?',
-  'storage.migrate.promptLine': '{category}: {objects} objetos ({size}) de {from} para {to}',
+  'storage.migrate.promptLine': '{category}: {count} objetos ({size}) de {from} para {to}',
+  'storage.migrate.promptLine.one': '{category}: {count} objeto ({size}) de {from} para {to}',
   'storage.migrate.promptLineUnknown': '{category}: tamanho desconhecido (uso ainda não calculado) de {from} para {to}',
   'storage.migrate.move': 'Mover objetos existentes',
   'storage.migrate.routeOnly': 'Apenas rotear novas gravações',
@@ -129,10 +131,12 @@ const storage: TranslationStrings = {
   'storage.migrate.doneFailures': '{failed} falharam — esses objetos não foram copiados para o novo backend',
   'storage.migrate.failed': 'Falha ao mover: {error} — a categoria não foi alterada',
   'storage.migrate.cancelled': 'Movimentação cancelada — nada foi alterado',
-  'storage.migrate.reclaimable': '{objects} objetos ({size}) permanecem em {from} — recupere manualmente',
+  'storage.migrate.reclaimable': '{count} objetos ({size}) permanecem em {from}, recupere manualmente',
+  'storage.migrate.reclaimable.one': '{count} objeto ({size}) permanece em {from}, recupere manualmente',
   'storage.migrate.cancel': 'Cancelar movimentação',
   'storage.migrate.promptCancel': 'Cancelar',
   'storage.migrate.queued': 'Na fila: {categories}',
-  'storage.migrate.queueDropped': 'Não foi possível iniciar a próxima migração — a fila restante foi limpa: {categories}',
+  'storage.migrate.queueDropped':
+    'Não foi possível iniciar a próxima migração — a fila restante foi limpa: {categories}',
 };
 export default storage;

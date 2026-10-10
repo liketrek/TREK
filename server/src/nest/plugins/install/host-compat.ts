@@ -1,5 +1,6 @@
+import { readEnv, runningVersion } from '../../../app-config';
+
 import semver from 'semver';
-import { readEnv } from '../../../app-config';
 
 /**
  * Host-version compatibility for plugins (#plugins). A manifest declares the TREK
@@ -12,7 +13,7 @@ import { readEnv } from '../../../app-config';
 
 /** The running TREK version (same source as the rest of the app). */
 export function hostVersion(): string {
-  return readEnv().app.appVersion || (require('../../../../package.json') as { version: string }).version;
+  return runningVersion();
 }
 
 let warnedUnparseable = false;
@@ -36,7 +37,7 @@ let warnedUnparseable = false;
  * rc of 4.0 IS 4.0.
  *
  * A null host NEVER blocks anything (see {@link hostSatisfies}). This is deliberate:
- * APP_VERSION is a Docker build ARG that defaults to the literal string `dev`, and an
+ * a source install can set APP_VERSION to anything (`dev`, a branch name), and an
  * unversioned build must stay fully usable. The warning exists so that a MISCONFIGURED
  * APP_VERSION in production — which silently switches this whole gate off — is visible
  * in the logs instead of being discovered when an incompatible plugin misbehaves.
@@ -46,7 +47,9 @@ export function normalizedHost(): string | null {
   const coerced = semver.coerce(raw)?.version ?? null;
   if (!coerced && !warnedUnparseable) {
     warnedUnparseable = true;
-    console.warn(`[plugins] APP_VERSION "${raw}" is not a semver version — plugin TREK-compatibility checks are disabled`);
+    console.warn(
+      `[plugins] APP_VERSION "${raw}" is not a semver version — plugin TREK-compatibility checks are disabled`,
+    );
   }
   return coerced;
 }

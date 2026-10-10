@@ -9,45 +9,26 @@
  * harness here keeps withTools on (the resource is NOT registered by the
  * legacy registerResources fan-out anymore).
  */
+import { db as testDb } from '../../../src/db/database';
+import { Notifications } from '../../../src/db/entities/Notifications.entity';
+import { createUser } from '../../helpers/factories';
+import { makeNotification } from '../../helpers/factories/notifications';
+import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
+import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    getPlaceWithTags: () => null,
-    canAccessTrip: (tripId: any, userId: number) =>
-      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
-    isOwner: (tripId: any, userId: number) =>
-      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-  };
-  return { testDb: db, dbMock: mock };
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
 });
 
-vi.mock('../../../src/db/database', () => dbMock);
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
+let orm: TestOrm;
 
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn() }));
-
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser } from '../../helpers/factories';
-import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-
-beforeAll(() => {
-  createTables(testDb);
-  runMigrations(testDb);
+beforeAll(async () => {
+  orm = await createTestOrm(testDb);
 });
 
 beforeEach(() => {
@@ -55,7 +36,8 @@ beforeEach(() => {
   delete process.env.DEMO_MODE;
 });
 
-afterAll(() => {
+afterAll(async () => {
+  await orm.close();
   testDb.close();
 });
 
@@ -63,31 +45,38 @@ afterAll(() => {
 // Helper: insert a notification directly into the DB
 // ---------------------------------------------------------------------------
 
-function createNotification(db: any, userId: number, overrides: any = {}) {
-  const r = db.prepare(
-    `INSERT INTO notifications (type, scope, target, recipient_id, title_key, text_key, is_read)
-     VALUES (?, ?, ?, ?, ?, ?, 0)`
-  ).run(
-    overrides.type ?? 'simple',
-    overrides.scope ?? 'user',
-    overrides.target ?? 0,
-    userId,
-    overrides.title_key ?? 'notification.test.title',
-    overrides.text_key ?? 'notification.test.body'
-  );
-  return db.prepare('SELECT * FROM notifications WHERE id = ?').get(r.lastInsertRowid);
+function createNotification(
+  userId: number,
+  overrides: { type?: string; scope?: string; target?: number; title_key?: string; text_key?: string } = {},
+) {
+  return makeNotification(orm, userId, {
+    type: overrides.type ?? 'simple',
+    scope: overrides.scope ?? 'user',
+    target: overrides.target ?? 0,
+    title_key: overrides.title_key ?? 'notification.test.title',
+    text_key: overrides.text_key ?? 'notification.test.body',
+    is_read: 0,
+  });
 }
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ userId, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 async function withResourceHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   // The in-app resource attaches via the nest-mcp registry (withTools), not
   // the legacy registerResources fan-out.
   const h = await createMcpHarness({ userId, withTools: true, withResources: false });
-  try { await fn(h); } finally { await h.cleanup(); }
+  try {
+    await fn(h);
+  } finally {
+    await h.cleanup();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -106,8 +95,8 @@ describe('Tool: list_notifications', () => {
 
   it('returns notifications when they exist', async () => {
     const { user } = createUser(testDb);
-    createNotification(testDb, user.id, { title_key: 'notif.first' });
-    createNotification(testDb, user.id, { title_key: 'notif.second' });
+    await createNotification(user.id, { title_key: 'notif.first' });
+    await createNotification(user.id, { title_key: 'notif.second' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_notifications', arguments: {} });
       const data = parseToolResult(result) as any;
@@ -117,9 +106,9 @@ describe('Tool: list_notifications', () => {
 
   it('returns only unread notifications when unread_only is true', async () => {
     const { user } = createUser(testDb);
-    createNotification(testDb, user.id);
-    const read = createNotification(testDb, user.id) as any;
-    testDb.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(read.id);
+    await createNotification(user.id);
+    const read = await createNotification(user.id);
+    await updateRows(orm, Notifications, { id: read.id }, { is_read: 1 });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_notifications', arguments: { unread_only: true } });
       const data = parseToolResult(result) as any;
@@ -144,7 +133,7 @@ describe('Tool: get_unread_notification_count', () => {
 
   it('returns 1 after inserting one unread notification', async () => {
     const { user } = createUser(testDb);
-    createNotification(testDb, user.id);
+    await createNotification(user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_unread_notification_count', arguments: {} });
       const data = parseToolResult(result) as any;
@@ -160,7 +149,7 @@ describe('Tool: get_unread_notification_count', () => {
 describe('Tool: mark_notification_read', () => {
   it('flips is_read to 1 and returns success', async () => {
     const { user } = createUser(testDb);
-    const notif = createNotification(testDb, user.id) as any;
+    const notif = await createNotification(user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'mark_notification_read',
@@ -168,7 +157,7 @@ describe('Tool: mark_notification_read', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      const row = testDb.prepare('SELECT is_read FROM notifications WHERE id = ?').get(notif.id) as any;
+      const row = (await findRow(orm, Notifications, { id: notif.id }))!;
       expect(row.is_read).toBe(1);
     });
   });
@@ -187,7 +176,7 @@ describe('Tool: mark_notification_read', () => {
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
     const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const notif = createNotification(testDb, user.id) as any;
+    const notif = await createNotification(user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'mark_notification_read',
@@ -205,8 +194,8 @@ describe('Tool: mark_notification_read', () => {
 describe('Tool: mark_notification_unread', () => {
   it('flips is_read to 0', async () => {
     const { user } = createUser(testDb);
-    const notif = createNotification(testDb, user.id) as any;
-    testDb.prepare('UPDATE notifications SET is_read = 1 WHERE id = ?').run(notif.id);
+    const notif = await createNotification(user.id);
+    await updateRows(orm, Notifications, { id: notif.id }, { is_read: 1 });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'mark_notification_unread',
@@ -214,7 +203,7 @@ describe('Tool: mark_notification_unread', () => {
       });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
-      const row = testDb.prepare('SELECT is_read FROM notifications WHERE id = ?').get(notif.id) as any;
+      const row = (await findRow(orm, Notifications, { id: notif.id }))!;
       expect(row.is_read).toBe(0);
     });
   });
@@ -238,15 +227,15 @@ describe('Tool: mark_notification_unread', () => {
 describe('Tool: mark_all_notifications_read', () => {
   it('marks all notifications read and returns count', async () => {
     const { user } = createUser(testDb);
-    createNotification(testDb, user.id);
-    createNotification(testDb, user.id);
-    createNotification(testDb, user.id);
+    await createNotification(user.id);
+    await createNotification(user.id);
+    await createNotification(user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'mark_all_notifications_read', arguments: {} });
       const data = parseToolResult(result) as any;
       expect(data.success).toBe(true);
       expect(data.count).toBe(3);
-      const unread = (testDb.prepare('SELECT COUNT(*) as c FROM notifications WHERE recipient_id = ? AND is_read = 0').get(user.id) as any).c;
+      const unread = await countRows(orm, Notifications, { recipient: user.id, is_read: 0 });
       expect(unread).toBe(0);
     });
   });
@@ -268,7 +257,7 @@ describe('Tool: mark_all_notifications_read', () => {
 describe('Resource: trek://notifications/in-app', () => {
   it('returns notifications list', async () => {
     const { user } = createUser(testDb);
-    createNotification(testDb, user.id, { title_key: 'notif.test' });
+    await createNotification(user.id, { title_key: 'notif.test' });
     await withResourceHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: 'trek://notifications/in-app' });
       const data = parseResourceResult(result) as any;

@@ -13,44 +13,20 @@
  * UUIDv4 filenames; gating them would break share-link trip cards, journey
  * public pages, and email-embedded avatars. No auth setup here is deliberate.
  */
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import request from 'supertest';
-import type { Application } from 'express';
-import type { INestApplication } from '@nestjs/common';
-import path from 'path';
-import fs from 'fs';
-
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
-  db.exec('PRAGMA busy_timeout = 5000');
-  const mock = {
-    db,
-    closeDb: () => {},
-    reinitialize: () => {},
-    canAccessTrip: () => undefined,
-    isOwner: () => false,
-  };
-  return { testDb: db, dbMock: mock };
-});
-
-vi.mock('../../src/db/database', () => dbMock);
-vi.mock('../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-  SESSION_DURATION: '24h',
-  SESSION_DURATION_MS: 86400000,
-  SESSION_DURATION_SECONDS: 86400,
-  DEFAULT_LANGUAGE: 'en',
-}));
-vi.mock('../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: vi.fn(), getOnlineUserIds: vi.fn(() => []) }));
-
 import { buildApp } from '../../src/bootstrap';
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
+import { db as testDb } from '../../src/db/database';
+import type { INestApplication } from '@nestjs/common';
+
+import type { Application } from 'express';
+import fs from 'fs';
+import path from 'path';
+import request from 'supertest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
 
 let nestApp: INestApplication;
 let app: Application;
@@ -73,8 +49,6 @@ function writeFixture(rel: string, bytes: Buffer = BYTES): void {
 }
 
 beforeAll(async () => {
-  createTables(testDb);
-  runMigrations(testDb);
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
   // Written AFTER buildApp(): LocalDriver init ensures + realpaths the
@@ -187,10 +161,7 @@ describe('/uploads static parity — Range', () => {
   });
 
   it('UPLOADS-P11 — stale If-Range drops the range → 200 full', async () => {
-    const res = await request(app)
-      .get(`/uploads/avatars/${NAME}`)
-      .set('Range', 'bytes=0-3')
-      .set('If-Range', 'W/"0-0"');
+    const res = await request(app).get(`/uploads/avatars/${NAME}`).set('Range', 'bytes=0-3').set('If-Range', 'W/"0-0"');
     expect(res.status).toBe(200);
     expect(res.headers['content-length']).toBe('8');
   });

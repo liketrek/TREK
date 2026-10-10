@@ -75,7 +75,7 @@ export function MAdminInput({ className = '', ...props }: InputHTMLAttributes<HT
   return (
     <input
       {...props}
-      className={`h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none placeholder:text-m-faint focus:border-[color:var(--m-faint)] ${className}`}
+      className={`h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none placeholder:text-m-faint focus:border-[color:var(--m-faint)] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     />
   )
 }
@@ -85,13 +85,13 @@ export function MAdminSecretInput({ className = '', ...props }: InputHTMLAttribu
   const [show, setShow] = useState(false)
   return (
     <div className="relative">
-      <MAdminInput {...props} type={show ? 'text' : 'password'} className={`pr-10 ${className}`} />
+      <MAdminInput {...props} type={show ? 'text' : 'password'} className={`pe-10 ${className}`} />
       <button
         type="button"
         tabIndex={-1}
         aria-label="Show or hide"
         onClick={() => setShow((v) => !v)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-m-faint"
+        className="absolute end-3 top-1/2 -translate-y-1/2 text-m-faint"
       >
         {show ? <EyeOff size={16} /> : <Eye size={16} />}
       </button>

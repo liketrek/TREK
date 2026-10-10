@@ -81,3 +81,144 @@ export const collabReactionRequestSchema = z.object({
   emoji: z.string().min(1),
 });
 export type CollabReactionRequest = z.infer<typeof collabReactionRequestSchema>;
+
+// ── Responses ───────────────────────────────────────────────────────────────
+// Rows keep SQLite's storage spelling (0/1 flags, TEXT times), as the routes
+// have always answered; the derived booleans the service adds are booleans.
+
+/** A file attached to a note or a message, with the download route the client links to. */
+export const collabAttachmentSchema = z.object({
+  id: z.number(),
+  filename: z.string(),
+  original_name: z.string(),
+  file_size: z.number().nullable(),
+  mime_type: z.string().nullable(),
+  url: z.string(),
+});
+export type CollabAttachment = z.infer<typeof collabAttachmentSchema>;
+
+/** A collab note with its author and attachments. */
+export const collabNoteSchema = z.object({
+  id: z.number(),
+  trip_id: z.number(),
+  user_id: z.number(),
+  category: z.string().nullable(),
+  title: z.string(),
+  content: z.string().nullable(),
+  color: z.string().nullable(),
+  pinned: z.number().nullable(),
+  created_at: z.string().nullable(),
+  updated_at: z.string().nullable(),
+  website: z.string().nullable(),
+  username: z.string(),
+  avatar: z.string().nullable(),
+  avatar_url: z.string().nullable(),
+  attachments: z.array(collabAttachmentSchema),
+});
+export type CollabNote = z.infer<typeof collabNoteSchema>;
+
+export const collabNotesResponseSchema = z.object({ notes: z.array(collabNoteSchema) });
+export type CollabNotesResponse = z.infer<typeof collabNotesResponseSchema>;
+export const collabNoteResponseSchema = z.object({ note: collabNoteSchema });
+export type CollabNoteResponse = z.infer<typeof collabNoteResponseSchema>;
+/** POST notes/:id/files */
+export const collabNoteFileResponseSchema = z.object({ file: collabAttachmentSchema });
+export type CollabNoteFileResponse = z.infer<typeof collabNoteFileResponseSchema>;
+
+/** A shared link with the name of whoever added it. */
+export const collabLinkSchema = z.object({
+  id: z.number(),
+  trip_id: z.number(),
+  user_id: z.number(),
+  title: z.string(),
+  url: z.string(),
+  pinned: z.number().nullable(),
+  created_at: z.string().nullable(),
+  updated_at: z.string().nullable(),
+  username: z.string(),
+});
+export type CollabLink = z.infer<typeof collabLinkSchema>;
+
+export const collabLinksResponseSchema = z.object({ links: z.array(collabLinkSchema) });
+export type CollabLinksResponse = z.infer<typeof collabLinksResponseSchema>;
+export const collabLinkResponseSchema = z.object({ link: collabLinkSchema });
+export type CollabLinkResponse = z.infer<typeof collabLinkResponseSchema>;
+
+/** Someone who voted for a poll option. */
+export const collabPollVoterSchema = z.object({
+  id: z.number(),
+  user_id: z.number(),
+  username: z.string(),
+  avatar: z.string().nullable(),
+  avatar_url: z.string().nullable(),
+});
+
+/** A poll with its options and their voters. `options` is replaced by the formatted list; the stored JSON never leaves. */
+export const collabPollSchema = z.object({
+  id: z.number(),
+  trip_id: z.number(),
+  user_id: z.number(),
+  question: z.string(),
+  options: z.array(z.object({ text: z.unknown(), label: z.unknown(), voters: z.array(collabPollVoterSchema) })),
+  multiple: z.number().nullable(),
+  closed: z.number().nullable(),
+  deadline: z.string().nullable(),
+  created_at: z.string().nullable(),
+  username: z.string(),
+  avatar: z.string().nullable(),
+  avatar_url: z.string().nullable(),
+  is_closed: z.boolean(),
+  multiple_choice: z.boolean(),
+});
+export type CollabPoll = z.infer<typeof collabPollSchema>;
+
+export const collabPollsResponseSchema = z.object({ polls: z.array(collabPollSchema) });
+export type CollabPollsResponse = z.infer<typeof collabPollsResponseSchema>;
+export const collabPollResponseSchema = z.object({ poll: collabPollSchema });
+export type CollabPollResponse = z.infer<typeof collabPollResponseSchema>;
+
+/** One emoji on a message, with who reacted. */
+export const collabReactionSchema = z.object({
+  emoji: z.string(),
+  users: z.array(z.object({ user_id: z.number(), username: z.string() })),
+  count: z.number(),
+});
+export type CollabReaction = z.infer<typeof collabReactionSchema>;
+
+/** A chat message with its author, the message it replies to, reactions and attachments. A deleted one keeps its row with empty text. */
+export const collabMessageSchema = z.object({
+  id: z.number(),
+  trip_id: z.number(),
+  user_id: z.number(),
+  text: z.string(),
+  reply_to: z.number().nullable(),
+  created_at: z.string().nullable(),
+  deleted: z.number().nullable(),
+  username: z.string(),
+  avatar: z.string().nullable(),
+  reply_text: z.string().nullable(),
+  reply_username: z.string().nullable(),
+  user_avatar: z.string().nullable(),
+  avatar_url: z.string().nullable(),
+  reactions: z.array(collabReactionSchema),
+  attachments: z.array(collabAttachmentSchema),
+});
+export type CollabMessage = z.infer<typeof collabMessageSchema>;
+
+export const collabMessagesResponseSchema = z.object({ messages: z.array(collabMessageSchema) });
+export type CollabMessagesResponse = z.infer<typeof collabMessagesResponseSchema>;
+export const collabMessageResponseSchema = z.object({ message: collabMessageSchema });
+export type CollabMessageResponse = z.infer<typeof collabMessageResponseSchema>;
+/** POST messages/:id/react: the message's reactions after the toggle. */
+export const collabReactionsResponseSchema = z.object({ reactions: z.array(collabReactionSchema) });
+export type CollabReactionsResponse = z.infer<typeof collabReactionsResponseSchema>;
+
+/** GET link-preview: what the page's Open Graph tags (or its title) say; nulls when nothing could be read. */
+export const collabLinkPreviewResponseSchema = z.object({
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  image: z.string().nullable(),
+  site_name: z.string().nullable().optional(),
+  url: z.string(),
+});
+export type CollabLinkPreviewResponse = z.infer<typeof collabLinkPreviewResponseSchema>;

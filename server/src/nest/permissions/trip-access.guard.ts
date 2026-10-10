@@ -1,9 +1,13 @@
+import { Trips } from '../../db/entities/Trips.entity';
+import type { TripAccess } from '../../db/repositories/Trips.repository';
+import type { User } from '../../types';
+import { PermissionsService } from './permissions.service';
+import { EntityManager } from '@mikro-orm/core';
 import { CanActivate, ExecutionContext, HttpException, Injectable, SetMetadata } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import type { PermissionKey } from '@trek/shared';
+
 import type { Request } from 'express';
-import { DatabaseService, type TripAccess } from '../database/database.service';
-import { PermissionsService } from './permissions.service';
-import type { User } from '../../types';
 
 /** Where the guard parks the resolved trip row for `@Trip()` to pick up. */
 export const TRIP_REQUEST_KEY = 'trekTrip';
@@ -14,11 +18,12 @@ export const TRIP_PERMISSION_KEY = 'trekTripPermission';
 /**
  * Requires a permission on the trip the route is scoped to, on top of access.
  *
- * The action string is the same one the domain services pass to
- * `PermissionsService.checkPermission` ('day_edit', 'budget_edit', …), so a route
- * and its MCP counterpart cannot drift apart on which right they demand.
+ * The action is a key of the shared catalog (`PermissionKey` from `@trek/shared`),
+ * the same one the domain services pass to `PermissionsService.checkPermission`
+ * ('day_edit', 'budget_edit', …), so a route and its MCP counterpart cannot drift
+ * apart on which right they demand, and a misspelt key fails to compile.
  */
-export const RequirePermission = (action: string) => SetMetadata(TRIP_PERMISSION_KEY, action);
+export const RequirePermission = (action: PermissionKey) => SetMetadata(TRIP_PERMISSION_KEY, action);
 
 type TripRequest = Request & { user?: User; [TRIP_REQUEST_KEY]?: TripAccess };
 
@@ -38,16 +43,28 @@ type TripRequest = Request & { user?: User; [TRIP_REQUEST_KEY]?: TripAccess };
  * It deliberately does NOT replace the `verifyTripAccess`/`canEdit` methods on the
  * domain services. Of their callers, the large majority are `*.mcp.ts` tools, which
  * never pass through an HTTP guard; those methods stay exactly where they are.
+ *
+ * Injects `EntityManager`, not `DatabaseService`/`@InjectRepository(Trips)`
+ * (Plan 3c Task 0b, the `JwtAuthGuard` precedent): this guard is applied via
+ * `@UseGuards(…, TripAccessGuard)` on 146 handlers across 22 controller
+ * classes, and Nest resolves a class-referenced guard's constructor
+ * dependencies from the HOST CONTROLLER'S OWN module graph —
+ * `@InjectRepository(Trips)` would need `MikroOrmModule.forFeature([Trips])`
+ * added to every one of those modules (D5's blast radius). `EntityManager`
+ * comes from `MikroOrmModule.forRoot`'s core module, which IS `@Global()`, so
+ * no module needs new wiring. `this.em.getRepository(Trips)` inside
+ * `canActivate` is the same per-request resolution `JwtAuthGuard` uses for
+ * `Users`.
  */
 @Injectable()
 export class TripAccessGuard implements CanActivate {
   constructor(
-    private readonly db: DatabaseService,
+    private readonly em: EntityManager,
     private readonly permissions: PermissionsService,
     private readonly reflector: Reflector,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<TripRequest>();
     const user = request.user;
     // JwtAuthGuard runs first and 401s an anonymous request, so a missing user here
@@ -56,7 +73,9 @@ export class TripAccessGuard implements CanActivate {
     if (!user) throw new HttpException({ error: 'Unauthorized' }, 401);
 
     const tripId = Number((request.params as Record<string, string>)?.tripId);
-    const trip = Number.isFinite(tripId) ? this.db.canAccessTrip(tripId, user.id) : undefined;
+    const trip = Number.isFinite(tripId)
+      ? await this.em.getRepository(Trips).findAccessible(tripId, user.id)
+      : undefined;
     // A trip the user may not see is reported as absent, never as forbidden: a 403
     // would confirm the id exists to someone who has no business knowing.
     if (!trip) throw new HttpException({ error: 'Trip not found' }, 404);
@@ -67,7 +86,7 @@ export class TripAccessGuard implements CanActivate {
     ]);
     if (action) {
       const shared = trip.user_id !== user.id;
-      if (!this.permissions.checkPermission(action, user.role, trip.user_id, user.id, shared)) {
+      if (!(await this.permissions.checkPermission(action, user.role, trip.user_id, user.id, shared))) {
         throw new HttpException({ error: 'No permission' }, 403);
       }
     }

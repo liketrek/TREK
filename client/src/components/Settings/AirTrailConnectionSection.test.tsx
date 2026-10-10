@@ -31,11 +31,9 @@ function renderSection() {
   );
 }
 
-// The desktop ToggleSwitch has no accessible name, so reach it through the label
-// text it sits next to.
+// Each switch carries its row's label as its accessible name.
 function toggleNextTo(label: string): HTMLElement {
-  const row = screen.getByText(label).parentElement as HTMLElement;
-  return row.querySelector('button') as HTMLElement;
+  return screen.getByRole('button', { name: label });
 }
 
 beforeEach(() => {
@@ -249,7 +247,7 @@ describe('AirTrailConnectionSection', () => {
     await screen.findByDisplayValue('https://air.example.com');
     await user.click(screen.getByRole('button', { name: /Test connection/ }));
 
-    await screen.findByText('Connected — 12 flight(s) found');
+    await screen.findByText('Connected. 12 flights found');
     expect(screen.getByText('Connected')).toBeInTheDocument();
     expect(body).toEqual({ url: 'https://air.example.com', allowInsecureTls: false });
   });
@@ -265,7 +263,7 @@ describe('AirTrailConnectionSection', () => {
     await screen.findByDisplayValue('https://air.example.com');
     await user.click(screen.getByRole('button', { name: /Test connection/ }));
 
-    expect(await screen.findByText('Connected — 0 flight(s) found')).toBeInTheDocument();
+    expect(await screen.findByText('Connected. 0 flights found')).toBeInTheDocument();
   });
 
   it('FE-COMP-AIRTRAIL-015: a refused test shows the returned error and keeps the badge off', async () => {

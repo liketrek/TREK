@@ -20,6 +20,18 @@ const syncTriggers = vi.hoisted(() => ({
 }));
 vi.mock('../../../src/sync/syncTriggers', () => syncTriggers);
 
+// login, completeMfaLogin and register start a full trip sync they do not wait
+// for. Left real, it outlives the test that started it and can still be logging
+// when the file's worker shuts down, which vitest reports as an unhandled error
+// although every test passed (the authStore.push spec had the same flake). The
+// stub keeps the sync out and lets the tests assert that it was started.
+const tripSync = vi.hoisted(() => ({ syncAll: vi.fn(async () => {}) }));
+vi.mock('../../../src/sync/tripSyncManager', () => ({ tripSyncManager: tripSync }));
+
+// The notice store is not part of resetAllStores, and FE-STORE-AUTH-024 swaps
+// its fetch for a stub; each test starts from the real, unloaded store again.
+const initialNoticeState = useSystemNoticeStore.getState();
+
 // The user-scoped offline DB is real (fake-indexeddb); only the reopen step is
 // made failable so the "auth still succeeds when the DB won't open" path runs.
 const dbControl = vi.hoisted(() => ({ reopenFails: false, reopenedFor: null as number | string | null }));
@@ -37,6 +49,7 @@ vi.mock('../../../src/db/offlineDb', async (importOriginal) => {
 
 beforeEach(() => {
   resetAllStores();
+  useSystemNoticeStore.setState(initialNoticeState, true);
   vi.clearAllMocks();
   dbControl.reopenFails = false;
   dbControl.reopenedFor = null;
@@ -63,6 +76,7 @@ describe('authStore', () => {
       expect(state.isAuthenticated).toBe(true);
       expect(state.isLoading).toBe(false);
       expect(state.error).toBeNull();
+      expect(tripSync.syncAll).toHaveBeenCalledOnce();
     });
   });
 
@@ -147,6 +161,36 @@ describe('authStore', () => {
       expect(state.user).toBeNull();
       expect(state.isAuthenticated).toBe(false);
     });
+
+    it('sends the queued changes before the offline database is deleted', async () => {
+      const { mutationQueue } = await import('../../../src/sync/mutationQueue');
+      useAuthStore.setState({ user: buildUser(), isAuthenticated: true });
+      setAuthed(true);
+      let authedDuringFlush: boolean | null = null;
+      const flush = vi.spyOn(mutationQueue, 'flush').mockImplementation(async () => { authedDuringFlush = isAuthed(); });
+
+      await useAuthStore.getState().logout();
+
+      expect(flush).toHaveBeenCalledOnce();
+      expect(authedDuringFlush).toBe(true);
+      expect(isAuthed()).toBe(false);
+    });
+
+    it('does not wait on a flush that hangs', async () => {
+      vi.useFakeTimers();
+      try {
+        const { mutationQueue } = await import('../../../src/sync/mutationQueue');
+        vi.spyOn(mutationQueue, 'flush').mockImplementation(() => new Promise(() => {}));
+        useAuthStore.setState({ user: buildUser(), isAuthenticated: true });
+        const done = useAuthStore.getState().logout();
+        await vi.advanceTimersByTimeAsync(5001);
+        await vi.runAllTimersAsync();
+        await done;
+        expect(useAuthStore.getState().user).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   describe('FE-AUTH-007: Register success', () => {
@@ -164,6 +208,7 @@ describe('authStore', () => {
       expect(state.user).toEqual(user);
       expect(state.isAuthenticated).toBe(true);
       expect(state.isLoading).toBe(false);
+      expect(tripSync.syncAll).toHaveBeenCalledOnce();
     });
   });
 
@@ -243,6 +288,7 @@ describe('authStore', () => {
       expect(state.isAuthenticated).toBe(true);
       expect(state.isLoading).toBe(false);
       expect(connect).toHaveBeenCalledOnce();
+      expect(tripSync.syncAll).toHaveBeenCalledOnce();
     });
   });
 

@@ -5,9 +5,8 @@
  * group cards, a square tri-state group selector and tap-to-toggle scope rows
  * with a confirm-coloured check.
  */
-import { useState } from 'react'
 import { Check, ChevronDown, ChevronRight, Minus } from 'lucide-react'
-import { getScopesByGroup } from '../../../api/oauthScopes'
+import { useScopeSelection } from '../../../components/OAuth/useScopeSelection'
 import { useTranslation } from '../../../i18n'
 
 interface Props {
@@ -17,30 +16,25 @@ interface Props {
 
 export default function MScopeGroupPicker({ selected, onChange }: Props) {
   const { t } = useTranslation()
-  const [open, setOpen] = useState<Record<string, boolean>>({})
-
-  const scopesByGroup = getScopesByGroup(t)
-  const allScopeKeys = Object.values(scopesByGroup).flat().map((s) => s.scope)
-  const allSelected = allScopeKeys.every((s) => selected.includes(s))
+  const { scopesByGroup, allSelected, open, groupState, toggleOpen, toggleAll, toggleGroup, toggleScope } =
+    useScopeSelection(selected, onChange)
 
   return (
     <div className="space-y-2">
       <div className="flex justify-end">
         <button
           type="button"
-          onClick={() => onChange(allSelected ? [] : allScopeKeys)}
+          onClick={toggleAll}
           className="rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[5px] font-geist text-[0.6875rem] font-bold text-m-ink"
         >
           {allSelected ? t('settings.oauth.modal.deselectAll') : t('settings.oauth.modal.selectAll')}
         </button>
       </div>
 
-      <div className="max-h-[22rem] space-y-2 overflow-y-auto pr-[2px]">
+      <div className="max-h-[22rem] space-y-2 overflow-y-auto pe-[2px]">
         {Object.entries(scopesByGroup).map(([group, groupScopes]) => {
-          const groupScopeKeys = groupScopes.map((s) => s.scope)
-          const allGroupSelected = groupScopeKeys.every((s) => selected.includes(s))
-          const someGroupSelected = groupScopeKeys.some((s) => selected.includes(s))
-          const selectedInGroup = groupScopeKeys.filter((s) => selected.includes(s)).length
+          const state = groupState(groupScopes)
+          const { allSelected: allGroupSelected, someSelected: someGroupSelected, selectedCount: selectedInGroup } = state
           const isOpen = !!open[group]
 
           return (
@@ -48,8 +42,8 @@ export default function MScopeGroupPicker({ selected, onChange }: Props) {
               <div className="flex items-center gap-1 bg-[color:var(--m-sheet)] px-3 py-2">
                 <button
                   type="button"
-                  onClick={() => setOpen((prev) => ({ ...prev, [group]: !prev[group] }))}
-                  className="flex flex-1 items-center gap-1 text-left text-[0.75rem] font-bold text-m-ink"
+                  onClick={() => toggleOpen(group)}
+                  className="flex flex-1 items-center gap-1 text-start text-[0.75rem] font-bold text-m-ink"
                 >
                   {isOpen ? (
                     <ChevronDown size={13} className="flex-none text-m-faint" />
@@ -58,20 +52,14 @@ export default function MScopeGroupPicker({ selected, onChange }: Props) {
                   )}
                   <span className="min-w-0 truncate">{group}</span>
                   {someGroupSelected && (
-                    <span className="ml-[6px] flex-none font-geist text-[0.625rem] font-normal text-m-faint">
-                      ({selectedInGroup}/{groupScopeKeys.length})
+                    <span className="ms-[6px] flex-none font-geist text-[0.625rem] font-normal text-m-faint">
+                      ({selectedInGroup}/{state.keys.length})
                     </span>
                   )}
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    onChange(
-                      allGroupSelected
-                        ? selected.filter((s) => !groupScopeKeys.includes(s))
-                        : [...new Set([...selected, ...groupScopeKeys])]
-                    )
-                  }
+                  onClick={() => toggleGroup(state)}
                   aria-label={allGroupSelected ? `Deselect all ${group}` : `Select all ${group}`}
                   className={`flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[7px] border ${
                     allGroupSelected
@@ -97,10 +85,8 @@ export default function MScopeGroupPicker({ selected, onChange }: Props) {
                       <button
                         key={scope}
                         type="button"
-                        onClick={() =>
-                          onChange(on ? selected.filter((s) => s !== scope) : [...selected, scope])
-                        }
-                        className="flex w-full items-start gap-2.5 border-t border-[color:var(--m-rowbr)] px-3 py-2 text-left"
+                        onClick={() => toggleScope(scope)}
+                        className="flex w-full items-start gap-2.5 border-t border-[color:var(--m-rowbr)] px-3 py-2 text-start"
                       >
                         <div className="min-w-0 flex-1">
                           <p className="text-[0.75rem] font-semibold text-m-ink">{label}</p>

@@ -83,12 +83,18 @@ class FixtureMcp {
   // Arguments reach the server as strings; a numeric one is parsed on the way in.
   @Prompt({ name: 'fixture_count', argsSchema: { count: z.string().regex(/^\d+$/).transform(Number) } })
   async fixtureCount({ count }: { count: number }, ctx: TestCtx) {
-    return { messages: [{ role: 'user', content: { type: 'text', text: `${typeof count} ${count + 1} for ${ctx.userId}` } }] };
+    return {
+      messages: [{ role: 'user', content: { type: 'text', text: `${typeof count} ${count + 1} for ${ctx.userId}` } }],
+    };
   }
 
   @Prompt({ name: 'fixture_bare', argsSchema: {} })
   async fixtureBare(args: Record<string, never>, ctx: TestCtx) {
-    return { messages: [{ role: 'user', content: { type: 'text', text: `${Object.keys(args).length} args for ${ctx.userId}` } }] };
+    return {
+      messages: [
+        { role: 'user', content: { type: 'text', text: `${Object.keys(args).length} args for ${ctx.userId}` } },
+      ],
+    };
   }
 }
 
@@ -249,8 +255,9 @@ describe('McpRegistry.attach', () => {
     harness = await createAttachHarness(buildRegistry(), { userId: 3 });
     const result = await harness.client.getPrompt({ name: 'fixture_count', arguments: { count: '41' } });
     expect(result.messages[0]?.content).toMatchObject({ type: 'text', text: 'number 42 for 3' });
-    await expect(harness.client.getPrompt({ name: 'fixture_count', arguments: { count: 'many' } }))
-      .rejects.toThrow(/Invalid arguments for prompt fixture_count/);
+    await expect(harness.client.getPrompt({ name: 'fixture_count', arguments: { count: 'many' } })).rejects.toThrow(
+      /Invalid arguments for prompt fixture_count/,
+    );
   });
 
   it('serves a prompt with an empty argsSchema to a request that omits arguments', async () => {
@@ -315,17 +322,17 @@ describe('McpRegistry.attach', () => {
     );
   });
 
-  it('attach itself still guards declarative access without a policy (defense in depth)', () => {
+  it('attach itself still guards declarative access without a policy (defense in depth)', async () => {
     // Bypass createTestRegistry's validate() by assembling the registry by hand.
     const registry = new McpRegistry();
     registry.register(new DeclarativeOnly());
-    expect(() =>
+    await expect(
       registry.attach(
         // attach never gets far enough to need a live server here
         {} as Parameters<typeof registry.attach>[0],
         { userId: 1 } as McpContext,
       ),
-    ).toThrow(/declares declarative access but no accessPolicy was configured/);
+    ).rejects.toThrow(/declares declarative access but no accessPolicy was configured/);
   });
 });
 
@@ -373,5 +380,54 @@ describe('McpAttachOptions.onInvoke', () => {
     });
     const result = await harness.client.callTool({ name: 'open_tool', arguments: {} });
     expect((result as { isError?: boolean }).isError).toBe(true);
+  });
+});
+
+describe('McpAttachOptions.around', () => {
+  let harness: AttachHarness | undefined;
+  afterEach(async () => {
+    await harness?.cleanup();
+    harness = undefined;
+  });
+
+  const fullCtx: TestCtx = { userId: 7, canRead: true, canWrite: true, allow: true };
+
+  it('wraps every invocation and passes the handler result through unchanged', async () => {
+    const seen: Array<{ kind: string; name: string }> = [];
+    const plain = await createAttachHarness(buildRegistry(), fullCtx);
+    const expected = await plain.client.callTool({ name: 'open_tool', arguments: {} });
+    await plain.cleanup();
+
+    harness = await createAttachHarness(buildRegistry(), fullCtx, {
+      around: (info, call) => {
+        seen.push(info);
+        return call();
+      },
+    });
+    expect(seen).toEqual([]);
+    expect(await harness.client.callTool({ name: 'open_tool', arguments: {} })).toEqual(expected);
+    await harness.client.readResource({ uri: 'test://doc' });
+    await harness.client.readResource({ uri: 'test://item/5' });
+    await harness.client.getPrompt({ name: 'fixture_prompt', arguments: { topic: 't' } });
+    expect(seen).toEqual([
+      { kind: 'tool', name: 'open_tool' },
+      { kind: 'resource', name: 'fixture_doc' },
+      { kind: 'resourceTemplate', name: 'fixture_item' },
+      { kind: 'prompt', name: 'fixture_prompt' },
+    ]);
+  });
+
+  it('runs the handler inside the wrapper, so the wrapper sees its outcome', async () => {
+    const outcomes: unknown[] = [];
+    harness = await createAttachHarness(buildRegistry(), fullCtx, {
+      around: async (_info, call) => {
+        const result = await call();
+        outcomes.push(result);
+        return result;
+      },
+    });
+    await harness.client.callTool({ name: 'open_tool', arguments: {} });
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0]).toBeDefined();
   });
 });

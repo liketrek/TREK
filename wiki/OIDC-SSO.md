@@ -12,7 +12,7 @@ OpenID Connect (OIDC) lets users log in with an existing identity provider — G
 2. You are redirected to your identity provider's login page.
 3. Authenticate and grant consent.
 4. The provider redirects back to TREK at `GET /api/auth/oidc/callback`. If this is your first login, an account is created automatically (subject to registration settings).
-5. The server issues a short-lived one-time code and redirects your browser to `/login?oidc_code=<code>`. The frontend immediately exchanges that code at `GET /api/auth/oidc/exchange?code=<code>` to obtain the session.
+5. The server issues a short-lived one-time code and redirects your browser to `/login?oidc_code=<code>`. The frontend immediately exchanges that code at `GET /api/auth/oidc/exchange?code=<code>` to obtain the session: the exchange sets the `trek_session` cookie and answers `{ "success": true }`. The same body still carries the session JWT as `token` for API clients; that field is deprecated and will be removed in a future major version.
    The code is only half of what the exchange needs: the callback also sets a one-minute `HttpOnly` cookie (`trek_oidc_exchange`) holding a secret that never appears in a URL, and the exchange requires both. A code copied out of the address bar, out of history, or out of a proxy log is therefore worthless in any other browser, and it is spent by the first attempt to redeem it whether that attempt succeeds or not. If your reverse proxy strips cookies on the way back from the identity provider, SSO login will fail here with `Invalid or expired code`.
 6. Your `trek_session` cookie is set and you land on the dashboard.
 
@@ -55,6 +55,7 @@ For example: `https://trek.example.com/api/auth/oidc/callback`
 | `OIDC_ONLY` | Set to `true` to disable local password login and password registration. SSO login and SSO registration remain governed by their own toggles. This is an environment-variable-only setting and cannot be toggled at runtime via the admin panel. |
 | `OIDC_ADMIN_CLAIM` | OIDC claim to inspect for admin role mapping. Defaults to `groups`. The claim value may be an array or a plain string. The claim only reaches TREK if one of the scopes in `OIDC_SCOPE` carries it — see *Admin role mapping* below. **Env var only — not configurable via the admin panel.** |
 | `OIDC_ADMIN_VALUE` | Value that must be present in `OIDC_ADMIN_CLAIM` to grant the admin role. If unset, claim-based role mapping is disabled. When set, the role is re-evaluated on every login. **Env var only — not configurable via the admin panel.** |
+| `OIDC_USERNAME_CLAIM` | Claim the username of a new account is built from. Defaults to `name`, then `preferred_username`, then the part of the email before the `@`. Set it to `preferred_username` for providers like Pocket ID whose `name` is the full "Jane Doe". Only read when the account is created, so a username changed later in TREK stays; when the provider leaves the claim empty, the default order applies. **Env var only, not configurable via the admin panel.** |
 | `OIDC_SCOPE` | Overrides the default scope list sent to the provider. Defaults to `openid email profile`. Ensure `openid` and `email` are always included, plus whichever scope carries your `OIDC_ADMIN_CLAIM`. **Env var only — not configurable via the admin panel.** |
 | `OIDC_DISCOVERY_URL` | Full URL to the OIDC discovery document. Use this for providers with non-standard discovery paths (e.g. Authentik tenants). If unset, discovery is attempted at `<OIDC_ISSUER>/.well-known/openid-configuration`. The discovery document is cached for 1 hour. |
 
@@ -91,7 +92,7 @@ A provider that sends the claim as an empty list instead of dropping it is not a
 When an SSO login matches an existing TREK account by OIDC subject (`sub`), that account is used directly. When it matches only by **email**, the OIDC identity is linked to that account only if the provider asserts `email_verified` for it; if the claim is missing or false the login is rejected with an `email_not_verified` error, so an unverified address can never take over a local account. Make sure your IdP includes `email_verified` in the userinfo response — it is part of the `email` scope. If no matching account exists, TREK attempts to create one. The outcome depends on the following:
 
 - **First user ever**: always created as admin, no invite required.
-- **Open SSO registration enabled** (admin panel toggle `oidc_registration`): account is created as a regular user.
+- **Open SSO registration enabled** (**SSO Auto-Provisioning** in **Admin → Settings**, card **Authentication Methods**; setting `oidc_registration`): account is created as a regular user.
 - **Invite token present** in the login URL: account is created regardless of the registration toggle. Pass the token as `?invite=<token>` when initiating SSO login (e.g. `GET /api/auth/oidc/login?invite=<token>`).
 - **SSO registration disabled and no invite**: login is rejected with a `registration_disabled` error.
 
@@ -109,9 +110,11 @@ OIDC can also be configured without environment variables via **Admin → Settin
 
 Environment variables take priority over database settings when both are present.
 
-The following variables are **env var only** and have no admin panel equivalent: `OIDC_ONLY`, `OIDC_SCOPE`, `OIDC_ADMIN_CLAIM`, `OIDC_ADMIN_VALUE`.
+The following variables are **env var only** and have no admin panel equivalent: `OIDC_ONLY`, `OIDC_SCOPE`, `OIDC_ADMIN_CLAIM`, `OIDC_ADMIN_VALUE`, `OIDC_USERNAME_CLAIM`.
 
-The `OIDC_ONLY` env var always overrides the panel's login-method toggles. To disable password login at runtime without `OIDC_ONLY`, use the **password_login** and **password_registration** toggles in Admin → Settings instead.
+The `OIDC_ONLY` env var always overrides the panel's login-method toggles: while it is set, the **Authentication Methods** card in **Admin → Settings** says the password settings are controlled by `OIDC_ONLY` and cannot be changed there. To disable password login at runtime without `OIDC_ONLY`, switch off **Password Login** and **Password Registration** in that card instead. **SSO Login** in the same card turns the SSO button on or off.
+
+When password login and password registration are both off, through `OIDC_ONLY` or the two switches, the **Change Password** section is hidden from **Settings → Account**.
 
 > **Note:** The admin panel prevents you from disabling all login methods simultaneously. At least one method (password or SSO) must remain active. Similarly, you cannot remove the OIDC configuration from the admin panel while password login is disabled.
 

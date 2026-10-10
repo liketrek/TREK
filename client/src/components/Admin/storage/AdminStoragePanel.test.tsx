@@ -434,7 +434,7 @@ describe('AdminStoragePanel', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Compute now' }));
     await screen.findByText(/Usage computed/);
-    expect(within(categoryRow('files')).getByText(/1 objects · 2\.0 KB/)).toBeInTheDocument();
+    expect(within(categoryRow('files')).getByText(/1 object · 2\.0 KB/)).toBeInTheDocument();
   });
 
   it('FE-ADMIN-STOR-020: Sync now runs the backfill — running line with counts, then the done line (50ms test poll)', async () => {
@@ -982,9 +982,22 @@ describe('AdminStoragePanel', () => {
     );
     expect(screen.getByText(/Moving Trip documents… 2\/5/)).toBeInTheDocument();
     expect(screen.getByText(/Move finished: 4 copied, 0 skipped/)).toBeInTheDocument();
-    expect(screen.getByText(/4 objects \(4\.0 KB\) remain on uploads-local — reclaim manually/)).toBeInTheDocument();
+    expect(screen.getByText(/4 objects \(4\.0 KB\) remain on uploads-local, reclaim manually/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel move' }));
     await waitFor(() => expect(cancelledCategory).toBe('files'));
+  });
+
+  it('FE-ADMIN-STOR-050: the reclaimable line takes the plural form for the object count', async () => {
+    const state = baseState();
+    (state as StorageAdminState).migrations = [
+      {
+        category: 'journey', from: 'uploads-local', to: 'off-box',
+        status: 'done', done: 1, total: 1, copied: 1, skipped: 0, failed: 0, startedAt: 1, finishedAt: 2,
+        reclaimable: { objects: 1, bytes: 1024 },
+      },
+    ];
+    await renderPanel(state);
+    expect(screen.getByText(/1 object \(1\.0 KB\) remains on uploads-local, reclaim manually/)).toBeInTheDocument();
   });
 
   it('FE-ADMIN-STOR-038: a done migration with sweep failures shows the doneFailures line; a clean one shows nothing extra', async () => {

@@ -1,18 +1,28 @@
-import { Module } from '@nestjs/common';
-import { AtlasController } from './atlas.controller';
-import { TravelStatsController } from './travel-stats.controller';
-import { AtlasService } from './atlas.service';
-import { AtlasRpc } from './atlas.rpc';
-import { PluginGuardsModule } from '../plugins/host/plugin-guards.module';
-import { AtlasMcp } from './atlas.mcp';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { BucketList } from '../../db/entities/BucketList.entity';
+import { HiddenCountries } from '../../db/entities/HiddenCountries.entity';
+import { HiddenRegions } from '../../db/entities/HiddenRegions.entity';
+import { PlaceRegions } from '../../db/entities/PlaceRegions.entity';
+import { Places } from '../../db/entities/Places.entity';
+import { ReservationEndpoints } from '../../db/entities/ReservationEndpoints.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import { VisitedCountries } from '../../db/entities/VisitedCountries.entity';
+import { VisitedRegions } from '../../db/entities/VisitedRegions.entity';
+import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { AddonsModule } from '../addons/addons.module';
-import { AuthModule } from '../auth/auth.module';
-import { PublicStatsController } from './public-stats.controller';
-import { ApiTokenGuard } from '../public-api/api-token.guard';
-import { TokensModule } from '../tokens/tokens.module';
 import { RateLimitModule } from '../common/rate-limit.module';
+import { ApiTokenGuard } from '../public-api/api-token.guard';
 import { SchedulingModule } from '../scheduling/scheduling.module';
+import { TokensModule } from '../tokens/tokens.module';
+import { AtlasController } from './atlas.controller';
+import { AtlasMcp } from './atlas.mcp';
+import { AtlasRpc } from './atlas.rpc';
+import { AtlasService } from './atlas.service';
 import { PlaceRegionsRepairJob } from './place-regions-repair.job';
+import { PublicStatsController } from './public-stats.controller';
+import { TravelStatsController } from './travel-stats.controller';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
 
 /**
  * Atlas addon domain (L7 leaf module). Registered in AppModule. Exports
@@ -32,10 +42,35 @@ import { PlaceRegionsRepairJob } from './place-regions-repair.job';
  * declaring controller's module, so exporting it from over there would still leave
  * its TokenService unresolvable here. TokensModule is a leaf, so the edge is free.
  *
- * PlaceRegionsRepairJob puts right, once, the place_regions rows cached before #2527.
+ * `MikroOrmModule.forFeature` registers every entity `AtlasService`'s
+ * `@InjectRepository` constructor needs (Plan 3f Task 1) — the six
+ * atlas-owned tables (`BucketList`/`HiddenCountries`/`HiddenRegions`/
+ * `VisitedCountries`/`VisitedRegions`/`PlaceRegions`) plus the three it
+ * reads additive methods on (`Trips`/`Places`/`ReservationEndpoints`).
+ *
+ * PlaceRegionsRepairJob puts right, once, the place_regions rows cached before #2527;
+ * `AppSettings` is in the feature list for the marker row it reads and writes.
  */
 @Module({
-  imports: [AuthModule, PluginGuardsModule, AddonsModule, TokensModule, RateLimitModule, SchedulingModule],
+  imports: [
+    PluginGuardsModule,
+    AddonsModule,
+    TokensModule,
+    RateLimitModule,
+    SchedulingModule,
+    MikroOrmModule.forFeature([
+      BucketList,
+      HiddenCountries,
+      HiddenRegions,
+      VisitedCountries,
+      VisitedRegions,
+      PlaceRegions,
+      Trips,
+      Places,
+      ReservationEndpoints,
+      AppSettings,
+    ]),
+  ],
   controllers: [AtlasController, TravelStatsController, PublicStatsController],
   providers: [AtlasService, AtlasMcp, AtlasRpc, ApiTokenGuard, PlaceRegionsRepairJob],
   exports: [AtlasService],

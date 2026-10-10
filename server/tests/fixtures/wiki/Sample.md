@@ -21,3 +21,13 @@ Inline code must survive: `actions[key](ctx)` and `[x](y)`.
 ```js
 const link = [label](Currencies)
 ```
+
+## Cover images
+
+Upload a cover image from the trip form, or search Unsplash for one. The picture
+shows on the dashboard card and on the boarding-pass hero.
+
+## Archiving
+
+Archive a trip you no longer plan to touch; it moves to the Archived filter and
+can be restored at any time.

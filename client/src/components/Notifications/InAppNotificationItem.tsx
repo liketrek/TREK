@@ -1,19 +1,12 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router'
+import React from 'react'
 import { User, Check, X, ArrowRight, Trash2, CheckCheck } from 'lucide-react'
 import { useTranslation } from '../../i18n'
-import { useInAppNotificationStore, InAppNotification } from '../../store/inAppNotificationStore'
+import type { InAppNotification } from '../../store/inAppNotificationStore'
 import { useSettingsStore } from '../../store/settingsStore'
+import { compactTime, useNotificationItemActions } from './useNotificationItemActions'
 
 function relativeTime(dateStr: string, locale: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return locale === 'ar' ? 'الآن' : 'just now'
-  if (minutes < 60) return `${minutes}m`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h`
-  const days = Math.floor(hours / 24)
-  return `${days}d`
+  return compactTime(dateStr, locale === 'ar' ? 'الآن' : 'just now')
 }
 
 interface NotificationItemProps {
@@ -23,28 +16,11 @@ interface NotificationItemProps {
 
 export default function InAppNotificationItem({ notification, onClose }: NotificationItemProps): React.ReactElement {
   const { t, locale } = useTranslation()
-  const navigate = useNavigate()
   const { settings } = useSettingsStore()
   const darkMode = settings.dark_mode
   const dark = darkMode === true || darkMode === 'dark' || (darkMode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-  const [responding, setResponding] = useState(false)
-
-  const { markRead, markUnread, deleteNotification, respondToBoolean } = useInAppNotificationStore()
-
-  const handleNavigate = async () => {
-    if (!notification.is_read) await markRead(notification.id)
-    if (notification.navigate_target) {
-      navigate(notification.navigate_target)
-      onClose?.()
-    }
-  }
-
-  const handleRespond = async (response: 'positive' | 'negative') => {
-    if (responding || notification.response !== null) return
-    setResponding(true)
-    await respondToBoolean(notification.id, response)
-    setResponding(false)
-  }
+  const { responding, handleRespond, handleNavigate, markRead, deleteNotification } =
+    useNotificationItemActions(notification, onClose)
 
   const titleText = t(notification.title_key, notification.title_params)
   const bodyText = t(notification.text_key, notification.text_params)
@@ -88,7 +64,7 @@ export default function InAppNotificationItem({ notification, onClose }: Notific
               {hasUnknownTitle ? notification.title_key : titleText}
             </p>
             <div className="flex items-center gap-0.5 flex-shrink-0">
-              <span className="text-xs mr-1 text-content-faint">
+              <span className="text-xs me-1 text-content-faint">
                 {relativeTime(notification.created_at, locale)}
               </span>
               {!notification.is_read && (

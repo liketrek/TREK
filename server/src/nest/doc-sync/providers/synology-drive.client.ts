@@ -228,7 +228,7 @@ export interface SynologyDriveCreds {
    * connection passes one; a probe of form values uses the stored token without
    * being able to change it.
    */
-  saveDeviceToken?: (stored: string | null) => void;
+  saveDeviceToken?: (stored: string | null) => Promise<void>;
   allowInsecureTls: boolean;
 }
 
@@ -554,7 +554,7 @@ export class SynologyDriveClient {
    * anything is written, so a change is written once and not on every call of
    * the run that made it.
    */
-  private deviceSlot(creds: SynologyDriveCreds): DeviceTokenSlot | null {
+  private async deviceSlot(creds: SynologyDriveCreds): Promise<DeviceTokenSlot | null> {
     if (creds.connectionId <= 0) return null;
     const key = `${creds.connectionId}\u0000${creds.connectionCreatedAt}`;
     const account = this.accountDigest(creds);
@@ -563,24 +563,24 @@ export class SynologyDriveClient {
       slot = { account, token: deviceTokenFor(creds.storedDeviceToken, account) };
       this.deviceTokens.set(key, slot);
     }
-    this.persist(creds, slot);
+    await this.persist(creds, slot);
     return slot;
   }
 
-  private persist(creds: SynologyDriveCreds, slot: DeviceTokenSlot): void {
+  private async persist(creds: SynologyDriveCreds, slot: DeviceTokenSlot): Promise<void> {
     if (!creds.saveDeviceToken) return;
     if (slot.stored === undefined) slot.stored = creds.storedDeviceToken ?? null;
     const wanted = slot.token === null ? null : storedDeviceToken(slot.account, slot.token);
     if (wanted === slot.stored) return;
-    creds.saveDeviceToken(wanted);
+    await creds.saveDeviceToken(wanted);
     slot.stored = wanted;
   }
 
-  private setDeviceToken(creds: SynologyDriveCreds, token: string | null): void {
-    const slot = this.deviceSlot(creds);
+  private async setDeviceToken(creds: SynologyDriveCreds, token: string | null): Promise<void> {
+    const slot = await this.deviceSlot(creds);
     if (!slot || slot.token === token) return;
     slot.token = token;
-    this.persist(creds, slot);
+    await this.persist(creds, slot);
   }
 
   private async request(
@@ -691,8 +691,8 @@ export class SynologyDriveClient {
   private async session(creds: SynologyDriveCreds): Promise<SynoSession> {
     const cached = this.sessions.get(this.sessionKey(creds));
     if (cached && Date.now() - cached.createdAt < SESSION_MAX_AGE_MS) {
-      const slot = this.deviceSlot(creds);
-      if (slot && slot.token === null && cached.deviceId) this.setDeviceToken(creds, cached.deviceId);
+      const slot = await this.deviceSlot(creds);
+      if (slot && slot.token === null && cached.deviceId) await this.setDeviceToken(creds, cached.deviceId);
       return cached;
     }
     return await this.login(creds);
@@ -736,7 +736,7 @@ export class SynologyDriveClient {
       throw new SynologyDriveError('provider_error', 'The NAS accepted the login but returned no session id');
     }
     const issuedDeviceId = isRecord(data) && typeof data.did === 'string' ? data.did : deviceId;
-    if (issuedDeviceId) this.setDeviceToken(creds, issuedDeviceId);
+    if (issuedDeviceId) await this.setDeviceToken(creds, issuedDeviceId);
     const session: SynoSession = {
       sid,
       synoToken: isRecord(data) && typeof data.synotoken === 'string' ? data.synotoken : null,
@@ -761,7 +761,7 @@ export class SynologyDriveClient {
    * is what the lockout records.
    */
   private async authenticate(creds: SynologyDriveCreds): Promise<{ data: unknown; deviceId: string | null }> {
-    const deviceId = this.deviceSlot(creds)?.token ?? null;
+    const deviceId = (await this.deviceSlot(creds))?.token ?? null;
     try {
       return { data: await this.call(creds, this.loginParams(creds, deviceId), { cgi: AUTH_CGI }), deviceId };
     } catch (error: unknown) {
@@ -769,7 +769,7 @@ export class SynologyDriveClient {
         throw error;
       }
       // Unless another login replaced it while this one was out.
-      if (this.deviceSlot(creds)?.token === deviceId) this.setDeviceToken(creds, null);
+      if ((await this.deviceSlot(creds))?.token === deviceId) await this.setDeviceToken(creds, null);
       if (!creds.otpCode) throw error;
       return { data: await this.call(creds, this.loginParams(creds, null), { cgi: AUTH_CGI }), deviceId: null };
     }

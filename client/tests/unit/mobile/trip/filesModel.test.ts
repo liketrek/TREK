@@ -4,12 +4,12 @@ import {
   FILE_FILTERS,
   buildFileLinkLabels,
   formatFileDate,
-  getFileTypeCategory,
   getFileTypeMeta,
   matchesFileFilter,
   sortFilesStarredFirst,
   type FileFilterId,
 } from '../../../../src/mobile/screens/trip/tabs/filesModel';
+import { getFileTypeCategory } from '../../../../src/components/Files/fileListRules';
 import { buildPlace, buildReservation, buildTripFile } from '../../../helpers/factories';
 import type { TranslationFn, TripFile } from '../../../../src/types';
 

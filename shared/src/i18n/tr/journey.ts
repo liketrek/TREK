@@ -6,6 +6,9 @@ const journey: TranslationStrings = {
   'journey.title': 'Seyahat',
   'journey.subtitle': 'Seyahatlerinizi anında kaydedin',
   'journey.new': 'Yeni Journey',
+  'journey.lightbox.zoomIn': 'Yakınlaştır',
+  'journey.lightbox.zoomOut': 'Uzaklaştır',
+  'journey.lightbox.zoomReset': 'Fotoğrafın tamamına dön',
   'journey.create': 'Oluştur',
   'journey.titlePlaceholder': 'Nereye gidiyorsunuz?',
   'journey.empty': 'Henüz journey yok',
@@ -56,7 +59,8 @@ const journey: TranslationStrings = {
   'journey.frontpage.activeJourney': 'Aktif Journey',
   'journey.frontpage.latestJourney': 'Son Journey',
   'journey.frontpage.allJourneys': "Tüm Journey'ler",
-  'journey.frontpage.journeys': 'journey',
+  'journey.frontpage.journeys': 'Journey',
+  'journey.frontpage.journeys.one': 'Journey',
   'journey.frontpage.createNew': 'Yeni Journey oluştur',
   'journey.frontpage.createNewSub': 'Seyahat seçin, hikâyeler yazın, maceralarınızı paylaşın',
   'journey.frontpage.live': 'Canlı',
@@ -73,11 +77,15 @@ const journey: TranslationStrings = {
   'journey.frontpage.trips': 'seyahat',
   'journey.frontpage.placesImported': 'yer içe aktarılacak',
   'journey.frontpage.places': 'yer',
+  'journey.frontpage.places.one': 'yer',
   'journey.detail.backToJourney': "Journey'e dön",
   'journey.detail.syncedWithTrips': 'Seyahatlerle senkronize',
   'journey.detail.addEntry': 'Kayıt Ekle',
   'journey.detail.jumpToTop': 'Başa dön',
   'journey.detail.jumpToLast': 'Son girdiye git',
+  'journey.detail.dayJump': 'Bir güne git',
+  'journey.detail.dayJumpCount': '{count} gün',
+  'journey.detail.dayJumpCount.one': '{count} gün',
   'journey.detail.newEntry': 'Yeni Kayıt',
   'journey.detail.editEntry': 'Kaydı Düzenle',
   'journey.detail.noEntries': 'Henüz kayıt yok',
@@ -92,6 +100,7 @@ const journey: TranslationStrings = {
   'journey.detail.readMore': 'Devamını oku',
   'journey.detail.prosCons': 'Artılar ve Eksiler',
   'journey.detail.photos': 'fotoğraf',
+  'journey.detail.photos.one': 'fotoğraf',
   'journey.detail.day': '{number}. gün',
   'journey.detail.places': 'yer',
   'journey.stats.days': 'Günler',
@@ -104,6 +113,7 @@ const journey: TranslationStrings = {
   'journey.verdict.lovedIt': 'Çok beğendim',
   'journey.verdict.couldBeBetter': 'Daha iyi olabilirdi',
   'journey.synced.places': 'yer',
+  'journey.synced.places.one': 'yer',
   'journey.synced.synced': 'senkronize',
   'journey.editor.discardChangesConfirm': 'Kaydedilmemiş değişiklikleriniz var. Vazgeçilsin mi?',
   'journey.editor.uploadPhotos': 'Fotoğraf yükle',
@@ -195,6 +205,14 @@ const journey: TranslationStrings = {
   'journey.settings.tracks': 'GPX İzleri',
   'journey.settings.showTripTracks': 'Tüm gezi GPX izlerini göster',
   'journey.settings.showTripTracksHint': 'Bağlı gezilerdeki kayıtlı rotaları haritaya çizer.',
+  'journey.settings.status': 'Durum',
+  'journey.settings.statusAuto': 'Otomatik',
+  'journey.settings.statusAutoHint': 'Bağlı gezilerin tarihlerini izler. Gezi olmadan günlük taslak kalır.',
+  'journey.settings.statusManualHint': 'Elle ayarlandı. Otomatiğe dönene kadar gezi tarihleri bunu değiştirmez.',
+  'journey.settings.photosSection': 'Fotoğraflar',
+  'journey.settings.photoLocation': 'Kayıtları fotoğraflarından konumlandır',
+  'journey.settings.photoLocationHint':
+    "Konumu olmayan bir kayıt, GPS'li ilk fotoğrafının çekildiği yeri alır. Kendi belirlediğin yerler asla taşınmaz.",
   'journey.settings.endJourney': "Journey'i Arşivle",
   'journey.settings.reopenJourney': "Journey'i geri aç",
   'journey.settings.archived': 'Journey arşivlendi',
@@ -210,7 +228,9 @@ const journey: TranslationStrings = {
   'journey.settings.failedToDelete': 'Silinemedi',
   'journey.entries.deleteTitle': 'Kaydı Sil',
   'journey.photosUploaded': '{count} fotoğraf yüklendi',
+  'journey.photosUploaded.one': '{count} fotoğraf yüklendi',
   'journey.photosAdded': '{count} fotoğraf eklendi',
+  'journey.photosAdded.one': '{count} fotoğraf eklendi',
   'journey.public.notFound': 'Bulunamadı',
   'journey.public.notFoundMessage': "This journey doesn't exist or the link has expired.",
   'journey.public.readOnly': 'Salt okunur · Herkese açık Journey',
@@ -275,23 +295,29 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': 'Son işlem',
   'journey.studio.exportMarks': 'Kesim işaretleri',
   'journey.studio.exportMarksHint': 'Her kenara {bleed} mm taşma payı ekler ve nereden kesileceğini işaretler',
-  'journey.studio.exportNote': '{width} × {height} mm ölçüsünde {sheets} yaprak. Tarayıcı yazdırma görünümünü PDF’e çevirir.',
+  'journey.studio.exportNote':
+    '{width} × {height} mm ölçüsünde {count} yaprak. Tarayıcı yazdırma görünümünü PDF’e çevirir.',
+  'journey.studio.exportNote.one':
+    '{width} × {height} mm ölçüsünde {count} yaprak. Tarayıcı yazdırma görünümünü PDF’e çevirir.',
   'journey.studio.exportOpen': 'Yazdırma görünümü',
   'journey.studio.exportSave': 'PDF olarak kaydet',
   'journey.studio.exportPreparing': 'Hazırlanıyor',
   'journey.studio.exportSheetCount': '{count} yaprak',
+  'journey.studio.exportSheetCount.one': '{count} yaprak',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Bu çift sayfayı indir',
-  'journey.studio.downloadSpreadHint': 'Bu çift sayfanın tasarımını fotoğraflar olmadan dosyaya kaydeder; paylaşmak ya da yeniden kullanmak için',
+  'journey.studio.downloadSpreadHint':
+    'Bu çift sayfanın tasarımını fotoğraflar olmadan dosyaya kaydeder; paylaşmak ya da yeniden kullanmak için',
   'journey.studio.importSpread': 'İçe aktar',
   'journey.studio.importSpreadHint': 'İndirilmiş bir tasarım dosyasından çift sayfa ekler',
   'journey.studio.importSpreadFailed': 'Bu dosya bir TREK Studio çift sayfası değil',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Kitap tasarlamak yer ister, bu yüzden Studio yalnızca masaüstünde var; PDF oluşturmak da öyle. Yolculuğunun geri kalanı burada her zamanki gibi çalışıyor.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Kitap tasarlamak yer ister, bu yüzden Studio yalnızca masaüstünde var; PDF oluşturmak da öyle. Yolculuğunun geri kalanı burada her zamanki gibi çalışıyor.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -355,7 +381,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -377,7 +404,8 @@ const journey: TranslationStrings = {
   'journey.studio.travel': 'Seyahat',
   'journey.studio.travelEmpty': 'Bu yolculuğun rakamları henüz hazır değil.',
   'journey.studio.grids': 'Izgaralar',
-  'journey.studio.gridHint': 'Izgara, boş çerçevelerden bir blok yerleştirir. İçerik’ten üzerlerine fotoğraf sürükleyin.',
+  'journey.studio.gridHint':
+    'Izgara, boş çerçevelerden bir blok yerleştirir. İçerik’ten üzerlerine fotoğraf sürükleyin.',
   'journey.studio.lines': 'Çizgiler',
   'journey.studio.frameStyles': 'Çerçeve stilleri',
   'journey.studio.frameShapes': 'Çerçeve şekilleri',
@@ -432,6 +460,18 @@ const journey: TranslationStrings = {
   'journey.studio.kind.list': 'Liste',
   'journey.studio.kind.icon': 'Simge',
   'journey.studio.duplicate': 'Çoğalt',
+  'journey.studio.copyToPage': 'Kopyala, herhangi bir sayfaya yapıştırmak için (Ctrl+C)',
+  'journey.studio.paste': 'Yapıştır (Ctrl+V)',
+  'journey.studio.pasteEmpty': 'Önce bir şey kopyala, sonra herhangi bir sayfaya yapıştır',
+  'journey.studio.myLayouts': 'Yerleşimlerim',
+  'journey.studio.myLayoutsEmpty':
+    'Düzenlediğin bir sayfayı sakla ve diğer sayfaları da aynı şekilde yerleştir. Fotoğrafları ve metinleri olduğu gibi kalır.',
+  'journey.studio.saveLayout': 'Bu sayfayı yerleşim olarak kaydet',
+  'journey.studio.saveLayoutHint': 'Düzeni fotoğraflar olmadan saklar, bu kitabın tüm düzenleyicileri için',
+  'journey.studio.saveLayoutFull': 'Bu kitap en fazla 24 yerleşim saklar. Yenisini kaydetmek için birini sil.',
+  'journey.studio.deleteLayout': 'Yerleşimi sil',
+  'journey.studio.layoutName': 'Yerleşim',
+  'journey.studio.builtInLayouts': 'Hazır',
   'journey.studio.style': 'Stil',
   'journey.studio.shows': 'Gösterim',
   'journey.studio.size': 'Boyut',
@@ -547,7 +587,8 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Yeniden getir',
   'journey.studio.roadsClear': 'Temizle',
   'journey.studio.roadsBusy': 'Soruluyor',
-  'journey.studio.roadsHint': 'Her etabın hangi yoldan gidildiğini bir rota servisine sorar. Uzun etaplar olduğu gibi kalır.',
+  'journey.studio.roadsHint':
+    'Her etabın hangi yoldan gidildiğini bir rota servisine sorar. Uzun etaplar olduğu gibi kalır.',
   'journey.studio.roadsHave': 'Yollar bu kitaba kaydedilir, böylece çevrimdışıyken de aynı çizgi basılır.',
   'journey.studio.routeStyle': 'Biçim',
   'journey.studio.routePlain': 'Yalın',
@@ -561,8 +602,10 @@ const journey: TranslationStrings = {
   'journey.studio.pinPhoto': 'Fotoğraflar',
   'journey.studio.pinPhotoNone': 'Bu duraklarda henüz fotoğraf yok, bu yüzden nokta olarak çizilirler.',
   'journey.studio.mapSourceSatellite': 'Uydu',
-  'journey.studio.mapSourceSatelliteHint': 'Bulutsuz Sentinel-2, kaynak bilgisiyle ücretsiz basılır. Şehir sokaklarına kadar net.',
-  'journey.studio.mapSourceReliefHint': 'NASA gölgeli kabartma, baskısı ücretsiz. Ülke veya kıta için ideal, tek bir şehir için fazla kaba.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Bulutsuz Sentinel-2, kaynak bilgisiyle ücretsiz basılır. Şehir sokaklarına kadar net.',
+  'journey.studio.mapSourceReliefHint':
+    'NASA gölgeli kabartma, baskısı ücretsiz. Ülke veya kıta için ideal, tek bir şehir için fazla kaba.',
   'journey.studio.mapPrintDpi': 'Baskı çözünürlüğü yaklaşık',
   'journey.studio.mapPrintDpiLow': 'bu boyutta bulanık olur, daha geniş bir görünüm veya başka bir kaynak deneyin',
   'journey.studio.mapPerTrip': 'Her seyahat ayrı ayrı',
@@ -605,12 +648,15 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': 'Bu kaydın henüz fotoğrafı yok.',
   'journey.studio.noLoosePhotos': 'Buradaki her fotoğraf bir kayda ait.',
   'journey.studio.uploadPhotos': 'Fotoğraf yükle',
+  'journey.studio.fromProvider': '{name} üzerinden',
+  'journey.studio.fromProviderHint': '{name} üzerinden fotoğraf seç ve yüklemenin gideceği yere ekle',
   'journey.studio.uploadHint': 'Resimleri buraya bırakın veya seçmek için tıklayın',
   'journey.studio.uploadToEntry': 'Yeni resimler bu kayda eklenir',
   'journey.studio.uploadToGallery': 'Yeni resimler galeriye eklenir',
   'journey.studio.uploading': '{total} resimden {done} tanesi yükleniyor',
   'journey.studio.dropFilesHere': 'Resimleri eklemek için bırakın',
-  'journey.studio.videosSkipped': '{count} video dışarıda bırakıldı. Kitapta resimler yer alır.',
+  'journey.studio.videosSkipped': '{count} video dışarıda bırakıldı. Kitapta yalnızca resimler yer alır.',
+  'journey.studio.videosSkipped.one': '{count} video dışarıda bırakıldı. Kitapta yalnızca resimler yer alır.',
   'journey.studio.fillPage': 'Sayfayı doldur',
   'journey.studio.fillSpread': 'Çift sayfayı doldur',
   'journey.studio.fillHint': 'Resmi taşma dahil tüm sayfaya yayar ve diğer her şeyin arkasına gönderir.',
@@ -625,11 +671,19 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Durak günlükte kalır ama mesafeye, ülkelere veya Studio içindeki haritaya dahil edilmez.',
   'journey.entry.offRoute': 'Rota dışı',
+  'journey.entry.draft': 'Taslak',
+  'journey.editor.draft': 'Taslak',
+  'journey.editor.draftHint':
+    'Bu kaydı yalnızca sen ve diğer katkıda bulunanlar görür. Sen bunu kapatana kadar paylaşılan journey onu göstermez.',
+  'journey.editor.tripSuggestionHint': 'Bu gün bu geziye denk geliyor. Bağlarsan gezinin yerleri bu journey’e eklenir.',
+  'journey.editor.tripSuggestionLater': 'Şimdi değil',
   'journey.suggestions.dismiss': 'Bu öneriyi yok say',
   'journey.suggestions.dismissed': 'Öneri yok sayıldı',
   'journey.suggestions.restore': 'Yok sayılan önerileri geri getir',
   'journey.suggestions.restoreCount': 'Yok sayılan öneriler ({count})',
+  'journey.suggestions.restoreCount.one': 'Yok sayılan öneriler ({count})',
   'journey.suggestions.restored': '{count} öneri geri geldi',
+  'journey.suggestions.restored.one': '{count} öneri geri geldi',
   'journey.detail.addOnThisDay': 'Bu güne bir kayıt ekle',
   'journey.detail.jumpToDay': '{date} tarihine git',
   'journey.detail.searchPlaceholder': 'Bu yolculukta ara',

@@ -3,7 +3,8 @@ import Database from 'better-sqlite3';
 /**
  * Opens a SQLite connection. Every handle the server opens comes from here (the
  * main database, each plugin's own database, a backup being checked before a
- * restore), so what has to hold for all of them is set in one place.
+ * restore), so what has to hold for all of them is set in one place. A Buffer
+ * opens a serialized database in memory (the test schema snapshot).
  *
  * Temporary storage stays in memory. Statement journals, sort runs and transient
  * indices move to a temp file once they outgrow a small in-memory buffer, and
@@ -20,7 +21,7 @@ import Database from 'better-sqlite3';
  * being a tmpfs. VACUUM INTO, the only VACUUM TREK runs, writes straight into
  * its target file and builds no temporary database.
  */
-export function openDatabase(filename: string, options?: Database.Options): Database.Database {
+export function openDatabase(filename: string | Buffer, options?: Database.Options): Database.Database {
   const db = new Database(filename, options);
   db.pragma('temp_store = MEMORY');
   return db;

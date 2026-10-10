@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const nl: NotificationLocale = {
   email: {
@@ -37,8 +38,11 @@ const nl: NotificationLocale = {
       body: `${p.actor} nodigt je uit om een collectie te delen. Open TREK om te accepteren of af te wijzen.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} foto's gedeeld`,
-      body: `${p.actor} heeft ${p.count} foto('s) gedeeld in "${p.trip}".`,
+      title: pluralForm(p.count, 'nl', { one: `${p.count} foto gedeeld`, other: `${p.count} foto's gedeeld` }),
+      body: pluralForm(p.count, 'nl', {
+        one: `${p.actor} heeft ${p.count} foto gedeeld in "${p.trip}".`,
+        other: `${p.actor} heeft ${p.count} foto's gedeeld in "${p.trip}".`,
+      }),
     }),
     collab_message: (p) => ({
       title: `Nieuw bericht in "${p.trip}"`,
@@ -56,7 +60,12 @@ const nl: NotificationLocale = {
       title: 'Opslagreplica mislukt',
       body:
         `Schrijven naar replica '${p.backend}' is mislukt: ${p.op} van ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` ${p.suppressed} extra fout(en) zijn onderdrukt sinds de laatste melding.` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'nl', {
+              one: ` ${p.suppressed} extra fout is onderdrukt sinds de laatste melding.`,
+              other: ` ${p.suppressed} extra fouten zijn onderdrukt sinds de laatste melding.`,
+            })
+          : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Synology-sessie gewist',

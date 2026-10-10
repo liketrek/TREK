@@ -1,5 +1,3 @@
-import { Cloud, CloudDrizzle, CloudLightning, CloudRain, CloudSnow, Sun, Wind } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
 import {
   TRANSPORT_TYPES, getAssignmentReservations, getDisplayTimeForDay, getSpanPhase, getTransportRouteEndpoints, hidesOnMiddleDay,
   parseTimeToMinutes,
@@ -7,7 +5,8 @@ import {
 import { getDayBookendHotels, isDayInAccommodationRange } from '../../../../utils/dayOrder'
 import type { MergedItem } from '../../../../utils/dayMerge'
 import type { TransitLegDisplay } from '../../../../components/Planner/transitDisplay'
-import type { Accommodation, Assignment, Day, DayNote, Reservation, RouteSegment, TranslationFn } from '../../../../types'
+import { projectDayItinerary } from '../../../../components/Map/dayTourProjection'
+import type { Accommodation, Assignment, Day, DayNote, Place, Reservation, RouteSegment, TranslationFn } from '../../../../types'
 
 /**
  * Pure derivations for the mobile plan timeline: merged-item → row mapping,
@@ -27,7 +26,7 @@ export interface TransitMeta {
 }
 
 export type PlanRow =
-  | { key: string; kind: 'place'; item: MergedItem; assignment: Assignment; linkedReservations: Reservation[] }
+  | { key: string; kind: 'place'; item: MergedItem; assignment: Assignment; linkedReservations: Reservation[]; invalidTour?: boolean }
   | { key: string; kind: 'transport'; item: MergedItem; res: TransportEntry }
   | { key: string; kind: 'transit'; item: MergedItem; res: TransportEntry; transit: TransitMeta }
   | { key: string; kind: 'note'; item: MergedItem; note: DayNote }
@@ -87,9 +86,16 @@ export function buildPlanRows(opts: {
   reservations: Reservation[]
   routeSegments: RouteSegment[]
   dayId: number
+  toursEnabled?: boolean
+  places?: Place[]
 }): PlanRow[] {
   const { merged, reservations, routeSegments, dayId } = opts
   const pool = routeSegments.filter(s => !s.hotelBookend)
+  const projected = new Map(projectDayItinerary(
+    merged.flatMap(item => item.type === 'place' ? [item.data as Assignment] : []),
+    opts.toursEnabled ?? false,
+    opts.places,
+  ).map(item => [item.assignment.id, item]))
   const takeSegment = (from: [number, number], to: [number, number]): RouteSegment | null => {
     const idx = pool.findIndex(s => sameCoord(s.from, from) && sameCoord(s.to, to))
     return idx >= 0 ? pool.splice(idx, 1)[0] : null
@@ -99,6 +105,7 @@ export function buildPlanRows(opts: {
   for (const item of merged) {
     if (item.type === 'place') {
       const assignment = item.data as Assignment
+      const itineraryItem = projected.get(assignment.id)
       base.push({
         key: `pl-${assignment.id}`,
         kind: 'place',
@@ -108,6 +115,7 @@ export function buildPlanRows(opts: {
         // attraction, and getTransportForDay keeps every linked booking out of the
         // timeline, so anything dropped here is gone from the plan tab (#2201).
         linkedReservations: getAssignmentReservations(reservations, assignment.id),
+        invalidTour: itineraryItem?.kind === 'tour' && !itineraryItem.valid,
       })
     } else if (item.type === 'note') {
       const note = item.data as DayNote
@@ -156,6 +164,16 @@ export function buildPlanRows(opts: {
     const row = base[i]
     if (row.kind === 'place') {
       const place = row.assignment.place
+      // Out of the route (#2532): the drive passes it by, so no leg starts or ends here.
+      if (row.assignment.route_excluded) continue
+      const itineraryItem = projected.get(row.assignment.id)
+      if (itineraryItem?.kind === 'tour') {
+        if (itineraryItem.start) connect(prev, [itineraryItem.start.lat, itineraryItem.start.lng])
+        prev = itineraryItem.end
+          ? { at: [itineraryItem.end.lat, itineraryItem.end.lng], row: i, assignmentId: row.assignment.id }
+          : null
+        continue
+      }
       if (place?.lat == null || place?.lng == null) continue
       const at: [number, number] = [place.lat, place.lng]
       connect(prev, at)
@@ -317,13 +335,4 @@ export function breaksChronology(
     })
     .filter((m): m is number => m != null)
   return times.some((m, i) => i > 0 && m < times[i - 1])
-}
-
-const WEATHER_ICON_MAP: Record<string, LucideIcon> = {
-  Clear: Sun, Clouds: Cloud, Rain: CloudRain, Drizzle: CloudDrizzle,
-  Thunderstorm: CloudLightning, Snow: CloudSnow, Mist: Wind, Fog: Wind, Haze: Wind,
-}
-
-export function weatherIconFor(main: string | undefined): LucideIcon {
-  return (main && WEATHER_ICON_MAP[main]) || Cloud
 }

@@ -1,9 +1,23 @@
+import { DayAccommodations } from '../../db/entities/DayAccommodations.entity';
+import { Days } from '../../db/entities/Days.entity';
+import { RoadtripDayBoundaries } from '../../db/entities/RoadtripDayBoundaries.entity';
+import { Trips } from '../../db/entities/Trips.entity';
+import type { DayAccommodationsRepository } from '../../db/repositories/DayAccommodations.repository';
+import type { DaysRepository, DayOrderRow } from '../../db/repositories/Days.repository';
+import type { RoadtripDayBoundariesRepository } from '../../db/repositories/RoadtripDayBoundaries.repository';
+import type { TripsRepository } from '../../db/repositories/Trips.repository';
+import {
+  AccommodationsService,
+  type AccommodationMirror,
+  type MirrorSender,
+} from '../accommodations/accommodations.service';
+import { AssignmentsService } from '../assignments/assignments.service';
+import { toRowId } from '../common/row-id';
+import { UnitOfWork } from '../database/unit-of-work';
+import { DaysService } from './days.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import type { RoadtripDayBoundary } from '@trek/shared';
-import { DatabaseService } from '../database/database.service';
-import { AccommodationsService, type AccommodationMirror, type MirrorSender } from '../accommodations/accommodations.service';
-import { AssignmentsService } from '../assignments/assignments.service';
-import { DaysService } from './days.service';
 
 /** A day that has to stay where it is; REST answers 400, MCP a tool error, a plugin BadParams. */
 export class DayDeleteError extends Error {}
@@ -44,8 +58,6 @@ export interface DayRemovalSenders {
   socketId?: string;
 }
 
-type DayRow = { id: number; day_number: number; date: string | null };
-
 /**
  * Deleting a day, for the three surfaces that offer it (REST, MCP, plugin RPC).
  *
@@ -62,14 +74,24 @@ type DayRow = { id: number; day_number: number; date: string | null };
  * Its own class rather than a method on DaysService because it needs the
  * accommodations and assignments services, and DaysService is built by hand in
  * enough suites that a wider constructor there would ripple through all of them.
+ *
+ * Statements: DY26 (the day order), DY13 (`DaysRepository.deleteById`), DY27/DY28
+ * (the two-phase renumber), DY41 (the stays on the day), DY42 (the end date),
+ * `TripsRepository.findDatesById` (the range) and RB1/RB4/RB6/RB7 (the road trip
+ * day boundaries). Every write sits in one `uow.transactional`; the cancelled
+ * stays nest theirs inside it.
  */
 @Injectable()
 export class DayRemovalService {
   constructor(
-    private readonly db: DatabaseService,
     private readonly days: DaysService,
     private readonly accommodations: AccommodationsService,
     private readonly assignments: AssignmentsService,
+    private readonly uow: UnitOfWork,
+    @InjectRepository(Days) private readonly daysRepo: DaysRepository,
+    @InjectRepository(DayAccommodations) private readonly dayAccommodationsRepo: DayAccommodationsRepository,
+    @InjectRepository(RoadtripDayBoundaries) private readonly boundariesRepo: RoadtripDayBoundariesRepository,
+    @InjectRepository(Trips) private readonly tripsRepo: TripsRepository,
   ) {}
 
   /**
@@ -77,34 +99,42 @@ export class DayRemovalService {
    * throws a DayDeleteError for the last day of a trip. The journey catches up
    * afterwards, outside the transaction, and a failure there does not undo the delete.
    */
-  remove(tripId: string | number, dayId: string | number, viewer: { userId: number; socketId?: string }): DayRemoval {
-    const trip = Number(tripId);
-    const id = Number(dayId);
+  async remove(
+    tripId: string | number,
+    dayId: string | number,
+    viewer: { userId: number; socketId?: string },
+  ): Promise<DayRemoval> {
+    // Every caller (REST, MCP, RPC) already proved the day via `getDay`, so neither id is a live 404 path here.
+    const trip = toRowId(tripId)!;
+    const id = toRowId(dayId)!;
 
-    const removal = this.db.transaction(() => {
-      const rows = this.db.all<DayRow>('SELECT id, day_number, date FROM days WHERE trip_id = ? ORDER BY day_number', trip);
-      const target = rows.find(r => r.id === id);
+    const removal = await this.uow.transactional(async () => {
+      // DY26
+      const rows: DayOrderRow[] = await this.daysRepo.listOrderedForReorder(trip);
+      const target = rows.find((r) => r.id === id);
       if (!target) throw new DayDeleteError('Day not found');
       if (rows.length <= 1) throw new DayDeleteError(LAST_DAY_MESSAGE);
 
-      const cancelled = this.cancelStays(trip, id);
-      const boundariesBefore = this.boundaries(trip);
+      const cancelled = await this.cancelStays(trip, id);
+      const boundariesBefore = await this.boundaries(trip);
 
       // The boundary drawn on this day goes with it; the day row takes its
       // assignments, notes, stops, roads and booking positions along by cascade.
-      this.db.run('DELETE FROM roadtrip_day_boundaries WHERE trip_id = ? AND day_number = ?', trip, target.day_number);
-      this.db.run('DELETE FROM days WHERE id = ?', id);
+      // RB4
+      await this.boundariesRepo.deleteForDay(trip, target.day_number);
+      // DY13
+      await this.daysRepo.deleteById(id);
 
-      const remaining = rows.filter(r => r.id !== id);
-      this.shiftBoundaries(trip, rows, remaining);
-      const endDate = this.renumber(trip, rows, remaining);
+      const remaining = rows.filter((r) => r.id !== id);
+      await this.shiftBoundaries(trip, rows, remaining);
+      const endDate = await this.renumber(trip, rows, remaining);
 
-      const boundariesAfter = this.boundaries(trip);
+      const boundariesAfter = await this.boundaries(trip);
       const boundariesChanged = JSON.stringify(boundariesAfter) !== JSON.stringify(boundariesBefore);
 
       return {
         dayId: id,
-        orderedIds: remaining.map(r => r.id),
+        orderedIds: remaining.map((r) => r.id),
         ...cancelled,
         boundaries: boundariesChanged ? boundariesAfter : null,
         endDate,
@@ -114,8 +144,8 @@ export class DayRemovalService {
     // After the commit, the way an assignment route does it: the journey mirrors
     // the planned stops, and the day's stops are gone. reconcile() swallows its own
     // failures, so a journey problem cannot turn a finished delete into an error.
-    this.assignments.reconcile(trip, viewer.socketId);
-    return { ...removal, trip: this.days.getTripForViewer(trip, viewer.userId) };
+    await this.assignments.reconcile(trip, viewer.socketId);
+    return { ...removal, trip: await this.days.getTripForViewer(trip, viewer.userId) };
   }
 
   /**
@@ -124,11 +154,11 @@ export class DayRemovalService {
    * days and re-stamped bookings. The cancelled stays follow with what they did to
    * the other days, then the rows they took with them.
    */
-  announce(tripId: string | number, removal: DayRemoval, senders: DayRemovalSenders): void {
+  async announce(tripId: string | number, removal: DayRemoval, senders: DayRemovalSenders): Promise<void> {
     const { all, others, socketId } = senders;
     others('day:deleted', { dayId: removal.dayId });
     others('day:reordered', { orderedIds: removal.orderedIds });
-    for (const mirror of removal.mirrors) this.accommodations.announceMirror(tripId, mirror, all, socketId);
+    for (const mirror of removal.mirrors) await this.accommodations.announceMirror(tripId, mirror, all, socketId);
     // Without a socket id, as when a place takes its nights with it: the Bookings
     // list and the Costs total of the deleting tab hold these rows too.
     for (const reservationId of removal.reservationIds) all('reservation:deleted', { reservationId });
@@ -146,15 +176,18 @@ export class DayRemovalService {
    * Left to the cascade, the stay row alone would go and the rest stay behind.
    * A stay that only runs across the day keeps standing.
    */
-  private cancelStays(tripId: number, dayId: number) {
-    const stays = this.db.all<{ id: number }>(
-      'SELECT id FROM day_accommodations WHERE trip_id = ? AND (start_day_id = ? OR end_day_id = ?) ORDER BY id',
-      tripId, dayId, dayId,
-    );
-    const cancelled = { stayIds: [] as number[], reservationIds: [] as number[], budgetItemIds: [] as number[], mirrors: [] as AccommodationMirror[] };
-    for (const stay of stays) {
-      const gone = this.accommodations.deleteAccommodation(stay.id);
-      cancelled.stayIds.push(stay.id);
+  private async cancelStays(tripId: number, dayId: number) {
+    // DY41
+    const stays = await this.dayAccommodationsRepo.listIdsCheckingInOrOutOn(tripId, dayId);
+    const cancelled = {
+      stayIds: [] as number[],
+      reservationIds: [] as number[],
+      budgetItemIds: [] as number[],
+      mirrors: [] as AccommodationMirror[],
+    };
+    for (const stayId of stays) {
+      const gone = await this.accommodations.deleteAccommodation(stayId);
+      cancelled.stayIds.push(stayId);
       cancelled.reservationIds.push(...gone.linkedReservationIds);
       cancelled.budgetItemIds.push(...gone.deletedBudgetItemIds);
       cancelled.mirrors.push(withoutDay(gone.mirror, dayId));
@@ -162,11 +195,9 @@ export class DayRemovalService {
     return cancelled;
   }
 
-  private boundaries(tripId: number): RoadtripDayBoundary[] {
-    return this.db.all<RoadtripDayBoundary>(
-      'SELECT day_number, from_assignment_id, to_assignment_id, fraction FROM roadtrip_day_boundaries WHERE trip_id = ? ORDER BY day_number',
-      tripId,
-    );
+  private async boundaries(tripId: number): Promise<RoadtripDayBoundary[]> {
+    // RB1
+    return await this.boundariesRepo.listForTrip(tripId);
   }
 
   /**
@@ -183,20 +214,18 @@ export class DayRemovalService {
    * available here. Ascending is safe, since no number moves up and the order
    * between them stays.
    */
-  private shiftBoundaries(tripId: number, rows: DayRow[], remaining: DayRow[]): void {
+  private async shiftBoundaries(tripId: number, rows: DayOrderRow[], remaining: DayOrderRow[]): Promise<void> {
     const position = new Map(remaining.map((r, i) => [r.day_number, i + 1]));
     const lastNumber = rows[rows.length - 1].day_number;
     const pastEnd = lastNumber - remaining.length;
-    const boundaries = this.db.all<{ day_number: number }>(
-      'SELECT day_number FROM roadtrip_day_boundaries WHERE trip_id = ? ORDER BY day_number',
-      tripId,
-    );
-    const drop = this.db.prepare('DELETE FROM roadtrip_day_boundaries WHERE trip_id = ? AND day_number = ?');
-    const move = this.db.prepare('UPDATE roadtrip_day_boundaries SET day_number = ? WHERE trip_id = ? AND day_number = ?');
-    for (const { day_number: from } of boundaries) {
+    // RB6
+    const boundaries = await this.boundariesRepo.listDayNumbers(tripId);
+    for (const from of boundaries) {
       const to = position.get(from) ?? (from > lastNumber ? from - pastEnd : null);
-      if (to === null) drop.run(tripId, from);
-      else if (to !== from) move.run(to, tripId, from);
+      // RB4
+      if (to === null) await this.boundariesRepo.deleteForDay(tripId, from);
+      // RB7
+      else if (to !== from) await this.boundariesRepo.moveDayNumber(tripId, from, to);
     }
   }
 
@@ -207,30 +236,32 @@ export class DayRemovalService {
    * than dates, the last date is gone, and a dated trip ends on the new last one.
    * Returns that new end date, or null when the range stayed.
    */
-  private renumber(tripId: number, rows: DayRow[], remaining: DayRow[]): string | null {
+  private async renumber(tripId: number, rows: DayOrderRow[], remaining: DayOrderRow[]): Promise<string | null> {
     // ISO dates sort as plain strings.
-    const sortedDates = rows.map(r => r.date).filter((d): d is string => !!d).sort((a, b) => a.localeCompare(b));
-    const setNumber = this.db.prepare('UPDATE days SET day_number = ? WHERE id = ?');
-    const setNumberAndDate = this.db.prepare('UPDATE days SET day_number = ?, date = ? WHERE id = ?');
+    const sortedDates = rows
+      .map((r) => r.date)
+      .filter((d): d is string => !!d)
+      .sort((a, b) => a.localeCompare(b));
 
     // Two phases, to get past UNIQUE(trip_id, day_number) on the way.
-    remaining.forEach((r, i) => setNumber.run(-(i + 1), r.id));
-    const oldDateById = new Map(remaining.map(r => [r.id, r.date]));
+    // DY27
+    for (const [i, r] of remaining.entries()) await this.daysRepo.setDayNumber(r.id, -(i + 1));
+    const oldDateById = new Map(remaining.map((r) => [r.id, r.date]));
     const newDateById = new Map<number, string | null>();
-    remaining.forEach((r, i) => {
+    for (const [i, r] of remaining.entries()) {
       const date = sortedDates[i] ?? null;
-      setNumberAndDate.run(i + 1, date, r.id);
+      // DY28
+      await this.daysRepo.setDayNumberAndDate(r.id, i + 1, date);
       newDateById.set(r.id, date);
-    });
-    if (sortedDates.length > 0) this.days.restampReservationDates(tripId, oldDateById, newDateById);
+    }
+    if (sortedDates.length > 0) await this.days.restampReservationDates(tripId, oldDateById, newDateById);
 
     if (remaining.length >= sortedDates.length) return null;
-    const range = this.db.get<{ start_date: string | null; end_date: string | null }>(
-      'SELECT start_date, end_date FROM trips WHERE id = ?', tripId,
-    );
+    const range = await this.tripsRepo.findDatesById(tripId);
     if (!range?.start_date || !range.end_date) return null;
     const endDate = sortedDates[remaining.length - 1];
-    this.db.run('UPDATE trips SET end_date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', endDate, tripId);
+    // DY42
+    await this.tripsRepo.setEndDateTouched(tripId, endDate);
     return endDate;
   }
 }
@@ -243,7 +274,7 @@ export class DayRemovalService {
 function withoutDay(mirror: AccommodationMirror, dayId: number): AccommodationMirror {
   return {
     ...mirror,
-    removed: mirror.removed.filter(stop => stop.dayId !== dayId),
-    ...(mirror.vias ? { vias: mirror.vias.filter(day => day.dayId !== dayId) } : {}),
+    removed: mirror.removed.filter((stop) => stop.dayId !== dayId),
+    ...(mirror.vias ? { vias: mirror.vias.filter((day) => day.dayId !== dayId) } : {}),
   };
 }

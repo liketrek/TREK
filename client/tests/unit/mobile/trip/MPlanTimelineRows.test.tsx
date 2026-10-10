@@ -481,8 +481,8 @@ describe('NoteRow', () => {
 
     expect(screen.getByText('09:30')).toBeInTheDocument()
     expect(screen.getByText('Buy museum tickets')).toBeInTheDocument()
-    // Two separate blocks since #1629: the extra title lines are plain text, the
-    // detail is rendered Markdown, so they cannot be joined into one string.
+    // Two separate blocks since #1629: the extra title lines and the detail are
+    // each rendered Markdown, so they cannot be joined into one string.
     expect(screen.getByText('Cash only')).toBeInTheDocument()
     expect(screen.getByText('at the kiosk')).toBeInTheDocument()
   })
@@ -531,6 +531,17 @@ describe('NoteRow', () => {
 
     fireEvent.click(screen.getByText('Buy museum tickets'))
     expect(onEdit).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-MOB-PLROW-045: extra title lines keep their line breaks and turn a pasted URL into a link (#2576)', () => {
+    const url = 'https://www.google.com/maps/place/Museum/@48.1371079,11.5753822,17z/data=!3m1!4b1!4m6!3m5!1s0x0'
+    const { container } = render(<NoteRow {...base} note={note({ text: `Museum
+Open at nine
+${url}`, time: null })} />)
+
+    expect(screen.getByRole('link', { name: url })).toHaveAttribute('href', url)
+    // remark-breaks turns the kept newline into a <br>; joined with a space it would not be there.
+    expect(container.querySelector('.collab-note-md br')).not.toBeNull()
   })
 })
 

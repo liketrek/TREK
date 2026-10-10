@@ -7,7 +7,7 @@ import { buildPlanner } from '../../../helpers/mobileTrip'
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-PACKIMP-001 to FE-MOB-PACKIMP-012
+// FE-MOB-PACKIMP-001 to FE-MOB-PACKIMP-014
 
 function packItem(overrides: Partial<PackingItem> = {}): PackingItem {
   return {
@@ -140,5 +140,22 @@ describe('MPackingImportSheet', () => {
 
     expect(onClose).toHaveBeenCalled()
     expect(spy).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-PACKIMP-013: explains the Markdown form and lets the file picker take .md (#875)', () => {
+    setup()
+    expect(screen.getByText('packing.importHintMarkdown')).toBeInTheDocument()
+    expect(document.querySelector('input[type="file"]')).toHaveAttribute('accept', '.csv,.txt,.md,.markdown,text/markdown')
+  })
+
+  it('FE-MOB-PACKIMP-014: posts a pasted Markdown checklist with categories, quantities and checkmarks', async () => {
+    const spy = vi.spyOn(packingApi, 'bulkImport').mockResolvedValue({ items: [], count: 2 })
+    setup('## Clothing\n- [x] 3x Socks (40 g)\n- [ ] Rain jacket')
+    fireEvent.click(screen.getByRole('button', { name: 'packing.importAction:2' }))
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(1))
+    expect(spy).toHaveBeenCalledWith(7, [
+      expect.objectContaining({ name: 'Socks', category: 'Clothing', quantity: 3, weight_grams: '40', checked: true }),
+      expect.objectContaining({ name: 'Rain jacket', category: 'Clothing', checked: false }),
+    ])
   })
 })

@@ -59,7 +59,7 @@ export function VerdictSection({ pros, cons }: { pros: string[]; cons: string[] 
                 <Check size={14} className="text-white" strokeWidth={3} />
               </div>
               <span className="hidden md:inline text-[11px] font-bold tracking-[0.1em] uppercase text-green-700 dark:text-green-400">{t('journey.verdict.lovedIt')}</span>
-              <span className="ml-auto text-[11px] font-semibold text-green-600">{pros.length}</span>
+              <span className="ms-auto text-[11px] font-semibold text-green-600">{pros.length}</span>
             </div>
             <div className="flex flex-col gap-2">
               {pros.map((p, i) => (
@@ -78,7 +78,7 @@ export function VerdictSection({ pros, cons }: { pros: string[]; cons: string[] 
                 <Minus size={14} className="text-white" strokeWidth={3} />
               </div>
               <span className="hidden md:inline text-[11px] font-bold tracking-[0.1em] uppercase text-red-700 dark:text-red-400">{t('journey.verdict.couldBeBetter')}</span>
-              <span className="ml-auto text-[11px] font-semibold text-red-600">{cons.length}</span>
+              <span className="ms-auto text-[11px] font-semibold text-red-600">{cons.length}</span>
             </div>
             <div className="flex flex-col gap-2">
               {cons.map((c, i) => (

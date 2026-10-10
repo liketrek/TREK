@@ -11,9 +11,12 @@ type GetState = StoreApi<TripStoreState>['getState']
 
 export interface AssignmentsSlice {
   setAssignmentEndDay: (tripId: number | string, dayId: number, assignmentId: number, endDay: boolean) => Promise<void>
+  setAssignmentRouteExcluded: (tripId: number | string, dayId: number, assignmentId: number, excluded: boolean) => Promise<void>
   setAssignmentTimes: (tripId: number | string, dayId: number, assignmentId: number, times: AssignmentTimes) => Promise<void>
+  setAssignmentNotes: (tripId: number | string, dayId: number, assignmentId: number, notes: string | null) => Promise<void>
   assignPlaceToDay: (tripId: number | string, dayId: number | string, placeId: number | string, position?: number | null) => Promise<Assignment | undefined>
   removeAssignment: (tripId: number | string, dayId: number | string, assignmentId: number) => Promise<void>
+  clearDayAssignments: (tripId: number | string, dayId: number) => Promise<void>
   reorderAssignments: (tripId: number | string, dayId: number | string, orderedIds: number[]) => Promise<void>
   moveAssignment: (tripId: number | string, assignmentId: number, fromDayId: number | string, toDayId: number | string, toOrderIndex?: number | null) => Promise<void>
   setAssignments: (assignments: AssignmentsMap) => void
@@ -37,6 +40,21 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
       throw err
     }
   },
+  setAssignmentRouteExcluded: async (tripId, dayId, assignmentId, excluded) => {
+    const assignment = get().assignments[String(dayId)]?.find(a => a.id === assignmentId)
+    if (!assignment || assignmentId < 0) return
+    const apply = (value: boolean) => set(state => ({
+      assignments: { ...state.assignments, [String(dayId)]: (state.assignments[String(dayId)] || []).map(a => a.id === assignmentId ? { ...a, route_excluded: value } : a) },
+    }))
+    apply(excluded)
+    try {
+      const saved = await assignmentRepo.setRouteExcluded(tripId, assignment, excluded)
+      apply(saved.route_excluded === true)
+    } catch (err: unknown) {
+      apply(assignment.route_excluded === true)
+      throw err
+    }
+  },
   setAssignmentTimes: async (tripId, dayId, assignmentId, times) => {
     const assignment = get().assignments[String(dayId)]?.find(a => a.id === assignmentId)
     if (!assignment || assignmentId < 0) return
@@ -57,6 +75,25 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
       replace(merge({ ...draft, ...await assignmentRepo.setTimes(tripId, draft, times) }))
     } catch (err: unknown) {
       replace(assignment)
+      throw err
+    }
+  },
+  setAssignmentNotes: async (tripId, dayId, assignmentId, notes) => {
+    const assignment = get().assignments[String(dayId)]?.find(a => a.id === assignmentId)
+    if (!assignment || assignmentId < 0) return
+    // Only the note is patched: the saved row carries the place as the server has it,
+    // and the visit's times may still wait in the queue ahead of this write.
+    const apply = (value: string | null) => set(state => ({
+      assignments: Object.fromEntries(Object.entries(state.assignments).map(([key, items]) => [
+        key, items.map(a => a.id === assignmentId ? { ...a, notes: value } : a),
+      ])),
+    }))
+    apply(notes)
+    try {
+      const saved = await assignmentRepo.setNotes(tripId, assignment, notes)
+      apply(saved.notes ?? null)
+    } catch (err: unknown) {
+      apply(assignment.notes ?? null)
       throw err
     }
   },
@@ -151,6 +188,17 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
 
     try {
       await assignmentsApi.delete(tripId, dayId, assignmentId)
+    } catch (err: unknown) {
+      set({ assignments: prevAssignments })
+      throw new Error(getApiErrorMessage(err, 'Error removing assignment'))
+    }
+  },
+
+  clearDayAssignments: async (tripId, dayId) => {
+    const prevAssignments = get().assignments
+    set(state => ({ assignments: { ...state.assignments, [String(dayId)]: [] } }))
+    try {
+      await assignmentRepo.clearDay(tripId, dayId)
     } catch (err: unknown) {
       set({ assignments: prevAssignments })
       throw new Error(getApiErrorMessage(err, 'Error removing assignment'))

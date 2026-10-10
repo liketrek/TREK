@@ -88,7 +88,7 @@ export function MapView({ entries, mapEntries, sortedDates, activeLocationId, fu
                       <button
                         type="button"
                         onClick={() => onLocationClick(String(e.id))}
-                        className={`w-full text-left flex items-center gap-3 p-3 rounded-[14px] cursor-pointer transition-all ${
+                        className={`w-full text-start flex items-center gap-3 p-3 rounded-[14px] cursor-pointer transition-all ${
                           isActive
                             ? 'bg-zinc-100 dark:bg-zinc-800 border border-zinc-900 dark:border-zinc-100 translate-x-0.5'
                             : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500 hover:translate-x-0.5'
@@ -119,7 +119,7 @@ export function MapView({ entries, mapEntries, sortedDates, activeLocationId, fu
 
                       {/* Connector line */}
                       {showConnector && (
-                        <div className="w-0.5 h-2 bg-zinc-200 dark:bg-zinc-700 ml-[18px] rounded-full" />
+                        <div className="w-0.5 h-2 bg-zinc-200 dark:bg-zinc-700 ms-[18px] rounded-full" />
                       )}
                     </div>
                   )

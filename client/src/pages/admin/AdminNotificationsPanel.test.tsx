@@ -162,7 +162,7 @@ describe('AdminNotificationsPanel', () => {
     fireEvent.click(emailToggle);
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Error'));
-    expect(emailToggle.className).toContain('bg-edge');
+    expect(emailToggle).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('FE-ADMMTX-011: a channel that no event implements gets no column', async () => {
@@ -204,7 +204,7 @@ describe('AdminNotificationsPanel', () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Error'));
     expect(bodies[1]).toEqual({ version_available: { inapp: false, email: true } });
-    expect(emailToggle.className).toContain('bg-edge');
-    expect(inappToggle.className).toContain('bg-edge');
+    expect(emailToggle).toHaveAttribute('aria-pressed', 'false');
+    expect(inappToggle).toHaveAttribute('aria-pressed', 'false');
   });
 });

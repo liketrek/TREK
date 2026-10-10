@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const en: NotificationLocale = {
   email: {
@@ -37,8 +38,11 @@ const en: NotificationLocale = {
       body: `${p.actor} invited you to share a collection. Open TREK to accept or decline.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} photos shared`,
-      body: `${p.actor} shared ${p.count} photo(s) in "${p.trip}".`,
+      title: pluralForm(p.count, 'en', { one: `${p.count} photo shared`, other: `${p.count} photos shared` }),
+      body: pluralForm(p.count, 'en', {
+        one: `${p.actor} shared ${p.count} photo in "${p.trip}".`,
+        other: `${p.actor} shared ${p.count} photos in "${p.trip}".`,
+      }),
     }),
     collab_message: (p) => ({
       title: `New message in "${p.trip}"`,
@@ -56,7 +60,12 @@ const en: NotificationLocale = {
       title: 'Storage replica failure',
       body:
         `Replica write failed on '${p.backend}': ${p.op} of ${p.key} — ${p.error}.` +
-        (p.suppressed !== '0' ? ` ${p.suppressed} more failures were suppressed since the last notification.` : ''),
+        (p.suppressed !== '0'
+          ? pluralForm(p.suppressed, 'en', {
+              one: ` ${p.suppressed} more failure was suppressed since the last notification.`,
+              other: ` ${p.suppressed} more failures were suppressed since the last notification.`,
+            })
+          : ''),
     }),
     synology_session_cleared: () => ({
       title: 'Synology session cleared',

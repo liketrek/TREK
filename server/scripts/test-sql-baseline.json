@@ -1,0 +1,25 @@
+{
+  "exempt": {
+    "tests/helpers/legacy-fixture.ts": "Loads and fingerprints the legacy SQL fixtures, databases the retired positional runner built before any ORM schema existed.",
+    "tests/helpers/legacy-upgrade-suite.ts": "Reads legacy databases before and after the legacy baseline adopts them; the bookkeeping tables it checks (schema_version, mikro_orm_migrations) are the subject.",
+    "tests/integration/legacy-upgrade-v244.test.ts": "Compares a v4.3.3 database column by column before and after the upgrade, through pragma_table_info, on a copy no ORM is bound to.",
+    "tests/unit/db/booked-night-reseat.test.ts": "Tests migration step 242, which reseats booked nights over the raw connection; the rows it seeds are the ones the step transforms before any repository runs.",
+    "tests/unit/db/dialect/sql-functions.test.ts": "Pins the SQL text and the engine result of every dialect function in src/db/dialect/sql-functions.ts; the raw statement is what is under test.",
+    "tests/unit/db/entity-schema-parity.test.ts": "Compares PRAGMA table_info, foreign_key_list and index_list of the migrated schema against the entity metadata.",
+    "tests/unit/db/foreign-key-indexes.test.ts": "Reads PRAGMA foreign_key_list, index_list and index_info and EXPLAIN QUERY PLAN to prove every foreign key is indexed.",
+    "tests/unit/db/migrate-encryption-parity.test.ts": "Seeds and reads a bare database for scripts/migrate-encryption.ts, which runs on the raw handle without the ORM.",
+    "tests/unit/db/nul-safe-sqlite-platform.test.ts": "Pins how the SQLite driver binds and returns the literals the platform has to escape (NUL, NaN, infinities).",
+    "tests/unit/db/place-regions-follow-place.test.ts": "Pins the place_regions trigger the migrations install, by raw UPDATEs on places and on databases built by the migrations alone.",
+    "tests/unit/db/pre-migrate-snapshot.test.ts": "Inspects the VACUUM INTO copy written before the migrator runs, a file no ORM is bound to.",
+    "tests/unit/db/restore-migrates-forward.test.ts": "Probes a restored database file before any ORM boots on it.",
+    "tests/unit/db/test-orm.test.ts": "Proves the test ORM shares the raw handle it was given; the raw statements are the subject."
+  },
+  "counts": {
+    "tests/helpers/db-mock.ts": 4,
+    "tests/helpers/factories.ts": 62,
+    "tests/helpers/test-db.ts": 5,
+    "tests/helpers/tours-repos.ts": 1,
+    "tests/integration/plugins/plugin-runtime.test.ts": 67,
+    "tests/unit/plugins/host-rpc.test.ts": 38
+  }
+}

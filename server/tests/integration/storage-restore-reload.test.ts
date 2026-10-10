@@ -21,30 +21,21 @@
  * accepted precedent from storage-registry.service.test.ts, harmless (mkdir
  * -p on an existing dir), and orthogonal to what this test actually exercises.
  */
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Database = require('better-sqlite3');
-
-import { createTables } from '../../src/db/schema';
-import { runMigrations } from '../../src/db/migrations';
-import { DatabaseService } from '../../src/nest/database/database.service';
-import type { RuntimeEnvService } from '../../src/nest/app-config/runtime-env.service';
+import { AppSettings } from '../../src/db/entities/AppSettings.entity';
 import { StorageEventsService } from '../../src/nest/storage/storage-events.service';
 import { BACKENDS_KEY, CATEGORIES_KEY, StorageRegistryService } from '../../src/nest/storage/storage-registry.service';
 import { StorageService } from '../../src/nest/storage/storage.service';
+import { createSnapshotTestDb } from '../helpers/db-mock';
+import { deleteRows } from '../helpers/factories/rows';
+import { setAppSetting } from '../helpers/factories/settings';
+import { createTestUnitOfWork, createTestAppSettingsRepo, sharedTestOrm } from '../helpers/test-uow';
 
-const testDb = new Database(':memory:');
-testDb.exec('PRAGMA journal_mode = WAL');
-testDb.exec('PRAGMA foreign_keys = ON');
-const db = new DatabaseService(testDb);
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { describe, it, expect, afterEach } from 'vitest';
 
-beforeAll(() => {
-  createTables(testDb);
-  runMigrations(testDb);
-});
+const testDb = createSnapshotTestDb();
 
 const tmpDirs: string[] = [];
 function makeTmpDir(): string {
@@ -53,19 +44,17 @@ function makeTmpDir(): string {
   return dir;
 }
 
-function envStub(): RuntimeEnvService {
-  return { env: () => ({ paths: {} }) } as unknown as RuntimeEnvService;
+function envStub(): { placePhotoDir: string | undefined } {
+  return { placePhotoDir: undefined };
 }
 
-function setSetting(key: string, value: unknown): void {
-  testDb
-    .prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)')
-    .run(key, JSON.stringify(value));
+async function setSetting(key: string, value: unknown): Promise<void> {
+  await setAppSetting(await sharedTestOrm(testDb), key, JSON.stringify(value));
 }
 
-afterEach(() => {
+afterEach(async () => {
   while (tmpDirs.length) fs.rmSync(tmpDirs.pop()!, { recursive: true, force: true });
-  testDb.prepare("DELETE FROM app_settings WHERE key LIKE 'storage.%'").run();
+  await deleteRows(await sharedTestOrm(testDb), AppSettings, { key: { $like: 'storage.%' } });
 });
 
 describe('C6 — restore reloads the storage registry (audit #4)', () => {
@@ -74,14 +63,20 @@ describe('C6 — restore reloads the storage registry (audit #4)', () => {
     const rootB = makeTmpDir();
 
     // Pre-restore world: 'files' resolves to backend nas-a.
-    setSetting(BACKENDS_KEY, [
+    await setSetting(BACKENDS_KEY, [
       { name: 'nas-a', type: 'local', options: { root: rootA } },
       { name: 'nas-b', type: 'local', options: { root: rootB } },
     ]);
-    setSetting(CATEGORIES_KEY, { files: 'nas-a' });
+    await setSetting(CATEGORIES_KEY, { files: 'nas-a' });
 
-    const registry = new StorageRegistryService(db, envStub(), new StorageEventsService());
-    registry.onModuleInit();
+    const registry = new StorageRegistryService(
+      await createTestAppSettingsRepo(testDb),
+      envStub(),
+      new StorageEventsService(),
+      await createTestUnitOfWork(testDb),
+      (await sharedTestOrm(testDb)).orm,
+    );
+    await registry.onModuleInit();
     const storage = new StorageService(registry);
 
     expect(registry.resolve('files').backendName).toBe('nas-a');
@@ -96,7 +91,7 @@ describe('C6 — restore reloads the storage registry (audit #4)', () => {
     // production: the restored archive's travel.db is now live, and IT names a
     // different backend for 'files' (an admin on the source install pointed
     // 'files' at a different backend before taking that backup).
-    setSetting(CATEGORIES_KEY, { files: 'nas-b' });
+    await setSetting(CATEGORIES_KEY, { files: 'nas-b' });
 
     // Audit #4, pre-fix: the registry is still holding the pre-restore driver
     // map at this point — resolve() is stale until something calls reload().
@@ -105,7 +100,7 @@ describe('C6 — restore reloads the storage registry (audit #4)', () => {
     // The fix under test: StorageService.reloadConfig(), the narrow passthrough
     // restoreFromZip now calls right after reinitialize() and right before
     // rehydration (see backup.impl.ts).
-    storage.reloadConfig();
+    await storage.reloadConfig();
 
     expect(registry.resolve('files').backendName).toBe('nas-b');
 

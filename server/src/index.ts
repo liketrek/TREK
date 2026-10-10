@@ -2,13 +2,26 @@ import 'reflect-metadata';
 import 'dotenv/config';
 // Fail-fast env validation — must stay directly after dotenv so a malformed
 // variable aborts before any other module runs its import-time side effects
-// (config.ts key resolution, db/database.ts initDb, ...).
+// (config.ts key resolution, ...).
 import './app-config/boot-validate';
-import path from 'node:path';
+
+import { getAppUrl, getMcpSafeUrl, readEnv } from './app-config';
+import { resolveDataPaths } from './app-config/data-paths';
+// bootstrap is required inside bootstrap() below, not imported here. Importing
+// it no longer opens the database (the ORM's first connect inside buildApp()
+// does, through DatabaseLifecycle), but a first-start restore (#1089) has to
+// put the backup's database in place before anything near it loads, and
+// keeping the require after the restore keeps that true by construction.
+import type * as Bootstrap from './bootstrap';
+import { resolveDbPath } from './db/db-path';
+import { flushLogFileSync, logError } from './nest/audit/audit-log.logger';
+import type { DatabaseLifecycle } from './nest/database/database-lifecycle.service';
+import { ReadinessService } from './nest/health/readiness.service';
+import { createFatalHandler } from './shutdown';
+import type { INestApplication } from '@nestjs/common';
+
 import fs from 'node:fs';
 import http from 'node:http';
-import type { INestApplication } from '@nestjs/common';
-import { buildApp, getHttpServer } from './bootstrap';
 
 // data/tmp is the driver-agnostic global scratch dir (restore-upload spool,
 // mirror stream staging) and stays boot-created here. Driver-owned roots — the
@@ -18,10 +31,8 @@ import { buildApp, getHttpServer } from './bootstrap';
 // fails loudly at startup, inside app.init(), instead of as a stray 500 on
 // first upload. The Dockerfile `mkdir -p` list is pinned to the registry's
 // category prefixes by tests/unit/uploads-dirs.test.ts.
-const tmpDir = path.join(__dirname, '../data/tmp');
+const { tmpDir } = resolveDataPaths();
 if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-
-import { getAppUrl, getMcpSafeUrl, readEnv } from './app-config';
 
 const PORT = readEnv().app.port;
 const HOST = readEnv().app.host;
@@ -51,21 +62,25 @@ const onListen = () => {
     `  User:           uid=${process.getuid?.()} gid=${process.getgid?.()}`,
     '──────────────────────────────────────',
   ];
-  banner.forEach(l => console.log(l));
+  banner.forEach((l) => console.log(l));
   sLogInfo('NestJS serving all routes (Express decommissioned)');
   if (env.app.appUrl) {
     let parsedAppUrl: URL | null = null;
-    try { parsedAppUrl = new URL(env.app.appUrl); } catch { /* invalid */ }
+    try {
+      parsedAppUrl = new URL(env.app.appUrl);
+    } catch {
+      /* invalid */
+    }
 
     if (!parsedAppUrl) {
       sLogWarn(`APP_URL: "${env.app.appUrl}" is not a valid URL — it will be ignored.`);
     }
 
-    const mcpSafe = parsedAppUrl !== null && (
-      parsedAppUrl.protocol === 'https:' ||
-      parsedAppUrl.hostname === 'localhost' ||
-      parsedAppUrl.hostname === '127.0.0.1'
-    );
+    const mcpSafe =
+      parsedAppUrl !== null &&
+      (parsedAppUrl.protocol === 'https:' ||
+        parsedAppUrl.hostname === 'localhost' ||
+        parsedAppUrl.hostname === '127.0.0.1');
     if (!mcpSafe) {
       sLogWarn(`APP_URL: not MCP-safe (requires https:// or http://localhost) — MCP will use ${resolvedAppUrl}.`);
     }
@@ -80,6 +95,7 @@ const onListen = () => {
 
 let server: http.Server;
 let nestApp: INestApplication;
+let database: DatabaseLifecycle | undefined;
 
 // Strangler toggle: prefixes served by Nest (env-overridable, instant rollback).
 async function bootstrap(): Promise<void> {
@@ -87,7 +103,11 @@ async function bootstrap(): Promise<void> {
   // global pipeline + /uploads + every /api domain + the platform/transport routes
   // (/mcp, /.well-known, OAuth SDK, SPA catch-all). buildApp() owns the composition
   // order; it is shared with the integration-test harness so they can't drift.
+  const restore = await restoreBeforeTheDatabaseOpens();
+  const { buildApp, getHttpServer, DatabaseLifecycle: Lifecycle } = require('./bootstrap') as typeof Bootstrap;
   nestApp = await buildApp();
+  database = nestApp.get(Lifecycle);
+  if (restore.restored) await finishFirstBootRestore(nestApp, restore);
   // The server buildApp created and bound /ws to. Creating a second one here
   // would serve the REST API fine and leave the gateway attached to a socket
   // nobody listens on.
@@ -110,6 +130,45 @@ async function bootstrap(): Promise<void> {
   else server.listen(PORT, onListen);
 }
 
+/**
+ * RESTORE_FROM_BACKUP on a first start (#1089), before anything opens the
+ * database. See nest/backup/boot-restore.ts for when it runs and why it fails
+ * the start rather than coming up empty.
+ */
+async function restoreBeforeTheDatabaseOpens() {
+  const { restoreOnFirstBoot } = require('./nest/backup/boot-restore') as typeof import('./nest/backup/boot-restore');
+  const env = readEnv();
+  return restoreOnFirstBoot({
+    archive: env.backup.restoreFromBackup,
+    dbFile: resolveDbPath(),
+    dataDir: resolveDataPaths(env).dataDir,
+  });
+}
+
+/**
+ * The uploads go in once storage is up, through the same driver every upload
+ * uses, so an instance on S3 gets them in S3. A failure here leaves the restored
+ * database running and says where the files are, rather than stopping a start
+ * whose data is already in place.
+ */
+async function finishFirstBootRestore(
+  app: INestApplication,
+  restore: { uploads: string | null; staging: string },
+): Promise<void> {
+  const { StorageService } =
+    require('./nest/storage/storage.service') as typeof import('./nest/storage/storage.service');
+  const { rehydrateUploads } = require('./nest/backup/backup.impl') as typeof import('./nest/backup/backup.impl');
+  try {
+    if (restore.uploads) await rehydrateUploads(app.get(StorageService), restore.uploads);
+    fs.rmSync(restore.staging, { recursive: true, force: true });
+    console.log('[restore] Backup restored. Sign in with an account from the backup.');
+  } catch (err) {
+    console.error(
+      `[restore] The database was restored, but the uploads could not be copied (${err instanceof Error ? err.message : String(err)}). They are still in ${restore.staging}.`,
+    );
+  }
+}
+
 bootstrap().catch((err) => {
   console.error('Fatal: failed to bootstrap server', err);
   process.exit(1);
@@ -122,9 +181,13 @@ bootstrap().catch((err) => {
 // in short, #2193: nothing here could ever release a WebSocket, so `docker
 // stop` always ended in SIGKILL and exit 137.
 let shuttingDown = false;
-function shutdown(signal: string): void {
-  // A second signal — the SIGINT that follows a Ctrl-C, or an impatient
-  // orchestrator sending SIGTERM twice — must not start a second teardown on
+// Raised by a fatal error even when a signal's shutdown is already running, so
+// the process still leaves with a failure code the orchestrator can see.
+let exitCode = 0;
+function shutdown(signal: string, code = 0): void {
+  exitCode = Math.max(exitCode, code);
+  // A second signal (the SIGINT that follows a Ctrl-C, or an impatient
+  // orchestrator sending SIGTERM twice) must not start a second teardown on
   // top of the first one.
   if (shuttingDown) return;
   shuttingDown = true;
@@ -138,13 +201,24 @@ function shutdown(signal: string): void {
     server,
     // nestApp.close() stops every cron via the scheduling registrar's shutdown
     // hook, and tears the plugin supervisor's forked children down.
-    closeNestApp: async () => { await nestApp?.close(); },
+    closeNestApp: async () => {
+      await nestApp?.close();
+    },
     getWsClients: () => getServer()?.clients ?? null,
     closeMcpSessions,
-    closeDb: () => { require('./db/database').closeDb(); },
+    // Through the lifecycle provider once the app is up; before that (a signal
+    // that beat bootstrap()) the module function is all there is.
+    closeDb: () => {
+      if (database) database.close();
+      else (require('./db/database') as typeof import('./db/database')).closeDb();
+    },
     logInfo: sLogInfo,
     logError: sLogError,
-    exit: (code: number) => process.exit(code),
+    // Readiness answers 503 from here on; strict: false because the provider
+    // lives in HealthModule, not in the root module.
+    markDraining: () => nestApp?.get(ReadinessService, { strict: false }).markDraining(),
+    exitCode,
+    exit: (code: number) => process.exit(Math.max(code, exitCode)),
   }).catch((err: unknown) => {
     // Fire-and-forget would make this an unhandled rejection, which on Node 22
     // is a crash — a worse ending than the one we are here to fix.
@@ -152,6 +226,22 @@ function shutdown(signal: string): void {
     process.exit(1);
   });
 }
+
+// trek.log is written in batches off the event loop. Whatever is still queued
+// when the process ends, by any of the exits above or below, goes out
+// synchronously here: an 'exit' listener cannot wait for a promise.
+process.on('exit', () => flushLogFileSync());
+
+// Last-resort handlers. Node would crash on either anyway, printing the stack
+// to stderr only; this way it lands in trek.log first, and the process goes
+// through the same orderly shutdown as on SIGTERM before it exits with 1.
+const onFatal = createFatalHandler({
+  logError,
+  shutdown: (reason, code) => shutdown(reason, code),
+  exit: (code) => process.exit(code),
+});
+process.on('unhandledRejection', (reason) => onFatal('Unhandled promise rejection', reason));
+process.on('uncaughtException', (error) => onFatal('Uncaught exception', error));
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));

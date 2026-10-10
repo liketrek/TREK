@@ -1,13 +1,30 @@
-import fs from 'node:fs';
-import { randomUUID } from 'node:crypto';
-import { fork, type ChildProcess } from 'node:child_process';
 import { readEnv } from '../../../app-config';
-import { resolveChildEntry, pluginCodeDir, pluginRealCodeDir, pluginPermissionArgs, ensurePluginModuleType } from '../paths';
-import { HOOK_PERMISSION, USER_DATA_PERMISSION, EVENTS_PERMISSION, type Envelope, type RpcError, type RpcRequest } from '../protocol/envelope';
-import type { PluginRpcHost } from '../host/rpc-host';
-import { scheduleJobs, stopJobs, type ScheduledJob } from '../host/plugin-jobs';
 import { SNAPSHOT_GRANT, type PluginEventMeta } from '../../../plugin-event-sink';
+import { traceEntry } from '../../audit/entry-trace.logger';
+import { withRequestContext } from '../../database/request-context';
+import { scheduleJobs, stopJobs, type ScheduledJob } from '../host/plugin-jobs';
 import { RpcRateLimiter, DEFAULT_RPC_LIMIT, TokenBucket, DEFAULT_LOG_LIMIT } from '../host/rate-limit';
+import type { PluginRpcHost } from '../host/rpc-host';
+import {
+  resolveChildEntry,
+  pluginCodeDir,
+  pluginRealCodeDir,
+  pluginPermissionArgs,
+  ensurePluginModuleType,
+} from '../paths';
+import {
+  HOOK_PERMISSION,
+  USER_DATA_PERMISSION,
+  EVENTS_PERMISSION,
+  type Envelope,
+  type RpcError,
+  type RpcRequest,
+} from '../protocol/envelope';
+import type { EntityManager } from '@mikro-orm/core';
+
+import { fork, type ChildProcess } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
 
 export interface PluginRouteInfo {
   i: number;
@@ -55,6 +72,7 @@ interface Supervised {
   jobs: ScheduledJob[]; // declared background jobs (id + cron schedule)
   jobTasks?: ReturnType<typeof scheduleJobs>; // live cron jobs (only when jobs:run granted)
   hooks: string[]; // provider hooks the plugin implements (e.g. 'placeDetailProvider')
+  hookFns: Record<string, string[]>; // the functions each of those hooks answers to (e.g. searchProvider: ['search', 'suggest'])
   events: string[]; // core events the plugin subscribes to (names or '*')
   exports: string[]; // functions the plugin exposes to dependents (ctx.plugins.call)
   mcpTools: string[]; // MCP tool names the plugin reported implementing at load
@@ -94,6 +112,21 @@ const DEFAULTS: Required<SupervisorTuning> = {
   maxRssBytes: readEnv().plugins.maxRssMb * 1024 * 1024,
 };
 
+/**
+ * The `hookFns` of a `loaded` report. The child is untrusted, so only hooks the host
+ * knows survive (which also keeps a `__proto__` key off the record), each with its
+ * string entries.
+ */
+function readHookFns(raw: unknown): Record<string, string[]> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out: Record<string, string[]> = {};
+  for (const [hook, fns] of Object.entries(raw)) {
+    if (Object.hasOwn(HOOK_PERMISSION, hook) && Array.isArray(fns)) {
+      out[hook] = fns.filter((fn): fn is string => typeof fn === 'string');
+    }
+  }
+  return out;
+}
 
 export class PluginSupervisor {
   private running = new Map<string, Supervised>();
@@ -105,20 +138,42 @@ export class PluginSupervisor {
   // (no persistence, so no DB writes on the broadcast fast-path), bounded per plugin
   // and TTL'd. Grants + snapshot gating are re-evaluated at replay time from the
   // CURRENT grant set, never trusted from when the event was buffered.
-  private readonly pendingEvents = new Map<string, Array<{ tripId: number; event: string; meta?: PluginEventMeta; expiresAt: number }>>();
-  private static readonly EVENT_BUFFER_MAX = 200;        // events held per plugin (drop oldest past this)
+  private readonly pendingEvents = new Map<
+    string,
+    Array<{ tripId: number; event: string; meta?: PluginEventMeta; expiresAt: number }>
+  >();
+  private static readonly EVENT_BUFFER_MAX = 200; // events held per plugin (drop oldest past this)
   private static readonly EVENT_BUFFER_TTL_MS = 15 * 60_000; // a buffered event older than this is dropped unreplayed
 
   constructor(
     private readonly createRpcHost: (id: string, granted: ReadonlySet<string>) => PluginRpcHost,
     private readonly hooks: SupervisorHooks = {},
     tuning: SupervisorTuning = {},
+    // D6: every `ctx.*` call from a plugin child arrives over IPC, not an HTTP
+    // request, so nothing has forked an EntityManager for it. A THUNK, not a value:
+    // PluginRuntimeService's own `orm` field is not assigned yet when its `supervisor`
+    // field initializer runs (constructor params are assigned after field
+    // initializers — see that file's comment), so this is read lazily, once per
+    // dispatch. Optional at the type level only for the hand-built doubles in
+    // provider-hook-grant.test.ts / event-subscriptions.test.ts, neither of
+    // which ever dispatches a `'req'` message through onMessage — a double
+    // that DOES dispatch (supervisor-lifecycle.test.ts's rate-limit case,
+    // tests/integration/plugins/supervisor.test.ts's real child IPC) must
+    // pass one, because onMessage now THROWS when this returns undefined
+    // (task-6-fix-brief.md item 1 — no more silent unwrapped dispatch).
+    // PluginRuntimeService always passes the real MikroORM (OrmModule is global).
+    private readonly resolveOrm?: () => { em: EntityManager } | undefined,
   ) {
     this.tuning = { ...DEFAULTS, ...tuning };
   }
 
   /** Spawn a plugin and resolve once it reports `loaded` (or reject on load error). */
-  activate(id: string, granted: ReadonlySet<string>, config: Record<string, unknown> = {}, egress: string[] = []): Promise<void> {
+  activate(
+    id: string,
+    granted: ReadonlySet<string>,
+    config: Record<string, unknown> = {},
+    egress: string[] = [],
+  ): Promise<void> {
     const existing = this.running.get(id);
     if (existing) {
       // A live plugin (starting/active) is idempotent — already activated.
@@ -143,6 +198,7 @@ export class PluginSupervisor {
       routes: [],
       jobs: [],
       hooks: [],
+      hookFns: {},
       events: [],
       exports: [],
       mcpTools: [],
@@ -240,15 +296,20 @@ export class PluginSupervisor {
    * Ids of ACTIVE plugins that may act as a given provider hook — they implement it
    * (reported at load) AND hold the matching hook:* grant the admin consented to.
    * An unknown hook, or one with no permission mapping, resolves to nobody.
+   *
+   * `fn` narrows that to the plugins whose hook also carries one optional function,
+   * such as `searchProvider.suggest`, which most search providers leave out.
    */
-  providersOf(hook: string): string[] {
+  providersOf(hook: string, fn?: string): string[] {
     // Cast: `hook` is a plain string off the child's report, and HOOK_PERMISSION is
     // now a literal object, so indexing it needs the same widening envelope.ts uses.
     const perm = (HOOK_PERMISSION as Readonly<Record<string, string | undefined>>)[hook];
     if (!perm) return [];
     const out: string[] = [];
     for (const [id, sup] of this.running) {
-      if (sup.status === 'active' && sup.hooks.includes(hook) && sup.granted.has(perm)) out.push(id);
+      if (sup.status !== 'active' || !sup.hooks.includes(hook) || !sup.granted.has(perm)) continue;
+      if (fn && !sup.hookFns[hook]?.includes(fn)) continue;
+      out.push(id);
     }
     return out;
   }
@@ -275,7 +336,8 @@ export class PluginSupervisor {
   subscribersOf(sourceId: string, event: string): string[] {
     const out: string[] = [];
     for (const [id, sup] of this.running) {
-      if (sup.status === 'active' && sup.subscriptions.some((s) => s.plugin === sourceId && s.event === event)) out.push(id);
+      if (sup.status === 'active' && sup.subscriptions.some((s) => s.plugin === sourceId && s.event === event))
+        out.push(id);
     }
     return out;
   }
@@ -311,7 +373,12 @@ export class PluginSupervisor {
     const { snapshot, ...hint } = meta ?? {};
     const grant = hint.entity ? SNAPSHOT_GRANT[hint.entity] : undefined;
     const withSnapshot = snapshot !== undefined && grant !== undefined && sup.granted.has(grant);
-    this.invoke(sup.id, 'invoke.event', { event, tripId, ...hint, ...(withSnapshot ? { snapshot } : {}) }, { actingUserId: undefined, timeoutMs: 5000 }).catch(() => {
+    this.invoke(
+      sup.id,
+      'invoke.event',
+      { event, tripId, ...hint, ...(withSnapshot ? { snapshot } : {}) },
+      { actingUserId: undefined, timeoutMs: 5000 },
+    ).catch(() => {
       /* a subscriber that errors or times out is ignored — events are best-effort */
     });
   }
@@ -319,7 +386,10 @@ export class PluginSupervisor {
   /** Append an event to a subscriber's bounded redelivery buffer (drop-oldest past the cap). */
   private bufferEvent(id: string, tripId: number, event: string, meta?: PluginEventMeta): void {
     let q = this.pendingEvents.get(id);
-    if (!q) { q = []; this.pendingEvents.set(id, q); }
+    if (!q) {
+      q = [];
+      this.pendingEvents.set(id, q);
+    }
     q.push({ tripId, event, meta, expiresAt: Date.now() + PluginSupervisor.EVENT_BUFFER_TTL_MS });
     if (q.length > PluginSupervisor.EVENT_BUFFER_MAX) q.splice(0, q.length - PluginSupervisor.EVENT_BUFFER_MAX);
   }
@@ -349,9 +419,11 @@ export class PluginSupervisor {
   deliverScheduled(id: string, name: string, payload: unknown): void {
     const sup = this.running.get(id);
     if (!sup || sup.status !== 'active') return;
-    void this.invoke(id, 'invoke.scheduled', { name, payload }, { actingUserId: undefined, timeoutMs: 60_000 }).catch(() => {
-      /* a scheduled task that errors/times out is ignored — best-effort like jobs */
-    });
+    void this.invoke(id, 'invoke.scheduled', { name, payload }, { actingUserId: undefined, timeoutMs: 60_000 }).catch(
+      () => {
+        /* a scheduled task that errors/times out is ignored — best-effort like jobs */
+      },
+    );
   }
 
   /**
@@ -381,11 +453,19 @@ export class PluginSupervisor {
    * gated by the same hook:user-data grant. Returns the plugin's exported payload,
    * or undefined if it is inactive, ungranted, doesn't implement the hook, or errors.
    */
-  async collectUserExport(id: string, userId: number): Promise<{ ok: true; data: unknown } | { ok: false } | undefined> {
+  async collectUserExport(
+    id: string,
+    userId: number,
+  ): Promise<{ ok: true; data: unknown } | { ok: false } | undefined> {
     const sup = this.running.get(id);
     if (!sup || sup.status !== 'active' || !sup.granted.has(USER_DATA_PERMISSION)) return undefined; // not applicable
     try {
-      const res = (await this.invoke(id, 'invoke.exportUserData', { userId }, { actingUserId: undefined, timeoutMs: 30_000 })) as { data?: unknown } | undefined;
+      const res = (await this.invoke(
+        id,
+        'invoke.exportUserData',
+        { userId },
+        { actingUserId: undefined, timeoutMs: 30_000 },
+      )) as { data?: unknown } | undefined;
       return { ok: true, data: res?.data };
     } catch {
       return { ok: false }; // errored/timed out — the caller flags this as incomplete, not "no data"
@@ -544,13 +624,61 @@ export class PluginSupervisor {
       // sweep. A throttled call is refused with HOST_ERROR (retryable) rather than
       // executed; a legitimate plugin never hits the generous burst.
       if (!sup.rpcLimiter.tryAcquire(Date.now())) {
-        sup.child?.send({ k: 'res', id: req.id, ok: false, error: { code: 'HOST_ERROR', message: 'rate limit exceeded — slow down ctx.* calls' } } satisfies RpcError);
+        sup.child?.send({
+          k: 'res',
+          id: req.id,
+          ok: false,
+          error: { code: 'HOST_ERROR', message: 'rate limit exceeded — slow down ctx.* calls' },
+        } satisfies RpcError);
         return;
       }
       const inv = req.params as { _inv?: unknown } | undefined;
       const actingUserId = typeof inv?._inv === 'string' ? sup.invocations.get(inv._inv) : undefined;
       try {
-        const res = await sup.rpcHost.dispatch(req, actingUserId);
+        // The single choke point every plugin RPC passes through (D6): wrap it here,
+        // not inside rpc-host.ts::dispatch, so the context also spans plugin-guards'
+        // trip/permission reads and any *.rpc.ts handler's repository calls, not just
+        // dispatch's own audit write. Without this, PermissionsService.checkPermission
+        // ran outside any context, threw on a cold cache, and the catch served
+        // defaults — fail-open on a tightened flag (task-2-review.md C3).
+        //
+        // Fail closed (task-6-fix-brief.md item 1, task-6-review-template.md
+        // Important 1 / M-B): an absent `resolveOrm` used to fall through to
+        // an UNWRAPPED dispatch — silent degrade, the exact shape D6 forbids
+        // at a choke point. It only failed closed downstream, and only
+        // because two OTHER switches happened to hold (production's
+        // `allowGlobalContext: false` and `loadPermissions` rethrowing a
+        // MikroORM `ValidationError`) — nothing here said so. Throw instead:
+        // the dispatch never runs without a context, full stop, regardless of
+        // what those other switches do. The three hand-built test doubles
+        // that dispatch through this path now pass a thunk (`sharedTestOrm`).
+        const orm = this.resolveOrm?.();
+        if (!orm) {
+          // task-6-rereview.md §5 RULING: the child's `pending` map
+          // (plugin-host-entry.ts) has no timeout, so leaving this 'req'
+          // unanswered hangs the plugin's ctx.* promise forever — and
+          // handleChildMessage above downgrades the throw below to one
+          // plugin-scoped log line, never surfacing it as a host-wiring
+          // failure. Answer the child first, same shape as the rate-limiter
+          // refusal a few lines up, THEN throw for host-side visibility. The
+          // dispatch still never runs either way — this only changes whether
+          // the caller ever hears back.
+          sup.child?.send({
+            k: 'res',
+            id: req.id,
+            ok: false,
+            error: { code: 'HOST_ERROR', message: 'no ORM available to build a request context' },
+          } satisfies RpcError);
+          throw new Error('PluginSupervisor: no ORM available to build a request context for this RPC dispatch');
+        }
+        // One unit of work per RPC, with its own correlation id and one log line;
+        // a refusal travels back as `{ ok: false }`, so that is what the line reports.
+        const res = await traceEntry(
+          'rpc',
+          `${sup.id} ${req.method}`,
+          () => withRequestContext(orm, () => sup.rpcHost.dispatch(req, actingUserId)),
+          { refusal: (answer) => ('error' in answer ? `${answer.error.code} ${answer.error.message}` : null) },
+        );
         sup.child?.send(res);
       } finally {
         sup.rpcLimiter.release();
@@ -573,7 +701,11 @@ export class PluginSupervisor {
     if (msg.k === 'evt') {
       switch (msg.topic) {
         case 'hello':
-          sup.child?.send({ k: 'evt', topic: 'init', data: { config: sup.config, egress: sup.egress } } satisfies Envelope);
+          sup.child?.send({
+            k: 'evt',
+            topic: 'init',
+            data: { config: sup.config, egress: sup.egress },
+          } satisfies Envelope);
           break;
         case 'heartbeat': {
           sup.lastBeat = Date.now();
@@ -590,8 +722,13 @@ export class PluginSupervisor {
           if (this.running.get(sup.id) !== sup || sup.status !== 'starting') break;
           sup.lastBeat = Date.now();
           const d = msg.data as {
-            routes?: PluginRouteInfo[]; jobs?: ScheduledJob[]; hooks?: string[]; events?: string[];
-            exports?: string[]; subscriptions?: Array<{ plugin: string; event: string }>;
+            routes?: PluginRouteInfo[];
+            jobs?: ScheduledJob[];
+            hooks?: string[];
+            hookFns?: unknown;
+            events?: string[];
+            exports?: string[];
+            subscriptions?: Array<{ plugin: string; event: string }>;
             mcpTools?: string[];
           };
           sup.routes = d.routes ?? [];
@@ -599,11 +736,15 @@ export class PluginSupervisor {
             ? d.jobs.filter((j): j is ScheduledJob => !!j && typeof j.id === 'string' && typeof j.schedule === 'string')
             : [];
           sup.hooks = d.hooks ?? [];
+          sup.hookFns = readHookFns(d.hookFns);
           sup.events = d.events ?? [];
           sup.exports = Array.isArray(d.exports) ? d.exports.filter((e): e is string => typeof e === 'string') : [];
           sup.mcpTools = Array.isArray(d.mcpTools) ? d.mcpTools.filter((t): t is string => typeof t === 'string') : [];
           sup.subscriptions = Array.isArray(d.subscriptions)
-            ? d.subscriptions.filter((s): s is { plugin: string; event: string } => !!s && typeof s.plugin === 'string' && typeof s.event === 'string')
+            ? d.subscriptions.filter(
+                (s): s is { plugin: string; event: string } =>
+                  !!s && typeof s.plugin === 'string' && typeof s.event === 'string',
+              )
             : [];
           this.clearActivationTimer(sup);
           this.setStatus(sup, 'active');
@@ -612,7 +753,9 @@ export class PluginSupervisor {
           // egress. Wrapped so a scheduling hiccup can never break activation.
           try {
             sup.jobTasks = scheduleJobs(sup.granted, sup.jobs, (jobId) => {
-              void this.invoke(sup.id, 'invoke.job', { jobId }, { actingUserId: undefined, timeoutMs: 60_000 }).catch(() => {});
+              void this.invoke(sup.id, 'invoke.job', { jobId }, { actingUserId: undefined, timeoutMs: 60_000 }).catch(
+                () => {},
+              );
             });
           } catch {
             /* a scheduler error must never stop a plugin from going live */

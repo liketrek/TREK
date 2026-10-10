@@ -1,10 +1,10 @@
+import { readEnv } from './app-config';
+import { resolveDataPaths } from './app-config/data-paths';
+
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import path from 'node:path';
-import { readEnv } from './app-config';
 
-const dataDir = path.resolve(__dirname, '../data');
-const jwtSecretFile = path.join(dataDir, '.jwt_secret');
+const { dataDir, jwtSecretFile, encryptionKeyFile: encKeyFile } = resolveDataPaths();
 
 // ENCRYPTION_KEY is used to derive at-rest encryption keys for stored secrets
 // (API keys, MFA TOTP secrets, SMTP password, OIDC client secret, etc.).
@@ -20,18 +20,51 @@ const jwtSecretFile = path.join(dataDir, '.jwt_secret');
 //      data/.encryption_key so JWT rotation can never break decryption later.
 //   4. Auto-generated — fresh install with none of the above; persisted to
 //      data/.encryption_key.
-const encKeyFile = path.join(dataDir, '.encryption_key');
 let _encryptionKey: string = process.env.ENCRYPTION_KEY || '';
 
-if (_encryptionKey) {
-  // Env var is set explicitly — persist it to file so the value survives
-  // container restarts even if the env var is later removed.
+// Under test the suite sets its own fixed ENCRYPTION_KEY. Comparing it with, or
+// writing it over, the developer's own data/.encryption_key would either stop
+// every test run or quietly replace the key a local dev server encrypts with.
+const keyFileFollowsEnv = process.env.NODE_ENV !== 'test';
+
+/**
+ * Persist an explicit ENCRYPTION_KEY to the key file, so the value survives
+ * container restarts even if the env var is later removed.
+ *
+ * A key file that disagrees with the env var means every stored secret was
+ * encrypted with the file's key. Booting would make them unreadable and the
+ * write would destroy the only copy of that key, which is exactly what a
+ * regenerated Helm secret or a typo in the variable used to do in silence. The
+ * rotation script updates the file, so a real rotation never lands here.
+ */
+function persistEnvKey(envKey: string): void {
+  let storedKey = '';
+  try {
+    storedKey = fs.readFileSync(encKeyFile, 'utf8').trim();
+  } catch {
+    // No readable file yet: nothing to protect, the env value becomes the file.
+  }
+  if (storedKey && storedKey !== envKey.trim()) {
+    console.error(`FATAL: ENCRYPTION_KEY does not match ${encKeyFile}.`);
+    console.error(
+      'The stored secrets are encrypted with the key in that file, so TREK will not start with a different one.',
+    );
+    console.error(
+      'To change the key, run scripts/migrate-encryption.ts first; it re-encrypts the secrets and updates the file.',
+    );
+    console.error('Otherwise set ENCRYPTION_KEY back to the value in the file, or remove the variable.');
+    process.exit(1);
+  }
   try {
     if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-    fs.writeFileSync(encKeyFile, _encryptionKey, { mode: 0o600 });
+    fs.writeFileSync(encKeyFile, envKey, { mode: 0o600 });
   } catch {
     // Non-fatal: env var is the source of truth when set.
   }
+}
+
+if (_encryptionKey) {
+  if (keyFileFollowsEnv) persistEnvKey(_encryptionKey);
 } else {
   // Try the dedicated key file first (covers all installs after first start).
   try {
@@ -51,7 +84,9 @@ if (_encryptionKey) {
       if (code === 'EISDIR') {
         // Compose creating a missing bind-mount source as a directory is by far
         // the most common way this file stops being a file.
-        console.error('EISDIR: the path is a directory. A bind mount pointed at data/.encryption_key created it as one — remove it and mount the data directory instead.');
+        console.error(
+          'EISDIR: the path is a directory. A bind mount pointed at data/.encryption_key created it as one — remove it and mount the data directory instead.',
+        );
       }
       console.error('Fix the file permissions or set ENCRYPTION_KEY explicitly.');
       process.exit(1);

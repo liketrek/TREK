@@ -19,6 +19,9 @@ const admin: TranslationStrings = {
   'admin.notifications.testNtfyFailed': 'Kiểm tra ntfy không thành công',
   'admin.notifications.emailPanel.title': 'Email (SMTP)',
   'admin.notifications.webhookPanel.title': 'Webhook',
+  'admin.notifications.webPushPanel.title': 'Web Push',
+  'admin.notifications.webPushPanel.hint':
+    'Cho phép người dùng nhận thông báo trên điện thoại và máy tính qua trình duyệt, ngay cả khi TREK đang đóng. Cần HTTPS; trên iPhone và iPad, TREK phải được thêm vào Màn hình chính.',
   'admin.notifications.inappPanel.title': 'Trong ứng dụng',
   'admin.notifications.inappPanel.hint': 'Thông báo trong ứng dụng luôn hoạt động và không thể tắt trên toàn cầu.',
   'admin.notifications.adminWebhookPanel.title': 'Webhook quản trị viên',
@@ -46,6 +49,13 @@ const admin: TranslationStrings = {
   'admin.notifications.adminNtfyPanel.alwaysOnHint': 'Quản trị viên ntfy luôn kích hoạt khi chủ đề được định cấu hình',
   'admin.notifications.adminNotificationsHint':
     'Định cấu hình kênh nào gửi thông báo chỉ dành cho quản trị viên (ví dụ: cảnh báo phiên bản).',
+  'admin.notificationDefaults.title': 'Mặc định cho người dùng',
+  'admin.notificationDefaults.hint':
+    'Trạng thái ban đầu của thông báo cho mỗi người dùng. "Tắt" người dùng vẫn có thể tự bật; "Chặn" tắt cho mọi người và hiển thị khóa trong cài đặt của họ. Áp dụng cho mọi người chưa tự đổi ô đó.',
+  'admin.notificationDefaults.on': 'Bật',
+  'admin.notificationDefaults.off': 'Tắt',
+  'admin.notificationDefaults.blocked': 'Chặn',
+  'admin.notificationDefaults.cycle': 'Nhấn để chuyển sang: {next}',
   'admin.notifications.tripReminders.title': 'Lời nhắc chuyến đi',
   'admin.notifications.tripReminders.hint':
     'Gửi thông báo nhắc nhở trước khi chuyến đi bắt đầu (yêu cầu phải đặt ngày nhắc nhở cho chuyến đi).',
@@ -129,43 +139,31 @@ const admin: TranslationStrings = {
   'admin.requireMfa': 'Yêu cầu xác thực hai yếu tố (2FA)',
   'admin.requireMfaHint': 'Người dùng không có 2FA phải hoàn tất thiết lập trong Cài đặt trước khi sử dụng ứng dụng.',
   'admin.apiKeys': 'API Key',
-  'admin.apiKeysHint': 'Dữ liệu địa điểm đến từ đâu. Chỉ mục TREK không cần khóa; hai nhà cung cấp bên dưới là tùy chọn.',
+  'admin.apiKeysHint':
+    'Dữ liệu địa điểm đến từ đâu. Chỉ mục TREK không cần khóa; hai nhà cung cấp bên dưới là tùy chọn.',
   'admin.trekApi.badgeDefault': 'Nguồn mặc định khuyến nghị',
   'admin.googleCaveat.badge': 'Không khuyến nghị',
   'admin.googleCaveat.body':
     'TREK là phần mềm nguồn mở và ở đây chúng tôi không trung lập. Ở quy mô này, đánh giá và ảnh của các cửa hàng thông thường chỉ có ở Google, và đó là độc quyền. Ô này có mặt vì không có lựa chọn khác, không phải vì chúng tôi khuyến nghị. Khi đó mọi truy vấn đều đi tới Google.',
   'admin.trekApi.tagline':
     'Chỉ mục địa điểm của riêng TREK. Tìm kiếm không cần khóa Google, không hạn mức, và không ai đếm lượt tìm của bạn.',
-  'admin.trekApi.factPlaces':
-    '73,6 triệu địa điểm trên toàn thế giới',
-  'admin.trekApi.factNoKey':
-    'Không khóa, không hạn mức',
-  'admin.trekApi.factOffline':
-    'Gói theo quốc gia dùng được ngoại tuyến',
-  'admin.trekApi.factPrivacy':
-    'Không bao giờ ghi lại nội dung tìm kiếm',
-  'admin.trekApi.more':
-    'Bên trong có gì',
-  'admin.trekApi.fieldPhone':
-    'Điện thoại',
-  'admin.trekApi.fieldStableId':
-    'Mã định danh ổn định',
+  'admin.trekApi.factPlaces': '73,6 triệu địa điểm trên toàn thế giới',
+  'admin.trekApi.factNoKey': 'Không khóa, không hạn mức',
+  'admin.trekApi.factOffline': 'Gói theo quốc gia dùng được ngoại tuyến',
+  'admin.trekApi.factPrivacy': 'Không bao giờ ghi lại nội dung tìm kiếm',
+  'admin.trekApi.more': 'Bên trong có gì',
+  'admin.trekApi.fieldPhone': 'Điện thoại',
+  'admin.trekApi.fieldStableId': 'Mã định danh ổn định',
   'admin.trekApi.includedNote':
     'Mô tả lấy từ trang web của chính địa điểm, giờ mở cửa lấy từ OpenStreetMap ở nơi đã được điền.',
-  'admin.trekApi.notRatings':
-    'Đánh giá',
-  'admin.trekApi.notPhotos':
-    'Ảnh của cửa hàng thông thường',
+  'admin.trekApi.notRatings': 'Đánh giá',
+  'admin.trekApi.notPhotos': 'Ảnh của cửa hàng thông thường',
   'admin.trekApi.notIncludedNote':
     'Không nguồn mở nào có cả hai, với bất kỳ giá nào. Với hai thứ đó khóa Google vẫn là con đường duy nhất.',
-  'admin.trekApi.sourcesLabel':
-    'Nguồn',
-  'admin.trekApi.sourcesNote':
-    'Mọi trường trong phản hồi đều cho biết nó đến từ nguồn nào.',
-  'admin.trekApi.included':
-    'Có',
-  'admin.trekApi.notIncluded':
-    'Không có',
+  'admin.trekApi.sourcesLabel': 'Nguồn',
+  'admin.trekApi.sourcesNote': 'Mọi trường trong phản hồi đều cho biết nó đến từ nguồn nào.',
+  'admin.trekApi.included': 'Có',
+  'admin.trekApi.notIncluded': 'Không có',
   'admin.mapsKey': 'Google Maps API Key',
   'admin.mapsKeyHint': 'Cần thiết cho tìm kiếm địa điểm. Truy cập tại console.cloud.google.com',
   'admin.mapsKeyHintLong':
@@ -178,6 +176,7 @@ const admin: TranslationStrings = {
   'admin.amapKey': 'Khóa API Amap (高德地图)',
   'admin.amapKeyHint':
     'Dùng cho tìm kiếm địa điểm tại Trung Quốc đại lục, nơi không truy cập được Google và dữ liệu OpenStreetMap còn thưa. Cần khóa loại "Web 服务" (dịch vụ web), không phải khóa JS API. Lấy khóa tại console.amap.com.',
+  'admin.keyFromEnv': 'Đặt qua {name}',
   'admin.placesProvider.title': 'Nhà cung cấp tìm kiếm địa điểm',
   'admin.placesProvider.subtitle':
     'Chỉ mục riêng của TREK và OpenStreetMap trả lời mọi tìm kiếm. Ở đây chọn ai được hỏi thêm khi chúng không tìm thấy gì: Tự động ưu tiên Google nếu có khóa, rồi đến Amap.',
@@ -221,17 +220,32 @@ const admin: TranslationStrings = {
   'admin.placesEnrich.subtitle':
     'Hiển thị hình ảnh và mô tả khi thêm địa điểm. Wikipedia và OpenStreetMap luôn được dùng; Google được thêm vào khi bật Ảnh địa điểm hoặc Chi tiết địa điểm.',
   'admin.placesGoogleOnly.title': 'Chỉ tìm bằng Google',
-  'admin.placesGoogleOnly.subtitle': 'Mọi tìm kiếm và mọi gợi ý đều đi tới Google Places. Khi tắt, chỉ mục của TREK và OpenStreetMap trả lời trước, Google chỉ được hỏi khi cả hai không tìm thấy gì.',
-  'admin.placesGoogleOnly.missingKey': 'Cần khóa API Google Maps. Không có khóa, tìm kiếm chạy trên chỉ mục của TREK và OpenStreetMap, bất kể công tắc này.',
-  'admin.placesGoogleOnly.otherProvider': 'Cần Google làm nhà cung cấp địa điểm. Khi chọn Amap hoặc OpenStreetMap, không tìm kiếm nào được gửi đến Google dù công tắc này đặt thế nào.',
+  'admin.placesGoogleOnly.subtitle':
+    'Mọi tìm kiếm và mọi gợi ý đều đi tới Google Places. Khi tắt, chỉ mục của TREK và OpenStreetMap trả lời trước, Google chỉ được hỏi khi cả hai không tìm thấy gì.',
+  'admin.placesGoogleOnly.missingKey':
+    'Cần khóa API Google Maps. Không có khóa, tìm kiếm chạy trên chỉ mục của TREK và OpenStreetMap, bất kể công tắc này.',
+  'admin.placesGoogleOnly.otherProvider':
+    'Cần Google làm nhà cung cấp địa điểm. Khi chọn Amap hoặc OpenStreetMap, không tìm kiếm nào được gửi đến Google dù công tắc này đặt thế nào.',
+  'admin.googleQuota.title': 'Giới hạn lượt gọi Google mỗi ngày',
+  'admin.googleQuota.subtitle':
+    'Khi đạt giới hạn, TREK ngừng gọi Google đến ngày hôm sau (UTC) và tìm kiếm bằng OpenStreetMap. Để trống nếu không giới hạn.',
+  'admin.googleQuota.placeholder': 'Không giới hạn',
+  'admin.googleQuota.usedToday': 'Hôm nay: {used}',
+  'admin.googleQuota.usedOfLimit': 'Hôm nay: {used} / {limit}',
+  'admin.googleQuota.reached': 'Đã đạt giới hạn ({used}), Google tạm dừng đến ngày mai',
+  'admin.googleQuota.saved': 'Đã lưu giới hạn hằng ngày',
   'admin.transitProvider.title': 'Nhà cung cấp giao thông công cộng',
   'admin.transitProvider.subtitle': 'Dịch vụ nào trả lời tìm kiếm giao thông công cộng.',
   'admin.transitProvider.transitous': 'Transitous (miễn phí)',
   'admin.transitProvider.google': 'Google',
-  'admin.transitProvider.transitousHint': 'Nguồn GTFS cộng đồng. Miễn phí và không cần khóa, phủ sóng tốt nhất ở châu Âu.',
-  'admin.transitProvider.googleHint': 'Dùng khóa Google ở trên, cho những khu vực Transitous không có dữ liệu. Tính phí theo mỗi lượt tìm kiếm — khi chưa đặt khóa thì vẫn dùng Transitous.',
-  'admin.transitProvider.noKeyWarning': 'Đã chọn Google, nhưng chưa cấu hình khóa Google — tìm kiếm giao thông vẫn dùng Transitous. Thêm khóa ở mục Khóa API phía trên.',
-  'admin.transitProvider.personalKeyWarning': 'Chỉ khóa Google của riêng bạn được đặt, nên tìm kiếm của các thành viên khác vẫn quay về Transitous. Lưu khóa ở trên với quyền quản trị để áp dụng cho toàn bộ máy chủ.',
+  'admin.transitProvider.transitousHint':
+    'Nguồn GTFS cộng đồng. Miễn phí và không cần khóa, phủ sóng tốt nhất ở châu Âu.',
+  'admin.transitProvider.googleHint':
+    'Dùng khóa Google ở trên, cho những khu vực Transitous không có dữ liệu. Tính phí theo mỗi lượt tìm kiếm — khi chưa đặt khóa thì vẫn dùng Transitous.',
+  'admin.transitProvider.noKeyWarning':
+    'Đã chọn Google, nhưng chưa cấu hình khóa Google — tìm kiếm giao thông vẫn dùng Transitous. Thêm khóa ở mục Khóa API phía trên.',
+  'admin.transitProvider.personalKeyWarning':
+    'Chỉ khóa Google của riêng bạn được đặt, nên tìm kiếm của các thành viên khác vẫn quay về Transitous. Lưu khóa ở trên với quyền quản trị để áp dụng cho toàn bộ máy chủ.',
   'admin.placeShadow.title': 'Nhật ký tìm kiếm địa điểm',
   'admin.placeShadow.subtitle':
     'Ghi lại kết quả tìm kiếm nào đã được chọn, để sau này có thể đánh giá một chỉ mục địa điểm khác bằng những lượt tìm kiếm thật. Không có gì rời khỏi máy chủ này, và quản trị viên có thể xuất hoặc xóa nhật ký bất cứ lúc nào.',
@@ -276,7 +290,7 @@ const admin: TranslationStrings = {
   'admin.packingTemplates.namePlaceholder': 'Tên mẫu (ví dụ: Kỳ nghỉ ở bãi biển)',
   'admin.packingTemplates.empty': 'Chưa có mẫu nào được tạo',
   'admin.packingTemplates.items': 'mặt hàng',
-  'admin.packingTemplates.categories': 'Thể loại',
+  'admin.packingTemplates.categories': 'danh mục',
   'admin.packingTemplates.itemName': 'Tên mặt hàng',
   'admin.packingTemplates.itemCategory': 'Loại',
   'admin.packingTemplates.categoryName': 'Tên danh mục (ví dụ: Quần áo)',
@@ -379,6 +393,65 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.db:read:trips': 'Đọc các chuyến đi mà người dùng hiện tại có quyền truy cập',
   'admin.plugins.perm.db:read:users':
     'Đọc thông tin hồ sơ cơ bản (tên, ảnh đại diện — không bao giờ là thông tin đăng nhập)',
+  'admin.plugins.perm.db:read:costs': 'Đọc chi phí (mục ngân sách) mà người dùng hiện tại có quyền truy cập',
+  'admin.plugins.perm.db:read:packing':
+    'Đọc danh sách đóng gói của các chuyến đi mà người dùng hiện tại có quyền truy cập',
+  'admin.plugins.perm.db:write:packing':
+    'Tạo, chỉnh sửa và xóa mặt hàng đóng gói trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.weather:read': 'Đọc dự báo thời tiết đã lưu cache của máy chủ (theo tọa độ)',
+  'admin.plugins.perm.db:read:categories': 'Đọc danh sách danh mục địa điểm chung của hệ thống',
+  'admin.plugins.perm.db:read:tags': 'Đọc các thẻ riêng của người dùng hiện tại',
+  'admin.plugins.perm.db:write:tags': 'Tạo, chỉnh sửa và xóa các thẻ riêng của người dùng hiện tại',
+  'admin.plugins.perm.db:read:todos': 'Đọc việc cần làm của các chuyến đi mà người dùng hiện tại có quyền truy cập',
+  'admin.plugins.perm.db:write:todos':
+    'Tạo, chỉnh sửa và xóa việc cần làm trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.db:write:atlas':
+    'Đánh dấu các quốc gia và khu vực đã ghé thăm và quản lý danh sách mong muốn của người dùng hiện tại (cần add-on Atlas)',
+  'admin.plugins.perm.db:write:vacay':
+    'Bật hoặc tắt ngày nghỉ phép và ngày lễ của công ty trong kế hoạch đang dùng của người dùng hiện tại (cần add-on Vacay)',
+  'admin.plugins.perm.db:write:journal':
+    'Tạo, chỉnh sửa, xóa mục nhật ký và đính kèm ảnh vào chúng trên các hành trình mà người dùng hiện tại có quyền chỉnh sửa (cần add-on Journey)',
+  'admin.plugins.perm.db:write:collections':
+    'Tạo và chỉnh sửa bộ sưu tập, lưu địa điểm vào đó, theo vai trò của người dùng hiện tại trong bộ sưu tập (cần add-on Collections)',
+  'admin.plugins.perm.db:write:files':
+    'Đính kèm tệp vào các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa (tối đa 10MB, từ chối các phần mở rộng bị chặn) và quản lý liên kết của tệp',
+  'admin.plugins.perm.db:write:collab':
+    'Đăng ghi chú, bình chọn và tin nhắn trò chuyện trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa (cần add-on Collab)',
+  'admin.plugins.perm.db:write:members':
+    'Thêm người dùng vào chuyến đi (tức là cấp quyền truy cập chuyến đi); chỉ được phép khi người dùng hiện tại có quyền quản lý thành viên',
+  'admin.plugins.perm.notify:send':
+    'Gửi thông báo (chuông trong ứng dụng + email/ntfy) đến người dùng hiện tại hoặc một chuyến đi mà họ tham gia; không bao giờ gửi cho người nhận tùy ý',
+  'admin.plugins.perm.ai:invoke':
+    'Chạy nhà cung cấp AI do quản trị viên cấu hình (tạo văn bản + trích xuất tài liệu) thay mặt người dùng hiện tại; plugin không bao giờ giữ khóa API',
+  'admin.plugins.perm.oauth:client':
+    'Kết nối với dịch vụ bên thứ ba thay mặt bạn qua OAuth do máy chủ làm trung gian (máy chủ giữ token, plugin không bao giờ thấy chúng)',
+  'admin.plugins.perm.db:read:files': 'Đọc tệp của các chuyến đi mà người dùng hiện tại có quyền truy cập',
+  'admin.plugins.perm.db:read:journal': 'Đọc nhật ký du lịch của người dùng hiện tại (cần add-on Journey)',
+  'admin.plugins.perm.db:read:atlas':
+    'Đọc các quốc gia và khu vực đã ghé thăm của người dùng hiện tại (cần add-on Atlas)',
+  'admin.plugins.perm.db:read:vacay': 'Đọc kế hoạch kỳ nghỉ của người dùng hiện tại (cần add-on Vacay)',
+  'admin.plugins.perm.db:read:daynotes':
+    'Đọc ghi chú theo ngày của các chuyến đi mà người dùng hiện tại có quyền truy cập',
+  'admin.plugins.perm.db:read:collections':
+    'Đọc các bộ sưu tập địa điểm đã lưu của người dùng hiện tại (cần add-on Collections)',
+  'admin.plugins.perm.db:write:costs':
+    'Tạo chi phí (mục ngân sách) trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.db:write:places':
+    'Thêm, chỉnh sửa và xóa địa điểm trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.db:write:days':
+    'Thêm, chỉnh sửa và xóa ngày trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.db:write:itinerary':
+    'Gán và gỡ địa điểm trong các ngày của chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.db:write:trips':
+    'Chỉnh sửa thông tin chuyến đi (tiêu đề, ngày, tiền tệ…) trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.db:write:reservations':
+    'Tạo, chỉnh sửa và xóa đặt chỗ trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.db:write:accommodations':
+    'Tạo, chỉnh sửa và xóa chỗ ở (các khoảng lưu trú) trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.db:write:daynotes':
+    'Tạo, chỉnh sửa và xóa ghi chú theo ngày trên các chuyến đi mà người dùng hiện tại có quyền chỉnh sửa',
+  'admin.plugins.perm.db:meta':
+    'Gắn dữ liệu riêng tư của plugin vào các chuyến đi, địa điểm và ngày mà người dùng hiện tại có quyền truy cập',
   'admin.plugins.perm.ws:broadcast:trip': 'Gửi cập nhật thời gian thực đến các thành viên',
   'admin.plugins.perm.ws:broadcast:user': 'Gửi cập nhật thời gian thực đến từng người dùng',
   'admin.plugins.perm.hook:photo-provider': 'Cung cấp ảnh cho tính năng Ảnh',
@@ -386,6 +459,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:place-detail-provider':
     'Đóng góp thêm thông tin chi tiết (đánh giá, xếp hạng, liên kết) cho một địa điểm',
   'admin.plugins.perm.hook:search-provider': 'Trả lời tìm kiếm địa điểm từ chỉ mục riêng, bên cạnh kết quả của TREK',
+  'admin.plugins.perm.hook:poi-category-provider':
+    'Thêm các danh mục địa điểm riêng vào “Khám phá các địa điểm trên bản đồ”; khi bạn chọn một danh mục, plugin sẽ nhận vùng bản đồ bạn đang xem',
   'admin.plugins.perm.hook:trip-warning-provider':
     'Đưa ra cảnh báo xác thực trên một chuyến đi (hiển thị trong trình lập kế hoạch)',
   'admin.plugins.perm.hook:table-contributor':
@@ -401,7 +476,9 @@ const admin: TranslationStrings = {
     'Tô màu các ngày trong kế hoạch ngày (ví dụ ngày đó thuộc chặng nào của chuyến đi)',
   'admin.plugins.cap.mcpTools': 'Xuất bản công cụ AI',
   'admin.plugins.mcpToolsTitle': 'Công cụ AI được xuất bản',
-  'admin.plugins.mcpToolsHint': 'Trợ lý có thể chạy chúng thay cho người dùng. Mỗi công cụ hoạt động với quyền được cấp ở trên.',
+  'admin.plugins.mcpToolsHint':
+    'Trợ lý có thể chạy chúng thay cho người dùng. Mỗi công cụ hoạt động với quyền được cấp ở trên.',
+  'admin.plugins.poiCategoriesTitle': 'Danh mục bản đồ mà plugin thêm vào',
   'admin.plugins.perm.mcp:tools':
     'Xuất bản các công cụ mà trợ lý AI có thể chạy thay bạn (nó hoạt động với quyền bạn cấp cho tiện ích tại đây, không phải quyền của trợ lý)',
   'admin.plugins.perm.geolocation:read':
@@ -417,6 +494,8 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:notification-channel': 'Gửi thông báo của bạn qua một kênh bổ sung',
   'admin.plugins.perm.events:subscribe':
     'Phản hồi các sự kiện hoạt động cốt lõi (chỉ tên sự kiện + chuyến đi, không bao giờ là nội dung)',
+  'admin.plugins.perm.jobs:run':
+    'Chạy các tác vụ nền đã khai báo theo lịch (không có ngữ cảnh người dùng, không thể đọc dữ liệu người dùng)',
   'admin.plugins.perm.http:outbound': 'Gửi yêu cầu ra ngoài đến các máy chủ đã khai báo',
   'admin.plugins.perm.db:read:collab':
     'Đọc ghi chú, bình chọn và tin nhắn trò chuyện của các chuyến đi mà người dùng hiện tại có quyền truy cập (cần add-on Collab)',
@@ -504,7 +583,8 @@ const admin: TranslationStrings = {
   'admin.plugins.changeVersion': 'Đổi phiên bản…',
   'admin.plugins.noVersions': 'Không tìm thấy phiên bản đã xuất bản trong sổ đăng ký.',
   'admin.plugins.downgradeTitle': 'Quay lại phiên bản cũ của plugin này?',
-  'admin.plugins.downgradeBody': 'Chuyển từ v{from} sang v{to}: dữ liệu do phiên bản mới hơn ghi vẫn còn nguyên, và phiên bản cũ hơn có thể không hiểu được.',
+  'admin.plugins.downgradeBody':
+    'Chuyển từ v{from} sang v{to}: dữ liệu do phiên bản mới hơn ghi vẫn còn nguyên, và phiên bản cũ hơn có thể không hiểu được.',
   'admin.plugins.downgradeConfirm': 'Quay lại',
   'admin.plugins.updatesHeld': 'Đã tạm dừng cập nhật ở v{version}',
   'admin.plugins.resumeUpdates': 'Tiếp tục cập nhật',
@@ -544,6 +624,7 @@ const admin: TranslationStrings = {
   'admin.plugins.cap.calendar': 'Cung cấp sự kiện lịch',
   'admin.plugins.cap.placeDetails': 'Làm phong phú địa điểm',
   'admin.plugins.cap.search': 'Trả lời tìm kiếm',
+  'admin.plugins.cap.poiCategories': 'Thêm danh mục bản đồ',
   'admin.plugins.cap.warnings': 'Gắn cờ vấn đề',
   'admin.plugins.cap.mapLayers': 'Vẽ trên bản đồ',
   'admin.plugins.cap.routing': 'Cung cấp định tuyến',
@@ -576,8 +657,7 @@ const admin: TranslationStrings = {
     '“{name}” khai báo hỗ trợ TREK {range}, còn máy chủ này đang chạy {host}. TREK chỉ cho phép vì TREK_PLUGINS_IGNORE_TREK_RANGE đã được đặt. Tác giả chưa cập nhật phạm vi phiên bản của plugin cho TREK này, nên không có gì đảm bảo nó hoạt động — và trong một số ít trường hợp, plugin không tương thích có thể làm hỏng dữ liệu TREK. Chỉ tiếp tục nếu bạn chấp nhận rủi ro đó.',
   'admin.plugins.rangeBypass.bodyUnknown':
     '“{name}” không khai báo hỗ trợ phiên bản TREK nào; máy chủ này đang chạy {host}. TREK chỉ cho phép vì TREK_PLUGINS_IGNORE_TREK_RANGE đã được đặt. Không có dấu hiệu nào cho thấy tác giả đã thử nghiệm trên TREK này, nên không có gì đảm bảo nó hoạt động — và trong một số ít trường hợp, plugin không tương thích có thể làm hỏng dữ liệu TREK. Chỉ tiếp tục nếu bạn chấp nhận rủi ro đó.',
-  'admin.plugins.dep.trekBypassed':
-    'Ngoài phạm vi TREK của nó ({range}) — đã tắt kiểm tra phiên bản',
+  'admin.plugins.dep.trekBypassed': 'Ngoài phạm vi TREK của nó ({range}) — đã tắt kiểm tra phiên bản',
   'admin.plugins.dep.trekBypassedUnknown': 'Không khai báo phạm vi TREK — đã tắt kiểm tra phiên bản',
   'admin.plugins.incompatible': 'Không tương thích',
   'admin.plugins.accessTitle': 'Những gì có thể truy cập',
@@ -619,7 +699,14 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.dawarich.description':
     'Đọc các điểm lưu trú và lộ trình đã ghi từ phiên bản Dawarich mà mỗi người tự kết nối',
   'admin.addons.catalog.llm_parsing.name': 'Phân tích bằng AI',
-  'admin.addons.catalog.llm_parsing.description': 'Đọc các đặt chỗ mà bộ phân tích tích hợp không hiểu, bằng mô hình AI bạn chọn',
+  'admin.addons.catalog.llm_parsing.description':
+    'Đọc các đặt chỗ mà bộ phân tích tích hợp không hiểu, bằng mô hình AI bạn chọn',
+  'admin.addons.llm.vision.auto': 'Tự động',
+  'admin.addons.llm.vision.on': 'Có',
+  'admin.addons.llm.vision.off': 'Không',
+  'admin.addons.llm.vision.hintLocal': 'Tự động sẽ hỏi máy chủ Ollama xem mô hình này có đọc được hình ảnh không.',
+  'admin.addons.llm.vision.hintCloud':
+    'Với mô hình đám mây, Tự động nghĩa là không. Chọn Có nếu mô hình này đọc được hình ảnh.',
   'admin.addons.enabled': 'Đã bật',
   'admin.addons.disabled': 'Tắt',
   'admin.addons.type.trip': 'Chuyến đi',
@@ -752,7 +839,8 @@ const admin: TranslationStrings = {
   'admin.invite.boundTo': 'thêm vào {trip}',
   'admin.placesUsageTitle': 'Khóa được dùng cho việc gì',
   'admin.mapsKeyHintShort': 'Thêm ảnh, đánh giá và giờ mở cửa. Mọi tra cứu khi đó sẽ đi qua Google.',
-  'admin.amapKeyHintShort': 'Cho tìm kiếm địa điểm tại Trung Quốc đại lục. Cần khóa dịch vụ web, không phải khóa JS API.',
+  'admin.amapKeyHintShort':
+    'Cho tìm kiếm địa điểm tại Trung Quốc đại lục. Cần khóa dịch vụ web, không phải khóa JS API.',
   'admin.collab.links.subtitle': 'Liên kết chia sẻ và dấu trang',
 };
 export default admin;

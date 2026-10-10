@@ -244,9 +244,43 @@ parser would ignore one if you added it.
 
 ### The `ctx` object
 
+**What the reads return.** Every method's result is one of three kinds, and the SDK
+exports the list per method as `PLUGIN_METHOD_RESULT`:
+
+- **Entity rows**: the trip data (`trip`, `place`, `day`, `reservation`,
+  `accommodation`, `packingItem`, `packingBag`, `tripFile`, `fileLink`, `budgetItem`,
+  `assignment`, `dayNote`, `todo`, `user`), the collab board (`collabNote`,
+  `collabPoll`, `collabMessage`) and the acting user's own data (`tag`, `category`,
+  `journey`, `journalEntry`, `bucketItem`, `collection`). A row carries exactly the
+  fields TREK publishes for that entity (`PLUGIN_ENTITY_FIELDS` in the SDK): the
+  table's columns in snake_case, then what TREK adds on top, such as a trip's
+  `day_count`, `place_count`, `is_owner`, `owner_username` and `shared_count`, a
+  place's `category`, `tags` and `ratings`, a reservation's `endpoints`, `travelers`
+  and `day_positions`, or a day's `assignments` and `notes_items`. A field appears
+  only where the method's read produces it (`trips.getById` has no `day_count`,
+  `trips.listMine` has). Credentials are never part of a row: a trip's calendar
+  `feed_token` is withheld, and a user is only `id`, `username`, `display_name` and
+  `avatar`. A column TREK adds in a later release is **not** delivered until TREK
+  publishes it in that list, so the rows your plugin reads do not change shape on an
+  update. That holds for the rows inside a row too: the fields listed in
+  `PLUGIN_ENTITY_NESTED` hold rows of another entity (a day's `notes_items` are
+  `dayNote` rows, a reservation's `endpoints` are `reservationEndpoint` rows) and
+  carry that entity's published fields only, however deep they sit; every other
+  added field is a value TREK builds field by field. `collections.listMine`,
+  `collections.get` and `vacay.mine` return envelopes around such rows
+  (`collectionListing`, `collectionDetail`, `vacayPlanData`). `Place.day_id` in the
+  SDK types is deprecated and never set: a place's days are the `assignments` of
+  `getDays`.
+- **Read models**: small results TREK builds field by field from named columns, so
+  no stored row passes through them whole (a bag's members, the Atlas `visited`
+  codes, what a Vacay toggle did, a saved collection place or a copy summary, a
+  journal photo). The SDK types them `unknown`.
+- **Host values**: `{ deleted }`, `{ sent }`, a model's answer, an access token, and
+  your own data (`ctx.db`, `ctx.meta`, another plugin's answer), returned as they are.
+
 | Area | Methods | Requires |
 |---|---|---|
-| `ctx.db` | `query(sql, …args)` / `exec(sql, …args)` / `migrate(id, sql)` / `tx(ops)` against your **own** SQLite file. `tx([{sql, args?}, …])` runs up to 100 statements in one transaction (all commit or all roll back; reads see the batch's own earlier writes) → `{ results: [{changes?}\|{rows?}, …] }`. Your file is capped at **256 MB** (a write past it fails `SQLITE_FULL`, contained to your plugin) and a single result set at **100,000 rows** — page your reads instead of materialising a cartesian product | `db:own` |
+| `ctx.db` | `query(sql, …args)` / `exec(sql, …args)` / `migrate(id, sql)` / `tx(ops)` against your **own** SQLite file. `tx([{sql, args?}, …])` runs up to 100 statements in one transaction (all commit or all roll back; reads see the batch's own earlier writes) → `{ results: [{changes?}\|{rows?}, …] }`. Your file is capped at **256 MB** (a write past it fails `SQLITE_FULL`, contained to your plugin), a single result set at **100,000 rows** and a `query`, a `tx` or an `exec` script at **2 s** (see [Runtime limits](#runtime-limits)): page your reads instead of materialising a cartesian product, and split long scripts | `db:own` |
 | `ctx.trips` | `getById` / `getPlaces` / `getReservations` / `getDays` / `getAccommodations` / `listMine()` — enumerate every trip the acting user can access (membership-checked). `getDays` includes each day's `assignments` + `notes_items`; `getReservations` includes `endpoints` + `day_positions` | `db:read:trips` |
 | `ctx.trips.update(tripId, fields)` | update trip fields (title/dates/currency/reminder_days/…) | `db:write:trips` |
 | `ctx.trips.create(input)` | create a **new trip owned by the acting user** (importers) — `title` required, plus `description?`/`start_date?`/`end_date?`/`currency?`/`reminder_days?`/`day_count?`; without `currency` the trip takes the acting user's display currency, then the instance default, then EUR | `db:create:trips` (+ `trip_create`) |
@@ -269,7 +303,7 @@ parser would ignore one if you added it.
 | `ctx.collab` | `listNotes(tripId)` / `listPolls(tripId)` / `listMessages(tripId, before?)` — a trip's notes, polls (with options + voters) and chat (newest 100, oldest first; `before` = a message id to page back), membership-checked | `db:read:collab` (+ Collab addon) |
 | `ctx.collab` (write) | `createNote(tripId, {title, ...})` / `createPoll(tripId, {question, options})` / `votePoll(tripId, pollId, optionIndex)` / `createMessage(tripId, text, replyTo?)` — broadcasts `collab:*` | `db:write:collab` (+ `collab_edit`, Collab addon) |
 | `ctx.trips.addMember` / `.removeMember` | `addMember(tripId, userId)` — **grants trip access**; `removeMember(tripId, userId)` — revokes it (never the owner), so a directory-sync integration can reconcile departures too | `db:write:members` (+ `member_manage`) |
-| `ctx.notify` | `send({title, body, link?, scope, targetId})` — bell inbox + email/ntfy fan-out; recipient forced to the acting user (`scope:'user'`) or a trip they belong to (`scope:'trip'`) | `notify:send` |
+| `ctx.notify` | `send({title, body, link?, scope, targetId})`: bell inbox + email/ntfy/webhook/Web Push fan-out; recipient forced to the acting user (`scope:'user'`) or a trip they belong to (`scope:'trip'`) | `notify:send` |
 | `ctx.ai` | `complete(prompt, system?)` → `{ text }`; `extract(text, jsonSchema, prompt?)` → `{ results }` — the admin/user-configured provider; host holds the key; output is DATA (no auto-writes) | `ai:invoke` |
 | `ctx.oauth` | `getAccessToken()` → a **short-lived access token** for the acting user of a third-party service the host connected on their behalf (Settings → Plugins → Connect); `null` if not connected / userless. Host holds the refresh token + client secret | `oauth:client` |
 | `ctx.scheduler` | `at(whenMs, name, payload?)` / `in(ms, name, payload?)` / `every(ms, name, payload?)` / `cancel(name)` — **persistent, userless** timers that survive restarts and fire your `scheduled(input, ctx)` handler. `set` is an upsert by `name`; caps: ≤100 tasks, 8 KB payload, recurring interval ≥ 60 s, ≤ ~1 year out. Same risk class as `jobs` (no acting user → trip reads refused) | `jobs:run` |
@@ -378,7 +412,7 @@ stores blobs in `ctx.db` runs into, so build against them.
 | Area | Limit |
 |---|---|
 | every `ctx.*` call | burst 60, sustained 20/s, 16 in-flight per plugin; a throttled call is refused with `HOST_ERROR: rate limit exceeded — slow down ctx.* calls`. Tunable with `TREK_PLUGIN_RPC_BURST` / `TREK_PLUGIN_RPC_PER_SEC` / `TREK_PLUGIN_RPC_INFLIGHT` (see [Environment-Variables](Environment-Variables#plugins)) |
-| `ctx.db` | 256 MB per plugin, one result set capped at 100,000 rows |
+| `ctx.db` | 256 MB per plugin; a `query` or a whole `tx` batch returns at most 100,000 rows. A `query`, a whole `tx` batch and an `exec` script without bound args each get 2 s of wall-clock time, checked between the rows a statement reads and between the statements of a batch or script (past it the call throws `query exceeded its 2000 ms time budget`, a `tx` rolls back, and an `exec` script stops before its next statement once the time is up, keeping the ones that ran and rolling back a transaction the script opened itself; a script whose last statement has run counts as done). `migrate` is not timed, since a migration stopped part of the way would fail again on every start. A single statement cannot be stopped midway, because SQLite runs it on TREK's main thread: a write such as `INSERT ... SELECT` over a cross join of large tables runs to its end, and a read that yields nothing until it is finished (an aggregate over one) runs to its first row. Keep your statements indexed and bounded |
 | event subscriptions | 200 events buffered per plugin while it restarts, dropped unreplayed after 15 minutes |
 | the plugin process | 300 MB RSS (`TREK_PLUGIN_MAX_RSS_MB`) — the child is killed past it; auto-disabled with status `error` after 5 crashes inside a 5-minute window |
 
@@ -809,7 +843,8 @@ module.exports = definePlugin({
 | Hook | Permission | Status |
 |---|---|---|
 | `placeDetailProvider.getDetails(placeId, ctx)` → `{ label, value?, url? }[]` | `hook:place-detail-provider` | **live** — shown in the place-detail panel; also `GET /api/place-details/:placeId` |
-| `searchProvider.search(request, ctx)` → `SearchResultPlace[]` | `hook:search-provider` | **live** — answers place searches from an index TREK does not ship, drawn into the app's own search list beside the core results (#2221). `request` is `{query, limit, lang?, near?, category?, bounds?}`; each place is `{id?, name, lat, lng, address?, rating?, website?, phone?, category?, description?}`. `rating` is the field open data cannot answer — OpenStreetMap carries none — so it is what makes "the best rated one around here" answerable at all; it is clamped to 0..5. Coordinates are range-checked, strings capped, `website` must be http/https, and ids are namespaced to `plugin:<yourId>:<id>` so they can never collide with an OSM one. Called for an explicit search, **not** per keystroke. The Road trip search along the route calls it too, once per kind the person picked, with `category` (`fuel`, `charging`, `rest_area`, `campsite`, `restaurant`, `sights` or `hotel`) and `bounds` (`{south, west, north, east}`, with `near` at its centre); `query` is then a fixed English phrase for that kind such as `fuel station` or `EV charging station`. The host drops every hit outside `bounds`, and a hit whose own `category` names a different one of those seven kinds; the rest count as the requested kind. Both fields are absent on ordinary searches. Also `GET /api/plugin-search`, and to a connected assistant as the `search_places_via_plugins` MCP tool; the corridor search is `POST /api/roadtrip/search-area` and the `search_roadtrip_corridor` MCP tool |
+| `searchProvider.search(request, ctx)` → `SearchResultPlace[]` | `hook:search-provider` | **live** — answers place searches from an index TREK does not ship, drawn into the app's own search list beside the core results (#2221). `request` is `{query, limit, lang?, near?, category?, bounds?}`; each place is `{id?, name, lat, lng, address?, rating?, website?, phone?, category?, description?}`. `rating` is the field open data cannot answer — OpenStreetMap carries none — so it is what makes "the best rated one around here" answerable at all; it is clamped to 0..5. Coordinates are range-checked, strings capped, `website` must be http/https, and ids are namespaced to `plugin:<yourId>:<id>` so they can never collide with an OSM one. `search` is called for an explicit search, **not** per keystroke. The optional `searchProvider.suggest(request, ctx)` takes the same request while the query is typed (from the second character, `limit` 3, 800 ms) and adds at most three rows across all providers to the place search's dropdown, labelled with the plugin's name; implement it only for an index that can take a request per keystroke, and send every field you have, because a picked row is taken without a details lookup. The host learns at load whether the hook has `suggest`. The Road trip search along the route calls `search` too, once per kind the person picked, with `category` (`fuel`, `charging`, `rest_area`, `campsite`, `restaurant`, `sights` or `hotel`) and `bounds` (`{south, west, north, east}`, with `near` at its centre); `query` is then a fixed English phrase for that kind such as `fuel station` or `EV charging station`. The host drops every hit outside `bounds`, and a hit whose own `category` names a different one of those seven kinds; the rest count as the requested kind. Both fields are absent on ordinary searches. Also `GET /api/plugin-search` (and `GET /api/plugin-search/suggest` for `suggest`), and to a connected assistant as the `search_places_via_plugins` MCP tool; the corridor search is `POST /api/roadtrip/search-area` and the `search_roadtrip_corridor` MCP tool |
+| `poiCategoryProvider.getPois(request, ctx)` → `PoiCategoryPlace[]` | `hook:poi-category-provider` | **live**: answers the chips your plugin adds to the trip map's **Explore places** pill (#1781): trailheads, EV chargers, step-free places, toilets and drinking water, campsites, community places. Declare up to four in [`capabilities.poiCategories`](#manifest-reference-trek-pluginjson). `request` is `{category, bounds, lang?, limit}`: `category` is one of your own declared ids (the host never sends another), `bounds` is `{south, west, north, east}`, the viewport narrowed to a centred window of at most 0.5 degrees a side (the same window the OpenStreetMap categories use) and folded onto -180..180, `limit` is 60. Each place is `{id?, name, lat, lng, address?, website?, phone?, rating?, details?}` where `details` is up to 6 `{label, value}` rows only your index knows (a trail length, a step-free entrance), label ≤40 and value ≤120 chars, flattened to one line and emoji-stripped. The rows show as plain text in the marker's hover card on the desktop; `rating` (0..5) is not drawn on the map and reaches a connected assistant only. A click on a marker opens the place form with the name, address, website, phone and coordinates filled in, and the saved place keeps `plugin:<yourId>:<id>` as its `osm_id`, which TREK never mistakes for a Google place id. The host keeps places inside `bounds` only, at most 60 (a longer answer is reported as `truncated`), namespaces ids to `plugin:<yourId>:<id>`, checks `website` like the search provider does, and draws every place with **your declared** icon and colour, whatever the answer says. **Targeted, not a fan-out**: TREK asks exactly the plugin whose chip the user picked, as that user (so `ctx.settings.get()` is theirs), with an 8 s timeout; a timeout, a thrown error or an answer that is not an array turns into a `502` for that chip only, and the core categories never wait on it. Called when the user picks the chip or asks to search the area again, not on every pan. Nothing is cached. Also `GET /api/plugin-pois?pluginId=&category=&south=&west=&north=&east=&lang=`, and to a connected assistant as the `list_plugin_poi_categories` and `search_plugin_pois` MCP tools |
 | `warningProvider.getWarnings(tripId, ctx)` → `{ level, message, dayId?, placeId? }[]` | `hook:trip-warning-provider` | **live** — validation warnings shown as a non-blocking banner in the trip planner; also `GET /api/trip-warnings/:tripId`, and to a connected assistant as the `get_trip_warnings` MCP tool (≤20 warnings per provider, message ≤300 chars) — that path needs only the trips read scope, not `plugins:use` |
 | `tableContributor.getContributions(view, tripId, ctx)` → `TableContribution[]` | `hook:table-contributor` | **live** — host-rendered **columns/actions** keyed by `entityId` in the reservations, transports, places, day, costs, packing, files and todos views. A `column` is `{kind:'column', entityId, id, label, value?, url?, icon?, tone?}` (url is http/https/mailto only); an `action` is `{kind:'action', entityId, id, label, icon?, target}` where `target` opens your sandboxed frame (`{kind:'frame', sub}`) or calls a route (`{kind:'route', method, sub}`). All fields are bounded + normalized host-side; also `GET /api/view-contributions/:view/:tripId` |
 | `mapMarkerProvider.getMarkers(tripId, ctx)` → `MapMarkerContribution[]` | `hook:map-marker-provider` | **live** — bounded markers overlaid on the trip map (#587). Each is `{id, lat, lng, label?, popupText?, url?, icon?, tone?}`; coordinates are range-checked (−90..90 / −180..180), text length-capped, url http/https/mailto-only, count capped (≤200/plugin). Declarative only — plugin JS never runs on the map canvas. Also `GET /api/map-markers/:tripId` |
@@ -839,7 +874,7 @@ to design.
 ## Notification channels
 
 `hook:notification-channel` lets your plugin become a delivery channel alongside TREK's
-built-in email / webhook / ntfy — Gotify, Pushover, Telegram, whatever takes a message.
+built-in email / webhook / ntfy / Web Push: Gotify, Pushover, Telegram, whatever takes a message.
 
 Scaffold one with:
 
@@ -1412,6 +1447,7 @@ both scopes get the acting-user ctx, exactly as the host gives both the clicker'
 | `operatorEgress` | boolean | The plugin talks to a **self-hosted** service whose hostname only the operator knows. The admin adds the real hosts after install (Admin → Plugins → Allowed hosts) and the runtime unions them into the egress allow-list. Requires an `http:outbound` permission, and is the only way to declare one with an empty `egress[]`. See [Operator-supplied egress hosts](#operator-supplied-egress-hosts-operatoregress). |
 | `capabilities.notificationChannel` | object | `{ title?, events? }` for a plugin implementing the `notificationChannel` hook — `title` names the column in the notification preferences matrix (default: the plugin's `name`), `events` **narrows** which events the channel carries (default: all ten plugin-deliverable events; `events` may only narrow that set). Requires the `hook:notification-channel` permission. See [Notification channels](#notification-channels). |
 | `capabilities.routeProfiles` | array | up to 3 `{ id, label, icon? }` entries for a plugin implementing the `routeProvider` hook — each becomes a selectable mode in the planner's route toggle (next to Driving/Walking). `id` is lowercase `[a-z][a-z0-9-]` (max 24 chars) and is what `getRoute` receives as `request.profile`; `label` (≤40 chars) is shown to the user. Requires the `hook:route-provider` permission. |
+| `capabilities.poiCategories` | array | up to **4** `{ id, label, labels?, icon, color }` entries for a plugin implementing the `poiCategoryProvider` hook; each becomes a chip in the trip map's **Explore places** pill, after the built-in ones. `id` is lowercase `^[a-z][a-z0-9-]{0,23}$`, unique, and is what `getPois` receives as `request.category`. `label` (≤40 chars, plain text, emoji and control characters stripped) is shown when `labels` has nothing for the user's language; `labels` maps TREK language codes (`de`, `fr`, `zh-TW`…) to labels with the same rules, and a code TREK does not ship is ignored. `icon` is one of `Footprints`, `Mountain`, `MountainSnow`, `Signpost`, `Trees`, `TentTree`, `Tent`, `Accessibility`, `Droplet`, `Droplets`, `PlugZap`, `Zap`, `Bath`, `Bike`, `Waves`, `Landmark`, `MapPin`, `Star`, `Heart`, `Info` (exported by the SDK as `POI_CATEGORY_ICONS`; lucide has no toilet glyph, use `Bath`). `color` is `#rrggbb` only, because it lands inside marker markup. Anything else fails the install. Requires the `hook:poi-category-provider` permission: a declaration installs without it, but the chips only appear while the grant is held (`trek-plugin validate` refuses the combination). Needs a TREK that knows the permission, so raise your `trek` floor to the release that ships it. |
 | `capabilities.mcpTools` | array | up to **8** MCP tools for a plugin implementing the `mcpToolProvider` hook — each `{ name, description, title?, inputSchema?, annotations? }` (`name` lowercase `^[a-z0-9_]{1,48}$`, unique; `description` required; `inputSchema` a JSON Schema with root `type: "object"` built from a small enforced keyword set — an unsupported keyword fails the install). Requires the `mcp:tools` permission. See [MCP tools](#mcp-tools). |
 | `capabilities.provides` | string[] | function names this plugin exposes to its dependents via `ctx.plugins.call` (see [Talking to other plugins](#talking-to-other-plugins)). |
 | `capabilities.emits` | string[] | event names this plugin publishes to its dependents via `ctx.events.emit`. |
@@ -1449,9 +1485,10 @@ can run rather than the newest published, so shipping a 2.0.0 that needs TREK 4
 doesn't strand 3.x users. And an **update** that would move a working plugin out of
 compatibility is refused rather than performed.
 
-One gap, by design: a host whose `APP_VERSION` is not a semver version — the Docker
-build arg defaults to the literal `dev` — has nothing to compare a range against, so
-the check is skipped and an unversioned build installs anything. Plugins should still
+One gap, by design: a host whose version is not a semver version (a source install
+with `APP_VERSION` set to something like `dev`) has nothing to compare a range
+against, so the check is skipped and an unversioned build installs anything. An image
+built without a version argument reports the version in its `package.json`. Plugins should still
 guard optional `ctx.*` namespaces.
 
 **Permissions** — the commonly-used core subset below; the **full list of 65**
@@ -1482,6 +1519,7 @@ install (and by `trek-plugin validate` and registry CI, which check against the 
 | `http:outbound` or `http:outbound:<host>` | outbound HTTP to `egress[]` hosts |
 | `hook:place-detail-provider` | `hooks.placeDetailProvider` — extra place rows TREK renders (see [Provider hooks](#provider-hooks)) |
 | `hook:search-provider` | `hooks.searchProvider` — answers place searches from your own index (see [Provider hooks](#provider-hooks)) |
+| `hook:poi-category-provider` | `hooks.poiCategoryProvider`: answers your own chips in the map's Explore places pill, and is sent the viewport of the user who picks one (declared in `capabilities.poiCategories`) |
 | `hook:trip-warning-provider` | `hooks.warningProvider` — validation warnings in the planner (see [Provider hooks](#provider-hooks)) |
 | `hook:table-contributor` | `hooks.tableContributor` — host-rendered columns/actions in the reservations, transports, places, day, costs, packing, files and todos views (see [Provider hooks](#provider-hooks)) |
 | `hook:map-marker-provider` | `hooks.mapMarkerProvider` — bounded markers on the trip map |

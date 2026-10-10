@@ -9,14 +9,15 @@ import { useCanDo } from '../../store/permissionsStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
-import { normalizeImageFile } from '../../utils/convertHeic'
-import { getApiErrorMessage, type Trip } from '../../types'
-import { MAX_TRIP_DAYS, tripSpanDays, type TripCreateRequest } from '@trek/shared'
+import { type Trip } from '../../types'
+import { MAX_TRIP_DAYS, addIsoDays, tripSpanDays, type TripCreateRequest } from '@trek/shared'
 import { NumericInput } from '../shared/NumericInput'
 import { currenciesWith, SYMBOLS } from '../Budget/BudgetPanel.constants'
 import TripDateReview, { dateReviewIsWide } from './TripDateReview'
 import { useTripRangeGuard, type RangeCheck } from '../../hooks/useTripRangeGuard'
 import type { ShiftMode } from '../../utils/dayImpactLines'
+import { useTripCoverPicker } from './useTripCoverPicker'
+import { tripFormError } from './tripFormModel'
 
 type DateShiftMode = ShiftMode
 type TripPayload = TripCreateRequest & { date_shift_mode?: DateShiftMode }
@@ -42,21 +43,9 @@ interface TripFormModalProps {
   onCoverUpdate?: (tripId: number, coverUrl: string | null) => void
 }
 
-interface CoverSearchPhoto {
-  id: string
-  url: string
-  thumb: string
-  description?: string | null
-  photographer?: string | null
-  link?: string | null
-}
-
 export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUpdate }: TripFormModalProps) {
   const isEditing = !!trip
   const fileRef = useRef<HTMLInputElement>(null)
-  const coverSearchSeq = useRef(0)
-  // The staged cover lives on as an object URL until it is replaced or the modal goes.
-  const previewUrlRef = useRef<string | null>(null)
   const toast = useToast()
   const { t } = useTranslation()
   const currentUser = useAuthStore(s => s.user)
@@ -79,14 +68,11 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const [customReminder, setCustomReminder] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [coverPreview, setCoverPreview] = useState<string | null>(null)
-  const [pendingCoverFile, setPendingCoverFile] = useState<File | null>(null)
-  const [pendingUnsplashUrl, setPendingUnsplashUrl] = useState<string | null>(null)
-  const [uploadingCover, setUploadingCover] = useState(false)
-  const [coverSearchQuery, setCoverSearchQuery] = useState('')
-  const [coverSearchResults, setCoverSearchResults] = useState<CoverSearchPhoto[]>([])
-  const [coverSearchError, setCoverSearchError] = useState('')
-  const [searchingCover, setSearchingCover] = useState(false)
+  const cover = useTripCoverPicker({ trip, title: formData.title, onCoverUpdate, releasePreviewOnChange: false })
+  const {
+    coverPreview, uploadingCover, searchQuery: coverSearchQuery, setSearchQuery: setCoverSearchQuery,
+    searchResults: coverSearchResults, searchError: coverSearchError, searching: searchingCover,
+  } = cover
   // Drives the drop zone's hover look. Used to be four handlers writing
   // element.style directly, which is how the indigo dragover colour survived
   // the move to a configurable accent.
@@ -113,22 +99,12 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         day_count: trip.day_count || 7,
       })
       setCustomReminder(![0, 1, 3, 9].includes(rd))
-      setCoverPreview(trip.cover_image || null)
-      setCoverSearchQuery('')
+      cover.resetCover(trip.cover_image || null)
     } else {
       setFormData({ title: '', description: '', start_date: '', end_date: '', currency: defaultCurrency, reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7 })
       setCustomReminder(false)
-      setCoverPreview(null)
-      setCoverSearchQuery('')
+      cover.resetCover(null)
     }
-    if (previewUrlRef.current) {
-      URL.revokeObjectURL(previewUrlRef.current)
-      previewUrlRef.current = null
-    }
-    setPendingCoverFile(null)
-    setPendingUnsplashUrl(null)
-    setCoverSearchResults([])
-    setCoverSearchError('')
     setSelectedMembers([])
     setPendingReview(null)
     setDateShiftMode('keep_bookings')
@@ -153,24 +129,11 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     }
   }, [tripRemindersEnabled])
 
-  // A staged cover that never got uploaded would otherwise pin the full image for
-  // as long as the tab lives.
-  useEffect(() => () => {
-    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
-  }, [])
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    if (!formData.title.trim()) { setError(t('dashboard.titleRequired')); return }
-    if (formData.start_date && formData.end_date) {
-      const span = tripSpanDays(formData.start_date, formData.end_date)
-      if (span < 1) { setError(t('dashboard.endDateError')); return }
-      // Only a range being set is held to the limit, as on the server: a trip that
-      // already carries a longer one can still be renamed.
-      const datesTouched = !trip || formData.start_date !== (trip.start_date || '') || formData.end_date !== (trip.end_date || '')
-      if (datesTouched && span > MAX_TRIP_DAYS) { setError(t('dashboard.tripTooLong', { days: MAX_TRIP_DAYS })); return }
-    }
+    const formError = tripFormError({ title: formData.title, startDate: formData.start_date, endDate: formData.end_date }, trip, t)
+    if (formError) { setError(formError); return }
     if (!formData.start_date && !formData.end_date) {
       const dc = Number(formData.day_count)
       if (formData.day_count === '' || !Number.isInteger(dc) || dc < 1 || dc > MAX_TRIP_DAYS) {
@@ -225,24 +188,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         if (memberAddFailed) toast.error(t('trips.memberAddError'))
       }
       // Upload pending cover for newly created trips
-      if (pendingCoverFile && createdTrip?.id) {
-        try {
-          const fd = new FormData()
-          fd.append('cover', pendingCoverFile)
-          const data = await tripsApi.uploadCover(createdTrip.id, fd)
-          onCoverUpdate?.(createdTrip.id, data.cover_image)
-        } catch {
-          // Cover upload failed but trip was created — surface it without blocking the create
-          toast.error(t('dashboard.coverUploadError'))
-        }
-      } else if (pendingUnsplashUrl && createdTrip?.id) {
-        try {
-          await tripsApi.update(createdTrip.id, { cover_image: pendingUnsplashUrl })
-          onCoverUpdate?.(createdTrip.id, pendingUnsplashUrl)
-        } catch {
-          toast.error(t('dashboard.coverSaveError'))
-        }
-      }
+      await cover.applyToCreatedTrip(createdTrip?.id)
       onClose()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('places.saveError'))
@@ -251,106 +197,16 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     }
   }
 
-  const handleCoverSelect = async (file: File | null | undefined) => {
-    if (!file) return
-    // HEIC/HEIF from iOS can't be rendered or stored as-is — convert to JPEG first
-    const normalized = await normalizeImageFile(file)
-    setPendingUnsplashUrl(null)
-    if (isEditing && trip?.id) {
-      // Existing trip: upload immediately
-      uploadCoverNow(normalized)
-    } else {
-      // New trip: stage for upload after creation
-      setPendingCoverFile(normalized)
-      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
-      previewUrlRef.current = URL.createObjectURL(normalized)
-      setCoverPreview(previewUrlRef.current)
-    }
-  }
+  const handleCoverSelect = cover.selectFile
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleCoverSelect(e.target.files?.[0])
+    void handleCoverSelect(e.target.files?.[0])
     e.target.value = ''
   }
 
-  const uploadCoverNow = async (file: File) => {
-    setUploadingCover(true)
-    try {
-      const fd = new FormData()
-      fd.append('cover', file)
-      const data = await tripsApi.uploadCover(trip.id, fd)
-      setCoverPreview(data.cover_image)
-      onCoverUpdate?.(trip.id, data.cover_image)
-      toast.success(t('dashboard.coverSaved'))
-    } catch {
-      toast.error(t('dashboard.coverUploadError'))
-    } finally {
-      setUploadingCover(false)
-    }
-  }
-
-  const handleCoverSearch = async () => {
-    const query = coverSearchQuery.trim() || formData.title.trim()
-    if (!query) {
-      setCoverSearchError(t('dashboard.unsplashQueryRequired'))
-      return
-    }
-    // Guard against out-of-order responses: only the latest search applies its
-    // results, so a slow earlier query can't overwrite a newer one. #1277 review
-    const seq = ++coverSearchSeq.current
-    setSearchingCover(true)
-    setCoverSearchError('')
-    try {
-      const data = await tripsApi.searchCoverImages(query)
-      if (seq !== coverSearchSeq.current) return
-      const photos = data.photos || []
-      setCoverSearchResults(photos)
-      if (photos.length === 0) setCoverSearchError(t('dashboard.unsplashNoResults'))
-    } catch (err: unknown) {
-      if (seq !== coverSearchSeq.current) return
-      setCoverSearchError(getApiErrorMessage(err, t('dashboard.coverSearchError')))
-    } finally {
-      if (seq === coverSearchSeq.current) setSearchingCover(false)
-    }
-  }
-
-  const handleUnsplashSelect = async (photo: CoverSearchPhoto) => {
-    if (!photo.url) return
-    setPendingCoverFile(null)
-    if (isEditing && trip?.id) {
-      setUploadingCover(true)
-      try {
-        await tripsApi.update(trip.id, { cover_image: photo.url })
-        setCoverPreview(photo.url)
-        onCoverUpdate?.(trip.id, photo.url)
-        toast.success(t('dashboard.coverSaved'))
-      } catch (err: unknown) {
-        toast.error(getApiErrorMessage(err, t('dashboard.coverSaveError')))
-      } finally {
-        setUploadingCover(false)
-      }
-    } else {
-      setPendingUnsplashUrl(photo.url)
-      setCoverPreview(photo.url)
-    }
-  }
-
-  const handleRemoveCover = async () => {
-    if (pendingCoverFile || pendingUnsplashUrl) {
-      setPendingCoverFile(null)
-      setPendingUnsplashUrl(null)
-      setCoverPreview(null)
-      return
-    }
-    // Nothing pending left, so the preview is a saved trip's stored cover.
-    try {
-      await tripsApi.update(trip.id, { cover_image: null })
-      setCoverPreview(null)
-      onCoverUpdate?.(trip.id, null)
-    } catch {
-      toast.error(t('dashboard.coverRemoveError'))
-    }
-  }
+  const handleCoverSearch = cover.search
+  const handleUnsplashSelect = cover.selectPhoto
+  const handleRemoveCover = cover.removeCover
 
   // Paste support for cover image
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -361,7 +217,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       if (item.type.startsWith('image/')) {
         e.preventDefault()
         const file = item.getAsFile()
-        if (file) handleCoverSelect(file)
+        if (file) void handleCoverSelect(file)
         return
       }
     }
@@ -373,12 +229,9 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       if (!prev.end_date || prev.end_date < value) {
         next.end_date = value
       } else if (prev.start_date) {
-        const oldStart = new Date(prev.start_date + 'T00:00:00Z')
-        const oldEnd = new Date(prev.end_date + 'T00:00:00Z')
-        const duration = Math.round((oldEnd.getTime() - oldStart.getTime()) / 86400000)
-        const newEnd = new Date(value + 'T00:00:00Z')
-        newEnd.setDate(newEnd.getDate() + duration)
-        next.end_date = newEnd.toISOString().split('T')[0]
+        // Keep the trip's length, counted in UTC calendar days: a local-time
+        // shift across a DST change used to drop or add a day.
+        next.end_date = addIsoDays(value, tripSpanDays(prev.start_date, prev.end_date) - 1)
       }
     }
     return next
@@ -471,7 +324,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
           {coverPreview ? (
             <div className="relative h-[130px] rounded-xl overflow-hidden">
               <img src={coverPreview} alt="" className="w-full h-full object-cover" />
-              <div className="absolute bottom-2 right-2 flex gap-1.5">
+              <div className="absolute bottom-2 end-2 flex gap-1.5">
                 {/* Chrome sitting on top of a photo, so it is deliberately dark in
                     both themes rather than following the surface tokens. */}
                 <button type="button" onClick={() => fileRef.current?.click()} disabled={uploadingCover}
@@ -488,7 +341,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             <button type="button" onClick={() => fileRef.current?.click()} disabled={uploadingCover}
               onDragOver={e => { e.preventDefault(); setCoverDragActive(true) }}
               onDragLeave={() => setCoverDragActive(false)}
-              onDrop={e => { e.preventDefault(); setCoverDragActive(false); const file = e.dataTransfer.files?.[0]; if (file?.type.startsWith('image/')) handleCoverSelect(file) }}
+              onDrop={e => { e.preventDefault(); setCoverDragActive(false); const file = e.dataTransfer.files?.[0]; if (file?.type.startsWith('image/')) void handleCoverSelect(file) }}
               className={`w-full h-[130px] px-4 border-2 border-dashed rounded-xl flex items-center justify-center gap-1.5 text-body transition-colors ${
                 coverDragActive
                   ? 'border-accent bg-accent-subtle text-content'
@@ -502,7 +355,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               type="text"
               value={coverSearchQuery}
               onChange={e => setCoverSearchQuery(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCoverSearch() } }}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void handleCoverSearch() } }}
               placeholder={t('dashboard.unsplashSearchPlaceholder')}
               className={inputCls}
             />

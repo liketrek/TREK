@@ -1,81 +1,24 @@
 /**
- * Unit tests for the pure places helpers (moved from
- * tests/unit/services/kmzUnpack.test.ts when placeService went DI-native — the
- * KMZ unpacker touches no DB, so it lives in places.helpers.ts).
+ * Unit tests for the pure places helpers: the import dedup predicates and the
+ * enrichment plumbing. The KMZ unpacker and the Google list id parsing moved
+ * with their code to place-import/ (kml.codec.test.ts, google-list.provider.test.ts).
  */
+import {
+  COORD_DEDUP_TOLERANCE,
+  externalIdsOf,
+  isPlaceDuplicate,
+  mapWithConcurrency,
+  trackInsertedInDedupSet,
+  trimOrNull,
+  type DedupSet,
+} from '../../../src/nest/places/places.helpers';
+
 import { describe, it, expect, vi } from 'vitest';
-import path from 'path';
-import fs from 'fs';
 
 vi.mock('../../../src/db/database', () => ({
   db: { prepare: vi.fn() },
   getPlaceWithTags: vi.fn(),
 }));
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
-
-import {
-  COORD_DEDUP_TOLERANCE,
-  googleMapsFeatureIdFromItem,
-  googleMapsHexId,
-  externalIdsOf,
-  isPlaceDuplicate,
-  KMZ_DECOMPRESSED_SIZE_LIMIT,
-  mapWithConcurrency,
-  trackInsertedInDedupSet,
-  trimOrNull,
-  unpackKmzToKml,
-  type DedupSet,
-} from '../../../src/nest/places/places.helpers';
-
-const KMZ_FIXTURE = path.join(__dirname, '../../fixtures/test.kmz');
-
-describe('unpackKmzToKml', () => {
-  it('extracts the KML entry from a valid KMZ', async () => {
-    const kmzBuffer = fs.readFileSync(KMZ_FIXTURE);
-    const kmlBuffer = await unpackKmzToKml(kmzBuffer);
-    expect(kmlBuffer.length).toBeGreaterThan(0);
-    expect(kmlBuffer.toString('utf-8')).toContain('<kml');
-  });
-
-  it('rejects a KMZ whose KML entry exceeds the decompressed size limit', async () => {
-    const kmzBuffer = fs.readFileSync(KMZ_FIXTURE);
-    // test.kmz contains a KML with uncompressedSize 634 — set limit to 1 byte
-    await expect(unpackKmzToKml(kmzBuffer, 1)).rejects.toThrow('exceeds the maximum allowed decompressed size');
-  });
-
-  it('rejects a KMZ that contains no KML file', async () => {
-    // Craft a minimal ZIP containing only a non-KML entry using raw ZIP bytes
-    // We use the test GPX fixture (a real file) re-zipped via Node's zlib/archiver
-    // Simplest: a KMZ whose only file has a .txt extension
-    const Archiver = await import('archiver');
-    const archiver = Archiver.default;
-    const { PassThrough } = await import('stream');
-
-    const chunks: Buffer[] = [];
-    const output = new PassThrough();
-    output.on('data', (chunk) => chunks.push(chunk));
-
-    const archive = archiver('zip', { zlib: { level: 1 } });
-    archive.pipe(output);
-    archive.append(Buffer.from('not a kml'), { name: 'data.txt' });
-    await archive.finalize();
-
-    const zipBuffer = Buffer.concat(chunks);
-    await expect(unpackKmzToKml(zipBuffer)).rejects.toThrow('does not contain a KML file');
-  });
-
-  it('rejects a buffer that is not a valid ZIP archive', async () => {
-    await expect(unpackKmzToKml(Buffer.from('this is not a zip'))).rejects.toThrow('Invalid KMZ archive');
-  });
-
-  it('exports KMZ_DECOMPRESSED_SIZE_LIMIT as 50 MB', () => {
-    expect(KMZ_DECOMPRESSED_SIZE_LIMIT).toBe(50 * 1024 * 1024);
-  });
-});
 
 // ── Import dedup predicates ───────────────────────────────────────────────────
 
@@ -116,7 +59,9 @@ describe('isPlaceDuplicate / trackInsertedInDedupSet', () => {
     // The user renamed it in TREK; the list still calls it what Google calls it.
     dedup.names.delete('trattoria da enzo');
     dedup.names.add('dinner tuesday');
-    expect(isPlaceDuplicate({ name: 'Trattoria da Enzo', lat: 41.88, lng: 12.47, google_ftid: '0x1:0x2' }, dedup)).toBe(true);
+    expect(isPlaceDuplicate({ name: 'Trattoria da Enzo', lat: 41.88, lng: 12.47, google_ftid: '0x1:0x2' }, dedup)).toBe(
+      true,
+    );
   });
 
   it('matches on any of the three id columns, and ignores blank ones', () => {
@@ -132,7 +77,9 @@ describe('isPlaceDuplicate / trackInsertedInDedupSet', () => {
     const dedup = emptyDedup();
     // Identical coordinates, different ids: the restaurant and the bar downstairs.
     trackInsertedInDedupSet({ name: 'Rooftop Bar', lat: 52.52, lng: 13.405, google_ftid: '0xaa:0xbb' }, dedup);
-    expect(isPlaceDuplicate({ name: 'Ground Floor Diner', lat: 52.52, lng: 13.405, google_ftid: '0xcc:0xdd' }, dedup)).toBe(false);
+    expect(
+      isPlaceDuplicate({ name: 'Ground Floor Diner', lat: 52.52, lng: 13.405, google_ftid: '0xcc:0xdd' }, dedup),
+    ).toBe(false);
   });
 
   it('leaves id-less imports on their old behaviour', () => {
@@ -146,32 +93,6 @@ describe('isPlaceDuplicate / trackInsertedInDedupSet', () => {
   it('externalIdsOf trims and drops empties', () => {
     expect(externalIdsOf({ google_place_id: ' ChIJ ', google_ftid: '', osm_id: null })).toEqual(['ChIJ']);
     expect(externalIdsOf({})).toEqual([]);
-  });
-});
-
-// ── Google Maps feature ids ───────────────────────────────────────────────────
-
-describe('googleMapsHexId / googleMapsFeatureIdFromItem', () => {
-  it('passes an already-hex id through lower-cased', () => {
-    expect(googleMapsHexId('0x882BF179E806D471')).toBe('0x882bf179e806d471');
-  });
-
-  it("converts Google's signed 64-bit decimals to unsigned hex", () => {
-    expect(googleMapsHexId('-8634542354666695567')).toBe('0x882bf179e806d471');
-    expect(googleMapsHexId(255)).toBe('0xff');
-  });
-
-  it('rejects anything that is not a hex or decimal id', () => {
-    expect(googleMapsHexId('not-an-id')).toBeNull();
-    expect(googleMapsHexId(null)).toBeNull();
-    expect(googleMapsHexId({})).toBeNull();
-  });
-
-  it('reads the ftid pair from either item slot, else null', () => {
-    expect(googleMapsFeatureIdFromItem([null, [0, 0, 0, 0, 0, 0, ['0x1', '0x2']]])).toBe('0x1:0x2');
-    expect(googleMapsFeatureIdFromItem([null, null, null, null, null, null, null, [null, ['0x3', '0x4']]])).toBe('0x3:0x4');
-    expect(googleMapsFeatureIdFromItem([null, [0, 0, 0, 0, 0, 0, ['0x1']]])).toBeNull();
-    expect(googleMapsFeatureIdFromItem('not an array')).toBeNull();
   });
 });
 

@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Mégse',
   'common.clear': 'Törlés',
   'common.delete': 'Törlés',
+  'common.remove': 'Eltávolítás',
   'common.preview': 'Előnézet',
   'common.edit': 'Szerkesztés',
   'common.add': 'Hozzáadás',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': 'Átnevezés',
   'common.discardChanges': 'Változtatások elvetése',
   'common.discard': 'Elveti',
+  'common.unsavedTitle': 'Elveted a módosításokat?',
+  'common.unsavedMessage': 'Amit itt megadtál, még nincs elmentve.',
+  'common.keepEditing': 'Szerkesztés folytatása',
   'common.name': 'Név',
   'common.email': 'E-mail',
   'common.password': 'Jelszó',
@@ -51,7 +55,9 @@ const common: TranslationStrings = {
   'common.copied': 'Másolva',
   'common.justNow': 'az imént',
   'common.hoursAgo': '{count} órája',
+  'common.hoursAgo.one': '{count} órája',
   'common.daysAgo': '{count} napja',
+  'common.daysAgo.one': '{count} napja',
   'common.datepicker.prevMonth': 'Previous month', // en-fallback
   'common.datepicker.nextMonth': 'Next month', // en-fallback
   'common.datepicker.prevYear': 'Previous year', // en-fallback

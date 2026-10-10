@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import {
   backoffSeconds,
   isAllowedByOperator,
@@ -10,6 +9,8 @@ import {
   type SyncItemState,
 } from '../../../../src/nest/doc-sync/doc-sync.helpers';
 import type { RemoteDocument } from '../../../../src/nest/doc-sync/document-provider';
+
+import { describe, expect, it } from 'vitest';
 
 /**
  * The planner decides everything that matters about two-way sync, and it does
@@ -115,7 +116,7 @@ describe('planReconcile', () => {
    * forever. It compares content rather than timestamps on purpose: a time
    * window misfires on any clock skew between TREK and a NAS.
    */
-  it('treats a change whose content matches TREK\'s own push as no change', () => {
+  it("treats a change whose content matches TREK's own push as no change", () => {
     const p = plan({
       items: [item({ pushedSha256: 'aaa' })],
       remote: [remote({ remoteVersion: 'v2', contentHash: 'aaa' })],
@@ -146,7 +147,9 @@ describe('planReconcile', () => {
       remote: [remote({ remoteVersion: 'v2', contentHash: 'aaa' })],
       local: [local()],
     });
-    expect(p.actions).toEqual([{ kind: 'touch', itemId: 10, remote: remote({ remoteVersion: 'v2', contentHash: 'aaa' }) }]);
+    expect(p.actions).toEqual([
+      { kind: 'touch', itemId: 10, remote: remote({ remoteVersion: 'v2', contentHash: 'aaa' }) },
+    ]);
   });
 
   it('still follows a rename that came with such an edit', () => {
@@ -383,7 +386,15 @@ describe('backoffSeconds', () => {
  */
 describe('planReconcile > shelving a row that keeps failing', () => {
   const failing = (over: Partial<SyncItemState> = {}) =>
-    item({ id: 20, remoteId: null, remoteVersion: null, remoteName: null, contentSha256: null, state: 'error', ...over });
+    item({
+      id: 20,
+      remoteId: null,
+      remoteVersion: null,
+      remoteName: null,
+      contentSha256: null,
+      state: 'error',
+      ...over,
+    });
 
   it('re-plans a failed push while attempts are left', () => {
     const p = plan({
@@ -391,7 +402,7 @@ describe('planReconcile > shelving a row that keeps failing', () => {
       local: [local({ fileId: 1 })],
       maxAttempts: 6,
     });
-    expect(p.actions.map(a => a.kind)).toContain('push');
+    expect(p.actions.map((a) => a.kind)).toContain('push');
   });
 
   it('stops re-planning once the attempts are used up', () => {
@@ -400,7 +411,7 @@ describe('planReconcile > shelving a row that keeps failing', () => {
       local: [local({ fileId: 1 })],
       maxAttempts: 6,
     });
-    expect(p.actions.map(a => a.kind)).not.toContain('push');
+    expect(p.actions.map((a) => a.kind)).not.toContain('push');
   });
 
   it('stops re-planning past the limit as well, not only exactly at it', () => {
@@ -429,7 +440,7 @@ describe('planReconcile > shelving a row that keeps failing', () => {
       maxAttempts: 6,
       now: '2026-06-01 00:00:00',
     });
-    expect(p.actions.map(a => a.kind)).toContain('push');
+    expect(p.actions.map((a) => a.kind)).toContain('push');
   });
 
   it('leaves a healthy row alone however high its old attempt count is', () => {
@@ -441,7 +452,7 @@ describe('planReconcile > shelving a row that keeps failing', () => {
       local: [local({ fileId: 1 })],
       maxAttempts: 6,
     });
-    expect(p.actions.map(a => a.kind)).toContain('pull_update');
+    expect(p.actions.map((a) => a.kind)).toContain('pull_update');
   });
 
   it('leaves a shelved row alone even when its provider copy is gone too', () => {
@@ -488,7 +499,7 @@ describe('planReconcile > upstream reported as unchanged', () => {
       local: [local({ fileId: 1 })],
       remoteUnchanged: true,
     });
-    expect(p.actions.map(a => a.kind)).not.toContain('mark_remote_missing');
+    expect(p.actions.map((a) => a.kind)).not.toContain('mark_remote_missing');
   });
 
   it('still pushes a document TREK gained in the meantime', () => {
@@ -498,7 +509,9 @@ describe('planReconcile > upstream reported as unchanged', () => {
       local: [local({ fileId: 7, name: 'new.pdf' })],
       remoteUnchanged: true,
     });
-    expect(p.actions).toEqual([{ kind: 'push', local: expect.objectContaining({ fileId: 7 }), itemId: null, remoteId: null }]);
+    expect(p.actions).toEqual([
+      { kind: 'push', local: expect.objectContaining({ fileId: 7 }), itemId: null, remoteId: null },
+    ]);
   });
 
   it('still reports a document TREK deleted in the meantime', () => {
@@ -535,8 +548,7 @@ describe('planReconcile > upstream reported as unchanged', () => {
   it('works the old way when the provider does report a change', () => {
     // The same shape with the flag off is exactly the case that used to break:
     // an empty listing then really does mean everything vanished.
-    const many = Array.from({ length: 6 }, (_, i) =>
-      item({ id: i + 1, fileId: i + 1, remoteId: `r${i + 1}` }));
+    const many = Array.from({ length: 6 }, (_, i) => item({ id: i + 1, fileId: i + 1, remoteId: `r${i + 1}` }));
     const p = plan({
       items: many,
       remote: [],
@@ -568,7 +580,9 @@ describe('planReconcile > a pairing whose download never landed', () => {
       remote: [remote({ remoteId: 'r1', remoteVersion: 'v1' })],
       local: [],
     });
-    expect(p.actions).toEqual([{ kind: 'pull_update', remote: expect.objectContaining({ remoteId: 'r1' }), itemId: 40 }]);
+    expect(p.actions).toEqual([
+      { kind: 'pull_update', remote: expect.objectContaining({ remoteId: 'r1' }), itemId: 40 },
+    ]);
   });
 
   it('does not on a push-only binding, which has no business pulling', () => {
@@ -578,7 +592,7 @@ describe('planReconcile > a pairing whose download never landed', () => {
       local: [],
       direction: 'push',
     });
-    expect(p.actions.map(a => a.kind)).not.toContain('pull_update');
+    expect(p.actions.map((a) => a.kind)).not.toContain('pull_update');
   });
 
   it('leaves a rejected type alone: that answer does not change by trying again', () => {
@@ -587,7 +601,7 @@ describe('planReconcile > a pairing whose download never landed', () => {
       remote: [remote({ remoteId: 'r1', remoteVersion: 'v1' })],
       local: [],
     });
-    expect(p.actions.map(a => a.kind)).not.toContain('pull_update');
+    expect(p.actions.map((a) => a.kind)).not.toContain('pull_update');
   });
 
   it('leaves an oversized document alone for the same reason', () => {
@@ -596,7 +610,7 @@ describe('planReconcile > a pairing whose download never landed', () => {
       remote: [remote({ remoteId: 'r1', remoteVersion: 'v1' })],
       local: [],
     });
-    expect(p.actions.map(a => a.kind)).not.toContain('pull_update');
+    expect(p.actions.map((a) => a.kind)).not.toContain('pull_update');
   });
 
   it('does try a rejected one again once the document upstream changes', () => {
@@ -605,7 +619,7 @@ describe('planReconcile > a pairing whose download never landed', () => {
       remote: [remote({ remoteId: 'r1', remoteVersion: 'v2' })],
       local: [],
     });
-    expect(p.actions.map(a => a.kind)).toContain('pull_update');
+    expect(p.actions.map((a) => a.kind)).toContain('pull_update');
   });
 
   it('gives up with the rest once the attempts are spent', () => {
@@ -624,7 +638,7 @@ describe('planReconcile > a pairing whose download never landed', () => {
       remote: [remote({ remoteId: 'r1', remoteVersion: 'v1' })],
       local: [local({ fileId: 1 })],
     });
-    expect(p.actions.map(a => a.kind)).toEqual(['touch']);
+    expect(p.actions.map((a) => a.kind)).toEqual(['touch']);
   });
 });
 
@@ -641,9 +655,9 @@ describe('planReconcile > a provider name TREK had to clean up', () => {
     const p = plan({
       items: [item({ remoteName: 'a/b.pdf', contentSha256: 'aaa' })],
       remote: [remote({ remoteId: 'r1', name: 'a/b.pdf', remoteVersion: 'v1' })],
-      local: [local({ fileId: 1, name: 'b.pdf' })],   // what sanitizeIncomingName made of it
+      local: [local({ fileId: 1, name: 'b.pdf' })], // what sanitizeIncomingName made of it
     });
-    expect(p.actions.map(a => a.kind)).toEqual(['touch']);
+    expect(p.actions.map((a) => a.kind)).toEqual(['touch']);
   });
 
   it('still follows a real rename at the provider', () => {
@@ -652,7 +666,7 @@ describe('planReconcile > a provider name TREK had to clean up', () => {
       remote: [remote({ remoteId: 'r1', name: 'invoice.pdf', remoteVersion: 'v1' })],
       local: [local({ fileId: 1, name: 'b.pdf' })],
     });
-    expect(p.actions.map(a => a.kind)).toEqual(['rename_local']);
+    expect(p.actions.map((a) => a.kind)).toEqual(['rename_local']);
   });
 
   it('takes a new name into TREK the way a download would have written it, so it stays', () => {
@@ -693,7 +707,7 @@ describe('planReconcile > a TREK name the cleaning would change', () => {
   it('does not read the cleaning as a rename made in TREK', () => {
     // Paperless keeps the title as it was sent, so the listing carries the colon.
     const p = plan({ items: [pushed], remote: [remote({ name: 'Zugticket 08:15.pdf' })], local: [mine] });
-    expect(p.actions.map(a => a.kind)).toEqual(['touch']);
+    expect(p.actions.map((a) => a.kind)).toEqual(['touch']);
   });
 
   it('follows the name the store made of it where the store cleans differently', () => {
@@ -711,12 +725,21 @@ describe('planReconcile > a TREK name the cleaning would change', () => {
   });
 
   it('sends nothing upstream on a push-only binding either', () => {
-    const p = plan({ items: [pushed], remote: [remote({ name: 'Zugticket 08:15.pdf' })], local: [mine], direction: 'push' });
-    expect(p.actions.map(a => a.kind)).toEqual(['touch']);
+    const p = plan({
+      items: [pushed],
+      remote: [remote({ name: 'Zugticket 08:15.pdf' })],
+      local: [mine],
+      direction: 'push',
+    });
+    expect(p.actions.map((a) => a.kind)).toEqual(['touch']);
   });
 
   it('still sends a real rename made in TREK', () => {
-    const p = plan({ items: [pushed], remote: [remote({ name: 'Zugticket 08:15.pdf' })], local: [local({ fileId: 1, name: 'Zugticket 09:15.pdf' })] });
+    const p = plan({
+      items: [pushed],
+      remote: [remote({ name: 'Zugticket 08:15.pdf' })],
+      local: [local({ fileId: 1, name: 'Zugticket 09:15.pdf' })],
+    });
     expect(p.actions).toEqual([{ kind: 'rename_remote', itemId: 10, remoteId: 'r1', name: 'Zugticket 09:15.pdf' }]);
   });
 });
@@ -733,19 +756,32 @@ describe('planReconcile > a TREK name the cleaning would change', () => {
  */
 describe('planReconcile > a rename upstream where the id is the path', () => {
   const at = '2026-09-18T10:00:00Z';
-  const paired = (over: Partial<SyncItemState> = {}) => item({
-    remoteId: '/trek/a.pdf', remoteVersion: 'va', remoteName: 'a.pdf', contentSha256: 'hash-a',
-    remoteSize: 1024, remoteModifiedAt: at, ...over,
-  });
-  const listed = (over: Partial<RemoteDocument> = {}) => remote({
-    remoteId: '/trek/b.pdf', name: 'b.pdf', remoteVersion: 'vb', contentHash: 'hash-a',
-    size: 1024, remoteModifiedAt: at, ...over,
-  });
+  const paired = (over: Partial<SyncItemState> = {}) =>
+    item({
+      remoteId: '/trek/a.pdf',
+      remoteVersion: 'va',
+      remoteName: 'a.pdf',
+      contentSha256: 'hash-a',
+      remoteSize: 1024,
+      remoteModifiedAt: at,
+      ...over,
+    });
+  const listed = (over: Partial<RemoteDocument> = {}) =>
+    remote({
+      remoteId: '/trek/b.pdf',
+      name: 'b.pdf',
+      remoteVersion: 'vb',
+      contentHash: 'hash-a',
+      size: 1024,
+      remoteModifiedAt: at,
+      ...over,
+    });
   // No local hash, as in production: TREK has no way to change a file's bytes,
   // so the service never reports one (see loadLocalDocuments).
   const file = (over: Partial<LocalDocument> = {}) => local({ name: 'a.pdf', sha256: null, ...over });
-  const pathIds = (over: Partial<Parameters<typeof planReconcile>[0]> = {}) => plan({ stableRemoteIds: false, ...over });
-  const kinds = (p: ReturnType<typeof plan>) => p.actions.map(a => a.kind);
+  const pathIds = (over: Partial<Parameters<typeof planReconcile>[0]> = {}) =>
+    plan({ stableRemoteIds: false, ...over });
+  const kinds = (p: ReturnType<typeof plan>) => p.actions.map((a) => a.kind);
 
   it('takes the new name into TREK and leaves it there on the next run', () => {
     const first = pathIds({ items: [paired()], remote: [listed()], local: [file()] });
@@ -771,7 +807,7 @@ describe('planReconcile > a rename upstream where the id is the path', () => {
       remote: [listed()],
       local: [file()],
     });
-    expect(pathKeyed.actions.filter(a => a.kind !== 'relocate')).toEqual(stable.actions);
+    expect(pathKeyed.actions.filter((a) => a.kind !== 'relocate')).toEqual(stable.actions);
   });
 
   it('does not flag the renamed copy as missing', () => {
@@ -781,17 +817,25 @@ describe('planReconcile > a rename upstream where the id is the path', () => {
   });
 
   it('does not read a whole folder moved in one go as a mass deletion', () => {
-    const rows = Array.from({ length: 10 }, (_, i) => paired({
-      id: 100 + i, fileId: 100 + i, remoteId: `/trek/${i}.pdf`, remoteName: `${i}.pdf`, contentSha256: `hash-${i}`,
-    }));
+    const rows = Array.from({ length: 10 }, (_, i) =>
+      paired({
+        id: 100 + i,
+        fileId: 100 + i,
+        remoteId: `/trek/${i}.pdf`,
+        remoteName: `${i}.pdf`,
+        contentSha256: `hash-${i}`,
+      }),
+    );
     const p = pathIds({
       items: rows,
-      remote: rows.map((_, i) => listed({ remoteId: `/trek/2026/${i}.pdf`, name: `${i}.pdf`, contentHash: `hash-${i}` })),
+      remote: rows.map((_, i) =>
+        listed({ remoteId: `/trek/2026/${i}.pdf`, name: `${i}.pdf`, contentHash: `hash-${i}` }),
+      ),
       local: rows.map((r, i) => file({ fileId: r.fileId as number, name: `${i}.pdf` })),
     });
     expect(p.massDeleteGuardTripped).toBe(false);
     expect(p.missingCount).toBe(0);
-    expect(kinds(p).filter(k => k === 'relocate')).toHaveLength(10);
+    expect(kinds(p).filter((k) => k === 'relocate')).toHaveLength(10);
     expect(kinds(p)).not.toContain('pull');
   });
 
@@ -840,7 +884,10 @@ describe('planReconcile > a rename upstream where the id is the path', () => {
         paired({ id: 1, fileId: 1, remoteId: '/trek/a1.pdf', remoteName: 'a1.pdf' }),
         paired({ id: 2, fileId: 2, remoteId: '/trek/a2.pdf', remoteName: 'a2.pdf' }),
       ],
-      remote: [listed({ remoteId: '/trek/b1.pdf', name: 'b1.pdf' }), listed({ remoteId: '/trek/b2.pdf', name: 'b2.pdf' })],
+      remote: [
+        listed({ remoteId: '/trek/b1.pdf', name: 'b1.pdf' }),
+        listed({ remoteId: '/trek/b2.pdf', name: 'b2.pdf' }),
+      ],
       local: [file({ fileId: 1, name: 'a1.pdf' }), file({ fileId: 2, name: 'a2.pdf' })],
     });
     expect(kinds(p).sort()).toEqual(['mark_remote_missing', 'mark_remote_missing', 'pull', 'pull']);
@@ -857,11 +904,11 @@ describe('planReconcile > a rename upstream where the id is the path', () => {
       remote: [two, one],
       local: [file({ fileId: 1, name: 'a1.pdf' }), file({ fileId: 2, name: 'a2.pdf' })],
     });
-    expect(p.actions.filter(a => a.kind === 'relocate')).toEqual([
+    expect(p.actions.filter((a) => a.kind === 'relocate')).toEqual([
       { kind: 'relocate', itemId: 1, remote: one },
       { kind: 'relocate', itemId: 2, remote: two },
     ]);
-    expect(kinds(p).filter(k => k !== 'relocate')).toEqual(['touch', 'touch']);
+    expect(kinds(p).filter((k) => k !== 'relocate')).toEqual(['touch', 'touch']);
   });
 
   it('follows the one of two identical copies that was renamed and leaves the other', () => {
@@ -908,10 +955,16 @@ describe('planReconcile > a rename upstream where the id is the path', () => {
     // Deleting one of two identical files in TREK is the usual way two rows
     // come to share content. The binned one used to count as a candidate, so a
     // rename of the live one was a tie and came back as missing plus new.
-    const binned = (over: Partial<SyncItemState> = {}) => paired({
-      id: 1, fileId: 1, remoteId: '/trek/a1.pdf', remoteName: 'a1.pdf',
-      state: 'local_deleted', remoteTrashedAt: '2026-09-18 08:05:00', ...over,
-    });
+    const binned = (over: Partial<SyncItemState> = {}) =>
+      paired({
+        id: 1,
+        fileId: 1,
+        remoteId: '/trek/a1.pdf',
+        remoteName: 'a1.pdf',
+        state: 'local_deleted',
+        remoteTrashedAt: '2026-09-18 08:05:00',
+        ...over,
+      });
     const live = paired({ id: 2, fileId: 2, remoteId: '/trek/a2.pdf', remoteName: 'a2.pdf' });
     const renamed = listed({ remoteId: '/trek/b.pdf', name: 'b.pdf', contentHash: null });
 
@@ -919,7 +972,10 @@ describe('planReconcile > a rename upstream where the id is the path', () => {
       const p = pathIds({
         items: [binned(), live],
         remote: [renamed],
-        local: [file({ fileId: 1, name: 'a1.pdf', deletedAt: '2026-09-18 08:00:00' }), file({ fileId: 2, name: 'a2.pdf' })],
+        local: [
+          file({ fileId: 1, name: 'a1.pdf', deletedAt: '2026-09-18 08:00:00' }),
+          file({ fileId: 2, name: 'a2.pdf' }),
+        ],
       });
       expect(p.actions).toEqual([
         { kind: 'relocate', itemId: 2, remote: renamed },
@@ -929,7 +985,11 @@ describe('planReconcile > a rename upstream where the id is the path', () => {
     });
 
     it('does so once the binned one is purged as well', () => {
-      const p = pathIds({ items: [binned({ fileId: null }), live], remote: [renamed], local: [file({ fileId: 2, name: 'a2.pdf' })] });
+      const p = pathIds({
+        items: [binned({ fileId: null }), live],
+        remote: [renamed],
+        local: [file({ fileId: 2, name: 'a2.pdf' })],
+      });
       expect(kinds(p)).toEqual(['relocate', 'rename_local']);
       expect(p.actions[0]).toMatchObject({ itemId: 2 });
     });
@@ -985,7 +1045,7 @@ describe('planReconcile > both sides renamed', () => {
   const pathIds = (over: Partial<Parameters<typeof planReconcile>[0]> = {}) =>
     plan({ stableRemoteIds: false, items: [paired], remote: [theirs], local: [mine], ...over });
 
-  it('carries TREK\'s name upstream when TREK wins, and sends no bytes', () => {
+  it("carries TREK's name upstream when TREK wins, and sends no bytes", () => {
     const p = pathIds({ conflictPolicy: 'trek_wins' });
     expect(p.actions).toEqual([
       { kind: 'relocate', itemId: 10, remote: theirs },
@@ -993,7 +1053,7 @@ describe('planReconcile > both sides renamed', () => {
     ]);
   });
 
-  it('takes the provider\'s name into TREK when the provider wins, and fetches nothing', () => {
+  it("takes the provider's name into TREK when the provider wins, and fetches nothing", () => {
     const p = pathIds({ conflictPolicy: 'provider_wins' });
     expect(p.actions).toEqual([
       { kind: 'relocate', itemId: 10, remote: theirs },
@@ -1002,21 +1062,26 @@ describe('planReconcile > both sides renamed', () => {
   });
 
   it('does the same where ids are stable', () => {
-    const stable = (conflictPolicy: 'trek_wins' | 'provider_wins') => plan({
-      conflictPolicy,
-      items: [item({ remoteName: 'old.pdf' })],
-      remote: [remote({ name: 'theirs.pdf' })],
-      local: [local({ name: 'mine.pdf' })],
-    }).actions;
+    const stable = (conflictPolicy: 'trek_wins' | 'provider_wins') =>
+      plan({
+        conflictPolicy,
+        items: [item({ remoteName: 'old.pdf' })],
+        remote: [remote({ name: 'theirs.pdf' })],
+        local: [local({ name: 'mine.pdf' })],
+      }).actions;
     expect(stable('trek_wins')).toEqual([{ kind: 'rename_remote', itemId: 10, remoteId: 'r1', name: 'mine.pdf' }]);
     expect(stable('provider_wins')).toEqual([{ kind: 'rename_local', itemId: 10, fileId: 1, name: 'theirs.pdf' }]);
   });
 
   it('parks it when the direction forbids what the winner would need', () => {
-    expect(pathIds({ conflictPolicy: 'trek_wins', direction: 'pull' }).actions.map(a => a.kind))
-      .toEqual(['relocate', 'conflict']);
-    expect(pathIds({ conflictPolicy: 'provider_wins', direction: 'push' }).actions.map(a => a.kind))
-      .toEqual(['relocate', 'conflict']);
+    expect(pathIds({ conflictPolicy: 'trek_wins', direction: 'pull' }).actions.map((a) => a.kind)).toEqual([
+      'relocate',
+      'conflict',
+    ]);
+    expect(pathIds({ conflictPolicy: 'provider_wins', direction: 'push' }).actions.map((a) => a.kind)).toEqual([
+      'relocate',
+      'conflict',
+    ]);
   });
 });
 
@@ -1147,7 +1212,7 @@ describe('planReconcile > a deletion TREK already acted on', () => {
 
     it('still retries a first download, which never agreed on a hash', () => {
       const p = plan({ items: [failedUpdate({ contentSha256: null })], remote: [remote()], local: [] });
-      expect(p.actions.map(a => a.kind)).toEqual(['pull_update']);
+      expect(p.actions.map((a) => a.kind)).toEqual(['pull_update']);
     });
   });
 });
@@ -1168,12 +1233,12 @@ describe('planReconcile > a file taken back out of TREK trash', () => {
 
   it('resumes the pairing when the provider copy stayed', () => {
     const p = plan({ items: [settled()], remote: [remote({ remoteId: 'r5' })], local: [back] });
-    expect(p.actions.map(a => a.kind)).toEqual(['local_restored', 'touch']);
+    expect(p.actions.map((a) => a.kind)).toEqual(['local_restored', 'touch']);
   });
 
   it('brings down an edit made upstream in the meantime, as for any synced row', () => {
     const p = plan({ items: [settled()], remote: [remote({ remoteId: 'r5', remoteVersion: 'v2' })], local: [back] });
-    expect(p.actions.map(a => a.kind)).toEqual(['local_restored', 'pull_update']);
+    expect(p.actions.map((a) => a.kind)).toEqual(['local_restored', 'pull_update']);
   });
 
   it('flags a copy somebody else deleted meanwhile instead of uploading it', () => {
@@ -1196,7 +1261,7 @@ describe('planReconcile > a file taken back out of TREK trash', () => {
 
   it('resumes from a truncated listing that does show the copy', () => {
     const p = plan({ items: [settled()], remote: [remote({ remoteId: 'r5' })], local: [back], remoteTruncated: true });
-    expect(p.actions.map(a => a.kind)).toEqual(['local_restored', 'touch']);
+    expect(p.actions.map((a) => a.kind)).toEqual(['local_restored', 'touch']);
   });
 
   it('uploads it again when TREK was the one that binned the copy', () => {
@@ -1209,12 +1274,16 @@ describe('planReconcile > a file taken back out of TREK trash', () => {
 
   it('does so under an unchanged upstream too', () => {
     const p = plan({ items: [binnedByTrek()], remote: [], local: [back], remoteUnchanged: true });
-    expect(p.actions.map(a => a.kind)).toEqual(['detach', 'push']);
+    expect(p.actions.map((a) => a.kind)).toEqual(['detach', 'push']);
   });
 
   it('is not held back by the echo guard: nothing about it is a remote change', () => {
-    const p = plan({ items: [binnedByTrek({ pushedSha256: 'aaa' })], remote: [], local: [local({ fileId: 5, sha256: 'aaa' })] });
-    expect(p.actions.map(a => a.kind)).toEqual(['detach', 'push']);
+    const p = plan({
+      items: [binnedByTrek({ pushedSha256: 'aaa' })],
+      remote: [],
+      local: [local({ fileId: 5, sha256: 'aaa' })],
+    });
+    expect(p.actions.map((a) => a.kind)).toEqual(['detach', 'push']);
   });
 
   it('waits on a pull-only binding, which cannot upload', () => {
@@ -1229,16 +1298,17 @@ describe('planReconcile > a file taken back out of TREK trash', () => {
 
   it('resumes instead when the binned copy was restored at the provider as well', () => {
     const p = plan({ items: [binnedByTrek()], remote: [remote({ remoteId: 'r5' })], local: [back] });
-    expect(p.actions.map(a => a.kind)).toEqual(['local_restored', 'touch']);
+    expect(p.actions.map((a) => a.kind)).toEqual(['local_restored', 'touch']);
   });
 
   it('reads many restores after TREK binned them as uploads, not as a mass deletion', () => {
     const rows = Array.from({ length: 10 }, (_, i) =>
-      binnedByTrek({ id: 100 + i, fileId: 100 + i, remoteId: `r${100 + i}` }));
+      binnedByTrek({ id: 100 + i, fileId: 100 + i, remoteId: `r${100 + i}` }),
+    );
     const p = plan({ items: rows, remote: [], local: rows.map((r) => local({ fileId: r.fileId as number })) });
     expect(p.massDeleteGuardTripped).toBe(false);
-    expect(p.actions.filter(a => a.kind === 'detach')).toHaveLength(10);
-    expect(p.actions.filter(a => a.kind === 'push')).toHaveLength(10);
+    expect(p.actions.filter((a) => a.kind === 'detach')).toHaveLength(10);
+    expect(p.actions.filter((a) => a.kind === 'push')).toHaveLength(10);
   });
 
   it('does not read many restores whose copies are gone as a mass deletion', () => {
@@ -1247,7 +1317,8 @@ describe('planReconcile > a file taken back out of TREK trash', () => {
     // Counted as vanished, they tripped the guard, the run was dropped before
     // the restores were written, and every run after it planned the same.
     const rows = Array.from({ length: 10 }, (_, i) =>
-      settled({ id: 100 + i, fileId: 100 + i, remoteId: `r${100 + i}` }));
+      settled({ id: 100 + i, fileId: 100 + i, remoteId: `r${100 + i}` }),
+    );
     const p = plan({ items: rows, remote: [], local: rows.map((r) => local({ fileId: r.fileId as number })) });
     expect(p.massDeleteGuardTripped).toBe(false);
     expect(p.actions).toEqual(rows.map((r) => ({ kind: 'local_restored', itemId: r.id, missing: true })));
@@ -1267,10 +1338,11 @@ describe('planReconcile > a file taken back out of TREK trash', () => {
         local: files,
       });
       expect(p.massDeleteGuardTripped).toBe(false);
-      expect(p.actions.filter(a => a.kind === 'local_restored'))
-        .toEqual(restored.map((r) => ({ kind: 'local_restored', itemId: r.id, missing: true })));
+      expect(p.actions.filter((a) => a.kind === 'local_restored')).toEqual(
+        restored.map((r) => ({ kind: 'local_restored', itemId: r.id, missing: true })),
+      );
       expect(p.actions).toContainEqual({ kind: 'pull', remote: newUpstream, itemId: null });
-      expect(p.actions.map(a => a.kind)).not.toContain('mark_remote_missing');
+      expect(p.actions.map((a) => a.kind)).not.toContain('mark_remote_missing');
     });
 
     it('still trips the guard when the synced rows themselves vanish', () => {
@@ -1285,18 +1357,32 @@ describe('planReconcile > a file taken back out of TREK trash', () => {
     // another, two of each.
     const p = plan({
       stableRemoteIds: false,
-      items: [binnedByTrek({ remoteId: '/trek/a.pdf', remoteName: 'a.pdf', remoteSize: 1024, remoteModifiedAt: '2026-09-18T10:00:00Z' })],
+      items: [
+        binnedByTrek({
+          remoteId: '/trek/a.pdf',
+          remoteName: 'a.pdf',
+          remoteSize: 1024,
+          remoteModifiedAt: '2026-09-18T10:00:00Z',
+        }),
+      ],
       remote: [remote({ remoteId: '/trek/a restored.pdf', name: 'a restored.pdf' })],
       local: [local({ fileId: 5, name: 'a.pdf', sha256: null })],
     });
-    expect(p.actions.map(a => a.kind)).toEqual(['relocate', 'local_restored', 'rename_local']);
+    expect(p.actions.map((a) => a.kind)).toEqual(['relocate', 'local_restored', 'rename_local']);
   });
 
   it('follows a copy moved while the file was in the bin, when TREK did not bin it', () => {
     const moved = remote({ remoteId: '/trek/2026/a.pdf', name: 'a.pdf' });
     const p = plan({
       stableRemoteIds: false,
-      items: [settled({ remoteId: '/trek/a.pdf', remoteName: 'a.pdf', remoteSize: 1024, remoteModifiedAt: '2026-09-18T10:00:00Z' })],
+      items: [
+        settled({
+          remoteId: '/trek/a.pdf',
+          remoteName: 'a.pdf',
+          remoteSize: 1024,
+          remoteModifiedAt: '2026-09-18T10:00:00Z',
+        }),
+      ],
       remote: [moved],
       local: [local({ fileId: 5, name: 'a.pdf', sha256: null })],
     });

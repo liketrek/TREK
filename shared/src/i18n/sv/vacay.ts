@@ -87,6 +87,7 @@ const vacay: TranslationStrings = {
   'vacay.carryOverHint': 'Överför automatiskt återstående semesterdagar till nästa år',
   'vacay.carriedOverPrevPeriod': 'från föregående period',
   'vacay.compUsedCount': '{count} komp',
+  'vacay.compUsedCount.one': '{count} komp',
   'vacay.yearType': 'Semesterår',
   'vacay.yearTypeHint': 'När ditt semesterår börjar — rättighet, användning och överföring följer det',
   'vacay.yearTypeCalendar': 'Kalenderår',

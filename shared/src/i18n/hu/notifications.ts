@@ -29,6 +29,8 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor} teszt értesítést küldött az összes adminisztrátornak.',
   'notifications.test.tripTitle': '{actor} üzenetet küldött az utazásodba',
   'notifications.test.tripText': 'Teszt értesítés a(z) "{trip}" utazáshoz.',
+  'notifications.countLabel': 'értesítés',
+  'notifications.countLabel.one': 'értesítés',
   'notifications.versionAvailable.title': 'Elérhető frissítés',
   'notifications.versionAvailable.text': 'A TREK {version} már elérhető.',
   'notifications.versionAvailable.button': 'Részletek megtekintése',

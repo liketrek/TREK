@@ -1,10 +1,11 @@
+import { PluginSearchController } from '../../../src/nest/plugins/contributions/plugin-search.controller';
+import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
+import { pluginSearchHitSchema, pluginSuggestResultSchema } from '@trek/shared';
+
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { pluginsEnabled } = vi.hoisted(() => ({ pluginsEnabled: vi.fn(() => true) }));
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
-
-import { PluginSearchController } from '../../../src/nest/plugins/contributions/plugin-search.controller';
-import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
@@ -15,13 +16,16 @@ function controller(over: Partial<PluginHooks> = {}) {
   const hooks = {
     providersOf: vi.fn(() => ['p1']),
     searchPlaces: vi.fn(async () => [hit()]),
+    suggestPlaces: vi.fn(async () => [hit()]),
     ...over,
   } as unknown as PluginHooks;
   return { c: new PluginSearchController(hooks), hooks };
 }
 
 describe('PluginSearchController', () => {
-  beforeEach(() => { pluginsEnabled.mockReturnValue(true); });
+  beforeEach(() => {
+    pluginsEnabled.mockReturnValue(true);
+  });
 
   it('returns [] when the runtime is disabled (no plugin calls)', async () => {
     pluginsEnabled.mockReturnValue(false);
@@ -85,13 +89,20 @@ describe('PluginSearchController', () => {
       ) as unknown as PluginHooks['searchPlaces'],
     });
     const { places } = await c.search('milan', undefined, undefined, undefined, undefined, req(5));
-    expect(places.map(p => p.name)).toEqual(['A1', 'B1', 'A2', 'A3']);
+    expect(places.map((p) => p.name)).toEqual(['A1', 'B1', 'A2', 'A3']);
   });
 
   it('normalizes a hit into the shape the core search returns, and namespaces the id', async () => {
     const { c } = controller({
       searchPlaces: vi.fn(async () => [
-        hit({ address: 'Via Roma 1', rating: 4.5, website: 'https://ok.example', phone: '+39 02', category: 'restaurant', description: 'Good' }),
+        hit({
+          address: 'Via Roma 1',
+          rating: 4.5,
+          website: 'https://ok.example',
+          phone: '+39 02',
+          category: 'restaurant',
+          description: 'Good',
+        }),
       ]) as unknown as PluginHooks['searchPlaces'],
     });
     const { places } = await c.search('milan', undefined, undefined, undefined, undefined, req(5));
@@ -113,7 +124,9 @@ describe('PluginSearchController', () => {
 
   it('falls back to the coordinate when a hit carries no id of its own', async () => {
     const { c } = controller({
-      searchPlaces: vi.fn(async () => [{ name: 'Nameless index', lat: 45.4, lng: 9.2 }]) as unknown as PluginHooks['searchPlaces'],
+      searchPlaces: vi.fn(async () => [
+        { name: 'Nameless index', lat: 45.4, lng: 9.2 },
+      ]) as unknown as PluginHooks['searchPlaces'],
     });
     const { places } = await c.search('milan', undefined, undefined, undefined, undefined, req(5));
     expect(places[0].osm_id).toBe('plugin:p1:45.4,9.2');
@@ -131,7 +144,7 @@ describe('PluginSearchController', () => {
       ]) as unknown as PluginHooks['searchPlaces'],
     });
     const { places } = await c.search('milan', undefined, undefined, undefined, undefined, req(5));
-    expect(places.map(p => p.name)).toEqual(['Keeper']);
+    expect(places.map((p) => p.name)).toEqual(['Keeper']);
   });
 
   it('strips a javascript: website, clamps the rating and caps every string', async () => {
@@ -152,6 +165,19 @@ describe('PluginSearchController', () => {
     expect(places[2].rating).toBeNull();
   });
 
+  it('reads an explicit null, a blank or a boolean rating as unrated, not as zero stars', async () => {
+    const { c } = controller({
+      searchPlaces: vi.fn(async () => [
+        hit({ id: 'n', rating: null }),
+        hit({ id: 'b', rating: '  ' }),
+        hit({ id: 't', rating: true }),
+        hit({ id: 's', rating: '4.25' }),
+      ]) as unknown as PluginHooks['searchPlaces'],
+    });
+    const { places } = await c.search('milan', undefined, undefined, undefined, undefined, req(5));
+    expect(places.map((p) => p.rating)).toEqual([null, null, null, 4.3]);
+  });
+
   // #2483: a plugin index is one more source of websites typed without a scheme.
   it('PLUGIN-SEARCH-2483-01: a website without a scheme gains https like one from the core search', async () => {
     const { c } = controller({
@@ -162,7 +188,11 @@ describe('PluginSearchController', () => {
       ]) as unknown as PluginHooks['searchPlaces'],
     });
     const { places } = await c.search('milan', undefined, undefined, undefined, undefined, req(5));
-    expect(places.map((p) => p.website)).toEqual(['https://www.ristorante.example/menu', 'https://ristorante.example', null]);
+    expect(places.map((p) => p.website)).toEqual([
+      'https://www.ristorante.example/menu',
+      'https://ristorante.example',
+      null,
+    ]);
   });
 
   // A plugin on the same network may answer with an intranet address. The old
@@ -170,7 +200,9 @@ describe('PluginSearchController', () => {
   it('PLUGIN-SEARCH-2483-02: an http(s) website keeps its host whatever it looks like', async () => {
     const urls = ['http://localhost:8080/poi/1', 'http://intranet/poi/2', 'https://[2001:db8::1]/poi/3'];
     const { c } = controller({
-      searchPlaces: vi.fn(async () => urls.map((website, i) => hit({ id: `h${i}`, website }))) as unknown as PluginHooks['searchPlaces'],
+      searchPlaces: vi.fn(async () =>
+        urls.map((website, i) => hit({ id: `h${i}`, website })),
+      ) as unknown as PluginHooks['searchPlaces'],
     });
     const { places } = await c.search('poi', undefined, undefined, undefined, undefined, req(5));
     expect(places.map((p) => p.website)).toEqual(urls);
@@ -184,5 +216,85 @@ describe('PluginSearchController', () => {
     });
     const { places } = await c.search('milan', undefined, undefined, undefined, undefined, req(5));
     expect(places).toHaveLength(20);
+  });
+
+  it('answers in the row the shared contract describes, so the client can check it strictly', async () => {
+    // The server's SearchHit and the shared schema are two spellings of one row; this
+    // is what fails when one of them moves without the other.
+    const { c } = controller({
+      searchPlaces: vi.fn(async () => [
+        hit({
+          address: 'Via Roma 1',
+          rating: 4.5,
+          website: 'ok.example',
+          phone: '+39 02',
+          category: 'restaurant',
+          description: 'Good',
+        }),
+        hit({ id: 'bare', name: 'Bare' }),
+      ]) as unknown as PluginHooks['searchPlaces'],
+    });
+    const { places } = await c.search('milan', undefined, undefined, undefined, undefined, req(5));
+    for (const place of places) expect(pluginSearchHitSchema.safeParse(place).success).toBe(true);
+  });
+});
+
+describe('PluginSearchController.suggest (#2221)', () => {
+  beforeEach(() => {
+    pluginsEnabled.mockReturnValue(true);
+  });
+
+  it('asks only the providers that implement suggest, never their search', async () => {
+    const { c, hooks } = controller();
+    await c.suggest('ich', '35.66', '139.7', 'ja', req(5));
+    expect(hooks.providersOf).toHaveBeenCalledWith('searchProvider', 'suggest');
+    expect(hooks.suggestPlaces).toHaveBeenCalledWith(
+      'p1',
+      { query: 'ich', limit: 3, lang: 'ja', near: { lat: 35.66, lng: 139.7 } },
+      5,
+    );
+    expect(hooks.searchPlaces).not.toHaveBeenCalled();
+  });
+
+  it('asks nothing for one letter, a blank box, a caller without a session or a runtime that is off', async () => {
+    const { c, hooks } = controller();
+    expect(await c.suggest('i', undefined, undefined, undefined, req(5))).toEqual({ places: [] });
+    expect(await c.suggest('   ', undefined, undefined, undefined, req(5))).toEqual({ places: [] });
+    expect(await c.suggest(undefined, undefined, undefined, undefined, req(5))).toEqual({ places: [] });
+    expect(await c.suggest('ichiran', undefined, undefined, undefined, req(undefined))).toEqual({ places: [] });
+    pluginsEnabled.mockReturnValue(false);
+    expect(await c.suggest('ichiran', undefined, undefined, undefined, req(5))).toEqual({ places: [] });
+    expect(hooks.providersOf).not.toHaveBeenCalled();
+    expect(hooks.suggestPlaces).not.toHaveBeenCalled();
+  });
+
+  it('answers without reaching any plugin when none implements suggest', async () => {
+    const { c, hooks } = controller({ providersOf: vi.fn(() => []) });
+    expect(await c.suggest('ichiran', undefined, undefined, undefined, req(5))).toEqual({ places: [] });
+    expect(hooks.suggestPlaces).not.toHaveBeenCalled();
+  });
+
+  it('keeps three rows across all providers, interleaved, whatever each one sends', async () => {
+    const { c } = controller({
+      providersOf: vi.fn(() => ['a', 'b']),
+      suggestPlaces: vi.fn(async (id: string) =>
+        Array.from({ length: 10 }, (_v, i) => hit({ id: `${id}${i}`, name: `${id.toUpperCase()}${i}` })),
+      ) as unknown as PluginHooks['suggestPlaces'],
+    });
+    const result = await c.suggest('ichiran', undefined, undefined, undefined, req(5));
+    expect(result.places.map((p) => p.name)).toEqual(['A0', 'B0', 'A1']);
+    expect(pluginSuggestResultSchema.safeParse(result).success).toBe(true);
+  });
+
+  it('drops a provider that times out and normalizes what the others send', async () => {
+    const { c } = controller({
+      providersOf: vi.fn(() => ['slow', 'ok']),
+      suggestPlaces: vi.fn(async (id: string) => {
+        if (id === 'slow') throw new Error('plugin invoke timed out');
+        return [hit({ id: 'r1', website: 'javascript:alert(1)' }), { name: 'no coordinates' }];
+      }) as unknown as PluginHooks['suggestPlaces'],
+    });
+    const { places } = await c.suggest('ichiran', undefined, undefined, undefined, req(5));
+    expect(places).toEqual([expect.objectContaining({ osm_id: 'plugin:ok:r1', source: 'plugin:ok', website: null })]);
   });
 });

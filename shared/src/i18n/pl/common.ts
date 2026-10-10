@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Anuluj',
   'common.clear': 'Wyczyść',
   'common.delete': 'Usuń',
+  'common.remove': 'Usuń',
   'common.preview': 'Podgląd',
   'common.edit': 'Edytuj',
   'common.add': 'Dodaj',
@@ -31,6 +32,9 @@ const common: TranslationStrings = {
   'common.rename': 'Zmień nazwę',
   'common.discardChanges': 'Odrzuć zmiany',
   'common.discard': 'Odrzuć',
+  'common.unsavedTitle': 'Odrzucić zmiany?',
+  'common.unsavedMessage': 'To, co tu wpisano, nie zostało jeszcze zapisane.',
+  'common.keepEditing': 'Kontynuuj edycję',
   'common.name': 'Nazwa',
   'common.email': 'E-mail',
   'common.password': 'Hasło',
@@ -51,7 +55,13 @@ const common: TranslationStrings = {
   'common.saved': 'Zapisano',
   'common.justNow': 'przed chwilą',
   'common.hoursAgo': '{count} godz. temu',
-  'common.daysAgo': '{count} dn. temu',
+  'common.hoursAgo.one': '{count} godz. temu',
+  'common.hoursAgo.few': '{count} godz. temu',
+  'common.hoursAgo.many': '{count} godz. temu',
+  'common.daysAgo': '{count} dnia temu',
+  'common.daysAgo.one': '{count} dzień temu',
+  'common.daysAgo.few': '{count} dni temu',
+  'common.daysAgo.many': '{count} dni temu',
   'common.datepicker.prevMonth': 'Previous month', // en-fallback
   'common.datepicker.nextMonth': 'Next month', // en-fallback
   'common.datepicker.prevYear': 'Previous year', // en-fallback

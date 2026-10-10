@@ -6,14 +6,14 @@
  * failure comes back as a cause rather than as "failed", and that the credential
  * never rides along.
  */
-
-import { describe, it, expect } from 'vitest';
 import {
   describeSmtpFailure,
   describeSmtpGap,
   parseSmtpPort,
   type SmtpTarget,
 } from '../../../src/nest/notifications/mailer/smtp-diagnostics';
+
+import { describe, it, expect } from 'vitest';
 
 const PLAIN: SmtpTarget = { host: 'mail.example.com', port: 587, secure: false };
 const IMPLICIT_TLS: SmtpTarget = { host: 'mail.example.com', port: 465, secure: true };
@@ -123,10 +123,7 @@ describe('describeSmtpFailure', () => {
   });
 
   it('SMTPDIAG-013: an untrusted certificate points at the skip-verification switch', () => {
-    const failure = describeSmtpFailure(
-      smtpError('unable to verify the first certificate', 'ESOCKET'),
-      IMPLICIT_TLS,
-    );
+    const failure = describeSmtpFailure(smtpError('unable to verify the first certificate', 'ESOCKET'), IMPLICIT_TLS);
 
     expect(failure.reason).toContain('Skip TLS certificate check');
   });

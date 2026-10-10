@@ -66,6 +66,8 @@ const dayplan: TranslationStrings = {
   'dayplan.exportMaps': 'Peta & GPS',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Ekspor rencana hari sebagai PDF',
+  'dayplan.pdfMine': 'Rencanaku sebagai PDF',
+  'dayplan.pdfMineSub': 'Hanya aktivitas dan pemesanan yang kamu ikuti',
   'dayplan.gpxTooltip': 'Ekspor sebagai GPX untuk peta offline dan perangkat GPS',
   'dayplan.gpxAll': 'Seluruh perjalanan',
   'dayplan.gpxPlaces': 'Hanya tempat',
@@ -78,8 +80,8 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Semua tempat sudah ditugaskan',
   'dayplan.mobile.noMatch': 'Tidak ditemukan',
   'dayplan.mobile.createNew': 'Buat tempat baru',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': 'Buka semua hari', // en-fallback
+  'dayplan.collapseAll': 'Tutup semua hari', // en-fallback
   'dayplan.reorderDays': 'Atur ulang hari',
   'dayplan.reorderTitle': 'Atur ulang hari',
   'dayplan.reorderHint': 'Tempat, catatan, dan pesanan pada suatu hari ikut berpindah.',
@@ -92,6 +94,14 @@ const dayplan: TranslationStrings = {
   'dayplan.deleteDay': 'Hapus hari',
   'dayplan.deleteDayTitle': 'Hapus {day}?',
   'dayplan.deleteDayBody': 'Hari tersebut dihapus dari perjalanan. Tindakan ini tidak dapat dibatalkan.',
+  'dayplan.excludeFromRoute': 'Keluarkan dari rute',
+  'dayplan.includeInRoute': 'Masukkan kembali ke rute',
+  'dayplan.offRoute': 'Di luar rute',
+  'dayplan.offRouteHint': 'Tetap ada di hari dan di peta, tetapi rute melewatinya',
+  'dayplan.clearDay': 'Kosongkan hari',
+  'dayplan.clearDayTitle': 'Kosongkan {day}?',
+  'dayplan.clearDayBody':
+    'Semua tempat dikeluarkan dari hari ini. Tempat tetap ada di perjalanan, dan hari ini tetap menyimpan catatan serta pemesanannya.',
   'dayplan.deleteDayEmpty': 'Tidak ada rencana pada hari tersebut.',
   'dayplan.impactPlaces': 'Tempat yang direncanakan: {count}',
   'dayplan.impactPlacesHint': 'Tempat tetap ada di daftar tempat.',

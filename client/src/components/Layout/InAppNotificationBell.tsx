@@ -52,7 +52,7 @@ export default function InAppNotificationBell(): React.ReactElement {
         <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
           <span
-            className="absolute -top-0.5 -right-0.5 flex items-center justify-center rounded-full text-white font-bold"
+            className="absolute -top-0.5 -end-0.5 flex items-center justify-center rounded-full text-white font-bold"
             style={{
               background: '#ef4444',
               fontSize: 'calc(9px * var(--fs-scale-caption, 1))',
@@ -76,7 +76,7 @@ export default function InAppNotificationBell(): React.ReactElement {
             style={{
               position: 'fixed',
               top: 'var(--nav-h)',
-              right: 8,
+              insetInlineEnd: 8,
               width: 360,
               maxWidth: 'calc(100vw - 16px)',
               maxHeight: 'min(480px, calc(100vh - var(--nav-h) - 16px))',
@@ -92,7 +92,7 @@ export default function InAppNotificationBell(): React.ReactElement {
               <span className="text-sm font-semibold text-content">
                 {t('notifications.title')}
                 {unreadCount > 0 && (
-                  <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-medium bg-content text-surface">
+                  <span className="ms-2 px-1.5 py-0.5 rounded-full text-xs font-medium bg-content text-surface">
                     {unreadCount}
                   </span>
                 )}

@@ -7,12 +7,11 @@ import { useTranslation } from '../../../i18n'
 import MDancingTrek from '../../components/MDancingTrek'
 import { useDashboard } from '../../../pages/dashboard/useDashboard'
 import {
-  type DashboardTrip, MS_PER_DAY, daysUntil, getTripStatus,
+  type DashboardTrip, MS_PER_DAY, daysUntil, fullDate, getTripStatus,
 } from '../../../pages/dashboard/dashboardModel'
 import { useAuthStore } from '../../../store/authStore'
 import { useInAppNotificationStore } from '../../../store/inAppNotificationStore'
-import { usePluginStore } from '../../../store/pluginStore'
-import { useTripCardBadges } from '../../../components/Plugins/TripCardBadges'
+import { useDashboardPlugins } from '../../../components/Dashboard/useDashboardPlugins'
 import type { TripCardBadge } from '../../../api/client'
 import DemoBanner from '../../../components/Layout/DemoBanner'
 import { IcsSubscribeModal } from '../../../components/Planner/IcsSubscribeModal'
@@ -26,17 +25,6 @@ import MUserMenu from './MUserMenu'
 import { useMobileDashOrder, useMobileDashVisibility, MobileDashWidget } from './MDashWidgets'
 import MNewTripSheet from './MNewTripSheet'
 import type { MobileDashToken } from '@trek/shared'
-
-// Localized short date for the pills; the year only shows when it isn't the
-// current one (same rule as the desktop cards).
-function fullDate(dateStr: string | null | undefined, locale: string): string | null {
-  if (!dateStr) return null
-  const date = new Date(dateStr + 'T00:00:00Z')
-  if (Number.isNaN(date.getTime())) return null
-  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', timeZone: 'UTC' }
-  if (date.getUTCFullYear() !== new Date().getUTCFullYear()) opts.year = 'numeric'
-  return date.toLocaleDateString(locale, opts)
-}
 
 type TripFilter = 'planned' | 'archive' | 'completed'
 
@@ -72,9 +60,7 @@ export default function MDashboard(): React.ReactElement {
   // Plugin dashboard widgets + trip-card badges, mirroring the desktop page:
   // same slot filter (only true dashboard widgets), one badge fetch for all
   // visible cards, gated on any plugin being active. Fail-safe like desktop.
-  const widgetPlugins = usePluginStore(s => s.plugins).filter(p => p.type === 'widget' && p.slot !== 'hero' && p.slot !== 'place-detail' && p.slot !== 'day-detail' && p.slot !== 'reservation-detail')
-  const anyPluginActive = usePluginStore(s => s.plugins).length > 0
-  const badgesFor = useTripCardBadges(gridTrips.map(trip => trip.id), anyPluginActive)
+  const { widgetPlugins, badgesFor } = useDashboardPlugins(gridTrips.map(trip => trip.id))
 
   // Mobile-only dashboard arrangement: the featured trip stays on top, then the
   // trip list + widgets render in the user's chosen order (Settings → Appearance).
@@ -137,7 +123,7 @@ export default function MDashboard(): React.ReactElement {
               the page and dragged the fixed bars off-screen under Android's
               forced zoom. min-w-max keeps the pill track wrapping its chips,
               and the box stays content-wide (no flex-1) so the pill still hugs
-              them on wide phones while ml-auto parks the icons on the right. */}
+              them on wide phones while ms-auto parks the icons at the end. */}
           <div className="m-hscroll min-w-0">
             <MSegmented<TripFilter>
               value={tripFilter}
@@ -151,7 +137,7 @@ export default function MDashboard(): React.ReactElement {
               ]}
             />
           </div>
-          <MIconBtn ariaLabel={t('dashboard.subscribeAllTrips')} size={36} className="ml-auto" onClick={() => setSubOpen(true)}>
+          <MIconBtn ariaLabel={t('dashboard.subscribeAllTrips')} size={36} className="ms-auto" onClick={() => setSubOpen(true)}>
             <CalendarPlus size={15} strokeWidth={2} className="text-m-muted" />
           </MIconBtn>
           <button
@@ -236,7 +222,7 @@ export default function MDashboard(): React.ReactElement {
         <MIconBtn ariaLabel={t('notifications.title')} onClick={() => navigate('/notifications')}>
           <Bell size={18} strokeWidth={2} />
           {unread > 0 && (
-            <span aria-hidden className="absolute right-[9px] top-2 h-[7px] w-[7px] rounded-full bg-m-ink" />
+            <span aria-hidden className="absolute end-[9px] top-2 h-[7px] w-[7px] rounded-full bg-m-ink" />
           )}
         </MIconBtn>
         <button
@@ -382,10 +368,10 @@ function MSpotlightCard({ trip, t, onOpen, actions }: {
       {trip.cover_image
         ? <img src={trip.cover_image} alt={trip.title} className="absolute inset-0 h-full w-full object-cover" />
         : <div className="absolute inset-0" style={{ backgroundImage: entityGradient(trip.id) }} />}
-      <div className="absolute right-[10px] top-[10px] flex gap-[6px]">
+      <div className="absolute end-[10px] top-[10px] flex gap-[6px]">
         {actions.map(a => <CoverActionBtn key={a.key} action={a} />)}
       </div>
-      <div className="absolute bottom-[10px] left-[10px] right-[10px] rounded-[18px] border border-white/[.16] bg-[rgba(14,14,17,.52)] p-[12px_14px] text-white backdrop-blur-[22px] backdrop-saturate-[1.6]">{/* theme-lint-disable — fixed dark glass on the cover photo */}
+      <div className="absolute bottom-[10px] inset-x-[10px] rounded-[18px] border border-white/[.16] bg-[rgba(14,14,17,.52)] p-[12px_14px] text-white backdrop-blur-[22px] backdrop-saturate-[1.6]">{/* theme-lint-disable — fixed dark glass on the cover photo */}
         <span className="flex gap-[6px]">
           <span className="rounded-full bg-white/[.92] px-2 py-[3px] text-[0.625rem] font-bold uppercase tracking-[.07em] text-[#101013]">{/* theme-lint-disable — fixed on-photo badge */}
             {primaryBadge}
@@ -403,9 +389,9 @@ function MSpotlightCard({ trip, t, onOpen, actions }: {
           </div>
         )}
         <div className={`flex gap-[6px] ${ongoing ? '' : 'mt-[9px]'}`}>
-          <SpotlightPill icon={<CalendarDays size={11} strokeWidth={2.2} />} label={days === 1 ? t('dashboard.mobile.spotlightDayOne', { count: days }) : t('dashboard.mobile.spotlightDaysMany', { count: days })} />
-          <SpotlightPill icon={<MapPin size={11} strokeWidth={2.2} />} label={places === 1 ? t('dashboard.hero.destinationOne', { count: places }) : t('dashboard.hero.destinationMany', { count: places })} />
-          <SpotlightPill icon={<Users size={11} strokeWidth={2.2} />} label={people === 1 ? t('dashboard.hero.travelerOne', { count: people }) : t('dashboard.hero.travelerMany', { count: people })} />
+          <SpotlightPill icon={<CalendarDays size={11} strokeWidth={2.2} />} label={t('dashboard.mobile.spotlightDays', { count: days })} />
+          <SpotlightPill icon={<MapPin size={11} strokeWidth={2.2} />} label={t('dashboard.hero.destinations', { count: places })} />
+          <SpotlightPill icon={<Users size={11} strokeWidth={2.2} />} label={t('dashboard.hero.travelers', { count: people })} />
         </div>
       </div>
     </div>
@@ -450,7 +436,7 @@ function CoverBadge({ label, offset }: { label: string; offset: 8 | 12 }): React
   return (
     <span
       className={`absolute box-border inline-flex h-[34px] items-center gap-[6px] rounded-full bg-white/[.22] px-[13px] font-geist text-[0.625rem] font-extrabold uppercase tracking-[.08em] text-white backdrop-blur-[8px] ${
-        offset === 8 ? 'left-2 top-2' : 'left-3 top-3'
+        offset === 8 ? 'start-2 top-2' : 'start-3 top-3'
       }`}
     >
       <span aria-hidden className="h-[6px] w-[6px] rounded-full bg-white" />
@@ -510,7 +496,7 @@ function MTripGridCard({ trip, locale, badge, pluginBadges, actions, onOpen }: {
       <div className="relative h-[96px]" style={coverStyle(trip)}>
         <div className="absolute inset-0 bg-[image:linear-gradient(180deg,rgba(0,0,0,.32),rgba(0,0,0,0)_60%)]" />
         <CoverBadge label={badge} offset={8} />
-        <div className="absolute right-2 top-2 flex gap-[6px]">
+        <div className="absolute end-2 top-2 flex gap-[6px]">
           {actions.map(a => <CoverActionBtn key={a.key} action={a} />)}
         </div>
       </div>
@@ -545,10 +531,10 @@ function MTripListCard({ trip, locale, t, badge, pluginBadges, actions, onOpen }
       <div className="relative h-[188px]" style={coverStyle(trip)}>
         <div className="absolute inset-0 bg-[image:linear-gradient(180deg,rgba(0,0,0,.28),rgba(0,0,0,0)_42%,rgba(0,0,0,.55))]" />
         <CoverBadge label={badge} offset={12} />
-        <div className="absolute right-3 top-3 flex gap-[7px]">
+        <div className="absolute end-3 top-3 flex gap-[7px]">
           {actions.map(a => <CoverActionBtn key={a.key} action={a} />)}
         </div>
-        <div className="absolute bottom-[14px] left-4 right-4 truncate text-[1.625rem] font-extrabold text-white [text-shadow:0_2px_12px_rgba(0,0,0,.4)]">
+        <div className="absolute bottom-[14px] inset-x-4 truncate text-[1.625rem] font-extrabold text-white [text-shadow:0_2px_12px_rgba(0,0,0,.4)]">
           {trip.title}
         </div>
       </div>
@@ -562,9 +548,9 @@ function MTripListCard({ trip, locale, t, badge, pluginBadges, actions, onOpen }
         </div>
         <div className="my-[13px] h-px bg-[color:var(--m-rowbr)]" />
         <div className="flex text-center">
-          <ListStat value={trip.day_count ?? 0} label={t('dashboard.days')} />
-          <ListStat value={trip.place_count ?? 0} label={t('dashboard.places')} />
-          <ListStat value={trip.shared_count ?? 0} label={trip.shared_count === 1 ? t('dashboard.card.buddyOne') : t('dashboard.members')} />
+          <ListStat value={trip.day_count ?? 0} label={t('dashboard.days', { count: trip.day_count ?? 0 })} />
+          <ListStat value={trip.place_count ?? 0} label={t('dashboard.places', { count: trip.place_count ?? 0 })} />
+          <ListStat value={trip.shared_count ?? 0} label={t('dashboard.card.buddies', { count: trip.shared_count ?? 0 })} />
         </div>
         <MTripBadges items={pluginBadges} />
       </div>

@@ -3,158 +3,38 @@
 // react-leaflet is component-driven, mapbox-gl is imperative — so instead of
 // a React component, this exports a small manager class the MapViewGL wires
 // up next to its other sources/layers. The geometry logic (great-circle arcs,
-// antimeridian split, duration math) mirrors the Leaflet overlay so both
-// renderers produce the same visual result on the globe or a flat projection.
+// duration math) lives in transportHops, shared with the Leaflet overlay, so
+// both renderers produce the same visual result on the globe or a flat projection.
 
 import { createElement } from 'react'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import type mapboxgl from 'mapbox-gl'
-import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront } from 'lucide-react'
 import { getTransitMapSegments } from './transitGeometry'
-import { geodesicArcs } from './flightGeodesy'
 import { cleanEndpointName } from './reservationName'
 import { hopIsVisible, labelFloorPx } from '../../utils/reservationRoutes'
 import { escapeHtml } from '@trek/shared'
-import type { Reservation, ReservationEndpoint } from '../../types'
+import { TRANSPORT_COLOR, TRANSPORT_META, transportHop, type TransportHop, type TransportType } from './transportHops'
+import type { Reservation } from '../../types'
 
 export const RESERVATION_SOURCE_ID = 'trek-reservations'
 export const RESERVATION_LINE_LAYER_ID = 'trek-reservations-lines'
 /** Sits under the coloured transit lines; named here so teardown can find it. */
 export const TRANSIT_CASING_LAYER_ID = `${RESERVATION_LINE_LAYER_ID}-transit-casing`
 
-type TransportType = 'flight' | 'train' | 'cruise' | 'car' | 'bus' | 'taxi' | 'bicycle' | 'ferry' | 'transit' | 'transport_other'
-const TRANSPORT_TYPES: TransportType[] = ['flight', 'train', 'cruise', 'car', 'bus', 'taxi', 'bicycle', 'ferry', 'transit', 'transport_other']
-const TRANSPORT_COLOR = '#3b82f6'
-
-const TYPE_META: Record<TransportType, { icon: typeof Plane; geodesic: boolean }> = {
-  flight: { icon: Plane, geodesic: true },
-  train: { icon: Train, geodesic: false },
-  cruise: { icon: Ship, geodesic: true },
-  car: { icon: Car, geodesic: false },
-  bus: { icon: Bus, geodesic: false },
-  taxi: { icon: CarTaxiFront, geodesic: false },
-  bicycle: { icon: Bike, geodesic: false },
-  ferry: { icon: Sailboat, geodesic: true },
-  transit: { icon: TramFront, geodesic: false },
-  transport_other: { icon: Route, geodesic: false },
-}
-
-// ── geometry helpers (shared with ReservationOverlay via flightGeodesy) ──
-const toRad = (d: number) => d * Math.PI / 180
-
-function haversineKm(a: [number, number], b: [number, number]): number {
-  const R = 6371
-  const dLat = toRad(b[0] - a[0])
-  const dLng = toRad(b[1] - a[1])
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a[0])) * Math.cos(toRad(b[0])) * Math.sin(dLng / 2) ** 2
-  return 2 * R * Math.asin(Math.sqrt(h))
-}
-
-function parseInTz(isoLocal: string, tz: string): number {
-  const [datePart, timePart] = isoLocal.split('T')
-  const [y, mo, d] = datePart.split('-').map(Number)
-  const [h, mi] = (timePart || '00:00').split(':').map(Number)
-  const guess = Date.UTC(y, mo - 1, d, h, mi)
-  // A malformed date/time (e.g. an imported booking whose time is missing its
-  // minutes) makes Date.UTC NaN; bail before formatToParts, which throws on a
-  // non-finite date and would blank the whole trip. computeDuration's finiteness
-  // check then drops the duration cleanly.
-  if (!Number.isFinite(guess)) return Number.NaN
-  const fmt = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz, hour12: false,
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-  })
-  const parts = Object.fromEntries(fmt.formatToParts(new Date(guess)).filter(p => p.type !== 'literal').map(p => [p.type, p.value]))
-  const asUtc = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour) % 24, Number(parts.minute), Number(parts.second))
-  return guess - (asUtc - guess)
-}
-
-function computeDuration(from: ReservationEndpoint, to: ReservationEndpoint, fallbackStart: string | null, fallbackEnd: string | null): string | null {
-  let start = from.local_date && from.local_time ? `${from.local_date}T${from.local_time}` : fallbackStart
-  let end = to.local_date && to.local_time ? `${to.local_date}T${to.local_time}` : fallbackEnd
-  if (!start || !end) return null
-  if (!start.includes('T') && end.includes('T')) start = `${end.split('T')[0]}T${start}`
-  if (!end.includes('T') && start.includes('T')) end = `${start.split('T')[0]}T${end}`
-  if (!start.includes('T') || !end.includes('T')) return null
-  const fromTz = from.timezone || to.timezone
-  const toTz = to.timezone || fromTz
-  let startMs: number, endMs: number
-  if (fromTz && toTz) {
-    startMs = parseInTz(start, fromTz)
-    endMs = parseInTz(end, toTz)
-  } else {
-    startMs = new Date(start).getTime()
-    endMs = new Date(end).getTime()
-  }
-  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return null
-  if (endMs <= startMs) endMs += 24 * 60 * 60000
-  const minutes = Math.round((endMs - startMs) / 60000)
-  if (minutes <= 0 || minutes > 48 * 60) return null
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  return h > 0 ? `${h}h ${m}m` : `${m}m`
-}
-
-// ── item building ─────────────────────────────────────────────────────────
-interface TransportItem {
-  res: Reservation
-  from: ReservationEndpoint
-  to: ReservationEndpoint
-  waypoints: ReservationEndpoint[]
-  type: TransportType
-  arcs: [number, number][][]
-  // Route ("VIE → LHR") and duration/distance line. Computed on every update but
-  // not drawn since the stats badge was dropped; computeDuration still guards the
-  // non-finite date that used to blank the trip (#1620).
-  mainLabel: string | null
-  subLabel: string | null
-}
-
-function buildItems(reservations: Reservation[]): TransportItem[] {
-  const out: TransportItem[] = []
+// What each booking draws comes from transportHops. GL maps repeat features
+// across world copies themselves, so arcs are not wrapped at the antimeridian.
+function buildItems(reservations: Reservation[]): TransportHop[] {
+  const out: TransportHop[] = []
   for (const r of reservations) {
-    if (!TRANSPORT_TYPES.includes(r.type as TransportType)) continue
-    // Ordered waypoints (from · stops · to); a single-leg booking has exactly two.
-    const waypoints = (r.endpoints || [])
-      .filter(e => e.role === 'from' || e.role === 'to' || e.role === 'stop')
-      .slice()
-      .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
-    if (waypoints.length < 2) continue
-    const from = waypoints[0]
-    const to = waypoints[waypoints.length - 1]
-    const type = r.type as TransportType
-    const isGeo = TYPE_META[type].geodesic
-    // One arc per leg (between consecutive waypoints), concatenated.
-    const arcs: [number, number][][] = []
-    let distanceKm = 0
-    for (let i = 0; i < waypoints.length - 1; i++) {
-      const a = waypoints[i]
-      const b = waypoints[i + 1]
-      const segArcs = isGeo
-        // GL maps repeat features across world copies themselves, so one
-        // continuous unwrapped arc is enough (a shifted duplicate would
-        // coincide with the wrapped copy and double the line opacity).
-        ? geodesicArcs([a.lat, a.lng], [b.lat, b.lng], false)
-        : [[[a.lat, a.lng], [b.lat, b.lng]] as [number, number][]]
-      arcs.push(...segArcs)
-      distanceKm += haversineKm([a.lat, a.lng], [b.lat, b.lng])
-    }
-    const duration = computeDuration(from, to, r.reservation_time || null, r.reservation_end_time || null)
-    const distance = `${Math.round(distanceKm)} km`
-    const mainLabel = waypoints.every(w => w.code)
-      ? waypoints.map(w => w.code).join(' → ')
-      : (from.code && to.code ? `${from.code} → ${to.code}` : null)
-    const subParts = [duration, distance].filter(Boolean) as string[]
-    const subLabel = subParts.length > 0 ? subParts.join(' · ') : null
-    out.push({ res: r, from, to, waypoints, type, arcs, mainLabel, subLabel })
+    const hop = transportHop(r, false)
+    if (hop) out.push(hop)
   }
   return out
 }
 
 // ── DOM helpers for HTML markers ──────────────────────────────────────────
 function endpointMarkerHtml(type: TransportType, label: string | null): string {
-  const { icon: IconCmp } = TYPE_META[type]
+  const { icon: IconCmp } = TRANSPORT_META[type]
   const svg = renderIconMarkup(createElement(IconCmp, { size: 13, color: 'white', strokeWidth: 2.5 }))
   const labelHtml = label ? `<span style="display:inline-flex;align-items:center;line-height:1">${escapeHtml(label)}</span>` : ''
   return `<div style="
@@ -188,7 +68,7 @@ type MarkerConstructor = new (options?: { element?: HTMLElement; anchor?: string
 
 export class ReservationMapboxOverlay {
   private map: mapboxgl.Map
-  private items: TransportItem[] = []
+  private items: TransportHop[] = []
   private roadRoutes: Map<number, [number, number][]> = new Map()
   private opts: ReservationOverlayOptions
   private MarkerCtor: MarkerConstructor
@@ -261,7 +141,7 @@ export class ReservationMapboxOverlay {
   }
 
   /** What a hop will draw: the road it was routed along when there is one, else its arcs. */
-  private linesFor(item: TransportItem): [number, number][][] {
+  private linesFor(item: TransportHop): [number, number][][] {
     const road = this.roadRoutes.get(item.res.id)
     return road && road.length >= 2 ? [road] : item.arcs
   }

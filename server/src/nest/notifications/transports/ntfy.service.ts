@@ -1,9 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import { logDebug, logError, logInfo } from '../../audit/audit-log.logger';
-import { decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
-import { DatabaseService } from '../../database/database.service';
+import { AppSettings } from '../../../db/entities/AppSettings.entity';
+import { Settings } from '../../../db/entities/Settings.entity';
+import { AppSettingsRepository } from '../../../db/repositories/AppSettings.repository';
+import { SettingsRepository } from '../../../db/repositories/Settings.repository';
 import { safeFetchFollow, SsrfBlockedError } from '../../../utils/ssrfGuard';
+import { logDebug, logError, logInfo } from '../../audit/audit-log.logger';
+import { readAppSetting } from '../../common/app-settings.registry';
+import { decrypt_api_key } from '../../common/crypto/apiKeyCrypto';
 import type { NotifEventType } from '../notification-events';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+
+/** NS2's three per-user ntfy keys, read together off `SettingsRepository.getForUser`. */
+const NTFY_USER_KEYS = new Set(['ntfy_topic', 'ntfy_server', 'ntfy_token']);
 
 export interface NtfyConfig {
   server: string | null;
@@ -107,19 +115,24 @@ function encodeHeaderValue(value: string): string {
 /** ntfy push: the per-user and admin topic config, and the header-based POST. */
 @Injectable()
 export class NtfyService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    @InjectRepository(Settings) private readonly settings: SettingsRepository,
+    @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
+  ) {}
 
-  private getAppSetting(key: string): string | null {
-    return this.db.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', key)?.value || null;
-  }
-
-  getUserNtfyConfig(userId: number): NtfyConfig | null {
-    const rows = this.db.all<{ key: string; value: string }>(
-      "SELECT key, value FROM settings WHERE user_id = ? AND key IN ('ntfy_topic', 'ntfy_server', 'ntfy_token')",
-      userId,
-    );
+  /**
+   * NS2. R4's fold ruling: `getForUser` (the existing, shared
+   * `SettingsRepository`'s method) followed by a JS filter to the three
+   * `ntfy_*` keys — no new batch method on the repository. `rows.length ===
+   * 0` gates on the FILTERED (ntfy_*) row count, matching the legacy `IN
+   * (...)`-scoped statement's own `rows.length === 0` check exactly (a row
+   * present with a NULL value still counts as present — only its absence
+   * from the settings table returns null here).
+   */
+  async getUserNtfyConfig(userId: number): Promise<NtfyConfig | null> {
+    const rows = (await this.settings.getForUser(userId)).filter((r) => NTFY_USER_KEYS.has(r.key));
     if (rows.length === 0) return null;
-    const map: Record<string, string> = {};
+    const map: Record<string, string | null> = {};
     for (const r of rows) map[r.key] = r.value;
     return {
       topic: map['ntfy_topic'] || null,
@@ -128,10 +141,11 @@ export class NtfyService {
     };
   }
 
-  getAdminNtfyConfig(): NtfyConfig {
-    const topic = this.getAppSetting('admin_ntfy_topic') || null;
-    const server = this.getAppSetting('admin_ntfy_server') || null;
-    const rawToken = this.getAppSetting('admin_ntfy_token') || null;
+  /** NS1 — three of the plan's six identical `app_settings` reads, R4's shared `AppSettingsRepository.getValue(key)`. */
+  async getAdminNtfyConfig(): Promise<NtfyConfig> {
+    const topic = (await readAppSetting(this.appSettings, 'admin_ntfy_topic')) || null;
+    const server = (await readAppSetting(this.appSettings, 'admin_ntfy_server')) || null;
+    const rawToken = (await readAppSetting(this.appSettings, 'admin_ntfy_token')) || null;
     return {
       topic,
       server,
@@ -197,7 +211,7 @@ export class NtfyService {
     server?: string | null;
     token?: string | null;
   }): Promise<{ success: boolean; error?: string }> {
-    const adminCfg = this.getAdminNtfyConfig();
+    const adminCfg = await this.getAdminNtfyConfig();
     const url = resolveNtfyUrl(adminCfg, { topic: cfg.topic, server: cfg.server ?? null, token: cfg.token ?? null });
     if (!url) return { success: false, error: 'Could not resolve ntfy URL — missing topic' };
     try {

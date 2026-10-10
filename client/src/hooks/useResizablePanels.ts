@@ -12,6 +12,16 @@ const NARROW_QUERY = '(min-width: 768px) and (max-width: 1023px)'
 /** However wide a panel was dragged on a big screen, the map keeps this much. */
 const MIN_MAP = 360
 
+function clampWidth(w: number, max: number = MAX_SIDEBAR): number {
+  return Math.max(MIN_SIDEBAR, Math.min(max, w))
+}
+
+/** Stores a dragged width and hands it back; a blocked storage only costs the memory of it. */
+function remember(key: string, w: number): number {
+  try { localStorage.setItem(key, String(w)) } catch { /* not remembered, still applied */ }
+  return w
+}
+
 export function useResizablePanels() {
   const [leftWidth, setLeftWidth] = useState<number>(() => Number.parseInt(localStorage.getItem('sidebarLeftWidth') || '') || 340)
   const [rightWidth, setRightWidth] = useState<number>(() => Number.parseInt(localStorage.getItem('sidebarRightWidth') || '') || 300)
@@ -48,18 +58,21 @@ export function useResizablePanels() {
     return () => window.removeEventListener('resize', measure)
   }, [narrow])
 
+  // A mouse drags through mousemove; a finger on a tablet sends touch events and
+  // never a mousemove, which is why the handles used to be dead on an iPad (#1012).
   useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      if (isResizingLeft.current) {
-        const w = Math.max(MIN_SIDEBAR, Math.min(MAX_SIDEBAR, e.clientX - 10))
-        setLeftWidth(w)
-        localStorage.setItem('sidebarLeftWidth', String(w))
-      }
-      if (isResizingRight.current) {
-        const w = Math.max(MIN_SIDEBAR, Math.min(MAX_SIDEBAR, window.innerWidth - e.clientX - 10))
-        setRightWidth(w)
-        localStorage.setItem('sidebarRightWidth', String(w))
-      }
+    const moveTo = (clientX: number) => {
+      if (isResizingLeft.current) setLeftWidth(remember('sidebarLeftWidth', clampWidth(clientX - 10)))
+      if (isResizingRight.current) setRightWidth(remember('sidebarRightWidth', clampWidth(window.innerWidth - clientX - 10)))
+    }
+    const onMove = (e: MouseEvent) => moveTo(e.clientX)
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isResizingLeft.current && !isResizingRight.current) return
+      const touch = e.touches[0]
+      if (!touch) return
+      // The drag owns the finger: no page scroll and no map pan underneath it.
+      e.preventDefault()
+      moveTo(touch.clientX)
     }
     const onUp = () => {
       isResizingLeft.current = false
@@ -69,14 +82,26 @@ export function useResizablePanels() {
     }
     document.addEventListener('mousemove', onMove)
     document.addEventListener('mouseup', onUp)
+    document.addEventListener('touchmove', onTouchMove, { passive: false })
+    document.addEventListener('touchend', onUp)
+    document.addEventListener('touchcancel', onUp)
     return () => {
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
+      document.removeEventListener('touchmove', onTouchMove)
+      document.removeEventListener('touchend', onUp)
+      document.removeEventListener('touchcancel', onUp)
     }
   }, [])
 
   const startResizeLeft = () => { isResizingLeft.current = true; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none' }
   const startResizeRight = () => { isResizingRight.current = true; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none' }
+
+  // The handles are separators a keyboard can move too: an arrow key grows or
+  // shrinks the panel by a step, from the width it shows right now.
+  const resizeMax = Math.max(MIN_SIDEBAR, Math.min(MAX_SIDEBAR, maxPanel))
+  const nudgeLeft = (delta: number) => setLeftWidth(remember('sidebarLeftWidth', clampWidth(Math.min(leftWidth, maxPanel) + delta, resizeMax)))
+  const nudgeRight = (delta: number) => setRightWidth(remember('sidebarRightWidth', clampWidth(Math.min(rightWidth, maxPanel) + delta, resizeMax)))
 
   // What the layout actually shows. The collapse flags stay the caller's intent —
   // handlePlaceClick reopening "both" must not re-crowd a narrow screen.
@@ -99,6 +124,7 @@ export function useResizablePanels() {
     rightWidth: Math.min(rightWidth, maxPanel),
     leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
     leftHidden, rightHidden, toggleLeft, toggleRight, narrow,
-    startResizeLeft, startResizeRight,
+    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight,
+    resizeMin: MIN_SIDEBAR, resizeMax,
   }
 }

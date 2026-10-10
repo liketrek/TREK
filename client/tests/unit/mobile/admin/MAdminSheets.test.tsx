@@ -213,7 +213,7 @@ describe('MAdminSheets', () => {
 
     await user.click(screen.getAllByRole('button', { name: 'Reset passkeys' })[1]);
 
-    await waitFor(() => expect(admin.toast.success).toHaveBeenCalledWith('Removed 3 passkey(s)'));
+    await waitFor(() => expect(admin.toast.success).toHaveBeenCalledWith('Removed 3 passkeys'));
     expect(hitId).toBe('2');
   });
 

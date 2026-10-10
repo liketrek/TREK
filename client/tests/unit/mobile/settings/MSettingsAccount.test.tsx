@@ -22,6 +22,12 @@ vi.mock('react-router', async (importOriginal) => {
 
 vi.mock('@simplewebauthn/browser', () => ({ startRegistration: vi.fn() }));
 
+// Enabling or disabling MFA reloads the user, and loadUser registers the
+// background sync triggers: a 30 s heartbeat and window listeners that nothing
+// here unregisters, so they outlive the test and can fire, and log, while the
+// file's worker shuts down. Nothing here is about sync.
+vi.mock('../../../../src/sync/syncTriggers', () => ({ registerSyncTriggers: vi.fn(), unregisterSyncTriggers: vi.fn() }));
+
 const webauthn = startRegistration as unknown as ReturnType<typeof vi.fn>;
 
 const BACKUP_KEY = 'trek_mfa_backup_codes_pending';

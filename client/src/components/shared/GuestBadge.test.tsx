@@ -1,5 +1,6 @@
-// FE-W4GB-001 to FE-W4GB-003
+// FE-W4GB-001 to FE-W4GB-004
 import { describe, it, expect } from 'vitest'
+import { fireEvent } from '@testing-library/react'
 import { render, screen } from '../../../tests/helpers/render'
 import GuestBadge from './GuestBadge'
 
@@ -20,5 +21,13 @@ describe('GuestBadge', () => {
   it('FE-W4GB-003: shrinks to 9px in the xs variant', () => {
     render(<GuestBadge size="xs" />)
     expect(screen.getByTitle(/without an account/i)).toHaveStyle({ fontSize: 'calc(9px * var(--fs-scale-caption, 1))' })
+  })
+
+  it('FE-W4GB-004: with customTooltip the hint moves from the native title into the app tooltip', async () => {
+    render(<GuestBadge customTooltip />)
+    expect(screen.queryByTitle(/without an account/i)).toBeNull()
+
+    fireEvent.mouseEnter(screen.getByText('Guest'))
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(/without an account/i)
   })
 })

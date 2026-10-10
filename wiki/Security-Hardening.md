@@ -21,7 +21,8 @@ A production TREK deployment checklist. All items reference actual TREK configur
 - [ ] Enable two-factor authentication for your admin account. See [Two-Factor-Authentication](Two-Factor-Authentication).
 - [ ] Require MFA for all users if your use case demands it: Admin Panel → Settings → **Require two-factor authentication (2FA)**. Note: you must secure your own admin account first, with either TOTP or a registered passkey — the server refuses the toggle otherwise. A passkey satisfies the policy for everyone else too, so nobody is forced onto TOTP specifically.
 - [ ] Disable open registration if you control who can access the instance. See [Admin-Users-and-Invites](Admin-Users-and-Invites).
-- [ ] Rotate the JWT signing secret if a session may have been leaked: Admin Panel → Settings → Danger Zone → **Rotate** (`POST /api/admin/rotate-jwt-secret`). This invalidates all active sessions immediately, including your own.
+- [ ] If one account's session may have been leaked, end that account's sessions rather than everyone's: the user signs out the other sessions (`POST /api/auth/sessions/revoke-others`) or changes the password, or an admin sets a new password for them. See [Ending sessions](#ending-sessions) below.
+- [ ] Rotate the JWT signing secret if the secret itself may have been leaked: Admin Panel → Settings → Danger Zone → **Rotate** (`POST /api/admin/rotate-jwt-secret`). This invalidates all active sessions immediately, including your own.
 
 ## Session Security
 
@@ -29,6 +30,33 @@ TREK stores sessions as JWTs in an httpOnly `trek_session` cookie (SameSite=Lax)
 
 - [ ] Ensure `FORCE_HTTPS=true` (or `NODE_ENV=production`) so the `trek_session` cookie carries the `secure` flag and is never sent over plain HTTP.
 - [ ] Set `COOKIE_SECURE=false` only as a temporary escape hatch for LAN testing without TLS — do not use in production.
+
+### Ending sessions
+
+Every sign-in (password, MFA, passkey, SSO, registration, the demo button) is also recorded on the server as a session: the JWT carries a session id, and the server refuses a token whose session has ended, even though its signature and expiry are still good. A copy of the cookie that ended up somewhere else (a proxy log, a debugging tool, a stolen laptop) therefore stops working the moment its session ends, rather than living out its 24 hours or 30 days.
+
+A session ends when:
+
+| Action | Sessions ended |
+|---|---|
+| **Log out** (`POST /api/auth/logout`) | The one it is called with. Clearing the cookie alone used to leave the token valid. |
+| `DELETE /api/auth/sessions/{id}` | That one session of your own account. |
+| `POST /api/auth/sessions/revoke-others` | Every session of your account but the current one. |
+| Password change | Every session. A browser that made the change with its session cookie gets a new one; an API client calling it with a Bearer token gets none, since it would never receive it. |
+| Password reset by email | Every session. |
+| Admin sets a new password for a user | Every session of that user. |
+| Recovery script `reset-admin.js` | Every session of the account it resets. |
+| Disabling two-factor authentication | Every other session; the one that proved the password and code stays. |
+| Admin clears a user's two-factor authentication | Every session of that user. |
+| Account deletion | Every session, with the account. |
+
+`GET /api/auth/sessions` lists the active sessions of your account, most recently used first, with when each started, when it was last used (refreshed at most every few minutes), when it expires, the browser's User-Agent at sign-in (cut to 256 characters) and which one is the current one. No IP address is stored. The settings screen does not show this list yet; the routes are there for it and for API clients. On a demo instance the shared demo account sees only its own session in the list and cannot end sessions (403), since its sessions are other visitors' browsers.
+
+Sessions issued before this was introduced carry no session id. They keep working until they expire (or until the password changes, which ends them through the password version), are not listed, and are not ended by **revoke-others**. Once such a session passes half its lifetime, the sliding renewal replaces it with a tracked one. That session's id is derived from the old token, so the many requests a page load sends at once all renew it into the same single session instead of listing the browser several times. A nightly job removes the session rows that have expired. An ended session's row stays until its own expiry, so a session renewed from such an old token cannot be brought back by that token once it was ended.
+
+A backup restore and the hourly demo reset replace the whole database file. Both carry the sessions that are active at that moment into the new file, for every account it holds under the same id and email, so neither signs anybody out by itself.
+
+> **Deprecated:** the login, registration, demo-login, MFA and passkey sign-in responses and the SSO code exchange (`GET /api/auth/oidc/exchange`) still carry the session JWT as `token` in the JSON body, for API clients that read it. The web app does not use it; the session is the httpOnly cookie the same response sets, and the SSO exchange also answers `success: true`, which is what the web app checks. The field will be removed in a future major version.
 
 ## Password Policy
 
@@ -38,6 +66,8 @@ TREK enforces a minimum password policy on all registrations and password change
 - Must contain uppercase, lowercase, digit, and special character
 - Common passwords and fully-repetitive strings are rejected
 - Passwords are hashed with bcrypt (cost factor 12)
+
+Every form that sets a password (registration, including through an invite link, the new password asked for on first login, the password reset, a password change in **Settings > Account**, and the admin's **Create User** and **Edit User** dialogs) lists these rules as a checklist under the field and ticks each one off while you type, using the server's own policy.
 
 No configuration is required; this policy is always active.
 

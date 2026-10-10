@@ -2,8 +2,11 @@
    - ENCRYPTION_KEY encrypts stored secrets (API keys, MFA, SMTP, OIDC) at rest.
    - By default, the chart creates a Kubernetes Secret from `secretEnv.ENCRYPTION_KEY` in values.yaml.
    - To generate a random key at install (preserved across upgrades), set `generateEncryptionKey: true`.
-   - To use an existing Kubernetes secret, set `existingSecret` to the secret name. The secret must
-     contain a key matching `existingSecretKey` (defaults to `ENCRYPTION_KEY`).
+   - To use an existing Kubernetes secret, set `existingSecret` to the secret name. The chart then
+     renders no Secret of its own and reads every secret env var from that secret: `ENCRYPTION_KEY`
+     (renamable via `existingSecretKey`), plus `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `OIDC_CLIENT_SECRET`,
+     `UNSPLASH_ACCESS_KEY`, `PLACES_API_KEY`, `AMAP_API_KEY`, `AMAP_API_SECRET` and
+     `VAPID_PRIVATE_KEY`. Missing keys are simply left unset, so only provide the ones you use.
    - If left empty, the server resolves the key automatically: existing installs fall back to
      data/.jwt_secret (encrypted data stays readable with no manual action); fresh installs
      auto-generate a key persisted to the data PVC.

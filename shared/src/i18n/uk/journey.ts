@@ -6,6 +6,9 @@ const journey: TranslationStrings = {
   'journey.title': 'Journey',
   'journey.subtitle': 'Відстежуйте свої подорожі в реальному часі',
   'journey.new': 'Нова подорож',
+  'journey.lightbox.zoomIn': 'Збільшити',
+  'journey.lightbox.zoomOut': 'Зменшити',
+  'journey.lightbox.zoomReset': 'Повернутися до всього фото',
   'journey.create': 'Створити',
   'journey.titlePlaceholder': 'Куди ви їдете?',
   'journey.empty': 'Поки що немає подорожей',
@@ -56,7 +59,10 @@ const journey: TranslationStrings = {
   'journey.frontpage.activeJourney': 'Активна подорож',
   'journey.frontpage.latestJourney': 'Остання подорож',
   'journey.frontpage.allJourneys': 'Усі подорожі',
-  'journey.frontpage.journeys': 'подорожей',
+  'journey.frontpage.journeys': 'подорожі',
+  'journey.frontpage.journeys.one': 'подорож',
+  'journey.frontpage.journeys.few': 'подорожі',
+  'journey.frontpage.journeys.many': 'подорожей',
   'journey.frontpage.createNew': 'Створити нову подорож',
   'journey.frontpage.createNewSub': 'Оберіть поїздки, пишіть історії, діліться пригодами',
   'journey.frontpage.live': 'В ефірі',
@@ -72,12 +78,20 @@ const journey: TranslationStrings = {
   'journey.frontpage.tripsSelected': 'поїздок вибрано',
   'journey.frontpage.trips': 'поїздок',
   'journey.frontpage.placesImported': 'місць буде імпортовано',
-  'journey.frontpage.places': 'місць',
+  'journey.frontpage.places': 'місця',
+  'journey.frontpage.places.one': 'місце',
+  'journey.frontpage.places.few': 'місця',
+  'journey.frontpage.places.many': 'місць',
   'journey.detail.backToJourney': 'Назад до подорожі',
   'journey.detail.syncedWithTrips': 'Синхронізовано з поїздками',
   'journey.detail.addEntry': 'Додати запис',
   'journey.detail.jumpToTop': 'Нагору',
   'journey.detail.jumpToLast': 'До останнього запису',
+  'journey.detail.dayJump': 'Перейти до дня',
+  'journey.detail.dayJumpCount': '{count} дня',
+  'journey.detail.dayJumpCount.one': '{count} день',
+  'journey.detail.dayJumpCount.few': '{count} дні',
+  'journey.detail.dayJumpCount.many': '{count} днів',
   'journey.detail.newEntry': 'Новий запис',
   'journey.detail.editEntry': 'Редагувати запис',
   'journey.detail.noEntries': 'Поки що немає записів',
@@ -92,6 +106,9 @@ const journey: TranslationStrings = {
   'journey.detail.readMore': 'Читати далі',
   'journey.detail.prosCons': 'Плюси й мінуси',
   'journey.detail.photos': 'фото',
+  'journey.detail.photos.one': 'фото',
+  'journey.detail.photos.few': 'фото',
+  'journey.detail.photos.many': 'фото',
   'journey.detail.day': 'День {number}',
   'journey.detail.places': 'місць',
   'journey.stats.days': 'Днів',
@@ -103,7 +120,10 @@ const journey: TranslationStrings = {
   'journey.skeletons.hide': 'Приховати пропозиції',
   'journey.verdict.lovedIt': 'Сподобалось',
   'journey.verdict.couldBeBetter': 'Могло бути краще',
-  'journey.synced.places': 'місць',
+  'journey.synced.places': 'місця',
+  'journey.synced.places.one': 'місце',
+  'journey.synced.places.few': 'місця',
+  'journey.synced.places.many': 'місць',
   'journey.synced.synced': 'синхронізовано',
   'journey.editor.discardChangesConfirm': 'У вас є незбережені зміни. Відмінити?',
   'journey.editor.uploadPhotos': 'Завантажити фото',
@@ -195,6 +215,15 @@ const journey: TranslationStrings = {
   'journey.settings.tracks': 'GPX-треки',
   'journey.settings.showTripTracks': 'Показувати всі GPX-треки подорожей',
   'journey.settings.showTripTracksHint': 'Малює на карті записані маршрути зі зв’язаних подорожей.',
+  'journey.settings.status': 'Статус',
+  'journey.settings.statusAuto': 'Автоматично',
+  'journey.settings.statusAutoHint': "Залежить від дат пов'язаних поїздок. Без поїздки журнал лишається чернеткою.",
+  'journey.settings.statusManualHint':
+    'Встановлено вручну. Дати поїздки більше не змінюють його, доки не повернете автоматичний режим.',
+  'journey.settings.photosSection': 'Фото',
+  'journey.settings.photoLocation': 'Визначати місце записів за фото',
+  'journey.settings.photoLocationHint':
+    'Запис без місця отримує точку, де зроблено його перше фото з GPS. Місця, задані вручну, ніколи не змінюються.',
   'journey.settings.endJourney': 'Архівувати подорож',
   'journey.settings.reopenJourney': 'Відновити подорож',
   'journey.settings.archived': 'Подорож архівовано',
@@ -210,7 +239,13 @@ const journey: TranslationStrings = {
   'journey.settings.failedToDelete': 'Не вдалося видалити',
   'journey.entries.deleteTitle': 'Видалити запис',
   'journey.photosUploaded': '{count} фото завантажено',
+  'journey.photosUploaded.one': '{count} фото завантажено',
+  'journey.photosUploaded.few': '{count} фото завантажено',
+  'journey.photosUploaded.many': '{count} фото завантажено',
   'journey.photosAdded': '{count} фото додано',
+  'journey.photosAdded.one': '{count} фото додано',
+  'journey.photosAdded.few': '{count} фото додано',
+  'journey.photosAdded.many': '{count} фото додано',
   'journey.public.notFound': 'Не знайдено',
   'journey.public.notFoundMessage': 'Ця подорож не існує або посилання застаріло.',
   'journey.public.readOnly': 'Тільки для читання · Публічна подорож',
@@ -276,23 +311,35 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': 'Оздоблення',
   'journey.studio.exportMarks': 'Мітки різу',
   'journey.studio.exportMarksHint': 'Додає {bleed} мм вильоту з кожного краю і позначає лінію різу',
-  'journey.studio.exportNote': '{sheets} аркушів {width} × {height} мм. Браузер перетворює перегляд друку на PDF.',
+  'journey.studio.exportNote':
+    '{count} аркуша розміром {width} × {height} мм. Браузер перетворює перегляд друку на PDF.',
+  'journey.studio.exportNote.one':
+    '{count} аркуш розміром {width} × {height} мм. Браузер перетворює перегляд друку на PDF.',
+  'journey.studio.exportNote.few':
+    '{count} аркуші розміром {width} × {height} мм. Браузер перетворює перегляд друку на PDF.',
+  'journey.studio.exportNote.many':
+    '{count} аркушів розміром {width} × {height} мм. Браузер перетворює перегляд друку на PDF.',
   'journey.studio.exportOpen': 'Перегляд друку',
   'journey.studio.exportSave': 'Зберегти як PDF',
   'journey.studio.exportPreparing': 'Підготовка',
-  'journey.studio.exportSheetCount': '{count} аркушів',
+  'journey.studio.exportSheetCount': '{count} аркуша',
+  'journey.studio.exportSheetCount.one': '{count} аркуш',
+  'journey.studio.exportSheetCount.few': '{count} аркуші',
+  'journey.studio.exportSheetCount.many': '{count} аркушів',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Завантажити цей розворот',
-  'journey.studio.downloadSpreadHint': 'Зберігає оформлення розвороту у файл, без світлин, щоб поділитися чи використати ще раз',
+  'journey.studio.downloadSpreadHint':
+    'Зберігає оформлення розвороту у файл, без світлин, щоб поділитися чи використати ще раз',
   'journey.studio.importSpread': 'Імпорт',
   'journey.studio.importSpreadHint': 'Додає розворот із завантаженого файлу оформлення',
   'journey.studio.importSpreadFailed': 'Цей файл не є розворотом TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Верстка книги потребує місця, тому Студія працює лише на комп\'ютері, і створення PDF теж. Усе інше в подорожі тут працює як завжди.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    "Верстка книги потребує місця, тому Студія працює лише на комп'ютері, і створення PDF теж. Усе інше в подорожі тут працює як завжди.", // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -356,7 +403,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -433,6 +481,18 @@ const journey: TranslationStrings = {
   'journey.studio.kind.list': 'Список',
   'journey.studio.kind.icon': 'Іконка',
   'journey.studio.duplicate': 'Дублювати',
+  'journey.studio.copyToPage': 'Копіювати, щоб вставити на будь-яку сторінку (Ctrl+C)',
+  'journey.studio.paste': 'Вставити (Ctrl+V)',
+  'journey.studio.pasteEmpty': 'Спершу щось скопіюйте, потім вставте на будь-яку сторінку',
+  'journey.studio.myLayouts': 'Мої макети',
+  'journey.studio.myLayoutsEmpty':
+    'Збережіть сторінку, яку ви впорядкували, і розкладайте інші сторінки так само. Їхні фото й тексти залишаться.',
+  'journey.studio.saveLayout': 'Зберегти цю сторінку як макет',
+  'journey.studio.saveLayoutHint': 'Зберігає розташування без фото, для всіх редакторів цієї книги',
+  'journey.studio.saveLayoutFull': 'Ця книга зберігає до 24 макетів. Видаліть один, щоб зберегти інший.',
+  'journey.studio.deleteLayout': 'Видалити макет',
+  'journey.studio.layoutName': 'Макет',
+  'journey.studio.builtInLayouts': 'Вбудовані',
   'journey.studio.style': 'Стиль',
   'journey.studio.shows': 'Показувати',
   'journey.studio.size': 'Розмір',
@@ -538,7 +598,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Контури',
   'journey.studio.mapSourceRelief': 'Рельєф',
   'journey.studio.mapSourceSatellite': 'Супутник',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 без хмар, друкувати можна вільно із зазначенням джерела. Чіткість аж до міської вулиці.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 без хмар, друкувати можна вільно із зазначенням джерела. Чіткість аж до міської вулиці.',
   'journey.studio.routeLook': 'Лінія',
   'journey.studio.routeStyle': 'Вигляд',
   'journey.studio.routePlain': 'Звичайна',
@@ -561,9 +622,11 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Прокласти знову',
   'journey.studio.roadsClear': 'Скинути',
   'journey.studio.roadsBusy': 'Запит',
-  'journey.studio.roadsHint': 'Запитати сервіс маршрутів, якими дорогами пройдено кожну ділянку. Довгі ділянки залишаються як є.',
+  'journey.studio.roadsHint':
+    'Запитати сервіс маршрутів, якими дорогами пройдено кожну ділянку. Довгі ділянки залишаються як є.',
   'journey.studio.roadsHave': 'Дороги збережено в цій книзі, тож та сама лінія друкується й без мережі.',
-  'journey.studio.mapSourceReliefHint': 'Затінений рельєф NASA, друкувати можна вільно. Підходить для країни чи континенту, для одного міста надто грубий.',
+  'journey.studio.mapSourceReliefHint':
+    'Затінений рельєф NASA, друкувати можна вільно. Підходить для країни чи континенту, для одного міста надто грубий.',
   'journey.studio.mapPrintDpi': 'Друк близько',
   'journey.studio.mapPrintDpiLow': 'за такого розміру розмито, спробуйте ширший огляд або інше джерело',
   'journey.studio.mapPerTrip': 'По одній поїздці',
@@ -606,12 +669,17 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': 'У цьому записі ще немає фото.',
   'journey.studio.noLoosePhotos': 'Кожне фото тут належить до якогось запису.',
   'journey.studio.uploadPhotos': 'Завантажити фото',
+  'journey.studio.fromProvider': 'З {name}',
+  'journey.studio.fromProviderHint': 'Вибрати фото з {name} і додати туди, куди потрапило б завантаження',
   'journey.studio.uploadHint': 'Перетягніть зображення сюди або натисніть, щоб вибрати',
   'journey.studio.uploadToEntry': 'Нові зображення потраплять у цей запис',
   'journey.studio.uploadToGallery': 'Нові зображення потраплять у галерею',
   'journey.studio.uploading': 'Завантаження {done} з {total}',
   'journey.studio.dropFilesHere': 'Відпустіть, щоб додати зображення',
-  'journey.studio.videosSkipped': 'Пропущено відео: {count}. У книзі лише зображення.',
+  'journey.studio.videosSkipped': 'Пропущено {count} відео. У книзі лише зображення.',
+  'journey.studio.videosSkipped.one': 'Пропущено {count} відео. У книзі лише зображення.',
+  'journey.studio.videosSkipped.few': 'Пропущено {count} відео. У книзі лише зображення.',
+  'journey.studio.videosSkipped.many': 'Пропущено {count} відео. У книзі лише зображення.',
   'journey.studio.fillPage': 'Заповнити сторінку',
   'journey.studio.fillSpread': 'Заповнити розворот',
   'journey.studio.fillHint':
@@ -627,17 +695,31 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Зупинка залишається в щоденнику, але не враховується у відстані, країнах і на карті в Studio.',
   'journey.entry.offRoute': 'Поза маршрутом',
+  'journey.entry.draft': 'Чернетка',
+  'journey.editor.draft': 'Чернетка',
+  'journey.editor.draftHint':
+    'Цей запис бачите лише ви та інші учасники. Спільна подорож не показує його, доки ви це не вимкнете.',
+  'journey.editor.tripSuggestionHint':
+    'Цей день припадає на цю подорож. Пов’яжіть її, і її місця додадуться до цього щоденника.',
+  'journey.editor.tripSuggestionLater': 'Не зараз',
   'journey.suggestions.dismiss': 'Відхилити цю пропозицію',
   'journey.suggestions.dismissed': 'Пропозицію відхилено',
   'journey.suggestions.restore': 'Повернути відхилені пропозиції',
   'journey.suggestions.restoreCount': 'Відхилені пропозиції ({count})',
-  'journey.suggestions.restored': 'Повернулося пропозицій: {count}',
+  'journey.suggestions.restoreCount.one': 'Відхилені пропозиції ({count})',
+  'journey.suggestions.restoreCount.few': 'Відхилені пропозиції ({count})',
+  'journey.suggestions.restoreCount.many': 'Відхилені пропозиції ({count})',
+  'journey.suggestions.restored': 'Повернулося {count} пропозиції',
+  'journey.suggestions.restored.one': 'Повернулася {count} пропозиція',
+  'journey.suggestions.restored.few': 'Повернулися {count} пропозиції',
+  'journey.suggestions.restored.many': 'Повернулося {count} пропозицій',
   'journey.detail.addOnThisDay': 'Додати запис у цей день',
   'journey.detail.jumpToDay': 'Перейти до {date}',
   'journey.detail.searchPlaceholder': 'Пошук у цьому щоденнику',
   'journey.detail.searchEmpty': 'Жоден запис не відповідає «{query}»',
   'journey.settings.entryFields': 'Поля запису',
-  'journey.settings.entryFieldsHint': 'Вимкніть те, чого цей щоденник не використовує. Нічого з написаного не втратиться.',
+  'journey.settings.entryFieldsHint':
+    'Вимкніть те, чого цей щоденник не використовує. Нічого з написаного не втратиться.',
   'journey.settings.showVerdict': 'За і проти',
   'journey.settings.showMood': 'Настрій',
   'journey.settings.showWeather': 'Погода',

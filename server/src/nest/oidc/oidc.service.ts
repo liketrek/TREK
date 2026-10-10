@@ -1,19 +1,30 @@
+import { readEnv, getAppUrl } from '../../app-config';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { InviteTokens } from '../../db/entities/InviteTokens.entity';
+import { Users } from '../../db/entities/Users.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type { InviteTokensRepository, InviteTokenRow } from '../../db/repositories/InviteTokens.repository';
+import type { UsersRepository, UserRow } from '../../db/repositories/Users.repository';
+import { User } from '../../types';
+import { safeFetchAdminConfigured } from '../../utils/ssrfGuard';
+import { logError } from '../audit/audit-log.logger';
+import { AuthService } from '../auth/auth.service';
+import { readAppSetting, resolveAppSetting, type AppSettingKey } from '../common/app-settings.registry';
+import { setAuthCookie, RememberOption } from '../common/cookie';
+import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { UnitOfWork } from '../database/unit-of-work';
+import type { SessionClient } from '../sessions/sessions.service';
+import { TripMembershipService } from '../trip-membership/trip-membership.service';
+import { InMemoryOidcFlowStore, OidcFlowStore, type OidcPendingState } from './oidc-flow.store';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
+
+import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import type { webcrypto } from 'crypto';
+import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
-import bcrypt from 'bcryptjs';
-import type { Request, Response } from 'express';
-import { readEnv, getAppUrl } from '../../app-config';
-import { JWT_SECRET, SESSION_DURATION_SECONDS, SESSION_DURATION_REMEMBER_SECONDS } from '../../config';
-import { User } from '../../types';
-import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
-import { TripMembershipService } from '../trip-membership/trip-membership.service';
-import { setAuthCookie, RememberOption } from '../common/cookie';
-import { AuthService } from '../auth/auth.service';
-import { DatabaseService } from '../database/database.service';
-import { safeFetchAdminConfigured } from '../../utils/ssrfGuard';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -83,11 +94,11 @@ export interface OidcRoleChange {
 /** 1 minute — the auth-code lifetime AND the controller's binding-cookie maxAge. */
 export const OIDC_AUTH_CODE_TTL_MS = 60000;
 const AUTH_CODE_TTL = OIDC_AUTH_CODE_TTL_MS;
-const AUTH_CODE_CLEANUP = 30000;      // 30 seconds
+const AUTH_CODE_CLEANUP = 30000; // 30 seconds
 /** 5 minutes — the server-side pending-state TTL AND the controller's state-cookie maxAge. */
 export const OIDC_STATE_TTL_MS = 5 * 60 * 1000;
 const STATE_TTL = OIDC_STATE_TTL_MS;
-const STATE_CLEANUP = 60 * 1000;      // 1 minute
+const STATE_CLEANUP = 60 * 1000; // 1 minute
 const DISCOVERY_TTL = 60 * 60 * 1000; // 1 hour
 
 const FETCH_TIMEOUT_MS = 10_000;
@@ -122,14 +133,18 @@ function bindingMatches(expectedHash: string, presented: string): boolean {
   return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
 }
 
-const isRecord = (v: unknown): v is Record<string, unknown> =>
-  typeof v === 'object' && v !== null && !Array.isArray(v);
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
 
 function isDiscoveryDoc(v: unknown): v is OidcDiscoveryDoc {
   if (!isRecord(v)) return false;
-  if (typeof v.authorization_endpoint !== 'string' || typeof v.token_endpoint !== 'string' || typeof v.userinfo_endpoint !== 'string') return false;
+  if (
+    typeof v.authorization_endpoint !== 'string' ||
+    typeof v.token_endpoint !== 'string' ||
+    typeof v.userinfo_endpoint !== 'string'
+  )
+    return false;
   if (v.issuer !== undefined && typeof v.issuer !== 'string') return false;
   if (v.jwks_uri !== undefined && typeof v.jwks_uri !== 'string') return false;
   return true;
@@ -141,17 +156,6 @@ function isDiscoveryDoc(v: unknown): v is OidcDiscoveryDoc {
 function assertResponseSize(res: { headers?: { get(name: string): string | null } }): void {
   const length = Number(res.headers?.get('content-length') ?? 0);
   if (length > MAX_RESPONSE_BYTES) throw new Error('OIDC response too large');
-}
-
-/** The invite_tokens row shape findOrCreateUser consumes. */
-interface InviteTokenRow {
-  id: number;
-  token: string;
-  max_uses: number;
-  used_count: number;
-  expires_at: string | null;
-  created_by: number | null;
-  trip_id: number | null;
 }
 
 function base64UrlDecode(input: string): Buffer {
@@ -171,17 +175,46 @@ function safeOidcPicture(picture: unknown): string | null {
 }
 
 /**
+ * `UsersRepository`'s full-row shape (`UserRow` — `role: string`, several
+ * `T | null` columns) vs. the client-payload contract type `User` (`role:
+ * 'admin' | 'user'`, those same columns `T | undefined`). Same mapping as
+ * `auth.service.ts`/`passkey.service.ts`'s own file-local `toClientUser`
+ * (Plan 3b Task 5 review, F5 precedent) — kept as a third, file-local copy
+ * rather than exported/shared, matching that precedent's own reasoning.
+ */
+function toClientUser(row: UserRow): User {
+  return {
+    ...row,
+    role: row.role === 'admin' ? 'admin' : 'user',
+    mfa_enabled: row.mfa_enabled ?? undefined,
+    must_change_password: row.must_change_password ?? undefined,
+    created_at: row.created_at ?? undefined,
+    updated_at: row.updated_at ?? undefined,
+  };
+}
+
+/**
  * DI-native OIDC service — the legacy services/oidcService.ts folded in whole
  * (pure relocation): PKCE state, discovery, the strict id_token/JWKS
- * verification, user provisioning and the auth-code hand-off, all over the
- * injected DatabaseService, with the resolveAuthToggles bridge import replaced
- * by the injected AuthService.
+ * verification, user provisioning and the auth-code hand-off, with the
+ * resolveAuthToggles bridge import replaced by the injected AuthService.
+ *
+ * Plan 3b Task 6: the raw SQL the service used to run directly against the
+ * DB handle (O1–O18 in the plan's inventory) is now
+ * `UsersRepository`/`InviteTokensRepository`/`AppSettingsRepository`
+ * calls (`OidcModule`'s `forFeature([Users, InviteTokens, AppSettings])`),
+ * same statements, same order, same transaction scope
+ * (`.superpowers/sdd/2026-09-22-orm-phase3b/task-6-report.md`) — no
+ * `DatabaseService` left in this file.
  *
  * The legacy module-level state (pending-state / auth-code maps and their two
  * sweep intervals, the discovery cache, the JWKS cache) lives on the instance:
  * nothing outside the container consumes this domain, so no bridge needs to
  * share it. The sweepers start in the constructor (legacy started them at
- * import) and are cleared in onModuleDestroy.
+ * import) and are cleared in onModuleDestroy. They are pure in-process
+ * `setInterval`s over in-memory `Map`s — never DB-touching, so Task 6 left
+ * them untouched (verified: no `this.db`/repository reference anywhere in
+ * either sweeper's closure).
  *
  * Post-migration fixes on top of the relocated legacy behavior (exchange-rates
  * precedent): every outbound fetch carries an AbortSignal timeout and a
@@ -195,21 +228,9 @@ function safeOidcPicture(picture: unknown): string | null {
  */
 @Injectable()
 export class OidcService implements OnModuleDestroy {
-  // -------------------------------------------------------------------------
-  // State management – pending OIDC states
-  // -------------------------------------------------------------------------
-
-  private readonly pendingStates = new Map<string, { createdAt: number; redirectUri: string; inviteToken?: string; codeVerifier: string; remember?: boolean }>();
-
-  // -------------------------------------------------------------------------
-  // Auth code management – short-lived codes exchanged for JWT
-  // -------------------------------------------------------------------------
-
-  // `bindingHash` is the sha256 of a secret that only the browser which finished
-  // the callback holds, in a cookie. The code itself travels in a URL — through
-  // history, referrers and any log in between — so on its own it is not a
-  // credential, and /exchange must not accept it as one.
-  private readonly authCodes = new Map<string, { token: string; created: number; remember?: boolean; bindingHash: string }>();
+  // The pending login states and the one-time login codes live in the injected
+  // OidcFlowStore (oidc-flow.store.ts): in memory today, swappable for a store
+  // shared between processes.
 
   // Discovery document cache (1 h TTL), keyed by discovery URL so two
   // configured issuers no longer thrash a single slot.
@@ -225,21 +246,21 @@ export class OidcService implements OnModuleDestroy {
   private readonly codeSweeper: NodeJS.Timeout;
 
   constructor(
-    private readonly db: DatabaseService,
     private readonly auth: AuthService,
     private readonly membership: TripMembershipService,
+    private readonly uow: UnitOfWork,
+    @InjectRepository(Users) private readonly usersRepo: UsersRepository,
+    @InjectRepository(InviteTokens) private readonly inviteTokens: InviteTokensRepository,
+    @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
+    private readonly flows: OidcFlowStore = new InMemoryOidcFlowStore(),
   ) {
+    const sweepFailed = (err: unknown) =>
+      logError(`OIDC flow sweep failed: ${err instanceof Error ? err.message : String(err)}`);
     this.stateSweeper = setInterval(() => {
-      const now = Date.now();
-      for (const [state, data] of this.pendingStates) {
-        if (now - data.createdAt > STATE_TTL) this.pendingStates.delete(state);
-      }
+      this.flows.sweepStates(Date.now(), STATE_TTL).catch(sweepFailed);
     }, STATE_CLEANUP);
     this.codeSweeper = setInterval(() => {
-      const now = Date.now();
-      for (const [code, entry] of this.authCodes) {
-        if (now - entry.created > AUTH_CODE_TTL) this.authCodes.delete(code);
-      }
+      this.flows.sweepCodes(Date.now(), AUTH_CODE_TTL).catch(sweepFailed);
     }, AUTH_CODE_CLEANUP);
   }
 
@@ -248,28 +269,35 @@ export class OidcService implements OnModuleDestroy {
     clearInterval(this.codeSweeper);
   }
 
-  oidcLoginEnabled(): boolean { return this.auth.resolveAuthToggles().oidc_login; }
+  async oidcLoginEnabled(): Promise<boolean> {
+    return (await this.auth.resolveAuthToggles()).oidc_login;
+  }
 
-  getAppUrl() { return getAppUrl(); }
+  getAppUrl() {
+    return getAppUrl();
+  }
 
-  setAuthCookie(res: Response, token: string, req: Request, remember?: RememberOption) { setAuthCookie(res, token, req, remember); }
+  setAuthCookie(res: Response, token: string, req: Request, remember?: RememberOption) {
+    setAuthCookie(res, token, req, remember);
+  }
 
   // Creates the login state and a matching PKCE pair. The verifier stays server
-  // side (in pendingStates); the S256 challenge goes to the provider so PKCE-
+  // side (in the flow store); the S256 challenge goes to the provider so PKCE-
   // required setups (e.g. Pocket ID with PKCE = required) work.
-  createState(redirectUri: string, inviteToken?: string, remember?: boolean): { state: string; codeChallenge: string } {
+  async createState(
+    redirectUri: string,
+    inviteToken?: string,
+    remember?: boolean,
+  ): Promise<{ state: string; codeChallenge: string }> {
     const state = crypto.randomBytes(32).toString('hex');
     const codeVerifier = base64url(crypto.randomBytes(32));
     const codeChallenge = base64url(crypto.createHash('sha256').update(codeVerifier).digest());
-    this.pendingStates.set(state, { createdAt: Date.now(), redirectUri, inviteToken, codeVerifier, remember });
+    await this.flows.putState(state, { createdAt: Date.now(), redirectUri, inviteToken, codeVerifier, remember });
     return { state, codeChallenge };
   }
 
-  consumeState(state: string) {
-    const pending = this.pendingStates.get(state);
-    if (!pending) return null;
-    this.pendingStates.delete(state);
-    return pending;
+  consumeState(state: string): Promise<OidcPendingState | null> {
+    return this.flows.takeState(state);
   }
 
   /**
@@ -279,20 +307,22 @@ export class OidcService implements OnModuleDestroy {
    * cookie, so redeeming the code takes both halves and only the browser that
    * completed the provider handshake has both.
    */
-  createAuthCode(token: string, remember?: boolean): { code: string; binding: string } {
+  async createAuthCode(token: string, remember?: boolean): Promise<{ code: string; binding: string }> {
     const authCode: string = uuidv4();
     const binding = crypto.randomBytes(32).toString('base64url');
-    this.authCodes.set(authCode, { token, created: Date.now(), remember, bindingHash: sha256Hex(binding) });
+    await this.flows.putCode(authCode, { token, created: Date.now(), remember, bindingHash: sha256Hex(binding) });
     return { code: authCode, binding };
   }
 
-  consumeAuthCode(code: string, binding?: string): { token: string; remember?: boolean } | { error: string } {
-    const entry = this.authCodes.get(code);
-    if (!entry) return { error: 'Invalid or expired code' };
+  async consumeAuthCode(
+    code: string,
+    binding?: string,
+  ): Promise<{ token: string; remember?: boolean } | { error: string }> {
     // Single use, burnt on every outcome: a code seen by someone else must not
     // survive their attempt for a second guess, and the browser that owns it can
     // simply log in again.
-    this.authCodes.delete(code);
+    const entry = await this.flows.takeCode(code);
+    if (!entry) return { error: 'Invalid or expired code' };
     if (Date.now() - entry.created > AUTH_CODE_TTL) return { error: 'Code expired' };
     // Same wording as the unknown-code case on purpose — whoever presents a code
     // without its binding learns nothing about whether the code was real.
@@ -304,16 +334,17 @@ export class OidcService implements OnModuleDestroy {
   // OIDC configuration (env + DB)
   // -------------------------------------------------------------------------
 
-  getOidcConfig(): OidcConfig | null {
-    const get = (key: string) =>
-      (this.db.prepare("SELECT value FROM app_settings WHERE key = ?").get(key) as { value: string } | undefined)?.value || null;
-
-    const oidcEnv = readEnv().oidc;
-    const issuer = oidcEnv.issuer || get('oidc_issuer');
-    const clientId = oidcEnv.clientId || get('oidc_client_id');
-    const clientSecret = oidcEnv.clientSecret || decrypt_api_key(get('oidc_client_secret'));
-    const displayName = oidcEnv.displayName || get('oidc_display_name') || 'SSO';
-    const discoveryUrl = oidcEnv.discoveryUrl || get('oidc_discovery_url') || null;
+  async getOidcConfig(): Promise<OidcConfig | null> {
+    // Environment first, then the setting (the register's rule), for every value.
+    // Unlike isOidcConfigured this also wants the client secret: it builds the
+    // config the provider is called with. The secret is stored encrypted.
+    const resolve = (key: AppSettingKey) => resolveAppSetting(this.appSettings, key);
+    const issuer = await resolve('oidc_issuer');
+    const clientId = await resolve('oidc_client_id');
+    const clientSecret =
+      readEnv().oidc.clientSecret || decrypt_api_key(await readAppSetting(this.appSettings, 'oidc_client_secret'));
+    const displayName = (await resolve('oidc_display_name')) || 'SSO';
+    const discoveryUrl = (await resolve('oidc_discovery_url')) || null;
 
     if (!issuer || !clientId || !clientSecret) return null;
     // The lookbehind pins the trailing-slash strip (here and below) to the start of
@@ -347,7 +378,7 @@ export class OidcService implements OnModuleDestroy {
       if (discoveryUrl) {
         console.warn(
           `[OIDC] Discovery doc issuer "${doc.issuer}" differs from configured OIDC_ISSUER "${issuer}". ` +
-          `Using discovery doc issuer for id_token verification (custom OIDC_DISCOVERY_URL is set).`,
+            `Using discovery doc issuer for id_token verification (custom OIDC_DISCOVERY_URL is set).`,
         );
       } else {
         throw new Error(`OIDC discovery issuer mismatch: expected "${issuer}", got "${doc.issuer}"`);
@@ -384,9 +415,7 @@ export class OidcService implements OnModuleDestroy {
   resolveOidcRoleDetailed(userInfo: OidcUserInfo, isFirstUser: boolean): OidcRoleResolution {
     const claimKey = readEnv().oidc.adminClaim;
     const claimMissing =
-      !isFirstUser &&
-      !!readEnv().oidc.adminValue &&
-      !Object.prototype.hasOwnProperty.call(userInfo, claimKey);
+      !isFirstUser && !!readEnv().oidc.adminValue && !Object.prototype.hasOwnProperty.call(userInfo, claimKey);
     return {
       role: this.resolveOidcRole(userInfo, isFirstUser),
       claimMissing,
@@ -416,20 +445,21 @@ export class OidcService implements OnModuleDestroy {
     if (user?.role === 'admin') {
       console.warn(
         `[OIDC] User ${user.id} (${user.username}) is stored as an admin and the configured OIDC_ADMIN_CLAIM ` +
-        `"${resolution.claimKey}" was not in their userinfo response, so the admin role is kept. Providers that omit a ` +
-        `claim instead of sending it empty (Okta filtered groups, Entra ID) cannot take admin away this way — remove it ` +
-        `in TREK's admin panel. ${received} ${scopeHint}`,
+          `"${resolution.claimKey}" was not in their userinfo response, so the admin role is kept. Providers that omit a ` +
+          `claim instead of sending it empty (Okta filtered groups, Entra ID) cannot take admin away this way — remove it ` +
+          `in TREK's admin panel. ${received} ${scopeHint}`,
       );
       return;
     }
     if (this.warnedMissingAdminClaims.has(resolution.claimKey)) return;
     this.warnedMissingAdminClaims.add(resolution.claimKey);
-    const consequence = user === null
-      ? 'during registration, so the new account keeps its default role'
-      : `for user ${user.id}, so their stored role is left unchanged`;
+    const consequence =
+      user === null
+        ? 'during registration, so the new account keeps its default role'
+        : `for user ${user.id}, so their stored role is left unchanged`;
     console.warn(
       `[OIDC] The configured OIDC_ADMIN_CLAIM "${resolution.claimKey}" was not in the userinfo response ${consequence}. ` +
-      `${received} ${scopeHint}`,
+        `${received} ${scopeHint}`,
     );
   }
 
@@ -443,20 +473,14 @@ export class OidcService implements OnModuleDestroy {
     return base + path;
   }
 
-  generateToken(user: { id: number }, remember?: boolean): string {
-    // Embed the current password_version so an OIDC-issued session is invalidated
-    // by a password change/reset exactly like a password-login session (the auth
-    // middleware compares this `pv` against users.password_version).
-    const pv = (this.db.prepare('SELECT password_version FROM users WHERE id = ?').get(user.id) as { password_version?: number } | undefined)?.password_version ?? 0;
-    // "Remember me" mirrors the password flow: the JWT lifetime matches the
-    // persistent cookie maxAge picked by the cookie service off the same flag,
-    // and the claim lets sliding renewal preserve those semantics.
-    const expiresIn = remember === true ? SESSION_DURATION_REMEMBER_SECONDS : SESSION_DURATION_SECONDS;
-    return jwt.sign(
-      { id: user.id, pv, ...(typeof remember === 'boolean' ? { remember } : {}) },
-      JWT_SECRET,
-      { expiresIn, algorithm: 'HS256' },
-    );
+  /**
+   * The same session token a password login gets, through the one issuer: it
+   * embeds the current password_version (so a password change or reset ends an
+   * SSO session too), takes the "remember me" lifetime and claim, and records
+   * the session so it can be listed and revoked.
+   */
+  async generateToken(user: { id: number }, remember?: boolean, client?: SessionClient): Promise<string> {
+    return this.auth.generateToken({ id: user.id }, remember, client);
   }
 
   // -------------------------------------------------------------------------
@@ -481,12 +505,16 @@ export class OidcService implements OnModuleDestroy {
     if (codeVerifier) body.set('code_verifier', codeVerifier);
     // maxRedirects 0: following one would hand client_secret to a second host,
     // and the platform default of 'follow' does exactly that today.
-    const tokenRes = await safeFetchAdminConfigured(doc.token_endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body,
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    }, 0);
+    const tokenRes = await safeFetchAdminConfigured(
+      doc.token_endpoint,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      },
+      0,
+    );
     assertResponseSize(tokenRes);
     // Error responses are still parsed on purpose — callers branch on _ok/_status.
     const parsed: unknown = await tokenRes.json();
@@ -550,8 +578,11 @@ export class OidcService implements OnModuleDestroy {
     if (parts.length !== 3) return { ok: false, error: 'malformed_token' };
 
     let header: { kid?: string; alg?: string };
-    try { header = JSON.parse(base64UrlDecode(parts[0]!).toString('utf8')); }
-    catch { return { ok: false, error: 'bad_header' }; }
+    try {
+      header = JSON.parse(base64UrlDecode(parts[0]!).toString('utf8'));
+    } catch {
+      return { ok: false, error: 'bad_header' };
+    }
 
     const alg = header.alg;
     if (!alg || !/^(RS256|RS384|RS512|ES256|ES384|ES512|PS256|PS384|PS512)$/.test(alg)) {
@@ -559,16 +590,17 @@ export class OidcService implements OnModuleDestroy {
     }
 
     let keys: Array<Record<string, unknown>>;
-    try { keys = await this.fetchJwks(doc.jwks_uri); }
-    catch { return { ok: false, error: 'jwks_fetch_failed' }; }
+    try {
+      keys = await this.fetchJwks(doc.jwks_uri);
+    } catch {
+      return { ok: false, error: 'jwks_fetch_failed' };
+    }
 
     // When the token carries a `kid`, refuse to fall back to any other
     // key in the JWKS — a mismatch means the token was signed with a key
     // the provider no longer publishes, and we should reject rather than
     // mask the failure by trying another key.
-    const jwk = header.kid
-      ? keys.find((k) => k['kid'] === header.kid)
-      : keys[0];
+    const jwk = header.kid ? keys.find((k) => k['kid'] === header.kid) : keys[0];
     if (!jwk) return { ok: false, error: 'no_matching_key' };
 
     let publicKey;
@@ -607,95 +639,133 @@ export class OidcService implements OnModuleDestroy {
   // Find or create user by OIDC sub / email
   // -------------------------------------------------------------------------
 
-  findOrCreateUser(
+  /**
+   * The claim a new account's username comes from (#1677). OIDC_USERNAME_CLAIM
+   * names one, typically `preferred_username` for providers whose `name` is the
+   * full "Jane Doe"; when it is unset, or the provider leaves that claim empty,
+   * the old order applies. Only read when an account is created: a username the
+   * user has changed since is never overwritten on a later login.
+   */
+  private usernameSource(userInfo: OidcUserInfo): string | undefined {
+    const claimKey = readEnv().oidc.usernameClaim;
+    const claimed = claimKey ? userInfo[claimKey] : undefined;
+    if (typeof claimed === 'string' && claimed.trim()) return claimed.trim();
+    return userInfo.name || userInfo.preferred_username;
+  }
+
+  /**
+   * A login by an account that already exists: link the OIDC identity when the
+   * verified email matched it, follow the role claim, keep the OIDC avatar current.
+   * Runs inside findOrCreateUser's transaction.
+   */
+  private async refreshLinkedUser(
+    user: UserRow,
+    sub: string,
+    config: OidcConfig,
+    userInfo: OidcUserInfo,
+    picture: string | null,
+  ): Promise<{ user: User; roleChange?: OidcRoleChange } | { error: string }> {
+    // Reaching here without an oidc_sub means we matched an existing local
+    // account by email. Only auto-link the OIDC identity when the IdP asserts
+    // the email is verified; an unverified email must not auto-link.
+    if (!user.oidc_sub) {
+      const emailVerified = userInfo.email_verified === true || userInfo.email_verified === 'true';
+      if (!emailVerified) {
+        return { error: 'email_not_verified' };
+      }
+      await this.usersRepo.linkOidcIdentity(user.id, sub, config.issuer);
+      user = { ...user, oidc_sub: sub, oidc_issuer: config.issuer };
+    } else if (user.oidc_issuer !== config.issuer || user.oidc_sub !== sub) {
+      // The admin pointed the instance at a different IdP. We got here through the
+      // verified-email lookup, so this is the same person arriving from the new
+      // provider; leaving the old sub and issuer on the row would keep the account
+      // pinned to a provider that no longer exists (#2110).
+      await this.usersRepo.linkOidcIdentity(user.id, sub, config.issuer);
+      user = { ...user, oidc_sub: sub, oidc_issuer: config.issuer };
+    }
+    // Update role based on OIDC claims on every login (if claim mapping is configured)
+    let roleChange: OidcRoleChange | undefined;
+    if (readEnv().oidc.adminValue) {
+      const resolution = this.resolveOidcRoleDetailed(userInfo, false);
+      const newRole = resolution.role;
+      if (resolution.claimMissing) {
+        this.warnMissingAdminClaim(resolution, {
+          id: user.id,
+          username: user.username,
+          role: user.role === 'admin' ? 'admin' : 'user',
+        });
+      } else if (user.role !== newRole) {
+        // Never let the claim-based downgrade strip the last admin. The bootstrap
+        // admin (first SSO user) usually doesn't carry the admin claim, so a forced
+        // re-login — e.g. after a JWT-secret rotation — would otherwise demote it and
+        // lock an OIDC-only instance out for good. #1274
+        const demotingLastAdmin =
+          user.role === 'admin' && newRole !== 'admin' && (await this.usersRepo.countAdmins()) <= 1;
+        if (demotingLastAdmin) {
+          console.warn(
+            `[OIDC] Kept admin role for user ${user.id}: their OIDC claims map to '${newRole}', but they are the only admin — demoting would lock the instance out.`,
+          );
+        } else {
+          await this.usersRepo.setRole(user.id, newRole);
+          roleChange = { from: user.role === 'admin' ? 'admin' : 'user', to: newRole, claim: resolution.claimKey };
+          user = { ...user, role: newRole };
+        }
+      }
+    }
+    // Keep the avatar in sync with the OIDC picture, but never clobber a custom
+    // upload: only touch it when empty or when the current value is itself an OIDC
+    // picture URL, so the picture refreshes on each login without overriding an
+    // uploaded one. #1399
+    //
+    // "In sync" includes the provider having no picture for this user any more. That
+    // is what a provider switch looks like from here, and the old value points at a
+    // host this instance no longer talks to, so it renders as a broken image forever
+    // (#2110). An uploaded avatar is a bare filename and stays untouched either way.
+    const avatarIsOidc = !!user.avatar && /^https:\/\//i.test(user.avatar);
+    if (picture ? picture !== user.avatar && (!user.avatar || avatarIsOidc) : avatarIsOidc) {
+      await this.usersRepo.setAvatarRaw(user.id, picture);
+      user = { ...user, avatar: picture };
+    }
+    return { user: toClientUser(user), roleChange };
+  }
+
+  async findOrCreateUser(
     userInfo: OidcUserInfo,
     config: OidcConfig,
     inviteToken?: string,
-  ): { user: User; roleChange?: OidcRoleChange; created?: true } | { error: string } {
+  ): Promise<{ user: User; roleChange?: OidcRoleChange; created?: true } | { error: string }> {
     // Defense-in-depth for direct callers — the controller redirects on a
     // missing email before it ever calls this; the same code flows through its
     // `oidc_error=' + result.error` pass-through if reached here.
     if (!userInfo.email) return { error: 'no_email' };
     const email = userInfo.email.trim().toLowerCase();
-    const name = userInfo.name || userInfo.preferred_username || email.split('@')[0];
+    const name = this.usernameSource(userInfo) || email.split('@')[0];
     const sub = userInfo.sub;
     const picture = safeOidcPicture(userInfo.picture);
 
     // Try to find existing user by sub, then by email
-    let user = this.db.prepare('SELECT * FROM users WHERE oidc_sub = ? AND oidc_issuer = ?').get(sub, config.issuer) as User | undefined;
+    let user = await this.usersRepo.findByOidcIdentity(sub, config.issuer);
     if (!user) {
       // Never link/log-in to a guest (#1362) via its synthetic email.
-      user = this.db.prepare('SELECT * FROM users WHERE LOWER(email) = ? AND COALESCE(is_guest, 0) = 0').get(email) as User | undefined;
+      // `email` is already JS-lowered above (O4 shape) — findByEmailLoweredBind
+      // mirrors the legacy `LOWER(email) = ?` statement exactly; do not use
+      // findByEmailCI here, it is AU12's `LOWER(email) = LOWER(?)` shape.
+      user = await this.usersRepo.findByEmailLoweredBind(email);
     }
 
     if (user) {
-      // Reaching here without an oidc_sub means we matched an existing local
-      // account by email. Only auto-link the OIDC identity when the IdP asserts
-      // the email is verified; an unverified email must not auto-link.
-      if (!user.oidc_sub) {
-        const emailVerified = userInfo.email_verified === true || userInfo.email_verified === 'true';
-        if (!emailVerified) {
-          return { error: 'email_not_verified' };
-        }
-        this.db.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?').run(sub, config.issuer, user.id);
-        user = { ...user, oidc_sub: sub, oidc_issuer: config.issuer } as User;
-      } else if (user.oidc_issuer !== config.issuer || user.oidc_sub !== sub) {
-        // The admin pointed the instance at a different IdP. We got here through the
-        // verified-email lookup, so this is the same person arriving from the new
-        // provider; leaving the old sub and issuer on the row would keep the account
-        // pinned to a provider that no longer exists (#2110).
-        this.db.prepare('UPDATE users SET oidc_sub = ?, oidc_issuer = ? WHERE id = ?').run(sub, config.issuer, user.id);
-        user = { ...user, oidc_sub: sub, oidc_issuer: config.issuer } as User;
-      }
-      // Update role based on OIDC claims on every login (if claim mapping is configured)
-      let roleChange: OidcRoleChange | undefined;
-      if (readEnv().oidc.adminValue) {
-        const resolution = this.resolveOidcRoleDetailed(userInfo, false);
-        const newRole = resolution.role;
-        if (resolution.claimMissing) {
-          this.warnMissingAdminClaim(resolution, user);
-        } else if (user.role !== newRole) {
-          // Never let the claim-based downgrade strip the last admin. The bootstrap
-          // admin (first SSO user) usually doesn't carry the admin claim, so a forced
-          // re-login — e.g. after a JWT-secret rotation — would otherwise demote it and
-          // lock an OIDC-only instance out for good. #1274
-          const demotingLastAdmin =
-            user.role === 'admin' &&
-            newRole !== 'admin' &&
-            (this.db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin'").get() as { count: number }).count <= 1;
-          if (demotingLastAdmin) {
-            console.warn(`[OIDC] Kept admin role for user ${user.id}: their OIDC claims map to '${newRole}', but they are the only admin — demoting would lock the instance out.`);
-          } else {
-            this.db.prepare('UPDATE users SET role = ? WHERE id = ?').run(newRole, user.id);
-            roleChange = { from: user.role, to: newRole, claim: resolution.claimKey };
-            user = { ...user, role: newRole } as User;
-          }
-        }
-      }
-      // Keep the avatar in sync with the OIDC picture, but never clobber a custom
-      // upload: only touch it when empty or when the current value is itself an OIDC
-      // picture URL, so the picture refreshes on each login without overriding an
-      // uploaded one. #1399
-      //
-      // "In sync" includes the provider having no picture for this user any more. That
-      // is what a provider switch looks like from here, and the old value points at a
-      // host this instance no longer talks to, so it renders as a broken image forever
-      // (#2110). An uploaded avatar is a bare filename and stays untouched either way.
-      const avatarIsOidc = !!user.avatar && /^https:\/\//i.test(user.avatar);
-      if (picture ? picture !== user.avatar && (!user.avatar || avatarIsOidc) : avatarIsOidc) {
-        this.db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(picture, user.id);
-        user = { ...user, avatar: picture } as User;
-      }
-      return { user, roleChange };
+      // The identity link, the role from the claims and the avatar are one write.
+      const existing = user;
+      return await this.uow.transactional(() => this.refreshLinkedUser(existing, sub, config, userInfo, picture));
     }
 
     // --- New user registration ---
-    const userCount = (this.db.prepare('SELECT COUNT(*) as count FROM users WHERE COALESCE(is_guest, 0) = 0').get() as { count: number }).count;
+    const userCount = await this.usersRepo.countNonGuest();
     const isFirstUser = userCount === 0;
 
     let validInvite: InviteTokenRow | null = null;
     if (inviteToken) {
-      validInvite = (this.db.prepare('SELECT * FROM invite_tokens WHERE token = ?').get(inviteToken) as InviteTokenRow | undefined) ?? null;
+      validInvite = await this.inviteTokens.findByToken(inviteToken);
       if (validInvite) {
         if (validInvite.max_uses > 0 && validInvite.used_count >= validInvite.max_uses) validInvite = null;
         if (validInvite?.expires_at && new Date(validInvite.expires_at) < new Date()) validInvite = null;
@@ -703,7 +773,7 @@ export class OidcService implements OnModuleDestroy {
     }
 
     if (!isFirstUser && !validInvite) {
-      const { oidc_registration } = this.auth.resolveAuthToggles();
+      const { oidc_registration } = await this.auth.resolveAuthToggles();
       if (!oidc_registration) {
         return { error: 'registration_disabled' };
       }
@@ -721,8 +791,8 @@ export class OidcService implements OnModuleDestroy {
     // usernames (see the ^[a-zA-Z0-9_.-]+$ validation in authService) and common
     // in OIDC name claims like "first.last".
     let username = name.replace(/[^a-zA-Z0-9_.-]/g, '').substring(0, 30) || 'user';
-    const existing = this.db.prepare('SELECT id FROM users WHERE LOWER(username) = LOWER(?)').get(username);
-    if (existing) username = `${username}_${Date.now() % 10000}`;
+    const existingId = await this.usersRepo.findIdByUsernameCIAny(username);
+    if (existingId !== null) username = `${username}_${Date.now() % 10000}`;
 
     // Atomic registration: if an invite was presented, the increment IS
     // the capacity check — UPDATE matches zero rows the moment another
@@ -731,33 +801,47 @@ export class OidcService implements OnModuleDestroy {
     // both pass the earlier SELECT-based check and each create a user.
     const inviteRaceError = new Error('invite_exhausted');
     try {
-      const result = this.db.transaction(() => {
+      const insertedId = await this.uow.transactional(async () => {
         if (validInvite) {
-          const updated = this.db.prepare(
-            'UPDATE invite_tokens SET used_count = used_count + 1 WHERE id = ? AND (max_uses = 0 OR used_count < max_uses)',
-          ).run(validInvite.id);
-          if (updated.changes === 0) throw inviteRaceError;
+          const updated = await this.inviteTokens.incrementUsedCount(validInvite.token);
+          if (!updated) throw inviteRaceError;
         }
-        const ins = this.db.prepare(
-          'INSERT INTO users (username, email, password_hash, role, oidc_sub, oidc_issuer, avatar, first_seen_version, login_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)',
-        ).run(username, email, hash, role, sub, config.issuer, picture, readEnv().app.appVersion || '0.0.0');
+        const created = await this.usersRepo.insertUser({
+          username,
+          email,
+          password_hash: hash,
+          role,
+          first_seen_version: readEnv().app.appVersion || '0.0.0',
+          oidc_sub: sub,
+          oidc_issuer: config.issuer,
+          avatar: picture,
+        });
         // Trip-bound invite (#1402): auto-add the new SSO user to the trip inside the
         // same atomic step as the invite consume. Idempotent + owner-safe.
         if (validInvite?.trip_id) {
-          this.membership.joinTripAsMember(Number(validInvite.trip_id), Number(ins.lastInsertRowid), validInvite.created_by ?? null);
+          await this.membership.joinTripAsMember(
+            Number(validInvite.trip_id),
+            Number(created.id),
+            validInvite.created_by ?? null,
+          );
         }
-        return ins;
-      }) as { lastInsertRowid: number | bigint };
+        return created.id;
+      });
       // Re-select so the returned User carries the real row (password_version,
       // is_guest, created_at, …) instead of a hand-built partial — same shape
-      // the existing-user branch returns.
-      user = this.db.prepare('SELECT * FROM users WHERE id = ?').get(Number(result.lastInsertRowid)) as User;
+      // the existing-user branch returns. A separate read after the transaction
+      // resolves (not `insertUser`'s own internal read-back), mirroring the
+      // legacy INSERT-then-reselect structure exactly.
+      const created = await this.usersRepo.findById(insertedId);
+      if (!created) throw new Error('findOrCreateUser: read-back after insert found no row');
       // The one branch that makes an account. The caller writes the registration row
       // off this, so it has to be set here and nowhere else.
-      return { user, created: true };
+      return { user: toClientUser(created), created: true };
     } catch (err) {
       if (err === inviteRaceError) {
-        console.warn(`[OIDC] Invite token ${inviteToken?.slice(0, 8)}... exhausted — concurrent callback won the last slot`);
+        console.warn(
+          `[OIDC] Invite token ${inviteToken?.slice(0, 8)}... exhausted — concurrent callback won the last slot`,
+        );
         return { error: 'registration_disabled' };
       }
       throw err;
@@ -768,8 +852,8 @@ export class OidcService implements OnModuleDestroy {
   // Update last_login timestamp
   // -------------------------------------------------------------------------
 
-  touchLastLogin(userId: number): void {
-    this.db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP, login_count = login_count + 1 WHERE id = ?').run(userId);
+  async touchLastLogin(userId: number): Promise<void> {
+    await this.usersRepo.touchLastLogin(userId);
   }
 
   // ── OIDC settings ──────────────────────────────────────────────────────────
@@ -778,45 +862,44 @@ export class OidcService implements OnModuleDestroy {
   // settings write: removing the SSO config while password login is off would lock
   // every user out of the instance.
 
-  getOidcSettings() {
-    const get = (key: string) =>
-      this.db.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', key)?.value || '';
-    const secret = decrypt_api_key(get('oidc_client_secret'));
+  async getOidcSettings() {
+    const get = async (key: AppSettingKey) => (await readAppSetting(this.appSettings, key)) || '';
+    const secret = decrypt_api_key(await get('oidc_client_secret'));
     return {
-      issuer: get('oidc_issuer'),
-      client_id: get('oidc_client_id'),
+      issuer: await get('oidc_issuer'),
+      client_id: await get('oidc_client_id'),
       client_secret_set: !!secret,
-      display_name: get('oidc_display_name'),
-      oidc_only: get('oidc_only') === 'true',
-      discovery_url: get('oidc_discovery_url'),
+      display_name: await get('oidc_display_name'),
+      oidc_only: (await get('oidc_only')) === 'true',
+      discovery_url: await get('oidc_discovery_url'),
     };
   }
 
-  updateOidcSettings(data: {
+  async updateOidcSettings(data: {
     issuer?: string;
     client_id?: string;
     client_secret?: string;
     display_name?: string;
     discovery_url?: string;
-  }): { error?: string; status?: number; success?: boolean } {
+  }): Promise<{ error?: string; status?: number; success?: boolean }> {
     // Lockout prevention: can't remove OIDC config when password login is disabled
-    if ((data.issuer === '' || data.client_id === '') && !this.auth.resolveAuthToggles().password_login) {
+    if ((data.issuer === '' || data.client_id === '') && !(await this.auth.resolveAuthToggles()).password_login) {
       return {
         error: 'Cannot remove SSO configuration while password login is disabled. Enable password login first.',
         status: 400,
       };
     }
 
-    const set = (key: string, val: string) =>
-      this.db.run('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', key, val || '');
+    const set = (key: string, val: string) => this.appSettings.setValue(key, val || '');
     // All five writes are one SSO config — a partial apply would leave the
     // instance with an issuer but no client id (or vice versa).
-    this.db.transaction(() => {
-      set('oidc_issuer', data.issuer ?? '');
-      set('oidc_client_id', data.client_id ?? '');
-      if (data.client_secret !== undefined) set('oidc_client_secret', maybe_encrypt_api_key(data.client_secret) ?? '');
-      set('oidc_display_name', data.display_name ?? '');
-      set('oidc_discovery_url', data.discovery_url ?? '');
+    await this.uow.transactional(async () => {
+      await set('oidc_issuer', data.issuer ?? '');
+      await set('oidc_client_id', data.client_id ?? '');
+      if (data.client_secret !== undefined)
+        await set('oidc_client_secret', maybe_encrypt_api_key(data.client_secret) ?? '');
+      await set('oidc_display_name', data.display_name ?? '');
+      await set('oidc_discovery_url', data.discovery_url ?? '');
     });
     return { success: true };
   }

@@ -1166,7 +1166,7 @@ describe('a leg asked for again on demand', () => {
 })
 
 /**
- * FE-ROADTRIP-ROUTES-052..061: a booked night at both ends of the days around it.
+ * FE-ROADTRIP-ROUTES-052..061, 064: a booked night at both ends of the days around it.
  *
  * The first cases here that hand the hook the trip's stays. What is pinned is what goes to
  * the router: the drive from the hotel slept in and to tonight's is part of the day's own
@@ -1403,6 +1403,32 @@ describe('a booked night at both ends of its days', () => {
     expect(runs).toContainEqual(['walking', [HOTEL[0], P[2][0]]])
     expect(runs).toContainEqual(['driving', [P[2][0], P[3][0], HOTEL[0]]])
     expect(runs).toContainEqual(['driving', [HOTEL[0], P[4][0], P[5][0], HOTEL[0]]])
+  })
+
+  it('FE-ROADTRIP-ROUTES-064: the stop tonight’s booking put first on its day gives way to the evening at the stay (#2546)', async () => {
+    const { days } = cam()
+    const stays = [stayOf(1, 1, 1, 2, GETAWAY), stayOf(2, 4, 2, 3, WALLINGA)]
+    const assignments = {
+      ...map(1, [{ id: 1, at: GETAWAY }, { id: 2, at: LOOKOUT }]),
+      ...map(2, [{ id: 4, at: WALLINGA }, { id: 5, at: P[0] }, { id: 6, at: P[1] }]),
+    } as AssignmentsMap
+    // The booking wrote the Wallinga stop, seated first because it names no check-in.
+    Object.assign(assignments['2'][0], { accommodation_id: 2 })
+    const { result } = renderHook(() => useRoadtripRoutes(7, days, assignments, 'driving', {}, [], stays))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    expect(result.current.days.map(d => shape(d.stops))).toEqual([
+      ['Stop 1', 'Stop 2', 'evening:1'],
+      ['morning:1', 'Stop 5', 'Stop 6', 'evening:2'],
+    ])
+    expect(asked()).toContainEqual([GETAWAY[0], P[0][0], P[1][0], WALLINGA[0]])
+    expect(result.current.days[1].stops[3].bookend).toMatchObject({ checkingIn: true, accommodationId: 2 })
+    // Writes still address the stored order: the places keep the index they are stored at.
+    expect(result.current.days[1].stops.map(s => s.ownerIndex)).toEqual([0, 1, 2, 3])
+
+    // Switched off, the booking's stop is the only way the drive reaches the hotel.
+    switchTo(false)
+    await waitFor(() => expect(result.current.days[1].stops.map(s => s.name)).toEqual(['Stop 4', 'Stop 5', 'Stop 6']))
   })
 })
 

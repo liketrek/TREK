@@ -1,20 +1,34 @@
-import { Injectable } from '@nestjs/common';
 import { readEnv, getAppUrl } from '../../app-config';
-import { DatabaseService } from '../database/database.service';
-import { StorageService } from '../storage/storage.service';
-import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { Users } from '../../db/entities/Users.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import {
+  UserIdentityTakenError,
+  type UsersRepository,
+  type UserApiKeyColumns,
+  type UserProfilePatch,
+} from '../../db/repositories/Users.repository';
 import { avatarUrl } from '../common/avatarUrl';
-import { EMAIL_REGEX, mask_stored_api_key } from './auth.helpers';
+import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { DomainError } from '../common/domain-error';
 import { splitManagedKeys, MANAGED_LOCKED_PROFILE_KEYS } from '../common/managed';
+import { UnitOfWork } from '../database/unit-of-work';
+import { SEARCH_TEXT_FIELD_MASK } from '../maps/providers/google-places.constants';
 import {
   INSTANCE_API_KEY_NAMES,
+  operatorKeyVariables,
   readInstanceApiKey,
   resolveApiKey,
   writeInstanceApiKey,
   type InstanceApiKeyName,
 } from '../settings/instance-api-keys';
-import { SEARCH_TEXT_FIELD_MASK } from '../maps/maps.helpers';
-import { User } from '../../types';
+import { StorageService } from '../storage/storage.service';
+import { EMAIL_REGEX, mask_stored_api_key } from './auth.helpers';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+
+/** A key check is a single request to a provider; one that hangs must not hold the settings page. */
+const KEY_CHECK_TIMEOUT_MS = 10_000;
 
 /**
  * The account a user administers about themselves: display settings, avatar,
@@ -24,17 +38,23 @@ import { User } from '../../types';
  * Split out of AuthService, which had grown to 1471 lines by owning identity,
  * profile, settings and tokens together. None of this is identity: no password
  * is checked here, no session is issued, no MFA secret is touched. Everything
- * moved verbatim — same SQL, same validation order, same masking, same error
- * strings and status codes.
+ * moved verbatim — same statement shapes, same validation order, same masking,
+ * same error strings and status codes.
  *
- * DatabaseService is the only injected dependency, which is what made this the
- * second-cheapest cut after tokens.
+ * Plan 3b Task 1: every read/write here now goes through `UsersRepository`
+ * (`AppSettingsRepository`/`UsersRepository` were already present, Plan 3a
+ * Task 5, purely so `instance-api-keys.ts` could take its own repository
+ * rather than resolving one itself); `DatabaseService` is gone from the
+ * constructor entirely — nothing in this file reads or writes raw SQL any
+ * more.
  */
 @Injectable()
 export class UserProfileService {
   constructor(
-    private readonly db: DatabaseService,
     private readonly storage: StorageService,
+    private readonly uow: UnitOfWork,
+    @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
+    @InjectRepository(Users) private readonly usersRepo: UsersRepository,
   ) {}
 
   /**
@@ -51,12 +71,12 @@ export class UserProfileService {
     return readEnv().managed.enabled;
   }
 
-  /** The three key columns plus the role that decides where a save lands. */
-  private currentKeys(userId: number) {
-    return this.db.get<Pick<User, 'role' | 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key' | 'amap_api_key'>>(
-      'SELECT role, maps_api_key, openweather_api_key, unsplash_api_key, amap_api_key FROM users WHERE id = ?',
-      userId
-    );
+  /**
+   * The three key columns plus the role that decides where a save lands.
+   * `SELECT role, maps_api_key, openweather_api_key, unsplash_api_key, amap_api_key FROM users WHERE id = ?` (UP1).
+   */
+  private async currentKeys(userId: number): Promise<UserApiKeyColumns | null> {
+    return this.usersRepo.getApiKeyColumns(userId);
   }
 
   /**
@@ -66,13 +86,13 @@ export class UserProfileService {
    * value, because that is what the panel shows them and what the search uses;
    * their own column only speaks when no instance value has been set yet.
    */
-  private storedKeyPlaintext(
+  private async storedKeyPlaintext(
     name: 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key' | 'amap_api_key',
-    current: Pick<User, 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key' | 'amap_api_key'> | undefined,
+    current: UserApiKeyColumns | null,
     isAdmin: boolean,
-  ): string {
+  ): Promise<string> {
     if (isAdmin && (INSTANCE_API_KEY_NAMES as readonly string[]).includes(name)) {
-      const instance = readInstanceApiKey(this.db, name as InstanceApiKeyName);
+      const instance = await readInstanceApiKey(this.appSettings, name as InstanceApiKeyName);
       if (instance !== null) return instance;
     }
     return decrypt_api_key(current?.[name]) ?? '';
@@ -89,16 +109,21 @@ export class UserProfileService {
    * `skipped` are the names a managed install refuses to write — auditing them
    * would claim a change that never happened.
    */
-  private changedKeyNames(
+  private async changedKeyNames(
     body: Record<string, unknown>,
-    current: Pick<User, 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key' | 'amap_api_key'> | undefined,
+    current: UserApiKeyColumns | null,
     isAdmin: boolean,
     skipped: string[] = [],
-  ): string[] {
+  ): Promise<string[]> {
     const norm = (v: unknown) => String(v ?? '').trim();
-    return (['maps_api_key', 'openweather_api_key', 'unsplash_api_key', 'amap_api_key'] as const).filter(
-      (name) => body[name] !== undefined && !skipped.includes(name) && norm(body[name]) !== norm(this.storedKeyPlaintext(name, current, isAdmin))
-    );
+    // An explicit loop rather than `.filter`: storedKeyPlaintext reads the
+    // instance row and a filter predicate cannot await. Same order, same names.
+    const changed: string[] = [];
+    for (const name of ['maps_api_key', 'openweather_api_key', 'unsplash_api_key', 'amap_api_key'] as const) {
+      if (body[name] === undefined || skipped.includes(name)) continue;
+      if (norm(body[name]) !== norm(await this.storedKeyPlaintext(name, current, isAdmin))) changed.push(name);
+    }
+    return changed;
   }
 
   /**
@@ -109,145 +134,175 @@ export class UserProfileService {
    * member the instance credential. A non-admin keeps writing their own column,
    * which is still the last step of the resolver.
    */
-  private mirrorInstanceKeys(body: Record<string, unknown>, isAdmin: boolean): void {
+  private async mirrorInstanceKeys(body: Record<string, unknown>, isAdmin: boolean): Promise<void> {
     if (!isAdmin) return;
     for (const name of INSTANCE_API_KEY_NAMES) {
-      if (body[name] !== undefined) writeInstanceApiKey(this.db, name, body[name]);
+      if (body[name] !== undefined) await writeInstanceApiKey(this.appSettings, name, body[name]);
     }
   }
 
-  updateMapsKey(userId: number, key: unknown) {
+  async updateMapsKey(userId: number, key: unknown) {
     const maps_api_key = key as string | null | undefined;
     if (this.managed) {
       return { success: true, maps_api_key: null, managed_keys: ['maps_api_key'], changedKeys: [] };
     }
-    const current = this.currentKeys(userId);
+    const current = await this.currentKeys(userId);
     const isAdmin = current?.role === 'admin';
-    const changedKeys = this.changedKeyNames({ maps_api_key }, current, isAdmin);
-    this.db.transaction(() => {
-      this.db.run(
-        'UPDATE users SET maps_api_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        maybe_encrypt_api_key(maps_api_key), userId
-      );
-      this.mirrorInstanceKeys({ maps_api_key }, isAdmin);
+    const changedKeys = await this.changedKeyNames({ maps_api_key }, current, isAdmin);
+    await this.uow.transactional(async () => {
+      await this.usersRepo.updateMapsKey(userId, maybe_encrypt_api_key(maps_api_key));
+      await this.mirrorInstanceKeys({ maps_api_key }, isAdmin);
     });
     return { success: true, maps_api_key: mask_stored_api_key(maps_api_key), changedKeys };
   }
 
-  updateApiKeys(userId: number, rawBody: unknown) {
-    const body = rawBody as { maps_api_key?: string; openweather_api_key?: string; unsplash_api_key?: string; amap_api_key?: string };
+  async updateApiKeys(userId: number, rawBody: unknown) {
+    const body = rawBody as {
+      maps_api_key?: string;
+      openweather_api_key?: string;
+      unsplash_api_key?: string;
+      amap_api_key?: string;
+    };
     const { blocked } = splitManagedKeys(body, this.managed);
     for (const key of blocked) delete body[key as keyof typeof body];
-    const current = this.currentKeys(userId);
+    const current = await this.currentKeys(userId);
     const isAdmin = current?.role === 'admin';
-    const changedKeys = this.changedKeyNames(body, current, isAdmin, blocked);
+    const changedKeys = await this.changedKeyNames(body, current, isAdmin, blocked);
 
-    this.db.transaction(() => {
+    await this.uow.transactional(async () => {
       // `?? null` instead of the former non-null assertions: a user row deleted
       // mid-request must degrade to a 0-row UPDATE, not a TypeError/500.
-      this.db.run(
-        'UPDATE users SET maps_api_key = ?, openweather_api_key = ?, unsplash_api_key = ?, amap_api_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        body.maps_api_key !== undefined ? maybe_encrypt_api_key(body.maps_api_key) : current?.maps_api_key ?? null,
-        body.openweather_api_key !== undefined ? maybe_encrypt_api_key(body.openweather_api_key) : current?.openweather_api_key ?? null,
-        body.unsplash_api_key !== undefined ? maybe_encrypt_api_key(body.unsplash_api_key) : current?.unsplash_api_key ?? null,
-        body.amap_api_key !== undefined ? maybe_encrypt_api_key(body.amap_api_key) : current?.amap_api_key ?? null,
-        userId
-      );
-      this.mirrorInstanceKeys(body, isAdmin);
+      await this.usersRepo.updateApiKeys(userId, {
+        maps_api_key:
+          body.maps_api_key !== undefined ? maybe_encrypt_api_key(body.maps_api_key) : (current?.maps_api_key ?? null),
+        openweather_api_key:
+          body.openweather_api_key !== undefined
+            ? maybe_encrypt_api_key(body.openweather_api_key)
+            : (current?.openweather_api_key ?? null),
+        unsplash_api_key:
+          body.unsplash_api_key !== undefined
+            ? maybe_encrypt_api_key(body.unsplash_api_key)
+            : (current?.unsplash_api_key ?? null),
+        amap_api_key:
+          body.amap_api_key !== undefined ? maybe_encrypt_api_key(body.amap_api_key) : (current?.amap_api_key ?? null),
+      });
+      await this.mirrorInstanceKeys(body, isAdmin);
     });
 
-    const updated = this.db.get<Pick<User, 'id' | 'username' | 'email' | 'role' | 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key' | 'amap_api_key' | 'avatar' | 'mfa_enabled'>>(
-      'SELECT id, username, email, role, maps_api_key, openweather_api_key, unsplash_api_key, amap_api_key, avatar, mfa_enabled FROM users WHERE id = ?',
-      userId
-    );
+    const updated = await this.usersRepo.findProfileWithKeys(userId);
 
-    const u = updated ? { ...updated, mfa_enabled: !!(updated.mfa_enabled === 1 || updated.mfa_enabled === true) } : undefined;
+    const u = updated ? { ...updated, mfa_enabled: !!(updated.mfa_enabled === 1) } : undefined;
     return {
       success: true,
       ...(blocked.length ? { managed_keys: blocked } : {}),
-      user: { ...u, maps_api_key: mask_stored_api_key(u?.maps_api_key), openweather_api_key: mask_stored_api_key(u?.openweather_api_key), unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key), amap_api_key: mask_stored_api_key(u?.amap_api_key), avatar_url: avatarUrl(updated || {}) },
+      user: {
+        ...u,
+        maps_api_key: mask_stored_api_key(u?.maps_api_key),
+        openweather_api_key: mask_stored_api_key(u?.openweather_api_key),
+        unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key),
+        amap_api_key: mask_stored_api_key(u?.amap_api_key),
+        avatar_url: avatarUrl(updated || {}),
+      },
       changedKeys,
     };
   }
 
-  updateSettings(
+  async updateSettings(
     userId: number,
-    rawBody: unknown
-  ): { error?: string; status?: number; success?: boolean; user?: Record<string, unknown>; changedKeys?: string[] } {
-    const body = rawBody as { maps_api_key?: string; openweather_api_key?: string; unsplash_api_key?: string; amap_api_key?: string; username?: string; email?: string };
+    rawBody: unknown,
+  ): Promise<{ success?: boolean; user?: Record<string, unknown>; changedKeys?: string[] }> {
+    const body = rawBody as {
+      maps_api_key?: string;
+      openweather_api_key?: string;
+      unsplash_api_key?: string;
+      amap_api_key?: string;
+      username?: string;
+      email?: string;
+    };
     const { maps_api_key, openweather_api_key, unsplash_api_key, amap_api_key, username, email } = body;
 
     if (username !== undefined) {
       const trimmed = username.trim();
       if (!trimmed || trimmed.length < 2 || trimmed.length > 50) {
-        return { error: 'Username must be between 2 and 50 characters', status: 400 };
+        throw new DomainError(400, 'Username must be between 2 and 50 characters');
       }
       if (!/^[a-zA-Z0-9_.-]+$/.test(trimmed)) {
-        return { error: 'Username can only contain letters, numbers, underscores, dots and hyphens', status: 400 };
+        throw new DomainError(400, 'Username can only contain letters, numbers, underscores, dots and hyphens');
       }
-      const conflict = this.db.get('SELECT id FROM users WHERE LOWER(username) = LOWER(?) AND id != ? AND COALESCE(is_guest, 0) = 0', trimmed, userId);
-      if (conflict) return { error: 'Username already taken', status: 409 };
+      const conflict = await this.usersRepo.findIdByUsernameCI(trimmed, userId);
+      if (conflict) throw new DomainError(409, 'Username already taken');
     }
 
     if (email !== undefined) {
       const trimmed = email.trim();
       if (!trimmed || !EMAIL_REGEX.test(trimmed)) {
-        return { error: 'Invalid email format', status: 400 };
+        throw new DomainError(400, 'Invalid email format');
       }
-      const conflict = this.db.get('SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND id != ? AND COALESCE(is_guest, 0) = 0', trimmed, userId);
-      if (conflict) return { error: 'Email already taken', status: 409 };
+      const conflict = await this.usersRepo.findIdByEmailCI(trimmed, userId);
+      if (conflict) throw new DomainError(409, 'Email already taken');
     }
-
-    const updates: string[] = [];
-    const params: (string | number | null)[] = [];
 
     // The name and email half of this body stays the user's own in every mode;
     // only the three key columns answer to the operator.
     const { blocked } = splitManagedKeys(body, this.managed);
     const keyLocked = blocked.length > 0;
 
-    if (maps_api_key !== undefined && !keyLocked) { updates.push('maps_api_key = ?'); params.push(maybe_encrypt_api_key(maps_api_key)); }
-    if (openweather_api_key !== undefined && !keyLocked) { updates.push('openweather_api_key = ?'); params.push(maybe_encrypt_api_key(openweather_api_key)); }
-    if (unsplash_api_key !== undefined && !keyLocked) { updates.push('unsplash_api_key = ?'); params.push(maybe_encrypt_api_key(unsplash_api_key)); }
-    if (amap_api_key !== undefined && !keyLocked) { updates.push('amap_api_key = ?'); params.push(maybe_encrypt_api_key(amap_api_key)); }
-    if (username !== undefined) { updates.push('username = ?'); params.push(username.trim()); }
-    if (email !== undefined) { updates.push('email = ?'); params.push(email.trim()); }
+    // The bounded set of columns UP7's dynamic SET clause could touch — built
+    // here, at the call site, exactly as the legacy `updates`/`params` arrays
+    // were; `UsersRepository.patchProfile` writes this typed partial in ONE
+    // statement, never a built SQL string.
+    const changes: UserProfilePatch = {};
+    if (maps_api_key !== undefined && !keyLocked) changes.maps_api_key = maybe_encrypt_api_key(maps_api_key);
+    if (openweather_api_key !== undefined && !keyLocked)
+      changes.openweather_api_key = maybe_encrypt_api_key(openweather_api_key);
+    if (unsplash_api_key !== undefined && !keyLocked)
+      changes.unsplash_api_key = maybe_encrypt_api_key(unsplash_api_key);
+    if (amap_api_key !== undefined && !keyLocked) changes.amap_api_key = maybe_encrypt_api_key(amap_api_key);
+    if (username !== undefined) changes.username = username.trim();
+    if (email !== undefined) changes.email = email.trim();
 
     // Read before the write, so the comparison sees the old value; the role in
     // the same row decides whether the two instance-wide names travel with it.
-    const current = this.currentKeys(userId);
+    const current = await this.currentKeys(userId);
     const isAdmin = current?.role === 'admin';
-    const changedKeys = keyLocked ? [] : this.changedKeyNames(body, current, isAdmin, blocked);
+    const changedKeys = keyLocked ? [] : await this.changedKeyNames(body, current, isAdmin, blocked);
 
-    if (updates.length > 0) {
-      updates.push('updated_at = CURRENT_TIMESTAMP');
-      params.push(userId);
-      this.db.transaction(() => {
-        this.db.run(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, ...params);
-        if (!keyLocked) this.mirrorInstanceKeys(body, isAdmin);
-      });
+    if (Object.keys(changes).length > 0) {
+      try {
+        await this.uow.transactional(async () => {
+          await this.usersRepo.patchProfile(userId, changes);
+          if (!keyLocked) await this.mirrorInstanceKeys(body, isAdmin);
+        });
+      } catch (err) {
+        // Another write took the name or address between the check above and this one.
+        if (err instanceof UserIdentityTakenError) {
+          throw new DomainError(409, err.field === 'email' ? 'Email already taken' : 'Username already taken');
+        }
+        throw err;
+      }
     }
 
-    const updated = this.db.get<Pick<User, 'id' | 'username' | 'email' | 'role' | 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key' | 'amap_api_key' | 'avatar' | 'mfa_enabled'>>(
-      'SELECT id, username, email, role, maps_api_key, openweather_api_key, unsplash_api_key, amap_api_key, avatar, mfa_enabled FROM users WHERE id = ?',
-      userId
-    );
+    const updated = await this.usersRepo.findProfileWithKeys(userId);
 
-    const u = updated ? { ...updated, mfa_enabled: !!(updated.mfa_enabled === 1 || updated.mfa_enabled === true) } : undefined;
+    const u = updated ? { ...updated, mfa_enabled: !!(updated.mfa_enabled === 1) } : undefined;
     return {
       success: true,
       ...(blocked.length ? { managed_keys: blocked } : {}),
-      user: { ...u, maps_api_key: mask_stored_api_key(u?.maps_api_key), openweather_api_key: mask_stored_api_key(u?.openweather_api_key), unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key), amap_api_key: mask_stored_api_key(u?.amap_api_key), avatar_url: avatarUrl(updated || {}) },
+      user: {
+        ...u,
+        maps_api_key: mask_stored_api_key(u?.maps_api_key),
+        openweather_api_key: mask_stored_api_key(u?.openweather_api_key),
+        unsplash_api_key: mask_stored_api_key(u?.unsplash_api_key),
+        amap_api_key: mask_stored_api_key(u?.amap_api_key),
+        avatar_url: avatarUrl(updated || {}),
+      },
       changedKeys,
     };
   }
 
-  getSettings(userId: number): { error?: string; status?: number; settings?: Record<string, unknown> } {
-    const user = this.db.get<Pick<User, 'role' | 'maps_api_key' | 'openweather_api_key' | 'unsplash_api_key' | 'amap_api_key'>>(
-      'SELECT role, maps_api_key, openweather_api_key, unsplash_api_key, amap_api_key FROM users WHERE id = ?',
-      userId
-    );
-    if (user?.role !== 'admin') return { error: 'Admin access required', status: 403 };
+  async getSettings(userId: number): Promise<{ settings?: Record<string, unknown> }> {
+    const user = await this.usersRepo.getApiKeyColumns(userId);
+    if (user?.role !== 'admin') throw new DomainError(403, 'Admin access required');
 
     // The one endpoint in the codebase that hands back a stored key in the
     // clear. That is fine when the admin pasted it in themselves and wrong when
@@ -270,12 +325,21 @@ export class UserProfileService {
     // first. Showing the admin their own column while every request used another
     // value is the confusion #1939 reported. Their column still answers while no
     // instance value exists — on that install it is what the resolver picks too.
+    //
+    // Ahead of both sits the operator's environment variable. A key set there
+    // comes back as null plus the variable's name in `env_keys`: the stored
+    // value is not what any search uses, and the variable's value is the
+    // operator's, not the panel's to hand out (#1881).
+    const envKeys = operatorKeyVariables();
+    const shown = async (name: InstanceApiKeyName, own: unknown) =>
+      envKeys[name] ? null : ((await readInstanceApiKey(this.appSettings, name)) ?? decrypt_api_key(own));
     return {
       settings: {
-        maps_api_key: readInstanceApiKey(this.db, 'maps_api_key') ?? decrypt_api_key(user.maps_api_key),
+        maps_api_key: await shown('maps_api_key', user.maps_api_key),
         openweather_api_key: decrypt_api_key(user.openweather_api_key),
-        unsplash_api_key: readInstanceApiKey(this.db, 'unsplash_api_key') ?? decrypt_api_key(user.unsplash_api_key),
-        amap_api_key: readInstanceApiKey(this.db, 'amap_api_key') ?? decrypt_api_key(user.amap_api_key),
+        unsplash_api_key: await shown('unsplash_api_key', user.unsplash_api_key),
+        amap_api_key: await shown('amap_api_key', user.amap_api_key),
+        env_keys: envKeys,
       },
     };
   }
@@ -285,29 +349,29 @@ export class UserProfileService {
   // -------------------------------------------------------------------------
 
   async saveAvatar(userId: number, filename: string) {
-    const current = this.db.get<{ avatar: string | null }>('SELECT avatar FROM users WHERE id = ?', userId);
+    const current = await this.usersRepo.getAvatar(userId);
     // Only a locally uploaded file has something to clean up. An OIDC picture URL
     // (#1399) has no storage object, so skip the delete entirely.
-    if (current?.avatar && !/^https:\/\//i.test(current.avatar)) {
+    if (current && !/^https:\/\//i.test(current)) {
       // Fire-and-forget parity: leftover objects are harmless; the DB update is
       // the source of truth for which avatar is current. The catch also
       // swallows a hostile stored value the central key validation rejects.
-      await this.storage.delete('avatars', current.avatar).catch(() => {});
+      await this.storage.delete('avatars', current).catch(() => {});
     }
 
-    this.db.run('UPDATE users SET avatar = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', filename, userId);
+    await this.usersRepo.setAvatar(userId, filename);
 
-    const updated = this.db.get<Pick<User, 'id' | 'username' | 'email' | 'role' | 'avatar'>>('SELECT id, username, email, role, avatar FROM users WHERE id = ?', userId);
+    const updated = await this.usersRepo.findProfileBasic(userId);
     return { success: true, avatar_url: avatarUrl(updated || {}) };
   }
 
   async deleteAvatar(userId: number) {
-    const current = this.db.get<{ avatar: string | null }>('SELECT avatar FROM users WHERE id = ?', userId);
+    const current = await this.usersRepo.getAvatar(userId);
     // An OIDC picture URL (#1399) has no storage object — only delete an uploaded one.
-    if (current?.avatar && !/^https:\/\//i.test(current.avatar)) {
-      await this.storage.delete('avatars', current.avatar).catch(() => {});
+    if (current && !/^https:\/\//i.test(current)) {
+      await this.storage.delete('avatars', current).catch(() => {});
     }
-    this.db.run('UPDATE users SET avatar = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?', userId);
+    await this.usersRepo.setAvatar(userId, null);
     return { success: true };
   }
 
@@ -315,23 +379,31 @@ export class UserProfileService {
   // User directory
   // -------------------------------------------------------------------------
 
-  listUsers(excludeUserId: number) {
+  async listUsers(excludeUserId: number) {
     // The global user directory feeds the trip member-add / contributor pickers —
     // guests (#1362) are trip-scoped and must never be selectable here.
-    const users = this.db.all<Pick<User, 'id' | 'username' | 'avatar'>>(
-      'SELECT id, username, avatar FROM users WHERE id != ? AND COALESCE(is_guest, 0) = 0 ORDER BY username ASC',
-      excludeUserId
-    );
-    return users.map(u => ({ ...u, avatar_url: avatarUrl(u) }));
+    const users = await this.usersRepo.listOthersNonGuest(excludeUserId);
+    return users.map((u) => ({ ...u, avatar_url: avatarUrl(u) }));
   }
 
   // -------------------------------------------------------------------------
   // Key validation
   // -------------------------------------------------------------------------
 
-  async validateKeys(userId: number): Promise<{ error?: string; status?: number; maps: boolean; weather: boolean; maps_details: null | { ok: boolean; status: number | null; status_text: string | null; error_message: string | null; error_status: string | null; error_raw: string | null } }> {
-    const user = this.db.get<Pick<User, 'role' | 'openweather_api_key'>>('SELECT role, openweather_api_key FROM users WHERE id = ?', userId);
-    if (user?.role !== 'admin') return { error: 'Admin access required', status: 403, maps: false, weather: false, maps_details: null };
+  async validateKeys(userId: number): Promise<{
+    maps: boolean;
+    weather: boolean;
+    maps_details: null | {
+      ok: boolean;
+      status: number | null;
+      status_text: string | null;
+      error_message: string | null;
+      error_status: string | null;
+      error_raw: string | null;
+    };
+  }> {
+    const user = await this.usersRepo.getRoleAndWeatherKey(userId);
+    if (user?.role !== 'admin') throw new DomainError(403, 'Admin access required');
 
     const result: {
       maps: boolean;
@@ -349,35 +421,46 @@ export class UserProfileService {
     // The key a search would actually use, not the one in this admin's column:
     // testing a value nothing resolves to is how "the panel says the key is
     // fine" and "every search 403s" coexisted (#1939).
-    const { key: maps_api_key } = resolveApiKey(this.db, 'maps_api_key', userId, readEnv().maps.placesApiKey);
+    const { key: maps_api_key } = await resolveApiKey(
+      this.appSettings,
+      this.usersRepo,
+      'maps_api_key',
+      userId,
+      readEnv().maps.placesApiKey,
+    );
     if (maps_api_key) {
       try {
         // Same Referer as maps.service googleFetch — without it, keys with an
         // HTTP-referrer restriction fail validation while real requests succeed.
         const referer = readEnv().app.appUrl ? getAppUrl() : undefined;
-        const mapsRes = await fetch(
-          `https://places.googleapis.com/v1/places:searchText`,
-          {
-            method: 'POST',
-            headers: {
-              ...(referer ? { Referer: referer } : {}),
-              'Content-Type': 'application/json',
-              'X-Goog-Api-Key': maps_api_key,
-              // The mask the real search sends. A narrower probe passes on keys
-              // that are restricted to fewer Places SKUs than TREK asks for.
-              'X-Goog-FieldMask': SEARCH_TEXT_FIELD_MASK,
-            },
-            body: JSON.stringify({ textQuery: 'test' }),
-          }
-        );
+        const mapsRes = await fetch(`https://places.googleapis.com/v1/places:searchText`, {
+          method: 'POST',
+          headers: {
+            ...(referer ? { Referer: referer } : {}),
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': maps_api_key,
+            // The mask the real search sends. A narrower probe passes on keys
+            // that are restricted to fewer Places SKUs than TREK asks for.
+            'X-Goog-FieldMask': SEARCH_TEXT_FIELD_MASK,
+          },
+          body: JSON.stringify({ textQuery: 'test' }),
+          signal: AbortSignal.timeout(KEY_CHECK_TIMEOUT_MS),
+        });
         result.maps = mapsRes.status === 200;
         let error_text: string | null = null;
         let error_json: any = null;
         if (!result.maps) {
           try {
             error_text = await mapsRes.text();
-            try { error_json = JSON.parse(error_text); } catch { error_json = null; }
-          } catch { error_text = null; error_json = null; }
+            try {
+              error_json = JSON.parse(error_text);
+            } catch {
+              error_json = null;
+            }
+          } catch {
+            error_text = null;
+            error_json = null;
+          }
         }
         result.maps_details = {
           ok: result.maps,
@@ -404,7 +487,8 @@ export class UserProfileService {
     if (openweather_api_key) {
       try {
         const weatherRes = await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?q=London&appid=${openweather_api_key}`
+          `https://api.openweathermap.org/data/2.5/weather?q=London&appid=${openweather_api_key}`,
+          { signal: AbortSignal.timeout(KEY_CHECK_TIMEOUT_MS) },
         );
         result.weather = weatherRes.status === 200;
       } catch {

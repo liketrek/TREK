@@ -91,4 +91,9 @@ export const notificationHandlers = [
       },
     });
   }),
+
+  // A login and the notice host both start this fetch without waiting for it.
+  // Unhandled, MSW let it through to the network, where it could fail after the
+  // test had ended and log a warning into a worker that was shutting down.
+  http.get('/api/system-notices/active', () => HttpResponse.json([])),
 ];

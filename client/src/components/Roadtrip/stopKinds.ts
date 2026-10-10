@@ -49,6 +49,12 @@ export const STOP_KIND_BY_KEY: Record<string, StopKind> = Object.fromEntries(
   STOP_KINDS.map(k => [k.key, k]),
 )
 
+/**
+ * How long to stand still, offered as the few answers anyone actually gives. The same
+ * six on the desktop and the phone, so a stop added at either is the same stop.
+ */
+export const DWELL_CHOICES = [5, 10, 20, 30, 45, 60]
+
 export interface CorridorCategory {
   key: string
   labelKey: string

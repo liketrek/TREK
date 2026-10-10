@@ -3,6 +3,7 @@ import { Settings, SlidersHorizontal, Paintbrush, Map, Bell, Plug, CloudOff, Use
 import { useTranslation } from '../i18n'
 import PageShell from '../components/Layout/PageShell'
 import PageSidebar, { type PageSidebarTab } from '../components/Layout/PageSidebar'
+import { SettingsHeader } from '../components/Settings/settingsKit'
 import DisplaySettingsTab from '../components/Settings/DisplaySettingsTab'
 import AppearanceSettingsTab from '../components/Settings/AppearanceSettingsTab'
 import MapSettingsTab from '../components/Settings/MapSettingsTab'
@@ -10,9 +11,10 @@ import NotificationsTab from '../components/Settings/NotificationsTab'
 import IntegrationsTab from '../components/Settings/IntegrationsTab'
 import AccountTab from '../components/Settings/AccountTab'
 import AboutTab from '../components/Settings/AboutTab'
+import HelpAnchor from '../components/Help/HelpAnchor'
+import { getHelpContext } from '../help/registry'
 import OfflineTab from '../components/Settings/OfflineTab'
 import PluginSettingsTab from '../components/Settings/PluginSettingsTab'
-import { usePluginStore } from '../store/pluginStore'
 import { useSettings } from './settings/useSettings'
 
 export default function SettingsPage(): React.ReactElement {
@@ -24,8 +26,9 @@ export default function SettingsPage(): React.ReactElement {
 function SettingsPageDesktop(): React.ReactElement {
   const { t } = useTranslation()
   // Page = wiring container: addon/version loading + active-tab state in the hook.
-  const { hasIntegrations, appVersion, activeTab, setActiveTab, managed } = useSettings()
-  const hasPlugins = usePluginStore(s => s.plugins.length > 0)
+  const { hasIntegrations, hasPlugins, appVersion, activeTab, setActiveTab, managed } = useSettings()
+  // Every tab is its own help screen; a tab without one falls back to the settings overview.
+  const helpId = getHelpContext(`settings-${activeTab}`) ? `settings-${activeTab}` : 'settings'
 
   const tabs: PageSidebarTab[] = [
     { id: 'display', label: t('settings.tabs.display'), icon: SlidersHorizontal },
@@ -50,18 +53,11 @@ function SettingsPageDesktop(): React.ReactElement {
   ]
 
   return (
-    <PageShell background="var(--bg-secondary)">
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+    <PageShell background="var(--bg-primary)">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
           {/* Header */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-surface-tertiary">
-              <Settings className="w-5 h-5 text-content-secondary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-content">{t('settings.title')}</h1>
-              <p className="text-sm text-content-muted">{t('settings.subtitle')}</p>
-            </div>
-          </div>
+          <HelpAnchor id={helpId} />
+          <SettingsHeader icon={Settings} title={t('settings.title')} subtitle={t('settings.subtitle')} />
 
           {/* Sidebar layout */}
           <PageSidebar

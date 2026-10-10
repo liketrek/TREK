@@ -4,7 +4,7 @@ The audit log records significant actions taken on your TREK instance. Use it to
 
 ## Where to find it
 
-**Admin Panel → Audit** tab.
+**Admin Panel > Audit** tab, in the **Maintenance** group of the side navigation.
 
 ![Audit log](assets/Audit.png)
 
@@ -34,6 +34,15 @@ A request for an account that can actually be reset writes **two** rows: one wit
 | `user.mfa_enable` | MFA enabled on an account |
 | `user.mfa_disable` | MFA disabled on an account |
 
+### Sessions
+
+| Action key | Description |
+|---|---|
+| `user.session_revoke` | A user ended one of their own sessions (resource = the session id) |
+| `user.sessions_revoke_others` | A user ended every session but the current one (`revoked` = how many in details) |
+
+Logging out writes no row, and neither do the sessions a password change, a reset or an MFA change ends along the way: those actions have rows of their own.
+
 ### Passkeys
 
 | Action key | Description |
@@ -41,6 +50,12 @@ A request for an account that can actually be reset writes **two** rows: one wit
 | `user.passkey_register` | Passkey enrolled |
 | `user.passkey_delete` | Passkey removed (resource = the passkey's numeric ID) |
 | `user.passkey_clone_suspected` | A passkey presented a signature counter that did not advance — a possible cloned authenticator. That assertion is rejected, the credential stays enabled |
+
+### SSO
+
+| Action key | Description |
+|---|---|
+| `oidc.role_change` | An SSO login changed a user's role through the OIDC claim mapping (`from`, `to` and the claim **name** in details, never the claim's value) |
 
 ### Trips
 
@@ -80,6 +95,7 @@ A request for an account that can actually be reset writes **two** rows: one wit
 | `admin.place_shadow` | Place Search Log toggled (`enabled` in details) |
 | `admin.places_google_only` | Search with Google only toggled (`enabled` in details) |
 | `admin.collab_features` | Collaboration features updated |
+| `admin.google_daily_limit` | Daily limit for Google calls saved (`daily_limit` in details, `null` for no limit) |
 | `admin.transit_provider` | Public transit backend changed (`provider` in details: `transitous` or `google`) |
 | `admin.packing_template_create` | Packing template created |
 | `admin.packing_template_delete` | Packing template deleted |
@@ -154,7 +170,7 @@ A request for an account that can actually be reset writes **two** rows: one wit
 
 ## Pagination
 
-The panel loads 100 entries at a time by default. Click **Load more** at the bottom to fetch the next page. The total count is shown above the table.
+The panel loads 100 entries at a time. Click **Load more** at the bottom to fetch the next page, or **Refresh** to reload from the newest entry. The count is shown above the table as `{loaded} loaded · {total} total`.
 
 ## IP addresses
 

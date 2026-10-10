@@ -1,6 +1,13 @@
 /**
  * Calendar-feed e2e — exercises the subscribable ICS feeds end-to-end against a
- * temp in-memory SQLite db through the REAL JwtAuthGuard:
+ * real migrated-and-seeded temp SQLite db (`createSnapshotTestDb()`, Plan 3d
+ * Task 5 — this used to hand-roll a 4-table schema (`users`/`trips`/
+ * `trip_members`/`app_settings`) and mock `canAccessTrip`/`isOwner` off
+ * `../../src/db/database`; `TripAccessGuard` and `FeedsService` both resolve
+ * through real repositories (`TripsRepository`/`UsersRepository`) over the
+ * request-scoped `EntityManager` `createTestMikroOrmModule` wires in now, so a
+ * hand-rolled schema/mock pair would silently diverge from the real one — the
+ * same reasoning `trips.e2e.test.ts`'s identical header comment gives):
  *   - JWT-guarded token endpoints (/api/trips/:id/feed/token, /api/feed/user/token):
  *     lazy generate, idempotency, rotate-invalidates-old, disable-clears-token,
  *     host fallback when APP_URL is unset, 404 on no access, 401 no cookie
@@ -12,49 +19,30 @@
  * which trips the all-trips feed pulled in without seeding the full
  * trip/day/reservation schema.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { Trips } from '../../src/db/entities/Trips.entity';
+import { AppConfigModule } from '../../src/nest/app-config/app-config.module';
+import { CalendarService } from '../../src/nest/calendar/calendar.service';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { FeedsModule } from '../../src/nest/feeds/feeds.module';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { createUser, createTrip, addTripMember } from '../helpers/factories';
+import { findRow, updateRows } from '../helpers/factories/rows';
+import { resetTestDb } from '../helpers/test-db';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { Test } from '@nestjs/testing';
-import { APP_GUARD } from '@nestjs/core';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
-const { db } = vi.hoisted(() => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require('better-sqlite3');
-  const tmp = new Database(':memory:');
-  tmp.exec('PRAGMA journal_mode = WAL');
-  tmp.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user',
-    password_version INTEGER NOT NULL DEFAULT 0, feed_token TEXT);`);
-  tmp.exec(`CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
-    title TEXT, is_archived INTEGER NOT NULL DEFAULT 0, start_date TEXT, end_date TEXT, feed_token TEXT);`);
-  tmp.exec(`CREATE TABLE trip_members (trip_id INTEGER NOT NULL, user_id INTEGER NOT NULL);`);
-  // StorageRegistryService (behind StorageModule, now in this module chain) reads
-  // this at onModuleInit.
-  tmp.exec('CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT);');
-  return { db: tmp };
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
 });
-
-// canAccessTrip/isOwner back TripAccessGuard, which now gates the trip token
-// routes. They run the same predicates as the real module against the temp db.
-vi.mock('../../src/db/database', () => ({
-  db,
-  closeDb: () => {},
-  reinitialize: () => {},
-  canAccessTrip: (tripId: number, userId: number) =>
-    db
-      .prepare(
-        `SELECT t.id, t.user_id FROM trips t
-         LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
-         WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`,
-      )
-      .get(userId, tripId, userId),
-  isOwner: (tripId: number, userId: number) =>
-    !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
-}));
 
 // Own the calendar parts so we control the events and can assert which trips were pulled.
 const SAMPLE_EVENT =
@@ -70,13 +58,7 @@ const sampleCalendar = () => ({
 // singleton (created in beforeAll, after build()).
 const buildTripCalendar = vi.fn();
 
-import { FeedsModule } from '../../src/nest/feeds/feeds.module';
-import { CalendarService } from '../../src/nest/calendar/calendar.service';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { AppConfigModule } from '../../src/nest/app-config/app-config.module';
-import { GlobalAuthGuard } from '../../src/nest/auth/global-auth.guard';
-import { MfaPolicyGuard } from '../../src/nest/auth/mfa-policy.guard';
+let orm: TestOrm;
 
 const BASE = 'https://trek.example.test';
 
@@ -86,16 +68,13 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
   let prevAppUrl: string | undefined;
 
   async function build() {
-    // The global guards decide whether a route answers a stranger, and they live
-    // in AppModule — a suite that pins 'anonymous feed → 200' has to boot them,
-    // or it proves nothing about the app that actually runs (a missing @Public()
-    // on the feed controller passed here while production 401'd every calendar
-    // client).
     const moduleRef = await Test.createTestingModule({
-      imports: [AppConfigModule, DatabaseModule, RealtimeModule, FeedsModule],
-      providers: [
-        { provide: APP_GUARD, useClass: GlobalAuthGuard },
-        { provide: APP_GUARD, useClass: MfaPolicyGuard },
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        AppConfigModule,
+        RealtimeModule,
+        FeedsModule,
       ],
     }).compile();
     const nest = moduleRef.createNestApplication();
@@ -108,53 +87,61 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
   beforeAll(async () => {
     prevAppUrl = process.env.APP_URL;
     process.env.APP_URL = BASE;
-    seedUser(db as never, { id: 1, username: 'e2e-user' });
-    seedUser(db as never, { id: 2, username: 'other-user', email: 'other@example.test' });
+    orm = await createTestOrm(db);
     app = await build();
     vi.spyOn(app.get(CalendarService), 'buildTripCalendar').mockImplementation(buildTripCalendar as never);
     server = app.getHttpServer();
   });
 
   beforeEach(() => {
+    resetTestDb(db);
     buildTripCalendar.mockReset();
     buildTripCalendar.mockImplementation(() => sampleCalendar());
-    // Reset feed tokens + trips between tests for isolation.
-    db.exec('DELETE FROM trips; DELETE FROM trip_members; UPDATE users SET feed_token = NULL;');
-    db.prepare("INSERT INTO trips (id, user_id, title, is_archived, start_date, end_date) VALUES (5, 1, 'Owned', 0, '2026-01-01', '2099-01-01')").run();
   });
 
   afterAll(async () => {
     if (prevAppUrl === undefined) delete process.env.APP_URL;
     else process.env.APP_URL = prevAppUrl;
     await app.close();
+    await orm.close();
   });
 
   // ── Trip token endpoints ───────────────────────────────────────────────────
 
   it('401 without a session cookie', async () => {
-    expect((await request(server).get('/api/trips/5/feed/token')).status).toBe(401);
+    const { user: owner } = createUser(db);
+    const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
+    expect((await request(server).get(`/api/trips/${trip.id}/feed/token`)).status).toBe(401);
   });
 
   it('GET token returns {feed_url:null} before one is generated', async () => {
-    const res = await request(server).get('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    const { user: owner } = createUser(db);
+    const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
+    const res = await request(server).get(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ feed_url: null });
   });
 
   it('POST generates a token lazily and is idempotent', async () => {
-    const first = await request(server).post('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    const { user: owner } = createUser(db);
+    const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
+    const first = await request(server).post(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
     expect(first.status).toBe(201);
     expect(first.body.feed_url).toMatch(new RegExp(`^${BASE}/api/feed/trip/[0-9a-f-]+\\.ics$`));
 
-    const second = await request(server).post('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    const second = await request(server)
+      .post(`/api/trips/${trip.id}/feed/token`)
+      .set('Cookie', sessionCookie(owner.id));
     expect(second.body.feed_url).toBe(first.body.feed_url); // same token, not a new one
   });
 
   it('PUT rotates: a new token works and the old one 404s', async () => {
-    const gen = await request(server).post('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    const { user: owner } = createUser(db);
+    const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
+    const gen = await request(server).post(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
     const oldToken = gen.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
 
-    const rot = await request(server).put('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    const rot = await request(server).put(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
     const newToken = rot.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
     expect(newToken).not.toBe(oldToken);
 
@@ -163,23 +150,27 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('DELETE disables: the token is cleared, the URL 404s, and GET reports null', async () => {
-    const gen = await request(server).post('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    const { user: owner } = createUser(db);
+    const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
+    const gen = await request(server).post(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
     const token = gen.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
     expect((await request(server).get(`/api/feed/trip/${token}.ics`)).status).toBe(200);
 
-    const del = await request(server).delete('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    const del = await request(server).delete(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
     expect(del.status).toBe(200);
     expect(del.body).toEqual({ feed_url: null });
 
     expect((await request(server).get(`/api/feed/trip/${token}.ics`)).status).toBe(404);
-    const after = await request(server).get('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    const after = await request(server).get(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
     expect(after.body).toEqual({ feed_url: null });
   });
 
   it('feed URL falls back to the request host when APP_URL is unset', async () => {
+    const { user: owner } = createUser(db);
+    const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
     delete process.env.APP_URL;
     try {
-      const gen = await request(server).post('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+      const gen = await request(server).post(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
       expect(gen.body.feed_url).toMatch(/^https?:\/\/[^/]+\/api\/feed\/trip\/[0-9a-f-]+\.ics$/);
     } finally {
       process.env.APP_URL = BASE;
@@ -187,7 +178,12 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('404 when generating for a trip the user cannot access', async () => {
-    const res = await request(server).post('/api/trips/5/feed/token').set('Cookie', sessionCookie(2));
+    const { user: owner } = createUser(db);
+    const { user: outsider } = createUser(db);
+    const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
+    const res = await request(server)
+      .post(`/api/trips/${trip.id}/feed/token`)
+      .set('Cookie', sessionCookie(outsider.id));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Trip not found' });
   });
@@ -198,47 +194,60 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
   // default policy share_manage sits with the trip owner.
 
   it('403 on all four verbs for a member without share_manage', async () => {
-    db.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (5, 2)').run();
-    const member = sessionCookie(2);
+    const { user: owner } = createUser(db);
+    const { user: member } = createUser(db);
+    const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
+    addTripMember(db, trip.id, member.id);
+    const memberCookie = sessionCookie(member.id);
 
     for (const res of [
-      await request(server).get('/api/trips/5/feed/token').set('Cookie', member),
-      await request(server).post('/api/trips/5/feed/token').set('Cookie', member),
-      await request(server).put('/api/trips/5/feed/token').set('Cookie', member),
-      await request(server).delete('/api/trips/5/feed/token').set('Cookie', member),
+      await request(server).get(`/api/trips/${trip.id}/feed/token`).set('Cookie', memberCookie),
+      await request(server).post(`/api/trips/${trip.id}/feed/token`).set('Cookie', memberCookie),
+      await request(server).put(`/api/trips/${trip.id}/feed/token`).set('Cookie', memberCookie),
+      await request(server).delete(`/api/trips/${trip.id}/feed/token`).set('Cookie', memberCookie),
     ]) {
       expect(res.status).toBe(403);
       expect(res.body).toEqual({ error: 'No permission' });
     }
     // Refused, not silently applied: the column is untouched.
-    expect((db.prepare('SELECT feed_token FROM trips WHERE id = 5').get() as { feed_token: string | null }).feed_token).toBeNull();
+    expect((await findRow(orm, Trips, { id: trip.id }))!.feed_token).toBeNull();
   });
 
   it('a non-member still gets 404 rather than 403, so the 403 is no existence oracle', async () => {
-    const stranger = sessionCookie(2);
+    const { user: owner } = createUser(db);
+    const { user: stranger } = createUser(db);
+    const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
+    const strangerCookie = sessionCookie(stranger.id);
     for (const res of [
-      await request(server).get('/api/trips/5/feed/token').set('Cookie', stranger),
-      await request(server).put('/api/trips/5/feed/token').set('Cookie', stranger),
-      await request(server).delete('/api/trips/5/feed/token').set('Cookie', stranger),
+      await request(server).get(`/api/trips/${trip.id}/feed/token`).set('Cookie', strangerCookie),
+      await request(server).put(`/api/trips/${trip.id}/feed/token`).set('Cookie', strangerCookie),
+      await request(server).delete(`/api/trips/${trip.id}/feed/token`).set('Cookie', strangerCookie),
     ]) {
       expect(res.status).toBe(404);
     }
   });
 
   it('a token issued before the tightening keeps working anonymously', async () => {
-    const gen = await request(server).post('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    const { user: owner } = createUser(db);
+    const { user: member } = createUser(db);
+    const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
+    const gen = await request(server).post(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
     const token = gen.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
-    db.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (5, 2)').run();
+    addTripMember(db, trip.id, member.id);
 
     // The member may no longer manage it, but existing subscriptions must not break.
-    expect((await request(server).delete('/api/trips/5/feed/token').set('Cookie', sessionCookie(2))).status).toBe(403);
+    expect(
+      (await request(server).delete(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(member.id))).status,
+    ).toBe(403);
     expect((await request(server).get(`/api/feed/trip/${token}.ics`)).status).toBe(200);
   });
 
   // ── Public trip feed ───────────────────────────────────────────────────────
 
   it('public trip feed: 200 text/calendar with injected refresh hints', async () => {
-    const gen = await request(server).post('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    const { user: owner } = createUser(db);
+    const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
+    const gen = await request(server).post(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
     const token = gen.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
 
     const res = await request(server).get(`/api/feed/trip/${token}.ics`);
@@ -247,13 +256,15 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
     expect(res.text).toContain('REFRESH-INTERVAL;VALUE=DURATION:PT1H');
     expect(res.text).toContain('X-PUBLISHED-TTL:PT1H');
     expect(res.text).toContain('BEGIN:VEVENT');
-    expect(buildTripCalendar).toHaveBeenCalledWith(5);
+    expect(buildTripCalendar).toHaveBeenCalledWith(trip.id);
   });
 
   // The @Public feed quoted cal.filename straight into Content-Disposition, so
   // a non-ASCII calendar name was an unauthenticated 500 (#2165).
   it('public trip feed: a non-ASCII filename folds to an ASCII header with filename*', async () => {
-    const gen = await request(server).post('/api/trips/5/feed/token').set('Cookie', sessionCookie(1));
+    const { user: owner } = createUser(db);
+    const trip = createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
+    const gen = await request(server).post(`/api/trips/${trip.id}/feed/token`).set('Cookie', sessionCookie(owner.id));
     const token = gen.body.feed_url.match(/trip\/([0-9a-f-]+)\.ics$/)![1];
 
     // ASCII parity first: the default sample calendar keeps the exact legacy header.
@@ -276,44 +287,48 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
   // ── User (all-trips) feed ──────────────────────────────────────────────────
 
   it('user feed token: 401 without a cookie, generates with one', async () => {
+    const { user: owner } = createUser(db);
     expect((await request(server).get('/api/feed/user/token')).status).toBe(401);
-    const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(1));
+    const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(owner.id));
     expect(gen.status).toBe(201);
     expect(gen.body.feed_url).toMatch(new RegExp(`^${BASE}/api/feed/user/[0-9a-f-]+\\.ics$`));
   });
 
   it('all-trips feed excludes archived and >90-day-old trips', async () => {
-    // user 1 already owns active trip 5 (end 2099). Add an archived + a long-finished one.
-    db.prepare("INSERT INTO trips (id, user_id, title, is_archived, start_date, end_date) VALUES (6, 1, 'Archived', 1, '2026-01-01', '2099-01-01')").run();
-    db.prepare("INSERT INTO trips (id, user_id, title, is_archived, start_date, end_date) VALUES (7, 1, 'Old', 0, '2000-01-01', '2000-01-10')").run();
+    const { user: owner } = createUser(db);
+    const active = createTrip(db, owner.id, { title: 'Active', start_date: '2026-01-01', end_date: '2099-01-01' });
+    const archived = createTrip(db, owner.id, { title: 'Archived', start_date: '2026-01-01', end_date: '2099-01-01' });
+    await updateRows(orm, Trips, { id: archived.id }, { is_archived: 1 });
+    createTrip(db, owner.id, { title: 'Old', start_date: '2000-01-01', end_date: '2000-01-10' });
 
-    const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(1));
+    const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(owner.id));
     const token = gen.body.feed_url.match(/user\/([0-9a-f-]+)\.ics$/)![1];
 
     const res = await request(server).get(`/api/feed/user/${token}.ics`);
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toContain('text/calendar');
     expect(res.text).toContain('REFRESH-INTERVAL;VALUE=DURATION:PT1H');
-    expect(res.text).toContain('X-WR-CALNAME:e2e-user');
+    expect(res.text).toContain(`X-WR-CALNAME:${owner.username}`);
 
-    const calledIds = buildTripCalendar.mock.calls.map((c) => c[0]).sort();
-    expect(calledIds).toEqual([5]); // only the active, recent trip — not 6 (archived) or 7 (old)
+    const calledIds = buildTripCalendar.mock.calls.map((c) => c[0]).sort((a, b) => a - b);
+    expect(calledIds).toEqual([active.id]); // only the active, recent trip — not the archived or old one
   });
 
   it('all-trips feed includes trips shared with the user as a member, not just owned trips', async () => {
-    // user 1 owns active trip 5. Trip 8 is owned by user 2 but shared with user 1 as a
-    // member — "All Trips" must include it, mirroring the single-trip feed's member access.
-    db.prepare("INSERT INTO trips (id, user_id, title, is_archived, start_date, end_date) VALUES (8, 2, 'Shared', 0, '2026-01-01', '2099-01-01')").run();
-    db.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (8, 1)').run();
+    const { user: owner } = createUser(db);
+    const { user: sharer } = createUser(db);
+    const owned = createTrip(db, owner.id, { title: 'Owned', start_date: '2026-01-01', end_date: '2099-01-01' });
+    const shared = createTrip(db, sharer.id, { title: 'Shared', start_date: '2026-01-01', end_date: '2099-01-01' });
+    addTripMember(db, shared.id, owner.id);
 
-    const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(1));
+    const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(owner.id));
     const token = gen.body.feed_url.match(/user\/([0-9a-f-]+)\.ics$/)![1];
 
     const res = await request(server).get(`/api/feed/user/${token}.ics`);
     expect(res.status).toBe(200);
 
-    const calledIds = buildTripCalendar.mock.calls.map((c) => c[0]).sort();
-    expect(calledIds).toEqual([5, 8]); // owned trip 5 AND member trip 8
+    const calledIds = buildTripCalendar.mock.calls.map((c) => c[0]).sort((a, b) => a - b);
+    expect(calledIds).toEqual([owned.id, shared.id].sort((a, b) => a - b));
   });
 
   it('public user feed: 404 for an unknown token', async () => {
@@ -322,6 +337,9 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('all-trips feed carries VTIMEZONE blocks so TZID references resolve (#1453)', async () => {
+    const { user: owner } = createUser(db);
+    createTrip(db, owner.id, { start_date: '2026-01-01', end_date: '2099-01-01' });
+
     // A per-trip calendar whose event references a zone via TZID and defines it.
     const PARIS_VTIMEZONE =
       'BEGIN:VTIMEZONE\r\nTZID:Europe/Paris\r\nBEGIN:STANDARD\r\nDTSTART:19700101T000000\r\n' +
@@ -336,7 +354,7 @@ describe('Calendar-feed e2e (real auth guard + temp SQLite)', () => {
       ],
     }));
 
-    const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(1));
+    const gen = await request(server).post('/api/feed/user/token').set('Cookie', sessionCookie(owner.id));
     const token = gen.body.feed_url.match(/user\/([0-9a-f-]+)\.ics$/)![1];
 
     const res = await request(server).get(`/api/feed/user/${token}.ics`);

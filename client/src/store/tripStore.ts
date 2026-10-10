@@ -36,6 +36,7 @@ import type { TodoSlice } from './slices/todoSlice'
 import type { BudgetSlice } from './slices/budgetSlice'
 import type { ReservationsSlice } from './slices/reservationsSlice'
 import type { FilesSlice } from './slices/filesSlice'
+import type { PlacesRatingFloor } from '../utils/placesFilter'
 
 export interface TripStoreState
   extends PlacesSlice,
@@ -65,12 +66,18 @@ export interface TripStoreState
   // unmounts and remounts (#1541).
   placesFilter: string
   placesCategoryFilter: Set<string>
+  // Minimum average stars. Shared for the same reason: the map markers and the
+  // phone's list follow the floor the desktop list sets, and back (#1435).
+  placesRatingFilter: PlacesRatingFloor
   isLoading: boolean
   error: string | null
 
   setSelectedDay: (dayId: number | null) => void
   setPlacesFilter: (filter: string) => void
   setPlacesCategoryFilter: (categoryIds: Set<string>) => void
+  setPlacesRatingFilter: (floor: PlacesRatingFloor) => void
+  /** Lifts the pool, category and rating filters at once. */
+  resetPlacesFilters: () => void
   handleRemoteEvent: (event: WebSocketEvent) => void
   resetTrip: () => void
   loadTrip: (tripId: number | string) => Promise<void>
@@ -97,12 +104,15 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
   selectedDayId: null,
   placesFilter: 'all',
   placesCategoryFilter: new Set<string>(),
+  placesRatingFilter: 'all',
   isLoading: false,
   error: null,
 
   setSelectedDay: (dayId: number | null) => set({ selectedDayId: dayId }),
   setPlacesFilter: (filter: string) => set({ placesFilter: filter }),
   setPlacesCategoryFilter: (categoryIds: Set<string>) => set({ placesCategoryFilter: categoryIds }),
+  setPlacesRatingFilter: (floor: PlacesRatingFloor) => set({ placesRatingFilter: floor }),
+  resetPlacesFilters: () => set({ placesFilter: 'all', placesCategoryFilter: new Set<string>(), placesRatingFilter: 'all' }),
 
   handleRemoteEvent: (event: WebSocketEvent) => handleRemoteEvent(set, get, event),
 
@@ -123,6 +133,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     selectedDayId: null,
     placesFilter: 'all',
     placesCategoryFilter: new Set<string>(),
+    placesRatingFilter: 'all',
     error: null,
   }),
 

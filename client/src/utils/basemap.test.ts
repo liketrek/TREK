@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import { isVectorStyle, resolveBasemap, resolveTileUrl } from './tileUrl'
-import { OFM_POSITRON, attributionForTile, OFM_ATTRIBUTION } from '../constants/mapDefaults'
+import {
+  OFM_POSITRON,
+  OPENTOPOMAP_TILE_ATTRIBUTION,
+  OPENTOPOMAP_TILE_MAXZOOM,
+  OPENTOPOMAP_TILE_URL,
+  attributionForTile,
+  OFM_ATTRIBUTION,
+} from '../constants/mapDefaults'
 
 const CARTO = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
 const CUSTOM = 'https://tiles.example.test/{z}/{x}/{y}.png'
@@ -67,5 +74,13 @@ describe('attributionForTile', () => {
     expect(attributionForTile(OFM_POSITRON)).toContain('OpenMapTiles')
     expect(attributionForTile(CUSTOM)).toMatch(/OpenStreetMap/)
     expect(attributionForTile(null)).toMatch(/OpenStreetMap/)
+  })
+
+  it('FE-UTIL-BASEMAP-010: OpenTopoMap carries its required data and style credits', () => {
+    expect(OPENTOPOMAP_TILE_URL).toBe('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png')
+    expect(OPENTOPOMAP_TILE_ATTRIBUTION).toContain('OpenStreetMap')
+    expect(OPENTOPOMAP_TILE_ATTRIBUTION).toContain('SRTM')
+    expect(OPENTOPOMAP_TILE_ATTRIBUTION).toContain('OpenTopoMap')
+    expect(OPENTOPOMAP_TILE_MAXZOOM).toBe(17)
   })
 })

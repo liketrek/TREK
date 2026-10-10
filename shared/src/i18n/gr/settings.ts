@@ -26,7 +26,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Επιλέξτε πρότυπο...',
   'settings.mapDefaultHint': 'Αφήστε κενό για OpenStreetMap (προεπιλογή)',
   'settings.routingBase': 'Δική σας μηχανή δρομολόγησης',
-  'settings.routingBaseHint': 'Δική σας εγκατάσταση OSRM. Κενό σημαίνει τους δημόσιους διακομιστές, που επιτρέπουν περίπου ένα αίτημα ανά δευτερόλεπτο: αρκεί για μία ημέρα, λίγο για ένα οδικό ταξίδι. Ισχύει μετά από επανεκκίνηση του διακομιστή.',
+  'settings.routingBaseHint':
+    'Δική σας εγκατάσταση OSRM. Κενό σημαίνει τους δημόσιους διακομιστές, που επιτρέπουν περίπου ένα αίτημα ανά δευτερόλεπτο: αρκεί για μία ημέρα, λίγο για ένα οδικό ταξίδι. Ισχύει μετά από επανεκκίνηση του διακομιστή.',
   'settings.valhallaBase': 'Δική σας υπηρεσία Valhalla',
   'settings.valhallaBaseHint':
     'Το TREK χρησιμοποιεί από προεπιλογή τη δημόσια Valhalla της FOSSGIS για την αποφυγή διοδίων, αυτοκινητοδρόμων και πορθμείων. Εισαγάγετε εδώ τη διεύθυνση URL της δικής σας Valhalla για να τη χρησιμοποιήσετε αντί της δημόσιας. Αν έχει ρυθμιστεί μόνο ιδιωτική υπηρεσία δρομολόγησης, η δημόσια Valhalla δεν χρησιμοποιείται. Αφού εισαγάγετε ιδιωτική διεύθυνση URL, επανεκκινήστε τον διακομιστή και φορτώστε ξανά τη σελίδα.',
@@ -82,6 +83,12 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Μονάδα Θερμοκρασίας',
   'settings.distance': 'Μονάδα Απόστασης',
   'settings.timeFormat': 'Μορφή Ώρας',
+  'settings.weekStart': 'Η εβδομάδα ξεκινά την',
+  'settings.weekStartHint': 'Πρώτη ημέρα της εβδομάδας σε κάθε επιλογέα ημερομηνίας. Το Vacay έχει δική του ρύθμιση.',
+  'settings.preferredNavApp': 'Άνοιγμα τοποθεσιών σε',
+  'settings.preferredNavAppAsk': 'Ερώτηση κάθε φορά',
+  'settings.preferredNavAppHint':
+    'Με επιλεγμένη εφαρμογή, το κουμπί πλοήγησης την ανοίγει αμέσως αντί να προτείνει όλες τις εφαρμογές χαρτών.',
   'settings.bookingLabels': 'Ετικέτες διαδρομής κρατήσεων',
   'settings.bookingLabelsHint':
     'Εμφάνιση ονομάτων σταθμών / αεροδρομίων στον χάρτη. Όταν είναι απενεργοποιημένο, εμφανίζεται μόνο το εικονίδιο.',
@@ -112,6 +119,7 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.inapp': 'Εντός εφαρμογής',
   'settings.notificationPreferences.notConfigured':
     'Δεν έχει ρυθμιστεί ακόμη — ρυθμίστε το στις ρυθμίσεις του πρόσθετου',
+  'settings.notificationPreferences.lockedByAdmin': 'Απενεργοποιήθηκε από τον διαχειριστή για όλους',
   'settings.plugins.actions': 'Ενέργειες',
   'settings.plugins.actions.confirm': 'Εκτέλεση αυτής της ενέργειας;',
   'settings.notificationPreferences.sendTest': 'Αποστολή δοκιμής',
@@ -121,6 +129,20 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.pluginConfigured':
     'Ρυθμίστηκε. Διαχειριστείτε τα διαπιστευτήρια στη σελίδα ρυθμίσεων του πρόσθετου.',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  'settings.notificationPreferences.push': 'Push',
+  'settings.webPush.title': 'Push ειδοποιήσεις σε αυτή τη συσκευή',
+  'settings.webPush.hint':
+    'Εμφανίζει τις ειδοποιήσεις του TREK σε αυτή τη συσκευή ακόμη και όταν το TREK είναι κλειστό. Ποια συμβάντα φτάνουν καθορίζεται από τη στήλη Push.',
+  'settings.webPush.enable': 'Ενεργοποίηση για αυτή τη συσκευή',
+  'settings.webPush.disable': 'Απενεργοποίηση για αυτή τη συσκευή',
+  'settings.webPush.enabled': 'Ενεργό για αυτή τη συσκευή',
+  'settings.webPush.unsupported': 'Αυτό το πρόγραμμα περιήγησης δεν μπορεί να λάβει push ειδοποιήσεις.',
+  'settings.webPush.insecure': 'Για το push, το TREK πρέπει να ανοίγει μέσω HTTPS.',
+  'settings.webPush.iosInstall':
+    'Σε iPhone και iPad, προσθέστε πρώτα το TREK στην οθόνη Αφετηρίας και ανοίξτε το από εκεί.',
+  'settings.webPush.denied':
+    'Οι ειδοποιήσεις για το TREK είναι αποκλεισμένες σε αυτό το πρόγραμμα περιήγησης. Επιτρέψτε τις στις ρυθμίσεις του προγράμματος περιήγησης και δοκιμάστε ξανά.',
+  'settings.webPush.failed': 'Δεν ήταν δυνατή η ενεργοποίηση του push για αυτή τη συσκευή.',
   'settings.notificationPreferences.noChannels':
     'Δεν έχουν διαμορφωθεί κανάλια ειδοποιήσεων. Ζητήστε από έναν διαχειριστή να ρυθμίσει ειδοποιήσεις email ή webhook.',
   'settings.webhookUrl.label': 'Webhook URL',
@@ -277,6 +299,14 @@ const settings: TranslationStrings = {
   'settings.passwordTooShort': 'Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες',
   'settings.passwordMismatch': 'Οι κωδικοί δεν ταιριάζουν',
   'settings.passwordWeak': 'Ο κωδικός πρέπει να περιέχει κεφαλαία, πεζά, έναν αριθμό και έναν ειδικό χαρακτήρα',
+  'settings.passwordCommon': 'Αυτός ο κωδικός είναι πολύ συνηθισμένος. Επιλέξτε έναν μοναδικό.',
+  'settings.passwordRepetitive': 'Ο κωδικός είναι υπερβολικά επαναλαμβανόμενος',
+  'settings.passwordRules': 'Απαιτήσεις κωδικού',
+  'settings.passwordRule.length': 'Τουλάχιστον 8 χαρακτήρες',
+  'settings.passwordRule.upper': 'Ένα κεφαλαίο γράμμα',
+  'settings.passwordRule.lower': 'Ένα πεζό γράμμα',
+  'settings.passwordRule.digit': 'Ένας αριθμός',
+  'settings.passwordRule.special': 'Ένας ειδικός χαρακτήρας',
   'settings.passwordChanged': 'Ο κωδικός άλλαξε επιτυχώς',
   'settings.mustChangePassword':
     'Πρέπει να αλλάξετε τον κωδικό σας πριν συνεχίσετε. Παρακαλώ ορίστε έναν νέο κωδικό παρακάτω.',
@@ -333,6 +363,10 @@ const settings: TranslationStrings = {
   'settings.currencyHint':
     'Τα ποσά στα Κόστη εμφανίζονται σε αυτό το νόμισμα μόνο για λόγους προβολής — τα αρχικά ποσά δεν αλλάζουν.',
   'settings.currencyTrip': 'Νόμισμα ταξιδιού',
+  'settings.placeLanguage': 'Ονόματα μερών',
+  'settings.placeLanguageApp': 'Ίδια με την εφαρμογή',
+  'settings.placeLanguageHint':
+    'Η γλώσσα στην οποία απαντούν η αναζήτηση μερών, οι προτάσεις και οι διευθύνσεις. Όταν ένα μέρος δεν έχει όνομα σε αυτή τη γλώσσα, εμφανίζεται το τοπικό του όνομα.',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Συνδεθείτε πιο γρήγορα και με προστασία από phishing χρησιμοποιώντας ένα passkey — το δαχτυλικό σας αποτύπωμα, το πρόσωπό σας, ένα PIN ή ένα κλειδί υλικού. Ο κωδικός σας παραμένει ως εφεδρεία.',
@@ -376,7 +410,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.toast.saved': 'Η σύνδεση με το AirTrail αποθηκεύτηκε',
   'settings.airtrail.toast.saveError': 'Δεν ήταν δυνατή η αποθήκευση της σύνδεσης',
   'settings.airtrail.test.button': 'Δοκιμή σύνδεσης',
-  'settings.airtrail.test.success': 'Συνδέθηκε — βρέθηκαν {count} πτήση/πτήσεις',
+  'settings.airtrail.test.success': 'Συνδέθηκε. Βρέθηκαν {count} πτήσεις',
+  'settings.airtrail.test.success.one': 'Συνδέθηκε. Βρέθηκε {count} πτήση',
   'settings.airtrail.test.failed': 'Η σύνδεση απέτυχε',
   'settings.aiParsing.title': 'Ανάλυση με AI',
   'settings.aiParsing.hint':
@@ -393,9 +428,9 @@ const settings: TranslationStrings = {
     'Πού εκτελείται το μοντέλο — ένας τοπικός διακομιστής Ollama ή ένα τελικό σημείο συμβατό με OpenAI.',
   'settings.aiParsing.apiKey': 'Κλειδί API',
   'settings.aiParsing.apiKeyHint': 'Αποθηκεύεται κρυπτογραφημένο. Αφήστε το κενό για να διατηρήσετε το τρέχον κλειδί.',
-  'settings.aiParsing.multimodal': 'Αποστολή εγγράφων ως εικόνες',
+  'settings.aiParsing.multimodal': 'Το μοντέλο διαβάζει εικόνες',
   'settings.aiParsing.multimodalHint':
-    'Για μοντέλα με δυνατότητα όρασης — στέλνει το αρχικό PDF αντί για το εξαγόμενο κείμενο.',
+    'Ενεργοποιήστε το για μοντέλο που διαβάζει εικόνες, ώστε μια φωτογραφία να μπορεί να εισαχθεί ή να σαρωθεί.',
   'settings.aiParsing.toast.saved': 'Οι ρυθμίσεις AI αποθηκεύτηκαν',
   'settings.aiParsing.toast.saveError': 'Δεν ήταν δυνατή η αποθήκευση των ρυθμίσεων AI',
   'settings.tabs.appearance': 'Appearance',
@@ -479,6 +514,12 @@ const settings: TranslationStrings = {
   'settings.general.languageRegion': 'Language & region',
   'settings.general.travelMap': 'Travel & map',
   'settings.general.startup': 'Εκκίνηση',
+  'settings.dayDateFirst': 'Πρώτα η ημερομηνία στους τίτλους ημερών',
+  'settings.compactUnplanned': 'Συμπαγείς δείκτες για μη προγραμματισμένα μέρη',
+  'settings.compactUnplannedHint':
+    'Τα μέρη που δεν έχουν προγραμματιστεί σε καμία ημέρα εμφανίζονται ως μικροί δείκτες χωρίς φωτογραφία, ώστε να ξεχωρίζουν οι προγραμματισμένες στάσεις.',
+  'settings.dayDateFirstHint':
+    'Κάθε ημέρα ξεκινά με την ημερομηνία της και δίπλα εμφανίζεται «Ημέρα 1» ή ο δικός της τίτλος.',
   'settings.startPage': 'Αρχική σελίδα',
   'settings.startPageDashboard': 'Πίνακας ελέγχου',
   'settings.startPageActiveTrip': 'Ενεργό ταξίδι',
@@ -516,18 +557,26 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripOff': 'Μη αποθηκευμένο',
   'settings.offline.storage.tripFinished': 'Ολοκληρώθηκε. Αποθηκεύεται μόνο αν το ενεργοποιήσετε.',
   'settings.offline.notice.stored': 'Αποθηκεύτηκαν {count} ταξίδια σε αυτή τη συσκευή',
-  'settings.offline.notice.nothing': 'Δεν υπάρχει τίποτα για αποθήκευση. Ενεργοποιήστε τα ταξίδια που θέλετε να κρατήσετε.',
+  'settings.offline.notice.stored.one': 'Αποθηκεύτηκε {count} ταξίδι σε αυτή τη συσκευή',
+  'settings.offline.notice.nothing':
+    'Δεν υπάρχει τίποτα για αποθήκευση. Ενεργοποιήστε τα ταξίδια που θέλετε να κρατήσετε.',
   'settings.offline.notice.busy': 'Γίνεται ήδη συγχρονισμός. Δοκιμάστε ξανά σε λίγο.',
-  'settings.offline.notice.offline': 'Δεν υπάρχει σύνδεση. Συνδεθείτε για να αποθηκεύσετε ταξίδια για χρήση χωρίς σύνδεση.',
+  'settings.offline.notice.offline':
+    'Δεν υπάρχει σύνδεση. Συνδεθείτε για να αποθηκεύσετε ταξίδια για χρήση χωρίς σύνδεση.',
   'settings.offline.notice.signedOut': 'Η συνεδρία σας έληξε. Συνδεθείτε ξανά για συγχρονισμό.',
   'settings.offline.notice.failed': 'Η λήψη δεν ολοκληρώθηκε. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.',
-  'settings.offline.notice.loadFailed': 'Δεν ήταν δυνατή η ανάγνωση του τοπικού χώρου αποθήκευσης. Συνήθως βοηθάει η εκκαθάριση της προσωρινής μνήμης.',
+  'settings.offline.notice.loadFailed':
+    'Δεν ήταν δυνατή η ανάγνωση του τοπικού χώρου αποθήκευσης. Συνήθως βοηθάει η εκκαθάριση της προσωρινής μνήμης.',
   'settings.offline.clear': 'Εκκαθάριση προσωρινής μνήμης',
   'settings.offline.clearConfirm':
     'Εκκαθάριση όλων των δεδομένων ταξιδιού εκτός σύνδεσης; Μπορείτε να επανασυγχρονίσετε ανά πάσα στιγμή όσο είστε συνδεδεμένοι.',
   'settings.offline.stats.trips': 'Ταξίδια σε προσωρινή μνήμη',
   'settings.offline.stats.pending': 'Εκκρεμείς αλλαγές',
   'settings.offline.stats.failed': 'Αποτυχημένες αλλαγές',
+  'settings.offline.failed.hint':
+    'Αυτές οι αλλαγές δεν έφτασαν ποτέ στον διακομιστή. Δοκιμάστε ξανά ή απορρίψτε τες για να κρατήσετε την έκδοση του διακομιστή.',
+  'settings.offline.failed.retry': 'Δοκιμή ξανά',
+  'settings.offline.failed.discard': 'Απόρριψη',
   'settings.offline.stats.conflicts': 'Διενέξεις',
   'settings.offline.empty': 'Δεν υπάρχουν ταξίδια σε προσωρινή μνήμη ακόμη. Συνδεθείτε στο διαδίκτυο για συγχρονισμό.',
   'settings.offline.loading': 'Φόρτωση…',
@@ -546,9 +595,13 @@ const settings: TranslationStrings = {
   'settings.offline.banner.offline': 'Εκτός σύνδεσης',
   'settings.offline.banner.forced': 'Λειτουργία εκτός σύνδεσης',
   'settings.offline.banner.queued': 'Εκτός σύνδεσης · {count} σε ουρά',
+  'settings.offline.banner.queued.one': 'Εκτός σύνδεσης · {count} σε ουρά',
   'settings.offline.banner.syncing': 'Συγχρονισμός {count}…',
+  'settings.offline.banner.syncing.one': 'Συγχρονισμός {count}…',
   'settings.offline.banner.failed': 'Αποτυχία συγχρονισμού: {count}',
+  'settings.offline.banner.failed.one': 'Αποτυχία συγχρονισμού: {count}',
   'settings.offline.banner.conflicts': 'Διενέξεις: {count}',
+  'settings.offline.banner.conflicts.one': 'Διενέξεις: {count}',
   'settings.pluginActivity.title': 'Δραστηριότητα προσθέτων',
   'settings.pluginActivity.description':
     'Κάθε ενέργεια που εκτέλεσε ένα πρόσθετο εκ μέρους σας, με τις πιο πρόσφατες πρώτες.',
@@ -569,8 +622,10 @@ const settings: TranslationStrings = {
   'settings.apiScopes.hint':
     'Αφήστε τα όλα ενεργά για ένα κλειδί που πρέπει να τα βλέπει όλα. Ό,τι απενεργοποιήσετε απορρίπτεται για αυτό το κλειδί, δεν παραλείπεται απλώς από την απάντηση.',
   'settings.apiScopes.all': 'Τα πάντα',
-  'settings.apiScopes.noneSelected': 'Διάλεξε τουλάχιστον έναν τομέα, αλλιώς το κλειδί δεν θα μπορούσε να διαβάσει τίποτα.',
+  'settings.apiScopes.noneSelected':
+    'Διάλεξε τουλάχιστον έναν τομέα, αλλιώς το κλειδί δεν θα μπορούσε να διαβάσει τίποτα.',
   'settings.apiScopes.limited': '{count} από {total}',
+  'settings.apiScopes.limited.one': '{count} από {total}',
   'settings.apiScopes.trips': 'Ταξίδια',
   'settings.apiScopes.days': 'Ημέρες',
   'settings.apiScopes.places': 'Τοποθεσίες',
@@ -581,13 +636,15 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Λίστα επιθυμιών',
   'settings.apiScopes.stats': 'Σύνολα',
   'settings.apiKeys.title': 'Κλειδιά API',
-  'settings.apiKeys.description': 'Κλειδιά για το δημόσιο API, ώστε άλλο λογισμικό να μπορεί να διαβάζει τα ταξίδια σου. Μόνο για ανάγνωση: ένα κλειδί δεν μπορεί να αλλάξει ή να διαγράψει τίποτα.',
+  'settings.apiKeys.description':
+    'Κλειδιά για το δημόσιο API, ώστε άλλο λογισμικό να μπορεί να διαβάζει τα ταξίδια σου. Μόνο για ανάγνωση: ένα κλειδί δεν μπορεί να αλλάξει ή να διαγράψει τίποτα.',
   'settings.apiKeys.create': 'Δημιουργία κλειδιού',
   'settings.apiKeys.empty': 'Δεν υπάρχουν κλειδιά ακόμη. Δημιούργησε ένα για να συνδέσεις άλλο λογισμικό.',
   'settings.apiKeys.createdAt': 'δημιουργήθηκε',
   'settings.apiKeys.usedAt': 'τελευταία χρήση',
   'settings.apiKeys.deleteTitle': 'Διαγραφή κλειδιού',
-  'settings.apiKeys.deleteMessage': 'Ό,τι χρησιμοποιεί αυτό το κλειδί σταματά αμέσως να λειτουργεί. Η ενέργεια δεν αναιρείται.',
+  'settings.apiKeys.deleteMessage':
+    'Ό,τι χρησιμοποιεί αυτό το κλειδί σταματά αμέσως να λειτουργεί. Η ενέργεια δεν αναιρείται.',
   'settings.apiKeys.deleted': 'Το κλειδί διαγράφηκε',
   'settings.apiKeys.deleteFailed': 'Δεν ήταν δυνατή η διαγραφή του κλειδιού',
   'settings.apiKeys.createFailed': 'Δεν ήταν δυνατή η δημιουργία του κλειδιού',
@@ -595,8 +652,12 @@ const settings: TranslationStrings = {
   'settings.apiKeys.docsHint': 'Στείλε το κλειδί ως "Authorization: Bearer ..." ή "X-API-Key: ..." στο /api/v1.',
   'settings.apiKeys.endpoint': 'Endpoint',
   'settings.apiKeys.neverUsed': 'δεν χρησιμοποιήθηκε ποτέ',
-  'settings.apiKeys.loadFailed': 'Δεν ήταν δυνατή η φόρτωση των κλειδιών σου. Φόρτωσε ξανά τη σελίδα για να δοκιμάσεις πάλι.',
-  'settings.apiKeys.limitReached': 'Έχεις {max} κλειδιά, το μέγιστο για έναν λογαριασμό. Διάγραψε ένα που δεν χρησιμοποιείς πια για να δημιουργήσεις νέο.',
+  'settings.apiKeys.loadFailed':
+    'Δεν ήταν δυνατή η φόρτωση των κλειδιών σου. Φόρτωσε ξανά τη σελίδα για να δοκιμάσεις πάλι.',
+  'settings.apiKeys.limitReached':
+    'Έχεις {count} κλειδιά, το μέγιστο για έναν λογαριασμό. Διάγραψε ένα που δεν χρησιμοποιείς πια για να δημιουργήσεις νέο.',
+  'settings.apiKeys.limitReached.one':
+    'Έχεις {count} κλειδί, το μέγιστο για έναν λογαριασμό. Διάγραψέ το αν δεν το χρησιμοποιείς πια για να δημιουργήσεις νέο.',
   'settings.apiKeys.copyFailed': 'Η αντιγραφή απέτυχε. Επίλεξε το κείμενο και αντίγραψέ το χειροκίνητα.',
   'settings.apiKeys.modal.createTitle': 'Δημιουργία κλειδιού API',
   'settings.apiKeys.modal.name': 'Όνομα',
@@ -605,7 +666,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.creating': 'Δημιουργία...',
   'settings.apiKeys.modal.create': 'Δημιουργία',
   'settings.apiKeys.modal.createdTitle': 'Το κλειδί API δημιουργήθηκε',
-  'settings.apiKeys.modal.createdWarning': 'Αντίγραψε το κλειδί τώρα. Εμφανίζεται μία φορά και δεν μπορεί να ανακτηθεί αργότερα.',
+  'settings.apiKeys.modal.createdWarning':
+    'Αντίγραψε το κλειδί τώρα. Εμφανίζεται μία φορά και δεν μπορεί να ανακτηθεί αργότερα.',
   'settings.apiKeys.modal.done': 'Έτοιμο',
 };
 

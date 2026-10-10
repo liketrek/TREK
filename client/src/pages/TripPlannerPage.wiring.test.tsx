@@ -1,4 +1,4 @@
-// FE-PAGE-TPW-001 to FE-PAGE-TPW-062
+// FE-PAGE-TPW-001 to FE-PAGE-TPW-074
 //
 // The planner page is a wiring container: everything stateful lives in
 // useTripPlanner (covered in src/pages/tripPlanner/useTripPlanner.test.tsx).
@@ -13,6 +13,7 @@ import { useAuthStore } from '../store/authStore'
 import { useTripStore } from '../store/tripStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { assignmentsApi } from '../api/client'
+import { analyzeRouteGeometry } from '../utils/routeGeometry'
 import TripPlannerPage from './TripPlannerPage'
 import type { Day, Place, Reservation, Settings } from '../types'
 
@@ -21,6 +22,22 @@ import type { Day, Place, Reservation, Settings } from '../types'
 // callbacks can be invoked from the test.
 type Props = Record<string, unknown>
 const captured: Record<string, Props> = {}
+const plannerActions = vi.hoisted(() => ({
+  viewGpxTour: vi.fn(),
+  addWaypoint: vi.fn(),
+  openTour: vi.fn(),
+  startNewTour: vi.fn(),
+  forgetDeletedTour: vi.fn((_placeId: number) => undefined),
+  saveOutcome: null as unknown,
+  mapFocusKey: 0,
+  newDraftGeneration: 0,
+  mode: { type: 'neutral' } as unknown,
+  isSaving: false,
+  waypoints: [] as unknown,
+  routeProfileFocus: null as unknown,
+  readOnlyGpxTour: null as unknown,
+  readOnlyGpxAnalysis: null as unknown,
+}))
 
 function stub(name: string, testId?: string) {
   return (props: Props) => {
@@ -44,9 +61,19 @@ function props(name: string): Record<string, AnyProp> {
 
 vi.mock('../components/Map/MapViewAuto', () => ({ MapViewAuto: stub('map', 'map-view') }))
 vi.mock('../components/Map/MapCompassPill', () => ({ MapCompassPill: stub('compass', 'compass-pill') }))
-vi.mock('../components/Map/PoiCategoryPill', () => ({ default: stub('poiPill', 'poi-pill') }))
+// Every pill mount records its props here, so a test can check each one of them.
+const poiPillMounts = vi.hoisted(() => [] as Record<string, unknown>[])
+const poiCategories = vi.hoisted(() => ({ core: [], plugin: [] }))
+vi.mock('../components/Map/PoiCategoryPill', () => ({
+  default: (props: Record<string, unknown>) => {
+    captured.poiPill = props
+    poiPillMounts.push(props)
+    return React.createElement('div', { 'data-testid': 'poi-pill' })
+  },
+}))
 vi.mock('../components/Map/usePoiExplore', () => ({
   usePoiExplore: () => ({
+    categories: poiCategories,
     active: [], pois: [], loadingKeys: [], errorKeys: [], moved: false,
     toggle: vi.fn(), searchArea: vi.fn(), onViewportChange: vi.fn(),
   }),
@@ -71,15 +98,50 @@ vi.mock('../components/Planner/PlaceFormModal', () => ({ default: stub('placeFor
 vi.mock('../components/Planner/ReservationModal', () => ({ ReservationModal: stub('reservationModal') }))
 vi.mock('../components/Planner/TransportModal', () => ({ TransportModal: stub('transportModal', 'transport-modal') }))
 vi.mock('../components/Planner/TransitJourneyModal', () => ({ default: stub('transitModal', 'transit-modal') }))
+vi.mock('../components/Planner/bookings/BookingDetailHost', () => ({ BookingDetailPopup: stub('bookingDetail', 'booking-detail') }))
 vi.mock('../components/Planner/BookingImportModal', () => ({ default: stub('bookingImport') }))
 vi.mock('../components/Planner/AirTrailImportModal', () => ({ default: stub('airtrailImport') }))
 vi.mock('../components/Planner/ReservationsPanel', () => ({ default: stub('reservationsPanel', 'reservations-panel') }))
 vi.mock('../components/Planner/TripWarningsBanner', () => ({ default: stub('warnings', 'trip-warnings') }))
+vi.mock('../components/Tours/TourDetailDialog', () => ({ default: stub('tourDetail', 'tour-detail-dialog') }))
+vi.mock('../components/Tours/planner/useTourPlanner', () => ({
+  useTourPlanner: () => ({
+    route: null,
+    waypoints: plannerActions.waypoints,
+    routeProfileFocus: plannerActions.routeProfileFocus,
+    name: '',
+    startNewTour: plannerActions.startNewTour,
+    newTourConfirmationOpen: false,
+    cancelNewTour: vi.fn(),
+    elevationProfileExpanded: true,
+    toggleElevationProfile: vi.fn(),
+    newDraftGeneration: plannerActions.newDraftGeneration,
+    mapFocusKey: plannerActions.mapFocusKey,
+    mode: plannerActions.mode,
+    isSaving: plannerActions.isSaving,
+    selectedWaypointId: null,
+    editingPlaceId: null,
+    saveOutcome: plannerActions.saveOutcome,
+    hasUnsavedChanges: false,
+    setSelectedWaypointId: vi.fn(),
+    mapBaseLayer: 'map',
+    setMapBaseLayer: vi.fn(),
+    openTour: plannerActions.openTour,
+    viewGpxTour: plannerActions.viewGpxTour,
+    addWaypoint: plannerActions.addWaypoint,
+    closeGpxTour: vi.fn(),
+    readOnlyGpxTour: plannerActions.readOnlyGpxTour,
+    readOnlyGpxAnalysis: plannerActions.readOnlyGpxAnalysis,
+    discard: vi.fn(),
+    forgetDeletedTour: plannerActions.forgetDeletedTour,
+  }),
+}))
 
 vi.mock('../components/Trips/TripFormModal', () => ({ default: stub('tripForm') }))
 vi.mock('../components/Trips/TripMembersModal', () => ({ default: stub('membersModal') }))
 vi.mock('../components/Packing/PackingListPanel', () => ({ default: stub('packingPanel', 'packing-list-panel') }))
 vi.mock('../components/Packing/ApplyTemplateButton', () => ({ default: stub('applyTemplate', 'apply-template') }))
+vi.mock('../components/Packing/PackingExportMenu', () => ({ default: stub('exportMenu', 'export-menu') }))
 vi.mock('../components/Todo/TodoListPanel', () => ({ default: stub('todoPanel', 'todo-list-panel') }))
 vi.mock('../components/Files/FileManager', () => ({ default: stub('fileManager', 'file-manager') }))
 vi.mock('../components/Budget/CostsPanel', () => ({
@@ -215,6 +277,10 @@ function baseState(): HookState {
     narrowPanels: false,
     startResizeLeft: vi.fn(),
     startResizeRight: vi.fn(),
+    nudgeLeft: vi.fn(),
+    nudgeRight: vi.fn(),
+    resizeMin: 200,
+    resizeMax: 520,
     selectedPlaceId: null,
     selectedAssignmentId: null,
     setSelectedPlaceId: vi.fn(),
@@ -265,6 +331,16 @@ function baseState(): HookState {
     setTransitPrefill: vi.fn(),
     transitJourney: null,
     setTransitJourney: vi.fn(),
+    openTransportEditor: vi.fn(),
+    changeTransitRoute: vi.fn(),
+    bookingDetail: null,
+    openBookingDetail: vi.fn(),
+    openBookingFromDayList: vi.fn(),
+    closeBookingDetail: vi.fn(),
+    bookingDetailEditor: undefined,
+    bookingDetailChangeRoute: undefined,
+    showBookingOnMap: vi.fn(),
+    isBookingOnMap: vi.fn(() => false),
     reservationPrefill: null,
     transportPrefill: null,
     importReviewActive: false,
@@ -314,6 +390,7 @@ function baseState(): HookState {
     handleSavePlace: vi.fn(async () => undefined),
     openPlaceEditor: vi.fn(),
     handleDeletePlace: vi.fn(),
+    handleDeleteTour: vi.fn(),
     confirmDeletePlace: vi.fn(async () => undefined),
     confirmDeletePlaces: vi.fn(async () => undefined),
     confirmChangeCategory: vi.fn(async () => undefined),
@@ -329,6 +406,16 @@ function baseState(): HookState {
     selectedPlace: null,
     dayOrderMap: {},
     dayPlaces: [],
+    toursEnabled: false,
+    toursMode: true,
+    setToursMode: vi.fn(),
+    tours: [],
+    toursLoading: false,
+    tourDataReady: true,
+    tourPlaceIds: new Set<number>(),
+    reloadTourPlaceIds: vi.fn(async () => undefined),
+    upsertTour: vi.fn(),
+    selectedTour: null,
     mapTileUrl: 'https://tiles/{z}/{x}/{y}.png',
     fontStyle: { fontFamily: 'var(--font-system)' },
     splashDone: true,
@@ -348,17 +435,462 @@ function renderPage(overrides: HookState = {}) {
   return render(<TripPlannerPage />)
 }
 
+function mockStartNewTourTransition() {
+  plannerActions.startNewTour.mockImplementation(() => {
+    plannerActions.mode = { type: 'new-draft' }
+    plannerActions.waypoints = []
+    plannerActions.saveOutcome = null
+    plannerActions.mapFocusKey += 1
+    plannerActions.newDraftGeneration += 1
+  })
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   resetAllStores()
   for (const key of Object.keys(captured)) delete captured[key]
   confirmDialogs.length = 0
+  plannerActions.viewGpxTour.mockReset()
+  plannerActions.addWaypoint.mockReset()
+  plannerActions.openTour.mockReset()
+  plannerActions.startNewTour.mockReset()
+  plannerActions.forgetDeletedTour.mockReset()
+  plannerActions.saveOutcome = null
+  plannerActions.mapFocusKey = 0
+  plannerActions.newDraftGeneration = 0
+  plannerActions.mode = { type: 'neutral' }
+  plannerActions.isSaving = false
+  plannerActions.waypoints = []
+  plannerActions.routeProfileFocus = null
+  plannerActions.readOnlyGpxTour = null
+  plannerActions.readOnlyGpxAnalysis = null
   hookState = baseState()
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser({ id: 5 }) })
   useTripStore.setState({ loadBudgetItems: vi.fn(async () => undefined) } as never)
 })
 
 describe('TripPlannerPage — shell', () => {
+  it('UI-R2: Tours Planner rails use shared resize bounds, touch handles and keyboard nudges', () => {
+    const { container } = renderPage({ activeTab: 'tour-planner', toursEnabled: true,
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true } })
+    const handles = container.querySelectorAll<HTMLElement>('div[role="separator"]')
+    expect(handles).toHaveLength(2)
+    expect(Array.from(handles, handle => handle.getAttribute('data-resize'))).toEqual(['left', 'right'])
+    for (const handle of handles) {
+      expect(handle).toHaveAttribute('aria-valuemin', '200')
+      expect(handle).toHaveAttribute('aria-valuemax', '520')
+      expect(handle.style.touchAction).toBe('none')
+      expect(handle).toHaveAttribute('aria-label')
+    }
+    fireEvent.touchStart(handles[0])
+    expect(hookState.startResizeLeft).toHaveBeenCalled()
+    fireEvent.keyDown(handles[1], { key: 'ArrowLeft' })
+    expect(hookState.nudgeRight).toHaveBeenCalledWith(16)
+    expect(props('map').leftWidth).toBe(320)
+    expect(props('map').rightWidth).toBe(320)
+  })
+
+  it('UI-R2: collapsed Tours rails retain semantic restore controls and report zero map insets', () => {
+    renderPage({ activeTab: 'tour-planner', toursEnabled: true, leftHidden: true, rightHidden: true,
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true } })
+    expect(props('map').leftWidth).toBe(0)
+    expect(props('map').rightWidth).toBe(0)
+    expect(screen.getByRole('button', { name: 'trip.mobilePlan' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'tours.planner.tripTours' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'trip.mobilePlan' })[0]).toHaveClass('focus-visible:outline')
+    expect(document.querySelectorAll('div[role="separator"]')).toHaveLength(0)
+  })
+
+  it.each([
+    { leftHidden: false, rightHidden: true, visibleSide: 'left', leftInset: 300, rightInset: 0 },
+    { leftHidden: true, rightHidden: false, visibleSide: 'right', leftInset: 0, rightInset: 300 },
+  ])('UI-R2: the 768-1023px panel state shows only its selected rail ($visibleSide)', ({ leftHidden, rightHidden, visibleSide, leftInset, rightInset }) => {
+    const { container } = renderPage({ activeTab: 'tour-planner', toursEnabled: true, narrowPanels: true,
+      leftHidden, rightHidden, leftWidth: 300, rightWidth: 300, resizeMax: 300,
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true } })
+    const handles = container.querySelectorAll<HTMLElement>('div[role="separator"]')
+    expect(handles).toHaveLength(1)
+    expect(handles[0]).toHaveAttribute('data-resize', visibleSide)
+    expect(handles[0]).toHaveAttribute('aria-valuemax', '300')
+    expect(props('map').leftWidth).toBe(leftInset)
+    expect(props('map').rightWidth).toBe(rightInset)
+  })
+
+  it('UI-R2: rail collapse changes only map insets, not the fit target or routed draft', () => {
+    const view = renderPage({ activeTab: 'tour-planner', toursEnabled: true,
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true } })
+    const focusPoints = props('map').focusPoints
+    const route = props('map').route
+    const fitKey = props('map').fitKey
+
+    hookState = { ...hookState, leftHidden: true, rightHidden: true }
+    view.rerender(<TripPlannerPage />)
+
+    expect(props('map').leftWidth).toBe(0)
+    expect(props('map').rightWidth).toBe(0)
+    expect(props('map').focusPoints).toBe(focusPoints)
+    expect(props('map').route).toBe(route)
+    expect(props('map').fitKey).toBe(fitKey)
+    expect(plannerActions.mode).toEqual({ type: 'neutral' })
+  })
+
+  it('FE-PAGE-TPW-066: Tours entry stays neutral when saved Tours exist and does not auto-select one', async () => {
+    const savedTour = {
+      place_id: 92,
+      name: 'Editable ridge tour',
+      tour_type: 'hike',
+      distance: 6,
+      elevation_gain: 300,
+      elevation_loss: 290,
+      duration: 120,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: 1,
+      max_hiking_difficulty: 2,
+      planned: false,
+      caution: false,
+      has_waypoints: true,
+    }
+    renderPage({ activeTab: 'tour-planner', toursEnabled: true, enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true }, tours: [savedTour] })
+
+    expect(await screen.findByText('Plan a tour')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Plan new tour' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Tour name')).not.toBeInTheDocument()
+    expect(screen.getByRole('option', { name: /Editable ridge tour/i })).not.toHaveAttribute('aria-selected', 'true')
+    expect(plannerActions.openTour).not.toHaveBeenCalled()
+  })
+
+  it('preserves the visible TOUR-PLANNER camera when the Plan a Tour button starts an empty draft', async () => {
+    const place = buildPlace({ id: 81, lat: 35.01, lng: 135.76 })
+    mockStartNewTourTransition()
+    const view = renderPage({
+      activeTab: 'tour-planner',
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+      toursEnabled: true,
+      places: [place],
+    })
+    const mapElement = screen.getByTestId('map-view')
+
+    expect(props('map').focusPoints).toEqual([[place.lat, place.lng]])
+    fireEvent.click(await screen.findByRole('button', { name: 'Plan new tour' }))
+    expect(plannerActions.startNewTour).toHaveBeenCalledOnce()
+    view.rerender(<TripPlannerPage />)
+
+    expect(screen.getByRole('heading', { name: 'New tour' })).toBeInTheDocument()
+    expect(props('map').focusPoints).toEqual([])
+    expect(props('map').route).toBeNull()
+    expect(props('map').plannerWaypoints).toEqual([])
+    expect(props('map').focusKey).toBe(1)
+    expect(screen.getByTestId('map-view')).toBe(mapElement)
+    expect(props('map').onMapClick).toBeTypeOf('function')
+    act(() => props('map').onMapClick({ latlng: { lat: 35.02, lng: 135.77 } }))
+    expect(plannerActions.addWaypoint).toHaveBeenCalledWith(35.02, 135.77)
+  })
+
+  it('preserves the visible TOUR-PLANNER camera when Plan another starts a new Tour', async () => {
+    const savedTour = {
+      place_id: 82,
+      name: 'Saved Kyoto tour',
+      tour_type: 'hike',
+      distance: 6,
+      elevation_gain: 300,
+      elevation_loss: 290,
+      duration: 120,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: 1,
+      max_hiking_difficulty: 2,
+      planned: false,
+      caution: false,
+      has_waypoints: true,
+    }
+    mockStartNewTourTransition()
+    plannerActions.mode = { type: 'edit-saved', placeId: savedTour.place_id }
+    plannerActions.waypoints = [
+      { id: 'start', lat: 35.01, lng: 135.76, role: 'start' },
+      { id: 'end', lat: 35.02, lng: 135.77, role: 'end' },
+    ]
+    plannerActions.mapFocusKey = 8
+    plannerActions.saveOutcome = savedTour
+    const view = renderPage({
+      activeTab: 'tour-planner',
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+      toursEnabled: true,
+      tours: [savedTour],
+      places: [buildPlace({ id: savedTour.place_id, lat: 35.01, lng: 135.76 })],
+    })
+    const mapElement = screen.getByTestId('map-view')
+
+    expect(props('map').focusPoints).toEqual([[35.01, 135.76], [35.02, 135.77]])
+    fireEvent.click(await screen.findByRole('button', { name: 'Plan another' }))
+    expect(plannerActions.startNewTour).toHaveBeenCalledOnce()
+    view.rerender(<TripPlannerPage />)
+
+    expect(screen.getByRole('heading', { name: 'New tour' })).toBeInTheDocument()
+    expect(props('map').focusPoints).toEqual([])
+    expect(props('map').route).toBeNull()
+    expect(props('map').plannerWaypoints).toEqual([])
+    expect(props('map').focusKey).toBe(9)
+    expect(screen.getByTestId('map-view')).toBe(mapElement)
+    expect(props('map').onMapClick).toBeTypeOf('function')
+  })
+
+  it('FE-PAGE-TPW-063: uses the last TRIP-PLAN viewport for neutral TOUR-PLANNER fallback', () => {
+    const first = buildPlace({ id: 81, lat: 47.1, lng: 11.2 })
+    const second = buildPlace({ id: 82, lat: 47.3, lng: 11.6 })
+    const view = renderPage({ activeTab: 'tour-planner', enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true }, toursEnabled: true, places: [first, second] })
+
+    expect(props('map').focusPoints).toEqual([[47.1, 11.2], [47.3, 11.6]])
+    expect(props('map').route).toBeNull()
+    expect(props('map').plannerWaypoints).toEqual([])
+    expect(props('map').onMapClick).toBeUndefined()
+    plannerActions.mode = { type: 'new-draft' }
+    view.rerender(<TripPlannerPage />)
+    plannerActions.isSaving = true
+    view.rerender(<TripPlannerPage />)
+    expect(props('map').onMapClick).toBeUndefined()
+    expect(screen.getByTestId('map-view')).toBeInTheDocument()
+    plannerActions.isSaving = false
+    view.rerender(<TripPlannerPage />)
+    act(() => props('map').onMapClick({ latlng: { lat: 47.11, lng: 11.21 } }))
+    expect(plannerActions.addWaypoint).toHaveBeenCalledWith(47.11, 11.21)
+    expect(props('map').plannerWaypoints).toEqual([])
+
+    hookState = { ...hookState, activeTab: 'plan' }
+    view.rerender(<TripPlannerPage />)
+    act(() => props('map').onViewportChange({ south: 46.9, west: 10.8, north: 47.5, east: 12.1 }))
+    plannerActions.mode = { type: 'neutral' }
+    plannerActions.waypoints = []
+    hookState = { ...hookState, activeTab: 'tour-planner' }
+    view.rerender(<TripPlannerPage />)
+
+    expect(props('map').focusPoints).toEqual([[46.9, 10.8], [47.5, 12.1]])
+    expect(props('map').route).toBeNull()
+    expect(props('map').plannerWaypoints).toEqual([])
+  })
+
+  it('keeps editable fit targets stable while transient profile focus changes', () => {
+    const waypoints = [
+      { id: 'start', lat: 47.1, lng: 11.2, role: 'start' },
+      { id: 'end', lat: 47.3, lng: 11.6, role: 'end' },
+    ]
+    plannerActions.mode = { type: 'edit-saved', placeId: 92 }
+    plannerActions.waypoints = waypoints
+    const view = renderPage({ activeTab: 'tour-planner', enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true }, toursEnabled: true })
+    const fitTargets = props('map').focusPoints
+    const route = props('map').route
+    const mapWaypoints = props('map').plannerWaypoints
+
+    plannerActions.routeProfileFocus = { distanceMeters: 10, elevationMeters: 100, lat: 47.11, lng: 11.21, sampleIndex: 1 }
+    view.rerender(<TripPlannerPage />)
+    expect(props('map').routeProfileFocus).toBe(plannerActions.routeProfileFocus)
+    expect(props('map').focusPoints).toBe(fitTargets)
+    expect(props('map').route).toBe(route)
+    expect(props('map').plannerWaypoints).toBe(mapWaypoints)
+
+    plannerActions.routeProfileFocus = { distanceMeters: 20, elevationMeters: 110, lat: 47.12, lng: 11.22, sampleIndex: 1 }
+    view.rerender(<TripPlannerPage />)
+    expect(props('map').focusPoints).toBe(fitTargets)
+    expect(props('map').route).toBe(route)
+    expect(props('map').plannerWaypoints).toBe(mapWaypoints)
+
+    plannerActions.waypoints = [...waypoints, { id: 'via', lat: 47.2, lng: 11.4, role: 'via' }]
+    view.rerender(<TripPlannerPage />)
+    expect(props('map').focusPoints).not.toBe(fitTargets)
+    expect(props('map').focusPoints).toEqual([[47.1, 11.2], [47.3, 11.6], [47.2, 11.4]])
+  })
+
+  it('FE-PAGE-TPW-064: falls back to the normal map default when there is no viewport or geo Place', () => {
+    renderPage({ activeTab: 'tour-planner', enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true }, toursEnabled: true, places: [] })
+
+    expect(props('map').focusPoints).toEqual([])
+    expect(props('map').center).toBeUndefined()
+    expect(props('map').zoom).toBeUndefined()
+  })
+
+  it('FE-PAGE-TPW-065: Tours OFF stays on native Plan and does not create the Tours Planner hook', () => {
+    const view = renderPage({ activeTab: 'plan', toursEnabled: false })
+    expect(screen.getByTestId('map-view')).toBeInTheDocument()
+    expect(screen.queryByTestId('tour-planner-rail')).not.toBeInTheDocument()
+
+    hookState = { ...hookState, activeTab: 'plan' }
+    view.rerender(<TripPlannerPage />)
+
+    expect(screen.getByTestId('map-view')).toBeInTheDocument()
+    expect(screen.queryByTestId('tour-planner-rail')).not.toBeInTheDocument()
+  })
+
+  it('does not offer permanent Tour Delete from the desktop TRIP-PLAN detail', () => {
+    const tourPlace = buildPlace({ id: 91, name: 'Ridge walk', tour_place_id: 91 })
+    const selectedTour = {
+      place_id: 91,
+      name: tourPlace.name,
+      tour_type: 'hike',
+      distance: 8,
+      elevation_gain: 420,
+      elevation_loss: 390,
+      duration: null,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: null,
+      max_hiking_difficulty: 2,
+      planned: true,
+      caution: false,
+      has_waypoints: true,
+    }
+    renderPage({
+      toursEnabled: true,
+      selectedPlace: tourPlace,
+      selectedPlaceId: tourPlace.id,
+      selectedTour,
+    })
+    expect(props('tourDetail').onDelete).toBeUndefined()
+  })
+
+  it('routes visible TOUR-PLANNER Tours-rail deletion through the existing confirmation', async () => {
+    const savedTour = {
+      place_id: 91,
+      name: 'Ridge walk',
+      tour_type: 'hike',
+      distance: 8,
+      elevation_gain: 420,
+      elevation_loss: 390,
+      duration: null,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: null,
+      max_hiking_difficulty: 2,
+      planned: false,
+      caution: false,
+      has_waypoints: true,
+    }
+    const handleDeleteTour = vi.fn((placeId: number) => {
+      hookState = { ...hookState, deletePlaceId: placeId, deletePlaceIsTour: true }
+    })
+    const setDeletePlaceId = vi.fn((placeId: number | null) => {
+      hookState = { ...hookState, deletePlaceId: placeId }
+    })
+    const confirmDeletePlace = vi.fn(async (): Promise<number | null> => savedTour.place_id)
+    plannerActions.mode = { type: 'edit-saved', placeId: savedTour.place_id }
+    plannerActions.forgetDeletedTour.mockImplementation(placeId => {
+      const mode = plannerActions.mode as { placeId?: number }
+      if (mode.placeId === placeId) plannerActions.mode = { type: 'neutral' }
+    })
+    const view = renderPage({
+      activeTab: 'tour-planner',
+      enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true },
+      toursEnabled: true,
+      tours: [savedTour],
+      handleDeleteTour,
+      setDeletePlaceId,
+      confirmDeletePlace,
+    })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete Ridge walk' }))
+    expect(handleDeleteTour).toHaveBeenCalledWith(savedTour.place_id)
+    view.rerender(<TripPlannerPage />)
+    let confirmation = [...confirmDialogs].reverse().find(dialog => dialog.isOpen)
+    expect(confirmation).toMatchObject({ title: 'common.delete', confirmLabel: 'tours.delete.confirmAction' })
+    expect(screen.getByRole('heading', { name: 'Edit tour' })).toBeInTheDocument()
+
+    const onClose = confirmation?.onClose as (() => void) | undefined
+    onClose?.()
+    expect(setDeletePlaceId).toHaveBeenCalledWith(null)
+    expect(confirmDeletePlace).not.toHaveBeenCalled()
+    expect(screen.getByRole('heading', { name: 'Edit tour' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Ridge walk' }))
+    view.rerender(<TripPlannerPage />)
+    confirmation = [...confirmDialogs].reverse().find(dialog => dialog.isOpen)
+    const onConfirm = confirmation?.onConfirm as (() => void | Promise<void>) | undefined
+    await act(async () => { await onConfirm?.() })
+    expect(confirmDeletePlace).toHaveBeenCalledOnce()
+    expect(plannerActions.forgetDeletedTour).toHaveBeenCalledWith(savedTour.place_id)
+    view.rerender(<TripPlannerPage />)
+    expect(screen.getByText('Plan a tour')).toBeInTheDocument()
+
+    confirmDeletePlace.mockResolvedValue(null)
+    plannerActions.forgetDeletedTour.mockClear()
+    plannerActions.mode = { type: 'edit-saved', placeId: savedTour.place_id }
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Ridge walk' }))
+    view.rerender(<TripPlannerPage />)
+    confirmation = [...confirmDialogs].reverse().find(dialog => dialog.isOpen)
+    const failedConfirm = confirmation?.onConfirm as (() => void | Promise<void>) | undefined
+    await act(async () => { await failedConfirm?.() })
+    expect(plannerActions.forgetDeletedTour).not.toHaveBeenCalled()
+    expect(screen.getByRole('option', { name: /Ridge walk/ })).toBeInTheDocument()
+    view.rerender(<TripPlannerPage />)
+    expect(screen.getByRole('heading', { name: 'Edit tour' })).toBeInTheDocument()
+  })
+
+  it('excludes Tours from the mobile TRIP-PLAN Places pool when the addon is enabled', () => {
+    const tourPlace = buildPlace({ id: 92, name: 'Mobile ridge', tour_place_id: 92 })
+    const tourPlaceIds = new Set([tourPlace.id])
+    renderPage({
+      isMobile: true,
+      mobileSidebarOpen: 'right',
+      toursEnabled: true,
+      tourPlaceIds,
+      places: [tourPlace],
+    })
+
+    expect(props('places').toursEnabled).toBe(true)
+    expect(props('places').excludePlaceIds).toBe(tourPlaceIds)
+  })
+
+  it('passes Tour facet identity to desktop and mobile TRIP-PLAN day cards', () => {
+    const tourPlaceIds = new Set([92])
+    const view = renderPage({ activeTab: 'plan', toursEnabled: true, tourPlaceIds })
+
+    expect(props('dayPlan').tourPlaceIds).toBe(tourPlaceIds)
+
+    hookState = { ...hookState, isMobile: true, mobileSidebarOpen: 'left' }
+    view.rerender(<TripPlannerPage />)
+    expect(props('dayPlan').tourPlaceIds).toBe(tourPlaceIds)
+  })
+
+  it('FE-PAGE-TPW-062: opens GPX geometry in the read-only Planner path without mounting the general detail dialog', async () => {
+    const gpxPlace = buildPlace({ id: 91, name: 'Imported ridge GPX', lat: 47.1, lng: 11.2, route_geometry: '[[47.1,11.2,500],[47.2,11.3,550]]' })
+    const gpxTour = {
+      place_id: 91,
+      name: 'Imported ridge GPX',
+      tour_type: 'hike',
+      distance: 8,
+      elevation_gain: 420,
+      elevation_loss: 420,
+      duration: 180,
+      difficulty: null,
+      wanderer_ref: null,
+      match_confidence: 1,
+      planned: false,
+      caution: false,
+      has_waypoints: false,
+    }
+    const trekTour = { ...gpxTour, place_id: 92, name: 'Editable ridge tour', has_waypoints: true }
+    const view = renderPage({ activeTab: 'tour-planner', enabledAddons: { packing: true, budget: true, documents: true, collab: true, tours: true }, toursEnabled: true, places: [gpxPlace], tours: [gpxTour, trekTour] })
+
+    fireEvent.click(await screen.findByRole('option', { name: /Imported ridge GPX/i }))
+
+    expect(plannerActions.viewGpxTour).toHaveBeenCalledWith(gpxTour, gpxPlace.route_geometry)
+    expect(screen.queryByTestId('tour-detail-dialog')).not.toBeInTheDocument()
+
+    const analysis = analyzeRouteGeometry(gpxPlace.route_geometry)
+    plannerActions.readOnlyGpxTour = { tour: gpxTour, routeGeometry: gpxPlace.route_geometry }
+    plannerActions.readOnlyGpxAnalysis = analysis
+    plannerActions.mode = { type: 'view-gpx', placeId: gpxTour.place_id, tour: gpxTour }
+    view.rerender(<TripPlannerPage />)
+
+    expect(props('map').route).toEqual([analysis?.routeCoordinates])
+    expect(props('map').focusPoints).toEqual(analysis?.routeCoordinates)
+    expect(props('map').onMapClick).toBeUndefined()
+    expect(props('map').plannerWaypoints).toEqual([])
+    expect(screen.getByRole('heading', { name: 'GPX tour' })).toBeInTheDocument()
+    expect(screen.getAllByText('Imported ridge GPX')).toHaveLength(2)
+    expect(screen.queryByLabelText('Tour name')).not.toBeInTheDocument()
+
+    expect(plannerActions.viewGpxTour).toHaveBeenCalledOnce()
+  })
+
   it('FE-PAGE-TPW-002: the splash holds the page until the trip finished loading', () => {
     renderPage({ isLoading: true, splashDone: false })
 
@@ -434,12 +966,25 @@ describe('TripPlannerPage — plan tab', () => {
     expect(props('map').rightWidth).toBe(0)
   })
 
-  it('FE-PAGE-TPW-010: clicking a booking route on the map opens its transport detail', () => {
+  it('FE-PAGE-TPW-010: clicking a booking route on the map opens its booking detail', () => {
     const reservation = buildReservation({ id: 3, type: 'train' })
     renderPage({ reservations: [reservation] })
 
     act(() => { props('map').onReservationClick(3) })
+    expect(hookState.openBookingDetail).toHaveBeenCalledWith(reservation)
+    expect(hookState.setMapTransportDetail).not.toHaveBeenCalled()
+
+    act(() => { props('map').onReservationClick(999) })
+    expect(hookState.openBookingDetail).toHaveBeenCalledTimes(1)
+  })
+
+  it("FE-PAGE-TPW-065: the narrow layout keeps sending a map booking to the day list's transport view", () => {
+    const reservation = buildReservation({ id: 3, type: 'train' })
+    renderPage({ reservations: [reservation], isMobile: true })
+
+    act(() => { props('map').onReservationClick(3) })
     expect(hookState.setMapTransportDetail).toHaveBeenCalledWith(reservation)
+    expect(hookState.openBookingDetail).not.toHaveBeenCalled()
 
     act(() => { props('map').onReservationClick(999) })
     expect(hookState.setMapTransportDetail).toHaveBeenCalledTimes(1)
@@ -496,6 +1041,24 @@ describe('TripPlannerPage — plan tab', () => {
     expect(cluster.style.left).toBe('calc(350px + 0.5 * (100% - 350px - 310px))')
   })
 
+  // Plugins can add POI categories (#1781), so the pill may outgrow the corridor; bounded
+  // to it, the pill scrolls there instead of running on under a panel.
+  it('FE-PAGE-TPW-063: the floating map controls are no wider than the corridor', () => {
+    const { container } = renderPage({ leftWidth: 340, rightWidth: 300 })
+    const cluster = container.querySelector('div[style*="translateX(-50%)"][style*="z-index: 25"]') as HTMLElement
+    // The two panel insets (350 and 310) and a 12px margin on either side.
+    expect(cluster.style.maxWidth).toBe('calc(100% - 684px)')
+  })
+
+  it('FE-PAGE-TPW-064: both pill mounts offer the categories the explore hook merged', () => {
+    poiPillMounts.length = 0
+    renderPage()
+    // The floating desktop pill and the portal the narrow layout uses.
+    expect(poiPillMounts.length).toBeGreaterThanOrEqual(2)
+    expect(poiPillMounts.every(mount => mount.categories === poiCategories)).toBe(true)
+    expect(screen.getByTestId('mobile-poi-category-pill')).toContainElement(screen.getAllByTestId('poi-pill')[1])
+  })
+
   it('FE-PAGE-TPW-013d: a hidden panel takes no corridor away from the map controls', () => {
     const { container } = renderPage({ leftWidth: 340, rightWidth: 300, rightHidden: true })
     const cluster = container.querySelector('div[style*="translateX(-50%)"][style*="z-index: 25"]') as HTMLElement
@@ -525,11 +1088,28 @@ describe('TripPlannerPage — plan tab', () => {
     expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument()
   })
 
-  // Mouse-only handles (mousedown + document mousemove) are inert on a tablet, and
-  // a 4px invisible strip on the panel edge is a trap for a fat finger (#2247).
-  it('FE-PAGE-TPW-015b: the narrow layout drops the mouse-only resize handles', () => {
-    const { container } = renderPage({ narrowPanels: true })
-    expect(container.querySelectorAll('div[style*="col-resize"]')).toHaveLength(0)
+  // The handles take a finger now, with a visible grip on touch screens, so the
+  // tablet band keeps the one it shows (#1012); before, a 4px mouse-only strip there
+  // was a trap for a fat finger (#2247).
+  it('FE-PAGE-TPW-015b: the narrow layout keeps a touch-ready handle on the panel it shows', () => {
+    const { container } = renderPage({ narrowPanels: true, rightHidden: true })
+    const handles = container.querySelectorAll<HTMLElement>('div[role="separator"]')
+    expect(handles).toHaveLength(1)
+    expect(handles[0].style.touchAction).toBe('none')
+    fireEvent.touchStart(handles[0])
+    expect(hookState.startResizeLeft).toHaveBeenCalled()
+  })
+
+  it('FE-PAGE-TPW-015c: the arrow keys move a handle like a separator (#1012)', () => {
+    const { container } = renderPage()
+    const [left, right] = container.querySelectorAll<HTMLElement>('div[role="separator"]')
+    expect(left).toHaveAttribute('aria-valuenow')
+    fireEvent.keyDown(left, { key: 'ArrowRight' })
+    expect(hookState.nudgeLeft).toHaveBeenCalledWith(16)
+    fireEvent.keyDown(right, { key: 'ArrowLeft' })
+    expect(hookState.nudgeRight).toHaveBeenCalledWith(16)
+    fireEvent.keyDown(right, { key: 'ArrowRight' })
+    expect(hookState.nudgeRight).toHaveBeenCalledWith(-16)
   })
 
   it('FE-PAGE-TPW-015: the resize handles start a drag on mouse-down and highlight on hover', () => {
@@ -902,18 +1482,91 @@ describe('TripPlannerPage — mobile drawers', () => {
   })
 })
 
+describe("TripPlannerPage — the plan's booking detail", () => {
+  it("FE-PAGE-TPW-066: the desktop day list and the inspector open a booking's detail", () => {
+    renderPage({ selectedPlace: place })
+
+    // The day list's own opener: its rows asked for day_edit before the editor.
+    expect(props('dayPlan').onOpenBooking).toBe(hookState.openBookingFromDayList)
+    expect(props('inspector').onOpenBooking).toBe(hookState.openBookingDetail)
+    // The inspector keeps its editors: the detail's Edit goes on to them.
+    expect(props('inspector').onEditReservation).toBeTypeOf('function')
+  })
+
+  it("FE-PAGE-TPW-067: the day card opens a booking's detail on the desktop only", () => {
+    renderPage({ showDayDetail: day })
+    expect(props('dayDetail').onOpenBooking).toBe(hookState.openBookingDetail)
+    cleanup()
+
+    renderPage({ showDayDetail: day, isMobile: true })
+    expect(props('dayDetail').onOpenBooking).toBeUndefined()
+  })
+
+  it('FE-PAGE-TPW-068: the narrow layout keeps its day list paths, in the panel and in the drawer', () => {
+    renderPage({ isMobile: true })
+    expect(props('dayPlan').onOpenBooking).toBeUndefined()
+    cleanup()
+
+    renderPage({ mobileSidebarOpen: 'left' })
+    // The drawer's copy renders last; it never gets the detail.
+    expect(props('dayPlan').onOpenTransit).toBeTypeOf('function')
+    expect(props('dayPlan').onOpenBooking).toBeUndefined()
+  })
+
+  it('FE-PAGE-TPW-069: nothing is mounted while no booking is open', () => {
+    renderPage()
+    expect(screen.queryByTestId('booking-detail')).not.toBeInTheDocument()
+  })
+
+  it("FE-PAGE-TPW-070: the open booking's detail gets its rights and hands every way out to the planner", async () => {
+    const train = buildReservation({ id: 3, type: 'train', title: 'Shinkansen' })
+    const editor = vi.fn()
+    const changeRoute = vi.fn()
+    renderPage({ bookingDetail: train, bookingDetailEditor: editor, bookingDetailChangeRoute: changeRoute })
+
+    expect(screen.getByTestId('booking-detail')).toBeInTheDocument()
+    const d = props('bookingDetail')
+    expect(d.r).toBe(train)
+    expect(d.tripId).toBe(42)
+    expect(d.canEdit).toBe(true)
+    expect(d.onEdit).toBe(editor)
+    expect(d.onChangeRoute).toBe(changeRoute)
+    expect(d.onClose).toBe(hookState.closeBookingDetail)
+    expect(d.onDelete).toBe(hookState.handleDeleteReservation)
+    expect(d.onShowOnMap).toBe(hookState.showBookingOnMap)
+    expect(d.isOnMap).toBe(hookState.isBookingOnMap)
+
+    act(() => { d.onNavigateToFiles() })
+    expect(hookState.handleTabChange).toHaveBeenCalledWith('dateien')
+
+    act(() => { d.onEditExpense({ id: 12, name: 'Ticket' }) })
+    await waitFor(() => expect(screen.getByTestId('expense-modal')).toBeInTheDocument())
+    expect(props('expenseModal').editing).toEqual({ id: 12, name: 'Ticket' })
+  })
+
+  it('FE-PAGE-TPW-071: without the booking right the detail stays read-only', () => {
+    const can = vi.fn((action: string) => action !== 'reservation_edit')
+    renderPage({ bookingDetail: buildReservation({ id: 3 }), can })
+    expect(props('bookingDetail').canEdit).toBe(false)
+  })
+})
+
 describe('TripPlannerPage — other tabs', () => {
   const flight = buildReservation({ id: 1, type: 'flight' })
   const hotel = buildReservation({ id: 2, type: 'hotel' })
   const transit = buildReservation({ id: 3, type: 'train' })
 
   it('FE-PAGE-TPW-034: the transports tab lists only transport bookings and wires its actions', async () => {
-    renderPage({ activeTab: 'transports', reservations: [flight, hotel, transit] })
+    const dinner = buildReservation({ id: 4, type: 'restaurant' })
+    renderPage({ activeTab: 'transports', reservations: [flight, hotel, transit, dinner] })
     // The panel loads on demand now; its props only exist once the chunk is in.
     await screen.findByTestId('reservations-panel')
 
     const listed = props('reservationsPanel').reservations as unknown as Reservation[]
     expect(listed.map(r => r.id)).toEqual([1, 3])
+    // The timeline's "other tab" lane gets every booking of the Book tab, not only the stays.
+    const context = props('reservationsPanel').contextReservations as unknown as Reservation[]
+    expect(context.map(r => r.id)).toEqual([2, 4])
 
     act(() => { props('reservationsPanel').onAdd() })
     expect(hookState.setTransportModalAutomated).toHaveBeenCalledWith(false)
@@ -925,7 +1578,7 @@ describe('TripPlannerPage — other tabs', () => {
     expect(hookState.setShowAirTrailImport).toHaveBeenCalledWith(true)
 
     act(() => { props('reservationsPanel').onEdit(transit) })
-    expect(hookState.setEditingTransport).toHaveBeenCalledWith(transit)
+    expect(hookState.openTransportEditor).toHaveBeenCalledWith(transit)
 
     act(() => { props('reservationsPanel').onDelete(1) })
     expect(hookState.handleDeleteReservation).toHaveBeenCalledWith(1)
@@ -934,14 +1587,34 @@ describe('TripPlannerPage — other tabs', () => {
     expect(hookState.handleTabChange).toHaveBeenCalledWith('dateien')
   })
 
-  it('FE-PAGE-TPW-035: a saved transit journey opens the journey view instead of the editor', async () => {
+  it("FE-PAGE-TPW-035: the Transports tab edits a transit journey in the full editor and changes its route under the plan's right", async () => {
     const journey = buildReservation({ id: 9, type: 'transit' })
-    renderPage({ activeTab: 'transports', reservations: [journey] })
+    const changeRoute = vi.fn()
+    renderPage({ activeTab: 'transports', reservations: [journey], bookingDetailChangeRoute: changeRoute })
     await screen.findByTestId('reservations-panel')
 
     act(() => { props('reservationsPanel').onEdit(journey) })
-    expect(hookState.setTransitJourney).toHaveBeenCalledWith(journey)
-    expect(hookState.setShowTransportModal).not.toHaveBeenCalled()
+    expect(hookState.openTransportEditor).toHaveBeenCalledWith(journey)
+    expect(hookState.setTransitJourney).not.toHaveBeenCalled()
+
+    // The same day_edit-gated handler the plan's detail gets.
+    expect(props('reservationsPanel').onChangeRoute).toBe(changeRoute)
+    cleanup()
+
+    // Without day_edit the hook hands over none, and the tab offers none.
+    renderPage({ activeTab: 'transports', reservations: [journey], bookingDetailChangeRoute: undefined })
+    await screen.findByTestId('reservations-panel')
+    expect(props('reservationsPanel').onChangeRoute).toBeUndefined()
+  })
+
+  it('FE-PAGE-TPW-072: both booking tabs show a booking on the map the way the plan does', async () => {
+    for (const activeTab of ['transports', 'buchungen']) {
+      renderPage({ activeTab, reservations: [flight, hotel] })
+      await screen.findByTestId('reservations-panel')
+      expect(props('reservationsPanel').onShowOnMap).toBe(hookState.showBookingOnMap)
+      expect(props('reservationsPanel').isOnMap).toBe(hookState.isBookingOnMap)
+      cleanup()
+    }
   })
 
   it('FE-PAGE-TPW-036: the bookings tab lists everything that is not transport', async () => {
@@ -1017,13 +1690,14 @@ describe('TripPlannerPage — lists tab', () => {
     expect(props('todoPanel').addItemSignal).toBe(1)
   })
 
-  it('FE-PAGE-TPW-041: the clear-checked action only appears once something is checked', async () => {
+  it('FE-PAGE-TPW-041: Add list in the bar opens the list name field in the panel', async () => {
     renderPage({ activeTab: 'listen', packingItems: [buildPackingItem({ checked: 1 })] })
     await screen.findByTestId('packing-list-panel')
 
-    const clear = screen.getByRole('button', { name: /Remove 1 checked/i })
-    fireEvent.click(clear)
-    expect(props('packingPanel').clearCheckedSignal).toBe(1)
+    // Removing checked items moved into the panel's progress card.
+    expect(screen.queryByRole('button', { name: /Remove 1 checked/i })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /Add list/i }))
+    expect(props('packingPanel').addCategorySignal).toBe(1)
   })
 
   it('FE-PAGE-TPW-042: an admin can save the current list as a template', async () => {
@@ -1051,6 +1725,21 @@ describe('TripPlannerPage — lists tab', () => {
     expect(props('applyTemplate').visibility).toBe('common')
     act(() => { props('packingPanel').onViewChange('personal') })
     expect(props('applyTemplate').visibility).toBe('personal')
+  })
+
+  it('FE-PAGE-TPW-044b: export and import sit in the header as icons, export following the open view (#875, #1420)', async () => {
+    renderPage({ activeTab: 'listen', packingItems: [buildPackingItem({ checked: 0 })] })
+    await screen.findByTestId('packing-list-panel')
+
+    expect(screen.getByTestId('export-menu')).toBeInTheDocument()
+    expect(props('exportMenu').tripId).toBe(42)
+    expect(props('exportMenu').view).toBe('common')
+    act(() => { props('packingPanel').onViewChange('personal') })
+    expect(props('exportMenu').view).toBe('personal')
+
+    const importButton = screen.getByRole('button', { name: 'Import' })
+    expect(importButton).toHaveAttribute('title', 'Import')
+    expect(importButton).toHaveTextContent('')
   })
 })
 
@@ -1220,24 +1909,10 @@ describe('TripPlannerPage — modals', () => {
     expect(hookState.handleDeleteReservation).toHaveBeenCalledWith(9)
 
     act(() => { props('transitModal').onChangeRoute() })
-    expect(hookState.setTransitPrefill).toHaveBeenCalledWith({
-      from: { name: 'Kyoto', lat: 34.9, lng: 135.7 },
-      to: { name: 'Osaka', lat: 34.7, lng: 135.5 },
-    })
-    expect(hookState.setEditingTransport).toHaveBeenCalledWith(journey)
-    expect(hookState.setTransportModalAutomated).toHaveBeenCalledWith(true)
+    expect(hookState.changeTransitRoute).toHaveBeenCalledWith(journey)
 
     act(() => { props('transitModal').onClose() })
     expect(hookState.setTransitJourney).toHaveBeenLastCalledWith(null)
-  })
-
-  it('FE-PAGE-TPW-056: a journey without endpoints seeds an empty search', () => {
-    const journey = buildReservation({ id: 9, type: 'transit', day_id: null })
-    renderPage({ transitJourney: journey, reservations: [] })
-
-    act(() => { props('transitModal').onChangeRoute() })
-    expect(hookState.setTransitPrefill).toHaveBeenCalledWith({ from: null, to: null })
-    expect(hookState.setTransportModalDayId).toHaveBeenCalledWith(null)
   })
 
   it('FE-PAGE-TPW-061: edit details hands the fresh reservation to the full transport editor', () => {
@@ -1248,12 +1923,7 @@ describe('TripPlannerPage — modals', () => {
     renderPage({ transitJourney: stale, reservations: [fresh] })
 
     act(() => { props('transitModal').onEditDetails() })
-    expect(hookState.setEditingTransport).toHaveBeenCalledWith(fresh)
-    expect(hookState.setTransportModalDayId).toHaveBeenCalledWith(7)
-    expect(hookState.setTransportModalAutomated).toHaveBeenCalledWith(false)
-    expect(hookState.setTransitPrefill).toHaveBeenCalledWith(null)
-    expect(hookState.setTransitJourney).toHaveBeenCalledWith(null)
-    expect(hookState.setShowTransportModal).toHaveBeenCalledWith(true)
+    expect(hookState.openTransportEditor).toHaveBeenCalledWith(fresh)
   })
 
   it('FE-PAGE-TPW-057: a booking opens the expense editor, prefilled or on an existing item', async () => {
@@ -1329,5 +1999,31 @@ describe('TripPlannerPage — modals', () => {
 
     act(() => { release.onConfirm() })
     expect(hookState.confirmStayRelease).toHaveBeenCalled()
+  })
+
+  it('FE-PAGE-TPW-073: adding a stay from a day opens its panel with the stay picker, which reports back once open', () => {
+    const setStayPickerDayId = vi.fn()
+    renderPage({ stayPickerDayId: null, setStayPickerDayId })
+    act(() => { props('dayPlan').onAddAccommodation(day) })
+    expect(hookState.handleSelectDay).toHaveBeenCalledWith(7)
+    expect(hookState.setShowDayDetail).toHaveBeenCalledWith(day)
+    expect(hookState.selectAssignment).toHaveBeenCalledWith(null)
+    expect(setStayPickerDayId).toHaveBeenCalledWith(7)
+    cleanup()
+
+    renderPage({ showDayDetail: day, stayPickerDayId: 7, setStayPickerDayId })
+    expect(props('dayDetail').openStayPicker).toBe(true)
+    act(() => { props('dayDetail').onStayPickerOpened() })
+    expect(setStayPickerDayId).toHaveBeenLastCalledWith(null)
+  })
+
+  it('FE-PAGE-TPW-074: a linked expense in either booking tab opens the expense editor on that item', async () => {
+    for (const activeTab of ['transports', 'buchungen']) {
+      renderPage({ activeTab })
+      await screen.findByTestId('reservations-panel')
+      act(() => { props('reservationsPanel').onEditExpense({ id: 12 }) })
+      await waitFor(() => expect(props('expenseModal').editing).toEqual({ id: 12 }))
+      cleanup()
+    }
   })
 })

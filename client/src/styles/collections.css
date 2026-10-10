@@ -42,7 +42,7 @@
   font-size: 10.5px; text-transform: uppercase; letter-spacing: .13em; color: var(--ink-3); font-weight: 600;
 }
 .trek-dash .col-rail-label .badge {
-  margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  margin-inline-start: auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
   display: grid; place-items: center; background: var(--accent); color: var(--accent-text); font-size: 10px; letter-spacing: 0;
 }
 .trek-dash .col-rail-sep { height: 1px; background: var(--line); margin: 8px 6px; }
@@ -50,7 +50,7 @@
 .trek-dash .col-row { position: relative; }
 .trek-dash .col-row-btn {
   display: flex; align-items: center; gap: 10px; width: 100%;
-  padding: 9px 11px; border-radius: var(--r-sm); text-align: left;
+  padding: 9px 11px; border-radius: var(--r-sm); text-align: start;
   color: var(--ink-2); font-size: 13.5px; font-weight: 500; transition: background .12s, color .12s;
 }
 .trek-dash .col-row-btn:hover { background: var(--surface-2); color: var(--ink); }
@@ -62,9 +62,9 @@
 .trek-dash .col-row-btn .ct { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; flex-shrink: 0; }
 /* The kebab lives to the right of the count and is always visible (just dimmed)
    so it is easy to hit — no hover-to-reveal timing. Reserve space for it. */
-.trek-dash .col-row:has(.col-row-menu) .col-row-btn { padding-right: 34px; }
+.trek-dash .col-row:has(.col-row-menu) .col-row-btn { padding-inline-end: 34px; }
 .trek-dash .col-row-menu {
-  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  position: absolute; inset-inline-end: 4px; top: 50%; transform: translateY(-50%);
   width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
   color: var(--ink-3); opacity: .5; transition: opacity .12s, background .12s, color .12s;
 }
@@ -135,7 +135,7 @@
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 9px; font-size: 11.5px;
   letter-spacing: .18em; text-transform: uppercase; font-weight: 600; opacity: .94;
 }
-.trek-dash .col-hero-eyebrow .members { display: inline-flex; align-items: center; margin-left: 2px; }
+.trek-dash .col-hero-eyebrow .members { display: inline-flex; align-items: center; margin-inline-start: 2px; }
 .trek-dash .col-hero-title {
   font-size: 40px; font-weight: 600; letter-spacing: -.03em; line-height: 1.02; margin: 0;
   text-shadow: 0 1px 12px rgba(0,0,0,.3), 0 1px 3px rgba(0,0,0,.35); overflow-wrap: anywhere;
@@ -152,7 +152,7 @@
   text-shadow: 0 1px 4px rgba(0,0,0,.4);
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.trek-dash .col-hero-links { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-left: 4px; text-transform: none; letter-spacing: normal; }
+.trek-dash .col-hero-links { display: inline-flex; flex-wrap: wrap; gap: 6px; margin-inline-start: 4px; text-transform: none; letter-spacing: normal; }
 .trek-dash .col-hero-link {
   display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 999px;
   font-size: 12px; font-weight: 500; color: #fff; max-width: 220px;
@@ -176,19 +176,19 @@
 
 /* member avatar stack in the eyebrow */
 .trek-dash .col-av {
-  width: 24px; height: 24px; border-radius: 50%; margin-left: -7px; object-fit: cover;
+  width: 24px; height: 24px; border-radius: 50%; margin-inline-start: -7px; object-fit: cover;
   border: 2px solid rgba(255,255,255,.85); display: grid; place-items: center;
   font-size: 10px; font-weight: 700; color: #fff;
 }
-.trek-dash .col-av:first-child { margin-left: 0; }
+.trek-dash .col-av:first-child { margin-inline-start: 0; }
 
 /* ----------------- toolbar ----------------- */
 .trek-dash .col-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
 .trek-dash .col-toolbar-spacer { flex: 1; }
 .trek-dash .col-search { position: relative; }
-.trek-dash .col-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+.trek-dash .col-search svg { position: absolute; inset-inline-start: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
 .trek-dash .col-search input {
-  height: 38px; width: 210px; padding: 0 14px 0 35px; border-radius: var(--r-sm);
+  height: 38px; width: 210px; padding-block: 0; padding-inline: 35px 14px; border-radius: var(--r-sm);
   border: 1px solid var(--line-2); background: var(--surface); color: var(--ink);
   font-size: 13.5px; font-family: inherit; outline: none; transition: border-color .15s, box-shadow .15s;
 }
@@ -225,9 +225,9 @@
    search shrinks instead. */
 /* The bar itself is click-through; only the control groups catch clicks, so the
    empty space between them never swallows a map/marker click. */
-.trek-dash .col-map-topbar { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 20; display: flex; align-items: center; gap: 10px; pointer-events: none; }
+.trek-dash .col-map-topbar { position: absolute; top: 12px; inset-inline: 12px; z-index: 20; display: flex; align-items: center; gap: 10px; pointer-events: none; }
 .trek-dash .col-map-group { display: flex; align-items: center; gap: 8px; pointer-events: auto; }
-.trek-dash .col-map-group.right { margin-left: auto; min-width: 0; }
+.trek-dash .col-map-group.right { margin-inline-start: auto; min-width: 0; }
 .trek-dash .col-map-btn {
   width: 38px; height: 38px; flex-shrink: 0; border-radius: 11px; display: grid; place-items: center; color: var(--ink);
   background: color-mix(in oklch, var(--surface) 92%, transparent); border: 1px solid var(--glass-border); box-shadow: var(--sh-md);
@@ -287,7 +287,7 @@
   background: color-mix(in oklch, var(--surface-2) 70%, transparent);
   border: 1px solid var(--line-2);
 }
-.trek-dash .col-labelfilter-lead { color: var(--ink-3); flex-shrink: 0; margin-right: 2px; }
+.trek-dash .col-labelfilter-lead { color: var(--ink-3); flex-shrink: 0; margin-inline-end: 2px; }
 /* On the map the tray joins the floating controls, so it takes their glass,
    their radius and their shadow instead of the row's flat surface. */
 .trek-dash .col-labelfilter.on-map {
@@ -348,7 +348,7 @@
   transition: background .12s, color .12s;
 }
 .trek-dash .col-filter-addlabel:hover { background: var(--surface); color: var(--ink); }
-.trek-dash .col-filter-select { margin-left: auto; }
+.trek-dash .col-filter-select { margin-inline-start: auto; }
 /* `.on`, not `.open`: on a dropdown "open" means the panel is down and the text
    stays dark, and that rule sits later in this file, so sharing the name left
    the active select button drawing a dark icon on its dark accent fill. The
@@ -361,8 +361,8 @@
 .trek-dash .col-filter-btn .col-filter-chev { color: var(--ink-3); transition: transform .15s; }
 .trek-dash .col-filter-btn.open .col-filter-chev { transform: rotate(180deg); }
 .trek-dash .col-filter-lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
-.trek-dash .col-filter-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 40; min-width: 190px; max-width: min(280px, calc(100vw - 28px)); max-height: 320px; overflow-y: auto; padding: 6px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-lg); display: flex; flex-direction: column; gap: 2px; }
-.trek-dash .col-filter-opt { display: flex; align-items: center; gap: 9px; width: 100%; padding: 7px 9px; border-radius: 8px; font-size: 13px; color: var(--ink-2); text-align: left; transition: background .12s; }
+.trek-dash .col-filter-pop { position: absolute; top: calc(100% + 6px); inset-inline-start: 0; z-index: 40; min-width: 190px; max-width: min(280px, calc(100vw - 28px)); max-height: 320px; overflow-y: auto; padding: 6px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--sh-lg); display: flex; flex-direction: column; gap: 2px; }
+.trek-dash .col-filter-opt { display: flex; align-items: center; gap: 9px; width: 100%; padding: 7px 9px; border-radius: 8px; font-size: 13px; color: var(--ink-2); text-align: start; transition: background .12s; }
 .trek-dash .col-filter-opt:hover { background: var(--surface-2); }
 .trek-dash .col-filter-opt.on { color: var(--ink); font-weight: 600; }
 .trek-dash .col-filter-opt .col-filter-lbl { flex: 1; max-width: none; }
@@ -439,7 +439,7 @@
   backdrop-filter: blur(8px); transition: background .12s;
 }
 .trek-dash .col-detail-close:hover { background: rgba(0,0,0,.6); }
-.trek-dash .col-detail-head { position: absolute; left: 20px; right: 20px; bottom: 12px; z-index: 1; color: #fff; }
+.trek-dash .col-detail-head { position: absolute; inset-inline: 20px; bottom: 12px; z-index: 1; color: #fff; }
 .trek-dash .col-detail-name { font-size: 22px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; margin: 0; text-shadow: 0 1px 6px rgba(0,0,0,.55); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .trek-dash .col-detail-name-input { width: 100%; font-size: 20px; font-weight: 700; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.32); border-radius: 8px; padding: 3px 8px; color: #fff; outline: none; }
 .trek-dash .col-detail-body { padding: 16px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
@@ -501,7 +501,7 @@
 .trek-dash .col-detail-btn.danger:hover { background: oklch(0.6 0.2 25 / .12); }
 
 @media (max-width: 720px) {
-  .trek-dash .col-detail { left: 0; right: 0; bottom: 0; transform: none; width: 100%; max-height: 84dvh; border-radius: var(--r-xl) var(--r-xl) 0 0; }
+  .trek-dash .col-detail { inset-inline: 0; bottom: 0; transform: none; width: 100%; max-height: 84dvh; border-radius: var(--r-xl) var(--r-xl) 0 0; }
   /* the read-mode footer (Edit · Copy · Remove) would otherwise clip its last
      button — let it wrap, drop the growing spacer, and clear the home indicator */
   .trek-dash .col-detail-footer { flex-wrap: wrap; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
@@ -567,8 +567,8 @@
 /* ----------------- mobile rail drawer ----------------- */
 .trek-dash .col-drawer-backdrop { position: fixed; inset: 0; z-index: 150; background: rgba(15,23,42,.5); }
 .trek-dash .col-drawer {
-  position: fixed; left: 0; top: 0; bottom: 0; z-index: 151; width: 288px; max-width: 82vw;
-  background: var(--surface); border-right: 1px solid var(--line); padding: 12px; overflow-y: auto;
+  position: fixed; inset-inline-start: 0; top: 0; bottom: 0; z-index: 151; width: 288px; max-width: 82vw;
+  background: var(--surface); border-inline-end: 1px solid var(--line); padding: 12px; overflow-y: auto;
   padding-top: calc(var(--nav-h) + 12px);
   padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
 }
@@ -576,134 +576,3 @@
 .trek-dash .col-drawer-head button { width: 40px; height: 40px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--ink-2); }
 .trek-dash .col-drawer-head button:hover { background: var(--surface-2); color: var(--ink); }
 @media (max-width: 720px) { .trek-dash .col-drawer { padding-top: calc(16px + env(safe-area-inset-top, 0px)); } }
-
-/* ----------------- import-from-trip dialog -----------------
-   Lives in the modal portal, i.e. OUTSIDE .trek-dash, so it reads the global
-   theme tokens directly instead of the dashboard's --ink/--surface aliases. */
-.col-imp { display: flex; flex-direction: column; gap: 14px; }
-.col-imp-lead { font-size: 13px; line-height: 1.5; color: var(--text-secondary); margin: -2px 0 2px; }
-
-/* step 1 — trips */
-.col-imp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-@media (max-width: 640px) { .col-imp-grid { grid-template-columns: 1fr; } }
-.col-imp-trip {
-  display: flex; align-items: center; gap: 11px; width: 100%; padding: 10px 12px 10px 10px;
-  border: 1px solid var(--border-primary); border-radius: 14px; background: var(--bg-card);
-  text-align: left; cursor: pointer;
-  transition: border-color .14s ease, background .14s ease, transform .14s ease, box-shadow .14s ease;
-}
-.col-imp-trip:hover {
-  border-color: var(--accent); background: var(--bg-hover);
-  transform: translateY(-1px); box-shadow: var(--shadow-md);
-}
-.col-imp-trip-cover {
-  width: 42px; height: 42px; flex: none; border-radius: 11px; overflow: hidden;
-  background: var(--bg-tertiary); color: var(--text-faint);
-  display: grid; place-items: center;
-}
-.col-imp-trip-cover img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s cubic-bezier(0.23, 1, 0.32, 1); }
-.col-imp-trip:hover .col-imp-trip-cover img { transform: scale(1.06); }
-.col-imp-trip-body { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 5px; }
-.col-imp-trip-name { font-size: 13.5px; font-weight: 650; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.col-imp-trip-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-width: 0; }
-/* Each fact is its own pill so a narrow tile wraps between them instead of
-   clipping a word. The date pill yields first; the count never shrinks. */
-.col-imp-pill {
-  display: inline-flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%;
-  padding: 2px 7px; border-radius: 999px; background: var(--bg-tertiary);
-  font-size: 10.5px; font-weight: 600; color: var(--text-muted);
-  font-variant-numeric: tabular-nums; line-height: 1.45;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.col-imp-pill svg { flex: none; opacity: .75; }
-.col-imp-pill.num { flex: none; }
-.col-imp-trip-go { color: var(--text-faint); flex: none; transition: transform .14s ease, color .14s ease; }
-.col-imp-trip:hover .col-imp-trip-go { transform: translateX(2px); color: var(--text-secondary); }
-
-/* step 2 — toolbar */
-.col-imp-bar { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-.col-imp-back {
-  width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 9px;
-  border: 1px solid var(--border-primary); color: var(--text-secondary); background: var(--bg-card);
-  transition: background .14s ease, color .14s ease;
-}
-.col-imp-back:hover { background: var(--bg-hover); color: var(--text-primary); }
-.col-imp-search {
-  position: relative; display: flex; align-items: center; gap: 7px; flex: 1; min-width: 150px;
-  padding: 0 10px; height: 30px; border-radius: 9px;
-  border: 1px solid var(--border-primary); background: var(--bg-input); color: var(--text-faint);
-  transition: border-color .14s ease;
-}
-.col-imp-search:focus-within { border-color: var(--accent); }
-.col-imp-search input {
-  flex: 1; min-width: 0; background: none; border: 0; outline: none;
-  font-size: 12.5px; color: var(--text-primary);
-}
-.col-imp-chip {
-  display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 11px; flex: none;
-  border-radius: 999px; border: 1px solid var(--border-primary); background: var(--bg-card);
-  font-size: 11.5px; font-weight: 600; color: var(--text-secondary); cursor: pointer;
-  transition: background .14s ease, color .14s ease, border-color .14s ease;
-}
-.col-imp-chip:hover:not(:disabled) { background: var(--bg-hover); color: var(--text-primary); }
-.col-imp-chip.on { background: var(--accent-subtle); border-color: var(--accent); color: var(--accent-on); }
-.col-imp-chip:disabled { opacity: .45; cursor: default; }
-
-/* step 2 — rows */
-.col-imp-list { display: flex; flex-direction: column; gap: 5px; max-height: 46vh; overflow-y: auto; padding: 1px; margin: -1px; }
-.col-imp-row {
-  display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 11px;
-  border: 1px solid var(--border-primary); border-radius: 12px; background: var(--bg-card);
-  text-align: left; cursor: pointer;
-  transition: border-color .14s ease, background .14s ease;
-}
-.col-imp-row:hover:not(.dup) { background: var(--bg-hover); }
-.col-imp-row.on { border-color: var(--accent); background: var(--accent-subtle); }
-.col-imp-row.dup { opacity: .5; cursor: default; }
-.col-imp-box {
-  width: 18px; height: 18px; flex: none; border-radius: 6px; display: grid; place-items: center;
-  border: 1.5px solid var(--border-secondary); color: var(--accent-text); background: var(--bg-input);
-  transition: background .14s ease, border-color .14s ease;
-}
-.col-imp-row.on .col-imp-box { background: var(--accent); border-color: var(--accent); }
-.col-imp-row.dup .col-imp-box { visibility: hidden; }
-.col-imp-ico {
-  width: 28px; height: 28px; flex: none; border-radius: 9px; display: grid; place-items: center;
-  background: var(--bg-tertiary); color: var(--text-muted);
-}
-.col-imp-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 1px; }
-.col-imp-txt .nm { font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.col-imp-txt .ad { font-size: 11px; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.col-imp-tag {
-  flex: none; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 650;
-  background: var(--bg-tertiary); color: var(--text-muted); white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.col-imp-tag.fresh { background: var(--accent-subtle); color: var(--accent-on); }
-.col-imp-tag.saved { background: transparent; color: var(--text-faint); }
-
-/* empty + done */
-.col-imp-empty {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px;
-  padding: 34px 16px; border: 1px dashed var(--border-primary); border-radius: 14px;
-  color: var(--text-faint); font-size: 12.5px; text-align: center;
-}
-.col-imp-empty-good { color: var(--success); border-color: var(--success); background: var(--success-soft); }
-.col-imp-done { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 26px 16px 20px; text-align: center; }
-@keyframes col-imp-pop {
-  0%   { opacity: 0; transform: scale(0.6); }
-  60%  { opacity: 1; transform: scale(1.06); }
-  100% { opacity: 1; transform: scale(1); }
-}
-.col-imp-done-ring {
-  width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center;
-  background: var(--success-soft); color: var(--success);
-  animation: col-imp-pop 420ms cubic-bezier(0.23, 1, 0.32, 1) both;
-}
-.col-imp-done-t { font-size: 15px; font-weight: 700; color: var(--text-primary); }
-.col-imp-done-s { font-size: 12.5px; color: var(--text-faint); max-width: 320px; line-height: 1.5; }
-@media (prefers-reduced-motion: reduce) {
-  .col-imp-done-ring { animation: none; }
-  .col-imp-trip:hover { transform: none; }
-  .col-imp-trip:hover .col-imp-trip-cover img { transform: none; }
-}

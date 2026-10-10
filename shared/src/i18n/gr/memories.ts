@@ -17,6 +17,7 @@ const memories: TranslationStrings = {
   'memories.reviewTitle': 'Ελέγξτε τις φωτογραφίες σας',
   'memories.reviewHint': 'Κάντε κλικ στις φωτογραφίες για να τις εξαιρέσετε από την κοινή χρήση.',
   'memories.shareCount': 'Κοινή χρήση {count} φωτογραφιών',
+  'memories.shareCount.one': 'Κοινή χρήση {count} φωτογραφίας',
   'memories.providerUrl': 'URL Διακομιστή',
   'memories.providerApiKey': 'API Key',
   'memories.providerUsername': 'Όνομα χρήστη',
@@ -50,6 +51,7 @@ const memories: TranslationStrings = {
   'memories.selectHint': 'Πατήστε στις φωτογραφίες για να τις επιλέξετε.',
   'memories.selected': 'επιλεγμένες',
   'memories.addSelected': 'Προσθήκη {count} φωτογραφιών',
+  'memories.addSelected.one': 'Προσθήκη {count} φωτογραφίας',
   'memories.alreadyAdded': 'Προστέθηκε',
   'memories.private': 'Ιδιωτικό',
   'memories.stopSharing': 'Διακοπή κοινής χρήσης',
@@ -61,6 +63,8 @@ const memories: TranslationStrings = {
   'memories.confirmShareTitle': 'Κοινή χρήση με τα μέλη του ταξιδιού;',
   'memories.confirmShareHint':
     '{count} φωτογραφίες θα είναι ορατές σε όλα τα μέλη αυτού του ταξιδιού. Μπορείτε να κάνετε μεμονωμένες φωτογραφίες ιδιωτικές αργότερα.',
+  'memories.confirmShareHint.one':
+    '{count} φωτογραφία θα είναι ορατή σε όλα τα μέλη αυτού του ταξιδιού. Μπορείτε να την κάνετε ιδιωτική αργότερα.',
   'memories.confirmShareButton': 'Κοινή χρήση φωτογραφιών',
   'memories.error.loadAlbums': 'Αποτυχία φόρτωσης άλμπουμ',
   'memories.error.linkAlbum': 'Αποτυχία σύνδεσης άλμπουμ',

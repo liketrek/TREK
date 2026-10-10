@@ -1,14 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import type { Request } from 'express';
-import type { StorageUsage } from '@trek/shared';
-import type { User } from '../../../../src/types';
-import { StorageAdminController } from '../../../../src/nest/storage/storage-admin.controller';
-import type { StorageAdminService } from '../../../../src/nest/storage/storage-admin.service';
 import type { AuditService } from '../../../../src/nest/audit/audit.service';
+import { StorageAdminController } from '../../../../src/nest/storage/storage-admin.controller';
 import type { StorageConfigDto, StorageTestRequestDto } from '../../../../src/nest/storage/storage-admin.dto';
-import { StorageModule } from '../../../../src/nest/storage/storage.module';
-import { StorageBackendError, StorageConflictError } from '../../../../src/nest/storage/storage.types';
+import type { StorageAdminService } from '../../../../src/nest/storage/storage-admin.service';
 import {
   BackfillBusyError,
   BackfillTargetError,
@@ -16,7 +9,15 @@ import {
   MigrationTargetError,
 } from '../../../../src/nest/storage/storage-jobs.service';
 import { StatsBusyError } from '../../../../src/nest/storage/storage-stats.service';
+import { StorageModule } from '../../../../src/nest/storage/storage.module';
+import { StorageBackendError, StorageConflictError } from '../../../../src/nest/storage/storage.types';
+import type { User } from '../../../../src/types';
 import { expectRegisteredController } from '../../../helpers/module-providers';
+import { HttpException } from '@nestjs/common';
+import type { StorageUsage } from '@trek/shared';
+
+import type { Request } from 'express';
+import { describe, it, expect, vi } from 'vitest';
 
 const user = { id: 1 } as User;
 const req = { headers: {}, socket: { remoteAddress: '127.0.0.1' } } as unknown as Request;
@@ -31,7 +32,7 @@ const FRESH_STATE = {
 function makeController(over: Partial<Record<keyof StorageAdminService, unknown>> = {}) {
   const writeAudit = vi.fn();
   const service = {
-    state: vi.fn(() => FRESH_STATE),
+    state: vi.fn(async () => FRESH_STATE),
     applyConfig: vi.fn(),
     ...over,
   } as unknown as StorageAdminService;
@@ -61,33 +62,33 @@ const CONFIG = {
 } as StorageConfigDto;
 
 describe('StorageAdminController', () => {
-  it('STORCTL-001 GET returns the service state untouched', () => {
+  it('STORCTL-001 GET returns the service state untouched', async () => {
     const { controller, service } = makeController();
-    expect(controller.get()).toBe(FRESH_STATE);
+    expect(await controller.get()).toBe(FRESH_STATE);
     expect(service.state).toHaveBeenCalledTimes(1);
   });
 
-  it('STORCTL-002 PUT applies, audits with secrets redacted, and answers the fresh state', () => {
+  it('STORCTL-002 PUT applies, audits with secrets redacted, and answers the fresh state', async () => {
     const { controller, service, writeAudit } = makeController();
-    const result = controller.update(user, CONFIG, req);
+    const result = await controller.update(user, CONFIG, req);
     expect(service.applyConfig).toHaveBeenCalledWith(CONFIG);
     expect(result).toBe(FRESH_STATE); // never echoes the request
-    expect(writeAudit).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 1, action: 'admin.storage_update' }),
-    );
-    const details = (writeAudit.mock.calls[0]![0] as { details: { backends: Array<{ options: Record<string, unknown> }> } }).details;
+    expect(writeAudit).toHaveBeenCalledWith(expect.objectContaining({ userId: 1, action: 'admin.storage_update' }));
+    const details = (
+      writeAudit.mock.calls[0]![0] as { details: { backends: Array<{ options: Record<string, unknown> }> } }
+    ).details;
     expect(details.backends[0]!.options.secretAccessKey).toBe('***');
     expect(details.backends[0]!.options.accessKeyId).toBe('ak'); // names/shape survive redaction
   });
 
-  it('STORCTL-003 PUT maps pipeline refusals to a 400 with the message verbatim, no audit', () => {
+  it('STORCTL-003 PUT maps pipeline refusals to a 400 with the message verbatim, no audit', async () => {
     const { controller, writeAudit } = makeController({
       applyConfig: vi.fn(() => {
         throw new StorageBackendError("category 'backups' maps to unknown backend 'nope'");
       }),
     });
     try {
-      controller.update(user, CONFIG, req);
+      await controller.update(user, CONFIG, req);
       expect.unreachable('should have thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(HttpException);
@@ -99,7 +100,7 @@ describe('StorageAdminController', () => {
     expect(writeAudit).not.toHaveBeenCalled();
   });
 
-  it('STORCTL-023 PUT maps StorageConflictError to a 409, ahead of the blanket 400, no audit', () => {
+  it('STORCTL-023 PUT maps StorageConflictError to a 409, ahead of the blanket 400, no audit', async () => {
     const { controller, writeAudit } = makeController({
       applyConfig: vi.fn(() => {
         // StorageConflictError IS an Error — this pins that the instanceof
@@ -108,13 +109,14 @@ describe('StorageAdminController', () => {
       }),
     });
     try {
-      controller.update(user, CONFIG, req);
+      await controller.update(user, CONFIG, req);
       expect.unreachable('should have thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(HttpException);
       expect((err as HttpException).getStatus()).toBe(409);
       expect((err as HttpException).getResponse()).toEqual({
-        error: "storage settings changed since this form was loaded (current version 3, submitted 1) — reload and reapply your edits",
+        error:
+          'storage settings changed since this form was loaded (current version 3, submitted 1) — reload and reapply your edits',
       });
     }
     expect(writeAudit).not.toHaveBeenCalled();
@@ -148,9 +150,9 @@ describe('StorageAdminController', () => {
     ).rejects.toMatchObject({ status: 400 });
   });
 
-  it('STORCTL-007 POST backfill starts the sync, audits the backend name, and answers { started: true }', () => {
+  it('STORCTL-007 POST backfill starts the sync, audits the backend name, and answers { started: true }', async () => {
     const { controller, service, writeAudit } = makeController({ startBackfill: vi.fn() });
-    const result = controller.backfillStart(user, 'm', req);
+    const result = await controller.backfillStart(user, 'm', req);
     expect(service.startBackfill).toHaveBeenCalledWith('m');
     expect(result).toEqual({ started: true });
     expect(writeAudit).toHaveBeenCalledWith(
@@ -158,14 +160,14 @@ describe('StorageAdminController', () => {
     );
   });
 
-  it('STORCTL-008 POST backfill maps BackfillTargetError to 404, no audit', () => {
+  it('STORCTL-008 POST backfill maps BackfillTargetError to 404, no audit', async () => {
     const { controller, writeAudit } = makeController({
       startBackfill: vi.fn(() => {
         throw new BackfillTargetError("'ghost' is not a mirror routed by any category");
       }),
     });
     try {
-      controller.backfillStart(user, 'ghost', req);
+      await controller.backfillStart(user, 'ghost', req);
       expect.unreachable('should have thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(HttpException);
@@ -175,14 +177,14 @@ describe('StorageAdminController', () => {
     expect(writeAudit).not.toHaveBeenCalled();
   });
 
-  it('STORCTL-009 POST backfill maps BackfillBusyError to 409, no audit', () => {
+  it('STORCTL-009 POST backfill maps BackfillBusyError to 409, no audit', async () => {
     const { controller, writeAudit } = makeController({
       startBackfill: vi.fn(() => {
         throw new BackfillBusyError('a sync is already running — one backfill at a time');
       }),
     });
     try {
-      controller.backfillStart(user, 'm', req);
+      await controller.backfillStart(user, 'm', req);
       expect.unreachable('should have thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(HttpException);
@@ -191,20 +193,20 @@ describe('StorageAdminController', () => {
     expect(writeAudit).not.toHaveBeenCalled();
   });
 
-  it('STORCTL-010 POST backfill rethrows an unrecognized error untouched', () => {
+  it('STORCTL-010 POST backfill rethrows an unrecognized error untouched', async () => {
     const boom = new Error('unexpected registry failure');
     const { controller, writeAudit } = makeController({
       startBackfill: vi.fn(() => {
         throw boom;
       }),
     });
-    expect(() => controller.backfillStart(user, 'm', req)).toThrow(boom);
+    await expect(controller.backfillStart(user, 'm', req)).rejects.toThrow(boom);
     expect(writeAudit).not.toHaveBeenCalled();
   });
 
-  it('STORCTL-011 DELETE backfill cancels, audits, and answers { cancelled: true } when a sync is active', () => {
+  it('STORCTL-011 DELETE backfill cancels, audits, and answers { cancelled: true } when a sync is active', async () => {
     const { controller, service, writeAudit } = makeController({ cancelBackfill: vi.fn(() => true) });
-    const result = controller.backfillCancel(user, 'm', req);
+    const result = await controller.backfillCancel(user, 'm', req);
     expect(service.cancelBackfill).toHaveBeenCalledWith('m');
     expect(result).toEqual({ cancelled: true });
     expect(writeAudit).toHaveBeenCalledWith(
@@ -212,10 +214,10 @@ describe('StorageAdminController', () => {
     );
   });
 
-  it('STORCTL-012 DELETE backfill answers 404 with no audit when there is no active sync', () => {
+  it('STORCTL-012 DELETE backfill answers 404 with no audit when there is no active sync', async () => {
     const { controller, writeAudit } = makeController({ cancelBackfill: vi.fn(() => false) });
     try {
-      controller.backfillCancel(user, 'ghost', req);
+      await controller.backfillCancel(user, 'ghost', req);
       expect.unreachable('should have thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(HttpException);
@@ -257,9 +259,9 @@ describe('StorageAdminController', () => {
     expect(writeAudit).not.toHaveBeenCalled();
   });
 
-  it('STORCTL-020 POST migrations starts and audits', () => {
+  it('STORCTL-020 POST migrations starts and audits', async () => {
     const { controller, service, writeAudit } = makeController({ startMigration: vi.fn() });
-    const result = controller.migrationStart(user, { category: 'files', to: 'dest' }, req);
+    const result = await controller.migrationStart(user, { category: 'files', to: 'dest' }, req);
     expect(service.startMigration).toHaveBeenCalledWith('files', 'dest');
     expect(result).toEqual({ started: true });
     expect(writeAudit).toHaveBeenCalledWith(
@@ -271,14 +273,14 @@ describe('StorageAdminController', () => {
     );
   });
 
-  it('STORCTL-021 POST maps MigrationRequestError→400, MigrationTargetError→404, BackfillBusyError→409, others rethrow', () => {
+  it('STORCTL-021 POST maps MigrationRequestError→400, MigrationTargetError→404, BackfillBusyError→409, others rethrow', async () => {
     const { controller: reqController, writeAudit: reqAudit } = makeController({
       startMigration: vi.fn(() => {
         throw new MigrationRequestError("'files' is already on 'dest'");
       }),
     });
     try {
-      reqController.migrationStart(user, { category: 'files', to: 'dest' }, req);
+      await reqController.migrationStart(user, { category: 'files', to: 'dest' }, req);
       expect.unreachable('should have thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(HttpException);
@@ -293,7 +295,7 @@ describe('StorageAdminController', () => {
       }),
     });
     try {
-      targetController.migrationStart(user, { category: 'files', to: 'ghost' }, req);
+      await targetController.migrationStart(user, { category: 'files', to: 'ghost' }, req);
       expect.unreachable('should have thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(HttpException);
@@ -308,7 +310,7 @@ describe('StorageAdminController', () => {
       }),
     });
     try {
-      busyController.migrationStart(user, { category: 'files', to: 'dest' }, req);
+      await busyController.migrationStart(user, { category: 'files', to: 'dest' }, req);
       expect.unreachable('should have thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(HttpException);
@@ -322,13 +324,13 @@ describe('StorageAdminController', () => {
         throw boom;
       }),
     });
-    expect(() => boomController.migrationStart(user, { category: 'files', to: 'dest' }, req)).toThrow(boom);
+    await expect(boomController.migrationStart(user, { category: 'files', to: 'dest' }, req)).rejects.toThrow(boom);
     expect(boomAudit).not.toHaveBeenCalled();
   });
 
-  it('STORCTL-022 DELETE migrations/:category cancels + audits; 404 when none running', () => {
+  it('STORCTL-022 DELETE migrations/:category cancels + audits; 404 when none running', async () => {
     const { controller, service, writeAudit } = makeController({ cancelMigration: vi.fn(() => true) });
-    const result = controller.migrationCancel(user, 'files', req);
+    const result = await controller.migrationCancel(user, 'files', req);
     expect(service.cancelMigration).toHaveBeenCalledWith('files');
     expect(result).toEqual({ cancelled: true });
     expect(writeAudit).toHaveBeenCalledWith(
@@ -339,7 +341,7 @@ describe('StorageAdminController', () => {
       cancelMigration: vi.fn(() => false),
     });
     try {
-      noneController.migrationCancel(user, 'ghost', req);
+      await noneController.migrationCancel(user, 'ghost', req);
       expect.unreachable('should have thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(HttpException);

@@ -6,6 +6,9 @@ const journey: TranslationStrings = {
   'journey.title': 'Путешествие',
   'journey.subtitle': 'Отслеживайте свои путешествия в реальном времени',
   'journey.new': 'Новое путешествие',
+  'journey.lightbox.zoomIn': 'Увеличить',
+  'journey.lightbox.zoomOut': 'Уменьшить',
+  'journey.lightbox.zoomReset': 'Вернуться к полному фото',
   'journey.create': 'Создать',
   'journey.titlePlaceholder': 'Куда вы едете?',
   'journey.empty': 'Пока нет путешествий',
@@ -56,7 +59,10 @@ const journey: TranslationStrings = {
   'journey.frontpage.activeJourney': 'Активное путешествие',
   'journey.frontpage.latestJourney': 'Последнее путешествие',
   'journey.frontpage.allJourneys': 'Все путешествия',
-  'journey.frontpage.journeys': 'путешествий',
+  'journey.frontpage.journeys': 'путешествия',
+  'journey.frontpage.journeys.one': 'путешествие',
+  'journey.frontpage.journeys.few': 'путешествия',
+  'journey.frontpage.journeys.many': 'путешествий',
   'journey.frontpage.createNew': 'Создать новое путешествие',
   'journey.frontpage.createNewSub': 'Выберите поездки, пишите истории, делитесь приключениями',
   'journey.frontpage.live': 'В эфире',
@@ -72,12 +78,20 @@ const journey: TranslationStrings = {
   'journey.frontpage.tripsSelected': 'поездок выбрано',
   'journey.frontpage.trips': 'поездок',
   'journey.frontpage.placesImported': 'мест будет импортировано',
-  'journey.frontpage.places': 'мест',
+  'journey.frontpage.places': 'места',
+  'journey.frontpage.places.one': 'место',
+  'journey.frontpage.places.few': 'места',
+  'journey.frontpage.places.many': 'мест',
   'journey.detail.backToJourney': 'Назад к путешествию',
   'journey.detail.syncedWithTrips': 'Синхронизировано с поездками',
   'journey.detail.addEntry': 'Добавить запись',
   'journey.detail.jumpToTop': 'Наверх',
   'journey.detail.jumpToLast': 'К последней записи',
+  'journey.detail.dayJump': 'Перейти к дню',
+  'journey.detail.dayJumpCount': '{count} дня',
+  'journey.detail.dayJumpCount.one': '{count} день',
+  'journey.detail.dayJumpCount.few': '{count} дня',
+  'journey.detail.dayJumpCount.many': '{count} дней',
   'journey.detail.newEntry': 'Новая запись',
   'journey.detail.editEntry': 'Редактировать запись',
   'journey.detail.noEntries': 'Пока нет записей',
@@ -91,6 +105,9 @@ const journey: TranslationStrings = {
   'journey.detail.readMore': 'Читать далее',
   'journey.detail.prosCons': 'Плюсы и минусы',
   'journey.detail.photos': 'фото',
+  'journey.detail.photos.one': 'фото',
+  'journey.detail.photos.few': 'фото',
+  'journey.detail.photos.many': 'фото',
   'journey.detail.day': 'День {number}',
   'journey.detail.places': 'мест',
   'journey.stats.days': 'Дней',
@@ -102,7 +119,10 @@ const journey: TranslationStrings = {
   'journey.skeletons.hide': 'Скрыть предложения',
   'journey.verdict.lovedIt': 'Понравилось',
   'journey.verdict.couldBeBetter': 'Могло быть лучше',
-  'journey.synced.places': 'мест',
+  'journey.synced.places': 'места',
+  'journey.synced.places.one': 'место',
+  'journey.synced.places.few': 'места',
+  'journey.synced.places.many': 'мест',
   'journey.synced.synced': 'синхронизировано',
   'journey.editor.discardChangesConfirm': 'У вас есть несохранённые изменения. Отменить?',
   'journey.editor.uploadFailed': 'Не удалось загрузить фото',
@@ -193,6 +213,15 @@ const journey: TranslationStrings = {
   'journey.settings.tracks': 'GPX-треки',
   'journey.settings.showTripTracks': 'Показывать все GPX-треки поездок',
   'journey.settings.showTripTracksHint': 'Рисует на карте записанные маршруты из связанных поездок.',
+  'journey.settings.status': 'Статус',
+  'journey.settings.statusAuto': 'Автоматически',
+  'journey.settings.statusAutoHint': 'Следует датам связанных поездок. Без поездки журнал остаётся черновиком.',
+  'journey.settings.statusManualHint':
+    'Задан вручную. Даты поездки больше не меняют его, пока вы не вернёте автоматический режим.',
+  'journey.settings.photosSection': 'Фото',
+  'journey.settings.photoLocation': 'Определять место записей по фото',
+  'journey.settings.photoLocationHint':
+    'Запись без места получает точку, где сделано её первое фото с GPS. Места, заданные вручную, не меняются.',
   'journey.settings.endJourney': 'Архивировать путешествие',
   'journey.settings.reopenJourney': 'Восстановить путешествие',
   'journey.settings.archived': 'Путешествие архивировано',
@@ -208,8 +237,14 @@ const journey: TranslationStrings = {
   'journey.settings.failedToDelete': 'Не удалось удалить',
   'journey.entries.deleteTitle': 'Удалить запись',
   'journey.photosUploaded': '{count} фото загружено',
+  'journey.photosUploaded.one': '{count} фото загружено',
+  'journey.photosUploaded.few': '{count} фото загружены',
+  'journey.photosUploaded.many': '{count} фото загружено',
   'journey.photosUploadFailed': 'Некоторые фото не удалось загрузить',
   'journey.photosAdded': '{count} фото добавлено',
+  'journey.photosAdded.one': '{count} фото добавлено',
+  'journey.photosAdded.few': '{count} фото добавлены',
+  'journey.photosAdded.many': '{count} фото добавлено',
   'journey.public.notFound': 'Не найдено',
   'journey.public.notFoundMessage': 'Это путешествие не существует или ссылка устарела.',
   'journey.public.readOnly': 'Только для чтения · Публичное путешествие',
@@ -275,23 +310,32 @@ const journey: TranslationStrings = {
   'journey.studio.exportFinishing': 'Отделка',
   'journey.studio.exportMarks': 'Метки реза',
   'journey.studio.exportMarksHint': 'Добавляет {bleed} мм вылета по каждому краю и отмечает линию реза',
-  'journey.studio.exportNote': '{sheets} листов {width} × {height} мм. Браузер превращает предпросмотр печати в PDF.',
+  'journey.studio.exportNote': '{count} листа {width} × {height} мм. Браузер превращает предпросмотр печати в PDF.',
+  'journey.studio.exportNote.one': '{count} лист {width} × {height} мм. Браузер превращает предпросмотр печати в PDF.',
+  'journey.studio.exportNote.few': '{count} листа {width} × {height} мм. Браузер превращает предпросмотр печати в PDF.',
+  'journey.studio.exportNote.many':
+    '{count} листов {width} × {height} мм. Браузер превращает предпросмотр печати в PDF.',
   'journey.studio.exportOpen': 'Предпросмотр печати',
   'journey.studio.exportSave': 'Сохранить как PDF',
   'journey.studio.exportPreparing': 'Подготовка',
-  'journey.studio.exportSheetCount': '{count} листов',
+  'journey.studio.exportSheetCount': '{count} листа',
+  'journey.studio.exportSheetCount.one': '{count} лист',
+  'journey.studio.exportSheetCount.few': '{count} листа',
+  'journey.studio.exportSheetCount.many': '{count} листов',
   'journey.studio.undo': 'Undo', // en-fallback
   'journey.studio.redo': 'Redo', // en-fallback
   'journey.studio.zoomIn': 'Zoom in', // en-fallback
   'journey.studio.zoomOut': 'Zoom out', // en-fallback
   'journey.studio.zoomFit': 'Fit to view', // en-fallback
   'journey.studio.downloadSpread': 'Скачать этот разворот',
-  'journey.studio.downloadSpreadHint': 'Сохраняет оформление разворота в файл, без фотографий, чтобы поделиться им или использовать снова',
+  'journey.studio.downloadSpreadHint':
+    'Сохраняет оформление разворота в файл, без фотографий, чтобы поделиться им или использовать снова',
   'journey.studio.importSpread': 'Импорт',
   'journey.studio.importSpreadHint': 'Добавляет разворот из скачанного файла оформления',
   'journey.studio.importSpreadFailed': 'Этот файл не является разворотом TREK Studio',
   'journey.studio.desktopOnly': 'Studio needs a bigger screen', // en-fallback
-  'journey.studio.desktopOnlyHint': 'Вёрстка книги требует места, поэтому Студия работает только на компьютере, и создание PDF тоже. Всё остальное в путешествии здесь работает как обычно.', // en-fallback
+  'journey.studio.desktopOnlyHint':
+    'Вёрстка книги требует места, поэтому Студия работает только на компьютере, и создание PDF тоже. Всё остальное в путешествии здесь работает как обычно.', // en-fallback
   'journey.studio.formatA5Landscape': 'A5 landscape', // en-fallback
   'journey.studio.bookView': 'Book view', // en-fallback
   'journey.studio.multiple': 'Several', // en-fallback
@@ -355,7 +399,8 @@ const journey: TranslationStrings = {
   'journey.studio.sampleSubheading': 'A subheading', // en-fallback
   'journey.studio.sampleBody': 'Write something about this day.', // en-fallback
   'journey.studio.sampleCaption': 'Caption', // en-fallback
-  'journey.studio.templatesCoverHint': 'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
+  'journey.studio.templatesCoverHint':
+    'Layouts apply to the inside spreads. The cover and the back are designed on their own.', // en-fallback
   'journey.studio.tpl.heroStory': 'Hero and story', // en-fallback
   'journey.studio.tpl.fullBleed': 'One picture, full spread', // en-fallback
   'journey.studio.tpl.twoUp': 'Two full pages', // en-fallback
@@ -432,6 +477,18 @@ const journey: TranslationStrings = {
   'journey.studio.kind.list': 'Список',
   'journey.studio.kind.icon': 'Иконка',
   'journey.studio.duplicate': 'Дублировать',
+  'journey.studio.copyToPage': 'Копировать, чтобы вставить на любую страницу (Ctrl+C)',
+  'journey.studio.paste': 'Вставить (Ctrl+V)',
+  'journey.studio.pasteEmpty': 'Сначала скопируйте что-нибудь, затем вставьте на любую страницу',
+  'journey.studio.myLayouts': 'Мои макеты',
+  'journey.studio.myLayoutsEmpty':
+    'Сохраните оформленную страницу и расположите другие страницы так же. Их фото и тексты останутся.',
+  'journey.studio.saveLayout': 'Сохранить эту страницу как макет',
+  'journey.studio.saveLayoutHint': 'Сохраняет расположение без фото, для всех редакторов этой книги',
+  'journey.studio.saveLayoutFull': 'В этой книге можно хранить до 24 макетов. Удалите один, чтобы сохранить новый.',
+  'journey.studio.deleteLayout': 'Удалить макет',
+  'journey.studio.layoutName': 'Макет',
+  'journey.studio.builtInLayouts': 'Встроенные',
   'journey.studio.style': 'Стиль',
   'journey.studio.shows': 'Показывать',
   'journey.studio.size': 'Размер',
@@ -537,7 +594,8 @@ const journey: TranslationStrings = {
   'journey.studio.mapSourceVector': 'Контуры',
   'journey.studio.mapSourceRelief': 'Рельеф',
   'journey.studio.mapSourceSatellite': 'Спутник',
-  'journey.studio.mapSourceSatelliteHint': 'Sentinel-2 без облаков, печатать можно свободно с указанием источника. Чёткость вплоть до городской улицы.',
+  'journey.studio.mapSourceSatelliteHint':
+    'Sentinel-2 без облаков, печатать можно свободно с указанием источника. Чёткость вплоть до городской улицы.',
   'journey.studio.routeLook': 'Линия',
   'journey.studio.routeStyle': 'Вид',
   'journey.studio.routePlain': 'Обычная',
@@ -560,9 +618,11 @@ const journey: TranslationStrings = {
   'journey.studio.roadsAgain': 'Проложить заново',
   'journey.studio.roadsClear': 'Сбросить',
   'journey.studio.roadsBusy': 'Запрос',
-  'journey.studio.roadsHint': 'Спросить у сервиса маршрутов, по каким дорогам пройден каждый участок. Длинные участки остаются как есть.',
+  'journey.studio.roadsHint':
+    'Спросить у сервиса маршрутов, по каким дорогам пройден каждый участок. Длинные участки остаются как есть.',
   'journey.studio.roadsHave': 'Дороги сохранены в этой книге, поэтому та же линия печатается и без сети.',
-  'journey.studio.mapSourceReliefHint': 'Затенённый рельеф NASA, печатать можно свободно. Подходит для страны или континента, для одного города слишком груб.',
+  'journey.studio.mapSourceReliefHint':
+    'Затенённый рельеф NASA, печатать можно свободно. Подходит для страны или континента, для одного города слишком груб.',
   'journey.studio.mapPrintDpi': 'Печать около',
   'journey.studio.mapPrintDpiLow': 'при таком размере размыто, попробуйте шире охват или другой источник',
   'journey.studio.mapPerTrip': 'По одной поездке',
@@ -605,12 +665,17 @@ const journey: TranslationStrings = {
   'journey.studio.noEntryPhotos': 'В этой записи пока нет фото.',
   'journey.studio.noLoosePhotos': 'Каждое фото здесь относится к какой-то записи.',
   'journey.studio.uploadPhotos': 'Загрузить фото',
+  'journey.studio.fromProvider': 'Из {name}',
+  'journey.studio.fromProviderHint': 'Выбрать фото из {name} и добавить туда, куда попала бы загрузка',
   'journey.studio.uploadHint': 'Перетащите изображения сюда или нажмите, чтобы выбрать',
   'journey.studio.uploadToEntry': 'Новые изображения попадут в эту запись',
   'journey.studio.uploadToGallery': 'Новые изображения попадут в галерею',
   'journey.studio.uploading': 'Загрузка {done} из {total}',
   'journey.studio.dropFilesHere': 'Отпустите, чтобы добавить изображения',
-  'journey.studio.videosSkipped': 'Видео пропущено: {count}. В книге только изображения.',
+  'journey.studio.videosSkipped': '{count} видео пропущено. В книге только изображения.',
+  'journey.studio.videosSkipped.one': '{count} видео пропущено. В книге только изображения.',
+  'journey.studio.videosSkipped.few': '{count} видео пропущены. В книге только изображения.',
+  'journey.studio.videosSkipped.many': '{count} видео пропущено. В книге только изображения.',
   'journey.studio.fillPage': 'Заполнить страницу',
   'journey.studio.fillSpread': 'Заполнить разворот',
   'journey.studio.fillHint':
@@ -626,17 +691,31 @@ const journey: TranslationStrings = {
   'journey.editor.statsExcludedHint':
     'Остановка остаётся в дневнике, но не учитывается в расстоянии, странах и на карте в Studio.',
   'journey.entry.offRoute': 'Вне маршрута',
+  'journey.entry.draft': 'Черновик',
+  'journey.editor.draft': 'Черновик',
+  'journey.editor.draftHint':
+    'Эту запись видите только вы и другие участники. В общем путешествии она не показывается, пока вы не выключите этот параметр.',
+  'journey.editor.tripSuggestionHint':
+    'Этот день входит в эту поездку. Свяжите их, и её места добавятся в это путешествие.',
+  'journey.editor.tripSuggestionLater': 'Не сейчас',
   'journey.suggestions.dismiss': 'Отклонить это предложение',
   'journey.suggestions.dismissed': 'Предложение отклонено',
   'journey.suggestions.restore': 'Вернуть отклонённые предложения',
   'journey.suggestions.restoreCount': 'Отклонённые предложения ({count})',
-  'journey.suggestions.restored': 'Вернулось предложений: {count}',
+  'journey.suggestions.restoreCount.one': 'Отклонённые предложения ({count})',
+  'journey.suggestions.restoreCount.few': 'Отклонённые предложения ({count})',
+  'journey.suggestions.restoreCount.many': 'Отклонённые предложения ({count})',
+  'journey.suggestions.restored': 'Возвращено {count} предложения',
+  'journey.suggestions.restored.one': 'Возвращено {count} предложение',
+  'journey.suggestions.restored.few': 'Возвращено {count} предложения',
+  'journey.suggestions.restored.many': 'Возвращено {count} предложений',
   'journey.detail.addOnThisDay': 'Добавить запись в этот день',
   'journey.detail.jumpToDay': 'Перейти к {date}',
   'journey.detail.searchPlaceholder': 'Поиск по этому дневнику',
   'journey.detail.searchEmpty': 'Ни одна запись не подходит под «{query}»',
   'journey.settings.entryFields': 'Поля записи',
-  'journey.settings.entryFieldsHint': 'Выключите то, что этот дневник не использует. Ничего из уже написанного не пропадёт.',
+  'journey.settings.entryFieldsHint':
+    'Выключите то, что этот дневник не использует. Ничего из уже написанного не пропадёт.',
   'journey.settings.showVerdict': 'За и против',
   'journey.settings.showMood': 'Настроение',
   'journey.settings.showWeather': 'Погода',

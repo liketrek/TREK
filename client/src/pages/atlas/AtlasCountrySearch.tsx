@@ -50,7 +50,7 @@ export default function AtlasCountrySearch({
   return (
     <div
       className="absolute z-20 flex justify-center"
-      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 14px)', left: 0, right: 0, pointerEvents: 'none' }}
+      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 14px)', insetInline: 0, pointerEvents: 'none' }}
     >
       <div ref={boxRef} style={{ width: 'min(520px, calc(100vw - 28px))', pointerEvents: 'auto' }}>
         <div style={{
@@ -142,33 +142,14 @@ export default function AtlasCountrySearch({
             }}
           >
             {results.map((r) => (
-              <button type="button"
-                key={r.code}
-                onClick={() => onSelect(r.code)}
-                style={{
-                  width: '100%',
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  padding: '10px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  fontFamily: 'inherit',
-                  textAlign: 'left',
-                  borderBottom: '1px solid ' + (dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
-              >
+              <ResultRow key={r.code} dark={dark} onClick={() => onSelect(r.code)}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                   <img src={`https://flagcdn.com/w40/${r.code.toLowerCase()}.png`} alt={r.code} style={{ width: 28, height: 20, borderRadius: 4, objectFit: 'cover' }} />
                   <span className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 650, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {r.label}
                   </span>
                 </span>
-                <ChevronRight size={16} className="text-content-faint" style={{ flexShrink: 0 }} />
-              </button>
+              </ResultRow>
             ))}
 
             {(placeResults.length > 0 || placesLoading) && (
@@ -187,25 +168,7 @@ export default function AtlasCountrySearch({
               </div>
             )}
             {placeResults.map((p) => (
-              <button type="button"
-                key={`${p.lat},${p.lng},${p.name}`}
-                onClick={() => onSelectPlace(p)}
-                style={{
-                  width: '100%',
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  padding: '10px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  fontFamily: 'inherit',
-                  textAlign: 'left',
-                  borderBottom: '1px solid ' + (dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
-              >
+              <ResultRow key={`${p.lat},${p.lng},${p.name}`} dark={dark} onClick={() => onSelectPlace(p)}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                   <span
                     style={{
@@ -227,12 +190,42 @@ export default function AtlasCountrySearch({
                     )}
                   </span>
                 </span>
-                <ChevronRight size={16} className="text-content-faint" style={{ flexShrink: 0 }} />
-              </button>
+              </ResultRow>
             ))}
           </div>
         )}
       </div>
     </div>
+  )
+}
+
+/** One row of the dropdown, a country or a geocoded place, with the chevron at its end. */
+function ResultRow({ dark, onClick, children }: {
+  dark: boolean
+  onClick: () => void
+  children: React.ReactNode
+}): React.ReactElement {
+  return (
+    <button type="button"
+      onClick={onClick}
+      style={{
+        width: '100%',
+        border: 'none',
+        background: 'transparent',
+        cursor: 'pointer',
+        padding: '10px 12px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        fontFamily: 'inherit',
+        textAlign: 'start',
+        borderBottom: '1px solid ' + (dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+    >
+      {children}
+      <ChevronRight size={16} className="text-content-faint" style={{ flexShrink: 0 }} />
+    </button>
   )
 }

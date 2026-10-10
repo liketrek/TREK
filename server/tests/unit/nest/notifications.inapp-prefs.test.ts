@@ -5,13 +5,25 @@
  * tests/unit/services/inAppNotificationPrefs.test.ts when the in-app store
  * SQL folded into nest/notifications).
  */
+import { db as testDb } from '../../../src/db/database';
+import { Notifications } from '../../../src/db/entities/Notifications.entity';
+import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
+import { registerAction } from '../../../src/nest/notifications/in-app-actions';
+import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
+import { createUser, createAdmin, disableNotificationPref } from '../../helpers/factories';
+import { makeNotification } from '../../helpers/factories/notifications';
+import { findRow, insertRow } from '../../helpers/factories/rows';
+import { makeTrip } from '../../helpers/factories/trips';
+import { FakeRealtimeService } from '../../helpers/fake-realtime';
+import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
+import { resetTestDb } from '../../helpers/test-db';
+import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-const { testDb, dbMock } = vi.hoisted(() => {
-  const Database = require('better-sqlite3');
-  const db = new Database(':memory:');
-  db.exec('PRAGMA journal_mode = WAL');
-  db.exec('PRAGMA foreign_keys = ON');
+vi.mock('../../../src/db/database', async () => {
+  const { createSnapshotTestDb } = await import('../../helpers/db-mock');
+  const db = createSnapshotTestDb();
   const mock = {
     db,
     closeDb: () => {},
@@ -20,41 +32,25 @@ const { testDb, dbMock } = vi.hoisted(() => {
     canAccessTrip: () => null,
     isOwner: () => false,
   };
-  return { testDb: db, dbMock: mock };
+  return mock;
 });
 
-vi.mock('../../../src/db/database', () => dbMock);
-vi.mock('../../../src/config', () => ({
-  JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
-  ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  updateJwtSecret: () => {},
-}));
+const realtime = new FakeRealtimeService();
+const broadcastMock = realtime.broadcastToUserMock;
 
-// Mock WebSocket broadcast — must use vi.hoisted() so broadcastMock is available
-// when the vi.mock factory is evaluated (factories are hoisted before const declarations)
-const { broadcastMock } = vi.hoisted(() => ({ broadcastMock: vi.fn() }));
-// RealtimeService imports both names from src/websocket, so the mock must
-// export both even though only broadcastToUser is asserted here.
-vi.mock('../../../src/websocket', () => ({ broadcast: vi.fn(), broadcastToUser: broadcastMock }));
+// Built in beforeAll: the service now takes a UnitOfWork, which is async to build.
+let notifications: NotificationsService;
+// Arrow forwarders rather than `.bind(notifications)`: under `strictBindCallApply: false`
+// a bound alias is typed `any`, which hides a missing `await` from tsc AND from the
+// type-aware lint rules (recipe R4).
+type Svc = NotificationsService;
+const createNotification = (...a: Parameters<Svc['createNotification']>) => notifications.createNotification(...a);
+const createNotificationForRecipient = (...a: Parameters<Svc['createNotificationForRecipient']>) =>
+  notifications.createNotificationForRecipient(...a);
+const respondToBoolean = (...a: Parameters<Svc['respond']>) => notifications.respond(...a);
 
-import { createTables } from '../../../src/db/schema';
-import { runMigrations } from '../../../src/db/migrations';
-import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createAdmin, disableNotificationPref } from '../../helpers/factories';
-import { registerAction } from '../../../src/nest/notifications/in-app-actions';
-import { DatabaseService } from '../../../src/nest/database/database.service';
-import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { NotificationsService } from '../../../src/nest/notifications/notifications.service';
-import { makeNotificationsService, makeNotificationPreferencesService } from '../../helpers/notifications';
-
-const notifications = makeNotificationsService(new DatabaseService(testDb));
-const createNotification = notifications.createNotification.bind(notifications);
-const createNotificationForRecipient = notifications.createNotificationForRecipient.bind(notifications);
-const respondToBoolean = notifications.respond.bind(notifications);
-
-beforeAll(() => {
-  createTables(testDb);
-  runMigrations(testDb);
+beforeAll(async () => {
+  notifications = await makeNotificationsService(testDb, realtime);
 });
 
 beforeEach(() => {
@@ -62,7 +58,14 @@ beforeEach(() => {
   broadcastMock.mockClear();
 });
 
-afterAll(() => {
+let orm: TestOrm;
+
+beforeAll(async () => {
+  orm = await createTestOrm(testDb);
+});
+
+afterAll(async () => {
+  await orm.close();
   testDb.close();
 });
 
@@ -71,14 +74,14 @@ afterAll(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('createNotification — preference filtering', () => {
-  it('INOTIF-001 — notification without event_type is delivered to all recipients (backward compat)', () => {
+  it('INOTIF-001 — notification without event_type is delivered to all recipients (backward compat)', async () => {
     const { user: admin } = createAdmin(testDb);
     const { user: recipient } = createUser(testDb);
     // The admin scope targets all admins — create a second admin as the sender
     const { user: sender } = createAdmin(testDb);
 
     // Send to a specific user (user scope) without event_type
-    const ids = createNotification({
+    const ids = await createNotification({
       type: 'simple',
       scope: 'user',
       target: recipient.id,
@@ -89,12 +92,12 @@ describe('createNotification — preference filtering', () => {
     });
 
     expect(ids.length).toBe(1);
-    const row = testDb.prepare('SELECT * FROM notifications WHERE recipient_id = ?').get(recipient.id);
-    expect(row).toBeDefined();
+    const row = await findRow(orm, Notifications, { recipient: recipient.id });
+    expect(row).not.toBeNull();
     // Also verify the admin who disabled all prefs still gets messages without event_type
     disableNotificationPref(testDb, admin.id, 'trip_invite', 'inapp');
     // admin still gets this since no event_type check
-    const adminIds = createNotification({
+    const adminIds = await createNotification({
       type: 'simple',
       scope: 'user',
       target: admin.id,
@@ -105,7 +108,7 @@ describe('createNotification — preference filtering', () => {
     expect(adminIds.length).toBe(1);
   });
 
-  it('INOTIF-002 — notification with event_type skips recipients who have disabled that event on inapp', () => {
+  it('INOTIF-002 — notification with event_type skips recipients who have disabled that event on inapp', async () => {
     const { user: sender } = createAdmin(testDb);
     const { user: recipient1 } = createUser(testDb);
     const { user: recipient2 } = createUser(testDb);
@@ -114,11 +117,11 @@ describe('createNotification — preference filtering', () => {
     disableNotificationPref(testDb, recipient2.id, 'trip_invite', 'inapp');
 
     // Use a trip to target both members
-    const tripId = (testDb.prepare('INSERT INTO trips (title, user_id) VALUES (?, ?)').run('Test Trip', sender.id)).lastInsertRowid as number;
-    testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(tripId, recipient1.id);
-    testDb.prepare('INSERT INTO trip_members (trip_id, user_id) VALUES (?, ?)').run(tripId, recipient2.id);
+    const tripId = (await makeTrip(orm, sender.id, { title: 'Test Trip' })).id;
+    await insertRow(orm, TripMembers, { trip: tripId, user: recipient1.id });
+    await insertRow(orm, TripMembers, { trip: tripId, user: recipient2.id });
 
-    const ids = createNotification({
+    const ids = await createNotification({
       type: 'simple',
       scope: 'trip',
       target: tripId,
@@ -130,18 +133,18 @@ describe('createNotification — preference filtering', () => {
 
     // sender excluded, recipient1 included, recipient2 skipped (disabled pref)
     expect(ids.length).toBe(1);
-    const r1 = testDb.prepare('SELECT id FROM notifications WHERE recipient_id = ?').get(recipient1.id);
-    const r2 = testDb.prepare('SELECT id FROM notifications WHERE recipient_id = ?').get(recipient2.id);
-    expect(r1).toBeDefined();
-    expect(r2).toBeUndefined();
+    const r1 = await findRow(orm, Notifications, { recipient: recipient1.id });
+    const r2 = await findRow(orm, Notifications, { recipient: recipient2.id });
+    expect(r1).not.toBeNull();
+    expect(r2).toBeNull();
   });
 
-  it('INOTIF-003 — notification with event_type delivers to recipients with no stored preferences', () => {
+  it('INOTIF-003 — notification with event_type delivers to recipients with no stored preferences', async () => {
     const { user: sender } = createAdmin(testDb);
     const { user: recipient } = createUser(testDb);
 
     // No preferences stored for recipient — should default to enabled
-    const ids = createNotification({
+    const ids = await createNotification({
       type: 'simple',
       scope: 'user',
       target: recipient.id,
@@ -152,15 +155,15 @@ describe('createNotification — preference filtering', () => {
     });
 
     expect(ids.length).toBe(1);
-    const row = testDb.prepare('SELECT id FROM notifications WHERE recipient_id = ?').get(recipient.id);
-    expect(row).toBeDefined();
+    const row = await findRow(orm, Notifications, { recipient: recipient.id });
+    expect(row).not.toBeNull();
   });
 
-  it('INOTIF-003b — createNotificationForRecipient inserts a single notification and broadcasts via WS', () => {
+  it('INOTIF-003b — createNotificationForRecipient inserts a single notification and broadcasts via WS', async () => {
     const { user: sender } = createAdmin(testDb);
     const { user: recipient } = createUser(testDb);
 
-    const id = createNotificationForRecipient(
+    const id = await createNotificationForRecipient(
       {
         type: 'navigate',
         scope: 'user',
@@ -173,26 +176,26 @@ describe('createNotification — preference filtering', () => {
         navigate_target: '/trips/99',
       },
       recipient.id,
-      { username: 'admin', avatar: null }
+      { username: 'admin', avatar: null },
     );
 
     expect(id).toBeTypeOf('number');
-    const row = testDb.prepare('SELECT * FROM notifications WHERE id = ?').get(id) as { recipient_id: number; navigate_target: string } | undefined;
-    expect(row).toBeDefined();
+    const row = await findRow(orm, Notifications, { id });
+    expect(row).not.toBeNull();
     expect(row!.recipient_id).toBe(recipient.id);
     expect(row!.navigate_target).toBe('/trips/99');
     expect(broadcastMock).toHaveBeenCalledTimes(1);
     expect(broadcastMock.mock.calls[0][0]).toBe(recipient.id);
   });
 
-  it('INOTIF-004 — admin-scope version_available only reaches admins with enabled pref', () => {
+  it('INOTIF-004 — admin-scope version_available only reaches admins with enabled pref', async () => {
     const { user: admin1 } = createAdmin(testDb);
     const { user: admin2 } = createAdmin(testDb);
 
     // admin2 disables version_available inapp notifications
     disableNotificationPref(testDb, admin2.id, 'version_available', 'inapp');
 
-    const ids = createNotification({
+    const ids = await createNotification({
       type: 'navigate',
       scope: 'admin',
       target: 0,
@@ -206,10 +209,10 @@ describe('createNotification — preference filtering', () => {
 
     // Only admin1 should receive it
     expect(ids.length).toBe(1);
-    const admin1Row = testDb.prepare('SELECT id FROM notifications WHERE recipient_id = ?').get(admin1.id);
-    const admin2Row = testDb.prepare('SELECT id FROM notifications WHERE recipient_id = ?').get(admin2.id);
-    expect(admin1Row).toBeDefined();
-    expect(admin2Row).toBeUndefined();
+    const admin1Row = await findRow(orm, Notifications, { recipient: admin1.id });
+    const admin2Row = await findRow(orm, Notifications, { recipient: admin2.id });
+    expect(admin1Row).not.toBeNull();
+    expect(admin2Row).toBeNull();
   });
 });
 
@@ -217,59 +220,72 @@ describe('createNotification — preference filtering', () => {
 // respondToBoolean
 // ─────────────────────────────────────────────────────────────────────────────
 
-function insertBooleanNotification(recipientId: number, senderId: number | null = null): number {
-  const result = testDb.prepare(`
-    INSERT INTO notifications (
-      type, scope, target, sender_id, recipient_id,
-      title_key, title_params, text_key, text_params,
-      positive_text_key, negative_text_key, positive_callback, negative_callback
-    ) VALUES ('boolean', 'user', ?, ?, ?, 'notif.test.title', '{}', 'notif.test.text', '{}',
-      'notif.action.accept', 'notif.action.decline',
-      '{"action":"test_approve","payload":{}}', '{"action":"test_deny","payload":{}}'
-    )
-  `).run(recipientId, senderId, recipientId);
-  return result.lastInsertRowid as number;
+/** A yes/no notification for the user whose two buttons run the named actions. */
+async function insertBoolean(
+  recipientId: number,
+  senderId: number | null,
+  positive: string,
+  negative = positive,
+): Promise<number> {
+  const row = await makeNotification(orm, recipientId, {
+    type: 'boolean',
+    sender: senderId,
+    title_key: 'notif.test.title',
+    title_params: '{}',
+    text_key: 'notif.test.text',
+    text_params: '{}',
+    positive_text_key: 'notif.action.accept',
+    negative_text_key: 'notif.action.decline',
+    positive_callback: JSON.stringify({ action: positive, payload: {} }),
+    negative_callback: JSON.stringify({ action: negative, payload: {} }),
+  });
+  return row.id;
 }
 
-function insertSimpleNotification(recipientId: number): number {
-  const result = testDb.prepare(`
-    INSERT INTO notifications (
-      type, scope, target, sender_id, recipient_id,
-      title_key, title_params, text_key, text_params
-    ) VALUES ('simple', 'user', ?, NULL, ?, 'notif.test.title', '{}', 'notif.test.text', '{}')
-  `).run(recipientId, recipientId);
-  return result.lastInsertRowid as number;
+function insertBooleanNotification(recipientId: number, senderId: number | null = null): Promise<number> {
+  return insertBoolean(recipientId, senderId, 'test_approve', 'test_deny');
+}
+
+async function insertSimpleNotification(recipientId: number): Promise<number> {
+  const row = await makeNotification(orm, recipientId, {
+    sender: null,
+    title_key: 'notif.test.title',
+    title_params: '{}',
+    text_key: 'notif.test.text',
+    text_params: '{}',
+  });
+  return row.id;
 }
 
 describe('respondToBoolean', () => {
   it('INOTIF-005 — positive response sets response=positive, marks read, broadcasts update', async () => {
     const { user } = createUser(testDb);
-    const id = insertBooleanNotification(user.id);
+    const id = await insertBooleanNotification(user.id);
 
     const result = await respondToBoolean(id, user.id, 'positive');
 
     expect(result.success).toBe(true);
     expect(result.notification).toBeDefined();
-    const row = testDb.prepare('SELECT * FROM notifications WHERE id = ?').get(id) as any;
-    expect(row.response).toBe('positive');
-    expect(row.is_read).toBe(1);
+    const row = await findRow(orm, Notifications, { id });
+    expect(row?.response).toBe('positive');
+    expect(row?.is_read).toBe(1);
     expect(broadcastMock).toHaveBeenCalledWith(user.id, expect.objectContaining({ type: 'notification:updated' }));
   });
 
   it('INOTIF-006 — negative response sets response=negative', async () => {
     const { user } = createUser(testDb);
-    const id = insertBooleanNotification(user.id);
+    const id = await insertBooleanNotification(user.id);
 
     const result = await respondToBoolean(id, user.id, 'negative');
 
     expect(result.success).toBe(true);
-    const row = testDb.prepare('SELECT response FROM notifications WHERE id = ?').get(id) as any;
-    expect(row.response).toBe('negative');
+    const row = await findRow(orm, Notifications, { id });
+    expect(row?.response).toBe('negative');
   });
 
   it('INOTIF-007 — double-response prevention returns error on second call', async () => {
     const { user } = createUser(testDb);
-    const id = insertBooleanNotification(user.id);
+    const id = await insertBooleanNotification(user.id);
 
     await respondToBoolean(id, user.id, 'positive');
     const result = await respondToBoolean(id, user.id, 'negative');
@@ -280,7 +296,7 @@ describe('respondToBoolean', () => {
 
   it('INOTIF-008 — response on a simple notification returns error', async () => {
     const { user } = createUser(testDb);
-    const id = insertSimpleNotification(user.id);
+    const id = await insertSimpleNotification(user.id);
 
     const result = await respondToBoolean(id, user.id, 'positive');
 
@@ -298,7 +314,7 @@ describe('respondToBoolean', () => {
   it('INOTIF-010 — response on notification belonging to another user returns error', async () => {
     const { user: owner } = createUser(testDb);
     const { user: other } = createUser(testDb);
-    const id = insertBooleanNotification(owner.id);
+    const id = await insertBooleanNotification(owner.id);
 
     const result = await respondToBoolean(id, other.id, 'positive');
 
@@ -318,16 +334,7 @@ describe('respondToBoolean', () => {
       calls.push('run');
       await new Promise((resolve) => setImmediate(resolve));
     });
-    const id = testDb.prepare(`
-      INSERT INTO notifications (
-        type, scope, target, sender_id, recipient_id,
-        title_key, title_params, text_key, text_params,
-        positive_text_key, negative_text_key, positive_callback, negative_callback
-      ) VALUES ('boolean', 'user', ?, NULL, ?, 'notif.test.title', '{}', 'notif.test.text', '{}',
-        'notif.action.accept', 'notif.action.decline',
-        '{"action":"slow_approve","payload":{}}', '{"action":"slow_approve","payload":{}}'
-      )
-    `).run(user.id, user.id).lastInsertRowid as number;
+    const id = await insertBoolean(user.id, null, 'slow_approve');
 
     const [first, second] = await Promise.all([
       respondToBoolean(id, user.id, 'positive'),
@@ -346,22 +353,13 @@ describe('respondToBoolean', () => {
     registerAction('flaky_approve', async () => {
       if (shouldFail) throw new Error('downstream unavailable');
     });
-    const id = testDb.prepare(`
-      INSERT INTO notifications (
-        type, scope, target, sender_id, recipient_id,
-        title_key, title_params, text_key, text_params,
-        positive_text_key, negative_text_key, positive_callback, negative_callback
-      ) VALUES ('boolean', 'user', ?, NULL, ?, 'notif.test.title', '{}', 'notif.test.text', '{}',
-        'notif.action.accept', 'notif.action.decline',
-        '{"action":"flaky_approve","payload":{}}', '{"action":"flaky_approve","payload":{}}'
-      )
-    `).run(user.id, user.id).lastInsertRowid as number;
+    const id = await insertBoolean(user.id, null, 'flaky_approve');
 
     const failed = await respondToBoolean(id, user.id, 'positive');
     expect(failed).toEqual({ success: false, error: 'downstream unavailable' });
-    const row = testDb.prepare('SELECT response, is_read FROM notifications WHERE id = ?').get(id) as { response: string | null; is_read: number };
-    expect(row.response).toBeNull();
-    expect(row.is_read).toBe(0);
+    const row = await findRow(orm, Notifications, { id });
+    expect(row?.response).toBeNull();
+    expect(row?.is_read).toBe(0);
 
     shouldFail = false;
     const retried = await respondToBoolean(id, user.id, 'positive');
@@ -370,7 +368,7 @@ describe('respondToBoolean', () => {
 
   it('INOTIF-013 — respond result + broadcast carry an ISO-UTC created_at (toUtcIso, #1149 parity across paths)', async () => {
     const { user } = createUser(testDb);
-    const id = insertBooleanNotification(user.id);
+    const id = await insertBooleanNotification(user.id);
 
     const result = await respondToBoolean(id, user.id, 'positive');
 
@@ -381,10 +379,10 @@ describe('respondToBoolean', () => {
     expect(broadcastPayload?.notification.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
   });
 
-  it('INOTIF-014 — createNotification broadcast carries an ISO-UTC created_at (was the un-patched #1149 path)', () => {
+  it('INOTIF-014 — createNotification broadcast carries an ISO-UTC created_at (was the un-patched #1149 path)', async () => {
     const { user } = createUser(testDb);
 
-    createNotification({
+    await createNotification({
       type: 'simple',
       scope: 'user',
       target: user.id,

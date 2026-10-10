@@ -1,13 +1,15 @@
-import { Injectable } from '@nestjs/common';
-import type { ChannelTestResult } from '@trek/shared';
 import { readEnv, getAppUrl } from '../../app-config';
+import { Notifications } from '../../db/entities/Notifications.entity';
+import type { NotificationsRepository } from '../../db/repositories/Notifications.repository';
 import { logDebug, logError } from '../audit/audit-log.logger';
+import { avatarUrl } from '../common/avatarUrl';
+import { UnitOfWork } from '../database/unit-of-work';
+import { RealtimeService } from '../realtime/realtime.service';
+import { getChannel, listChannels } from './channel-registry';
+import { registerBuiltinChannels } from './channels/builtins';
+import { getAction } from './in-app-actions';
 import { getEventText } from './mailer/email-html';
 import { MailerService } from './mailer/mailer.service';
-import { NtfyService, type NtfyConfig } from './transports/ntfy.service';
-import { WebhookService } from './transports/webhook.service';
-import { NotificationPreferencesService, type PreferencesMatrix } from './notification-preferences.service';
-import { registerBuiltinChannels } from './channels/builtins';
 import {
   ADMIN_SCOPED_EVENTS,
   isAdminGlobalChannel,
@@ -15,12 +17,13 @@ import {
   type ExternalChannel,
   type NotifEventType,
 } from './notification-events';
-import { getChannel, listChannels } from './channel-registry';
-import { getAction } from './in-app-actions';
-import { avatarUrl } from '../common/avatarUrl';
-import { DatabaseService } from '../database/database.service';
-import { RealtimeService } from '../realtime/realtime.service';
-
+import { NotificationPreferencesService, type PreferencesMatrix } from './notification-preferences.service';
+import { NtfyService, type NtfyConfig } from './transports/ntfy.service';
+import { WebPushService } from './transports/web-push.service';
+import { WebhookService } from './transports/webhook.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
+import type { ChannelTestResult } from '@trek/shared';
 
 // SQLite's CURRENT_TIMESTAMP is UTC but the string ('YYYY-MM-DD HH:MM:SS') has
 // no 'T'/'Z', so `new Date(...)` parses it as LOCAL time. Normalize to ISO-UTC
@@ -75,9 +78,9 @@ interface NotificationRow {
   sender_avatar?: string | null;
   recipient_id: number;
   title_key: string;
-  title_params: string;
+  title_params: string | null;
   text_key: string;
-  text_params: string;
+  text_params: string | null;
   positive_text_key: string | null;
   negative_text_key: string | null;
   positive_callback: string | null;
@@ -85,7 +88,7 @@ interface NotificationRow {
   response: NotificationResponse | null;
   navigate_text_key: string | null;
   navigate_target: string | null;
-  is_read: number;
+  is_read: number | null;
   created_at: string;
 }
 
@@ -130,7 +133,7 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     titleKey: 'notif.plugin.title',
     textKey: 'notif.plugin.text',
     navigateTextKey: 'notif.action.view',
-    navigateTarget: p => p.link || null,
+    navigateTarget: (p) => p.link || null,
   },
   // ── Production events ─────────────────────────────────────────────────────
   trip_invite: {
@@ -138,35 +141,35 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     titleKey: 'notif.trip_invite.title',
     textKey: 'notif.trip_invite.text',
     navigateTextKey: 'notif.action.view_trip',
-    navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
   booking_change: {
     inAppType: 'navigate',
     titleKey: 'notif.booking_change.title',
     textKey: 'notif.booking_change.text',
     navigateTextKey: 'notif.action.view_trip',
-    navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
   trip_reminder: {
     inAppType: 'navigate',
     titleKey: 'notif.trip_reminder.title',
     textKey: 'notif.trip_reminder.text',
     navigateTextKey: 'notif.action.view_trip',
-    navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
   todo_due: {
     inAppType: 'navigate',
     titleKey: 'notif.todo_due.title',
     textKey: 'notif.todo_due.text',
     navigateTextKey: 'notif.action.view_trip',
-    navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
   vacay_invite: {
     inAppType: 'navigate',
     titleKey: 'notif.vacay_invite.title',
     textKey: 'notif.vacay_invite.text',
     navigateTextKey: 'notif.action.view_vacay',
-    navigateTarget: p => (p.planId ? `/vacay/${p.planId}` : null),
+    navigateTarget: (p) => (p.planId ? `/vacay/${p.planId}` : null),
   },
   vacay_share: {
     inAppType: 'navigate',
@@ -180,28 +183,28 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     titleKey: 'notif.collection_invite.title',
     textKey: 'notif.collection_invite.text',
     navigateTextKey: 'notif.action.view_collection',
-    navigateTarget: p => (p.collectionId ? `/collections/${p.collectionId}` : '/collections'),
+    navigateTarget: (p) => (p.collectionId ? `/collections/${p.collectionId}` : '/collections'),
   },
   photos_shared: {
     inAppType: 'navigate',
     titleKey: 'notif.photos_shared.title',
     textKey: 'notif.photos_shared.text',
     navigateTextKey: 'notif.action.view_trip',
-    navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
   collab_message: {
     inAppType: 'navigate',
     titleKey: 'notif.collab_message.title',
     textKey: 'notif.collab_message.text',
     navigateTextKey: 'notif.action.view_collab',
-    navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
   packing_tagged: {
     inAppType: 'navigate',
     titleKey: 'notif.packing_tagged.title',
     textKey: 'notif.packing_tagged.text',
     navigateTextKey: 'notif.action.view_packing',
-    navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
   version_available: {
     inAppType: 'navigate',
@@ -213,7 +216,8 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
   replica_failure: {
     inAppType: 'navigate',
     titleKey: 'notif.replica_failure.title',
-    textKey: (p) => (p.suppressed && p.suppressed !== '0' ? 'notif.replica_failure.textSuppressed' : 'notif.replica_failure.text'),
+    textKey: (p) =>
+      p.suppressed && p.suppressed !== '0' ? 'notif.replica_failure.textSuppressed' : 'notif.replica_failure.text',
     navigateTextKey: 'notif.action.view',
     navigateTarget: () => '/admin?tab=storage',
   },
@@ -254,6 +258,17 @@ export interface NotificationPayload {
 }
 
 /**
+ * What one {@link NotificationsService.send} reached: every in-app notification
+ * and channel message it tried, and how many of those went out. A channel that
+ * rejects or answers `false` (SMTP down, a webhook 5xx) did not deliver.
+ * `attempted` is 0 when nobody wanted the event at all.
+ */
+export interface NotificationDelivery {
+  attempted: number;
+  delivered: number;
+}
+
+/**
  * Should this channel deliver this event to this recipient?
  *
  * Encodes, unchanged, the gating the four hand-written dispatch blocks used to do:
@@ -264,28 +279,30 @@ export interface NotificationPayload {
  *  - everything else: the admin enabled the channel, the user didn't opt out of this
  *    event on it, and the user has credentials for it.
  */
-function shouldSendToUser(
+async function shouldSendToUser(
   channel: ExternalChannel,
   event: NotifEventType,
   recipientId: number,
   activeChannels: string[],
   prefs: NotificationPreferencesService,
-): boolean {
+): Promise<boolean> {
   if (!channel.supportsEvent(event)) return false;
-  if (channel.isInstanceConfigured && !channel.isInstanceConfigured()) return false;
 
   if (ADMIN_SCOPED_EVENTS.has(event)) {
     if (!channel.bypassesActiveToggleForAdminEvents) return false;
     if (!isAdminGlobalChannel(channel.id)) return false;
-    if (!prefs.getAdminGlobalPref(event, channel.id)) return false;
+    if (!(await prefs.getAdminGlobalPref(event, channel.id))) return false;
   } else {
     // A built-in needs the admin's explicit switch; a plugin channel is on because the
     // admin enabled the plugin — that IS the opt-in (see getActiveChannels).
     if (channel.source === 'builtin' && !activeChannels.includes(channel.id)) return false;
-    if (!prefs.isEnabledForEvent(recipientId, event, channel.id)) return false;
+    if (!(await prefs.isEnabledForEvent(recipientId, event, channel.id))) return false;
   }
 
-  return channel.isConfiguredFor(recipientId);
+  if (!(await channel.isConfiguredFor(recipientId))) return false;
+  // Last, since it is the costly check: Web Push reads and verifies the server's
+  // key pair. Every check here is a plain AND, so the order changes no answer.
+  return !channel.isInstanceConfigured || (await channel.isInstanceConfigured());
 }
 
 /**
@@ -310,30 +327,33 @@ function shouldSendToUser(
 @Injectable()
 export class NotificationsService {
   constructor(
-    private readonly db: DatabaseService,
     private readonly realtime: RealtimeService,
     private readonly mailer: MailerService,
     private readonly webhook: WebhookService,
     private readonly ntfy: NtfyService,
     private readonly prefs: NotificationPreferencesService,
+    private readonly uow: UnitOfWork,
+    @InjectRepository(Notifications) private readonly notificationsRepo: NotificationsRepository,
+    push: WebPushService,
   ) {
     // The registry is a module singleton shared with the plugin runtime and any
     // separately-constructed instance (which never runs onModuleInit), so
     // registering from here means every path that can dispatch has the
     // built-ins. registerChannel is an idempotent Map.set.
-    registerBuiltinChannels({ mailer, webhook, ntfy });
+    registerBuiltinChannels({ mailer, webhook, ntfy, push });
   }
 
-  getPreferences(userId: number, role: string): PreferencesMatrix {
-    return this.prefs.getPreferencesMatrix(userId, role, 'user');
+  async getPreferences(userId: number, role: string): Promise<PreferencesMatrix> {
+    return await this.prefs.getPreferencesMatrix(userId, role, 'user');
   }
 
   /** Send a test notification over any registered channel (built-in or plugin). */
   async testChannel(userId: number, channelId: string): Promise<ChannelTestResult> {
-    const channel = getChannel(channelId);
+    const channel = await getChannel(channelId);
     if (!channel) return { success: false, error: 'Unknown channel' };
     if (!channel.test) return { success: false, error: 'This channel does not support test sends' };
-    if (!channel.isConfiguredFor(userId)) return { success: false, error: 'Channel is not configured for this user' };
+    if (!(await channel.isConfiguredFor(userId)))
+      return { success: false, error: 'Channel is not configured for this user' };
     try {
       return await channel.test(userId);
     } catch (e) {
@@ -341,8 +361,11 @@ export class NotificationsService {
     }
   }
 
-  setPreferences(userId: number, body: Parameters<NotificationPreferencesService['setPreferences']>[1]): void {
-    this.prefs.setPreferences(userId, body);
+  async setPreferences(
+    userId: number,
+    body: Parameters<NotificationPreferencesService['setPreferences']>[1],
+  ): Promise<void> {
+    await this.prefs.setPreferences(userId, body);
   }
 
   testSmtp(to: string): Promise<ChannelTestResult> {
@@ -357,49 +380,48 @@ export class NotificationsService {
     return this.ntfy.testNtfy(cfg);
   }
 
-  userWebhookUrl(userId: number): string | null {
-    return this.webhook.getUserWebhookUrl(userId);
+  async userWebhookUrl(userId: number): Promise<string | null> {
+    return await this.webhook.getUserWebhookUrl(userId);
   }
 
-  adminWebhookUrl(): string | null {
-    return this.webhook.getAdminWebhookUrl();
+  async adminWebhookUrl(): Promise<string | null> {
+    return await this.webhook.getAdminWebhookUrl();
   }
 
-  userNtfyConfig(userId: number): NtfyConfig | null {
-    return this.ntfy.getUserNtfyConfig(userId);
+  async userNtfyConfig(userId: number): Promise<NtfyConfig | null> {
+    return await this.ntfy.getUserNtfyConfig(userId);
   }
 
-  adminNtfyConfig(): NtfyConfig {
-    return this.ntfy.getAdminNtfyConfig();
+  async adminNtfyConfig(): Promise<NtfyConfig> {
+    return await this.ntfy.getAdminNtfyConfig();
   }
 
   // ── In-app notification store (from services/inAppNotifications.ts) ───────
 
-  resolveRecipients(scope: NotificationScope, target: number, excludeUserId?: number | null): number[] {
+  async resolveRecipients(scope: NotificationScope, target: number, excludeUserId?: number | null): Promise<number[]> {
     let userIds: number[] = [];
 
     // Guests (#1362) are trip members for assignment purposes but have no inbox/email,
     // so they must never be resolved as notification recipients on any scope. This is the
     // single chokepoint for in-app/email/webhook/ntfy, so filtering here covers all channels.
     if (scope === 'trip') {
-      const owner = this.db.get<{ user_id: number }>('SELECT user_id FROM trips WHERE id = ?', target);
-      const members = this.db.all<{ user_id: number }>('SELECT m.user_id FROM trip_members m JOIN users u ON u.id = m.user_id WHERE m.trip_id = ? AND COALESCE(u.is_guest, 0) = 0', target);
+      const ownerId = await this.notificationsRepo.getTripOwnerId(target);
+      const memberIds = await this.notificationsRepo.listNonGuestTripMemberIds(target);
       const ids = new Set<number>();
-      if (owner) ids.add(owner.user_id);
-      for (const m of members) ids.add(m.user_id);
+      if (ownerId != null) ids.add(ownerId);
+      for (const id of memberIds) ids.add(id);
       userIds = Array.from(ids);
     } else if (scope === 'user') {
       // A guest can be a todo assignee (scope='user'); never notify them.
-      const u = this.db.get<{ is_guest?: number }>('SELECT is_guest FROM users WHERE id = ?', target);
+      const u = await this.notificationsRepo.findGuestFlag(target);
       userIds = u && u.is_guest ? [] : [target];
     } else if (scope === 'admin') {
-      const admins = this.db.all<{ id: number }>("SELECT id FROM users WHERE role = ? AND COALESCE(is_guest, 0) = 0", 'admin');
-      userIds = admins.map(a => a.id);
+      userIds = await this.notificationsRepo.listNonGuestUserIdsByRole('admin');
     }
 
     // Only exclude sender for group scopes (trip/admin) — for user scope, the target is explicit
     if (excludeUserId != null && scope !== 'user') {
-      userIds = userIds.filter(id => id !== excludeUserId);
+      userIds = userIds.filter((id) => id !== excludeUserId);
     }
 
     return userIds;
@@ -410,8 +432,8 @@ export class NotificationsService {
    * one transaction). `send()` resolves recipients itself and uses
    * `createNotificationForRecipient`; this remains for direct callers/tests.
    */
-  createNotification(input: NotificationInput): number[] {
-    const recipients = this.resolveRecipients(input.scope, input.target, input.sender_id);
+  async createNotification(input: NotificationInput): Promise<number[]> {
+    const recipients = await this.resolveRecipients(input.scope, input.target, input.sender_id);
     if (recipients.length === 0) return [];
 
     const titleParams = JSON.stringify(input.title_params ?? {});
@@ -420,19 +442,10 @@ export class NotificationsService {
     // Track inserted id → recipientId pairs (some recipients may be skipped by pref check)
     const insertedPairs: Array<{ id: number; recipientId: number }> = [];
 
-    this.db.transaction(() => {
-      const stmt = this.db.prepare(`
-      INSERT INTO notifications (
-        type, scope, target, sender_id, recipient_id,
-        title_key, title_params, text_key, text_params,
-        positive_text_key, negative_text_key, positive_callback, negative_callback,
-        navigate_text_key, navigate_target
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
+    await this.uow.transactional(async () => {
       for (const recipientId of recipients) {
         // Check per-user in-app preference if an event_type is provided
-        if (input.event_type && !this.prefs.isEnabledForEvent(recipientId, input.event_type, 'inapp')) {
+        if (input.event_type && !(await this.prefs.isEnabledForEvent(recipientId, input.event_type, 'inapp'))) {
           continue;
         }
 
@@ -453,50 +466,59 @@ export class NotificationsService {
           navigateTarget = input.navigate_target;
         }
 
-        const result = stmt.run(
-          input.type, input.scope, input.target, input.sender_id, recipientId,
-          input.title_key, titleParams, input.text_key, textParams,
-          positiveTextKey, negativeTextKey, positiveCallback, negativeCallback,
-          navigateTextKey, navigateTarget
-        );
+        const id = await this.notificationsRepo.insertNotification({
+          type: input.type,
+          scope: input.scope,
+          target: input.target,
+          sender_id: input.sender_id,
+          recipient_id: recipientId,
+          title_key: input.title_key,
+          title_params: titleParams,
+          text_key: input.text_key,
+          text_params: textParams,
+          positive_text_key: positiveTextKey,
+          negative_text_key: negativeTextKey,
+          positive_callback: positiveCallback,
+          negative_callback: negativeCallback,
+          navigate_text_key: navigateTextKey,
+          navigate_target: navigateTarget,
+        });
 
-        insertedPairs.push({ id: result.lastInsertRowid as number, recipientId });
+        insertedPairs.push({ id, recipientId });
       }
     });
 
     // Fetch sender info once for WS payloads
-    const sender = input.sender_id
-      ? this.db.get<{ username: string; avatar: string | null }>('SELECT username, avatar FROM users WHERE id = ?', input.sender_id)
-      : null;
+    const sender = input.sender_id ? await this.notificationsRepo.findUserBasic(input.sender_id) : undefined;
 
     // Broadcast to each recipient
     for (const { id: notificationId, recipientId } of insertedPairs) {
-      const row = this.db.get<NotificationRow>('SELECT * FROM notifications WHERE id = ?', notificationId) as NotificationRow;
+      const row = await this.notificationsRepo.findById(notificationId);
       if (!row) continue;
 
       this.realtime.broadcastToUser(recipientId, {
         type: 'notification:new',
         notification: {
           ...row,
-          created_at: toUtcIso(row.created_at),
+          created_at: toUtcIso(row.created_at!),
           sender_username: sender?.username ?? null,
-          sender_avatar: avatarUrl({ avatar: sender?.avatar }),
+          sender_avatar: avatarUrl({ avatar: sender?.avatar ?? null }),
         },
       });
     }
 
-    return insertedPairs.map(p => p.id);
+    return insertedPairs.map((p) => p.id);
   }
 
   /**
    * Insert a single in-app notification for one pre-resolved recipient and broadcast via WebSocket.
    * Used by send() which handles recipient resolution externally.
    */
-  createNotificationForRecipient(
+  async createNotificationForRecipient(
     input: NotificationInput,
     recipientId: number,
-    sender: { username: string; avatar: string | null } | null
-  ): number | null {
+    sender: { username: string; avatar: string | null } | null,
+  ): Promise<number | null> {
     const titleParams = JSON.stringify(input.title_params ?? {});
     const textParams = JSON.stringify(input.text_params ?? {});
 
@@ -517,31 +539,34 @@ export class NotificationsService {
       navigateTarget = input.navigate_target;
     }
 
-    const result = this.db.run(`
-    INSERT INTO notifications (
-      type, scope, target, sender_id, recipient_id,
-      title_key, title_params, text_key, text_params,
-      positive_text_key, negative_text_key, positive_callback, negative_callback,
-      navigate_text_key, navigate_target
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `,
-      input.type, input.scope, input.target, input.sender_id, recipientId,
-      input.title_key, titleParams, input.text_key, textParams,
-      positiveTextKey, negativeTextKey, positiveCallback, negativeCallback,
-      navigateTextKey, navigateTarget
-    );
+    const notificationId = await this.notificationsRepo.insertNotification({
+      type: input.type,
+      scope: input.scope,
+      target: input.target,
+      sender_id: input.sender_id,
+      recipient_id: recipientId,
+      title_key: input.title_key,
+      title_params: titleParams,
+      text_key: input.text_key,
+      text_params: textParams,
+      positive_text_key: positiveTextKey,
+      negative_text_key: negativeTextKey,
+      positive_callback: positiveCallback,
+      negative_callback: negativeCallback,
+      navigate_text_key: navigateTextKey,
+      navigate_target: navigateTarget,
+    });
 
-    const notificationId = result.lastInsertRowid as number;
-    const row = this.db.get<NotificationRow>('SELECT * FROM notifications WHERE id = ?', notificationId);
+    const row = await this.notificationsRepo.findById(notificationId);
     if (!row) return null;
 
     this.realtime.broadcastToUser(recipientId, {
       type: 'notification:new',
       notification: {
         ...row,
-        created_at: toUtcIso(row.created_at),
+        created_at: toUtcIso(row.created_at!),
         sender_username: sender?.username ?? null,
-        sender_avatar: avatarUrl({ avatar: sender?.avatar }),
+        sender_avatar: avatarUrl({ avatar: sender?.avatar ?? null }),
       },
     });
 
@@ -550,74 +575,63 @@ export class NotificationsService {
 
   // Returns the native service shape (NotificationRow[] is a superset of the
   // client-facing InAppListResult contract); the controller surfaces it as-is.
-  listInApp(
+  async listInApp(
     userId: number,
-    options: { limit?: number; offset?: number; unreadOnly?: boolean } = {}
-  ): { notifications: NotificationRow[]; total: number; unread_count: number } {
+    options: { limit?: number; offset?: number; unreadOnly?: boolean } = {},
+  ): Promise<{ notifications: NotificationRow[]; total: number; unread_count: number }> {
     const limit = Math.min(options.limit ?? 20, 50);
     const offset = options.offset ?? 0;
     const unreadOnly = options.unreadOnly ?? false;
 
-    const whereAliased = unreadOnly ? 'WHERE n.recipient_id = ? AND n.is_read = 0' : 'WHERE n.recipient_id = ?';
-    const wherePlain = unreadOnly ? 'WHERE recipient_id = ? AND is_read = 0' : 'WHERE recipient_id = ?';
+    const rows = await this.notificationsRepo.listForRecipient(userId, limit, offset, unreadOnly);
+    const total = await this.notificationsRepo.countForRecipient(userId, unreadOnly);
+    const unread_count = await this.notificationsRepo.countUnreadForRecipient(userId);
 
-    const rows = this.db.all<NotificationRow>(`
-    SELECT n.*, u.username AS sender_username, u.avatar AS sender_avatar
-    FROM notifications n
-    LEFT JOIN users u ON n.sender_id = u.id
-    ${whereAliased}
-    ORDER BY n.created_at DESC
-    LIMIT ? OFFSET ?
-  `, userId, limit, offset);
-
-    const { total } = this.db.get<{ total: number }>(`SELECT COUNT(*) as total FROM notifications ${wherePlain}`, userId) as { total: number };
-    const { unread_count } = this.db.get<{ unread_count: number }>('SELECT COUNT(*) as unread_count FROM notifications WHERE recipient_id = ? AND is_read = 0', userId) as { unread_count: number };
-
-    const mapped = rows.map(r => ({
+    // The repository row's `type`/`scope`/`response` are the physical TEXT
+    // columns (plain `string`); this service's own `NotificationRow` narrows
+    // them to the literal unions it writes — the same unchecked boundary the
+    // legacy `db.all<NotificationRow>(...)` generic drew (SQLite has no enum
+    // type to check against either way).
+    const mapped = rows.map((r) => ({
       ...r,
-      created_at: toUtcIso(r.created_at),
+      created_at: toUtcIso(r.created_at!),
       sender_avatar: avatarUrl({ avatar: r.sender_avatar }),
-    }));
+    })) as NotificationRow[];
 
     return { notifications: mapped, total, unread_count };
   }
 
-  unreadCount(userId: number): number {
-    const row = this.db.get<{ count: number }>('SELECT COUNT(*) as count FROM notifications WHERE recipient_id = ? AND is_read = 0', userId) as { count: number };
-    return row.count;
+  async unreadCount(userId: number): Promise<number> {
+    return await this.notificationsRepo.countUnreadForRecipient(userId);
   }
 
-  markRead(notificationId: number, userId: number): boolean {
-    const result = this.db.run('UPDATE notifications SET is_read = 1 WHERE id = ? AND recipient_id = ?', notificationId, userId);
-    return result.changes > 0;
+  async markRead(notificationId: number, userId: number): Promise<boolean> {
+    return (await this.notificationsRepo.setRead(notificationId, userId, 1)) > 0;
   }
 
-  markUnread(notificationId: number, userId: number): boolean {
-    const result = this.db.run('UPDATE notifications SET is_read = 0 WHERE id = ? AND recipient_id = ?', notificationId, userId);
-    return result.changes > 0;
+  async markUnread(notificationId: number, userId: number): Promise<boolean> {
+    return (await this.notificationsRepo.setRead(notificationId, userId, 0)) > 0;
   }
 
-  markAllRead(userId: number): number {
-    const result = this.db.run('UPDATE notifications SET is_read = 1 WHERE recipient_id = ? AND is_read = 0', userId);
-    return result.changes;
+  async markAllRead(userId: number): Promise<number> {
+    return await this.notificationsRepo.markAllRead(userId);
   }
 
-  deleteOne(notificationId: number, userId: number): boolean {
-    const result = this.db.run('DELETE FROM notifications WHERE id = ? AND recipient_id = ?', notificationId, userId);
-    return result.changes > 0;
+  async deleteOne(notificationId: number, userId: number): Promise<boolean> {
+    return (await this.notificationsRepo.deleteForRecipient(notificationId, userId)) > 0;
   }
 
-  deleteAll(userId: number): number {
-    const result = this.db.run('DELETE FROM notifications WHERE recipient_id = ?', userId);
-    return result.changes;
+  async deleteAll(userId: number): Promise<number> {
+    return await this.notificationsRepo.deleteAllForRecipient(userId);
   }
 
-  async respond(
-    notificationId: number,
-    userId: number,
-    response: NotificationResponse
-  ): Promise<RespondResult> {
-    const notification = this.db.get<NotificationRow>('SELECT * FROM notifications WHERE id = ? AND recipient_id = ?', notificationId, userId);
+  /**
+   * Run a notification's action for the recipient's answer.
+   * @txIndependent the claim commits on its own before the action runs, so a second
+   * submit sees it; a failing action releases it again.
+   */
+  async respond(notificationId: number, userId: number, response: NotificationResponse): Promise<RespondResult> {
+    const notification = await this.notificationsRepo.findByIdForRecipient(notificationId, userId);
 
     if (!notification) return { success: false, error: 'Notification not found' };
     if (notification.type !== 'boolean') return { success: false, error: 'Not a boolean notification' };
@@ -639,37 +653,27 @@ export class NotificationsService {
     // Atomic claim BEFORE the handler runs — only updates if response is still
     // NULL, so a concurrent double-submit can never execute the action twice
     // (the legacy order ran the handler first, letting both submits through).
-    const result = this.db.run(
-      'UPDATE notifications SET response = ?, is_read = 1 WHERE id = ? AND recipient_id = ? AND response IS NULL',
-      response, notificationId, userId
-    );
+    const changes = await this.notificationsRepo.claimResponse(notificationId, userId, response);
 
-    if (result.changes === 0) return { success: false, error: 'Already responded' };
+    if (changes === 0) return { success: false, error: 'Already responded' };
 
     try {
       await handler(callback.payload, userId);
     } catch (err) {
       // Release the claim so the user can retry — legacy contract: a handler
       // failure returns its message and leaves the notification unresponded.
-      this.db.run(
-        'UPDATE notifications SET response = NULL, is_read = ? WHERE id = ? AND recipient_id = ?',
-        notification.is_read, notificationId, userId
-      );
+      await this.notificationsRepo.releaseResponse(notificationId, userId, notification.is_read);
       return { success: false, error: err instanceof Error ? err.message : 'Action failed' };
     }
 
-    const updated = this.db.get<NotificationRow>(`
-    SELECT n.*, u.username AS sender_username, u.avatar AS sender_avatar
-    FROM notifications n
-    LEFT JOIN users u ON n.sender_id = u.id
-    WHERE n.id = ?
-  `, notificationId) as NotificationRow;
+    const updated = (await this.notificationsRepo.findWithSenderById(notificationId))!;
 
+    // Same unchecked-narrowing boundary as `listInApp`'s `mapped` above.
     const mappedUpdated = {
       ...updated,
-      created_at: toUtcIso(updated.created_at),
+      created_at: toUtcIso(updated.created_at!),
       sender_avatar: avatarUrl({ avatar: updated.sender_avatar }),
-    };
+    } as NotificationRow;
 
     this.realtime.broadcastToUser(userId, { type: 'notification:updated', notification: mappedUpdated });
 
@@ -678,32 +682,44 @@ export class NotificationsService {
 
   // ── Unified dispatcher (from services/notificationService.ts) ─────────────
 
-  async send(payload: NotificationPayload): Promise<void> {
+  /**
+   * Resolves the recipients of one event and delivers it on every active channel.
+   *
+   * @txStandalone a notification reports a change after it is written; email
+   * and webhook delivery are network I/O, which never runs inside a transaction.
+   * @txIndependent each recipient's row is written on its own, between deliveries.
+   */
+  async send(payload: NotificationPayload): Promise<NotificationDelivery> {
     const { event, actorId, params, scope, targetId, inApp } = payload;
+    const delivery: NotificationDelivery = { attempted: 0, delivered: 0 };
 
     // Resolve recipients based on scope
-    const recipients = this.resolveRecipients(scope, targetId, actorId);
-    if (recipients.length === 0) return;
+    const recipients = await this.resolveRecipients(scope, targetId, actorId);
+    if (recipients.length === 0) return delivery;
 
     const configEntry = EVENT_NOTIFICATION_CONFIG[event];
     if (!configEntry) {
       logDebug(`notificationService.send: unknown event type "${event}", using fallback`);
       if (readEnv().app.isDevelopment && actorId != null) {
-        const devSender = this.db.get<{ username: string; avatar: string | null }>('SELECT username, avatar FROM users WHERE id = ?', actorId) ?? null;
-        this.createNotificationForRecipient({
-          type: 'simple',
-          scope: 'user',
-          target: actorId,
-          sender_id: null,
-          title_key: 'notif.dev.unknown_event.title',
-          text_key: 'notif.dev.unknown_event.text',
-          text_params: { event },
-        }, actorId, devSender);
+        const devSender = (await this.notificationsRepo.findUserBasic(actorId)) ?? null;
+        await this.createNotificationForRecipient(
+          {
+            type: 'simple',
+            scope: 'user',
+            target: actorId,
+            sender_id: null,
+            title_key: 'notif.dev.unknown_event.title',
+            text_key: 'notif.dev.unknown_event.text',
+            text_params: { event },
+          },
+          actorId,
+          devSender,
+        );
       }
     }
     const config = configEntry ?? FALLBACK_EVENT_CONFIG;
-    const activeChannels = this.prefs.getActiveChannels();
-    const channels = listChannels();
+    const activeChannels = await this.prefs.getActiveChannels();
+    const channels = await listChannels();
     const appUrl = getAppUrl();
 
     // Build navigate target (used by email/webhook CTA and in-app navigate)
@@ -715,116 +731,139 @@ export class NotificationsService {
     const textKey = typeof config.textKey === 'function' ? config.textKey(params) : config.textKey;
 
     // Fetch sender info once for in-app WS payloads
-    const sender = actorId
-      ? this.db.get<{ username: string; avatar: string | null }>('SELECT username, avatar FROM users WHERE id = ?', actorId) ?? null
-      : null;
+    const sender = actorId ? ((await this.notificationsRepo.findUserBasic(actorId)) ?? null) : null;
 
-    logDebug(`notificationService.send event=${event} scope=${scope} targetId=${targetId} recipients=${recipients.length} channels=inapp,${activeChannels.join(',')}`);
+    logDebug(
+      `notificationService.send event=${event} scope=${scope} targetId=${targetId} recipients=${recipients.length} channels=inapp,${activeChannels.join(',')}`,
+    );
 
     // Dispatch to each recipient in parallel
-    await Promise.all(recipients.map(async (recipientId) => {
-      const promises: Promise<unknown>[] = [];
+    await Promise.all(
+      recipients.map(async (recipientId) => {
+        const promises: Promise<unknown>[] = [];
 
-      // ── In-app ──────────────────────────────────────────────────────────
-      if (this.prefs.isEnabledForEvent(recipientId, event, 'inapp')) {
-        const inAppType = inApp?.type ?? config.inAppType;
-        let notifInput: NotificationInput;
+        // ── In-app ──────────────────────────────────────────────────────────
+        if (await this.prefs.isEnabledForEvent(recipientId, event, 'inapp')) {
+          const inAppType = inApp?.type ?? config.inAppType;
+          let notifInput: NotificationInput;
 
-        if (inAppType === 'boolean' && inApp?.positiveCallback && inApp?.negativeCallback) {
-          notifInput = {
-            type: 'boolean',
-            scope,
-            target: targetId,
-            sender_id: actorId,
-            event_type: event,
-            title_key: config.titleKey,
-            title_params: params,
-            text_key: textKey,
-            text_params: params,
-            positive_text_key: inApp.positiveTextKey ?? 'notif.action.accept',
-            negative_text_key: inApp.negativeTextKey ?? 'notif.action.decline',
-            positive_callback: inApp.positiveCallback,
-            negative_callback: inApp.negativeCallback,
-          };
-        } else if (inAppType === 'navigate' && navigateTarget) {
-          notifInput = {
-            type: 'navigate',
-            scope,
-            target: targetId,
-            sender_id: actorId,
-            event_type: event,
-            title_key: config.titleKey,
-            title_params: params,
-            text_key: textKey,
-            text_params: params,
-            navigate_text_key: config.navigateTextKey ?? 'notif.action.view',
-            navigate_target: navigateTarget,
-          };
-        } else {
-          notifInput = {
-            type: 'simple',
-            scope,
-            target: targetId,
-            sender_id: actorId,
-            event_type: event,
-            title_key: config.titleKey,
-            title_params: params,
-            text_key: textKey,
-            text_params: params,
-          };
+          if (inAppType === 'boolean' && inApp?.positiveCallback && inApp?.negativeCallback) {
+            notifInput = {
+              type: 'boolean',
+              scope,
+              target: targetId,
+              sender_id: actorId,
+              event_type: event,
+              title_key: config.titleKey,
+              title_params: params,
+              text_key: textKey,
+              text_params: params,
+              positive_text_key: inApp.positiveTextKey ?? 'notif.action.accept',
+              negative_text_key: inApp.negativeTextKey ?? 'notif.action.decline',
+              positive_callback: inApp.positiveCallback,
+              negative_callback: inApp.negativeCallback,
+            };
+          } else if (inAppType === 'navigate' && navigateTarget) {
+            notifInput = {
+              type: 'navigate',
+              scope,
+              target: targetId,
+              sender_id: actorId,
+              event_type: event,
+              title_key: config.titleKey,
+              title_params: params,
+              text_key: textKey,
+              text_params: params,
+              navigate_text_key: config.navigateTextKey ?? 'notif.action.view',
+              navigate_target: navigateTarget,
+            };
+          } else {
+            notifInput = {
+              type: 'simple',
+              scope,
+              target: targetId,
+              sender_id: actorId,
+              event_type: event,
+              title_key: config.titleKey,
+              title_params: params,
+              text_key: textKey,
+              text_params: params,
+            };
+          }
+
+          promises.push(
+            Promise.resolve().then(() => this.createNotificationForRecipient(notifInput, recipientId, sender ?? null)),
+          );
         }
 
-        promises.push(
-          Promise.resolve().then(() => this.createNotificationForRecipient(notifInput, recipientId, sender ?? null))
-        );
-      }
-
-      // ── External channels (email, webhook, ntfy, plugin:*) ───────────────
-      // One loop over the registry. The message is rendered once per recipient, in
-      // their language, and handed to every channel that wants it — so a plugin
-      // channel never touches i18n.
-      const deliverable = channels.filter(ch => shouldSendToUser(ch, event, recipientId, activeChannels, this.prefs));
-      if (deliverable.length > 0) {
-        const lang = this.mailer.getUserLanguage(recipientId);
-        const { title, body } = getEventText(lang, event, params);
-        const msg: ChannelMessage = {
-          event,
-          title,
-          body,
-          navigateTarget: navigateTarget ?? undefined,
-          url: fullLink,
-          tripName: params.trip,
-        };
-        for (const ch of deliverable) promises.push(ch.sendToUser(recipientId, msg));
-      }
-
-      const results = await Promise.allSettled(promises);
-      for (const result of results) {
-        if (result.status === 'rejected') {
-          logError(`notificationService.send channel dispatch failed event=${event} recipient=${recipientId}: ${result.reason instanceof Error ? result.reason.message : result.reason}`);
+        // ── External channels (email, webhook, ntfy, push, plugin:*) ─────────
+        // One loop over the registry. The message is rendered once per recipient, in
+        // their language, and handed to every channel that wants it — so a plugin
+        // channel never touches i18n.
+        // R1.4: `filter` cannot await, and the credential check behind shouldSendToUser
+        // is now async (a plugin channel reads the recipient's stored settings).
+        const deliverable: ExternalChannel[] = [];
+        for (const ch of channels) {
+          if (await shouldSendToUser(ch, event, recipientId, activeChannels, this.prefs)) deliverable.push(ch);
         }
-      }
-    }));
+        if (deliverable.length > 0) {
+          const lang = await this.mailer.getUserLanguage(recipientId);
+          const { title, body } = getEventText(lang, event, params);
+          const msg: ChannelMessage = {
+            event,
+            title,
+            body,
+            navigateTarget: navigateTarget ?? undefined,
+            url: fullLink,
+            tripName: params.trip,
+          };
+          for (const ch of deliverable) promises.push(ch.sendToUser(recipientId, msg));
+        }
+
+        const results = await Promise.allSettled(promises);
+        delivery.attempted += results.length;
+        for (const result of results) {
+          if (result.status === 'rejected') {
+            logError(
+              `notificationService.send channel dispatch failed event=${event} recipient=${recipientId}: ${result.reason instanceof Error ? result.reason.message : result.reason}`,
+            );
+          } else if (result.value !== false) {
+            delivery.delivered += 1;
+          }
+        }
+      }),
+    );
 
     // ── Admin-global copies (scope: admin) ───────────────────────────────
     // One send per channel, over the admin's own credentials, not per-recipient.
     // Always rendered in English — there is no single recipient to take a language from.
     if (scope === 'admin') {
-      const globalChannels = channels.filter(
-        ch => ch.sendGlobal && ch.supportsEvent(event) && isAdminGlobalChannel(ch.id) && this.prefs.getAdminGlobalPref(event, ch.id),
-      );
+      // R1.4: `filter` cannot await, and the admin global preference is now an
+      // async read. Same channels, same order, one explicit loop.
+      const globalChannels: ExternalChannel[] = [];
+      for (const ch of channels) {
+        if (!ch.sendGlobal || !ch.supportsEvent(event) || !isAdminGlobalChannel(ch.id)) continue;
+        if (!(await this.prefs.getAdminGlobalPref(event, ch.id))) continue;
+        globalChannels.push(ch);
+      }
       if (globalChannels.length > 0) {
         const { title, body } = getEventText('en', event, params);
         const msg: ChannelMessage = { event, title, body, navigateTarget: navigateTarget ?? undefined, url: fullLink };
-        await Promise.all(
-          globalChannels.map(ch =>
+        const sent = await Promise.all(
+          globalChannels.map((ch) =>
             ch.sendGlobal!(msg).catch((err: unknown) => {
-              logError(`notificationService.send admin ${ch.id} failed event=${event}: ${err instanceof Error ? err.message : err}`);
+              logError(
+                `notificationService.send admin ${ch.id} failed event=${event}: ${err instanceof Error ? err.message : err}`,
+              );
+              return false;
             }),
           ),
         );
+        delivery.attempted += sent.length;
+        delivery.delivered += sent.filter((result) => result !== false).length;
       }
     }
+    return delivery;
   }
 }
 

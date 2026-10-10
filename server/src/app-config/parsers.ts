@@ -1,7 +1,6 @@
 /**
  * Pure env-string coercion helpers shared by the whole config layer (derive.ts,
- * env.schema.ts) and — until their call sites migrate — by legacy readers like
- * src/mcp/config.ts. Kept free of imports so units can test them in isolation.
+ * env.schema.ts). Kept free of imports so units can test them in isolation.
  *
  * Each helper reproduces a coercion family that already exists in the codebase.
  * Parity is law: do NOT "fix" a family's quirks here (e.g. `numberOr` treating
@@ -102,7 +101,6 @@ export function parseDurationMs(value: string): number | null {
 /**
  * Session idle TTL in SECONDS via MCP_SESSION_TTL, default 1 hour, clamped to
  * 24h so a milliseconds-value typo can't produce a 1000-hour session.
- * (Same contract as src/mcp/config.ts, which commit 7 retires in favor of this.)
  */
 export function resolveSessionTtlMs(raw: string | undefined): number {
   const parsed = Number.parseInt(raw ?? '');
@@ -201,11 +199,57 @@ export function synchronousName(level: unknown): string {
 export function parseLinkLocalAllowList(raw: string | undefined): { ips: string[]; invalid: string[] } {
   const ips: string[] = [];
   const invalid: string[] = [];
-  for (const entry of (raw ?? '').split(',').map((e) => e.trim()).filter(Boolean)) {
+  for (const entry of (raw ?? '')
+    .split(',')
+    .map((e) => e.trim())
+    .filter(Boolean)) {
     const m = /^169\.254\.(\d{1,3})\.(\d{1,3})$/.exec(entry);
     const canonical = m !== null && [m[1], m[2]].every((o) => String(Number(o)) === o && Number(o) <= 255);
     if (canonical && m[1] !== '169' && m[1] !== '170') ips.push(entry);
     else invalid.push(entry);
   }
   return { ips, invalid };
+}
+
+// ── Web Push key material ──────────────────────────────────────────────────
+
+const BASE64URL = /^[A-Za-z0-9_-]+={0,2}$/;
+
+/**
+ * Strict base64url decode, null for anything that is not base64url. Web Push
+ * keys arrive in this alphabet from the browser and from the VAPID_* variables.
+ * Buffer.from(value, 'base64url') alone skips characters it does not know, so a
+ * mangled key would decode to fewer bytes instead of being refused, and the size
+ * checks below would then report the wrong problem.
+ */
+export function decodeBase64Url(value: string): Buffer | null {
+  const trimmed = value.trim();
+  if (!BASE64URL.test(trimmed)) return null;
+  return Buffer.from(trimmed, 'base64url');
+}
+
+/** An uncompressed P-256 point: 65 bytes, the first one 0x04 (VAPID public key, subscription p256dh). */
+export function isUncompressedP256Key(value: string): boolean {
+  const bytes = decodeBase64Url(value);
+  return bytes?.length === 65 && bytes[0] === 0x04;
+}
+
+/** A P-256 private scalar as the Web Push tools print it: 32 bytes. */
+export function isP256PrivateKey(value: string): boolean {
+  return decodeBase64Url(value)?.length === 32;
+}
+
+/**
+ * The VAPID `sub` claim (RFC 8292 section 2.1): a mailto: address or an https:
+ * URL. Apple refuses anything else, and so does this check, so a subject that
+ * boots is one every push service accepts.
+ */
+export function isVapidSubject(value: string): boolean {
+  const trimmed = value.trim();
+  if (/^mailto:[^\s@]+@[^\s@]+$/i.test(trimmed)) return true;
+  try {
+    return new URL(trimmed).protocol === 'https:';
+  } catch {
+    return false;
+  }
 }

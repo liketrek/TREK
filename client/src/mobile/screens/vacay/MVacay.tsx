@@ -10,9 +10,7 @@ import MVacayInviteSheet from './MVacayInviteSheet'
 import MVacaySettingsSheet from './MVacaySettingsSheet'
 import MVacayShareSheet from './MVacayShareSheet'
 import { FALLBACK_PERSON_COLOR } from './vacayDayModel'
-
-/** Half days (#552) make the balance fractional; one decimal is exact and never drifts. */
-const fmtDays = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
+import { fmtDays } from '../../../components/Vacay/vacayFormat'
 
 const WEEKDAY_KEYS_MONDAY = ['vacay.mon', 'vacay.tue', 'vacay.wed', 'vacay.thu', 'vacay.fri', 'vacay.sat', 'vacay.sun'] as const
 const WEEKDAY_KEYS_SUNDAY = ['vacay.sun', 'vacay.mon', 'vacay.tue', 'vacay.wed', 'vacay.thu', 'vacay.fri', 'vacay.sat'] as const
@@ -48,7 +46,7 @@ export default function MVacay() {
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809).
     <div className="relative h-dvh">
       {/* Header */}
-      <div className="absolute left-4 right-4 z-[5] flex items-center gap-2 top-[var(--m-safe-top,12px)]">
+      <div className="absolute inset-x-4 z-[5] flex items-center gap-2 top-[var(--m-safe-top,12px)]">
         <MIconBtn onClick={() => v.setSheet('invite')} ariaLabel={t('vacay.inviteUser')}>
           <UserPlus size={16} strokeWidth={2} className="text-m-muted" />
         </MIconBtn>
@@ -378,7 +376,7 @@ function MVacayIncomingInvite({ invites, onAccept, onDecline }: {
           <div className="mt-1 font-geist text-[0.75rem] text-m-muted">
             <span className="font-bold text-m-ink">{inv.owner_username}</span> {t('vacay.inviteWantsToFuse')}
           </div>
-          <div className="mt-3 flex flex-col gap-[6px] text-left">
+          <div className="mt-3 flex flex-col gap-[6px] text-start">
             <FuseInfo icon={Eye} text={t('vacay.fuseInfo1')} />
             <FuseInfo icon={Pencil} text={t('vacay.fuseInfo2')} />
             <FuseInfo icon={Trash2} text={t('vacay.fuseInfo3')} />

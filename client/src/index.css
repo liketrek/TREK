@@ -13,7 +13,7 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
    overscroll-behavior has to sit on html, because the value on body is never
    propagated to the viewport, and without it a pull at the top of the page
    reloads the installed PWA. Desktop/tablet keep the rules above. */
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-height: 500px) {
   html { overflow: visible; overscroll-behavior: none; }
   /* overflow-x clip (not hidden: clip creates no scroll container) so a screen
      that accidentally overflows sideways cannot widen the document. Android's
@@ -182,7 +182,7 @@ html:not(.dark) .atlas-tooltip::before { border-top-color: rgba(255, 255, 255, 0
 .dark .leaflet-control-zoom a:hover {
   background: rgba(30, 30, 40, 0.8) !important;
 }
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-height: 500px) {
   .leaflet-control-zoom { display: none !important; }
 }
 
@@ -266,7 +266,7 @@ html.dark .bg-slate-50\/60, html.dark [class*="bg-slate-50/"] { background-color
     /* There is no hover on touch, so these are always live — undo the base rule. */
     pointer-events: auto !important;
     align-items: center;
-    margin-left: auto;
+    margin-inline-start: auto;
   }
   .reorder-buttons button {
     background: var(--bg-tertiary) !important;
@@ -281,9 +281,13 @@ html.dark .bg-slate-50\/60, html.dark [class*="bg-slate-50/"] { background-color
 }
 
 /* Packing list rows: on phones, keep the item name readable and move the dense
-   per-item controls behind the overflow menu. */
-.packing-row-overflow {
-  display: none !important;
+   per-item controls behind the overflow menu. On a wide screen the row shows
+   them itself, so the menu leaves them out; on a phone, with no hover to bring
+   it up, the menu button stays in sight. */
+@media (min-width: 640px) {
+  .packing-menu-phone-only {
+    display: none;
+  }
 }
 @media (max-width: 639px) {
   .packing-item-row {
@@ -298,7 +302,7 @@ html.dark .bg-slate-50\/60, html.dark [class*="bg-slate-50/"] { background-color
     display: none !important;
   }
   .packing-row-overflow {
-    display: flex !important;
+    opacity: 1 !important;
   }
 }
 
@@ -555,8 +559,8 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
 @media (max-width: 639px) {
   .trek-modal-enter {
     animation: trek-drawer-enter 320ms cubic-bezier(0.32, 0.72, 0, 1);
-    border-bottom-left-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
+    border-end-start-radius: 0 !important;
+    border-end-end-radius: 0 !important;
     margin-top: auto !important;
     align-self: flex-end;
   }
@@ -812,7 +816,7 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --vg-hi: inset 0 1px 0 oklch(1 0 0 / .8);
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-height: 500px) {
   :root { --bottom-nav-h: calc(84px + env(safe-area-inset-bottom, 0px)); }
 }
 
@@ -1218,7 +1222,7 @@ body {
   background: var(--scrollbar-hover);
 }
 
-@media (max-width: 767px) {
+@media (max-width: 767px), (pointer: coarse) and (max-height: 500px) {
   * { scrollbar-width: none; }
   ::-webkit-scrollbar { width: 0; height: 0; }
 }
@@ -1396,8 +1400,11 @@ img[alt="TREK"] {
   align-items: center;
   gap: 6px;
   min-width: 0;
-  padding: 5px 8px 5px 5px;
-  border-radius: 999px;
+  padding-block: 5px;
+  padding-inline: 5px 8px;
+  /* Half the one-line height, so a one-line chip is still a pill and one whose
+     title wraps (#2550) keeps its rounded corners instead of a stadium end. */
+  border-radius: 18px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-faint);
   box-shadow: var(--shadow-sm);
@@ -1449,12 +1456,13 @@ img[alt="TREK"] {
 .collab-link-chip__main:hover .collab-link-chip__go, .collab-link-chip__main:focus-visible .collab-link-chip__go { opacity: 1; }
 .collab-link-chip__main:hover .collab-link-chip__icon > :not(.collab-link-chip__go),
 .collab-link-chip__main:focus-visible .collab-link-chip__icon > :not(.collab-link-chip__go) { opacity: 0; }
-/* Title first, host with what is left: a max-content track takes its full width
-   before the fr track sees any, and shrinks only once the title alone no longer
-   fits. Two flex items shrank together and both ended in an ellipsis. */
+/* The title is never cut (#2550): it wraps and the chip grows in height, so the
+   full name is on screen on every device, not behind a tooltip a phone has no
+   way to show. The host sits beside a title short enough to leave room and drops
+   to its own line below one that wraps; only the host is allowed an ellipsis. */
 .collab-link-chip__text {
-  display: grid;
-  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   column-gap: 6px;
   min-width: 0;
@@ -1463,11 +1471,11 @@ img[alt="TREK"] {
 .collab-link-chip__title {
   font-size: calc(12.5px * var(--fs-scale-body, 1));
   font-weight: 600;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
   min-width: 0;
+  max-width: 100%;
 }
 .collab-link-chip__host {
   font-size: calc(10.5px * var(--fs-scale-caption, 1));
@@ -1476,13 +1484,14 @@ img[alt="TREK"] {
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+  max-width: 100%;
 }
 .collab-link-chip__actions {
   display: flex;
   align-items: center;
   flex: 0 0 auto;
   gap: 1px;
-  margin-left: auto;
+  margin-inline-start: auto;
   opacity: 0.45;
   transition: opacity 0.15s ease;
 }
@@ -1510,42 +1519,50 @@ img[alt="TREK"] {
   .collab-link-chip__action { width: 30px; height: 30px; margin: -4px 0; }
 }
 
+/* The desktop's links panel is tinted like the other Collab panels, so a chip sits on
+   the card colour as a card, the way notes and polls do; the phone keeps its pill. */
+.collab-link-grid--desk .collab-link-chip {
+  padding: 8px 8px 8px 8px;
+  border-radius: 14px;
+  background: var(--bg-card);
+  box-shadow: none;
+}
+.collab-link-grid--desk .collab-link-chip:hover, .collab-link-grid--desk .collab-link-chip:focus-within {
+  transform: none;
+  box-shadow: var(--shadow-md);
+}
+.collab-link-grid--desk .collab-link-chip--pinned { background: var(--accent-subtle); }
+.collab-link-grid--desk .collab-link-chip__icon { width: 28px; height: 28px; flex-basis: 28px; border-radius: 9px; background: var(--bg-secondary); }
+
 /* Markdown in Collab Notes */
 .collab-note-md strong, .collab-note-md-full strong { font-weight: 700 !important; }
+.collab-note-md, .collab-note-md-full { overflow-wrap: anywhere; }
 .collab-note-md em, .collab-note-md-full em { font-style: italic !important; }
 .collab-note-md h1, .collab-note-md h2, .collab-note-md h3 { font-weight: 700 !important; margin: 0; }
 .collab-note-md-full h1 { font-size: 1.3em !important; font-weight: 700 !important; margin: 0.8em 0 0.3em; }
 .collab-note-md-full h2 { font-size: 1.15em !important; font-weight: 700 !important; margin: 0.8em 0 0.3em; }
 .collab-note-md-full h3 { font-size: 1em !important; font-weight: 700 !important; margin: 0.8em 0 0.3em; }
 .collab-note-md p, .collab-note-md-full p { margin: 0 0 0.3em; }
-.collab-note-md ul, .collab-note-md-full ul { list-style-type: disc !important; padding-left: 1.4em !important; margin: 0.2em 0; }
-.collab-note-md ol, .collab-note-md-full ol { list-style-type: decimal !important; padding-left: 1.4em !important; margin: 0.2em 0; }
+.collab-note-md p:last-child, .collab-note-md-full p:last-child { margin-bottom: 0; }
+.collab-note-md ul, .collab-note-md-full ul { list-style-type: disc !important; padding-inline-start: 1.4em !important; margin: 0.2em 0; }
+.collab-note-md ol, .collab-note-md-full ol { list-style-type: decimal !important; padding-inline-start: 1.4em !important; margin: 0.2em 0; }
 .collab-note-md li, .collab-note-md-full li { display: list-item !important; margin: 0.1em 0; }
-.collab-note-md code, .collab-note-md-full code { font-size: 0.9em; padding: 1px 5px; border-radius: 4px; background: var(--bg-secondary); }
+.collab-note-md code, .collab-note-md-full code { font-size: 0.9em; padding: 1px 5px; border-radius: 4px; background: var(--bg-secondary); word-break: break-all; }
 .collab-note-md-full pre { padding: 10px 12px; border-radius: 8px; background: var(--bg-secondary); overflow-x: auto; margin: 0.5em 0; }
 .collab-note-md-full pre code { padding: 0; background: none; }
-.collab-note-md a, .collab-note-md-full a { color: #3b82f6; text-decoration: underline; word-break: break-all; }
-.collab-note-md blockquote, .collab-note-md-full blockquote { border-left: 3px solid var(--border-primary); padding-left: 12px; margin: 0.5em 0; color: var(--text-muted); }
+.collab-note-md a, .collab-note-md-full a { color: #3b82f6; text-decoration: underline; word-break: normal; overflow-wrap: break-word; }
+.collab-note-md blockquote, .collab-note-md-full blockquote { border-inline-start: 3px solid var(--border-primary); padding-inline-start: 12px; margin: 0.5em 0; color: var(--text-muted); }
 .collab-note-md-full table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
 .collab-note-md-full th, .collab-note-md-full td { border: 1px solid var(--border-primary); padding: 4px 8px; font-size: 0.9em; }
 .collab-note-md-full hr { border: none; border-top: 1px solid var(--border-primary); margin: 0.8em 0; }
 
-/* Day-plan header action grid (edit / +transport / note / collapse) */
-.dp-day-actions button {
-  color: var(--text-faint);
-  background: transparent;
-  transition: background-color 0.12s ease, color 0.12s ease;
-}
-.dp-day-actions button:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-/* Reveal the action grid only when hovering the day row (pointer devices).
-   Touch devices (hover: none) keep it visible; the selected day stays visible too. */
+/* The day head's "+" (place, transport, transit, note): shown while the head is
+   hovered, focused or the day is open. Touch devices (hover: none) keep it visible. */
 @media (hover: hover) {
-  .dp-day-actions { opacity: 0; transition: opacity 0.12s ease; }
-  .dp-day-header:hover .dp-day-actions,
-  .dp-day-header[data-selected="true"] .dp-day-actions { opacity: 1; }
+  .dp-day-tools { opacity: 0; transition: opacity 0.12s ease; }
+  .dp-day-header:hover .dp-day-tools,
+  .dp-day-header:focus-within .dp-day-tools,
+  .dp-day-header[data-selected="true"] .dp-day-tools { opacity: 1; }
 }
 
 /* Planner rows a finger can pick up (#1616). A long press is what arms the drag,

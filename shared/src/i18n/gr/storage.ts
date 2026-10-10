@@ -117,7 +117,8 @@ const storage: TranslationStrings = {
   'storage.sync.error': 'Ο συγχρονισμός απέτυχε: {error}',
   'storage.sync.prompt': 'Τα υπάρχοντα αντικείμενα δεν έχουν αναπαραχθεί ακόμα — συγχρονισμός τώρα;',
   'storage.sync.dismiss': 'Απόρριψη',
-  'storage.usage.line': '{objects} αντικείμενα · {size}',
+  'storage.usage.line': '{count} αντικείμενα · {size}',
+  'storage.usage.line.one': '{count} αντικείμενο · {size}',
   'storage.usage.computed': 'Η χρήση υπολογίστηκε {age}',
   'storage.usage.never': 'Η χρήση δεν έχει υπολογιστεί ακόμα',
   'storage.usage.refresh': 'Ανανέωση',
@@ -126,7 +127,8 @@ const storage: TranslationStrings = {
 
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': 'Μετακίνηση των υπαρχόντων αντικειμένων στο νέο backend;',
-  'storage.migrate.promptLine': '{category}: {objects} αντικείμενα ({size}) από {from} σε {to}',
+  'storage.migrate.promptLine': '{category}: {count} αντικείμενα ({size}) από {from} σε {to}',
+  'storage.migrate.promptLine.one': '{category}: {count} αντικείμενο ({size}) από {from} σε {to}',
   'storage.migrate.promptLineUnknown':
     '{category}: άγνωστο μέγεθος (δεν έχει γίνει ακόμα σάρωση χρήσης) από {from} σε {to}',
   'storage.migrate.move': 'Μετακίνηση υπαρχόντων αντικειμένων',
@@ -136,10 +138,12 @@ const storage: TranslationStrings = {
   'storage.migrate.doneFailures': '{failed} απέτυχαν — αυτά τα αντικείμενα δεν αντιγράφηκαν στο νέο backend',
   'storage.migrate.failed': 'Η μετακίνηση απέτυχε: {error} — η κατηγορία δεν άλλαξε',
   'storage.migrate.cancelled': 'Η μετακίνηση ακυρώθηκε — τίποτα δεν άλλαξε',
-  'storage.migrate.reclaimable': '{objects} αντικείμενα ({size}) παραμένουν στο {from} — ανάκτησέ τα χειροκίνητα',
+  'storage.migrate.reclaimable': '{count} αντικείμενα ({size}) παραμένουν στο {from}, ανάκτησέ τα χειροκίνητα',
+  'storage.migrate.reclaimable.one': '{count} αντικείμενο ({size}) παραμένει στο {from}, ανάκτησέ το χειροκίνητα',
   'storage.migrate.cancel': 'Ακύρωση μετακίνησης',
   'storage.migrate.promptCancel': 'Ακύρωση',
   'storage.migrate.queued': 'Σε αναμονή: {categories}',
-  'storage.migrate.queueDropped': 'Δεν ήταν δυνατή η έναρξη της επόμενης μετακίνησης — η υπόλοιπη ουρά διαγράφηκε: {categories}',
+  'storage.migrate.queueDropped':
+    'Δεν ήταν δυνατή η έναρξη της επόμενης μετακίνησης — η υπόλοιπη ουρά διαγράφηκε: {categories}',
 };
 export default storage;

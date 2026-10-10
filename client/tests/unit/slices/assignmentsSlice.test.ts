@@ -247,15 +247,19 @@ describe('assignmentsSlice', () => {
     });
 
     it('FE-ASSIGN-004b: removeAssignment success removes from store', async () => {
-      const place = buildPlace({ id: 10, trip_id: 1 });
+      const place = buildPlace({ id: 10, trip_id: 1, tour_place_id: 10, route_geometry: '[[1,2],[3,4]]' });
       const assignment = buildAssignment({ id: 100, day_id: 1, place });
+      const otherDayAssignment = buildAssignment({ id: 101, day_id: 2, place });
       seedStore(useTripStore, {
-        assignments: { '1': [assignment] },
+        places: [place],
+        assignments: { '1': [assignment], '2': [otherDayAssignment] },
       });
 
       await useTripStore.getState().removeAssignment(1, 1, 100);
 
       expect(useTripStore.getState().assignments['1']).toHaveLength(0);
+      expect(useTripStore.getState().places).toContainEqual(expect.objectContaining({ id: place.id, route_geometry: place.route_geometry }));
+      expect(useTripStore.getState().assignments['2']).toEqual([otherDayAssignment]);
     });
   });
 
@@ -420,6 +424,46 @@ describe('assignmentsSlice', () => {
 
       expect(useTripStore.getState().assignments['2'].map(a => a.id)).toEqual([50]);
       expect(reorderCalls).toBe(0);
+    });
+  });
+
+  describe('setAssignmentNotes', () => {
+    const visit = () => buildAssignment({ id: 5, day_id: 1, place_id: 10, notes: 'old', assignment_time: '09:00' });
+
+    it('FE-ASSIGN-030: shows the note at once and keeps the one the server saved', async () => {
+      seedStore(useTripStore, { assignments: { '1': [visit()] } });
+      let seen: unknown;
+      server.use(
+        http.put('/api/trips/1/assignments/5/notes', async ({ request }) => {
+          seen = await request.json();
+          expect(useTripStore.getState().assignments['1'][0].notes).toBe('Bring cash');
+          return HttpResponse.json({ assignment: { ...visit(), notes: 'Bring cash' } });
+        }),
+      );
+
+      await useTripStore.getState().setAssignmentNotes(1, 1, 5, 'Bring cash');
+
+      expect(seen).toEqual({ notes: 'Bring cash' });
+      expect(useTripStore.getState().assignments['1'][0]).toMatchObject({ notes: 'Bring cash', assignment_time: '09:00' });
+    });
+
+    it('FE-ASSIGN-031: a refused write puts the old note back', async () => {
+      seedStore(useTripStore, { assignments: { '1': [visit()] } });
+      server.use(http.put('/api/trips/1/assignments/5/notes', () => HttpResponse.json({ error: 'no' }, { status: 403 })));
+
+      await expect(useTripStore.getState().setAssignmentNotes(1, 1, 5, null)).rejects.toBeTruthy();
+
+      expect(useTripStore.getState().assignments['1'][0].notes).toBe('old');
+    });
+
+    it('FE-ASSIGN-032: a visit it cannot find, or one not yet saved, is left alone', async () => {
+      const unsaved = { ...visit(), id: -3 };
+      seedStore(useTripStore, { assignments: { '1': [unsaved] } });
+
+      await useTripStore.getState().setAssignmentNotes(1, 1, 5, 'x');
+      await useTripStore.getState().setAssignmentNotes(1, 1, -3, 'x');
+
+      expect(useTripStore.getState().assignments['1'][0]).toEqual(unsaved);
     });
   });
 

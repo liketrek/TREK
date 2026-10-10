@@ -16,7 +16,7 @@ const memories: TranslationStrings = {
   'memories.sharing': 'Chia sẻ',
   'memories.reviewTitle': 'Xem lại ảnh của bạn',
   'memories.reviewHint': 'Nhấp vào ảnh để loại trừ chúng khỏi việc chia sẻ.',
-  'memories.shareCount': 'Chia sẻ ảnh {count}',
+  'memories.shareCount': 'Chia sẻ {count} ảnh',
   'memories.providerUrl': 'Máy chủ URL',
   'memories.providerApiKey': 'API Chìa khóa',
   'memories.providerUsername': 'Tên người dùng',

@@ -1,6 +1,8 @@
 import React, { ReactNode, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { lockBodyScroll } from '../../utils/bodyScrollLock'
+import { useTranslation } from '../../i18n'
+import { useDiscardGuard } from '../../components/shared/useDiscardGuard'
 
 export type MSheetVariant = 'card' | 'bottom' | 'drawer'
 export type MSheetMaterial = 'glass' | 'bar-glass' | 'opaque'
@@ -20,16 +22,24 @@ interface MSheetProps {
   ariaLabel?: string
   className?: string
   children?: ReactNode
+  /**
+   * The form's state, for the unsaved-changes question the desktop dialogs ask
+   * (#2253): a flick of the handle, a tap on the scrim or Escape asks before
+   * throwing away a state that differs from the one at the first touch.
+   */
+  discardGuard?: unknown
 }
 
 const EXIT_MS = 280
+
+const DISCARD_BUTTON = 'rounded-full bg-danger px-4 py-2 text-body font-semibold text-white' // theme-lint-disable: white on the danger fill, as ConfirmDialog draws it
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 const POSITION: Record<MSheetVariant, string> = {
-  card: 'absolute left-[14px] right-[14px] top-1/2 -translate-y-1/2',
-  bottom: 'absolute left-4 right-4 bottom-[calc(var(--bottom-nav-h,84px)+16px)]',
+  card: 'absolute inset-x-[14px] top-1/2 -translate-y-1/2',
+  bottom: 'absolute inset-x-4 bottom-[calc(var(--bottom-nav-h,84px)+16px)]',
   drawer: 'absolute left-0 top-0 bottom-0 w-[78%] max-w-[320px]',
 }
 
@@ -69,7 +79,10 @@ export default function MSheet({
   ariaLabel,
   className = '',
   children,
+  discardGuard,
 }: MSheetProps) {
+  const { t } = useTranslation()
+  const { asking, markStart, requestClose, keepEditing, discard, reset } = useDiscardGuard(discardGuard, onClose)
   const [rendered, setRendered] = useState(open)
   // Once the enter animation has played it is removed again: its forwards
   // fill would otherwise override the inline drag transform for good.
@@ -86,9 +99,11 @@ export default function MSheet({
     }
     setEntered(false)
     setDragY(null)
+    // The sheet stays mounted between openings; the next one starts afresh.
+    reset()
     const t = setTimeout(() => setRendered(false), EXIT_MS)
     return () => clearTimeout(t)
-  }, [open])
+  }, [open, reset])
 
   // Escape belongs to the sheet on top only: a question opened over another
   // sheet closes alone, and the sheet under it stays open with whatever was
@@ -99,11 +114,13 @@ export default function MSheet({
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       const openPanels = document.querySelectorAll('[data-m-sheet="open"]')
-      if (openPanels[openPanels.length - 1] === panelRef.current) onClose()
+      if (openPanels[openPanels.length - 1] !== panelRef.current) return
+      if (asking) keepEditing()
+      else requestClose()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  }, [open, asking, keepEditing, requestClose])
 
   useEffect(() => {
     if (!open) return
@@ -143,7 +160,7 @@ export default function MSheet({
     const dy = Math.max(0, d.lastY - d.startY)
     setDragY(null)
     // Past 30% of the panel or a decisive flick → dismiss.
-    if ((height > 0 && dy > height * 0.3) || d.velocity > 0.6) onClose()
+    if ((height > 0 && dy > height * 0.3) || d.velocity > 0.6) requestClose()
   }
 
   // Keep Tab inside the dialog while it is open.
@@ -189,7 +206,7 @@ export default function MSheet({
       className={`m-root fixed inset-0 z-[60] ${dimTransparent ? 'bg-transparent' : `bg-[color:var(--m-dim)] ${open ? 'm-fade-in' : 'm-fade-out'}`}`}
       role="presentation"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
+        if (e.target === e.currentTarget) requestClose()
       }}
     >
       <div className={POSITION[variant]}>
@@ -204,6 +221,8 @@ export default function MSheet({
           style={variant === 'bottom' ? dragStyle : undefined}
           onClick={(e) => e.stopPropagation()}
           onKeyDown={handleKeyDown}
+          onKeyDownCapture={markStart}
+          onPointerDownCapture={markStart}
           onAnimationEnd={(e) => {
             if (e.target === e.currentTarget && open) setEntered(true)
           }}
@@ -220,6 +239,22 @@ export default function MSheet({
             />
           )}
           {children}
+          {asking && (
+            <div className="absolute inset-0 z-10 grid place-items-center bg-[color:var(--m-dim)] p-5 backdrop-blur-[2px]">
+              <div role="alertdialog" aria-label={t('common.unsavedTitle')} className="w-full max-w-[320px] rounded-[22px] border border-[color:var(--m-shbr)] bg-[color:var(--m-sheetop)] p-5">
+                <div className="text-subtitle font-semibold text-m-ink">{t('common.unsavedTitle')}</div>
+                <p className="m-0 mt-1.5 text-body text-m-muted">{t('common.unsavedMessage')}</p>
+                <div className="mt-4 flex justify-end gap-2">
+                  <button type="button" autoFocus onClick={keepEditing} className="rounded-full border border-[color:var(--m-shbr)] px-4 py-2 text-body font-semibold text-m-ink">
+                    {t('common.keepEditing')}
+                  </button>
+                  <button type="button" onClick={discard} className={DISCARD_BUTTON}>
+                    {t('common.discard')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>,

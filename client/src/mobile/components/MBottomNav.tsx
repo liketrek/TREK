@@ -1,74 +1,15 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useLocation, useMatch } from 'react-router'
+import { useNavigate, useLocation } from 'react-router'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
-import { useJourneyStore } from '../../store/journeyStore'
 import { ChevronRight, MoreHorizontal, Plus, Search, Upload } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { normalizeAppearance } from '@trek/shared'
 import { useNavItems, splitMobileNav } from '../../components/Layout/navItems'
+import { isNavItemActive, useCreateAction } from '../../components/Layout/useCreateAction'
 import MFab from './MFab'
 
 interface NavItem { to: string; label: string; icon: LucideIcon }
-
-// The centre "+" means something different per context: inside a trip it adds a
-// place, on the journey list it starts a journey (deliberate deviation from the
-// demo, which reserves the FAB for entries — the list has no journey to add
-// into yet), inside a journey it adds an entry, on the atlas it opens the
-// country search, on collections it adds a place to the active list —
-// everywhere else it creates a new trip. Pages pick the intent up from the
-// query params. The result is unused on /vacay: that screen draws its own centre
-// FAB, so the dock yields the slot instead (see screenFabSlot below, #1811).
-function useCreateAction(): { label: string; run: () => void; upload?: boolean } {
-  const navigate = useNavigate()
-  const { t } = useTranslation()
-  const galleryOpen = useJourneyStore(state => state.mobileGalleryOpen)
-  const inTrip = useMatch('/trips/:id')
-  const inJourney = useMatch('/journey/:id')
-  const onJourneyList = useMatch('/journey')
-  const onAtlas = useMatch('/atlas')
-  const onCollections = useMatch('/collections')
-  const inCollection = useMatch('/collections/:id')
-
-  if (inTrip) {
-    // The "+" is context-aware per active tab: Bookings → reservation,
-    // Transports → transport, Costs → expense. Tabs without a create modal
-    // (lists / files / collab) fall through to adding a place. #1349
-    const id = inTrip.params.id
-    const tripTab = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`trip-tab-${id}`) : null
-    if (tripTab === 'finanzplan') return { label: t('costs.addExpense'), run: () => navigate(`/trips/${id}?create=expense`) }
-    if (tripTab === 'buchungen') return { label: t('reservations.addManual'), run: () => navigate(`/trips/${id}?create=reservation`) }
-    if (tripTab === 'transports') return { label: t('transport.addManual'), run: () => navigate(`/trips/${id}?create=transport`) }
-    return { label: t('places.addPlace'), run: () => navigate(`/trips/${id}?create=place`) }
-  }
-  if (inJourney) {
-    // Context-aware per tab, like the trip's "+": the Gallery holds photos, so
-    // there the one big action is uploading one. Read from sessionStorage
-    // because the tab is the screen's own state and the dock is a sibling —
-    // exactly how the trip tabs hand theirs over.
-    const journeyId = inJourney.params.id
-    if (galleryOpen) {
-      return { label: t('common.upload'), run: () => navigate(`/journey/${journeyId}?create=photo`), upload: true }
-    }
-    return { label: t('journey.detail.addEntry'), run: () => navigate(`/journey/${journeyId}?create=entry`) }
-  }
-  if (onJourneyList) {
-    return { label: t('journey.new'), run: () => navigate('/journey?create=1') }
-  }
-  if (onAtlas) {
-    return { label: t('atlas.searchCountry'), run: () => navigate('/atlas?search=1') }
-  }
-  if (onCollections || inCollection) {
-    // Picking a list moves the route to /collections/:id, so the exact match
-    // alone dropped the "+" through to creating a trip — the one state the
-    // screen is normally used in (#1930). The handoff keeps the id, otherwise
-    // adding would land on "All saved" and the sheet would ask for the list the
-    // user is already looking at.
-    const path = inCollection ? `/collections/${inCollection.params.id}` : '/collections'
-    return { label: t('collections.addPlace'), run: () => navigate(`${path}?create=place`) }
-  }
-  return { label: t('dashboard.newTrip'), run: () => navigate('/dashboard?create=1') }
-}
 
 /**
  * Floating glass dock of the mobile shell. Same tab/gating/"+" logic as the
@@ -81,7 +22,9 @@ export default function MBottomNav() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
-  const create = useCreateAction()
+  // The "+" result is unused on /vacay: that screen draws its own centre FAB, so
+  // the dock yields the slot instead (see screenFabSlot below, #1811).
+  const create = useCreateAction(true)
   const [moreOpen, setMoreOpen] = useState(false)
 
   // Close the popover when the route changes underneath it (browser back etc.).
@@ -97,8 +40,7 @@ export default function MBottomNav() {
   const dockItems: NavItem[] = split.bar
   const moreItems: NavItem[] = split.more
 
-  const isActive = (to: string) =>
-    to === '/dashboard' ? location.pathname === '/dashboard' : location.pathname.startsWith(to)
+  const isActive = (to: string) => isNavItemActive(location.pathname, to)
   const moreActive = moreItems.some(item => isActive(item.to))
 
   // The FAB gives way to a decorative logo slot on screens without an add
@@ -148,7 +90,7 @@ export default function MBottomNav() {
         // Invisible scrim (the popover sits on the UI without dimming it).
         <div className="fixed inset-0 z-[60]" role="presentation" onClick={() => setMoreOpen(false)}>
           <div
-            className="absolute left-4 right-4 flex flex-col gap-2 rounded-[26px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[10px] shadow-[0_-8px_40px_-14px_rgba(0,0,0,.45)] backdrop-blur-[30px] backdrop-saturate-[1.8] bottom-[calc(env(safe-area-inset-bottom,0px)+86px)]"
+            className="absolute inset-x-4 flex flex-col gap-2 rounded-[26px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] p-[10px] shadow-[0_-8px_40px_-14px_rgba(0,0,0,.45)] backdrop-blur-[30px] backdrop-saturate-[1.8] bottom-[calc(env(safe-area-inset-bottom,0px)+86px)]"
             role="presentation"
             onClick={e => e.stopPropagation()}
           >
@@ -157,7 +99,7 @@ export default function MBottomNav() {
                 key={to}
                 type="button"
                 onClick={() => { setMoreOpen(false); navigate(to) }}
-                className="flex items-center gap-[13px] rounded-[18px] bg-[color:var(--m-ic)] px-4 py-[14px] text-left"
+                className="flex items-center gap-[13px] rounded-[18px] bg-[color:var(--m-ic)] px-4 py-[14px] text-start"
               >
                 <span className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-[color:var(--m-ic)] text-m-ink">
                   <Icon size={20} strokeWidth={2} />
@@ -170,7 +112,7 @@ export default function MBottomNav() {
         </div>
       )}
 
-      <nav className="fixed left-4 right-4 z-40 flex h-[62px] items-center rounded-[31px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-3 shadow-[0_16px_44px_-14px_rgba(0,0,0,.35)] backdrop-blur-[30px] backdrop-saturate-[1.8] bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]">
+      <nav className="fixed inset-x-4 z-40 flex h-[62px] items-center rounded-[31px] border border-[color:var(--m-gbr)] bg-[color:var(--m-glass)] px-3 shadow-[0_16px_44px_-14px_rgba(0,0,0,.35)] backdrop-blur-[30px] backdrop-saturate-[1.8] bottom-[calc(env(safe-area-inset-bottom,0px)+12px)]">
         <div className="flex min-w-0 flex-1 items-center justify-around">{left.map(renderItem)}</div>
 
         {logoSlot ? (

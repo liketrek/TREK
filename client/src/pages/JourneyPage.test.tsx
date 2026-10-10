@@ -1,7 +1,7 @@
 // FE-PAGE-JOURNEY-001 to FE-PAGE-JOURNEY-010
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React from 'react';
-import { render, screen, waitFor } from '../../tests/helpers/render';
+import { render, screen, waitFor, within } from '../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
@@ -340,14 +340,9 @@ describe('JourneyPage', () => {
     });
     await user.click(screen.getByText('Thailand 2026'));
 
-    // The modal footer has a Create/Create Journey button — find it by its disabled-capable parent
-    // The footer buttons live inside the border-t div at the bottom of the modal
-    const footerDiv = document.querySelector('.border-t.border-zinc-200');
-    const footerButtons = footerDiv?.querySelectorAll('button');
-    // The last button in the footer is the submit button
-    const submitBtn = footerButtons ? footerButtons[footerButtons.length - 1] : null;
-    expect(submitBtn).toBeTruthy();
-    await user.click(submitBtn!);
+    // The dialog's own Create Journey button, not the page's buttons of the same name.
+    const submitBtn = within(screen.getByRole('dialog')).getByRole('button', { name: 'Create Journey' });
+    await user.click(submitBtn);
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/journey/99');

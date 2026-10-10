@@ -3,20 +3,9 @@ import type { FileManagerState } from './useFileManager'
 import { FileRow } from './FileManagerRow'
 
 export function TrashView(S: FileManagerState) {
-  const { trashFiles, can, trip, handleEmptyTrash, loadingTrash, t } = S
+  const { trashFiles, loadingTrash, t } = S
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 16px' }}>
-      {trashFiles.length > 0 && can('file_delete', trip) && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-          <button type="button" onClick={handleEmptyTrash} style={{
-            padding: '5px 12px', borderRadius: 8, border: '1px solid #fecaca',
-            background: '#fef2f2', color: '#dc2626', fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>
-            {t('files.emptyTrash') || 'Empty Trash'}
-          </button>
-        </div>
-      )}
+    <div className="flex-1 overflow-y-auto px-7 pb-4 pt-4 max-md:px-4">
       {loadingTrash ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-faint)' }}>
           <div style={{ width: 20, height: 20, border: '2px solid var(--text-faint)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />

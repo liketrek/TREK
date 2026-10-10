@@ -1,4 +1,5 @@
 import type { NotificationLocale } from '../externalNotifications/types';
+import { pluralForm } from '../plural';
 
 const de: NotificationLocale = {
   email: {
@@ -37,8 +38,11 @@ const de: NotificationLocale = {
       body: `${p.actor} hat dich eingeladen, eine Sammlung zu teilen. Öffne TREK um anzunehmen oder abzulehnen.`,
     }),
     photos_shared: (p) => ({
-      title: `${p.count} Fotos geteilt`,
-      body: `${p.actor} hat ${p.count} Foto(s) in "${p.trip}" geteilt.`,
+      title: pluralForm(p.count, 'de', { one: `${p.count} Foto geteilt`, other: `${p.count} Fotos geteilt` }),
+      body: pluralForm(p.count, 'de', {
+        one: `${p.actor} hat ${p.count} Foto in "${p.trip}" geteilt.`,
+        other: `${p.actor} hat ${p.count} Fotos in "${p.trip}" geteilt.`,
+      }),
     }),
     collab_message: (p) => ({
       title: `Neue Nachricht in "${p.trip}"`,
@@ -57,7 +61,10 @@ const de: NotificationLocale = {
       body:
         `Schreibvorgang auf Replik '${p.backend}' fehlgeschlagen: ${p.op} von ${p.key} — ${p.error}.` +
         (p.suppressed !== '0'
-          ? ` Seit der letzten Benachrichtigung wurden ${p.suppressed} weitere Fehler unterdrückt.`
+          ? pluralForm(p.suppressed, 'de', {
+              one: ` Seit der letzten Benachrichtigung wurde ${p.suppressed} weiterer Fehler unterdrückt.`,
+              other: ` Seit der letzten Benachrichtigung wurden ${p.suppressed} weitere Fehler unterdrückt.`,
+            })
           : ''),
     }),
     synology_session_cleared: () => ({

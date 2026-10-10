@@ -18,10 +18,11 @@ concurrency:
 jobs:
   deploy:
     if: github.repository == 'liketrek/TREK'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Publish to GitHub wiki
-        uses: Andrew-Chen-Wang/github-wiki-action@v5
+        uses: Andrew-Chen-Wang/github-wiki-action@1bbb4280446f9630e8e21a18012cbacf3b0f992e # v5.0.6
         with:
           strategy: clone

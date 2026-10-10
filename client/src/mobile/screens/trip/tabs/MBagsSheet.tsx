@@ -6,8 +6,9 @@ import { FIELD_CLS, FormSheetHeader } from '../sheets/PlSheetChrome'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import type { PackingBag, PackingItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
-import { formatWeight } from './listsModel'
-import { bagFillPct, bagTotalWeight, countsTowardsMyLoad, unassignedTotalWeight } from '../../../../components/Packing/packingListPanel.helpers'
+import { formatWeight } from '../../../../components/Packing/packingListModel'
+import { bagFillPct, bagLoadSummary } from '../../../../components/Packing/packingListPanel.helpers'
+import { useBagCardEditor } from '../../../../components/Packing/useBagCardEditor'
 
 export interface MBagsSheetProps {
   planner: TripPlanner
@@ -42,16 +43,10 @@ export default function MBagsSheet({
   const [newBagName, setNewBagName] = useState('')
 
   // The ITEM LISTS still describe what you are carrying — an item someone shared
-  // with you stays in your list, but they are the one bringing it (#1767).
-  const myItems = items.filter(i => countsTowardsMyLoad(i, currentUserId))
-  // The WEIGHTS no longer do: a bag's load is the bag's, whoever packed it (#2191).
-  const bagWeightOf = (bag: PackingBag) =>
-    bagTotalWeight(bag, myItems.filter(i => i.bag_id === bag.id), serverWeightsFresh)
-  const unassigned = myItems.filter(i => !i.bag_id)
-  const unassignedWeight = unassignedTotalWeight(unassignedWeightGrams, unassigned, serverWeightsFresh)
-  const totalWeight = bags.reduce((s, b) => s + bagWeightOf(b), 0) + unassignedWeight
-  // Reference for bags without a limit of their own — computed once instead of per bag.
-  const heaviestBagWeight = Math.max(...bags.map(bagWeightOf), 1)
+  // with you stays in your list, but they are the one bringing it (#1767). The
+  // WEIGHTS no longer do: a bag's load is the bag's, whoever packed it (#2191).
+  const { bagItemsOf, bagWeightOf, heaviestBagWeight, unassigned, unassignedWeight, totalWeight } =
+    bagLoadSummary(bags, items, currentUserId, unassignedWeightGrams, serverWeightsFresh)
 
   const submitNewBag = () => {
     if (!newBagName.trim()) return
@@ -66,7 +61,7 @@ export default function MBagsSheet({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-[6px] pt-1">
         {bags.map(bag => {
-          const bagItems = myItems.filter(i => i.bag_id === bag.id)
+          const bagItems = bagItemsOf(bag)
           const bagWeight = bagWeightOf(bag)
           const pct = bagFillPct(bagWeight, bag.weight_limit_grams, heaviestBagWeight)
           return (
@@ -95,7 +90,7 @@ export default function MBagsSheet({
               <span className="font-geist text-[0.71875rem] text-m-faint">{formatWeight(unassignedWeight)}</span>
             </div>
             <div className="font-geist text-[0.65625rem] text-m-faint">
-              {unassigned.length} {t('admin.packingTemplates.items')}
+              {unassigned.length} {t('admin.packingTemplates.items', { count: unassigned.length })}
             </div>
           </div>
         )}
@@ -159,37 +154,11 @@ function BagRow({ planner, bag, itemCount, weight, pct, tripMembers, canEdit, on
   onSetMembers: (userIds: number[]) => void
 }) {
   const { t } = planner
-  const [editingName, setEditingName] = useState(false)
-  const [nameVal, setNameVal] = useState(bag.name)
   const [showPicker, setShowPicker] = useState(false)
-
-  const memberIds = (bag.members || []).map(m => m.user_id)
-  const toggleMember = (userId: number) => onSetMembers(memberIds.includes(userId) ? memberIds.filter(id => id !== userId) : [...memberIds, userId])
-
-  const saveName = () => {
-    const trimmed = nameVal.trim()
-    if (trimmed && trimmed !== bag.name) onUpdate({ name: trimmed })
-    else setNameVal(bag.name)
-    setEditingName(false)
-  }
-
-  // Limits are entered in kg — that is how airlines state them — and stored in grams.
-  const limitToInput = (grams?: number | null) => (grams ? String(grams / 1000) : '')
-  const [editingLimit, setEditingLimit] = useState(false)
-  const [limitVal, setLimitVal] = useState(limitToInput(bag.weight_limit_grams))
-
-  const saveLimit = () => {
-    setEditingLimit(false)
-    const raw = limitVal.trim().replace(',', '.')
-    if (raw === '') {
-      if (bag.weight_limit_grams != null) onUpdate({ weight_limit_grams: null })
-      return
-    }
-    const kg = Number(raw)
-    if (!Number.isFinite(kg) || kg <= 0) { setLimitVal(limitToInput(bag.weight_limit_grams)); return }
-    const grams = Math.round(kg * 1000)
-    if (grams !== bag.weight_limit_grams) onUpdate({ weight_limit_grams: grams })
-  }
+  const {
+    editingName, setEditingName, nameVal, setNameVal, saveName, cancelName,
+    editingLimit, setEditingLimit, limitVal, setLimitVal, saveLimit, cancelLimit, memberIds, toggleMember,
+  } = useBagCardEditor({ bag, onUpdate, onSetMembers, resetUnsavedName: true })
 
   return (
     <div className="mb-4">
@@ -202,11 +171,11 @@ function BagRow({ planner, bag, itemCount, weight, pct, tripMembers, canEdit, on
             value={nameVal}
             onChange={e => setNameVal(e.target.value)}
             onBlur={saveName}
-            onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') { setEditingName(false); setNameVal(bag.name) } }}
+            onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') cancelName() }}
             className="min-w-0 flex-1 border-b border-[color:var(--m-rowbr)] bg-transparent text-[0.8125rem] font-semibold text-m-ink outline-none"
           />
         ) : (
-          <button type="button" onClick={() => canEdit && setEditingName(true)} className="min-w-0 flex-1 truncate text-left text-[0.8125rem] font-semibold text-m-ink">
+          <button type="button" onClick={() => canEdit && setEditingName(true)} className="min-w-0 flex-1 truncate text-start text-[0.8125rem] font-semibold text-m-ink">
             {bag.name}
           </button>
         )}
@@ -223,8 +192,8 @@ function BagRow({ planner, bag, itemCount, weight, pct, tripMembers, canEdit, on
                 aria-label={t('packing.bagLimit')}
                 onChange={e => setLimitVal(e.target.value)}
                 onBlur={saveLimit}
-                onKeyDown={e => { if (e.key === 'Enter') saveLimit(); if (e.key === 'Escape') { setLimitVal(limitToInput(bag.weight_limit_grams)); setEditingLimit(false) } }}
-                className="w-9 border-b border-[color:var(--m-rowbr)] bg-transparent text-right text-m-ink outline-none"
+                onKeyDown={e => { if (e.key === 'Enter') saveLimit(); if (e.key === 'Escape') cancelLimit() }}
+                className="w-9 border-b border-[color:var(--m-rowbr)] bg-transparent text-end text-m-ink outline-none"
               />
               <span>kg</span>
             </>
@@ -278,7 +247,7 @@ function BagRow({ planner, bag, itemCount, weight, pct, tripMembers, canEdit, on
           </button>
         )}
         {showPicker && (
-          <div className="absolute left-0 top-[26px] z-[5] max-h-[180px] w-[190px] overflow-y-auto rounded-[12px] border border-[color:var(--m-rowbr)] bg-m-sheetop p-1 shadow-[0_16px_40px_-16px_rgba(0,0,0,.45)]">
+          <div className="absolute start-0 top-[26px] z-[5] max-h-[180px] w-[190px] overflow-y-auto rounded-[12px] border border-[color:var(--m-rowbr)] bg-m-sheetop p-1 shadow-[0_16px_40px_-16px_rgba(0,0,0,.45)]">
             {tripMembers.length === 0 && (
               <div className="px-[10px] py-2 font-geist text-[0.6875rem] text-m-faint">{t('packing.noMembers')}</div>
             )}
@@ -290,7 +259,7 @@ function BagRow({ planner, bag, itemCount, weight, pct, tripMembers, canEdit, on
                   key={m.id}
                   type="button"
                   onClick={() => toggleMember(m.id)}
-                  className="flex w-full items-center gap-[8px] rounded-[8px] px-[8px] py-[6px] text-left"
+                  className="flex w-full items-center gap-[8px] rounded-[8px] px-[8px] py-[6px] text-start"
                 >
                   <span className="flex h-5 w-5 flex-none items-center justify-center overflow-hidden rounded-full bg-[color:var(--m-ic)] text-[0.5625rem] font-bold text-m-muted">
                     {src ? <img src={src} alt="" className="h-full w-full object-cover" /> : m.username[0]?.toUpperCase()}
@@ -307,7 +276,7 @@ function BagRow({ planner, bag, itemCount, weight, pct, tripMembers, canEdit, on
       <div className="h-[7px] overflow-hidden rounded-full bg-[color:var(--m-ic)]">
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: bag.color }} />
       </div>
-      <div className="mt-[3px] font-geist text-[0.65625rem] text-m-faint">{itemCount} {t('admin.packingTemplates.items')}</div>
+      <div className="mt-[3px] font-geist text-[0.65625rem] text-m-faint">{itemCount} {t('admin.packingTemplates.items', { count: itemCount })}</div>
     </div>
   )
 }

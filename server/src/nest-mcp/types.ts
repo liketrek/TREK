@@ -1,4 +1,5 @@
 import type { Scope, ScopeGroup } from '../mcp/scopes';
+import type { InjectionToken, ModuleMetadata } from '@nestjs/common';
 
 import type { ZodRawShape, ZodType } from 'zod';
 
@@ -103,7 +104,7 @@ interface McpEntryOptionsBase {
    * so a predicate written against its own controller class stays assignable
    * here. The registry always passes the instance that declared the entry.
    */
-  when?(ctx: McpContext, self: object): boolean;
+  when?(ctx: McpContext, self: object): boolean | Promise<boolean>;
   /** Omitted ⇒ the entry is always registered (subject to `when`). */
   access?: McpAccess;
 }
@@ -181,6 +182,15 @@ export interface McpAttachOptions {
    */
   onInvoke?: (info: { kind: McpEntryKind; name: string }) => void;
   /**
+   * Wraps every attached handler call: `call` runs the handler, and what the
+   * wrapper returns is what the SDK receives. This is the host's tracing seam
+   * (a correlation id and one log line per call); nest-mcp attaches no
+   * semantics to it. Unlike `onInvoke` it sees the outcome. Contract: the
+   * wrapper calls `call` exactly once and passes its result or its error on
+   * unchanged.
+   */
+  around?: (info: { kind: McpEntryKind; name: string }, call: () => unknown) => unknown;
+  /**
    * Extra tools contributed for THIS session only, on top of the decorated
    * ones. Consulted once per `attach()`, after every registered entry.
    *
@@ -221,7 +231,7 @@ export interface McpDynamicTool {
  * creation. A source that needs to ask something slow what tools exist should
  * answer from state it already holds.
  */
-export type McpDynamicToolSource = (ctx: McpContext) => readonly McpDynamicTool[];
+export type McpDynamicToolSource = (ctx: McpContext) => readonly McpDynamicTool[] | Promise<readonly McpDynamicTool[]>;
 
 export type McpEntry =
   | { kind: 'tool'; methodName: string; options: ToolOptions }
@@ -245,10 +255,52 @@ export interface McpRegistryListing {
  */
 export type McpAccessValidator = (access: McpDeclarativeAccess, entry: McpRegistryListing) => string | null | undefined;
 
+/**
+ * Host-supplied check run before every registered tool handler, after the
+ * SDK validated the arguments and inside the `around` wrapper. Return a result
+ * to answer the call with it instead of running the handler, or undefined to
+ * let the handler run. The package attaches no meaning to it; TREK's demo-mode
+ * write block lives in `src/mcp/nest-mcp-policy.ts`.
+ *
+ * Registered entries only: a dynamic tool's source owns its own checks,
+ * because the host cannot know what a contributor's annotations promise.
+ */
+export type McpToolGate = (tool: ToolOptions, ctx: McpContext) => unknown;
+
+/**
+ * Host-supplied translation of an error a registered tool handler threw into
+ * the tool's result. Return a result to answer the call with it, or undefined
+ * to let the error propagate unchanged. The package attaches no meaning to it;
+ * TREK maps its `DomainError` to an `errorResult` in `src/mcp/nest-mcp-policy.ts`,
+ * so a service refusal reaches MCP with the same text REST answers with.
+ *
+ * Registered entries only, like the tool gate: a dynamic tool's source owns
+ * its own failure handling.
+ */
+export type McpErrorMapper = (err: unknown) => unknown;
+
+/**
+ * How the module builds its `McpToolGate`: a factory with the providers it
+ * needs, resolved from the container like any other provider. A gate that
+ * reads the database has to come from DI, and `forRoot` options are static.
+ */
+interface McpToolGateProvider {
+  /** Modules exporting what `inject` names, unless those providers are global. */
+  imports?: NonNullable<ModuleMetadata['imports']>;
+  inject?: InjectionToken[];
+  useFactory: (...deps: never[]) => McpToolGate;
+}
+
 export interface McpModuleOptions {
   accessPolicy?: McpAccessPolicy;
   validateAccess?: McpAccessValidator;
+  toolGate?: McpToolGateProvider;
+  /** See `McpErrorMapper`. Static: it needs nothing from the container. */
+  errorMapper?: McpErrorMapper;
 }
+
+/** Injection token for the resolved `McpToolGate` (null when none was configured). */
+export const MCP_TOOL_GATE = Symbol('MCP_TOOL_GATE');
 
 /** Injection token for the options object given to `McpModule.forRoot()`. */
 export const MCP_MODULE_OPTIONS = Symbol('MCP_MODULE_OPTIONS');

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown, Plus, Trash2, Wallet, Receipt, Paperclip } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import CustomSelect from '../../../../components/shared/CustomSelect'
@@ -8,20 +8,19 @@ import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } 
 import { useTranslation } from '../../../../i18n'
 import { useToast } from '../../../../components/shared/Toast'
 import { useTripStore } from '../../../../store/tripStore'
-import { formatMoney, localizeAmountInput, amountToInputString } from '../../../../utils/formatters'
+import { formatMoney, localizeAmountInput } from '../../../../utils/formatters'
 import { openFile } from '../../../../utils/fileDownload'
-import { saveWithReceipts } from '../../../../components/Budget/receiptUploads'
-import { splitShareLabel, useExpenseFx } from '../../../../components/Budget/expenseFx'
-import { SYMBOLS, SPLIT_COLORS, currenciesWith } from '../../../../components/Budget/BudgetPanel.constants'
+import { splitShareLabel } from '../../../../components/Budget/expenseFx'
+import { SPLIT_COLORS } from '../../../../components/Budget/BudgetPanel.constants'
+import { currencyOptions } from '../../../../components/Budget/costsModel'
 import { COST_CATEGORY_LIST, catMeta } from '../../../../components/Budget/costsCategories'
-import { localToday } from '../../../../components/Planner/today'
-import { amountPattern, calculateTicketShares, hasTicketSplit, NOTE_MAX, readTicketItems, readUserNote, splitEqualShares, writeTicketItems, type TicketItem } from '../../../../components/Budget/CostsPanel.helpers'
+import { NOTE_MAX } from '../../../../components/Budget/CostsPanel.helpers'
 import type { ExpensePrefill } from '../../../../components/Budget/CostsPanel'
-import { payersBalanced, rebalancePayers } from '../../../../components/Budget/CostsPanel.helpers'
+import { useExpenseForm } from '../../../../components/Budget/useExpenseForm'
 import GuestBadge from '../../../../components/shared/GuestBadge'
 import type { TripMember } from '../../../../components/Budget/BudgetPanelMemberChips'
 import { ReceiptPreviewModal } from '../../../../components/Budget/ReceiptPreviewModal'
-import type { BudgetItem, BudgetItemReceipt } from '../../../../types'
+import type { BudgetItem } from '../../../../types'
 
 export interface MCostSheetProps {
   tripId: number
@@ -57,10 +56,19 @@ const SPLIT_MODES = [
 export default function MCostSheet({ tripId, base, people, me, editing, prefill, onClose, onSaved }: MCostSheetProps) {
   const { t, locale } = useTranslation()
   const toast = useToast()
-  const { addBudgetItem, updateBudgetItem, deleteBudgetItem } = useTripStore()
-  const sym = (c: string) => SYMBOLS[c] || (c + ' ')
-  // A saved expense without a currency opens in the trip's own (#2525), as on desktop.
-  const { tripCurrency: tripCur, editingCurrency, preview } = useExpenseFx(base, editing)
+  const { deleteBudgetItem } = useTripStore()
+
+  // The same editor as the desktop modal, a saved expense without a currency
+  // opening in the trip's own (#2525).
+  const {
+    sym, nameOf, tripCur, name, setName, cat, setCat, currency, setCurrency, day, setDay, note, setNote, total, onTotalChange,
+    totalNum, fx, participants, toggleParticipant, payerId, setPayerId, multiPayer, enableMultiPayer, disableMultiPayer,
+    payerIds, payerAmounts, togglePayer, onPayerAmountChange, payersOk, splitMode, setSplitMode, isTicketMode, ticketItems,
+    ticketInfo, handleAddEmptyItem, handleUpdateItemName, handleUpdateItemPrice, handleRemoveItem, handleToggleItemParticipant,
+    customAmounts, handleCustomAmountChange, splitSum, customBalanced, each, equalShares, placeholderShares,
+    receipts, pendingReceiptFiles, uploadingReceipt, handleReceiptFileSelect, handleRemoveReceipt, handleRemovePendingReceipt,
+    previewReceipts, setPreviewReceipts, valid, saving, save,
+  } = useExpenseForm({ tripId, base, people, me, editing, prefill, onSaved, oneSaveAtATime: true, keepSavingOnSuccess: true })
 
   // Internal open flag so the exit animation still plays even though the parent
   // unmounts us on close.
@@ -72,243 +80,8 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
     closeTimer.current = window.setTimeout(onClose, 280)
   }
 
-  const [name, setName] = useState(editing?.name || prefill?.name || '')
-  const [cat, setCat] = useState<string>(editing ? catMeta(editing.category).key : (prefill?.category || 'food'))
   const [catOpen, setCatOpen] = useState(false)
-  const [note, setNote] = useState(() => readUserNote(editing))
-  const [currency, setCurrency] = useState(editingCurrency)
-  const [day, setDay] = useState(editing?.expense_date || localToday())
-  // Edit and prefill seeds are padded to the currency's decimals (#2175), same
-  // as the desktop modal: a saved 4,90 must reopen as "4,90", not "4,9". A
-  // prefill has no currency of its own and is read as `base`.
-  const [total, setTotal] = useState<string>(() => {
-    if (editing) return editing.total_price ? amountToInputString(editing.total_price, editingCurrency) : ''
-    if (prefill?.amount != null) return amountToInputString(prefill.amount, base)
-    return ''
-  })
-  const [participants, setParticipants] = useState<Set<number>>(() =>
-    editing ? new Set((editing.members || []).map(m => m.user_id)) : new Set(people.map(p => p.id)))
-
-  // Payer state — same model as the desktop modal. 0 = "Nobody (planning entry)".
-  // A negative payer (the recipient of a refund, #2176) must survive the reopen.
-  const initialPayers = (editing?.payers || []).filter(p => p.amount !== 0)
-  const [payerId, setPayerId] = useState<number>(() => {
-    const existingPayer = initialPayers[0]
-    if (existingPayer) return existingPayer.user_id
-    return editing ? 0 : me
-  })
-  const [multiPayer, setMultiPayer] = useState(() => initialPayers.length > 1)
-  const [payerIds, setPayerIds] = useState<Set<number>>(() => new Set(initialPayers.map(p => p.user_id)))
-  const [payerAmounts, setPayerAmounts] = useState<Record<number, string>>(() => {
-    const m: Record<number, string> = {}
-    for (const p of initialPayers) m[p.user_id] = amountToInputString(p.amount, currency)
-    return m
-  })
-  const [pinnedPayers, setPinnedPayers] = useState<Set<number>>(() => new Set(initialPayers.map(p => p.user_id)))
-
-  const [splitMode, setSplitMode] = useState<'equally' | 'custom' | 'ticket'>(() => {
-    if (hasTicketSplit(editing)) return 'ticket'
-    if (editing && editing.members && editing.members.length > 0) {
-      const hasCustom = editing.members.some(m => m.amount !== null && m.amount !== undefined)
-      return hasCustom ? 'custom' : 'equally'
-    }
-    return 'equally'
-  })
-
-  const [ticketItems, setTicketItems] = useState<TicketItem[]>(() => readTicketItems(editing))
-
-  const [customAmounts, setCustomAmounts] = useState<Record<number, string>>(() => {
-    const m: Record<number, string> = {}
-    if (editing && editing.members) {
-      for (const member of editing.members) {
-        if (member.amount !== null && member.amount !== undefined) m[member.user_id] = amountToInputString(member.amount, currency)
-      }
-    }
-    return m
-  })
-
-  const [receipts, setReceipts] = useState<BudgetItemReceipt[]>(() => editing?.receipts || [])
-  const [pendingReceiptFiles, setPendingReceiptFiles] = useState<File[]>([])
-  const [uploadingReceipt, setUploadingReceipt] = useState(false)
-  const [previewReceipts, setPreviewReceipts] = useState<{ receipts: BudgetItemReceipt[]; initialIndex: number } | null>(null)
-
-  const handleReceiptFileSelect = (files: FileList | File[] | null) => {
-    if (!files || files.length === 0) return
-    setPendingReceiptFiles(prev => [...prev, ...Array.from(files)])
-  }
-
-  const handleRemoveReceipt = (receiptId: number) => {
-    setReceipts(prev => prev.filter(r => r.id !== receiptId))
-  }
-
-  const handleRemovePendingReceipt = (index: number) => {
-    setPendingReceiptFiles(prev => prev.filter((_, i) => i !== index))
-  }
-
-  const [saving, setSaving] = useState(false)
   const [deleteArmed, setDeleteArmed] = useState(false)
-
-  const isTicketMode = splitMode === 'ticket'
-  const ticketInfo = useMemo(() => calculateTicketShares(ticketItems), [ticketItems])
-
-  const totalNum = isTicketMode ? ticketInfo.total : (Number.parseFloat(total) || 0)
-  const fx = preview(totalNum, currency)
-  const splitSum = [...participants].reduce((sum, id) => sum + (Number.parseFloat(customAmounts[id]) || 0), 0)
-  const customBalanced = Math.round(splitSum * 100) === Math.round(totalNum * 100)
-  const each = participants.size > 0 ? totalNum / participants.size : 0
-  const equalShares = useMemo(
-    () => splitEqualShares(totalNum, [...participants].map(id => ({ user_id: id })), editing?.id || 0),
-    [totalNum, participants, editing],
-  )
-
-  const placeholderShares = useMemo(() => {
-    const emptyParts = [...participants].filter(id => !customAmounts[id])
-    if (emptyParts.length === 0) return {}
-    const enteredSum = [...participants]
-      .filter(id => customAmounts[id])
-      .reduce((sum, id) => sum + (Number.parseFloat(customAmounts[id]) || 0), 0)
-    // Clamped toward zero on the total's own side so a negative total (#2176)
-    // still previews its negative equal shares — same as the desktop modal.
-    const rest = totalNum - enteredSum
-    const remaining = totalNum >= 0 ? Math.max(0, rest) : Math.min(0, rest)
-    return splitEqualShares(remaining, emptyParts.map(id => ({ user_id: id })), editing?.id || 0)
-  }, [totalNum, participants, customAmounts, editing])
-
-  const ticketValid = ticketItems.length > 0 && ticketItems.every(item => item.name.trim().length > 0 && (Number.parseFloat(item.price) || 0) > 0 && item.participants.size > 0)
-  const payersOk = !multiPayer || (payerIds.size > 0 && payersBalanced(payerAmounts, payerIds, totalNum))
-  // A negative total is a valid entry (a refund, #2176); only zero has nothing to say.
-  const valid = name.trim().length > 0 && payersOk && (
-    isTicketMode
-      ? ticketValid
-      : totalNum !== 0 && (participants.size === 0 || splitMode === 'equally' || customBalanced)
-  )
-
-  const onTotalChange = (v: string) => setTotal(v.replace(',', '.'))
-
-  // Keep payer amounts summing to the total as it changes (also in ticket mode).
-  useEffect(() => {
-    if (!multiPayer) return
-    setPayerAmounts(prev => rebalancePayers(prev, pinnedPayers, payerIds, totalNum))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalNum])
-
-  const enableMultiPayer = () => {
-    const seed = payerIds.size > 0 ? new Set(payerIds) : new Set<number>([payerId > 0 ? payerId : me])
-    const pinned = new Set<number>()
-    setPayerIds(seed)
-    setPinnedPayers(pinned)
-    setPayerAmounts(prev => rebalancePayers(prev, pinned, seed, totalNum))
-    setMultiPayer(true)
-  }
-
-  const disableMultiPayer = () => {
-    const [first] = [...payerIds]
-    setPayerId(first ?? me)
-    setMultiPayer(false)
-  }
-
-  const togglePayer = (id: number) => {
-    const nextIds = new Set(payerIds)
-    const nextPinned = new Set(pinnedPayers)
-    if (nextIds.has(id)) { nextIds.delete(id); nextPinned.delete(id) } else { nextIds.add(id) }
-    setPayerIds(nextIds)
-    setPinnedPayers(nextPinned)
-    setPayerAmounts(prev => rebalancePayers(prev, nextPinned, nextIds, totalNum))
-  }
-
-  const onPayerAmountChange = (id: number, v: string) => {
-    const val = v.replace(',', '.')
-    const nextPinned = new Set(pinnedPayers)
-    nextPinned.add(id)
-    setPinnedPayers(nextPinned)
-    setPayerAmounts(prev => rebalancePayers({ ...prev, [id]: val }, nextPinned, payerIds, totalNum))
-  }
-
-  const handleCustomAmountChange = (id: number, val: string) => {
-    val = val.replace(',', '.')
-    if (val === '' || amountPattern(currency, true).test(val)) setCustomAmounts(prev => ({ ...prev, [id]: val }))
-  }
-
-  const handleAddEmptyItem = () => {
-    setTicketItems(prev => [
-      ...prev,
-      { id: String(Date.now() + Math.random()), name: '', price: '', participants: new Set(people.map(p => p.id)) },
-    ])
-  }
-  const handleUpdateItemName = (id: string, itemName: string) => setTicketItems(prev => prev.map(item => item.id === id ? { ...item, name: itemName } : item))
-  const handleUpdateItemPrice = (id: string, price: string) => {
-    price = price.replace(',', '.')
-    if (price === '' || amountPattern(currency, false).test(price)) setTicketItems(prev => prev.map(item => item.id === id ? { ...item, price } : item))
-  }
-  const handleRemoveItem = (id: string) => setTicketItems(prev => prev.filter(item => item.id !== id))
-  const handleToggleItemParticipant = (itemId: string, userId: number) => {
-    setTicketItems(prev => prev.map(item => {
-      if (item.id !== itemId) return item
-      const nextParts = new Set(item.participants)
-      if (nextParts.has(userId)) nextParts.delete(userId); else nextParts.add(userId)
-      return { ...item, participants: nextParts }
-    }))
-  }
-
-  const toggleParticipant = (id: number) => {
-    const nextParts = new Set(participants)
-    if (nextParts.has(id)) {
-      nextParts.delete(id)
-      setCustomAmounts(prev => { const copy = { ...prev }; delete copy[id]; return copy })
-    } else {
-      nextParts.add(id)
-    }
-    setParticipants(nextParts)
-  }
-
-  const save = async () => {
-    if (!valid || saving) return
-    setSaving(true)
-    // A picked payer always goes out, even when nobody shares the expense: the
-    // server re-derives total_price from the payer sum (CostsPanel.helpers), so
-    // dropping the payer would store the entry with a total of 0.
-    const payerList = multiPayer
-      ? [...payerIds].map(id => ({ user_id: id, amount: Number.parseFloat(payerAmounts[id]) || 0 })).filter(p => p.amount !== 0)
-      : payerId > 0 ? [{ user_id: payerId, amount: totalNum }] : []
-    const memberList = [...participants].map(id => ({
-      user_id: id,
-      amount: splitMode === 'custom'
-        ? (Number.parseFloat(customAmounts[id]) || 0)
-        : splitMode === 'ticket'
-          ? (ticketInfo.shares[id] || 0)
-          : null,
-    }))
-    const data = {
-      name: name.trim(),
-      category: cat,
-      currency,
-      payers: payerList,
-      members: memberList,
-      member_ids: [...participants],
-      expense_date: day || null,
-      total_price: totalNum,
-      note: note.trim() || null,
-      ticket_json: splitMode === 'ticket' ? writeTicketItems(ticketItems) : null,
-      ...(!editing && prefill?.reservationId ? { reservation_id: prefill.reservationId } : {}),
-      ...(!editing && prefill?.placeId ? { place_id: prefill.placeId } : {}),
-    }
-    try {
-      setUploadingReceipt(pendingReceiptFiles.length > 0)
-      await saveWithReceipts(tripId, pendingReceiptFiles, editing ? editing.id : null, ids => (
-        editing
-          ? updateBudgetItem(tripId, editing.id, { ...data, receipt_file_ids: [...receipts.map(r => r.id), ...ids] })
-          : addBudgetItem(tripId, { ...data, receipt_file_ids: ids })
-      ))
-      setPendingReceiptFiles([])
-      onSaved()
-    } catch (err) {
-      const stuck = (err as { stuckReceiptIds?: number[] })?.stuckReceiptIds
-      toast.error(stuck?.length ? t('costs.receiptLeftBehind', { count: stuck.length }) : t('common.unknownError'))
-      setSaving(false)
-    } finally {
-      setUploadingReceipt(false)
-    }
-  }
 
   const handleDelete = async () => {
     if (!editing) return
@@ -327,7 +100,6 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
   }
 
   const initialOf = (p: TripMember) => (p.id === me ? t('costs.youShort') : (p.username || '?').charAt(0)).toUpperCase()
-  const nameOf = (p: TripMember) => (p.id === me ? t('costs.you') : p.username)
 
   const Avatar = ({ p, idx, size = 22, dim = false }: { p: TripMember; idx: number; size?: number; dim?: boolean }) =>
     p.avatar_url
@@ -395,7 +167,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
               onChange={v => setCurrency(String(v))}
               searchable
               size="sm"
-              options={currenciesWith(currency).map(c => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
+              options={currencyOptions(currency)}
               style={{ width: '100%' }}
             />
           </div>
@@ -429,7 +201,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
           type="button"
           aria-expanded={catOpen}
           onClick={() => setCatOpen(v => !v)}
-          className="flex w-full items-center gap-[10px] overflow-hidden rounded-xl border border-[color:var(--m-rowbr)] bg-m-card px-[13px] py-[11px] text-left"
+          className="flex w-full items-center gap-[10px] overflow-hidden rounded-xl border border-[color:var(--m-rowbr)] bg-m-card px-[13px] py-[11px] text-start"
         >
           {(() => {
             const meta = catMeta(cat)
@@ -450,7 +222,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                   type="button"
                   aria-pressed={on}
                   onClick={() => { setCat(c.key); setCatOpen(false) }}
-                  className="flex w-full items-center gap-[10px] border-b border-[color:var(--m-rowbr)] px-[13px] py-[11px] text-left last:border-b-0"
+                  className="flex w-full items-center gap-[10px] border-b border-[color:var(--m-rowbr)] px-[13px] py-[11px] text-start last:border-b-0"
                 >
                   <Icon size={14} strokeWidth={2} style={{ color: c.color }} className="flex-none" />
                   <span className={`flex-1 text-[0.78125rem] ${on ? 'font-bold text-m-ink' : 'font-medium text-m-muted'}`}>{t(c.labelKey)}</span>
@@ -493,7 +265,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                     <button
                       type="button"
                       onClick={() => togglePayer(p.id)}
-                      className="flex min-w-0 flex-1 items-center gap-[8px] text-left"
+                      className="flex min-w-0 flex-1 items-center gap-[8px] text-start"
                     >
                       <Avatar p={p} idx={idx} dim={!on} />
                       <span className="truncate text-[0.8125rem] font-medium text-m-ink">{nameOf(p)}</span>
@@ -507,7 +279,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                           placeholder={localizeAmountInput('0.00', currency)}
                           value={localizeAmountInput(payerAmounts[p.id] || '', currency)}
                           onValueChange={v => onPayerAmountChange(p.id, v)}
-                          className="w-full border-0 bg-transparent py-[7px] text-right text-[0.8125rem] font-semibold text-m-ink outline-none"
+                          className="w-full border-0 bg-transparent py-[7px] text-end text-[0.8125rem] font-semibold text-m-ink outline-none"
                         />
                       </div>
                     ) : (
@@ -561,7 +333,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                       placeholder={localizeAmountInput('0.00', currency)}
                       value={localizeAmountInput(item.price, currency)}
                       onValueChange={v => handleUpdateItemPrice(item.id, v)}
-                      className="w-full border-0 bg-transparent py-[7px] text-right text-[0.8125rem] font-semibold text-m-ink outline-none"
+                      className="w-full border-0 bg-transparent py-[7px] text-end text-[0.8125rem] font-semibold text-m-ink outline-none"
                     />
                   </div>
                   <button type="button" onClick={() => handleRemoveItem(item.id)} className="flex-none text-m-muted" aria-label={t('common.delete')}>
@@ -616,7 +388,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                     <button
                       type="button"
                       onClick={() => toggleParticipant(p.id)}
-                      className="flex min-w-0 flex-1 items-center gap-[8px] text-left"
+                      className="flex min-w-0 flex-1 items-center gap-[8px] text-start"
                     >
                       <Avatar p={p} idx={idx} dim={!on} />
                       <span className="truncate text-[0.8125rem] font-medium text-m-ink">{nameOf(p)}</span>
@@ -624,11 +396,11 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                     </button>
                     {splitMode === 'equally' ? (
                       on ? (
-                        <span className="flex-none pr-1 text-[0.8125rem] font-semibold text-m-ink [font-variant-numeric:tabular-nums]">
+                        <span className="flex-none pe-1 text-[0.8125rem] font-semibold text-m-ink [font-variant-numeric:tabular-nums]">
                           {sym(currency)}{(equalShares[p.id] || 0).toFixed(2)}
                         </span>
                       ) : (
-                        <span className="flex-none pr-1 text-[0.6875rem] text-m-faint">{t('costs.tapToInclude')}</span>
+                        <span className="flex-none pe-1 text-[0.6875rem] text-m-faint">{t('costs.tapToInclude')}</span>
                       )
                     ) : on ? (
                       <div className={`${MINI_INPUT_WRAP} w-[120px] flex-none`}>
@@ -639,7 +411,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                           placeholder={localizeAmountInput((placeholderShares[p.id] || 0).toFixed(2), currency)}
                           value={localizeAmountInput(customAmounts[p.id] || '', currency)}
                           onChange={e => handleCustomAmountChange(p.id, e.target.value)}
-                          className="w-full border-0 bg-transparent py-[7px] text-right text-[0.8125rem] font-semibold text-m-ink outline-none placeholder:text-m-faint"
+                          className="w-full border-0 bg-transparent py-[7px] text-end text-[0.8125rem] font-semibold text-m-ink outline-none placeholder:text-m-faint"
                         />
                       </div>
                     ) : (
@@ -716,7 +488,7 @@ export default function MCostSheet({ tripId, base, people, me, editing, prefill,
                 <button
                   type="button"
                   onClick={() => setPreviewReceipts({ receipts, initialIndex: rIdx })}
-                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  className="flex min-w-0 flex-1 items-center gap-2 text-start"
                 >
                   <Receipt size={14} className="flex-none text-m-faint" />
                   <span className="truncate text-[0.8125rem] font-medium text-m-ink">{r.original_name}</span>

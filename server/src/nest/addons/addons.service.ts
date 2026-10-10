@@ -1,16 +1,30 @@
-import { Injectable } from '@nestjs/common';
 import { ADDON_IDS } from '../../addons';
-import { DatabaseService } from '../database/database.service';
-import type { Addon } from '../../types';
-import { getPhotoProviderConfig } from '../memories/memories.helpers';
-import { readTransitProvider, writeTransitProvider } from '../transit/transit-provider';
-import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
 import { readEnv } from '../../app-config';
+import { Addons } from '../../db/entities/Addons.entity';
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { PhotoProviderFields } from '../../db/entities/PhotoProviderFields.entity';
+import { PhotoProviders } from '../../db/entities/PhotoProviders.entity';
+import { Users } from '../../db/entities/Users.entity';
+import type { AddonsRepository } from '../../db/repositories/Addons.repository';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type {
+  PhotoProviderFieldsRepository,
+  PhotoProviderFieldRow,
+} from '../../db/repositories/PhotoProviderFields.repository';
+import type { PhotoProvidersRepository, PhotoProviderRow } from '../../db/repositories/PhotoProviders.repository';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
+import { readAppSetting } from '../common/app-settings.registry';
+import { getPhotoProviderConfig } from '../common/photo-provider-config';
+import { readTransitProvider, writeTransitProvider } from '../common/transit-provider';
+import { UnitOfWork } from '../database/unit-of-work';
+import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 import type { TransitProvider } from '@trek/shared';
 
 /**
  * Thin wrapper around the enabled-addons + photo-provider read that the legacy
- * inline `GET /api/addons` handler performed (server/src/app.ts). The SQL,
+ * inline `GET /api/addons` handler performed (server/src/app.ts). The
  * ordering, boolean coercions and the merged photo-provider entries are
  * reproduced 1:1 so the body is byte-identical for the client.
  *
@@ -19,55 +33,75 @@ import type { TransitProvider } from '@trek/shared';
  * bag-tracking and collab-features flags. The boolean polarities differ on
  * purpose — bag tracking is opt-in (`=== 'true'`, default OFF), the collab
  * sub-features are opt-out (`!== 'false'`, default ON). Reads are uncached
- * per-call queries so admin toggles stay immediately visible.
+ * per-call repository calls so admin toggles stay immediately visible.
+ *
+ * `DatabaseService` was injected (Plan 3a Task 4) purely as a passthrough for
+ * `transit-provider.ts`'s readTransitProvider/writeTransitProvider. Plan 4
+ * Task 1 converted those two functions to take an `AppSettingsRepository`
+ * instead, so this service passes its own already-injected
+ * `AppSettingsRepository` (the same one `googleKeySource` below already
+ * uses). Plan 4 Task 4 dropped the now-dead `DatabaseService` param entirely.
  */
 @Injectable()
 export class AddonsService {
-  constructor(private readonly dbs: DatabaseService) {}
+  constructor(
+    @InjectRepository(Addons) private readonly addons: AddonsRepository,
+    @InjectRepository(PhotoProviders) private readonly photoProviders: PhotoProvidersRepository,
+    @InjectRepository(PhotoProviderFields) private readonly photoProviderFields: PhotoProviderFieldsRepository,
+    @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
+    @InjectRepository(Users) private readonly users: UsersRepository,
+    private readonly uow: UnitOfWork,
+  ) {}
 
-  private get db() {
-    return this.dbs.connection;
+  async isAddonEnabled(addonId: string): Promise<boolean> {
+    return this.addons.isEnabled(addonId);
   }
 
-  isAddonEnabled(addonId: string): boolean {
-    const addon = this.db.prepare('SELECT enabled FROM addons WHERE id = ?').get(addonId) as
-      | { enabled: number }
-      | undefined;
-    return !!addon?.enabled;
+  async getBagTracking() {
+    const value = await readAppSetting(this.appSettings, 'bag_tracking_enabled');
+    return { enabled: value === 'true' };
   }
 
-  getBagTracking() {
-    const row = this.db.prepare("SELECT value FROM app_settings WHERE key = 'bag_tracking_enabled'").get() as
-      | { value: string }
-      | undefined;
-    return { enabled: row?.value === 'true' };
-  }
-
-  updateBagTracking(enabled: boolean) {
-    this.db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('bag_tracking_enabled', ?)").run(
-      enabled ? 'true' : 'false',
-    );
+  async updateBagTracking(enabled: boolean) {
+    await this.appSettings.setValue('bag_tracking_enabled', enabled ? 'true' : 'false');
     return { enabled: !!enabled };
   }
 
-  getCollabFeatures() {
-    const rows = this.db
-      .prepare(
-        "SELECT key, value FROM app_settings WHERE key IN ('collab_chat_enabled', 'collab_notes_enabled', 'collab_links_enabled', 'collab_polls_enabled', 'collab_whatsnext_enabled')",
-      )
-      .all() as { key: string; value: string }[];
-    const map: Record<string, string> = {};
-    for (const r of rows) map[r.key] = r.value;
+  /**
+   * `AppSettingsRepository.getValues` drops a key from the returned `Map`
+   * both when no row exists AND when the row's `value` is `NULL` (Task 0
+   * concern #4) — this method's polarity (`!== 'false'`, fail-open) makes
+   * that safe: a dropped key reads `map.get(key) === undefined`, and
+   * `undefined !== 'false'` is `true`, the exact same outcome the legacy
+   * `Record<string,string>` produced for a `NULL` value (`null !== 'false'`
+   * is also `true`). Confirmed, not assumed — see the repository test
+   * ADDONSREPO/APPSETREPO parity note and this service's own test file.
+   */
+  async getCollabFeatures() {
+    const map = await this.appSettings.getValues([
+      'collab_chat_enabled',
+      'collab_notes_enabled',
+      'collab_links_enabled',
+      'collab_polls_enabled',
+      'collab_whatsnext_enabled',
+    ]);
     return {
-      chat: map['collab_chat_enabled'] !== 'false',
-      notes: map['collab_notes_enabled'] !== 'false',
-      links: map['collab_links_enabled'] !== 'false',
-      polls: map['collab_polls_enabled'] !== 'false',
-      whatsnext: map['collab_whatsnext_enabled'] !== 'false',
+      chat: map.get('collab_chat_enabled') !== 'false',
+      notes: map.get('collab_notes_enabled') !== 'false',
+      links: map.get('collab_links_enabled') !== 'false',
+      polls: map.get('collab_polls_enabled') !== 'false',
+      whatsnext: map.get('collab_whatsnext_enabled') !== 'false',
     };
   }
 
-  updateCollabFeatures(features: { chat?: boolean; notes?: boolean; links?: boolean; polls?: boolean; whatsnext?: boolean }) {
+  /** Up to five `app_settings` rows, written together: a save lands whole or not at all. */
+  async updateCollabFeatures(features: {
+    chat?: boolean;
+    notes?: boolean;
+    links?: boolean;
+    polls?: boolean;
+    whatsnext?: boolean;
+  }) {
     const mapping: Record<string, string> = {
       chat: 'collab_chat_enabled',
       notes: 'collab_notes_enabled',
@@ -75,12 +109,14 @@ export class AddonsService {
       polls: 'collab_polls_enabled',
       whatsnext: 'collab_whatsnext_enabled',
     };
-    const before = this.getCollabFeatures();
-    const stmt = this.db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)');
-    for (const [feat, key] of Object.entries(mapping)) {
-      if (features[feat] !== undefined) stmt.run(key, features[feat] ? 'true' : 'false');
-    }
-    const after = this.getCollabFeatures();
+    const before = await this.getCollabFeatures();
+    await this.uow.transactional(async () => {
+      for (const [feat, key] of Object.entries(mapping)) {
+        const value = features[feat as keyof typeof features];
+        if (value !== undefined) await this.appSettings.setValue(key, value ? 'true' : 'false');
+      }
+    });
+    const after = await this.getCollabFeatures();
     // Collab flags gate MCP tool/resource registration, so callers must know
     // whether anything actually flipped — a no-op save must not tear down every
     // live MCP session (#1414).
@@ -88,65 +124,42 @@ export class AddonsService {
     return { features: after, changed };
   }
 
-  list() {
-    const addons = this.db
-      .prepare('SELECT id, name, type, icon, enabled FROM addons WHERE enabled = 1 ORDER BY sort_order')
-      .all() as Pick<Addon, 'id' | 'name' | 'type' | 'icon' | 'enabled'>[];
+  async list() {
+    const addonRows = await this.addons.listEnabled();
     // Photo providers surface only inside journeys, so with the journey addon
     // off they are unavailable no matter what their own rows say. Deriving that
     // here (instead of a migration) also covers installs that still hold an
     // enabled provider under a disabled journey from before updateAddon
     // cascaded the disable.
-    const providers = !this.isAddonEnabled(ADDON_IDS.JOURNEY)
+    const providerRows: PhotoProviderRow[] = !(await this.isAddonEnabled(ADDON_IDS.JOURNEY))
       ? []
-      : (this.db
-          .prepare(
-            `SELECT id, name, icon, enabled, sort_order
-             FROM photo_providers
-             WHERE enabled = 1
-             ORDER BY sort_order, id`,
-          )
-          .all() as Array<{ id: string; name: string; icon: string; enabled: number; sort_order: number }>);
-    const fields = this.db
-      .prepare(
-        `SELECT provider_id, field_key, label, input_type, placeholder, hint, required, secret, settings_key, payload_key, sort_order
-         FROM photo_provider_fields
-         ORDER BY sort_order, id`,
-      )
-      .all() as Array<{
-      provider_id: string;
-      field_key: string;
-      label: string;
-      input_type: string;
-      placeholder?: string | null;
-      hint?: string | null;
-      required: number;
-      secret: number;
-      settings_key?: string | null;
-      payload_key?: string | null;
-      sort_order: number;
-    }>;
+      : await this.photoProviders.listEnabled();
+    const fieldRows: PhotoProviderFieldRow[] = await this.photoProviderFields.listAllOrdered();
 
-    const fieldsByProvider = new Map<string, typeof fields>();
-    for (const field of fields) {
+    const fieldsByProvider = new Map<string, PhotoProviderFieldRow[]>();
+    for (const field of fieldRows) {
       const arr = fieldsByProvider.get(field.provider_id) || [];
       arr.push(field);
       fieldsByProvider.set(field.provider_id, arr);
     }
 
     return {
-      collabFeatures: this.getCollabFeatures(),
-      bagTracking: this.getBagTracking().enabled,
+      collabFeatures: await this.getCollabFeatures(),
+      bagTracking: (await this.getBagTracking()).enabled,
       addons: [
-        ...addons.map((a) => ({ ...a, enabled: !!a.enabled })),
-        ...providers.map((p) => ({
+        // The repository row carries every scalar column (description, config,
+        // sort_order included); the legacy statement selected only these five,
+        // so the client-facing shape is picked explicitly here rather than
+        // spread from the row.
+        ...addonRows.map((a) => ({ id: a.id, name: a.name, type: a.type, icon: a.icon, enabled: !!a.enabled })),
+        ...providerRows.map((p) => ({
           id: p.id,
           name: p.name,
           type: 'photo_provider',
           icon: p.icon,
           enabled: !!p.enabled,
-          config: getPhotoProviderConfig(p.id),
-          fields: (fieldsByProvider.get(p.id) || []).map((f) => ({
+          config: getPhotoProviderConfig(p.id ?? ''),
+          fields: (fieldsByProvider.get(p.id ?? '') || []).map((f) => ({
             key: f.field_key,
             label: f.label,
             input_type: f.input_type,
@@ -171,22 +184,34 @@ export class AddonsService {
   // backfills 'true' for installs that never touched the switches, so nobody
   // loses a feature on upgrade.
 
-  private readFlag(key: string) {
-    const row = this.db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined;
-    return { enabled: row?.value === 'true' };
+  private async readFlag(key: string) {
+    const value = await this.appSettings.getValue(key);
+    return { enabled: value === 'true' };
   }
 
-  private writeFlag(key: string, enabled: boolean) {
-    this.db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(key, enabled ? 'true' : 'false');
+  private async writeFlag(key: string, enabled: boolean) {
+    await this.appSettings.setValue(key, enabled ? 'true' : 'false');
     return { enabled: !!enabled };
   }
 
-  getPlacesPhotos() { return this.readFlag('places_photos_enabled'); }
-  updatePlacesPhotos(enabled: boolean) { return this.writeFlag('places_photos_enabled', enabled); }
-  getPlacesAutocomplete() { return this.readFlag('places_autocomplete_enabled'); }
-  updatePlacesAutocomplete(enabled: boolean) { return this.writeFlag('places_autocomplete_enabled', enabled); }
-  getPlacesDetails() { return this.readFlag('places_details_enabled'); }
-  updatePlacesDetails(enabled: boolean) { return this.writeFlag('places_details_enabled', enabled); }
+  async getPlacesPhotos() {
+    return this.readFlag('places_photos_enabled');
+  }
+  async updatePlacesPhotos(enabled: boolean) {
+    return this.writeFlag('places_photos_enabled', enabled);
+  }
+  async getPlacesAutocomplete() {
+    return this.readFlag('places_autocomplete_enabled');
+  }
+  async updatePlacesAutocomplete(enabled: boolean) {
+    return this.writeFlag('places_autocomplete_enabled', enabled);
+  }
+  async getPlacesDetails() {
+    return this.readFlag('places_details_enabled');
+  }
+  async updatePlacesDetails(enabled: boolean) {
+    return this.writeFlag('places_details_enabled', enabled);
+  }
 
   /**
    * The shadow log, fail-CLOSED like the three above but for the opposite
@@ -195,8 +220,12 @@ export class AddonsService {
    * so there is nothing to backfill and an absent row correctly means off.
    * PlaceShadowService.enabled() reads the same key the same way.
    */
-  getPlaceShadow() { return this.readFlag('place_shadow_enabled'); }
-  updatePlaceShadow(enabled: boolean) { return this.writeFlag('place_shadow_enabled', enabled); }
+  async getPlaceShadow() {
+    return this.readFlag('place_shadow_enabled');
+  }
+  async updatePlaceShadow(enabled: boolean) {
+    return this.writeFlag('place_shadow_enabled', enabled);
+  }
 
   /**
    * Search and suggestions from Google alone, skipping the index and
@@ -204,8 +233,12 @@ export class AddonsService {
    * this before it existed, so an absent row correctly means off. MapsService
    * reads the same key the same way, and only once Google holds the key slot.
    */
-  getPlacesGoogleOnly() { return this.readFlag('places_google_only'); }
-  updatePlacesGoogleOnly(enabled: boolean) { return this.writeFlag('places_google_only', enabled); }
+  async getPlacesGoogleOnly() {
+    return this.readFlag('places_google_only');
+  }
+  async updatePlacesGoogleOnly(enabled: boolean) {
+    return this.writeFlag('places_google_only', enabled);
+  }
 
   /**
    * Enrichment reads fail-OPEN, unlike the three switches above.
@@ -220,20 +253,23 @@ export class AddonsService {
    * the same key the same way. If these two ever disagree the admin panel shows
    * "off" while the feature runs, which is worse than either default.
    */
-  getPlacesEnrich() {
-    const row = this.db.prepare("SELECT value FROM app_settings WHERE key = 'places_enrich_enabled'").get() as
-      | { value: string }
-      | undefined;
-    return { enabled: row?.value !== 'false' };
+  async getPlacesEnrich() {
+    const value = await readAppSetting(this.appSettings, 'places_enrich_enabled');
+    return { enabled: value !== 'false' };
   }
 
-  updatePlacesEnrich(enabled: boolean) { return this.writeFlag('places_enrich_enabled', enabled); }
+  async updatePlacesEnrich(enabled: boolean) {
+    return this.writeFlag('places_enrich_enabled', enabled);
+  }
 
   // ── Transit backend (#1699) ────────────────────────────────────────────────
   // Not a flag: two named backends, so it stores the name rather than a
-  // boolean. The read/write pair lives in transit/transit-provider.ts because
+  // boolean. The read/write pair lives in common/transit-provider.ts because
   // TransitService reads the same row on every request — one key, one reader,
-  // one writer.
+  // one writer. Neither that module nor instance-api-keys.ts (below) is one of
+  // this plan's six domains, so they stay on DatabaseService until their own
+  // conversion (transit is outside Plan 3a entirely; instance-api-keys.ts is
+  // Task 5's).
 
   /**
    * Where the Google key would come from for this caller, or null if nowhere.
@@ -248,15 +284,22 @@ export class AddonsService {
    * personal key gets Google while every other member silently gets Transitous
    * — the #1939 shape, one layer up.
    */
-  private googleKeySource(userId: number): ApiKeySource | null {
-    return resolveApiKey(this.dbs, 'maps_api_key', userId, readEnv().maps.placesApiKey).source;
+  private async googleKeySource(userId: number): Promise<ApiKeySource | null> {
+    return (await resolveApiKey(this.appSettings, this.users, 'maps_api_key', userId, readEnv().maps.placesApiKey))
+      .source;
   }
 
-  getTransitProvider(userId = 0) {
-    return { provider: readTransitProvider(this.dbs), googleKeySource: this.googleKeySource(userId) };
+  async getTransitProvider(userId = 0) {
+    return {
+      provider: await readTransitProvider(this.appSettings),
+      googleKeySource: await this.googleKeySource(userId),
+    };
   }
 
-  updateTransitProvider(provider: TransitProvider, userId = 0) {
-    return { provider: writeTransitProvider(this.dbs, provider), googleKeySource: this.googleKeySource(userId) };
+  async updateTransitProvider(provider: TransitProvider, userId = 0) {
+    return {
+      provider: await writeTransitProvider(this.appSettings, provider),
+      googleKeySource: await this.googleKeySource(userId),
+    };
   }
 }

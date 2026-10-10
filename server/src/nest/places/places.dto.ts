@@ -1,4 +1,3 @@
-import { createZodDto } from 'nestjs-zod';
 import {
   placeBulkDeleteRequestSchema,
   placeBulkUpdateRequestSchema,
@@ -9,7 +8,10 @@ import {
   placeExportGpxRequestSchema,
   placeRatingRequestSchema,
   placeUpdateRequestSchema,
+  placeImageFromFileRequestSchema,
 } from '@trek/shared';
+
+import { createZodDto } from 'nestjs-zod';
 
 /**
  * Server-side createZodDto wrappers over the @trek/shared places contracts.
@@ -28,6 +30,7 @@ import {
 export class PlaceCreateDto extends createZodDto(placeCreateRequestSchema) {}
 export class PlaceUpdateDto extends createZodDto(placeUpdateRequestSchema) {}
 export class PlaceRatingDto extends createZodDto(placeRatingRequestSchema) {}
+export class PlaceImageFromFileDto extends createZodDto(placeImageFromFileRequestSchema) {}
 export class PlaceBulkDeleteDto extends createZodDto(placeBulkDeleteRequestSchema) {}
 export class PlaceBulkUpdateDto extends createZodDto(placeBulkUpdateRequestSchema) {}
 export class PlaceImportListDto extends createZodDto(placeImportListRequestSchema) {}

@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Cancelar',
   'common.clear': 'Borrar',
   'common.delete': 'Eliminar',
+  'common.remove': 'Eliminar',
   'common.preview': 'Vista previa',
   'common.edit': 'Editar',
   'common.add': 'Añadir',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': 'Renombrar',
   'common.discardChanges': 'Descartar cambios',
   'common.discard': 'Descartar',
+  'common.unsavedTitle': '¿Descartar los cambios?',
+  'common.unsavedMessage': 'Lo que has introducido aquí aún no se ha guardado.',
+  'common.keepEditing': 'Seguir editando',
   'common.name': 'Nombre',
   'common.email': 'Correo',
   'common.password': 'Contraseña',
@@ -51,7 +55,9 @@ const common: TranslationStrings = {
   'common.copied': 'Copiado',
   'common.justNow': 'justo ahora',
   'common.hoursAgo': 'hace {count}h',
+  'common.hoursAgo.one': 'hace {count}h',
   'common.daysAgo': 'hace {count}d',
+  'common.daysAgo.one': 'hace {count}d',
   'common.datepicker.prevMonth': 'Previous month', // en-fallback
   'common.datepicker.nextMonth': 'Next month', // en-fallback
   'common.datepicker.prevYear': 'Previous year', // en-fallback
@@ -71,7 +77,8 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Reintentar',
   'common.errorReload': 'Recargar la página',
   'common.errorUpdateTitle': 'Hay una nueva versión disponible',
-  'common.errorUpdateBody': 'TREK se actualizó mientras esta pestaña estaba abierta. Recarga para obtener la nueva versión.',
+  'common.errorUpdateBody':
+    'TREK se actualizó mientras esta pestaña estaba abierta. Recarga para obtener la nueva versión.',
   'common.errorPluginTitle': 'No se pudo mostrar este plugin',
 };
 export default common;

@@ -11,6 +11,8 @@ import {
   sanitizeInlineHtml,
 } from '@trek/shared'
 import type { TranslationStrings } from '@trek/shared/i18n'
+import { importChunk } from '../utils/chunkReload'
+import { resolveTemplate } from './resolveTemplate'
 
 export { SUPPORTED_LANGUAGES }
 
@@ -20,6 +22,7 @@ const localeLoaders: Record<SupportedLanguageCode, () => Promise<{ default: Tran
   en:      () => Promise.resolve({ default: en }),
   de:      () => import('@trek/shared/i18n/de'),
   es:      () => import('@trek/shared/i18n/es'),
+  et:      () => import('@trek/shared/i18n/et'),
   fr:      () => import('@trek/shared/i18n/fr'),
   hu:      () => import('@trek/shared/i18n/hu'),
   it:      () => import('@trek/shared/i18n/it'),
@@ -30,11 +33,14 @@ const localeLoaders: Record<SupportedLanguageCode, () => Promise<{ default: Tran
   nl:      () => import('@trek/shared/i18n/nl'),
   id:      () => import('@trek/shared/i18n/id'),
   ar:      () => import('@trek/shared/i18n/ar'),
+  az:      () => import('@trek/shared/i18n/az'),
   br:      () => import('@trek/shared/i18n/br'),
   cs:      () => import('@trek/shared/i18n/cs'),
+  sk:      () => import('@trek/shared/i18n/sk'),
   pl:      () => import('@trek/shared/i18n/pl'),
   ja:      () => import('@trek/shared/i18n/ja'),
   ko:      () => import('@trek/shared/i18n/ko'),
+  th:      () => import('@trek/shared/i18n/th'),
   uk:      () => import('@trek/shared/i18n/uk'),
   gr:      () => import('@trek/shared/i18n/gr'),
   sv:      () => import('@trek/shared/i18n/sv'),
@@ -106,10 +112,13 @@ interface TranslationProviderProps {
 
 export function TranslationProvider({ children }: TranslationProviderProps) {
   const language = useSettingsStore((s) => s.settings.language) || 'en'
-  const [strings, setStrings] = useState<TranslationStrings>(en)
+  // The catalogue together with the language it belongs to: while another
+  // language loads, or when its chunk fails, the strings on screen are still
+  // the previous ones, and their plural forms follow that language's rule.
+  const [catalogue, setCatalogue] = useState<{ language: string; strings: TranslationStrings }>({ language: 'en', strings: en })
 
   useEffect(() => {
-    document.documentElement.lang = language
+    document.documentElement.lang = getIntlLanguage(language)
     document.documentElement.dir = isRtlLanguage(language) ? 'rtl' : 'ltr'
   }, [language])
 
@@ -118,8 +127,12 @@ export function TranslationProvider({ children }: TranslationProviderProps) {
     if (!loader) return
 
     let cancelled = false
-    loader().then(mod => {
-      if (!cancelled) setStrings(mod.default)
+    importChunk(loader).then(mod => {
+      // The same table for the same language keeps the state, and with it t():
+      // English arrives as the very table the provider started with.
+      if (!cancelled) {
+        setCatalogue(prev => (prev.language === language && prev.strings === mod.default ? prev : { language, strings: mod.default }))
+      }
     }).catch(err => {
       // The locale chunk can be gone after a deploy. Keep the strings we have —
       // an untranslated UI beats an unhandled rejection and a blank screen.
@@ -129,8 +142,12 @@ export function TranslationProvider({ children }: TranslationProviderProps) {
   }, [language])
 
   const value = useMemo((): TranslationContextValue => {
+    const intlLanguage = getIntlLanguage(catalogue.language)
+    const template = (key: string, params?: Record<string, string | number>): string =>
+      resolveTemplate(catalogue.strings, intlLanguage, key, params)
+
     function t(key: string, params?: Record<string, string | number>): string {
-      let val: string = (strings[key] ?? en[key] ?? key) as string
+      let val = template(key, params)
       if (params) {
         Object.entries(params).forEach(([k, v]) => {
           // Function replacement: a value carrying `$&` or `$1` (a trip named
@@ -142,7 +159,7 @@ export function TranslationProvider({ children }: TranslationProviderProps) {
     }
 
     function tHtml(key: string, params?: Record<string, string | number>): string {
-      let val: string = (strings[key] ?? en[key] ?? key) as string
+      let val = template(key, params)
       if (params) {
         Object.entries(params).forEach(([k, v]) => {
           // Escape BEFORE substitution so a user-controlled value with `<` or
@@ -157,7 +174,7 @@ export function TranslationProvider({ children }: TranslationProviderProps) {
     }
 
     return { t, tHtml, language, locale: getLocaleForLanguage(language) }
-  }, [strings, language])
+  }, [catalogue, language])
 
   return <TranslationContext value={value}>{children}</TranslationContext>
 }

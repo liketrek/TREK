@@ -1,10 +1,17 @@
-import { describe, it, expect, vi } from 'vitest';
-import { HttpException } from '@nestjs/common';
-import { MulterError } from 'multer';
 import { TrekExceptionFilter } from '../../../src/nest/common/trek-exception.filter';
+import { HttpException } from '@nestjs/common';
+
+import { MulterError } from 'multer';
+import { describe, it, expect, vi } from 'vitest';
 
 function mockHost(extra: Record<string, unknown> = {}) {
-  const res = { status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis(), destroy: vi.fn(), headersSent: false, ...extra };
+  const res = {
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
+    destroy: vi.fn(),
+    headersSent: false,
+    ...extra,
+  };
   const host = { switchToHttp: () => ({ getResponse: () => res }) } as never;
   return { res, host };
 }
@@ -140,5 +147,56 @@ describe('TrekExceptionFilter', () => {
     filter.catch(null, host);
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ error: 'Internal server error' });
+  });
+});
+
+describe('TrekExceptionFilter and the access log', () => {
+  const filter = new TrekExceptionFilter();
+  /** A response the access log watches: what the global middleware marks on res.locals. */
+  const watched = (extra: Record<string, unknown> = {}) => {
+    const locals: Record<string, unknown> = { trekAccessLog: true };
+    return { locals, ...mockHost({ locals, ...extra }) };
+  };
+
+  it('leaves a 5xx for the access log instead of printing it on its own line', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { res, host, locals } = watched();
+    const exception = new Error('boom');
+    filter.catch(exception, host);
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(locals.trekUnhandledError).toBe(exception);
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it('does the same for a failure after the headers went out, and still destroys the socket', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { res, host, locals } = watched({ headersSent: true });
+    const exception = new Error('mid-stream failure');
+    filter.catch(exception, host);
+    expect(res.destroy).toHaveBeenCalledTimes(1);
+    expect(locals.trekUnhandledError).toBe(exception);
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it('hands over a deliberate 5xx HttpException too, but never a 4xx', () => {
+    const server = watched();
+    const exception = new HttpException('database exploded', 503);
+    filter.catch(exception, server.host);
+    expect(server.locals.trekUnhandledError).toBe(exception);
+
+    const client = watched();
+    filter.catch(new HttpException('Bad thing', 400), client.host);
+    expect(client.locals.trekUnhandledError).toBeUndefined();
+  });
+
+  it('prints the 5xx itself when no access log watches the response', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { host } = mockHost();
+    const exception = new Error('unwatched');
+    filter.catch(exception, host);
+    expect(consoleError).toHaveBeenCalledWith('Unhandled error:', exception);
+    consoleError.mockRestore();
   });
 });

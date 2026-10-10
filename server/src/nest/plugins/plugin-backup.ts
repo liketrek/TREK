@@ -1,6 +1,7 @@
+import { pluginsCodeRoot, pluginsDataRoot } from './paths';
+
 import fs from 'node:fs';
 import path from 'node:path';
-import { pluginsCodeRoot, pluginsDataRoot } from './paths';
 
 /**
  * Backup/restore of the plugin trees (#plugins). A TREK backup archives travel.db +
@@ -18,8 +19,12 @@ import { pluginsCodeRoot, pluginsDataRoot } from './paths';
 
 const STAGE_SUFFIX = '.restore';
 
-function dataStaging(): string { return pluginsDataRoot() + STAGE_SUFFIX; }
-function codeStaging(): string { return pluginsCodeRoot() + STAGE_SUFFIX; }
+function dataStaging(): string {
+  return pluginsDataRoot() + STAGE_SUFFIX;
+}
+function codeStaging(): string {
+  return pluginsCodeRoot() + STAGE_SUFFIX;
+}
 
 /**
  * Copy the plugin trees an archive extracted (under `extractDir/plugins-data` and
@@ -45,10 +50,10 @@ export function stageExtractedPluginTrees(extractDir: string): boolean {
   for (const [from, to] of pairs) {
     if (!fs.existsSync(from)) continue;
     const tmp = to + '.tmp';
-    fs.rmSync(to, { recursive: true, force: true });  // drop a stale completed staging
+    fs.rmSync(to, { recursive: true, force: true }); // drop a stale completed staging
     fs.rmSync(tmp, { recursive: true, force: true }); // drop a stale partial staging
-    fs.cpSync(from, tmp, { recursive: true });        // may die partway → only .tmp is left, never .restore
-    fs.renameSync(tmp, to);                            // atomic: publishes a COMPLETE staging
+    fs.cpSync(from, tmp, { recursive: true }); // may die partway → only .tmp is left, never .restore
+    fs.renameSync(tmp, to); // atomic: publishes a COMPLETE staging
     staged = true;
   }
   return staged;
@@ -83,7 +88,11 @@ function swapContents(live: string, staged: string): void {
     if (stagedNames.has(name)) continue;
     const p = path.join(live, name);
     let real: string;
-    try { real = fs.realpathSync(p); } catch { real = p; }
+    try {
+      real = fs.realpathSync(p);
+    } catch {
+      real = p;
+    }
     if (real !== p && !real.startsWith(realLive + path.sep)) continue; // dev-link → keep
     fs.rmSync(p, { recursive: true, force: true });
   }

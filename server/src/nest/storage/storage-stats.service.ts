@@ -1,7 +1,9 @@
+import { AppSettings } from '../../db/entities/AppSettings.entity';
+import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import { StorageService } from './storage.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable, Logger } from '@nestjs/common';
 import { STORAGE_CATEGORIES, storageUsageSchema, type StorageUsage } from '@trek/shared';
-import { DatabaseService } from '../database/database.service';
-import { StorageService } from './storage.service';
 
 export class StatsBusyError extends Error {}
 
@@ -23,7 +25,7 @@ export class StorageStatsService {
 
   constructor(
     private readonly storage: StorageService,
-    private readonly db: DatabaseService,
+    @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
   ) {}
 
   async scan(): Promise<StorageUsage> {
@@ -47,19 +49,27 @@ export class StorageStatsService {
         legacyPhotos.bytes += stat.size;
       }
       const usage: StorageUsage = { computedAt: Date.now(), categories, legacyPhotos };
-      this.db.run('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', USAGE_KEY, JSON.stringify(usage));
+      await this.appSettings.upsertOrReplace(USAGE_KEY, JSON.stringify(usage));
       return usage;
     } finally {
       this.scanning = false;
     }
   }
 
-  /** The stored row, parsed; null when absent or unparseable (logged, never a 500). */
-  readUsage(): StorageUsage | null {
-    const row = this.db.get<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', USAGE_KEY);
-    if (!row) return null;
+  /**
+   * The stored row, parsed; null when absent or unparseable (logged, never a
+   * 500). `getValue()` returns null for BOTH "no row" and "row present with
+   * a NULL value" — the legacy raw read only skipped the warn log for the
+   * former; a row with a NULL `value` here would previously have fallen
+   * through to `JSON.parse(null)` (parses to the JS `null`), failed the Zod
+   * schema and logged the same warning anyway. `scan()` only ever writes a
+   * JSON string, never NULL, so this distinction is unreachable in practice.
+   */
+  async readUsage(): Promise<StorageUsage | null> {
+    const value = await this.appSettings.getValue(USAGE_KEY);
+    if (value == null) return null;
     try {
-      return storageUsageSchema.parse(JSON.parse(row.value));
+      return storageUsageSchema.parse(JSON.parse(value));
     } catch {
       this.logger.warn('stored storage.usage row is unparseable — treating as never computed');
       return null;

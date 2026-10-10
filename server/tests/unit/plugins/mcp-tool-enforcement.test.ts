@@ -16,8 +16,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-const build = (declared: unknown) =>
-  buildToolInputSchema(normaliseToolSchema(declared)) as unknown as z.ZodType;
+const build = (declared: unknown) => buildToolInputSchema(normaliseToolSchema(declared)) as unknown as z.ZodType;
 
 const advertised = (declared: unknown) =>
   z.toJSONSchema(buildToolInputSchema(normaliseToolSchema(declared)) as unknown as z.ZodType, {
@@ -92,7 +91,11 @@ describe('unenforceable declarations are refused, not advertised', () => {
 
   it('MCPENF-010: rejects an unsupported type, format, or broken pattern', () => {
     expect(() => build({ type: 'object', properties: { a: { type: 'bigint' } } })).toThrow(/unsupported type/);
-    expect(() => build({ type: 'object', properties: { a: { type: 'string', format: 'ipv6' } } })).toThrow(/unsupported format/);
-    expect(() => build({ type: 'object', properties: { a: { type: 'string', pattern: '([' } } })).toThrow(/regular expression/);
+    expect(() => build({ type: 'object', properties: { a: { type: 'string', format: 'ipv6' } } })).toThrow(
+      /unsupported format/,
+    );
+    expect(() => build({ type: 'object', properties: { a: { type: 'string', pattern: '([' } } })).toThrow(
+      /regular expression/,
+    );
   });
 });

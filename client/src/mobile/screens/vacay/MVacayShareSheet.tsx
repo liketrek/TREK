@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react'
 import { ChevronDown, Eye, EyeOff, Loader2, Share2, X } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
+import MUserPickerList from '../../components/MUserPickerList'
 import { useVacayStore } from '../../../store/vacayStore'
 import { useTranslation } from '../../../i18n'
-import { useToast } from '../../../components/shared/Toast'
-import { getApiErrorMessage } from '../../../types'
-import apiClient from '../../../api/client'
+import { useVacayShareActions } from '../../../components/Vacay/useVacayShareActions'
+import { useVacayUserPicker } from '../../../components/Vacay/useVacayUserPicker'
 
 interface MVacayShareSheetProps {
   open: boolean
@@ -20,39 +19,17 @@ interface MVacayShareSheetProps {
  */
 export default function MVacayShareSheet({ open, onClose }: MVacayShareSheetProps) {
   const { t } = useTranslation()
-  const toast = useToast()
-  const { incomingShares, outgoingShares, shareWith, removeShare, setShareHidden } = useVacayStore()
-  const [available, setAvailable] = useState<{ id: number; username: string }[]>([])
-  const [selected, setSelected] = useState<number | null>(null)
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const [sending, setSending] = useState(false)
+  const { incomingShares, outgoingShares, shareWith } = useVacayStore()
+  const { available, selected, setSelected, selectedUser, sending, send, pickerOpen, togglePicker, pick } = useVacayUserPicker({
+    endpoint: '/addons/vacay/shares/available-users',
+    submit: shareWith,
+    successKey: 'vacay.shareSent',
+    errorKey: 'vacay.shareFailed',
+    sheetOpen: open,
+  })
+  const { toggleHidden, remove } = useVacayShareActions()
 
-  const showError = (err: unknown) => toast.error(getApiErrorMessage(err, t('vacay.shareFailed')))
-
-  useEffect(() => {
-    if (!open) return
-    setSelected(null)
-    setPickerOpen(false)
-    apiClient.get('/addons/vacay/shares/available-users')
-      .then(r => setAvailable(r.data.users))
-      .catch(() => setAvailable([]))
-  }, [open])
-
-  const selectedUser = available.find(u => u.id === selected)
-
-  const handleShare = async () => {
-    if (!selected) return
-    setSending(true)
-    try {
-      await shareWith(selected)
-      toast.success(t('vacay.shareSent'))
-      setSelected(null)
-    } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, t('vacay.shareFailed')))
-    } finally {
-      setSending(false)
-    }
-  }
+  const handleShare = () => send(() => setSelected(null))
 
   return (
     <MSheet open={open} onClose={onClose} variant="card" material="glass" ariaLabel={t('vacay.sharedCalendars')}>
@@ -76,10 +53,10 @@ export default function MVacayShareSheet({ open, onClose }: MVacayShareSheetProp
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setPickerOpen(o => !o)}
+                onClick={togglePicker}
                 className="flex min-w-0 flex-1 items-center gap-[9px] rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-3 text-[0.8125rem] font-semibold"
               >
-                <span className={`min-w-0 flex-1 truncate text-left ${selectedUser ? '' : 'text-m-muted'}`}>
+                <span className={`min-w-0 flex-1 truncate text-start ${selectedUser ? '' : 'text-m-muted'}`}>
                   {selectedUser ? selectedUser.username : t('vacay.selectUser')}
                 </span>
                 <ChevronDown size={14} strokeWidth={2} className="flex-none text-m-faint" />
@@ -94,22 +71,7 @@ export default function MVacayShareSheet({ open, onClose }: MVacayShareSheetProp
                 {t('vacay.share')}
               </button>
             </div>
-            {pickerOpen && (
-              <div className="mt-[6px] max-h-[180px] overflow-y-auto rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-[6px]">
-                {available.map(u => (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() => { setSelected(u.id); setPickerOpen(false) }}
-                    className={`flex w-full items-center gap-[9px] rounded-[10px] px-[10px] py-[9px] text-left text-[0.8125rem] font-semibold ${
-                      u.id === selected ? 'bg-[color:var(--m-ic)]' : ''
-                    }`}
-                  >
-                    <span className="min-w-0 flex-1 truncate">{u.username}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            {pickerOpen && <MUserPickerList users={available} selected={selected} onPick={pick} />}
           </>
         )}
 
@@ -126,7 +88,7 @@ export default function MVacayShareSheet({ open, onClose }: MVacayShareSheetProp
                 </span>
                 <button
                   type="button"
-                  onClick={() => setShareHidden(s.id, !s.hidden).catch(showError)}
+                  onClick={() => toggleHidden(s.id, !s.hidden)}
                   aria-label={s.hidden ? t('vacay.showInCalendar') : t('vacay.hideFromCalendar')}
                   className="flex h-[28px] w-[28px] flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)]"
                 >
@@ -136,7 +98,7 @@ export default function MVacayShareSheet({ open, onClose }: MVacayShareSheetProp
                 </button>
                 <button
                   type="button"
-                  onClick={() => removeShare(s.id).catch(showError)}
+                  onClick={() => remove(s.id)}
                   className="flex-none rounded-full px-[8px] py-1 font-geist text-[0.6875rem] font-semibold text-m-muted"
                 >
                   {t('vacay.remove')}
@@ -157,7 +119,7 @@ export default function MVacayShareSheet({ open, onClose }: MVacayShareSheetProp
                 <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">{s.username}</span>
                 <button
                   type="button"
-                  onClick={() => removeShare(s.id).catch(showError)}
+                  onClick={() => remove(s.id)}
                   className="flex-none rounded-full px-[10px] py-1 font-geist text-[0.6875rem] font-semibold text-m-muted"
                 >
                   {t('vacay.stopSharing')}

@@ -14,7 +14,7 @@
  * call, which is what keeps the runtime env-mutation semantics the test suite
  * depends on. Zod validation runs once at boot (env.schema.ts), never here.
  */
-import { SUPPORTED_LANGUAGE_CODES } from '@trek/shared';
+import { imageVersion } from './image-version';
 import {
   csvList,
   csvListFiltered,
@@ -29,6 +29,7 @@ import {
   resolveSessionTtlMs,
   stripTrailingSlashes,
 } from './parsers';
+import { SUPPORTED_LANGUAGE_CODES } from '@trek/shared';
 
 export type RawEnv = Record<string, string | undefined>;
 
@@ -43,8 +44,13 @@ export function deriveApp(raw: RawEnv) {
     isTest: nodeEnv === 'test',
     port: numberOr(raw.PORT, 3001),
     host: raw.HOST,
-    /** Raw APP_VERSION — fallbacks differ per site ('0.0.0' vs package.json vs semver-validated); each keeps its own. */
-    appVersion: raw.APP_VERSION,
+    /**
+     * The image's own VERSION file, else raw APP_VERSION. Fallbacks differ per
+     * site ('0.0.0' vs package.json vs semver-validated); each keeps its own.
+     * The file wins because a container keeps its env across image updates
+     * (image-version.ts).
+     */
+    appVersion: imageVersion() ?? raw.APP_VERSION,
     /** Raw APP_URL — trailing-slash stripping differs per site (feeds strips one, notifications strips all). */
     appUrl: raw.APP_URL,
     tz: raw.TZ,
@@ -63,20 +69,19 @@ function resolveDefaultLanguage(raw: string | undefined): string {
   return canonical ?? 'en';
 }
 
+/**
+ * The live half of the HTTP settings. TRUST_PROXY and HSTS_INCLUDE_SUBDOMAINS
+ * are not here: they are boot-stable and owned by the `httpConfig` token
+ * (boot-derive.ts), so they cannot be read through two doors.
+ */
 export function deriveHttp(raw: RawEnv) {
-  // env.schema.ts accepts 0 as a valid hop count, so `|| 1` would quietly turn
-  // "trust nothing" into "trust one hop" and let a forged X-Forwarded-For through.
-  const trustProxyHops = Number.parseInt(raw.TRUST_PROXY ?? '', 10);
   return {
     allowedOriginsRaw: raw.ALLOWED_ORIGINS,
     /** globalMiddleware CORS variant: trim + drop empty entries. */
     corsOrigins: csvListFiltered(raw.ALLOWED_ORIGINS),
     /** websocket variant: trim only — an empty entry stays (and can never match an Origin header). */
     wsOrigins: csvList(raw.ALLOWED_ORIGINS),
-    trustProxyRaw: raw.TRUST_PROXY,
-    trustProxy: Number.isFinite(trustProxyHops) ? trustProxyHops : 1,
     forceHttps: parseBool(raw.FORCE_HTTPS) === true,
-    hstsIncludeSubdomains: parseBool(raw.HSTS_INCLUDE_SUBDOMAINS) === true,
     /** COOKIE_SECURE is tri-state: an explicit falsy value disables secure cookies; anything else means auto-detect. */
     cookieSecureDisabled: parseBool(raw.COOKIE_SECURE) === false,
     apiDocsEnabled: parseBool(raw.TREK_API_DOCS_ENABLED) === true,
@@ -206,6 +211,9 @@ export function deriveOidc(raw: RawEnv) {
     only: parseBool(raw.OIDC_ONLY) === true,
     adminClaim: raw.OIDC_ADMIN_CLAIM || 'groups',
     adminValue: raw.OIDC_ADMIN_VALUE,
+    // Unset keeps the old order (name, then preferred_username), so an instance
+    // that never sets it names new accounts exactly as before (#1677).
+    usernameClaim: raw.OIDC_USERNAME_CLAIM?.trim() || undefined,
   };
 }
 
@@ -271,7 +279,6 @@ export function deriveWebauthn(raw: RawEnv) {
 export function deriveIntegrations(raw: RawEnv) {
   return {
     unsplashAccessKey: raw.UNSPLASH_ACCESS_KEY?.trim(),
-    transitApiBase: stripTrailingSlashes(raw.TRANSIT_API_URL || 'https://api.transitous.org'),
     // Trimmed before the default fires: the schema validates the trimmed value and
     // treats a blank one as unset, so a padded or whitespace-only value would
     // otherwise pass startup and then be the string that cannot be fetched.
@@ -280,7 +287,6 @@ export function deriveIntegrations(raw: RawEnv) {
     // Longer than the `[timeout:20]` the query itself carries, or we abort an answer the
     // mirror was still allowed to be working on. See OVERPASS_QUERY_TIMEOUT_S.
     overpassTimeoutMs: positiveNumberOr(raw.OVERPASS_TIMEOUT_MS, 25000),
-    kitineraryExtractorPath: raw.KITINERARY_EXTRACTOR_PATH,
     /**
      * One ceiling for a model call, replacing the three per-client constants
      * that used to disagree. The default is deliberately generous: heavier
@@ -289,12 +295,16 @@ export function deriveIntegrations(raw: RawEnv) {
      * rejects a fractional value.
      */
     llmTimeoutMs: Math.floor(positiveNumberOr(raw.LLM_TIMEOUT_MS, 900_000)),
-    // Windows spells it Path; every other platform PATH. Split here so callers
-    // get a list and never re-implement the delimiter.
-    searchPath: (raw.PATH || raw.Path || '')
-      .split(process.platform === 'win32' ? ';' : ':')
-      .map(p => p.trim())
-      .filter(Boolean),
+    // TRANSIT_API_URL, KITINERARY_EXTRACTOR_PATH and PATH are boot-stable and
+    // read only by Nest providers, so the transitConfig and kitineraryConfig
+    // tokens own them (boot-derive.ts).
+  };
+}
+
+export function deriveFiles(raw: RawEnv) {
+  return {
+    /** Largest document a user may upload to a trip, a booking or a note (#1364). Videos keep their own cap. */
+    uploadLimitMb: positiveNumberOr(raw.FILE_UPLOAD_LIMIT_MB, 50),
   };
 }
 
@@ -304,6 +314,8 @@ export function deriveBackup(raw: RawEnv) {
     maxDecompressedMb: positiveNumberOr(raw.BACKUP_MAX_DECOMPRESSED_MB, 5 * 1024),
     /** backupService only bundles data/.encryption_key into archives when the key does NOT come from env. */
     encryptionKeyFromEnv: !!raw.ENCRYPTION_KEY,
+    /** Archive restored on the first start, while no database exists yet (#1089). Null when unset or blank. */
+    restoreFromBackup: raw.RESTORE_FROM_BACKUP?.trim() || null,
   };
 }
 
@@ -317,13 +329,21 @@ export function deriveDb(raw: RawEnv) {
     synchronous: durability.synchronous,
     /** Complaints about unusable values; derivation stays side-effect free, so db/durability.ts logs them when it opens the file. */
     durabilityWarnings: durability.warnings,
+    /**
+     * Snapshot the database before a boot migrates it. Undefined when unset: the
+     * caller then decides (on, except under NODE_ENV=test). false is the escape
+     * hatch for a data dir that cannot hold a second copy.
+     */
+    preMigrateSnapshot: parseBool(raw.TREK_DB_PRE_MIGRATE_SNAPSHOT),
+    /** How many pre-migration snapshots stay in the data dir, newest first. */
+    preMigrateSnapshotKeep: Math.min(positiveIntOr(raw.TREK_DB_PRE_MIGRATE_SNAPSHOT_KEEP, 3), 100),
   };
 }
 
+/** TREK_PLACE_PHOTO_DIR is boot-stable and owned by the `storageConfig` token (boot-derive.ts). */
 export function derivePaths(raw: RawEnv) {
   return {
     wikiDir: raw.TREK_WIKI_DIR,
-    placePhotoDir: raw.TREK_PLACE_PHOTO_DIR,
   };
 }
 
@@ -331,6 +351,26 @@ export function deriveNet(raw: RawEnv) {
   return {
     allowInternalNetwork: parseBool(raw.ALLOW_INTERNAL_NETWORK) === true,
     allowLinkLocalIps: parseLinkLocalAllowList(raw.ALLOW_LINK_LOCAL_IPS).ips,
+    // The variables Node's own env proxy reads, both spellings, so the guarded
+    // requests below follow the same proxy as everything else (#1754).
+    proxy: {
+      http: (raw.HTTP_PROXY ?? raw.http_proxy)?.trim() || undefined,
+      https: (raw.HTTPS_PROXY ?? raw.https_proxy)?.trim() || undefined,
+      noProxy: ((raw.NO_PROXY ?? raw.no_proxy) || '')
+        .split(',')
+        .map((entry) => entry.trim().toLowerCase())
+        .filter(Boolean),
+    },
+  };
+}
+
+export function derivePush(raw: RawEnv) {
+  return {
+    // Trimmed, and blank counts as unset: the schema validated the trimmed value,
+    // so a padded key must not reach the crypto as a different string.
+    vapidPublicKey: raw.VAPID_PUBLIC_KEY?.trim() || undefined,
+    vapidPrivateKey: raw.VAPID_PRIVATE_KEY?.trim() || undefined,
+    vapidSubject: raw.VAPID_SUBJECT?.trim() || undefined,
   };
 }
 
@@ -350,9 +390,11 @@ export function deriveAll(raw: RawEnv) {
     webauthn: deriveWebauthn(raw),
     integrations: deriveIntegrations(raw),
     backup: deriveBackup(raw),
+    files: deriveFiles(raw),
     db: deriveDb(raw),
     paths: derivePaths(raw),
     net: deriveNet(raw),
+    push: derivePush(raw),
   };
 }
 

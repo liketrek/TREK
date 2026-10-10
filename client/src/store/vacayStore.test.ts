@@ -153,7 +153,7 @@ describe('vacayStore optimistic updates', () => {
     await useVacayStore.getState().toggleCompanyHoliday('2025-12-25');
 
     expect(seen[0]).toEqual([]);
-    expect(seen[1]).toEqual([{ date: '2025-12-25' }]);
+    expect(seen[1]).toEqual([{ date: '2025-12-25', fraction: 1 }]);
   });
 
   it('FE-STORE-VCY-008: a rejected company-holiday toggle rolls the day back', async () => {

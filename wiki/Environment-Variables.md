@@ -7,8 +7,8 @@ Complete reference for all environment variables TREK reads.
 - **Docker Compose** — use the `environment:` block or a `.env` file alongside `docker-compose.yml`
 - **Docker run** — pass each variable with `-e VARIABLE=value`
 - **Helm** — use `env:` for plain values and `secretEnv:` for sensitive values in `values.yaml`. The chart only
-  passes through the keys it declares (31 in `templates/configmap.yaml`, the credentials in `templates/secret.yaml`), so a variable
-  that is not one of them is dropped silently — patch it onto the Deployment or add it to the chart
+  passes through the keys it declares (37 in `templates/configmap.yaml`, the credentials in `templates/secret.yaml`), so a variable
+  that is not one of them (`DEFAULT_LANGUAGE`, `FILE_UPLOAD_LIMIT_MB`, `RESTORE_FROM_BACKUP` and `MCP_MAX_SESSION_PER_USER` among them) is dropped silently. Patch it onto the Deployment or add it to the chart
 - **Unraid** — set in the container template editor
 - **Proxmox Community Script** — set in `/opt/trek/server/.env`
 
@@ -25,6 +25,9 @@ Invalid environment configuration:
   - PORT="not-a-port": must be a port number (1-65535)
   - SESSION_DURATION="bogus": must be a duration like "1h", "7d" or "30d"
 ```
+
+The value of a secret is never printed: `ENCRYPTION_KEY`, `SMTP_PASS`, `OIDC_CLIENT_SECRET`, `VAPID_PRIVATE_KEY` and
+the other keys, secrets and passwords appear as `***`, so the report names the variable and the problem only.
 
 In Docker this crash-loops the container until the value is corrected or removed. Boolean switches accept
 `true`/`false`, `1`/`0`, `on`/`off`, `yes`/`no` in any casing — anything else counts as malformed. Variables TREK
@@ -93,18 +96,20 @@ Setting `ENCRYPTION_KEY` explicitly is recommended so you can back it up indepen
 
 ### `DEFAULT_LANGUAGE` — Supported Codes
 
-You can set `DEFAULT_LANGUAGE` to any of the 23 languages TREK ships. The currently supported codes are:
+You can set `DEFAULT_LANGUAGE` to any of the 27 languages TREK ships. The currently supported codes are:
 
 | Code    | Language           |
 |---------|--------------------|
 | `en`    | English            |
 | `de`    | Deutsch            |
 | `es`    | Español            |
+| `et`    | Eesti              |
 | `fr`    | Français           |
 | `hu`    | Magyar             |
 | `nl`    | Nederlands         |
 | `br`    | Português (Brasil) |
 | `cs`    | Česky              |
+| `sk`    | Slovenčina         |
 | `pl`    | Polski             |
 | `ru`    | Русский            |
 | `zh`    | 简体中文               |
@@ -112,9 +117,11 @@ You can set `DEFAULT_LANGUAGE` to any of the 23 languages TREK ships. The curren
 | `it`    | Italiano           |
 | `tr`    | Türkçe             |
 | `ar`    | العربية            |
+| `az`    | Azərbaycanca       |
 | `id`    | Bahasa Indonesia   |
 | `ja`    | 日本語                |
 | `ko`    | 한국어                |
+| `th`    | ไทย                |
 | `uk`    | Українська         |
 | `gr`    | Ελληνικά           |
 | `sv`    | Svenska            |
@@ -138,13 +145,15 @@ proxying is disabled by default.
 | `HTTPS_PROXY` | Proxy URL for outbound HTTPS requests                         | —       |
 | `NO_PROXY`    | Comma-separated hosts or domains that should bypass the proxy | —       |
 
-> **Note:** Proxy environment variables apply to requests made through Node.js's default HTTP dispatcher. Requests
-> handled by TREK's SSRF protection use a dedicated dispatcher and do not use the environment proxy.
+> **Note:** Requests that go through TREK's SSRF protection (place photos, link previews, webhooks, Immich, Synology,
+> Dawarich and the other integrations) read the same three variables themselves and use the proxy as well, on any
+> install. Everything else follows Node's own environment proxy, which needs `NODE_USE_ENV_PROXY=1` (see below).
+> `NO_PROXY` takes `*`, a host (which also matches its subdomains, a leading dot is optional) or `host:port`.
 
 > **Container only.** Node ignores these variables unless it is started with `NODE_USE_ENV_PROXY=1`, and the official
 > image sets that for you. On a source or Proxmox install, set `NODE_USE_ENV_PROXY=1` alongside them or nothing will
-> change. On Helm the image already has it, but the chart's ConfigMap does not declare `HTTP_PROXY`, `HTTPS_PROXY` or
-> `NO_PROXY`, so a value under `env:` is dropped; patch the three onto the Deployment instead.
+> change. On Helm the image already has it, and the chart passes `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` from
+> `env:` through to the container.
 
 > **Set `NO_PROXY`.** Without it every request goes to the proxy, including the ones TREK makes to itself, such as the
 > container health check. `localhost,127.0.0.1` is a sensible minimum; add your own hosts as needed.
@@ -161,6 +170,7 @@ full explanation.
 | `FORCE_HTTPS`             | When `true`: 301-redirects HTTP→HTTPS, sends HSTS (`max-age=31536000`), adds CSP `upgrade-insecure-requests`, forces cookie `secure` flag. Only useful behind a TLS proxy. Your proxy must send `X-Forwarded-Proto: https`.                                                             | `false`          |
 | `HSTS_INCLUDE_SUBDOMAINS` | When `true`: adds the `includeSubDomains` directive to the HSTS header, extending HTTPS enforcement to all subdomains. Only effective when HSTS is active (`FORCE_HTTPS=true` or `NODE_ENV=production`). Leave `false` if you run other services on sibling subdomains over plain HTTP. | `false`          |
 | `TRUST_PROXY`             | Number of trusted proxy hops. Tells Express how far into `X-Forwarded-For` to look for the real client IP, and where to read `X-Forwarded-Proto`. Count your hops: with two proxies in front of TREK and `TRUST_PROXY=1`, the IP on every audit row is the inner proxy's. `0` trusts nothing and always uses the socket address. Not required for the `FORCE_HTTPS` redirect, which reads the `X-Forwarded-Proto` header directly — set it for correct client IPs in the audit log, and for the `COOKIE_SECURE` auto-derivation, which goes through `req.secure`. | `1` (production) |
+| `HTTP_KEEP_ALIVE_TIMEOUT_MS` | How long (in milliseconds) the server keeps an idle keep-alive connection open; the headers timeout follows one second above it. Keep it above your reverse proxy's upstream idle timeout (60 s for nginx and most load balancers, 90 s for Traefik), otherwise the proxy reuses a connection the server just closed and answers that request with a 502. Between `1000` and `290000`. | `95000` |
 | `COOKIE_SECURE`           | Controls the `secure` flag on the `trek_session` cookie. Auto-derived as `true` when `NODE_ENV=production`, when `FORCE_HTTPS=true`, or when the request itself arrived over TLS on the outermost hop (`X-Forwarded-Proto: https` with `TRUST_PROXY` set). Set to `false` only as an escape hatch for LAN testing without TLS — not recommended in production.                                                   | auto             |
 
 > **Warning:** `FORCE_HTTPS=true` behind a proxy that does not forward `X-Forwarded-Proto: https` causes a
@@ -185,6 +195,7 @@ For setup instructions, see [OIDC-SSO](OIDC-SSO).
 | `OIDC_ONLY`          | Force SSO-only mode: disables password login and registration, overrides Admin > Settings toggles, cannot be changed at runtime. First SSO login becomes admin on a fresh instance. Since the login page then has no "Remember me" switch, every SSO session gets the `SESSION_DURATION_REMEMBER` lifetime; shorten that variable for shorter sessions, `SESSION_DURATION` does not apply here.    | `false`                |
 | `OIDC_ADMIN_CLAIM`   | OIDC claim inspected for the admin role. Only takes effect once `OIDC_ADMIN_VALUE` is set.                                                                                             | `groups`               |
 | `OIDC_ADMIN_VALUE`   | Value of the OIDC claim that grants admin role (e.g. `app-trek-admins`)                                                                                                                | —                      |
+| `OIDC_USERNAME_CLAIM` | Claim a new account's username is built from, e.g. `preferred_username` when your provider sends the full name in `name`. Only used when the account is created; an empty claim falls back to the default order. | `name`, then `preferred_username` |
 | `OIDC_SCOPE`         | Space-separated OIDC scopes to request. **Fully replaces** the default — always include `openid email profile` plus any extra scopes (e.g. add `groups` when using `OIDC_ADMIN_CLAIM`) | `openid email profile` |
 | `OIDC_DISCOVERY_URL` | Override the auto-constructed OIDC discovery endpoint. Required for providers with a non-standard path (e.g. Authentik)                                                                | —                      |
 
@@ -220,6 +231,53 @@ over the database values.
 
 `SMTP_HOST`, `SMTP_PORT`, and `SMTP_FROM` are all required for email delivery to work. `SMTP_USER` and `SMTP_PASS` are
 optional (for unauthenticated relays).
+
+---
+
+## Web Push
+
+[Web Push](Notifications#web-push) signs every message with a VAPID key pair. None of these variables is needed:
+without them TREK generates a pair on first start and keeps it in the database, the private half encrypted with
+`ENCRYPTION_KEY`, so it moves with every backup and survives a restore.
+
+| Variable            | Description                                                                                                                        | Default                                                                     |
+|---------------------|------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| `VAPID_PUBLIC_KEY`  | Public half of your own key pair: the uncompressed P-256 point, base64url (65 bytes). Only used together with `VAPID_PRIVATE_KEY`. | generated                                                                   |
+| `VAPID_PRIVATE_KEY` | Private half of that pair: the 32-byte P-256 key, base64url.                                                                       | generated                                                                   |
+| `VAPID_SUBJECT`     | The contact the push services see with every message: a `mailto:` address or an `https://` URL.                                    | `APP_URL` when it is `https://`, else `https://github.com/liketrek/TREK`    |
+
+A value in the wrong shape aborts startup like any other variable on this page; for `VAPID_PRIVATE_KEY` the report
+prints `***` instead of the value. A pair whose halves do not belong together, or only one half of a pair, does not
+stop TREK from starting, but push is off with an error in the log until the variables are fixed: the Push card and
+column disappear from **Settings → Notifications**, the routes that register a device answer `503`, nothing is sent,
+and every registered device stays registered. TREK never signs with another pair in its place, neither one stored in
+the database (from a start without the variables) nor a newly generated one: no device registered with yours holds
+that key, and the first message sent with it would drop every one of them. Once both variables hold the two halves of
+your pair again, every device receives as before.
+Any tool that prints the standard Web Push pair works, for example `npx web-push generate-vapid-keys`.
+
+Without `VAPID_SUBJECT`, the contact is `APP_URL` when that is an `https://` address other than `localhost`, and
+otherwise the project page. Unlike links in emails, it never falls back on the first `ALLOWED_ORIGINS` entry, which may
+be another site that is only allowed to call the API. TREK never fills in an email address on its own, so no admin
+address travels to the push services.
+
+TREK generates a pair only while neither `web_push_vapid_public_key` nor `web_push_vapid_private_key` exists in
+`app_settings`, and never overwrites a pair that is there. When no pair comes from the variables and the stored
+private key cannot be decrypted with the current `ENCRYPTION_KEY` (after a restore under a different key, for example),
+push is off: the log says why, the Push card and column disappear from every user's **Settings → Notifications** (the
+routes that register a device answer `503`), nothing is sent, and every registered device stays registered.
+Starting TREK with the original `ENCRYPTION_KEY` again brings push back on every device as it was. A stored private key
+that does not belong to the stored public key, or only one of the two rows, turns push off the same way. To start over
+with a new pair instead, delete both rows from `app_settings`; TREK then generates a new pair, and every device has to
+subscribe again.
+
+Browsers bind each subscription to the public key it was made with. After a switch to another pair (setting the
+variables on an instance that has been using its generated pair, changing them, removing them again, or a newly
+generated pair), TREK drops each old subscription the first time it would have sent to it. A device subscribes again
+with the new key on its own the next time TREK is opened on it, where the browser allows that without a tap;
+elsewhere, push shows as off in **Settings → Notifications** and has to be turned on again there.
+
+On Helm, `VAPID_PUBLIC_KEY` and `VAPID_SUBJECT` go under `env:` and `VAPID_PRIVATE_KEY` under `secretEnv:`.
 
 ---
 
@@ -311,7 +369,7 @@ Some hosting environments — commonly VPS and datacenter IP ranges (and many Ku
 
 **Two ways to configure it** — pick one; the env var wins if both are present:
 
-1. **Environment variable** (this page) — instance-wide, ideal for Docker/Helm/Unraid where you already manage config as env.
+1. **Environment variable** (this page) — instance-wide, ideal for Docker/Helm/Unraid where you already manage config as env. The **Unsplash API Key** field in the admin panel is then read-only and names the variable.
 2. **Admin → Settings → API Keys** — paste the key into the **Unsplash API Key** field. Stored encrypted at rest and used as a fallback for every user when no env var is set. This is the better option if you'd rather not restart the container to change it.
 
 To get a key: create a free account at [unsplash.com/developers](https://unsplash.com/developers), register a new application, and copy its **Access Key** (not the Secret Key). The Unsplash free tier (demo) allows 50 requests/hour, which is ample for cover search.
@@ -328,6 +386,25 @@ TREK's own place index, the [TREK Places API](TREK-Places-API), answers the sugg
 | `TREK_PLACES_URL`     | Base URL of a copy of the service you run yourself; it has to answer the same `/v1` API. Unset or blank uses the public service. A trailing slash is stripped, and a value that is not a full URL aborts startup. It is configuration rather than user input and is not run through the SSRF guard, so an address on your LAN or Docker network works without `ALLOW_INTERNAL_NETWORK`. | `https://places.liketrek.com` |
 
 On Helm both go under `env:` in `values.yaml`. The chart passes `TREK_PLACES_ENABLED` through whenever it is set at all, so an unquoted `false` or `--set env.TREK_PLACES_ENABLED=false` reaches the container as well.
+
+---
+
+## Place Search (Google Places)
+
+A Google Maps API key gives place search Google as the keyed provider beside the TREK Places index and OpenStreetMap, and switches on Google photos, place details and the Google transit backend. What the key is used for, and the switches that limit it, are on [Places and Search](Places-and-Search#with-a-google-maps-api-key).
+
+| Variable         | Description | Default |
+|------------------|-------------|---------|
+| `PLACES_API_KEY` | Google Maps API key with the **Places API (New)** enabled. When set, it takes priority over the key configured in **Admin → Settings → API Keys** and is used for every member of the instance. | unset |
+
+**Two ways to configure it**, pick one; the env var wins if both are present:
+
+1. **Environment variable** (this page): instance-wide, ideal for Docker/Helm/Unraid where you already manage config as env. In the chart it is a credential and goes under `secretEnv:`, not `env:`.
+2. **Admin → Settings → API Keys**: paste it into the **Google Maps API Key** field. Stored encrypted at rest.
+
+While the variable is set, the **Google Maps API Key** field in the admin panel is read-only and names `PLACES_API_KEY` instead of showing a value. **Test** beside it still works and checks the key from the environment. The same goes for `UNSPLASH_ACCESS_KEY` and `AMAP_API_KEY` and their fields. The value itself never reaches the browser.
+
+If you restrict the key to **HTTP referrers** in Google Cloud Console, set `APP_URL` as well: TREK sends it as the `Referer` header on every Google request, and without it Google rejects them.
 
 ---
 
@@ -351,7 +428,7 @@ type **Web 服务**. A **Web 端 (JS API)** key is a different kind of credentia
 
 **Two ways to configure it**, pick one; the env var wins if both are present:
 
-1. **Environment variable** (this page): instance-wide, ideal for Docker/Helm where you already manage config as env. In the chart the key and the secret are credentials and go under `secretEnv:`, not `env:`; only `AMAP_API_BASE` is a plain `env:` value.
+1. **Environment variable** (this page): instance-wide, ideal for Docker/Helm where you already manage config as env. In the chart the key and the secret are credentials and go under `secretEnv:`, not `env:`; only `AMAP_API_BASE` is a plain `env:` value. The **Amap (高德地图) API Key** field in the admin panel is then read-only and names the variable.
 2. **Admin → Settings → API Keys**: paste it into the **Amap (高德地图) API Key** field. Stored encrypted at rest.
 
 Setting a key is not enough on its own: **Admin → Settings → API Keys → Place search provider** decides which keyed
@@ -379,9 +456,13 @@ through environment variables. `TREK_PLACE_PHOTO_DIR` below is unaffected.
 | Variable                     | Description                                                                                                                                                                                                                                            | Default                 |
 |------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------|
 | `TREK_PLACE_PHOTO_DIR`       | Directory where cached Google place photos are stored. Created recursively on boot. Set this to point photo storage at a dedicated mounted volume.                                                                                                     | `uploads/photos/google` |
+| `FILE_UPLOAD_LIMIT_MB`       | Maximum size (in MB) of a file uploaded to a trip, a booking or a collab note, and of a file Document Sync brings in. The upload dialogs use the same limit and refuse a larger file before the upload starts. Videos keep their own 500 MB cap, and trip covers and place images their 20 MB. The MCP tool `upload_trip_file` takes at most 10 MB, or this limit when it is lower. If you sit behind a reverse proxy, raise its upload limit as well. | `50` |
 | `BACKUP_UPLOAD_LIMIT_MB`     | Maximum **compressed** size (in MB) of a restore-backup archive that may be uploaded. Raise it if your backups (which include the `uploads/` directory) exceed the default. Non-positive or invalid values abort startup. | `500`                   |
+| `RESTORE_FROM_BACKUP` | Path to a backup ZIP to restore on the **first** start, before any setup. Only acts while no database exists; afterwards it is ignored with a warning. A backup that fails the restore checks stops the start. See [Backups](Backups#restoring-on-a-new-install-before-setup). | none |
 | `BACKUP_MAX_DECOMPRESSED_MB` | Maximum **decompressed** size (in MB) of a restore-backup archive — the zip-bomb guard. Independent of `BACKUP_UPLOAD_LIMIT_MB` and enforced on both restore paths, so a restore that fits the upload cap can still be refused with `Backup exceeds the maximum decompressed size.` Raise both when restoring a very large instance. | `5120` (5 GB)          |
 | `TREK_DB_JOURNAL_MODE`       | SQLite [journal mode](https://sqlite.org/pragma.html#pragma_journal_mode): `DELETE`, `TRUNCATE`, `PERSIST`, `MEMORY`, `WAL` or `OFF`. Set `DELETE` when the data directory lives on network storage — see below. Values SQLite doesn't know log a warning and fall back. | `WAL`                   |
+| `TREK_DB_PRE_MIGRATE_SNAPSHOT` | Copy the database to `pre-migrate-<schema>-<time>.db` next to it before a startup applies pending migrations, so the previous image can be started on that copy again. If the copy cannot be written the startup refuses rather than migrate without one. Set `false` only to get past that when you cannot free space and have a backup of your own. See [Updating](Updating#database-migrations). | `true` |
+| `TREK_DB_PRE_MIGRATE_SNAPSHOT_KEEP` | How many of those copies stay in the data directory, newest first (1 to 100). | `3` |
 | `TREK_DB_SYNCHRONOUS`        | SQLite [synchronous](https://sqlite.org/pragma.html#pragma_synchronous) level: `OFF`, `NORMAL`, `FULL` or `EXTRA`. The default follows the journal mode — `NORMAL` under WAL (what SQLite itself uses there), `FULL` otherwise, because a rollback journal at `NORMAL` can lose committed transactions on a power cut. | `NORMAL` / `FULL`       |
 
 ### Running the database on network storage

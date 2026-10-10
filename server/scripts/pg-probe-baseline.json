@@ -1,0 +1,21 @@
+{
+  "failing": {
+    "DayAccommodationsRepository.listForTripWithPlaceAndBooking": 1,
+    "DayAccommodationsRepository.listRoadtripStays": 1,
+    "GoogleApiUsageRepository.recordCall": 1,
+    "MaintenanceRepository.vacuumInto": 1,
+    "MaintenanceRepository.walCheckpoint": 1,
+    "ReservationDayPositionsRepository.upsertScoped": 1,
+    "ReservationsRepository.findWithJoins": 1,
+    "ReservationsRepository.listForCalendar": 1,
+    "ReservationsRepository.listForTrip": 1,
+    "ReservationsRepository.listPublicStaysForCalendar": 1,
+    "RouteUsageDailyRepository.record": 1
+  },
+  "uncovered": [
+    "BucketListRepository.update",
+    "BudgetItemsRepository.update",
+    "PackingBagsRepository.update",
+    "TodoItemsRepository.update"
+  ]
+}

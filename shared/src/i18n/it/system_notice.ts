@@ -59,11 +59,14 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.features_label': 'I protagonisti',
   'system_notice.release_notes.features_aside': 'E non è tutto',
   'system_notice.release_notes.feature_places_title': 'TREK Places API',
-  'system_notice.release_notes.feature_places_body': 'Il primo pianificatore di viaggi open source con una propria API dei luoghi. 73,6 milioni di luoghi, senza chiave, senza quota.',
+  'system_notice.release_notes.feature_places_body':
+    'Il primo pianificatore di viaggi open source con una propria API dei luoghi. 73,6 milioni di luoghi, senza chiave, senza quota.',
   'system_notice.release_notes.feature_roadtrip_title': 'Addon Viaggio su strada',
-  'system_notice.release_notes.feature_roadtrip_body': 'Pianifica il viaggio da solo: percorso, distanza, ore e tappe. Spento finché un admin non lo attiva.',
+  'system_notice.release_notes.feature_roadtrip_body':
+    'Pianifica il viaggio da solo: percorso, distanza, ore e tappe. Spento finché un admin non lo attiva.',
   'system_notice.release_notes.feature_dawarich_title': 'Integrazione Dawarich',
-  'system_notice.release_notes.feature_dawarich_body': 'L’alternativa self-hosted a Google Timeline, ora consultabile dentro TREK. TREK legge, e si limita a leggere.',
+  'system_notice.release_notes.feature_dawarich_body':
+    'L’alternativa self-hosted a Google Timeline, ora consultabile dentro TREK. TREK legge, e si limita a leggere.',
   'system_notice.release_notes.footnote': 'E in più una lunga lista di piccole modifiche in tutto il resto di TREK.',
   'system_notice.release_notes.notes_label': 'Note di rilascio',
   'system_notice.release_notes.note_eyebrow': 'Una nota dal maintainer',
@@ -83,8 +86,10 @@ const system_notice: TranslationStrings = {
     'Se TREK si è guadagnato un posto nei tuoi viaggi, offrimi un caffè e aiutami a far arrivare la prossima versione.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Supporta su Ko-fi',
-  'system_notice.release_notes.intro': 'Una propria API dei luoghi, viaggi on the road pianificati dall’inizio alla fine, la tua cronologia delle posizioni nelle tue mani, e i tuoi documenti sincronizzati.',
+  'system_notice.release_notes.intro':
+    'Una propria API dei luoghi, viaggi on the road pianificati dall’inizio alla fine, la tua cronologia delle posizioni nelle tue mani, e i tuoi documenti sincronizzati.',
   'system_notice.release_notes.feature_docsync_title': 'Sincronizzazione documenti',
-  'system_notice.release_notes.feature_docsync_body': 'Paperless-ngx, Papra, Nextcloud, OpenCloud e Synology Drive. I documenti di un viaggio viaggiano in entrambe le direzioni con l’archivio che già usi.',
+  'system_notice.release_notes.feature_docsync_body':
+    'Paperless-ngx, Papra, Nextcloud, OpenCloud e Synology Drive. I documenti di un viaggio viaggiano in entrambe le direzioni con l’archivio che già usi.',
 };
 export default system_notice;

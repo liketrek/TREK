@@ -1,27 +1,16 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Headers,
-  HttpException,
-  Param,
-  Post,
-  Put,
-  UseGuards,
-} from '@nestjs/common';
 import type { User } from '../../types';
-import { ReservationsService } from './reservations.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
+import { CurrentUser } from '../auth-core/current-user.decorator';
+import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { AirtrailLinkService } from '../integrations/airtrail-link.service';
+import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import {
   ReservationCreateDto,
   ReservationUpdateDto,
   ReservationPositionsDto,
   ReservationTravelersDto,
 } from './reservations.dto';
+import { ReservationsService } from './reservations.service';
+import { Body, Controller, Delete, Get, Headers, HttpException, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 type ReservationBody = Record<string, unknown> & {
   title?: string;
@@ -52,11 +41,9 @@ export class ReservationsController {
     private readonly airtrailLink: AirtrailLinkService,
   ) {}
 
-
-
   @Get()
-  list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
-    return { reservations: this.reservations.list(tripId) };
+  async list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
+    return { reservations: await this.reservations.list(tripId) };
   }
 
   @RequirePermission('reservation_edit')
@@ -68,23 +55,28 @@ export class ReservationsController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     const body = rawBody as ReservationBody & { title: string };
-    this.rejectForeignReferences(tripId, body);
-    // Before the synchronous writes: the price keeps the currency it was quoted in,
+    await this.rejectForeignReferences(tripId, body);
+    // Before the writes: the price keeps the currency it was quoted in,
     // at a rate frozen now (#2525).
     const budgetEntry = await this.reservations.withFrozenRate(tripId, body.create_budget_entry);
-    const { reservation, accommodationCreated } = this.reservations.create(tripId, body as never);
+    // The booking and its linked cost are one write.
+    const { reservation, accommodationCreated, costEvents } = await this.reservations.createWithCost(
+      tripId,
+      body as never,
+      budgetEntry,
+    );
     if (accommodationCreated) {
       this.reservations.broadcast(tripId, 'accommodation:created', {}, socketId);
     }
-    this.reservations.syncBudgetOnCreate(tripId, reservation.id, body.title, body.type, budgetEntry, socketId);
+    this.reservations.announceCost(tripId, costEvents, socketId);
     this.reservations.broadcast(tripId, 'reservation:created', { reservation }, socketId);
-    this.reservations.notifyBookingChange(tripId, user.id, body.title, body.type ?? '');
+    await this.reservations.notifyBookingChange(tripId, user.id, body.title, body.type ?? '');
     return { reservation };
   }
 
   @RequirePermission('reservation_edit')
   @Put('positions')
-  updatePositions(
+  async updatePositions(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Body() body: ReservationPositionsDto,
@@ -92,14 +84,23 @@ export class ReservationsController {
   ) {
     // The legacy signature declares day_plan_position required, but the wire
     // contract tolerates absent values (bind NULL) — see the shared schema.
-    this.reservations.updatePositions(tripId, body.positions as { id: number; day_plan_position: number }[], body.day_id);
-    this.reservations.broadcast(tripId, 'reservation:positions', { positions: body.positions, day_id: body.day_id }, socketId);
+    await this.reservations.updatePositions(
+      tripId,
+      body.positions as { id: number; day_plan_position: number }[],
+      body.day_id,
+    );
+    this.reservations.broadcast(
+      tripId,
+      'reservation:positions',
+      { positions: body.positions, day_id: body.day_id },
+      socketId,
+    );
     return { success: true };
   }
 
   @RequirePermission('reservation_edit')
   @Put(':id')
-  update(
+  async update(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('id') id: string,
@@ -107,64 +108,81 @@ export class ReservationsController {
     @Headers('x-socket-id') socketId?: string,
   ) {
     const body = rawBody as ReservationBody;
-    const current = this.reservations.getReservation(id, tripId);
+    const current = await this.reservations.getReservation(id, tripId);
     if (!current) {
       throw new HttpException({ error: 'Reservation not found' }, 404);
     }
-    this.rejectForeignReferences(tripId, body);
-    const { reservation, accommodationChanged } = this.reservations.update(id, tripId, body as never, current as never);
+    await this.rejectForeignReferences(tripId, body);
+    // The booking and its linked cost are one write.
+    const { reservation, accommodationChanged, costEvents } = await this.reservations.updateWithCost(
+      id,
+      tripId,
+      body as never,
+      current,
+      body.create_budget_entry,
+    );
     if (accommodationChanged) {
       this.reservations.broadcast(tripId, 'accommodation:updated', {}, socketId);
     }
     const cur = current as { title: string; type?: string };
-    this.reservations.syncBudgetOnUpdate(tripId, id, body.title ?? '', body.type, cur.title, cur.type, body.create_budget_entry, socketId);
+    this.reservations.announceCost(tripId, costEvents, socketId);
     this.reservations.broadcast(tripId, 'reservation:updated', { reservation }, socketId);
     // Push a locally-edited AirTrail flight back to AirTrail (fire-and-forget,
     // under the importer's credentials — see airtrailSync). #214
     if ((reservation as any)?.external_source === 'airtrail' && (reservation as any)?.sync_enabled) {
       void this.airtrailLink.pushReservationToAirtrail(Number((reservation as any).id), Number(tripId)).catch(() => {});
     }
-    this.reservations.notifyBookingChange(tripId, user.id, body.title || cur.title, body.type || cur.type || '');
+    await this.reservations.notifyBookingChange(tripId, user.id, body.title || cur.title, body.type || cur.type || '');
     return { reservation };
   }
 
   @RequirePermission('reservation_edit')
   @Put(':id/travelers')
-  updateTravelers(
+  async updateTravelers(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('id') id: string,
     @Body() body: ReservationTravelersDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const result = this.reservations.setTravelers(id, tripId, body.user_ids);
+    const result = await this.reservations.setTravelers(id, tripId, body.user_ids);
     if (!result) {
       throw new HttpException({ error: 'Reservation not found' }, 404);
     }
-    this.reservations.broadcast(tripId, 'reservation:travelers-updated', { reservationId: Number(id), travelers: result.travelers }, socketId);
+    this.reservations.broadcast(
+      tripId,
+      'reservation:travelers-updated',
+      { reservationId: Number(id), travelers: result.travelers },
+      socketId,
+    );
     return { travelers: result.travelers, reservation: result.reservation };
   }
 
   @RequirePermission('reservation_edit')
   @Delete(':id')
-  remove(
+  async remove(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
     @Param('id') id: string,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    const { deleted, accommodationDeleted, deletedBudgetItemId } = this.reservations.remove(id, tripId);
+    const { deleted, accommodationDeleted, deletedBudgetItemIds } = await this.reservations.remove(id, tripId);
     if (!deleted) {
       throw new HttpException({ error: 'Reservation not found' }, 404);
     }
     if (accommodationDeleted) {
-      this.reservations.broadcast(tripId, 'accommodation:deleted', { accommodationId: deleted.accommodation_id }, socketId);
+      this.reservations.broadcast(
+        tripId,
+        'accommodation:deleted',
+        { accommodationId: deleted.accommodation_id },
+        socketId,
+      );
     }
-    if (deletedBudgetItemId) {
-      this.reservations.broadcast(tripId, 'budget:deleted', { itemId: deletedBudgetItemId }, socketId);
+    for (const itemId of deletedBudgetItemIds) {
+      this.reservations.broadcast(tripId, 'budget:deleted', { itemId }, socketId);
     }
     this.reservations.broadcast(tripId, 'reservation:deleted', { reservationId: Number(id) }, socketId);
-    this.reservations.notifyBookingChange(tripId, user.id, deleted.title, deleted.type || '');
+    await this.reservations.notifyBookingChange(tripId, user.id, deleted.title, deleted.type || '');
     return { success: true };
   }
 
@@ -183,12 +201,12 @@ export class ReservationsController {
    * trip" about an id that is part of nothing would send the caller looking in
    * the wrong place.
    */
-  private rejectForeignReferences(tripId: string, body: ReservationBody): void {
-    const offenders = this.reservations.referencesOutsideTrip(tripId, body as never);
+  private async rejectForeignReferences(tripId: string, body: ReservationBody): Promise<void> {
+    const offenders = await this.reservations.referencesOutsideTrip(tripId, body as never);
     if (offenders.length > 0) {
       throw new HttpException({ error: `Not part of this trip: ${offenders.join(', ')}` }, 400);
     }
-    const unknown = this.reservations.unresolvedReferences(tripId, body as never);
+    const unknown = await this.reservations.unresolvedReferences(tripId, body as never);
     if (unknown.length > 0) {
       throw new HttpException({ error: `Unknown reference: ${unknown.join(', ')}` }, 400);
     }

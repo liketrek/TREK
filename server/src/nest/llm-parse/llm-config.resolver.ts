@@ -1,9 +1,12 @@
 import { ADDON_IDS } from '../../addons';
+import { Addons } from '../../db/entities/Addons.entity';
+import type { AddonsRepository } from '../../db/repositories/Addons.repository';
 import { AddonsService } from '../addons/addons.service';
-import { decryptLlmApiKey, LLM_PROVIDERS, type LlmProvider, type ResolvedLlmConfig } from './llm-config';
-import { DatabaseService } from '../database/database.service';
 import { SettingsService } from '../settings/settings.service';
+import { decryptLlmApiKey, LLM_PROVIDERS, type LlmProvider, type ResolvedLlmConfig } from './llm-config';
+import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
+import { asLlmVision } from '@trek/shared';
 
 function asProvider(v: unknown): LlmProvider | null {
   return typeof v === 'string' && (LLM_PROVIDERS as string[]).includes(v) ? (v as LlmProvider) : null;
@@ -11,14 +14,19 @@ function asProvider(v: unknown): LlmProvider | null {
 
 /**
  * Resolves the effective LLM config for a user, gated by the addon. Injectable
- * (settings come from SettingsService); the addon-row read and the addon gate
- * still go through the legacy db/adminService seams until their waves migrate.
+ * (settings come from SettingsService).
+ *
+ * Plan 4 Task 1: the addon-row read moved off `DatabaseService` onto
+ * `AddonsRepository.findById` — the same shape `admin.service.ts`'s own
+ * LLM-addon config read already established (3a/3i's precedent: `config` is
+ * a `p.json()` column, so the repository hands back an already-parsed
+ * object, never a JSON string needing its own `JSON.parse`).
  */
 @Injectable()
 export class LlmConfigResolver {
   constructor(
     private readonly settings: SettingsService,
-    private readonly dbService: DatabaseService,
+    @InjectRepository(Addons) private readonly addonsRepo: AddonsRepository,
     private readonly addons: AddonsService,
   ) {}
 
@@ -28,23 +36,15 @@ export class LlmConfigResolver {
    * else null. This is the single place the API key is decrypted, and the single
    * place that decides which endpoint the server is allowed to call (#1772).
    */
-  resolve(userId: number): ResolvedLlmConfig | null {
-    if (!this.addons.isAddonEnabled(ADDON_IDS.LLM_PARSING)) return null;
-    return this.readInstanceConfig() ?? this.readUserConfig(userId);
+  async resolve(userId: number): Promise<ResolvedLlmConfig | null> {
+    if (!(await this.addons.isAddonEnabled(ADDON_IDS.LLM_PARSING))) return null;
+    return (await this.readInstanceConfig()) ?? (await this.readUserConfig(userId));
   }
 
-  private readInstanceConfig(): ResolvedLlmConfig | null {
-    const row = this.dbService.get<{ config?: string } | undefined>(
-      'SELECT config FROM addons WHERE id = ?',
-      ADDON_IDS.LLM_PARSING,
-    );
-    if (!row?.config) return null;
-    let cfg: Record<string, unknown>;
-    try {
-      cfg = JSON.parse(row.config || '{}');
-    } catch {
-      return null;
-    }
+  private async readInstanceConfig(): Promise<ResolvedLlmConfig | null> {
+    const row = await this.addonsRepo.findById(ADDON_IDS.LLM_PARSING);
+    const cfg = row?.config;
+    if (!cfg) return null;
     const provider = asProvider(cfg.provider);
     const model = typeof cfg.model === 'string' ? cfg.model.trim() : '';
     if (!provider || !model) return null;
@@ -53,12 +53,12 @@ export class LlmConfigResolver {
       model,
       baseUrl: typeof cfg.baseUrl === 'string' && cfg.baseUrl.trim() ? cfg.baseUrl.trim() : undefined,
       apiKey: decryptLlmApiKey(cfg.apiKey),
-      multimodal: cfg.multimodal === true,
+      vision: asLlmVision(cfg.vision),
     };
   }
 
-  private readUserConfig(userId: number): ResolvedLlmConfig | null {
-    const settings = this.settings.getUserSettings(userId);
+  private async readUserConfig(userId: number): Promise<ResolvedLlmConfig | null> {
+    const settings = await this.settings.getUserSettings(userId);
     const provider = asProvider(settings.llm_provider);
     const model = typeof settings.llm_model === 'string' ? settings.llm_model.trim() : '';
     if (!provider || !model) return null;
@@ -72,7 +72,7 @@ export class LlmConfigResolver {
     // an admin's own row. This is the choke point every consumer passes
     // (booking import and the plugin RPC surface), and the only place that also
     // catches values already sitting in the db.
-    const endpoints = this.settings.getAdminUserDefaults();
+    const endpoints = await this.settings.getAdminUserDefaults();
     // 'local' is an endpoint choice too ("some address I name"), so without an
     // admin-set local endpoint there is no config at all, never a silent
     // redirect to a different provider.
@@ -82,13 +82,15 @@ export class LlmConfigResolver {
         ? endpoints.llm_base_url.trim()
         : undefined;
 
-    const apiKey = this.settings.getDecryptedUserSetting(userId, 'llm_api_key') ?? undefined;
+    const apiKey = (await this.settings.getDecryptedUserSetting(userId, 'llm_api_key')) ?? undefined;
     return {
       provider,
       model,
       baseUrl,
       apiKey,
-      multimodal: settings.llm_multimodal === true,
+      // The personal switch has only ever been on or off, and was saved as the
+      // person set it, so it is read as exactly that.
+      vision: settings.llm_multimodal === true ? 'on' : 'off',
     };
   }
 }

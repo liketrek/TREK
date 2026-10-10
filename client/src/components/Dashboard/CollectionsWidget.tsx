@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { Bookmark, ArrowRight, MapPin } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import { useTranslation } from '../../i18n'
-import { collectionsApi } from '../../api/collections'
 import { entityGradient } from '../../utils/gradients'
-import type { Collection } from '@trek/shared'
+import { useCollectionLists } from './useCollectionLists'
 
 /**
  * Dashboard sidebar widget — a glassy `.tool` card that surfaces the user's
@@ -16,23 +15,7 @@ import type { Collection } from '@trek/shared'
 export default function CollectionsWidget({ onOpen }: { onOpen: () => void }): React.ReactElement {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [lists, setLists] = useState<Collection[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      try {
-        const data = await collectionsApi.list()
-        if (!cancelled) setLists(data.collections)
-      } catch {
-        if (!cancelled) setLists([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
-    return () => { cancelled = true }
-  }, [])
+  const { lists, loading } = useCollectionLists()
 
   return (
     <div className="tool">

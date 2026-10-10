@@ -14,6 +14,7 @@ const inspector: TranslationStrings = {
   'inspector.pendingRes': 'Reservasi Menunggu',
   'inspector.google': 'Google Maps',
   'inspector.navigation': 'Navigasi',
+  'inspector.otherMapApp': 'Aplikasi peta lain',
   'inspector.openWith': 'Buka dengan',
   'inspector.openStreetMap': 'OpenStreetMap',
   'inspector.saveToCollection': 'Simpan ke Koleksi',

@@ -1,37 +1,30 @@
-import { convertBooked, convertedLine } from '../../../../hooks/useExchangeRates'
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertCircle, ArrowDown, ArrowLeftRight, ArrowRight, ArrowUp, Check, ChevronDown, ChevronUp,
   Layers, Pencil, Plus, RotateCcw, StickyNote, Trash2, Receipt,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
-import { useAuthStore } from '../../../../store/authStore'
-import { useSettingsStore } from '../../../../store/settingsStore'
-import { useExchangeRates, withFallbackFx } from '../../../../hooks/useExchangeRates'
 import { useTranslation } from '../../../../i18n'
-import { amountToInputString, formatMoney } from '../../../../utils/formatters'
-import { downloadBlob, openFile } from '../../../../utils/fileDownload'
-import { budgetApi } from '../../../../api/client'
+import { formatMoney } from '../../../../utils/formatters'
+import { openFile } from '../../../../utils/fileDownload'
 import MCostSheet from '../sheets/MCostSheet'
 import { ReceiptPreviewModal } from '../../../../components/Budget/ReceiptPreviewModal'
-import { useFreezeMissingRates } from '../../../../components/Budget/useFreezeMissingRates'
-import { finalBudgetFor, finalBudgetSources, paidByUser, readUserNote, settlementDate } from '../../../../components/Budget/CostsPanel.helpers'
+import { useCostsLedger } from '../../../../components/Budget/useCostsLedger'
+import { useSettlementForm } from '../../../../components/Budget/useSettlementForm'
+import { finalBudgetFor, finalBudgetSources, NOTE_MAX, paidByUser, readUserNote } from '../../../../components/Budget/CostsPanel.helpers'
 import { catMeta, COST_CAT_META } from '../../../../components/Budget/costsCategories'
 import CustomSelect from '../../../../components/shared/CustomSelect'
 import { CustomDatePicker } from '../../../../components/shared/CustomDateTimePicker'
-import { SYMBOLS, currenciesWith } from '../../../../components/Budget/BudgetPanel.constants'
-import { localToday } from '../../../../components/Planner/today'
 import MConfirmSheet from '../../settings/MConfirmSheet'
 import MSheet from '../../../components/MSheet'
 import MChip from '../../../components/MChip'
-import { Eyebrow, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
+import { Eyebrow, FIELD_AREA_CLS, FIELD_CLS, FormSheetFooter, FormSheetHeader } from '../sheets/PlSheetChrome'
 import { CountPill, TabScroller } from './tabChrome'
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
 import {
-  baseTotal, buildCostsCsv, categoryBreakdown, categoryFilterKeys, computeTotals,
-  dayFilterKeys, filterBudgetItems, filterSettlements, groupLedgerByDay, isUnfinished, lineOf, memberShareOf, tint,
-  type CostsCtx, type CostsSegment, type CostsSettlement, type CostsSettlementResponse,
-} from './costsModel'
+  baseTotal, categoryFilterKeys, currencyOptions, dayFilterKeys, groupLedgerByDay, isUnfinished, lineOf, memberShareOf,
+  paymentAmount, paymentLineOf, tint, type CostsCtx, type CostsSettlement,
+} from '../../../../components/Budget/costsModel'
 import type { BudgetParticipantFinal } from '@trek/shared'
 import type { BudgetItem, BudgetItemReceipt, TripMember } from '../../../../types'
 
@@ -51,42 +44,16 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
   const { t, tripId, trip, tripMembers, budgetItems, days, toast } = planner
   const { locale } = useTranslation()
   const canEdit = planner.can('budget_edit', trip)
-  const me = useAuthStore(s => s.user?.id ?? -1)
 
-  const displayCurrency = useSettingsStore(s => s.settings.default_currency)
-  const base = (displayCurrency || trip?.currency || 'EUR').toUpperCase()
-  const tripCurrency = (trip?.currency || base).toUpperCase()
-  // Anchored on the trip currency's quote, the one the server books with (#2525).
-  const { convert, displayPerTrip } = useExchangeRates(base, tripCurrency)
-  const ctx: CostsCtx = useMemo(() => ({ me, tripCurrency, displayCurrency: base, convert }), [me, tripCurrency, base, convert])
+  // The display and trip currencies, the server-computed settlement, totals,
+  // filters and the ledger writes: the same ledger the desktop panel runs on.
+  const {
+    me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, flows,
+    search, setSearch, segment, setSegment, catFilter, setCatFilter, dayFilter, setDayFilter,
+    totals, filtered, filteredSettlements, catBreakdown, exportCsv: handleExportCsv,
+    deleteExpense, undoSettlement: handleUndoSettlement,
+  } = useCostsLedger({ tripId, trip, budgetItems, actions: planner.tripActions, canEdit, t, toast })
 
-  const [settlement, setSettlement] = useState<CostsSettlementResponse | null>(null)
-  // A failed settlement read leaves `settlement` null, and the final budget would
-  // read that as "the trip cost nobody anything", a claim we cannot make.
-  const [settlementError, setSettlementError] = useState(false)
-  // Sends the browser's own figure for the display currency, as CostsPanel.tsx does.
-  const loadSettlement = useCallback(() => {
-    budgetApi.settlement(tripId, base, base !== tripCurrency ? displayPerTrip : null)
-      .then(s => { setSettlement(s); setSettlementError(false) })
-      .catch(() => setSettlementError(true))
-  }, [tripId, base, tripCurrency, displayPerTrip])
-
-  // Mirrors CostsPanel.tsx: items reload on trip change, settlement reloads on
-  // trip/base change; further refreshes are explicit after each mutation below
-  // (add/edit/delete expense, add payment) rather than watching budgetItems, so
-  // an unrelated re-render doesn't refetch the settlement.
-  useEffect(() => {
-    planner.tripActions.loadBudgetItems(tripId)
-  }, [tripId, planner.tripActions])
-  useEffect(() => {
-    loadSettlement()
-  }, [loadSettlement])
-  useFreezeMissingRates({ tripId, tripCurrency, canEdit, unconverted: settlement?.unconverted, onHealed: loadSettlement })
-
-  const [search, setSearch] = useState('')
-  const [segment, setSegment] = useState<CostsSegment>('all')
-  const [catFilter, setCatFilter] = useState('')
-  const [dayFilter, setDayFilter] = useState('')
   const [catOpen, setCatOpen] = useState(false)
   const [dayOpen, setDayOpen] = useState(false)
   const [settleOpen, setSettleOpen] = useState(true)
@@ -99,18 +66,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
   const [confirmDelete, setConfirmDelete] = useState<BudgetItem | null>(null)
   const [previewReceipts, setPreviewReceipts] = useState<{ receipts: BudgetItemReceipt[]; initialIndex: number } | null>(null)
 
-  const flows = useMemo(() => settlement?.flows || [], [settlement])
-  const totals = useMemo(() => computeTotals(budgetItems, flows, ctx), [budgetItems, flows, ctx])
-  const filtered = useMemo(
-    () => filterBudgetItems(budgetItems, { search, segment, categoryKey: catFilter, dayKey: dayFilter }, ctx),
-    [budgetItems, search, segment, catFilter, dayFilter, ctx],
-  )
-  const filteredSettlements = useMemo(
-    () => filterSettlements(settlement?.settlements || [], { search, segment, categoryKey: catFilter, dayKey: dayFilter }, me),
-    [settlement, search, segment, catFilter, dayFilter, me],
-  )
   const groups = useMemo(() => groupLedgerByDay(filtered, filteredSettlements), [filtered, filteredSettlements])
-  const catBreakdown = useMemo(() => categoryBreakdown(budgetItems, ctx), [budgetItems, ctx])
   const catKeys = useMemo(() => categoryFilterKeys(budgetItems), [budgetItems])
   const dayKeys = useMemo(() => dayFilterKeys(budgetItems), [budgetItems])
 
@@ -136,12 +92,6 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
     }
   }
 
-  const handleExportCsv = useCallback(() => {
-    const { filename, content } = buildCostsCsv(budgetItems, { base, ctx, locale, tripTitle: trip?.title, t })
-    const blob = new Blob(['﻿' + content], { type: 'text/csv;charset=utf-8;' })
-    downloadBlob(blob, filename)
-  }, [budgetItems, base, ctx, locale, trip?.title, t])
-
   // Header intent signals (spec 03 §3.8 addExpense/csvGo) — increment-only
   // counters the shell owns; pattern mirrors useTodoList.ts's addItemSignal.
   const lastAddSignal = useRef(shell.addExpenseSignal)
@@ -161,25 +111,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
     lastCsvSignal.current = shell.exportCostsCsvSignal
   }, [shell.exportCostsCsvSignal, handleExportCsv])
 
-  const handleDeleteExpense = async (item: BudgetItem) => {
-    try {
-      await planner.tripActions.deleteBudgetItem(tripId, item.id)
-      loadSettlement()
-    } catch {
-      toast.error(t('common.unknownError'))
-    }
-  }
-
-  // Mirrors CostsPanel.tsx's undoSettlement: deleting the recorded transfer
-  // brings the suggested flow back, so it reads as "undo" rather than delete.
-  const handleUndoSettlement = async (id: number) => {
-    try {
-      await budgetApi.deleteSettlement(tripId, id)
-      loadSettlement()
-    } catch {
-      toast.error(t('common.unknownError'))
-    }
-  }
+  const handleDeleteExpense = (item: BudgetItem) => deleteExpense(item.id)
 
   const handleTogglePaid = async (itemId: number, userId: number, paid: boolean) => {
     try {
@@ -254,14 +186,14 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
             type="button"
             aria-expanded={settleOpen}
             onClick={() => setSettleOpen(v => !v)}
-            className="flex min-w-0 flex-1 items-center gap-[7px] text-left"
+            className="flex min-w-0 flex-1 items-center gap-[7px] text-start"
           >
             <span className="text-[0.875rem] font-extrabold text-m-ink">{t('costs.settleUp')}</span>
             <CountPill>{flows.length}</CountPill>
             {settleOpen ? (
-              <ChevronUp size={14} strokeWidth={2} className="ml-auto flex-none text-m-faint" />
+              <ChevronUp size={14} strokeWidth={2} className="ms-auto flex-none text-m-faint" />
             ) : (
-              <ChevronDown size={14} strokeWidth={2} className="ml-auto flex-none text-m-faint" />
+              <ChevronDown size={14} strokeWidth={2} className="ms-auto flex-none text-m-faint" />
             )}
           </button>
           {canEdit && (
@@ -293,7 +225,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
                     <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold text-m-ink">{personName(f.from.user_id)}</span>
                     <ArrowRight size={12} strokeWidth={2.2} className="flex-none text-m-faint" />
                     <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold text-m-ink">{personName(f.to.user_id)}</span>
-                    <span className="ml-auto flex-none font-geist text-[0.78125rem] font-extrabold tabular-nums text-m-ink">{formatMoney(f.amount, base, locale)}</span>
+                    <span className="ms-auto flex-none font-geist text-[0.78125rem] font-extrabold tabular-nums text-m-ink">{formatMoney(f.amount, base, locale)}</span>
                   </div>
                 ))}
               </div>
@@ -308,7 +240,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
                 <div key={p.id} className="flex items-center gap-[9px] border-b border-[color:var(--m-rowbr)] py-[7px] last:border-b-0">
                   <MemberAvatar name={p.username} avatarUrl={p.avatar_url} isMe={p.id === me} variant="neutral" size={24} t={t} />
                   <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold text-m-ink">{p.id === me ? t('costs.you') : p.username}</span>
-                  <span className="ml-auto flex-none font-geist text-[0.75rem] font-extrabold tabular-nums" style={{ color: pos ? STATUS_COLOR.confirmed : neg ? STATUS_COLOR.danger : 'var(--m-faint)' }}>
+                  <span className="ms-auto flex-none font-geist text-[0.75rem] font-extrabold tabular-nums" style={{ color: pos ? STATUS_COLOR.confirmed : neg ? STATUS_COLOR.danger : 'var(--m-faint)' }}>
                     {pos ? '+' : neg ? '−' : ''}
                     {formatMoney(Math.abs(balance), base, locale)}
                   </span>
@@ -333,11 +265,11 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
                 type="button"
                 aria-expanded={open}
                 onClick={() => setExpandedFinalId(open ? null : p.id)}
-                className="flex w-full items-center gap-[9px] py-[7px] text-left font-[inherit]"
+                className="flex w-full items-center gap-[9px] py-[7px] text-start font-[inherit]"
               >
                 <MemberAvatar name={p.username} avatarUrl={p.avatar_url} isMe={p.id === me} variant="neutral" size={24} t={t} />
                 <span className="min-w-0 flex-1 truncate text-[0.78125rem] font-semibold text-m-ink">{personName(p.id)}</span>
-                <span className="ml-auto flex-none font-geist text-[0.75rem] font-extrabold tabular-nums text-m-ink">{formatMoney(row.final, base, locale)}</span>
+                <span className="ms-auto flex-none font-geist text-[0.75rem] font-extrabold tabular-nums text-m-ink">{formatMoney(row.final, base, locale)}</span>
                 {open
                   ? <ChevronUp size={13} strokeWidth={2.2} className="flex-none text-m-faint" />
                   : <ChevronDown size={13} strokeWidth={2.2} className="flex-none text-m-faint" />}
@@ -363,7 +295,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
                 <div className="flex items-center gap-[7px]">
                   <span className="h-2 w-2 flex-none rounded-full" style={{ background: meta.color }} />
                   <span className="min-w-0 flex-1 truncate font-geist text-[0.65625rem] font-semibold text-m-muted">{t(meta.labelKey)}</span>
-                  <span className="ml-auto flex-none font-geist text-[0.65625rem] font-bold tabular-nums text-m-ink">{formatMoney(c.amount, base, locale)}</span>
+                  <span className="ms-auto flex-none font-geist text-[0.65625rem] font-bold tabular-nums text-m-ink">{formatMoney(c.amount, base, locale)}</span>
                 </div>
                 <div className="mt-1 h-1 overflow-hidden rounded-full bg-[color:var(--m-ic)]">
                   <span className="block h-full rounded-full" style={{ width: `${c.widthPct}%`, background: meta.color }} />
@@ -406,7 +338,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
             setCatOpen(v => !v)
             setDayOpen(false)
           }}
-          className="flex flex-1 items-center justify-between gap-2 overflow-hidden rounded-xl border border-[color:var(--m-rowbr)] bg-m-card px-[13px] py-[9px] text-left"
+          className="flex flex-1 items-center justify-between gap-2 overflow-hidden rounded-xl border border-[color:var(--m-rowbr)] bg-m-card px-[13px] py-[9px] text-start"
         >
           <span className="min-w-0 flex-1 truncate text-[0.75rem] font-semibold text-m-ink">
             {catFilter ? t(catMeta(catFilter).labelKey) : t('costs.filter.allCategories')}
@@ -420,7 +352,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
             setDayOpen(v => !v)
             setCatOpen(false)
           }}
-          className="flex flex-1 items-center justify-between gap-2 overflow-hidden rounded-xl border border-[color:var(--m-rowbr)] bg-m-card px-[13px] py-[9px] text-left"
+          className="flex flex-1 items-center justify-between gap-2 overflow-hidden rounded-xl border border-[color:var(--m-rowbr)] bg-m-card px-[13px] py-[9px] text-start"
         >
           <span className="min-w-0 flex-1 truncate text-[0.75rem] font-semibold text-m-ink">
             {dayFilter ? dayOptionLabel(dayFilter) : t('costs.filter.allDays')}
@@ -437,7 +369,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
               setCatFilter('')
               setCatOpen(false)
             }}
-            className="flex w-full items-center gap-[10px] border-b border-[color:var(--m-rowbr)] px-[13px] py-[10px] text-left"
+            className="flex w-full items-center gap-[10px] border-b border-[color:var(--m-rowbr)] px-[13px] py-[10px] text-start"
           >
             <Layers size={14} strokeWidth={2} className="flex-none text-m-muted" />
             <span className="text-[0.78125rem] font-medium text-m-ink">{t('costs.filter.allCategories')}</span>
@@ -453,7 +385,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
                   setCatFilter(k)
                   setCatOpen(false)
                 }}
-                className="flex w-full items-center gap-[10px] border-b border-[color:var(--m-rowbr)] px-[13px] py-[10px] text-left last:border-b-0"
+                className="flex w-full items-center gap-[10px] border-b border-[color:var(--m-rowbr)] px-[13px] py-[10px] text-start last:border-b-0"
               >
                 <Icon size={14} strokeWidth={2} style={{ color: meta.color }} className="flex-none" />
                 <span className="text-[0.78125rem] font-medium text-m-ink">{t(meta.labelKey)}</span>
@@ -471,7 +403,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
               setDayFilter('')
               setDayOpen(false)
             }}
-            className="w-full border-b border-[color:var(--m-rowbr)] px-[13px] py-[10px] text-left text-[0.78125rem] font-medium text-m-ink"
+            className="w-full border-b border-[color:var(--m-rowbr)] px-[13px] py-[10px] text-start text-[0.78125rem] font-medium text-m-ink"
           >
             {t('costs.filter.allDays')}
           </button>
@@ -483,7 +415,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
                 setDayFilter(d)
                 setDayOpen(false)
               }}
-              className="w-full border-b border-[color:var(--m-rowbr)] px-[13px] py-[10px] text-left text-[0.78125rem] font-medium text-m-ink last:border-b-0"
+              className="w-full border-b border-[color:var(--m-rowbr)] px-[13px] py-[10px] text-start text-[0.78125rem] font-medium text-m-ink last:border-b-0"
             >
               {dayOptionLabel(d)}
             </button>
@@ -498,7 +430,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
           <div key={g.dateKey || 'no-date'}>
             <div className="mt-[14px] flex items-baseline gap-2 px-[2px]">
               <span className="font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">{groupLabel(g.dateKey)}</span>
-              <span className="ml-auto flex-none font-geist text-[0.59375rem] font-bold tabular-nums text-m-muted">
+              <span className="ms-auto flex-none font-geist text-[0.59375rem] font-bold tabular-nums text-m-muted">
                 {t('costs.spent', { amount: formatMoney(groupTotal, base, locale) })}
               </span>
             </div>
@@ -597,7 +529,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
         onConfirm={() => {
           const item = confirmDelete
           setConfirmDelete(null)
-          if (item) handleDeleteExpense(item)
+          if (item) void handleDeleteExpense(item)
         }}
       />
 
@@ -633,15 +565,12 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
   const borderColor = tint(meta.color, 0.55)
   const members = item.members || []
   const note = readUserNote(item)
-  // A phone row has no width to spare for a note, so it stays folded away and
-  // the card itself is the handle — no extra control, no extra height.
-  const [noteOpen, setNoteOpen] = useState(false)
 
   return (
     <div className="mt-2 flex items-center gap-[6px]">
       <div className="relative min-w-0 flex-1 rounded-2xl bg-m-card px-3 pb-[10px] pt-[22px]" style={{ border: `1.5px solid ${borderColor}` }}>
         <span
-          className="absolute -left-[1.5px] -top-[1.5px] flex items-center gap-1 rounded-bl-none rounded-br-[12px] rounded-tl-[15px] rounded-tr-none px-[11px] pb-[4px] pt-[3px] font-geist text-[0.5625rem] font-extrabold uppercase tracking-[.05em] text-white"
+          className="absolute -start-[1.5px] -top-[1.5px] flex items-center gap-1 rounded-es-none rounded-ee-[12px] rounded-ss-[15px] rounded-se-none px-[11px] pb-[4px] pt-[3px] font-geist text-[0.5625rem] font-extrabold uppercase tracking-[.05em] text-white"
           style={{ background: meta.color }}
         >
           <Icon size={10} strokeWidth={2.4} />
@@ -649,7 +578,7 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
         </span>
         {unfinished && (
           <span
-            className="absolute -right-[1.5px] -top-[1.5px] rounded-bl-[12px] rounded-br-none rounded-tl-none rounded-tr-[15px] px-[11px] pb-[4px] pt-[3px] font-geist text-[0.53125rem] font-extrabold uppercase tracking-[.03em] text-white"
+            className="absolute -end-[1.5px] -top-[1.5px] rounded-es-[12px] rounded-ee-none rounded-ss-none rounded-se-[15px] px-[11px] pb-[4px] pt-[3px] font-geist text-[0.53125rem] font-extrabold uppercase tracking-[.03em] text-white"
             style={{ background: 'var(--m-st-pending)' }}
           >
             {t('costs.unfinished')}
@@ -671,7 +600,7 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
                   className="inline-flex items-center gap-1 rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-2 py-0.5 text-[0.625rem] font-semibold text-m-muted active:scale-95 transition-all"
                 >
                   <Receipt size={11} className="text-m-faint" />
-                  <span>{t('costs.receipts') || 'Beleg'}{item.receipts!.length > 1 ? ` (${item.receipts!.length})` : ''}</span>
+                  <span>{t('costs.receipts', { count: item.receipts!.length })}{item.receipts!.length > 1 ? ` (${item.receipts!.length})` : ''}</span>
                 </button>
               )}
             </div>
@@ -689,7 +618,7 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
                     disabled={!canEdit}
                     aria-pressed={Boolean(m.paid)}
                     onClick={() => onTogglePaid(m.user_id, !m.paid)}
-                    className={`inline-flex items-center gap-1 rounded-full py-[2px] pl-[3px] pr-[7px] ${
+                    className={`inline-flex items-center gap-1 rounded-full py-[2px] ps-[3px] pe-[7px] ${
                       m.paid ? 'border-2 border-[color:var(--m-st-confirmed)]' : 'border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]'
                     }`}
                   >
@@ -707,24 +636,7 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
           </span>
         </div>
 
-        {note && (
-          <button
-            type="button"
-            aria-expanded={noteOpen}
-            onClick={() => setNoteOpen(v => !v)}
-            className="mt-[7px] flex w-full items-center gap-[7px] rounded-xl bg-[color:var(--m-ic)] px-[9px] py-[6px] text-left"
-          >
-            <StickyNote size={11} strokeWidth={2} className="flex-none text-m-faint" />
-            <span className={`min-w-0 flex-1 text-[0.6875rem] leading-[1.5] text-m-muted ${noteOpen ? 'whitespace-pre-wrap [overflow-wrap:anywhere]' : 'truncate'}`}>
-              {note}
-            </span>
-            <ChevronDown
-              size={12}
-              strokeWidth={2}
-              className={`flex-none text-m-faint transition-transform duration-200 ${noteOpen ? 'rotate-180' : ''}`}
-            />
-          </button>
-        )}
+        {note && <RowNote note={note} />}
       </div>
 
       {canEdit && (
@@ -738,6 +650,32 @@ function ExpenseRow({ item, ctx, base, locale, t, canEdit, onEdit, onDelete, onT
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * A row's note, folded to one line until tapped: a phone row has no width to
+ * spare for it. Expenses and payments (#2340) share it.
+ */
+function RowNote({ note }: { note: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      onClick={() => setOpen(v => !v)}
+      className="mt-[7px] flex w-full items-center gap-[7px] rounded-xl bg-[color:var(--m-ic)] px-[9px] py-[6px] text-start"
+    >
+      <StickyNote size={11} strokeWidth={2} className="flex-none text-m-faint" />
+      <span className={`min-w-0 flex-1 text-[0.6875rem] leading-[1.5] text-m-muted ${open ? 'whitespace-pre-wrap [overflow-wrap:anywhere]' : 'truncate'}`}>
+        {note}
+      </span>
+      <ChevronDown
+        size={12}
+        strokeWidth={2}
+        className={`flex-none text-m-faint transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+      />
+    </button>
   )
 }
 
@@ -759,11 +697,10 @@ function PaymentRow({ settlement, ctx, base, locale, t, personName, canEdit, onE
   onEdit: () => void
   onUndo: () => void
 }) {
-  const cur = (settlement.currency || base).toUpperCase()
-  // At the rate it was settled at, not today's (#1445), matching the desktop ledger.
+  // At the rate it was settled at, not today's (#1445), as on the desktop ledger.
   // A transfer without a currency was entered in the display currency, not the trip's.
-  const amount = convertBooked(settlement.amount, cur, settlement.exchange_rate, ctx.tripCurrency, ctx.convert)
-  const line = convertedLine(settlement.amount, cur, settlement.exchange_rate, ctx.tripCurrency, base, amount)
+  const amount = paymentAmount(settlement, ctx)
+  const line = paymentLineOf(settlement, ctx, amount)
   return (
     <div className="mt-2 flex items-center gap-[6px]">
       <div className="relative min-w-0 flex-1 rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card px-3 py-[12px]">
@@ -784,6 +721,7 @@ function PaymentRow({ settlement, ctx, base, locale, t, personName, canEdit, onE
             {formatMoney(amount, base, locale)}
           </span>
         </div>
+        {settlement.note && <RowNote note={settlement.note} />}
       </div>
 
       {canEdit && (
@@ -874,8 +812,8 @@ function MemberAvatar({ name, avatarUrl, isMe, variant, size, t }: {
 }
 
 /**
- * "Add/edit payment" — records or updates a manual settle-up transfer
- * (`budgetApi.createSettlement`/`updateSettlement`). No pixel spec exists for
+ * "Add/edit payment": records or updates a manual settle-up transfer through
+ * the same `useSettlementForm` as the desktop dialog. No pixel spec exists for
  * this form (the demo only toasts "Demo: add payment", 03-trip-tabs.md §3.8)
  * and no mobile/exported-desktop sheet covers it, so this is a small local
  * sheet built from the trip form-sheet chrome, kept to the fields the
@@ -898,41 +836,8 @@ function AddPaymentSheet({ open, editing, onClose, tripId, base, tripCurrency, p
   t: TFn
   onSaved: () => void
 }) {
-  const [fromId, setFromId] = useState(me)
-  const [toId, setToId] = useState(() => people.find(p => p.id !== me)?.id ?? me)
-  const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState(base)
-  const [day, setDay] = useState(localToday())
-  const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    if (!open) return
-    const cur = (editing?.currency || base).toUpperCase()
-    setFromId(editing?.from_user_id ?? me)
-    setToId(editing?.to_user_id ?? people.find(p => p.id !== me)?.id ?? me)
-    setAmount(editing ? amountToInputString(editing.amount, cur) : '')
-    setCurrency(cur)
-    setDay(editing ? settlementDate(editing) : localToday())
-    setSaving(false)
-  }, [open, editing, me, base, people])
-
-  const amt = Number.parseFloat(amount.replace(',', '.')) || 0
-  const valid = amt > 0 && fromId !== toId && !!day
-
-  const save = async () => {
-    if (!valid || saving) return
-    setSaving(true)
-    const data = withFallbackFx({ from_user_id: fromId, to_user_id: toId, amount: amt, currency, settled_at: day }, tripCurrency)
-    try {
-      if (editing) await budgetApi.updateSettlement(tripId, editing.id, data)
-      else await budgetApi.createSettlement(tripId, data)
-      onSaved()
-    } catch {
-      toast.error(t('common.unknownError'))
-    } finally {
-      setSaving(false)
-    }
-  }
+  const { fromId, setFromId, toId, setToId, amount, setAmount, currency, setCurrency, day, setDay, note, setNote, saving, valid, save } =
+    useSettlementForm({ tripId, tripCurrency, base, people, me, editing, open, t, toast, onSaved, oneSaveAtATime: true })
 
   const title = editing ? t('costs.editPayment') : t('costs.addPayment')
 
@@ -974,7 +879,7 @@ function AddPaymentSheet({ open, editing, onClose, tripId, base, tripCurrency, p
               onChange={v => setCurrency(String(v))}
               searchable
               size="sm"
-              options={currenciesWith(currency).map(c => ({ value: c, label: SYMBOLS[c] ? `${c}  ${SYMBOLS[c]}` : c }))}
+              options={currencyOptions(currency)}
               style={{ width: '100%' }}
             />
           </div>
@@ -983,6 +888,16 @@ function AddPaymentSheet({ open, editing, onClose, tripId, base, tripCurrency, p
             <CustomDatePicker value={day} onChange={setDay} style={{ width: '100%' }} />
           </div>
         </div>
+
+        <Eyebrow className="mb-[6px] mt-[14px] uppercase">{t('costs.note')}</Eyebrow>
+        <textarea
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          rows={2}
+          maxLength={NOTE_MAX}
+          placeholder={t('costs.paymentNotePlaceholder')}
+          className={FIELD_AREA_CLS}
+        />
       </div>
       <FormSheetFooter onCancel={onClose} cancelLabel={t('common.cancel')} onSubmit={save} submitLabel={editing ? t('common.save') : t('costs.addPayment')} submitDisabled={!valid || saving} />
     </MSheet>

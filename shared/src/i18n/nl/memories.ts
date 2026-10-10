@@ -16,6 +16,7 @@ const memories: TranslationStrings = {
   'memories.reviewTitle': "Je foto's bekijken",
   'memories.reviewHint': "Klik op foto's om ze uit te sluiten van delen.",
   'memories.shareCount': "{count} foto's delen",
+  'memories.shareCount.one': '{count} foto delen',
   'memories.providerUrl': 'Server-URL',
   'memories.providerApiKey': 'API-sleutel',
   'memories.providerUsername': 'Gebruikersnaam',
@@ -54,6 +55,7 @@ const memories: TranslationStrings = {
   'memories.selectHint': "Tik op foto's om ze te selecteren.",
   'memories.selected': 'geselecteerd',
   'memories.addSelected': "{count} foto's toevoegen",
+  'memories.addSelected.one': '{count} foto toevoegen',
   'memories.alreadyAdded': 'Toegevoegd',
   'memories.private': 'Privé',
   'memories.stopSharing': 'Delen stoppen',
@@ -62,6 +64,8 @@ const memories: TranslationStrings = {
   'memories.confirmShareTitle': 'Delen met reisgenoten?',
   'memories.confirmShareHint':
     "{count} foto's worden zichtbaar voor alle leden van deze reis. Je kunt individuele foto's later privé maken.",
+  'memories.confirmShareHint.one':
+    '{count} foto wordt zichtbaar voor alle leden van deze reis. Je kunt hem later privé maken.',
   'memories.confirmShareButton': "Foto's delen",
   'memories.error.loadAlbums': 'Albums laden mislukt',
   'memories.error.linkAlbum': 'Album koppelen mislukt',

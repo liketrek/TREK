@@ -1,87 +1,105 @@
 /**
  * Assignments module e2e — exercises both migrated controllers through the real
- * JwtAuthGuard against a temp SQLite db. AssignmentsService runs its real SQL
- * (DI-injected, no service mock); journeyService, the permission check,
- * canAccessTrip and the WebSocket broadcast stay mocked.
+ * JwtAuthGuard against a real migrated-and-seeded temp SQLite db
+ * (createSnapshotTestDb(), Plan 3c Task 3 — this used to hand-roll a dozen
+ * CREATE TABLEs, a second hand-maintained schema copy that (a) omitted
+ * several `day_assignments` columns `insertAssignment`'s own `em.insert()`
+ * RETURNING read-back names (`reservation_status`, `end_day`) and (b), per
+ * the Task 2 review's warning for this exact file, would hit `no such
+ * table` the moment any `find()` on an entity in this domain's graph needs
+ * to resolve a hidden inverse relation this DDL never created — the same
+ * class of failure `days.e2e.test.ts`'s own conversion (Task 2) fixed for
+ * that file. AssignmentsService runs its real SQL (DI-injected, no service
+ * mock); journeyService and the permission check stay mocked, and the
+ * broadcast goes to a FakeRealtimeService. Every `it(...)` body below is unchanged from before this
+ * conversion — only the DB bootstrap changed.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
-import request from 'supertest';
+import { db } from '../../src/db/database';
+import { AssignmentParticipants } from '../../src/db/entities/AssignmentParticipants.entity';
+import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
+import { Days } from '../../src/db/entities/Days.entity';
+import { Places } from '../../src/db/entities/Places.entity';
+import { Tours } from '../../src/db/entities/Tours.entity';
+import { Trips } from '../../src/db/entities/Trips.entity';
+import { AssignmentsModule } from '../../src/nest/assignments/assignments.module';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
+import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
+import { RealtimeService } from '../../src/nest/realtime/realtime.service';
+import type { DayAssignmentRow } from '../helpers/factories/itinerary';
+import {
+  countRows,
+  deleteRows,
+  findRow,
+  findRows,
+  insertRow,
+  insertRowIgnoringConflict,
+  insertRows,
+  updateRows,
+} from '../helpers/factories/rows';
+import { makeTour } from '../helpers/factories/tours';
+import { makeUser } from '../helpers/factories/users';
+import { FakeRealtimeService } from '../helpers/fake-realtime';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, type MockInstance } from 'vitest';
 
-const { db } = vi.hoisted(() => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require('better-sqlite3');
-  const tmp = new Database(':memory:');
-  tmp.exec('PRAGMA journal_mode = WAL');
-  // Only what the un-mocked DI service actually touches: the auth guard reads
-  // users; AssignmentsService's real SQL reads/writes the itinerary tables
-  // (display_name/avatar feed the participants COALESCE projection).
-  tmp.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0,
-    display_name TEXT, avatar TEXT);`);
-  tmp.exec(`CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL);`);
-  tmp.exec(`CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT, icon TEXT);`);
-  tmp.exec(`CREATE TABLE places (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, name TEXT,
-    description TEXT, lat REAL, lng REAL, address TEXT, category_id INTEGER, price REAL, currency TEXT,
-    place_time TEXT, end_time TEXT, duration_minutes INTEGER DEFAULT 60, notes TEXT, image_url TEXT,
-    transport_mode TEXT DEFAULT 'walking', google_place_id TEXT, google_ftid TEXT, osm_id TEXT, amap_poi_id TEXT, website TEXT, phone TEXT,
-    stop_type TEXT, fill_percent INTEGER);`);
-  tmp.exec(`CREATE TABLE day_assignments (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
-    place_id INTEGER NOT NULL, order_index INTEGER NOT NULL DEFAULT 0, notes TEXT,
-    assignment_time TEXT, assignment_end_time TEXT, leg_transport_mode TEXT,
-    accommodation_id INTEGER,
-    created_at TEXT DEFAULT (datetime('now')));`);
-  // The auto-sort reads a booked night's hour off its booking, so the table has to be
-  // here even though nothing in this file books one.
-  tmp.exec(`CREATE TABLE day_accommodations (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER,
-    place_id INTEGER, start_day_id INTEGER, end_day_id INTEGER, check_in TEXT, check_in_end TEXT,
-    check_out TEXT, confirmation TEXT, notes TEXT, created_at TEXT DEFAULT (datetime('now')));`);
-  tmp.exec(`CREATE TABLE assignment_participants (assignment_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
-    UNIQUE(assignment_id, user_id));`);
-  // A start that reorders a day re-pins that day's vias in the same transaction, so
-  // the sort reads this table whenever it moves a stop.
-  tmp.exec(`CREATE TABLE roadtrip_vias (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
-    after_order_index INTEGER NOT NULL, sequence INTEGER NOT NULL DEFAULT 0, lat REAL NOT NULL, lng REAL NOT NULL,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP);`);
-  tmp.exec(`CREATE TABLE tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT, created_at TEXT);`);
-  tmp.exec(`CREATE TABLE place_tags (place_id INTEGER NOT NULL, tag_id INTEGER NOT NULL);`);
-  // StorageRegistryService (behind StorageModule, now in this module chain) reads
-  // this at onModuleInit.
-  tmp.exec('CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT);');
-  return { db: tmp };
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
 });
 
-const { canAccessTrip } = vi.hoisted(() => ({ canAccessTrip: vi.fn() }));
-vi.mock('../../src/db/database', () => ({
-  db, canAccessTrip, isOwner: vi.fn(() => true), getPlaceWithTags: vi.fn(), closeDb: () => {}, reinitialize: () => {},
-}));
-const { broadcast } = vi.hoisted(() => ({ broadcast: vi.fn() }));
-vi.mock('../../src/websocket', () => ({ broadcast }));
-
-const { reconcileTripSkeletons } = vi.hoisted(() => ({ reconcileTripSkeletons: vi.fn() }));
-import { JourneyDomainService } from '../../src/nest/journey/journey-domain.service';
-
-import { PermissionsService } from '../../src/nest/permissions/permissions.service';
+const { reconcileTripSkeletons } = vi.hoisted(() => ({ reconcileTripSkeletons: vi.fn().mockResolvedValue(undefined) }));
 
 // Since the permissions DI migration, the check is a spy on the container's
 // PermissionsService singleton (created in beforeAll, after build()).
 let checkPermission: MockInstance;
 
-import { AssignmentsModule } from '../../src/nest/assignments/assignments.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+const realtime = new FakeRealtimeService();
+const broadcast = realtime.broadcastMock;
+
+let orm: TestOrm;
+
+/** The named columns of the assignment, or undefined once it is gone: what a `SELECT <cols> FROM day_assignments` read back. */
+async function assignmentCols<K extends keyof DayAssignmentRow>(
+  id: number,
+  ...cols: K[]
+): Promise<Pick<DayAssignmentRow, K> | undefined> {
+  const row = await findRow(orm, DayAssignments, { id });
+  if (!row) return undefined;
+  return Object.fromEntries(cols.map((c) => [c, row[c]])) as Pick<DayAssignmentRow, K>;
+}
+
+/** Drops a place seeded for one test, with its tour and any assignment of it. */
+async function dropTourPlace(placeId: number): Promise<void> {
+  await deleteRows(orm, DayAssignments, { place: placeId });
+  await deleteRows(orm, Tours, { place: placeId });
+  await deleteRows(orm, Places, { id: placeId });
+}
 
 describe('Assignments e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [DatabaseModule, RealtimeModule, AssignmentsModule] })
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        await TestUnitOfWorkModule.forRoot(db),
+        await createTestMikroOrmModule(db),
+        RealtimeModule,
+        AssignmentsModule,
+      ],
+    })
+      .overrideProvider(RealtimeService)
+      .useValue(realtime)
       .overrideProvider(JourneyDomainService)
       .useValue({ reconcileTripSkeletons })
       .compile();
@@ -94,82 +112,281 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
   }
 
   beforeAll(async () => {
-    seedUser(db as never, { id: 1 });
-    seedUser(db as never, { id: 2, username: 'peer', email: 'peer@example.test' });
-    db.prepare('INSERT INTO days (id, trip_id) VALUES (3, 5), (4, 5)').run();
-    db.prepare('INSERT INTO places (id, trip_id, name) VALUES (2, 5, ?)').run('Louvre');
+    // harness.ts's seedUser() omits password_hash, which the real migrated
+    // schema requires NOT NULL (days.e2e.test.ts's own precedent) — raw
+    // inserts here instead, matching the SeededUser shape id/role/
+    // password_version=0 that sessionCookie() needs. `username: 'e2e-user'`
+    // (user 1) matches the harness default so assertion bodies that spell
+    // out the owner's username stay unchanged.
+    orm = await createTestOrm(db);
+    await makeUser(orm, { id: 1, username: 'e2e-user', email: 'e2e@example.test' });
+    await makeUser(orm, { id: 2, username: 'peer', email: 'peer@example.test' });
+    // Plan 3c Task 0b: TripAccessGuard reads TripsRepository.findAccessible
+    // directly now, a real query — trip 5's real row (owned by user 1) is
+    // seeded once here rather than faked per test. `days.day_number` is
+    // `NOT NULL` on the real schema (the old hand-rolled DDL had no such
+    // constraint).
+    await insertRow(orm, Trips, { id: 5, user: 1, title: 'Trip' });
+    await insertRows(orm, Days, [
+      { id: 3, trip: 5, day_number: 1 },
+      { id: 4, trip: 5, day_number: 2 },
+    ]);
+    await insertRow(orm, Places, { id: 2, trip: 5, name: 'Louvre' });
     app = await build();
     checkPermission = vi.spyOn(app.get(PermissionsService), 'checkPermission');
     server = app.getHttpServer();
   });
 
-  beforeEach(() => {
-    canAccessTrip.mockReturnValue({ id: 5, user_id: 1 });
+  beforeEach(async () => {
     checkPermission.mockReturnValue(true);
-    db.prepare('DELETE FROM day_assignments').run();
-    db.prepare('DELETE FROM assignment_participants').run();
+    await deleteRows(orm, DayAssignments);
+    await deleteRows(orm, AssignmentParticipants);
   });
 
   afterAll(async () => {
     await app.close();
+    await orm.close();
   });
 
   const seedAssignment = (dayId = 3, placeId = 2, orderIndex = 0) =>
-    Number(db.prepare('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (?, ?, ?)').run(dayId, placeId, orderIndex).lastInsertRowid);
+    insertRow(orm, DayAssignments, { day: dayId, place: placeId, order_index: orderIndex });
 
   it('401 without a cookie', async () => {
     expect((await request(server).get('/api/trips/5/days/3/assignments')).status).toBe(401);
   });
 
   it('200 list day-assignments', async () => {
-    const id = seedAssignment();
+    const id = await seedAssignment();
     const res = await request(server).get('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body.assignments).toHaveLength(1);
     expect(res.body.assignments[0]).toMatchObject({
-      id, day_id: 3, place_id: 2, order_index: 0, participants: [],
+      id,
+      day_id: 3,
+      place_id: 2,
+      order_index: 0,
+      participants: [],
       place: { id: 2, name: 'Louvre', tags: [] },
     });
   });
 
+  it('200 list projects Tour facets once per assignment and leaves other tracks ordinary', async () => {
+    const legacyGeometry = JSON.stringify([
+      [48, 11, 600],
+      [48.01, 11.02, 650],
+    ]);
+    const tourGeometry = JSON.stringify([
+      [48.02, 11.03, 700],
+      [48.03, 11.04, 750],
+    ]);
+    await insertRows(orm, Places, [
+      { id: 3, trip: 5, name: 'Legacy track', route_geometry: legacyGeometry },
+      { id: 4, trip: 5, name: 'Tour', route_geometry: tourGeometry },
+    ]);
+    await makeTour(orm, 4, { tourTypeRef: 'hike' });
+    const assignmentIds = [
+      await seedAssignment(3, 2, 0),
+      await seedAssignment(3, 3, 1),
+      await seedAssignment(3, 4, 2),
+      await seedAssignment(3, 4, 3),
+    ];
+
+    const res = await request(server).get('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1));
+
+    expect(res.status).toBe(200);
+    const assignments = res.body.assignments as Array<{
+      id: number;
+      place_id: number;
+      order_index: number;
+      tour_place_id: number | null;
+      tour_route_geometry: string | null;
+    }>;
+    expect(assignments).toHaveLength(4);
+    expect(assignments.map((a) => a.id)).toEqual(assignmentIds);
+    expect(assignments.map((a) => a.order_index)).toEqual([0, 1, 2, 3]);
+    expect(assignments[0]).toMatchObject({ place_id: 2, tour_place_id: null, tour_route_geometry: null });
+    expect((await findRow(orm, Places, { id: 3 }))!.route_geometry).toBe(legacyGeometry);
+    expect(await findRow(orm, Tours, { place: 3 })).toBeNull();
+    expect((await findRow(orm, Tours, { place: 4 }))!.place_id).toBe(4);
+    expect(assignments[1]).toMatchObject({ place_id: 3, tour_place_id: null, tour_route_geometry: null });
+    expect(
+      assignments.slice(2).map((a) => ({
+        place_id: a.place_id,
+        tour_place_id: a.tour_place_id,
+        tour_route_geometry: a.tour_route_geometry,
+      })),
+    ).toEqual([
+      { place_id: 4, tour_place_id: 4, tour_route_geometry: tourGeometry },
+      { place_id: 4, tour_place_id: 4, tour_route_geometry: tourGeometry },
+    ]);
+  });
+
   it('201 create, 404 place', async () => {
     reconcileTripSkeletons.mockClear();
-    const ok = await request(server).post('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1)).send({ place_id: 2 });
+    const ok = await request(server)
+      .post('/api/trips/5/days/3/assignments')
+      .set('Cookie', sessionCookie(1))
+      .send({ place_id: 2 });
     expect(ok.status).toBe(201);
-    expect(ok.body.assignment).toMatchObject({ day_id: 3, place_id: 2, order_index: 0, notes: null, place: { id: 2, name: 'Louvre' } });
-    const row = db.prepare('SELECT * FROM day_assignments WHERE id = ?').get(ok.body.assignment.id);
+    expect(ok.body.assignment).toMatchObject({
+      day_id: 3,
+      place_id: 2,
+      order_index: 0,
+      notes: null,
+      place: { id: 2, name: 'Louvre' },
+    });
+    const row = await findRow(orm, DayAssignments, { id: ok.body.assignment.id });
     expect(row).toMatchObject({ day_id: 3, place_id: 2, order_index: 0 });
     expect(reconcileTripSkeletons).toHaveBeenCalledWith(5, undefined);
-    const miss = await request(server).post('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1)).send({ place_id: 99 });
+    const miss = await request(server)
+      .post('/api/trips/5/days/3/assignments')
+      .set('Cookie', sessionCookie(1))
+      .send({ place_id: 99 });
     expect(miss.status).toBe(404);
     expect(miss.body).toEqual({ error: 'Place not found' });
   });
 
+  it('prevents duplicate Tour/day assignments through concurrent REST requests', async () => {
+    const tourPlaceId = 20;
+    await insertRow(orm, Places, { id: tourPlaceId, trip: 5, name: 'Ridge walk' });
+    await makeTour(orm, tourPlaceId, { tourTypeRef: 'hike' });
+    try {
+      const createTourAssignment = () =>
+        request(server)
+          .post('/api/trips/5/days/3/assignments')
+          .set('Cookie', sessionCookie(1))
+          .send({ place_id: tourPlaceId });
+      const results = await Promise.all([createTourAssignment(), createTourAssignment()]);
+
+      expect(results.map((result) => result.status).sort()).toEqual([201, 409]);
+      expect(await countRows(orm, DayAssignments, { day: 3, place: tourPlaceId })).toBe(1);
+
+      const otherDay = await request(server)
+        .post('/api/trips/5/days/4/assignments')
+        .set('Cookie', sessionCookie(1))
+        .send({ place_id: tourPlaceId });
+      expect(otherDay.status).toBe(201);
+      expect(await countRows(orm, DayAssignments, { place: tourPlaceId })).toBe(2);
+
+      const firstOrdinary = await request(server)
+        .post('/api/trips/5/days/3/assignments')
+        .set('Cookie', sessionCookie(1))
+        .send({ place_id: 2 });
+      const secondOrdinary = await request(server)
+        .post('/api/trips/5/days/3/assignments')
+        .set('Cookie', sessionCookie(1))
+        .send({ place_id: 2 });
+      expect(firstOrdinary.status).toBe(201);
+      expect(secondOrdinary.status).toBe(201);
+    } finally {
+      await dropTourPlace(tourPlaceId);
+    }
+  });
+
   it('200 delete assignment reconciles journey skeletons', async () => {
     reconcileTripSkeletons.mockClear();
-    const id = seedAssignment();
+    const id = await seedAssignment();
     const res = await request(server).delete(`/api/trips/5/days/3/assignments/${id}`).set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true });
-    expect(db.prepare('SELECT id FROM day_assignments WHERE id = ?').get(id)).toBeUndefined();
+    expect(await findRow(orm, DayAssignments, { id })).toBeNull();
     expect(reconcileTripSkeletons).toHaveBeenCalledWith(5, undefined);
+  });
+
+  it('200 clear day removes every place of the day and keeps the day (#2470)', async () => {
+    reconcileTripSkeletons.mockClear();
+    const first = await seedAssignment(3, 2, 0);
+    const second = await seedAssignment(3, 2, 1);
+    const elsewhere = await seedAssignment(4, 2, 0);
+    const res = await request(server).delete('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect([...res.body.removedIds].sort()).toEqual([first, second].sort());
+    expect(await countRows(orm, DayAssignments, { day: 3 })).toBe(0);
+    expect(await assignmentCols(elsewhere, 'id')).toEqual({ id: elsewhere });
+    expect(reconcileTripSkeletons).toHaveBeenCalledWith(5, undefined);
+  });
+
+  it('403 clear day without day_edit, 404 for a foreign day', async () => {
+    await seedAssignment();
+    checkPermission.mockReturnValue(false);
+    expect(
+      (await request(server).delete('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1))).status,
+    ).toBe(403);
+    checkPermission.mockReturnValue(true);
+    const miss = await request(server).delete('/api/trips/5/days/999/assignments').set('Cookie', sessionCookie(1));
+    expect(miss.status).toBe(404);
+    expect(miss.body).toEqual({ error: 'Day not found' });
+  });
+
+  it('200 route exclude roundtrip, 400 without a boolean (#2532)', async () => {
+    const id = await seedAssignment();
+    const res = await request(server)
+      .put(`/api/trips/5/assignments/${id}/route`)
+      .set('Cookie', sessionCookie(1))
+      .send({ excluded: true });
+    expect(res.status).toBe(200);
+    expect(res.body.assignment).toMatchObject({ id, route_excluded: true });
+    const list = await request(server).get('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1));
+    expect(list.body.assignments[0].route_excluded).toBe(true);
+    expect(
+      (
+        await request(server)
+          .put(`/api/trips/5/assignments/${id}/route`)
+          .set('Cookie', sessionCookie(1))
+          .send({ excluded: 'yes' })
+      ).status,
+    ).toBe(400);
   });
 
   it('200 move assignment reconciles journey skeletons', async () => {
     reconcileTripSkeletons.mockClear();
-    const id = seedAssignment();
+    const id = await seedAssignment();
     const res = await request(server)
       .put(`/api/trips/5/assignments/${id}/move`)
       .set('Cookie', sessionCookie(1))
       .send({ new_day_id: 4, order_index: 0 });
     expect(res.status).toBe(200);
     expect(res.body.assignment).toMatchObject({ id, day_id: 4, order_index: 0 });
-    expect(db.prepare('SELECT day_id FROM day_assignments WHERE id = ?').get(id)).toEqual({ day_id: 4 });
+    expect(await assignmentCols(id, 'day_id')).toEqual({ day_id: 4 });
     expect(reconcileTripSkeletons).toHaveBeenCalledWith(5, undefined);
   });
 
+  it('409 moving a Tour onto a day that already holds it, the row stays put; a reorder within its day still works', async () => {
+    const tourPlaceId = 21;
+    await insertRow(orm, Places, { id: tourPlaceId, trip: 5, name: 'Lake loop' });
+    await makeTour(orm, tourPlaceId, { tourTypeRef: 'hike' });
+    try {
+      await seedAssignment(4, tourPlaceId, 0);
+      const moving = await seedAssignment(3, tourPlaceId, 0);
+      const conflict = await request(server)
+        .put(`/api/trips/5/assignments/${moving}/move`)
+        .set('Cookie', sessionCookie(1))
+        .send({ new_day_id: 4, order_index: 1 });
+      expect(conflict.status).toBe(409);
+      expect(conflict.body).toEqual({ error: 'Tour is already assigned to this day' });
+      expect(await assignmentCols(moving, 'day_id', 'order_index')).toEqual({ day_id: 3, order_index: 0 });
+
+      const reorder = await request(server)
+        .put(`/api/trips/5/assignments/${moving}/move`)
+        .set('Cookie', sessionCookie(1))
+        .send({ new_day_id: 3, order_index: 2 });
+      expect(reorder.status).toBe(200);
+      expect(reorder.body.assignment).toMatchObject({
+        id: moving,
+        day_id: 3,
+        order_index: 2,
+        tour_place_id: tourPlaceId,
+      });
+    } finally {
+      await dropTourPlace(tourPlaceId);
+    }
+  });
+
   it('200 notes roundtrip: create with note, PUT edits it, GET list shows the new value (#2163)', async () => {
-    const create = await request(server).post('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1))
+    const create = await request(server)
+      .post('/api/trips/5/days/3/assignments')
+      .set('Cookie', sessionCookie(1))
       .send({ place_id: 2, notes: 'Book the 10:00 timed entry' });
     expect(create.status).toBe(201);
     expect(create.body.assignment.notes).toBe('Book the 10:00 timed entry');
@@ -181,7 +398,7 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
       .send({ notes: 'Arrive 15 minutes early' });
     expect(put.status).toBe(200);
     expect(put.body.assignment).toMatchObject({ id, notes: 'Arrive 15 minutes early' });
-    expect(db.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(id)).toEqual({ notes: 'Arrive 15 minutes early' });
+    expect(await assignmentCols(id, 'notes')).toEqual({ notes: 'Arrive 15 minutes early' });
 
     const list = await request(server).get('/api/trips/5/days/3/assignments').set('Cookie', sessionCookie(1));
     expect(list.status).toBe(200);
@@ -189,50 +406,63 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('200 notes clear: null and empty string both null the column (#2163)', async () => {
-    const id = seedAssignment();
-    db.prepare('UPDATE day_assignments SET notes = ? WHERE id = ?').run('old note', id);
-    const cleared = await request(server).put(`/api/trips/5/assignments/${id}/notes`).set('Cookie', sessionCookie(1)).send({ notes: null });
+    const id = await seedAssignment();
+    await updateRows(orm, DayAssignments, { id }, { notes: 'old note' });
+    const cleared = await request(server)
+      .put(`/api/trips/5/assignments/${id}/notes`)
+      .set('Cookie', sessionCookie(1))
+      .send({ notes: null });
     expect(cleared.status).toBe(200);
     expect(cleared.body.assignment.notes).toBeNull();
-    db.prepare('UPDATE day_assignments SET notes = ? WHERE id = ?').run('old note', id);
-    const emptied = await request(server).put(`/api/trips/5/assignments/${id}/notes`).set('Cookie', sessionCookie(1)).send({ notes: '' });
+    await updateRows(orm, DayAssignments, { id }, { notes: 'old note' });
+    const emptied = await request(server)
+      .put(`/api/trips/5/assignments/${id}/notes`)
+      .set('Cookie', sessionCookie(1))
+      .send({ notes: '' });
     expect(emptied.status).toBe(200);
-    expect(db.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(id)).toEqual({ notes: null });
+    expect(await assignmentCols(id, 'notes')).toEqual({ notes: null });
   });
 
   it('400 notes body without the notes key is rejected by the Zod pipe (#2163)', async () => {
-    const id = seedAssignment();
-    const res = await request(server).put(`/api/trips/5/assignments/${id}/notes`).set('Cookie', sessionCookie(1)).send({});
+    const id = await seedAssignment();
+    const res = await request(server)
+      .put(`/api/trips/5/assignments/${id}/notes`)
+      .set('Cookie', sessionCookie(1))
+      .send({});
     expect(res.status).toBe(400);
   });
 
   it('200 update time reconciles journey skeletons', async () => {
     reconcileTripSkeletons.mockClear();
-    const id = seedAssignment();
+    const id = await seedAssignment();
     const res = await request(server)
       .put(`/api/trips/5/assignments/${id}/time`)
       .set('Cookie', sessionCookie(1))
       .send({ place_time: '09:00', end_time: null });
     expect(res.status).toBe(200);
     expect(res.body.assignment).toMatchObject({ id, assignment_time: '09:00', assignment_end_time: null });
-    expect(db.prepare('SELECT assignment_time FROM day_assignments WHERE id = ?').get(id)).toEqual({ assignment_time: '09:00' });
+    expect(await assignmentCols(id, 'assignment_time')).toEqual({ assignment_time: '09:00' });
     expect(reconcileTripSkeletons).toHaveBeenCalledWith(5, undefined);
   });
 
   describe('PUT /:id/time and the order of the day', () => {
-    const seedDay = (times: (string | null)[]) => times.map((time, i) => {
-      const id = seedAssignment(3, 2, i);
-      if (time) db.prepare('UPDATE day_assignments SET assignment_time = ? WHERE id = ?').run(time, id);
-      return id;
-    });
-    const dayOrder = () =>
-      (db.prepare('SELECT id FROM day_assignments WHERE day_id = 3 ORDER BY order_index, id').all() as { id: number }[]).map(r => r.id);
-    const eventsSent = () => broadcast.mock.calls.map(call => call[1]);
+    const seedDay = async (times: (string | null)[]) => {
+      const ids: number[] = [];
+      for (const [i, time] of times.entries()) {
+        const id = await seedAssignment(3, 2, i);
+        if (time) await updateRows(orm, DayAssignments, { id }, { assignment_time: time });
+        ids.push(id);
+      }
+      return ids;
+    };
+    const dayOrder = async () =>
+      (await findRows(orm, DayAssignments, { day: 3 }, { order_index: 'asc', id: 'asc' })).map((r) => r.id);
+    const eventsSent = () => broadcast.mock.calls.map((call) => call[1]);
 
     beforeEach(() => broadcast.mockClear());
 
     it('keeps the untimed stops in front of the stop that gets a start', async () => {
-      const [a, b, c] = seedDay([null, null, null]);
+      const [a, b, c] = await seedDay([null, null, null]);
       const res = await request(server)
         .put(`/api/trips/5/assignments/${c}/time`)
         .set('Cookie', sessionCookie(1))
@@ -240,44 +470,51 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
         .send({ place_time: '14:00', end_time: null });
       expect(res.status).toBe(200);
       expect(res.body.assignment).toMatchObject({ id: c, assignment_time: '14:00', order_index: 2 });
-      expect(dayOrder()).toEqual([a, b, c]);
+      expect(await dayOrder()).toEqual([a, b, c]);
       expect(eventsSent()).toEqual(['assignment:updated']);
     });
 
     it('sorts the timed stops, keeps the untimed head first and sends the whole day', async () => {
-      const [a, b, c] = seedDay([null, '15:00', null]);
+      const [a, b, c] = await seedDay([null, '15:00', null]);
       const res = await request(server)
         .put(`/api/trips/5/assignments/${c}/time`)
         .set('Cookie', sessionCookie(1))
         .set('X-Socket-Id', 'sock-1')
         .send({ place_time: '10:00', end_time: null });
       expect(res.status).toBe(200);
-      expect(dayOrder()).toEqual([a, c, b]);
+      expect(await dayOrder()).toEqual([a, c, b]);
       // No socket left out, so the writer gets the order too.
-      expect(broadcast).toHaveBeenCalledWith('5', 'assignment:reordered', { dayId: 3, orderedIds: [a, c, b] }, undefined);
+      expect(broadcast).toHaveBeenCalledWith(
+        '5',
+        'assignment:reordered',
+        { dayId: 3, orderedIds: [a, c, b] },
+        undefined,
+      );
       // No located stops and no vias on this day, so there is nothing to re-pin.
       expect(eventsSent()).not.toContain('roadtripVia:changed');
     });
 
     it('stores the order it sends: a day with a gap in its keys is numbered from 0', async () => {
       // The gap a deleted stop leaves. Clients number the ids they are sent by position.
-      const [a, b, c] = [0, 4, 7].map(key => seedAssignment(3, 2, key));
-      db.prepare('UPDATE day_assignments SET assignment_time = ? WHERE id = ?').run('15:00', b);
+      const [a, b, c] = [await seedAssignment(3, 2, 0), await seedAssignment(3, 2, 4), await seedAssignment(3, 2, 7)];
+      await updateRows(orm, DayAssignments, { id: b }, { assignment_time: '15:00' });
       const res = await request(server)
         .put(`/api/trips/5/assignments/${c}/time`)
         .set('Cookie', sessionCookie(1))
         .send({ place_time: '10:00', end_time: null });
       expect(res.status).toBe(200);
-      const sent = broadcast.mock.calls.find(call => call[1] === 'assignment:reordered')?.[2] as { orderedIds: number[] };
+      const sent = broadcast.mock.calls.find((call) => call[1] === 'assignment:reordered')?.[2] as {
+        orderedIds: number[];
+      };
       expect(sent.orderedIds).toEqual([a, c, b]);
-      const keyOf = (id: number) => (db.prepare('SELECT order_index FROM day_assignments WHERE id = ?').get(id) as { order_index: number }).order_index;
-      expect(sent.orderedIds.map(keyOf)).toEqual([0, 1, 2]);
+      const keyOf = async (id: number) => (await findRow(orm, DayAssignments, { id }))!.order_index;
+      expect(await Promise.all(sent.orderedIds.map(keyOf))).toEqual([0, 1, 2]);
       expect(res.body.assignment).toMatchObject({ id: c, order_index: 1 });
     });
 
     it('leaves a day dragged out of time order alone when only the End changes', async () => {
-      const [a, b] = seedDay(['14:00', '10:00']);
-      db.prepare("UPDATE day_assignments SET assignment_end_time = '11:00' WHERE id = ?").run(b);
+      const [a, b] = await seedDay(['14:00', '10:00']);
+      await updateRows(orm, DayAssignments, { id: b }, { assignment_end_time: '11:00' });
       const res = await request(server)
         .put(`/api/trips/5/assignments/${b}/time`)
         .set('Cookie', sessionCookie(1))
@@ -285,21 +522,52 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
         .send({ place_time: '10:00', end_time: null });
       expect(res.status).toBe(200);
       expect(res.body.assignment).toMatchObject({ id: b, assignment_time: '10:00', assignment_end_time: null });
-      expect(dayOrder()).toEqual([a, b]);
+      expect(await dayOrder()).toEqual([a, b]);
       expect(eventsSent()).toEqual(['assignment:updated']);
     });
   });
 
+  it('200 set participants replaces the list (AS28-31, the roster-scoped roundtrip)', async () => {
+    const id = await seedAssignment();
+    // user 1 is trip 5's owner — TripMembersRepository.rosterUserIds includes
+    // the owner without a trip_members row (AS28), so this exercises the
+    // replace-all write (AS29 delete + AS30 insertIgnore) without needing a
+    // seeded membership row.
+    const res = await request(server)
+      .put(`/api/trips/5/assignments/${id}/participants`)
+      .set('Cookie', sessionCookie(1))
+      .send({ user_ids: [1, 1] }); // duplicate collapses via AS30's INSERT OR IGNORE
+    expect(res.status).toBe(200);
+    expect(res.body.participants).toEqual([{ user_id: 1, username: 'e2e-user', avatar: null }]);
+    expect(
+      (await findRows(orm, AssignmentParticipants, { assignment: id }, { id: 'asc' })).map((r) => ({
+        user_id: r.user_id,
+      })),
+    ).toEqual([{ user_id: 1 }]);
+
+    const cleared = await request(server)
+      .put(`/api/trips/5/assignments/${id}/participants`)
+      .set('Cookie', sessionCookie(1))
+      .send({ user_ids: [] });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.participants).toEqual([]);
+  });
+
   it('200 participants (access-only)', async () => {
-    const id = seedAssignment();
-    db.prepare('INSERT INTO assignment_participants (assignment_id, user_id) VALUES (?, 2)').run(id);
-    const res = await request(server).get(`/api/trips/5/assignments/${id}/participants`).set('Cookie', sessionCookie(1));
+    const id = await seedAssignment();
+    await insertRow(orm, AssignmentParticipants, { assignment: id, user: 2 });
+    const res = await request(server)
+      .get(`/api/trips/5/assignments/${id}/participants`)
+      .set('Cookie', sessionCookie(1));
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ participants: [{ user_id: 2, username: 'peer', avatar: null }] });
   });
 
   it('400 from the Zod pipe on set participants with non-array', async () => {
-    const res = await request(server).put('/api/trips/5/assignments/9/participants').set('Cookie', sessionCookie(1)).send({ user_ids: 'no' });
+    const res = await request(server)
+      .put('/api/trips/5/assignments/9/participants')
+      .set('Cookie', sessionCookie(1))
+      .send({ user_ids: 'no' });
     expect(res.status).toBe(400);
     expect(res.body.error).toContain('user_ids');
   });
@@ -311,7 +579,7 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('move accepts the client api form order_index: null (coerces to 0)', async () => {
-    const id = seedAssignment();
+    const id = await seedAssignment();
     const res = await request(server)
       .put(`/api/trips/5/assignments/${id}/move`)
       .set('Cookie', sessionCookie(1))
@@ -328,37 +596,42 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
   describe('a trip the caller cannot see', () => {
     const FOREIGN_TRIP = 9;
 
-    beforeEach(() => {
-      canAccessTrip.mockImplementation((tripId: unknown) => (Number(tripId) === 5 ? { id: 5, user_id: 1 } : undefined));
-      db.prepare('INSERT OR IGNORE INTO days (id, trip_id) VALUES (30, ?), (31, ?)').run(FOREIGN_TRIP, FOREIGN_TRIP);
-      db.prepare('INSERT OR IGNORE INTO places (id, trip_id, name) VALUES (20, ?, ?)').run(FOREIGN_TRIP, 'Their hotel');
+    beforeEach(async () => {
+      // Plan 3c Task 0b: real access now — trip 9 exists but is owned by
+      // user 2 (not the caller, user 1, and not a member), so
+      // TripsRepository.findAccessible genuinely refuses it, the same
+      // outcome `canAccessTrip.mockImplementation` used to fake.
+      await insertRowIgnoringConflict(orm, Trips, { id: FOREIGN_TRIP, user: 2, title: 'Their trip' });
+      // day_number is NOT NULL on the real schema (the old hand-rolled DDL had no such constraint).
+      await insertRowIgnoringConflict(orm, Days, { id: 30, trip: FOREIGN_TRIP, day_number: 1 });
+      await insertRowIgnoringConflict(orm, Days, { id: 31, trip: FOREIGN_TRIP, day_number: 2 });
+      await insertRowIgnoringConflict(orm, Places, { id: 20, trip: FOREIGN_TRIP, name: 'Their hotel' });
     });
 
-    const seedForeignAssignment = () =>
-      Number(db.prepare('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (30, 20, 0)').run().lastInsertRowid);
+    const seedForeignAssignment = () => insertRow(orm, DayAssignments, { day: 30, place: 20, order_index: 0 });
 
     it('404s a move instead of reordering their itinerary', async () => {
-      const id = seedForeignAssignment();
+      const id = await seedForeignAssignment();
       const res = await request(server)
         .put(`/api/trips/${FOREIGN_TRIP}/assignments/${id}/move`)
         .set('Cookie', sessionCookie(1))
         .send({ new_day_id: 31, order_index: 0 });
       expect(res.status).toBe(404);
-      expect(db.prepare('SELECT day_id FROM day_assignments WHERE id = ?').get(id)).toEqual({ day_id: 30 });
+      expect(await assignmentCols(id, 'day_id')).toEqual({ day_id: 30 });
     });
 
     it('404s a time change instead of rewriting their schedule', async () => {
-      const id = seedForeignAssignment();
+      const id = await seedForeignAssignment();
       const res = await request(server)
         .put(`/api/trips/${FOREIGN_TRIP}/assignments/${id}/time`)
         .set('Cookie', sessionCookie(1))
         .send({ place_time: '23:00', end_time: null });
       expect(res.status).toBe(404);
-      expect(db.prepare('SELECT assignment_time FROM day_assignments WHERE id = ?').get(id)).toEqual({ assignment_time: null });
+      expect(await assignmentCols(id, 'assignment_time')).toEqual({ assignment_time: null });
     });
 
     it('404s a transport change', async () => {
-      const id = seedForeignAssignment();
+      const id = await seedForeignAssignment();
       const res = await request(server)
         .put(`/api/trips/${FOREIGN_TRIP}/assignments/${id}/transport`)
         .set('Cookie', sessionCookie(1))
@@ -367,18 +640,18 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('404s setting participants instead of writing to their assignment', async () => {
-      const id = seedForeignAssignment();
+      const id = await seedForeignAssignment();
       const res = await request(server)
         .put(`/api/trips/${FOREIGN_TRIP}/assignments/${id}/participants`)
         .set('Cookie', sessionCookie(1))
         .send({ user_ids: [1] });
       expect(res.status).toBe(404);
-      expect(db.prepare('SELECT COUNT(*) AS n FROM assignment_participants WHERE assignment_id = ?').get(id)).toEqual({ n: 0 });
+      expect(await countRows(orm, AssignmentParticipants, { assignment: id })).toBe(0);
     });
 
     it('404s reading participants instead of disclosing who is on it', async () => {
-      const id = seedForeignAssignment();
-      db.prepare('INSERT INTO assignment_participants (assignment_id, user_id) VALUES (?, 2)').run(id);
+      const id = await seedForeignAssignment();
+      await insertRow(orm, AssignmentParticipants, { assignment: id, user: 2 });
       const res = await request(server)
         .get(`/api/trips/${FOREIGN_TRIP}/assignments/${id}/participants`)
         .set('Cookie', sessionCookie(1));
@@ -388,27 +661,27 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
     // The guard has to reject an assignment borrowed from elsewhere even when the
     // caller is legitimately on the trip named in the URL.
     it('404s an assignment that belongs to another trip than the URL says', async () => {
-      const id = seedForeignAssignment();
+      const id = await seedForeignAssignment();
       const res = await request(server)
         .put(`/api/trips/5/assignments/${id}/participants`)
         .set('Cookie', sessionCookie(1))
         .send({ user_ids: [1] });
       expect(res.status).toBe(404);
-      expect(db.prepare('SELECT COUNT(*) AS n FROM assignment_participants WHERE assignment_id = ?').get(id)).toEqual({ n: 0 });
+      expect(await countRows(orm, AssignmentParticipants, { assignment: id })).toBe(0);
     });
 
     it('404s a notes change on a foreign assignment instead of editing it (#2163)', async () => {
-      const id = seedForeignAssignment();
+      const id = await seedForeignAssignment();
       const res = await request(server)
         .put(`/api/trips/${FOREIGN_TRIP}/assignments/${id}/notes`)
         .set('Cookie', sessionCookie(1))
         .send({ notes: 'hijacked' });
       expect(res.status).toBe(404);
-      expect(db.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(id)).toEqual({ notes: null });
+      expect(await assignmentCols(id, 'notes')).toEqual({ notes: null });
     });
 
     it('403s when the caller is on the trip but lacks day_edit', async () => {
-      const id = seedAssignment();
+      const id = await seedAssignment();
       checkPermission.mockReturnValue(false);
       const res = await request(server)
         .put(`/api/trips/5/assignments/${id}/time`)
@@ -418,14 +691,14 @@ describe('Assignments e2e (real auth guard + temp SQLite)', () => {
     });
 
     it('403s a notes change without day_edit (#2163)', async () => {
-      const id = seedAssignment();
+      const id = await seedAssignment();
       checkPermission.mockReturnValue(false);
       const res = await request(server)
         .put(`/api/trips/5/assignments/${id}/notes`)
         .set('Cookie', sessionCookie(1))
         .send({ notes: 'nope' });
       expect(res.status).toBe(403);
-      expect(db.prepare('SELECT notes FROM day_assignments WHERE id = ?').get(id)).toEqual({ notes: null });
+      expect(await assignmentCols(id, 'notes')).toEqual({ notes: null });
     });
   });
 });

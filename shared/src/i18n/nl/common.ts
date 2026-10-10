@@ -7,6 +7,7 @@ const common: TranslationStrings = {
   'common.cancel': 'Annuleren',
   'common.clear': 'Wissen',
   'common.delete': 'Verwijderen',
+  'common.remove': 'Verwijderen',
   'common.preview': 'Voorbeeld',
   'common.edit': 'Bewerken',
   'common.add': 'Toevoegen',
@@ -35,6 +36,9 @@ const common: TranslationStrings = {
   'common.rename': 'Hernoemen',
   'common.discardChanges': 'Wijzigingen verwerpen',
   'common.discard': 'Verwerpen',
+  'common.unsavedTitle': 'Wijzigingen weggooien?',
+  'common.unsavedMessage': 'Wat je hier hebt ingevuld, is nog niet opgeslagen.',
+  'common.keepEditing': 'Verder bewerken',
   'common.name': 'Naam',
   'common.email': 'E-mail',
   'common.password': 'Wachtwoord',
@@ -51,7 +55,9 @@ const common: TranslationStrings = {
   'common.copied': 'Gekopieerd',
   'common.justNow': 'zojuist',
   'common.hoursAgo': '{count}u geleden',
+  'common.hoursAgo.one': '{count}u geleden',
   'common.daysAgo': '{count}d geleden',
+  'common.daysAgo.one': '{count}d geleden',
   'common.datepicker.prevMonth': 'Previous month', // en-fallback
   'common.datepicker.nextMonth': 'Next month', // en-fallback
   'common.datepicker.prevYear': 'Previous year', // en-fallback
@@ -71,7 +77,8 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Opnieuw proberen',
   'common.errorReload': 'Pagina herladen',
   'common.errorUpdateTitle': 'Er is een nieuwe versie beschikbaar',
-  'common.errorUpdateBody': 'TREK is bijgewerkt terwijl dit tabblad open stond. Herlaad om de nieuwe versie te krijgen.',
+  'common.errorUpdateBody':
+    'TREK is bijgewerkt terwijl dit tabblad open stond. Herlaad om de nieuwe versie te krijgen.',
   'common.errorPluginTitle': 'Deze plug-in kon niet worden getoond',
 };
 export default common;

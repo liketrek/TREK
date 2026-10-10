@@ -27,8 +27,12 @@ import {
   snapshotVersion,
   tagSearchQuery,
 } from '../../../../src/nest/doc-sync/providers/papra.client';
-import { PapraDocumentProvider, buildScopeKey, parseScopeKey } from '../../../../src/nest/doc-sync/providers/papra.provider';
 import { multipartHeader } from '../../../../src/nest/doc-sync/providers/papra.client';
+import {
+  PapraDocumentProvider,
+  buildScopeKey,
+  parseScopeKey,
+} from '../../../../src/nest/doc-sync/providers/papra.provider';
 
 import crypto from 'node:crypto';
 import { Readable } from 'node:stream';
@@ -257,7 +261,7 @@ describe('probe', () => {
   it('forwards the self-signed switch to the fetch layer and nowhere else', async () => {
     answerWith(reply({ body: { tags: [] } }), reply({ body: { organizations: [] } }));
     await provider.probe({ ...CONN, allowInsecureTls: true });
-    expect(calls[0].options).toEqual({ rejectUnauthorized: false });
+    expect(calls[0].options).toEqual({ rejectUnauthorized: false, maxBytes: null });
   });
 
   it('reports a missing key without touching the network', async () => {
@@ -1076,8 +1080,7 @@ describe('the version marker', () => {
  */
 describe('multipart part header', () => {
   it('keeps an ordinary media type', () => {
-    expect(multipartHeader('B', 'a.pdf', 'application/pdf').toString())
-      .toContain('Content-Type: application/pdf');
+    expect(multipartHeader('B', 'a.pdf', 'application/pdf').toString()).toContain('Content-Type: application/pdf');
   });
 
   it('refuses one carrying a newline instead of writing it into the header', () => {
@@ -1088,8 +1091,7 @@ describe('multipart part header', () => {
 
   it('falls back for anything that is not a media type at all', () => {
     for (const bad of ['', 'nonsense', 'a/b/c', 'a b/c']) {
-      expect(multipartHeader('B', 'a.pdf', bad).toString())
-        .toContain('Content-Type: application/octet-stream');
+      expect(multipartHeader('B', 'a.pdf', bad).toString()).toContain('Content-Type: application/octet-stream');
     }
   });
 });

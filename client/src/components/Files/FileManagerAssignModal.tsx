@@ -1,35 +1,47 @@
-import { createPortal } from 'react-dom'
-import { X, MapPin, Ticket, Check } from 'lucide-react'
-import { filesApi } from '../../api/client'
-import type { Place, Reservation, Day } from '../../types'
+import { useId } from 'react'
+import { MapPin, Ticket, Check, Paperclip } from 'lucide-react'
+import type { Place, Reservation, Day, TripFile } from '../../types'
 import type { FileManagerState } from './useFileManager'
 import { TRANSPORT_TYPES } from './FileManager.constants'
 import { transportIcon } from './FileManager.helpers'
+import { planFileLinkToggle, runFileLinkRecordStep, type FileLinkField } from './fileActions'
+import { DialogHeader, DialogShell, DialogTile, NEUTRAL_TINT } from '../shared/DialogShell'
+import { EditorField, INPUT } from '../shared/dialogParts'
 
 export function AssignModal(S: FileManagerState) {
   const { files, assignFileId, setAssignFileId, t, days, assignments, places, reservations, tripId, handleAssign, refreshFiles } = S
-  return createPortal(
-    <div role="presentation" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-      onClick={() => setAssignFileId(null)}>
-      <div role="presentation" style={{
-        background: 'var(--bg-card)', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-        width: 'min(600px, calc(100vw - 32px))', maxHeight: '70vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-      }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--border-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, color: 'var(--text-primary)' }}>{t('files.assignTitle')}</div>
-            <div style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {files.find(f => f.id === assignFileId)?.original_name || ''}
-            </div>
-          </div>
-          <button type="button" onClick={() => setAssignFileId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 4, display: 'flex', flexShrink: 0 }}>
-            <X size={18} />
-          </button>
-        </div>
-        <div style={{ padding: '8px 12px 0' }}>
-          <div style={{ fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 600, color: 'var(--text-faint)', padding: '0 2px 4px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            {t('files.noteLabel') || 'Note'}
-          </div>
+  const labelId = useId()
+  const close = () => setAssignFileId(null)
+  // The file's own column goes through handleAssign, which toasts a failure.
+  const toggleLink = async (file: TripFile, field: FileLinkField, targetId: number) => {
+    const step = planFileLinkToggle(file, field, targetId)
+    if (step.kind === 'update') {
+      await handleAssign(file.id, step.data)
+      return
+    }
+    try {
+      await runFileLinkRecordStep(tripId, file.id, field, targetId, step.kind)
+      refreshFiles()
+    } catch {
+      // A failed link record change stays quiet.
+    }
+  }
+  return (
+    <DialogShell
+      onClose={close}
+      labelledBy={labelId}
+      header={(
+        <DialogHeader
+          tile={<DialogTile><Paperclip size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={close}
+          eyebrow={t('files.assignTitle')}
+          title={files.find(f => f.id === assignFileId)?.original_name || ''}
+        />
+      )}
+    >
+        <EditorField label={t('files.noteLabel') || 'Note'}>
           <input
             type="text"
             placeholder={t('files.notePlaceholder')}
@@ -38,18 +50,14 @@ export function AssignModal(S: FileManagerState) {
               const val = e.target.value.trim()
               const file = files.find(f => f.id === assignFileId)
               if (file && val !== (file.description || '')) {
-                handleAssign(file.id, { description: val } as any)
+                void handleAssign(file.id, { description: val } as any)
               }
             }}
             onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-            style={{
-              width: '100%', padding: '7px 10px', fontSize: 'calc(13px * var(--fs-scale-body, 1))', borderRadius: 8,
-              border: '1px solid var(--border-primary)', background: 'var(--bg-secondary)',
-              color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none',
-            }}
+            className={INPUT}
           />
-        </div>
-        <div style={{ overflowY: 'auto', padding: 8 }}>
+        </EditorField>
+        <div className="rounded-[16px] bg-surface-secondary p-2">
           {(() => {
             const file = files.find(f => f.id === assignFileId)
             if (!file) return null
@@ -67,30 +75,8 @@ export function AssignModal(S: FileManagerState) {
             const placeBtn = (p: Place, idx: number) => {
               const isLinked = file.place_id === p.id || (file.linked_place_ids || []).includes(p.id)
               return (
-                <button type="button" key={`${p.id}-${idx}`} onClick={async () => {
-                  if (isLinked) {
-                    if (file.place_id === p.id) {
-                      await handleAssign(file.id, { place_id: null })
-                    } else {
-                      try {
-                        const linksRes = await filesApi.getLinks(tripId, file.id)
-                        const link = (linksRes.links || []).find((l: any) => l.place_id === p.id)
-                        if (link) await filesApi.removeLink(tripId, file.id, link.id)
-                        refreshFiles()
-                      } catch {}
-                    }
-                  } else {
-                    if (!file.place_id) {
-                      await handleAssign(file.id, { place_id: p.id })
-                    } else {
-                      try {
-                        await filesApi.addLink(tripId, file.id, { place_id: p.id })
-                        refreshFiles()
-                      } catch {}
-                    }
-                  }
-                }} style={{
-                  width: '100%', textAlign: 'left', padding: '6px 10px 6px 20px', background: isLinked ? 'var(--bg-hover)' : 'none',
+                <button type="button" key={`${p.id}-${idx}`} onClick={() => toggleLink(file, 'place_id', p.id)} style={{
+                  width: '100%', textAlign: 'start', paddingBlock: 6, paddingInlineEnd: 10, paddingInlineStart: 20, background: isLinked ? 'var(--bg-hover)' : 'none',
                   border: 'none', cursor: 'pointer', fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: 'var(--text-primary)',
                   borderRadius: 8, fontFamily: 'inherit', fontWeight: isLinked ? 600 : 400,
                   display: 'flex', alignItems: 'center', gap: 6,
@@ -99,7 +85,7 @@ export function AssignModal(S: FileManagerState) {
                   onMouseLeave={e => e.currentTarget.style.background = isLinked ? 'var(--bg-hover)' : 'transparent'}>
                   <MapPin size={12} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                  {isLinked && <Check size={14} style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--accent)' }} />}
+                  {isLinked && <Check size={14} style={{ marginInlineStart: 'auto', flexShrink: 0, color: 'var(--accent)' }} />}
                 </button>
               )
             }
@@ -142,30 +128,8 @@ export function AssignModal(S: FileManagerState) {
               const isLinked = file.reservation_id === r.id || (file.linked_reservation_ids || []).includes(r.id)
               const Icon = TRANSPORT_TYPES.has(r.type) ? transportIcon(r.type) : Ticket
               return (
-                <button type="button" key={r.id} onClick={async () => {
-                  if (isLinked) {
-                    if (file.reservation_id === r.id) {
-                      await handleAssign(file.id, { reservation_id: null })
-                    } else {
-                      try {
-                        const linksRes = await filesApi.getLinks(tripId, file.id)
-                        const link = (linksRes.links || []).find((l: any) => l.reservation_id === r.id)
-                        if (link) await filesApi.removeLink(tripId, file.id, link.id)
-                        refreshFiles()
-                      } catch {}
-                    }
-                  } else {
-                    if (!file.reservation_id) {
-                      await handleAssign(file.id, { reservation_id: r.id })
-                    } else {
-                      try {
-                        await filesApi.addLink(tripId, file.id, { reservation_id: r.id })
-                        refreshFiles()
-                      } catch {}
-                    }
-                  }
-                }} style={{
-                  width: '100%', textAlign: 'left', padding: '6px 10px 6px 20px', background: isLinked ? 'var(--bg-hover)' : 'none',
+                <button type="button" key={r.id} onClick={() => toggleLink(file, 'reservation_id', r.id)} style={{
+                  width: '100%', textAlign: 'start', paddingBlock: 6, paddingInlineEnd: 10, paddingInlineStart: 20, background: isLinked ? 'var(--bg-hover)' : 'none',
                   border: 'none', cursor: 'pointer', fontSize: 'calc(13px * var(--fs-scale-body, 1))', color: 'var(--text-primary)',
                   borderRadius: 8, fontFamily: 'inherit', fontWeight: isLinked ? 600 : 400,
                   display: 'flex', alignItems: 'center', gap: 6,
@@ -174,7 +138,7 @@ export function AssignModal(S: FileManagerState) {
                   onMouseLeave={e => e.currentTarget.style.background = isLinked ? 'var(--bg-hover)' : 'transparent'}>
                   <Icon size={12} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
-                  {isLinked && <Check size={14} style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--accent)' }} />}
+                  {isLinked && <Check size={14} style={{ marginInlineStart: 'auto', flexShrink: 0, color: 'var(--accent)' }} />}
                 </button>
               )
             }
@@ -203,16 +167,14 @@ export function AssignModal(S: FileManagerState) {
             const hasBoth = placesSection && bookingsSection
             return (
               <div className={hasBoth ? 'md:flex' : ''}>
-                <div className={hasBoth ? 'md:w-1/2' : ''} style={{ overflowY: 'auto', maxHeight: '55vh', paddingRight: hasBoth ? 6 : 0 }}>{placesSection}</div>
+                <div className={hasBoth ? 'md:w-1/2' : ''} style={{ overflowY: 'auto', maxHeight: '55vh', paddingInlineEnd: hasBoth ? 6 : 0 }}>{placesSection}</div>
                 {hasBoth && <div className="hidden md:block" style={{ width: 1, background: 'var(--border-primary)', flexShrink: 0 }} />}
                 {hasBoth && <div className="block md:hidden" style={{ height: 1, background: 'var(--border-primary)', margin: '8px 0' }} />}
-                <div className={hasBoth ? 'md:w-1/2' : ''} style={{ overflowY: 'auto', maxHeight: '55vh', paddingLeft: hasBoth ? 6 : 0 }}>{bookingsSection}</div>
+                <div className={hasBoth ? 'md:w-1/2' : ''} style={{ overflowY: 'auto', maxHeight: '55vh', paddingInlineStart: hasBoth ? 6 : 0 }}>{bookingsSection}</div>
               </div>
             )
           })()}
         </div>
-      </div>
-    </div>,
-    document.body
+    </DialogShell>
   )
 }

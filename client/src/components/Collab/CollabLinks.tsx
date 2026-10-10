@@ -1,6 +1,10 @@
-import { CSSProperties, FormEvent, useEffect, useRef, useState } from 'react'
+import { cloneElement, CSSProperties, FormEvent, ReactElement, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ExternalLink, Link2, Pencil, Pin, Plus, Trash2, X } from 'lucide-react'
+import CollabPanelHead, { HEAD_ACTION } from './CollabPanelHead'
+import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT } from '../shared/DialogShell'
+import { EditorField, INPUT } from '../shared/dialogParts'
+import { useIsPhone } from '../../mobile/useIsPhone'
 import { collabApi } from '../../api/client'
 import { addListener, removeListener } from '../../api/websocket'
 import { useTranslation } from '../../i18n'
@@ -8,6 +12,7 @@ import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import EmptyState from '../shared/EmptyState'
+import { Tooltip } from '../shared/Tooltip'
 import { useToast } from '../shared/Toast'
 
 const FONT = "var(--font-system)"
@@ -32,6 +37,11 @@ function LinkIcon({ url }: { url: string }) {
 }
 
 /** The part of the address worth a chip's width: the host, without a leading www. */
+/** The desktop names a chip's action in the shared tooltip; the phone keeps its plain title. */
+function ChipTip({ label, phone, children }: { label: string; phone: boolean; children: ReactElement<{ title?: string }> }) {
+  return phone ? cloneElement(children, { title: label }) : <Tooltip label={label}>{children}</Tooltip>
+}
+
 function hostOf(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
 }
@@ -48,10 +58,12 @@ function LinkModal({ link, onClose, onSave }: { link?: CollabLink; onClose: () =
   const [title, setTitle] = useState(link?.title ?? '')
   const [url, setUrl] = useState(link?.url ?? '')
   const [busy, setBusy] = useState(false)
+  const isPhone = useIsPhone()
+  const labelId = useId()
   const valid = title.trim().length > 0 && url.trim().length > 0
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault()
+  const submit = async (event?: FormEvent) => {
+    event?.preventDefault()
     if (!valid || busy) return
     setBusy(true)
     try {
@@ -73,6 +85,44 @@ function LinkModal({ link, onClose, onSave }: { link?: CollabLink; onClose: () =
     fontSize: 'calc(9px * var(--fs-scale-caption, 1))', fontWeight: 600,
     color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4,
   }
+
+  // The desktop names the link in the head band like every planner dialog.
+  if (!isPhone) return (
+    <DialogShell
+      onClose={onClose}
+      labelledBy={labelId}
+      width="narrow"
+      onSubmit={submit}
+      header={(
+        <DialogHeader
+          tile={<DialogTile><Link2 size={20} strokeWidth={1.9} className="text-content-muted" /></DialogTile>}
+          tint={NEUTRAL_TINT}
+          labelId={labelId}
+          onClose={onClose}
+          eyebrow={t(link ? 'collab.links.edit' : 'collab.links.add')}
+          titleInput={{
+            value: title,
+            onChange: setTitle,
+            label: t('collab.links.titlePlaceholder'),
+            placeholder: t('collab.links.titlePlaceholder'),
+            autoFocus: true,
+            onKeyDown: e => { if (e.key === 'Enter') void submit() },
+          }}
+        />
+      )}
+      footer={(
+        <DialogFooter>
+          <FooterSpacer />
+          <DialogButton onClick={onClose}>{t('collab.links.cancel')}</DialogButton>
+          <DialogButton variant="primary" onClick={() => void submit()} disabled={!valid || busy}>{busy ? '...' : t('collab.links.save')}</DialogButton>
+        </DialogFooter>
+      )}
+    >
+      <EditorField label={t('reservations.urlLabel')} htmlFor="collab-link-url">
+        <input id="collab-link-url" type="url" required value={url} onChange={e => setUrl(e.target.value)} placeholder={t('collab.links.urlPlaceholder')} className={INPUT} />
+      </EditorField>
+    </DialogShell>
+  )
 
   return createPortal(
     <div role="presentation" style={{ position: 'fixed', inset: 0, background: 'var(--overlay-bg, rgba(0,0,0,0.35))', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16, fontFamily: FONT }} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
@@ -106,6 +156,7 @@ function LinkModal({ link, onClose, onSave }: { link?: CollabLink; onClose: () =
 
 export default function CollabLinks({ tripId }: { tripId: number }) {
   const { t } = useTranslation()
+  const isPhone = useIsPhone()
   const trip = useTripStore(s => s.trip)
   const canEdit = useCanDo()('collab_edit', trip)
   const toast = useToast()
@@ -205,7 +256,19 @@ export default function CollabLinks({ tripId }: { tripId: number }) {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: FONT }}>
-      {/* Header */}
+      {/* Header: the desktop's head band; the phone keeps its own */}
+      {!isPhone ? (
+        <CollabPanelHead
+          icon={Link2}
+          title={t('collab.tabs.links')}
+          count={links.length}
+          actions={canEdit && (
+            <button type="button" onClick={() => setShowForm(true)} className={HEAD_ACTION}>
+              <Plus size={12} /> {t('collab.links.add')}
+            </button>
+          )}
+        />
+      ) : (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', flexShrink: 0 }}>
         <h3 style={{ margin: 0, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 7, letterSpacing: 0.3, textTransform: 'uppercase' }}>
           <Link2 size={14} color="var(--text-faint)" />
@@ -221,17 +284,19 @@ export default function CollabLinks({ tripId }: { tripId: number }) {
           </button>
         )}
       </div>
+      )}
 
       {/* Content: one chip per link, two to a row (see .collab-link-chip). The chip is
           the link, with the host beside the title; the actions sit in its tail. */}
-      <div className="chat-scroll collab-link-grid" style={{ flex: 1, overflowY: 'auto', padding: '2px 12px 12px' }}>
+      <div className={isPhone ? 'chat-scroll collab-link-grid' : 'chat-scroll collab-link-grid collab-link-grid--desk'} style={{ flex: 1, overflowY: 'auto', padding: isPhone ? '2px 12px 12px' : 12 }}>
         {links.length === 0 ? (
           <EmptyState scene="links" title={t('collab.links.empty')} />
         ) : (
           <div className="collab-link-grid__cells">
             {links.map(link => (
               <div key={link.id} className={link.pinned ? 'collab-link-chip collab-link-chip--pinned' : 'collab-link-chip'}>
-                <a className="collab-link-chip__main" href={link.url} target="_blank" rel="noreferrer" title={t('collab.links.open')}>
+                <ChipTip label={t('collab.links.open')} phone={isPhone}>
+                <a className="collab-link-chip__main" href={link.url} target="_blank" rel="noreferrer">
                   {/* Keyed on the address: the icon remembers a favicon that failed, and
                       an edit keeps the chip's id, so a corrected address got the glyph. */}
                   <LinkIcon key={link.url} url={link.url} />
@@ -240,17 +305,24 @@ export default function CollabLinks({ tripId }: { tripId: number }) {
                     <span className="collab-link-chip__host">{hostOf(link.url)}</span>
                   </span>
                 </a>
+                </ChipTip>
                 {canEdit && (
                   <span className="collab-link-chip__actions">
-                    <button type="button" className="collab-link-chip__action" onClick={() => setEditing(link)} aria-label={t('collab.links.edit')} title={t('collab.links.edit')}>
-                      <Pencil size={13} aria-hidden="true" />
-                    </button>
-                    <button type="button" className={link.pinned ? 'collab-link-chip__action collab-link-chip__action--on' : 'collab-link-chip__action'} onClick={() => toggle(link)} aria-label={link.pinned ? t('collab.links.unpin') : t('collab.links.pin')} title={link.pinned ? t('collab.links.unpin') : t('collab.links.pin')}>
-                      <Pin size={13} fill={link.pinned ? 'currentColor' : 'none'} aria-hidden="true" />
-                    </button>
-                    <button type="button" className="collab-link-chip__action" onClick={() => setPendingDeleteId(link.id)} aria-label={t('collab.links.delete')} title={t('collab.links.delete')}>
-                      <Trash2 size={13} aria-hidden="true" />
-                    </button>
+                    <ChipTip label={t('collab.links.edit')} phone={isPhone}>
+                      <button type="button" className="collab-link-chip__action" onClick={() => setEditing(link)} aria-label={t('collab.links.edit')}>
+                        <Pencil size={13} aria-hidden="true" />
+                      </button>
+                    </ChipTip>
+                    <ChipTip label={link.pinned ? t('collab.links.unpin') : t('collab.links.pin')} phone={isPhone}>
+                      <button type="button" className={link.pinned ? 'collab-link-chip__action collab-link-chip__action--on' : 'collab-link-chip__action'} onClick={() => toggle(link)} aria-label={link.pinned ? t('collab.links.unpin') : t('collab.links.pin')}>
+                        <Pin size={13} fill={link.pinned ? 'currentColor' : 'none'} aria-hidden="true" />
+                      </button>
+                    </ChipTip>
+                    <ChipTip label={t('collab.links.delete')} phone={isPhone}>
+                      <button type="button" className="collab-link-chip__action" onClick={() => setPendingDeleteId(link.id)} aria-label={t('collab.links.delete')}>
+                        <Trash2 size={13} aria-hidden="true" />
+                      </button>
+                    </ChipTip>
                   </span>
                 )}
               </div>

@@ -2,9 +2,8 @@
 // attach after authentication. Replaces the per-site casts
 // (`(req as AuthRequest).user`, `getRequest<Request & { user?: User }>()`) with
 // a single source of truth so downstream code can read `req.user` directly.
-
-import type { PublicApiGrant } from '@trek/shared';
 import type { User } from '../types';
+import type { PublicApiGrant } from '@trek/shared';
 
 declare module 'express-serve-static-core' {
   interface Request {

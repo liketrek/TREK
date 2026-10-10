@@ -1,0 +1,72 @@
+{
+  // knip over the three workspaces: unused files, exports, types and
+  // dependencies. scripts/ci/knip-ratchet.mjs (npm run lint:knip) holds what it
+  // finds today in scripts/ci/knip-baseline.json and fails on anything new.
+  // A false positive is fixed here, with the reason, never in the baseline.
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // plugin-sdk is published on its own with its own lockfile and is not a
+  // root workspace; its test files would otherwise read as unlisted vitest.
+  "ignore": ["plugin-sdk/**"],
+  // test.yml runs `cd server && node --require tsconfig-paths/register`; knip
+  // resolves the workflow from the root, where server's dependency is not.
+  "ignoreUnresolved": ["tsconfig-paths/register"],
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/ci/*.mjs", "scripts/*.{cjs,mts}"],
+      "project": ["scripts/**/*.{mjs,cjs,mts}"],
+      // An optional peer of tsdown, which loads shared/tsdown.config.ts through
+      // it; nothing imports it by name. eslint and prettier are the workspaces'
+      // own copies: the shared scripts/lib takes them handed in, and its tests
+      // import the hoisted ones the server and shared declare.
+      "ignoreDependencies": ["unrun", "eslint", "prettier"]
+    },
+    "client": {
+      // The app, its scripts, the Playwright specs and the server launcher
+      // playwright.config.ts starts (`node e2e/server-launch.mjs`), and the tests.
+      "entry": [
+        "src/main.tsx",
+        "scripts/*.mjs",
+        "e2e/**/*.{ts,mjs}",
+        "src/**/*.test.{ts,tsx}",
+        "tests/**/*.{ts,tsx}"
+      ],
+      "project": ["src/**/*.{ts,tsx}", "scripts/**/*.mjs", "tests/**/*.{ts,tsx}", "e2e/**/*.{ts,mjs}"]
+    },
+    "server": {
+      "entry": [
+        "src/index.ts",
+        "src/bootstrap.ts",
+        // Read by the MikroORM CLI and at boot, by path.
+        "src/mikro-orm.config.ts",
+        // Started with child_process.fork() by the plugin supervisor (nest/plugins/paths.ts).
+        "src/nest/plugins/runtime/plugin-host-entry.ts",
+        // The plugin-author-facing API the forked child exposes; its exported
+        // types are the contract for plugin code outside this repository.
+        "src/nest/plugins/runtime/plugin-sdk.ts",
+        // Found by the migrator and the seeder through a glob, never imported.
+        "src/db/migrations/*.ts",
+        "src/db/seeders/*.ts",
+        "scripts/**/*.{mjs,cjs,ts}",
+        "reset-admin.js",
+        "tests/**/*.ts"
+      ],
+      "project": ["src/**/*.ts", "scripts/**/*.{mjs,cjs,ts}", "tests/**/*.ts"],
+      // The MikroORM command line (npx mikro-orm), configured by the
+      // "mikro-orm" block in server/package.json and never imported.
+      "ignoreDependencies": ["@mikro-orm/cli"]
+    },
+    "shared": {
+      "entry": [
+        // The package entry points tsdown builds, one per locale for the lazy chunks.
+        "src/index.ts",
+        "src/roadtrip/planning.ts",
+        "src/i18n/index.ts",
+        "src/i18n/*/index.ts",
+        // open-request-schemas.d.mts types the .mjs script beside it.
+        "scripts/*.{mjs,d.mts}",
+        "src/**/*.spec.ts"
+      ],
+      "project": ["src/**/*.ts", "scripts/**/*.{mjs,mts}"]
+    }
+  }
+}

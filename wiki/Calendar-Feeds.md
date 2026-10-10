@@ -1,15 +1,17 @@
 # Calendar Feeds
 
-Subscribe your calendar app to a TREK trip so it stays in sync automatically, instead of importing a snapshot once.
+Subscribe your calendar app to a trip, and it keeps up with every change you make in TREK instead of holding a copy from the day you imported it.
 
-> **Not the same as the ICS export.** The **Download .ics** action described in [Day-Plans-and-Notes](Day-Plans-and-Notes) writes a one-off `.ics` file that never changes after you import it. A calendar *feed* is a live URL your calendar re-fetches on its own. Use the export for a frozen copy, a feed for something that keeps up with your edits.
+> **Not the same as the ICS download.** **Download .ics** in the Export dialog saves a one-off `.ics` file that never changes after you import it. A calendar *feed* is a live address your calendar app fetches again on its own. Use the download for a frozen copy and a feed for something that follows your edits.
 
 ## Where to find it
 
-There are two feeds, reached from two places:
+There are two feeds, each with its own way in:
 
-- **Per-trip feed** — in the trip planner, click the **Export** button in the Day Plan sidebar toolbar and pick **Subscribe to calendar** under **Calendar**. (The entry above it, **Download .ics**, is the one-off export.) The subscribe entry only shows up if you may manage the trip's share links — see *Permissions* below.
-- **All-trips feed** — on the **My Trips** dashboard, click the calendar-plus button in the toolbar (**Subscribe to all trips**).
+- **Per-trip feed**: in the trip planner, click **Export** at the top of the days column. Under **Calendar**, pick **Subscribe to calendar** (*Auto-updates in your calendar app*). The row above it, **Download .ics**, is the one-off file. The subscribe row only appears if you may manage the trip's share links, see [Permissions](#permissions).
+- **All-trips feed**: on the **My Trips** dashboard, click the calendar-plus button in the toolbar, **Subscribe to all trips**.
+
+![Export dialog with Document, Calendar and Maps & GPS groups; Download .ics and Subscribe to calendar sit under Calendar](assets/ExportDialog.png)
 
 Both open the same dialog.
 
@@ -18,63 +20,70 @@ Both open the same dialog.
 |                     | Per-trip feed                     | All-trips feed                                              |
 |---------------------|-----------------------------------|-------------------------------------------------------------|
 | Covers              | One trip                          | Every trip you own **or** are a member of                    |
-| Calendar name       | The trip title                    | *{your username} – All Trips*                                |
-| Excludes            | —                                 | Archived trips, and trips that ended more than 90 days ago   |
+| Calendar name       | The trip title                    | Your username followed by *All Trips*                        |
+| Leaves out          | Nothing                           | Archived trips, and trips that ended more than 90 days ago   |
 | URL                 | `/api/feed/trip/{token}.ics`      | `/api/feed/user/{token}.ics`                                 |
-| Token lives on      | The trip                          | Your user account                                            |
+| Token belongs to    | The trip                          | Your user account                                            |
 
-The all-trips feed merges every qualifying trip into one calendar, sorted by start date, and de-duplicates the time-zone definitions so each event still resolves to the right local time.
+The all-trips feed merges every trip that qualifies into one calendar, sorted by start date, and keeps each time zone definition only once, so every event still lands at the right local time.
 
 ## Turning a feed on
 
-1. Open the **Subscribe to calendar** (or **Subscribe to all trips**) dialog. Opening it only reads the current state — it never mints a link behind your back.
-2. Click **Enable calendar subscription**. TREK generates a random token and shows the feed URL.
-3. Hand the URL to your calendar app with one of the buttons:
-   - **Add to Google Calendar** — opens Google's add-by-URL page with the feed pre-filled.
-   - **Add to Apple Calendar / Outlook** — a `webcal://` link that the OS hands to your default calendar app.
-   - **Or copy a link manually** — expand this to copy the raw `https://…` URL (for a *From URL* box) or the `webcal://` variant.
+1. Open **Subscribe to calendar** (or **Subscribe to all trips**). Opening the dialog only reads the current state; it never creates a link on its own.
+2. Click **Enable calendar subscription** at the foot of the dialog. TREK creates a random token, and the dialog shows the ways to subscribe.
+3. Hand the feed to your calendar app with one of the buttons:
+   - **Add to Google Calendar** opens Google's add-by-URL page with the feed filled in.
+   - **Add to Apple Calendar / Outlook** is a `webcal://` link that your system passes to its default calendar app.
+   - **Or copy a link manually** unfolds both addresses with a copy button each: the `https://` one for a *From URL* field, and the `webcal://` one.
 
-The URL is built from `APP_URL` when it is set; otherwise TREK falls back to the host you are browsing from. Set `APP_URL` behind a reverse proxy so the link is the one your calendar app can actually reach — see [Environment-Variables](Environment-Variables) and [Reverse-Proxy](Reverse-Proxy).
+![The Subscribe to calendar dialog once the feed is on: Add to Google Calendar, Add to Apple Calendar / Outlook and the manual links, with Regenerate and Turn off at its foot](assets/IcsSubscribe.png)
+
+The address is built from `APP_URL` when it is set; otherwise TREK uses the host you are browsing from. Behind a reverse proxy, set `APP_URL` so the link is one your calendar app can reach. See [Environment-Variables](Environment-Variables) and [Reverse-Proxy](Reverse-Proxy).
 
 ## The token, and who can read the feed
 
-The random token in the URL **is** the credential. The feed endpoint requires no login: anyone who has the link can read the whole trip — every event, note, address, and confirmation detail — without an account. The dialog says as much: *Creates a secret link anyone with it can read without logging in. You can turn it off anytime.*
+The random token in the address **is** the key. The feed needs no login: anyone who has the link can read the whole trip, every event, note, address and booking detail, without an account. The dialog says so before you enable it: *Creates a secret link anyone with it can read without logging in. You can turn it off anytime.*
 
-Treat the URL like a password. Don't post it in a shared document or a public issue.
+Treat the address like a password. Do not post it in a shared document or a public issue.
 
 ## Rotating and revoking
 
-Once a feed is enabled, two buttons appear beneath the subscribe links:
+Once a feed is on, the foot of the dialog holds two buttons:
 
-- **Regenerate** — issues a new token. The old URL stops resolving immediately, so every calendar still subscribed to it goes dead and has to be re-added.
-- **Turn off** — clears the token entirely. The URL 404s and no feed exists until you enable one again.
+- **Regenerate** issues a new token. The old address stops working at once, so every calendar still subscribed to it goes quiet and has to be added again.
+- **Turn off** removes the token. The address answers with *not found*, and there is no feed until you enable one again.
 
-Use **Regenerate** if a link leaked; use **Turn off** if you no longer want a public feed at all.
+Use **Regenerate** when a link has leaked, and **Turn off** when you no longer want a feed at all.
 
 ## What appears in the feed
 
-The feed carries the same events as the ICS export:
+The feed carries the same events as the `.ics` download:
 
-- **The trip itself** — an all-day event spanning the trip's start and end dates, with the trip description.
-- **Timed day assignments** — one event per place that has a time, using the place name as the title, its address as the location, and its notes in the description. Times are anchored to the place's own time zone.
-- **A per-day summary event** — an all-day event for each day that has untimed places or notes, titled with the day title (or *Day N*), listing those places and notes in the description.
-- **Reservations** — hotels, restaurants, and transport. Flights and other transport take their start and end from the departure and arrival endpoints, each in its own time zone. Reservations with no placeable date are skipped.
-- **Accommodations** — an all-day event covering every night of the stay, from the arrival day to the departure day, so a hotel sits above those days rather than appearing once on the day you check in. The dates come from the trip days the stay is attached to, so reordering days moves the event with them.
-- **Check-in and check-out** — separate timed events on the arrival and departure days whenever the stay records those times. If you entered a check-in window, its end becomes the event's end time.
-- **Car pickup and drop-off** — a reservation of type *Car* also gets two standalone timed events, *Pickup: {title}* and *Drop-off: {title}*, on top of the rental's own booking block, both carrying the reservation's location. Each side prefers its own endpoint — the pickup endpoint for the pickup, the return endpoint for the drop-off — and takes that endpoint's local time and time zone. Otherwise it falls back to the booking's own times (an end value stored as a bare clock is paired with the booking's start date) and to the time zone of the linked place. A side with no usable date and time from either source is skipped, so a rental imported with only one geocoded endpoint can end up with just one marker.
+- **The trip itself**: an all-day event from the trip's start to its end date, with the trip description.
+- **Timed stops**: one event per place in the day plan that has a time, titled with the place name, with its address as the location and its notes as the description. Times follow the place's own time zone.
+- **A summary per day**: an all-day event for every day with untimed places or notes, titled with the day's title (or *Day N*), listing those places and notes.
+- **Bookings** of every type, transport included. Flights and other rides take their start and end from the departure and arrival points, each in its own time zone. A booking with no date that can be placed is left out.
+- **Connections**: a flight, train or cruise with several legs becomes one event per leg, titled *{title}: FRA → BER*, with each leg's own departure, arrival and segment reference, each in the time zone of its own stops, so the layover (or the stay in a port of call) shows as the gap between them. This needs a departure date and time on every leg; otherwise the booking stays one event.
+- **Accommodations**: an all-day event covering every night of the stay, from the arrival day to the departure day, so the hotel sits above those days rather than showing up once on the day you check in. The dates come from the trip days the stay is attached to, so reordering days moves the event with them.
+- **Check-in and check-out**: separate timed events on the arrival and departure days whenever the stay has those times. If you entered a check-in window, its end becomes the event's end time.
+- **Car pickup and drop-off**: a booking of type *Car* also gets two timed events of its own, *Pickup: {title}* and *Drop-off: {title}*, next to the rental's own event, both with the booking's location. Each side prefers its own endpoint (the pickup point for the pickup, the return point for the drop-off) and takes that endpoint's local time and time zone. Otherwise it falls back to the booking's own times and to the time zone of the linked place. A side with no usable date and time from either source is left out, so a rental imported with only one located endpoint can end up with a single event.
 
-Feeds are served with cache headers that tell clients not to cache, plus an hourly refresh hint (`REFRESH-INTERVAL` / `X-PUBLISHED-TTL` of one hour). Most calendar apps treat that as a suggestion — Google in particular refreshes on its own schedule, often much slower — so an edit may take a while to show up.
+Feeds are sent with headers that tell clients not to cache them, plus a hint to refresh every hour (`REFRESH-INTERVAL` and `X-PUBLISHED-TTL`). Most calendar apps treat that as a suggestion. Google in particular refreshes on its own schedule, often far less often, so an edit can take a while to show up there.
 
 ## Permissions
 
-Managing a per-trip token requires the **`share_manage`** permission — the same right that governs invite and share links. By default it sits with the trip owner; an instance can lower it to trip members in [Admin-Permissions](Admin-Permissions). A member without it never sees **Subscribe to calendar** in the export dialog and gets a *No permission* from the token endpoint, while anyone with no access to the trip at all still gets a *Trip not found*. The all-trips feed needs no permission — it is always scoped to your own account.
+Managing a trip's feed needs the **`share_manage`** permission, the same right that covers invite and share links. By default only the trip owner has it; an instance can open it up to trip members in [Admin-Permissions](Admin-Permissions). A member without it never sees **Subscribe to calendar** in the Export dialog and gets *No permission* from the token endpoint, while someone with no access to the trip at all gets *Trip not found*.
 
-Because the token grants unauthenticated read access, enabling a feed effectively shares that trip's contents with whoever holds the link, regardless of trip roles — see [Public-Share-Links](Public-Share-Links) for the equivalent trade-off on the sharing side.
+**Download .ics** stays open to every member: it is a file of things they can already read, while a feed creates a link that works without an account.
+
+The all-trips feed needs no permission, since it only ever covers your own account.
+
+Because the token grants read access without a login, enabling a feed shares that trip with whoever holds the link, whatever their role in the trip. [Public-Share-Links](Public-Share-Links) describes the same trade-off for share links.
 
 ## See also
 
-- [Day-Plans-and-Notes](Day-Plans-and-Notes)
-- [Trip-Planner-Overview](Trip-Planner-Overview)
+- [PDF-Export](PDF-Export), for the other exports in the same dialog
+- [Day-Plans-and-Notes](Day-Plans-and-Notes#toolbar-actions)
 - [Reservations-and-Bookings](Reservations-and-Bookings)
 - [Public-Share-Links](Public-Share-Links)
 - [My-Trips-Dashboard](My-Trips-Dashboard)

@@ -26,7 +26,8 @@ const settings: TranslationStrings = {
   'settings.mapTemplatePlaceholder.select': 'Vorlage auswählen...',
   'settings.mapDefaultHint': 'Leer lassen für OpenStreetMap (Standard)',
   'settings.routingBase': 'Eigene Routing-Instanz',
-  'settings.routingBaseHint': 'Eine eigene OSRM-Instanz. Leer nutzt die öffentlichen Server, die etwa eine Anfrage pro Sekunde erlauben — für einen Tag genug, für einen Roadtrip knapp. Wirkt erst nach einem Serverneustart.',
+  'settings.routingBaseHint':
+    'Eine eigene OSRM-Instanz. Leer nutzt die öffentlichen Server, die etwa eine Anfrage pro Sekunde erlauben — für einen Tag genug, für einen Roadtrip knapp. Wirkt erst nach einem Serverneustart.',
   'settings.valhallaBase': 'Eigene Valhalla-Instanz',
   'settings.valhallaBaseHint':
     'Zum Meiden von Mautstraßen, Autobahnen und Fähren nutzt TREK standardmäßig die öffentliche FOSSGIS-Valhalla. Hier kannst du stattdessen eine eigene Valhalla-URL eintragen. Ist nur eine eigene Routing-Instanz konfiguriert, wird die öffentliche Valhalla nicht verwendet. Nach dem Eintragen einer eigenen URL den Server neu starten und die Seite neu laden.',
@@ -77,6 +78,12 @@ const settings: TranslationStrings = {
   'settings.temperature': 'Temperatureinheit',
   'settings.distance': 'Entfernungseinheit',
   'settings.timeFormat': 'Zeitformat',
+  'settings.weekStart': 'Woche beginnt am',
+  'settings.weekStartHint': 'Erster Tag der Woche in jedem Datumswähler. Vacay hat eine eigene Einstellung.',
+  'settings.preferredNavApp': 'Orte öffnen in',
+  'settings.preferredNavAppAsk': 'Jedes Mal fragen',
+  'settings.preferredNavAppHint':
+    'Ist eine App gewählt, öffnet der Navigations-Button sie direkt, statt alle Karten-Apps anzubieten.',
   'settings.bookingLabels': 'Orts-Labels auf Buchungsrouten',
   'settings.bookingLabelsHint': 'Zeigt Bahnhofs-/Flughafennamen auf der Karte. Wenn aus, wird nur das Icon angezeigt.',
   'settings.blurBookingCodes': 'Buchungscodes verbergen',
@@ -234,6 +241,14 @@ const settings: TranslationStrings = {
   'settings.passwordTooShort': 'Passwort muss mindestens 8 Zeichen lang sein',
   'settings.passwordMismatch': 'Passwörter stimmen nicht überein',
   'settings.passwordWeak': 'Passwort muss Groß-, Kleinbuchstaben, eine Zahl und ein Sonderzeichen enthalten',
+  'settings.passwordCommon': 'Dieses Passwort ist zu verbreitet. Bitte wähle ein eigenes.',
+  'settings.passwordRepetitive': 'Das Passwort wiederholt sich zu sehr',
+  'settings.passwordRules': 'Anforderungen an das Passwort',
+  'settings.passwordRule.length': 'Mindestens 8 Zeichen',
+  'settings.passwordRule.upper': 'Ein Großbuchstabe',
+  'settings.passwordRule.lower': 'Ein Kleinbuchstabe',
+  'settings.passwordRule.digit': 'Eine Zahl',
+  'settings.passwordRule.special': 'Ein Sonderzeichen',
   'settings.passwordChanged': 'Passwort erfolgreich geändert',
   'settings.deleteAccount': 'Löschen',
   'settings.deleteAccountTitle': 'Account wirklich löschen?',
@@ -310,6 +325,7 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.inapp': 'In-App',
   'settings.notificationPreferences.notConfigured':
     'Noch nicht eingerichtet — in den Einstellungen des Plugins konfigurieren',
+  'settings.notificationPreferences.lockedByAdmin': 'Vom Admin für alle abgeschaltet',
   'settings.plugins.actions': 'Aktionen',
   'settings.plugins.actions.confirm': 'Diese Aktion ausführen?',
   'settings.notificationPreferences.sendTest': 'Test senden',
@@ -321,10 +337,28 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.ntfy': 'Ntfy',
+  'settings.notificationPreferences.push': 'Push',
+  'settings.webPush.title': 'Push-Benachrichtigungen auf diesem Gerät',
+  'settings.webPush.hint':
+    'Zeigt TREK-Benachrichtigungen auf diesem Gerät an, auch wenn TREK geschlossen ist. Welche Ereignisse ankommen, richtet sich nach der Spalte Push.',
+  'settings.webPush.enable': 'Für dieses Gerät einschalten',
+  'settings.webPush.disable': 'Für dieses Gerät ausschalten',
+  'settings.webPush.enabled': 'Für dieses Gerät eingeschaltet',
+  'settings.webPush.unsupported': 'Dieser Browser kann keine Push-Benachrichtigungen empfangen.',
+  'settings.webPush.insecure': 'Für Push muss TREK über HTTPS geöffnet werden.',
+  'settings.webPush.iosInstall':
+    'Füge TREK auf iPhone und iPad zuerst zum Home-Bildschirm hinzu und öffne es von dort.',
+  'settings.webPush.denied':
+    'Benachrichtigungen für TREK sind in diesem Browser blockiert. Erlaube sie in den Browsereinstellungen und versuche es dann erneut.',
+  'settings.webPush.failed': 'Push konnte für dieses Gerät nicht eingeschaltet werden.',
   'settings.currency': 'Anzeigewährung',
   'settings.currencyHint':
     'Beträge unter Kosten werden nur zur Anzeige in diese Währung umgerechnet – die ursprünglichen Beträge bleiben unverändert.',
   'settings.currencyTrip': 'Reisewährung',
+  'settings.placeLanguage': 'Ortsnamen',
+  'settings.placeLanguageApp': 'Wie die App',
+  'settings.placeLanguageHint':
+    'Die Sprache, in der Ortssuche, Vorschläge und Adressen antworten. Hat ein Ort keinen Namen in dieser Sprache, wird sein lokaler Name angezeigt.',
   'settings.passkey.title': 'Passkeys',
   'settings.passkey.description':
     'Melde dich schneller und phishing-resistent mit einem Passkey an — per Fingerabdruck, Gesicht, PIN oder Hardware-Schlüssel. Dein Passwort bleibt als Backup erhalten.',
@@ -368,7 +402,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.toast.saved': 'AirTrail-Verbindung gespeichert',
   'settings.airtrail.toast.saveError': 'Verbindung konnte nicht gespeichert werden',
   'settings.airtrail.test.button': 'Verbindung testen',
-  'settings.airtrail.test.success': 'Verbunden — {count} Flug/Flüge gefunden',
+  'settings.airtrail.test.success': 'Verbunden. {count} Flüge gefunden',
+  'settings.airtrail.test.success.one': 'Verbunden. {count} Flug gefunden',
   'settings.airtrail.test.failed': 'Verbindung fehlgeschlagen',
   'settings.aiParsing.title': 'KI-Verarbeitung',
   'settings.aiParsing.hint':
@@ -385,9 +420,9 @@ const settings: TranslationStrings = {
     'Wo das Modell läuft — ein lokaler Ollama-Server oder ein OpenAI-kompatibler Endpunkt.',
   'settings.aiParsing.apiKey': 'API-Schlüssel',
   'settings.aiParsing.apiKeyHint': 'Verschlüsselt gespeichert. Leer lassen, um den aktuellen Schlüssel zu behalten.',
-  'settings.aiParsing.multimodal': 'Dokumente als Bilder senden',
+  'settings.aiParsing.multimodal': 'Modell liest Bilder',
   'settings.aiParsing.multimodalHint':
-    'Für Modelle mit Bildverständnis — sendet das Original-PDF statt extrahiertem Text.',
+    'Für ein Modell, das Bilder liest: Dann lässt sich ein Foto importieren oder scannen.',
   'settings.aiParsing.toast.saved': 'KI-Einstellungen gespeichert',
   'settings.aiParsing.toast.saveError': 'KI-Einstellungen konnten nicht gespeichert werden',
   'settings.tabs.appearance': 'Erscheinungsbild',
@@ -470,6 +505,12 @@ const settings: TranslationStrings = {
   'settings.general.languageRegion': 'Sprache & Region',
   'settings.general.travelMap': 'Reise & Karte',
   'settings.general.startup': 'Start',
+  'settings.dayDateFirst': 'Datum zuerst in Tagesüberschriften',
+  'settings.compactUnplanned': 'Kompakte Markierungen für ungeplante Orte',
+  'settings.compactUnplannedHint':
+    'Orte, die keinem Tag zugeordnet sind, erscheinen als kleine Markierungen ohne Foto, damit die geplanten Stopps hervorstechen.',
+  'settings.dayDateFirstHint':
+    'Jeden Tag mit seinem Kalenderdatum beginnen und daneben „Tag 1“ oder den eigenen Titel des Tages anzeigen.',
   'settings.startPage': 'Startseite',
   'settings.startPageDashboard': 'Dashboard',
   'settings.startPageActiveTrip': 'Aktive Reise',
@@ -506,19 +547,26 @@ const settings: TranslationStrings = {
   'settings.offline.storage.tripOn': 'Offline gespeichert',
   'settings.offline.storage.tripOff': 'Nicht gespeichert',
   'settings.offline.storage.tripFinished': 'Abgeschlossen. Wird nur gespeichert, wenn du es einschaltest.',
-  'settings.offline.notice.stored': '{count} Reise(n) auf diesem Gerät gespeichert',
+  'settings.offline.notice.stored': '{count} Reisen auf diesem Gerät gespeichert',
+  'settings.offline.notice.stored.one': '{count} Reise auf diesem Gerät gespeichert',
   'settings.offline.notice.nothing': 'Nichts zu speichern. Schalte die Reisen ein, die du behalten willst.',
   'settings.offline.notice.busy': 'Eine Synchronisierung läuft bereits. Versuche es gleich noch einmal.',
   'settings.offline.notice.offline': 'Keine Verbindung. Verbinde dich, um Reisen offline zu speichern.',
   'settings.offline.notice.signedOut': 'Deine Sitzung ist abgelaufen. Melde dich erneut an, um zu synchronisieren.',
-  'settings.offline.notice.failed': 'Der Download konnte nicht abgeschlossen werden. Prüfe deine Verbindung und versuche es erneut.',
-  'settings.offline.notice.loadFailed': 'Der Offline-Speicher dieses Geräts konnte nicht gelesen werden. Meist hilft es, den Cache zu leeren.',
+  'settings.offline.notice.failed':
+    'Der Download konnte nicht abgeschlossen werden. Prüfe deine Verbindung und versuche es erneut.',
+  'settings.offline.notice.loadFailed':
+    'Der Offline-Speicher dieses Geräts konnte nicht gelesen werden. Meist hilft es, den Cache zu leeren.',
   'settings.offline.clear': 'Cache leeren',
   'settings.offline.clearConfirm':
     'Alle offline gespeicherten Reisedaten löschen? Du kannst jederzeit online neu synchronisieren.',
   'settings.offline.stats.trips': 'Zwischengespeicherte Reisen',
   'settings.offline.stats.pending': 'Ausstehende Änderungen',
   'settings.offline.stats.failed': 'Fehlgeschlagene Änderungen',
+  'settings.offline.failed.hint':
+    'Diese Änderungen haben den Server nie erreicht. Versuche es erneut oder verwirf sie, um die Version vom Server zu behalten.',
+  'settings.offline.failed.retry': 'Erneut versuchen',
+  'settings.offline.failed.discard': 'Verwerfen',
   'settings.offline.stats.conflicts': 'Konflikte',
   'settings.offline.empty':
     'Noch keine Reisen zwischengespeichert. Verbinde dich mit dem Internet zum Synchronisieren.',
@@ -538,9 +586,13 @@ const settings: TranslationStrings = {
   'settings.offline.banner.offline': 'Offline',
   'settings.offline.banner.forced': 'Offline-Modus',
   'settings.offline.banner.queued': 'Offline · {count} in Warteschlange',
+  'settings.offline.banner.queued.one': 'Offline · {count} in Warteschlange',
   'settings.offline.banner.syncing': 'Synchronisiert {count}…',
+  'settings.offline.banner.syncing.one': 'Synchronisiert {count}…',
   'settings.offline.banner.failed': 'Synchronisierung fehlgeschlagen: {count}',
+  'settings.offline.banner.failed.one': 'Synchronisierung fehlgeschlagen: {count}',
   'settings.offline.banner.conflicts': 'Konflikte: {count}',
+  'settings.offline.banner.conflicts.one': 'Konflikte: {count}',
   'settings.pluginActivity.title': 'Plugin-Aktivität',
   'settings.pluginActivity.description': 'Jede Aktion, die ein Plugin in deinem Namen ausgeführt hat – neueste zuerst.',
   'settings.pluginActivity.empty': 'Noch keine Plugin-Aktivität.',
@@ -562,6 +614,7 @@ const settings: TranslationStrings = {
   'settings.apiScopes.all': 'Alles',
   'settings.apiScopes.noneSelected': 'Wähle mindestens einen Bereich, sonst dürfte der Schlüssel gar nichts lesen.',
   'settings.apiScopes.limited': '{count} von {total}',
+  'settings.apiScopes.limited.one': '{count} von {total}',
   'settings.apiScopes.trips': 'Reisen',
   'settings.apiScopes.days': 'Tage',
   'settings.apiScopes.places': 'Orte',
@@ -572,22 +625,29 @@ const settings: TranslationStrings = {
   'settings.apiScopes.bucket-list': 'Wunschliste',
   'settings.apiScopes.stats': 'Summen',
   'settings.apiKeys.title': 'API-Schlüssel',
-  'settings.apiKeys.description': 'Schlüssel für die öffentliche API, damit andere Software deine Reisen lesen kann. Nur lesend: ein Schlüssel kann nichts ändern oder löschen.',
+  'settings.apiKeys.description':
+    'Schlüssel für die öffentliche API, damit andere Software deine Reisen lesen kann. Nur lesend: ein Schlüssel kann nichts ändern oder löschen.',
   'settings.apiKeys.create': 'Schlüssel erstellen',
   'settings.apiKeys.empty': 'Noch keine Schlüssel. Erstelle einen, um andere Software zu verbinden.',
   'settings.apiKeys.createdAt': 'erstellt',
   'settings.apiKeys.usedAt': 'zuletzt genutzt',
   'settings.apiKeys.deleteTitle': 'Schlüssel löschen',
-  'settings.apiKeys.deleteMessage': 'Alles, was diesen Schlüssel nutzt, hört sofort auf zu funktionieren. Das lässt sich nicht rückgängig machen.',
+  'settings.apiKeys.deleteMessage':
+    'Alles, was diesen Schlüssel nutzt, hört sofort auf zu funktionieren. Das lässt sich nicht rückgängig machen.',
   'settings.apiKeys.deleted': 'Schlüssel gelöscht',
   'settings.apiKeys.deleteFailed': 'Schlüssel konnte nicht gelöscht werden',
   'settings.apiKeys.createFailed': 'Schlüssel konnte nicht erstellt werden',
   'settings.apiKeys.copy': 'Kopieren',
-  'settings.apiKeys.docsHint': 'Schicke den Schlüssel als "Authorization: Bearer ..." oder "X-API-Key: ..." an /api/v1.',
+  'settings.apiKeys.docsHint':
+    'Schicke den Schlüssel als "Authorization: Bearer ..." oder "X-API-Key: ..." an /api/v1.',
   'settings.apiKeys.endpoint': 'Endpunkt',
   'settings.apiKeys.neverUsed': 'nie genutzt',
-  'settings.apiKeys.loadFailed': 'Deine Schlüssel konnten nicht geladen werden. Lade die Seite neu, um es noch einmal zu versuchen.',
-  'settings.apiKeys.limitReached': 'Du hast {max} Schlüssel, mehr geht pro Konto nicht. Lösche einen, den du nicht mehr brauchst, um einen neuen zu erstellen.',
+  'settings.apiKeys.loadFailed':
+    'Deine Schlüssel konnten nicht geladen werden. Lade die Seite neu, um es noch einmal zu versuchen.',
+  'settings.apiKeys.limitReached':
+    'Du hast {count} Schlüssel, mehr geht pro Konto nicht. Lösche einen, den du nicht mehr brauchst, um einen neuen zu erstellen.',
+  'settings.apiKeys.limitReached.one':
+    'Du hast {count} Schlüssel, mehr geht pro Konto nicht. Lösche ihn, wenn du ihn nicht mehr brauchst, um einen neuen zu erstellen.',
   'settings.apiKeys.copyFailed': 'Kopieren hat nicht geklappt. Markiere den Text und kopiere ihn von Hand.',
   'settings.apiKeys.modal.createTitle': 'API-Schlüssel erstellen',
   'settings.apiKeys.modal.name': 'Name',
@@ -596,7 +656,8 @@ const settings: TranslationStrings = {
   'settings.apiKeys.modal.creating': 'Wird erstellt...',
   'settings.apiKeys.modal.create': 'Erstellen',
   'settings.apiKeys.modal.createdTitle': 'API-Schlüssel erstellt',
-  'settings.apiKeys.modal.createdWarning': 'Kopiere den Schlüssel jetzt. Er wird nur einmal angezeigt und lässt sich später nicht mehr abrufen.',
+  'settings.apiKeys.modal.createdWarning':
+    'Kopiere den Schlüssel jetzt. Er wird nur einmal angezeigt und lässt sich später nicht mehr abrufen.',
   'settings.apiKeys.modal.done': 'Fertig',
 };
 

@@ -326,7 +326,7 @@ describe('RoadtripCorridorPanel', () => {
     wrap(<RoadtripCorridorPanel corridor={c} routes={routes([day(1, 1)])} />)
 
     // The difference between "no fuel here" and "nobody looked here".
-    expect(screen.getByText('2 stretches could not be searched — the place search did not answer.')).toBeInTheDocument()
+    expect(screen.getByText('2 stretches could not be searched. The place search did not answer.')).toBeInTheDocument()
     expect(screen.getByText('Aral')).toBeInTheDocument()
   })
 

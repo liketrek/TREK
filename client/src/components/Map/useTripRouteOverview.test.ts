@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { dayColor } from '../Roadtrip/dayColors'
 import { useTripRouteOverview } from './useTripRouteOverview'
 import { buildAssignment, buildDay, buildPlace } from '../../../tests/helpers/factories'
+import { useAddonStore } from '../../store/addonStore'
 import type { AssignmentsMap, RouteSegment } from '../../types'
 
 vi.mock('./RouteCalculator', async (importActual) => {
@@ -32,12 +33,13 @@ const ASSIGNMENTS: AssignmentsMap = {
 
 const render = (enabled = true, assignments: AssignmentsMap = ASSIGNMENTS, days = DAYS) =>
   renderHook(
-    ({ assignments: a }: { assignments: AssignmentsMap }) =>
-      useTripRouteOverview(7, days, a, [], [], 'driving', enabled),
-    { initialProps: { assignments } },
+    ({ enabled: on, assignments: a }: { enabled: boolean; assignments: AssignmentsMap }) =>
+      useTripRouteOverview(7, days, a, [], [], 'driving', on),
+    { initialProps: { enabled, assignments } },
   )
 
 beforeEach(() => {
+  useAddonStore.setState({ addons: [] })
   vi.mocked(calculateRouteWithLegs).mockReset()
   vi.mocked(calculateRouteWithLegs).mockResolvedValue({
     coordinates: [[48.86, 2.35], [48.87, 2.355], [48.88, 2.36]],
@@ -47,6 +49,38 @@ beforeEach(() => {
 })
 
 describe('useTripRouteOverview', () => {
+  it('updates an excluded Tour-only overview from current Place geometry without routing or reframing edits', async () => {
+    useAddonStore.setState({ addons: [{ id: 'tours', name: 'Tours', icon: 'Route', type: 'feature', enabled: true }] })
+    const geometry = [[48.1, 11.1], [48.2, 11.2], [48.3, 11.3]]
+    const place = buildPlace({ id: 71, lat: 48.1, lng: 11.1, route_geometry: JSON.stringify(geometry) })
+    const assignments = { '1': [buildAssignment({ day_id: 1, place, tour_place_id: 71,
+      tour_route_geometry: '[[49,12],[49.1,12.1]]', route_excluded: true })] }
+    const days = [DAYS[0]]
+    const { result, rerender } = renderHook(
+      ({ places, enabled }: { places: typeof place[]; enabled: boolean }) =>
+        useTripRouteOverview(7, days, assignments, [], [], 'walking', enabled, places),
+      { initialProps: { places: [place], enabled: true } },
+    )
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.days[0].tourLines).toEqual([geometry])
+    expect(result.current.focusPoints).toEqual(geometry)
+    expect(result.current.lines).toEqual([])
+    expect(calculateRouteWithLegs).not.toHaveBeenCalled()
+    const frame = result.current.focusPoints
+    const changed = [[48.1, 11.1], [48.25, 11.28], [48.3, 11.3]]
+    const places = [{ ...place, route_geometry: JSON.stringify(changed) }]
+    rerender({ places, enabled: true })
+    await waitFor(() => expect(result.current.days[0].tourLines).toEqual([changed]))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.focusPoints).toBe(frame)
+    expect(calculateRouteWithLegs).not.toHaveBeenCalled()
+    rerender({ places, enabled: false })
+    rerender({ places, enabled: true })
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.focusPoints).toEqual(changed)
+    expect(result.current.focusPoints).not.toBe(frame)
+  })
+
   it('FE-MAP-TRO-001: does nothing at all until it is switched on', () => {
     const { result } = render(false)
 
@@ -129,6 +163,7 @@ describe('useTripRouteOverview', () => {
     // A new object identity with the same geometry: the plan memo re-runs, the
     // routing round must not.
     rerender({
+      enabled: true,
       assignments: {
         ...ASSIGNMENTS,
         '1': ASSIGNMENTS['1'].map(a => ({ ...a, place: { ...a.place, name: 'Renamed' } })),
@@ -183,7 +218,8 @@ describe('useTripRouteOverview', () => {
   it('FE-MAP-TRO-011: keeps the frame it set on the straight lines until the round is over', async () => {
     // A fresh `focusPoints` array is what tells the map to fit the camera. One per
     // answering leg would take the map back from wherever the reader has panned to, so
-    // the frame changes exactly twice: on the straight lines, and on the finished roads.
+    // within a round the frame changes exactly once — on the straight lines — and the
+    // finished roads are framed only on an activation round (see TRO-012/013).
     const answer: RouteAnswer = {
       coordinates: [[48.86, 2.35], [48.87, 2.355], [48.88, 2.36]],
       distance: 12000, duration: 900,
@@ -206,8 +242,69 @@ describe('useTripRouteOverview', () => {
     await act(async () => { answers[1](answer) })
     await waitFor(() => expect(result.current.loading).toBe(false))
     // The finished result frames the roads themselves, which have more points than the
-    // straight lines had.
+    // straight lines had — the second of the two fits an activation makes.
     expect(result.current.focusPoints).not.toBe(frame)
     expect(result.current.focusPoints.length).toBeGreaterThan(frame.length)
+  })
+
+  it('FE-MAP-TRO-012: editing the trip does not reframe the map', async () => {
+    // Dropping a place onto a day re-plans the route. Publishing a fresh frame for
+    // that recompute yanked the camera mid-edit — the map zoomed out to the whole
+    // trip every time a place was dragged onto the plan.
+    const { result, rerender } = render()
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    const frame = result.current.focusPoints
+    const totalBefore = result.current.totalDistance
+
+    rerender({
+      enabled: true,
+      assignments: {
+        ...ASSIGNMENTS,
+        // The walking override on the middle stop makes the new leg a routing
+        // request of its own: neighbouring legs in one mode travel as a single
+        // chunk, which a third driving stop would have joined instead.
+        '2': [
+          ASSIGNMENTS['2'][0],
+          { ...ASSIGNMENTS['2'][1], leg_transport_mode: 'walking' },
+          at(45.8, 4.9, 2, 2),
+        ],
+      },
+    })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    // The recompute really happened — a third stop means a second leg on day 2.
+    expect(result.current.totalDistance).toBe(totalBefore + 12000)
+    // …and the camera frame is the one the activation published, unchanged.
+    expect(result.current.focusPoints).toBe(frame)
+  })
+
+  it('FE-MAP-TRO-013: switching the overview back on publishes a fresh frame', async () => {
+    const { result, rerender } = render()
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    const frame = result.current.focusPoints
+
+    rerender({ enabled: false, assignments: ASSIGNMENTS })
+    rerender({ enabled: true, assignments: ASSIGNMENTS })
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.focusPoints).not.toBe(frame)
+  })
+
+  it('FE-MAP-TRO-014: opening another trip with the overview on publishes a fresh frame', async () => {
+    // Same days and stops on purpose: only the trip changed, so nothing but the trip
+    // switch itself can be what asks the map to frame again.
+    const { result, rerender } = renderHook(
+      ({ tripId }: { tripId: number }) =>
+        useTripRouteOverview(tripId, DAYS, ASSIGNMENTS, [], [], 'driving', true),
+      { initialProps: { tripId: 7 } },
+    )
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    const frame = result.current.focusPoints
+
+    rerender({ tripId: 8 })
+
+    await waitFor(() => expect(result.current.focusPoints).not.toBe(frame))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.focusPoints).toEqual(frame)
   })
 })

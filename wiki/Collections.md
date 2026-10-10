@@ -1,6 +1,6 @@
 # Collections
 
-Collections is a personal, server-wide library of saved places that lives outside of any single trip. Keep multiple named lists of places you have discovered — a "Norway road trip" wishlist, "Best coffee in Lisbon", "Someday" — each place carrying an idea / want-to-go / visited status, and share a list with other users.
+Collections is a personal, server-wide library of saved places that lives outside of any single trip. Keep multiple named lists of places you have discovered (a "Norway road trip" wishlist, "Best coffee in Lisbon", "Someday"), each place carrying an idea, want-to-go or visited status, and share a list with other users.
 
 > **Admin:** enable Collections in [Admin-Addons](Admin-Addons).
 
@@ -12,7 +12,7 @@ A place you save to a trip only exists inside that trip. Collections is the oppo
 
 ## Accessing Collections
 
-When the admin has enabled the addon, a **Collections** entry appears in the main navigation (and a bottom-tab on mobile). Opening it shows your lists on the left, the active list's places in the middle, and a map on the right.
+When the admin has enabled the addon, a **Collections** entry appears in the main navigation (and a bottom-tab on mobile). Opening it shows your lists on the left, the active list's places in the middle, and a map on the right. **Expand map** above the map gives it the whole width, and **Show list** brings the places back.
 
 The dashboard also gains a **Collections widget** that surfaces your lists as compact badges. Each user can hide that widget from their own dashboard under **Dashboard widgets** on the Appearance tab (see [Appearance-Settings](Appearance-Settings)) without affecting anyone else.
 
@@ -28,9 +28,9 @@ The dashboard also gains a **Collections widget** that surfaces your lists as co
 
 Every saved place carries a status you can cycle with one tap:
 
-- **Idea** — something you noted but haven't committed to.
-- **Want to go** — on the shortlist.
-- **Visited** — been there.
+- **Idea**: something you noted but haven't committed to.
+- **Want to go**: on the shortlist.
+- **Visited**: been there.
 
 Status is a Collections concept and is not carried into a trip when you copy a place.
 
@@ -39,7 +39,9 @@ Status is a Collections concept and is not carried into a trip when you copy a p
 You usually find out you have been somewhere while looking at the trip, not while browsing the library, so the status can be set from there too:
 
 - The **Save to list** dialog on a trip place shows every list that already holds it, each with its own status pill. Tap a pill to cycle that list's status, or use **Visited everywhere** to mark all of them at once.
-- The places panel has a **mark visited** action in its selection bar (and in the bulk toolbar on phones). Select the places — *Select all* covers the whole trip — and every saved copy of them is marked visited.
+- The places panel has **Mark visited in your lists** in its selection bar (and in the bulk toolbar on phones). Select the places (**Select all** covers the whole trip) and every saved copy of them is marked visited.
+
+![The Save to list dialog: the place's name in the head band, the lists below with a tick for the ones holding it, and View at its foot](assets/SaveToList.png)
 
 Matching is by the place's provider id, its coordinates, or the link a place saved out of that trip already carries, so a copy you renamed inside a list is still found. Lists shared with you read-only are left alone.
 
@@ -49,34 +51,34 @@ Places can be assigned a **category** from the same admin-defined set used acros
 
 ## Adding places
 
-- **Search and add** — the "+" action opens a search; pick a result and set the name, category, status, a markdown description and links before saving, all in one step.
-- **Save from a trip** — the place inspector and the trip place context menu both offer **Save to collection**, which toggles that place in or out of each of your lists.
-- **Bulk-add from a trip** — in the trip place list, enter select mode, tick several places, and use the **Save to collection** action in the selection bar to copy them all into a chosen list at once. Duplicates (by name or coordinates) are skipped automatically.
-- **Import a whole trip** — the download button in the list's filter row (and the second button on an empty list) opens **Import from a trip**: pick one of your trips, then tick the places you want. Places you already saved are greyed out and cannot be picked twice, and the ones no day of that trip holds start out selected, since those are the plans a trip left behind. **Only new** hides everything already on the list, and the counter on the import button always shows what is about to be added.
+- **Search and add**: the **+** (*Add a place*) at the start of the filter row opens a search; pick a result and set the name, category, status, a markdown description and links before saving, all in one step.
+- **Save from a trip**: the place inspector and the trip place context menu both offer **Save to collection**, which toggles that place in or out of each of your lists.
+- **Bulk-add from a trip**: in the trip place list, enter select mode, tick several places, and use the **Save to collection** action in the selection bar to copy them all into a chosen list at once. Duplicates (by name or coordinates) are skipped automatically.
+- **Import a whole trip**: the download button in the list's filter row (and the second button on an empty list) opens **Import from a trip**: pick one of your trips, then tick the places you want. Places you already saved are greyed out and cannot be picked twice, and the ones no day of that trip holds start out selected, since those are the plans a trip left behind. **Only new** hides everything already on the list, and the counter on the import button always shows what is about to be added.
 
 ## Place detail
 
-Clicking a saved place opens a detail sheet showing a cover photo (fetched automatically when the place has none of its own), its category, its [labels](#custom-labels), a live status control, a markdown description, and links. Editing the place also lets you assign its labels. From there you can edit the place, **copy it into a trip**, or remove it from the list.
+Clicking a saved place opens a detail sheet showing a cover photo (fetched automatically when the place has none of its own), its category, its [labels](#custom-labels), a live status control, a markdown description, and links. Editing the place also lets you assign its labels. From there you can **Edit** the place, **Copy to trip**, open it in a map app with **Navigation** (see [Opening a place in a map app](Places-and-Search#opening-a-place-in-a-map-app)), or **Remove from list**, which asks first. On the phone, the saved place's sheet has the same **Navigation** button.
 
 To set your own cover instead of the auto-fetched one, use the camera button on the detail sheet's cover to upload an image (JPG, PNG, GIF or WebP, up to 20 MB); the remove button next to it clears the custom image and restores the automatic default.
 
 ## Filtering and bulk actions
 
-Above the places sit compact filters — by **status**, by **category**, and by [**label**](#custom-labels) — plus a **Select** toggle. In select mode you can:
+Above the places sit compact filters: by **status**, by **category**, by average star rating (**All**, or a floor from **5+** down to **1+**) and by [**label**](#custom-labels), an order (**Default**, the saved order, or by name), plus a **Select** toggle. In select mode you can:
 
 - **Select all** the currently filtered places.
-- **Assign label** — add one or more of the list's labels to every selected place at once.
-- **Copy to trip** — copies the selected places into any of your trips (carrying their name, description, category, notes, price, coordinates, photo and tags).
-- **Move** or **Duplicate** the selection into another of your lists.
+- **Assign label**: add one or more of the list's labels to every selected place at once.
+- **Copy to trip**: copies the selected places into any of your trips (carrying their name, description, category, notes, price, coordinates, photo and tags).
+- **Move to list** or **Duplicate to list**: the selection goes into another of your lists.
 - **Delete** the selection.
 
 ## Custom labels
 
-Each list can define its own **labels** — for example *Berlin*, *Hamburg* and *Ostsee* inside a "Germany 2026" list — to group its saved places beyond the shared category set. Labels belong to the one list they're created in and are shared with everyone on it.
+Each list can define its own **labels**, for example *Berlin*, *Hamburg* and *Ostsee* inside a "Germany 2026" list, to group its saved places beyond the shared category set. Labels belong to the one list they're created in and are shared with everyone on it.
 
-- **Manage** — a label manager (reachable from the filter bar) lets you create, rename, recolour and delete labels.
-- **Assign** — set a place's labels from its detail sheet, or add labels to many places at once with **Assign label** in the selection bar.
-- **Filter** — pick one or more labels in the filter bar to narrow **both the place list and the map** to places carrying any of them.
+- **Manage**: **Manage labels**, reachable from the filter bar, lets you create, rename, recolour and delete labels.
+- **Assign**: set a place's labels from its detail sheet, or add labels to many places at once with **Assign label** in the selection bar.
+- **Filter**: pick one or more labels in the filter bar to narrow **both the place list and the map** to places carrying any of them.
 
 Managing and assigning labels needs edit rights (Editor or Admin); **filtering by label is available to every member, including Viewers**. Moving a place to another list drops its labels, since labels belong to the source list.
 
@@ -90,7 +92,7 @@ When sharing, the owner assigns each member a permission role, and can change it
 
 | Role | Can do |
 |---|---|
-| **Viewer** | View the list, cast their own star rating on its places, copy its places into their own trips, and filter by label — no other changes to the list. |
+| **Viewer** | View the list, cast their own star rating on its places, copy its places into their own trips, and filter by label; no other changes to the list. |
 | **Editor** *(default)* | Add new places and edit existing ones, and manage + assign the list's labels. |
 | **Admin** | Everything an editor can, plus delete places. |
 

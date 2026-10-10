@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
-import { McpTransportController } from './mcp-transport.controller';
-import { McpTransportService } from './mcp-transport.service';
-import { AuthModule } from '../auth/auth.module';
-import { TokensModule } from '../tokens/tokens.module';
-import { OauthModule } from '../oauth/oauth.module';
 import { AddonsModule } from '../addons/addons.module';
 import { AuditModule } from '../audit/audit.module';
+import { AuthModule } from '../auth/auth.module';
+import { OauthModule } from '../oauth/oauth.module';
+import { TokensModule } from '../tokens/tokens.module';
+import { McpTransportController } from './mcp-transport.controller';
+import { McpTransportService } from './mcp-transport.service';
+import { Module } from '@nestjs/common';
 
 /**
  * The /mcp transport endpoint — the OAuth 2.1-authenticated MCP server the

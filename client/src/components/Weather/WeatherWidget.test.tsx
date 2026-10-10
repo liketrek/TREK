@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '../../../tests/helpers/render'
+import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render'
 import { resetAllStores } from '../../../tests/helpers/store'
 import { useSettingsStore } from '../../store/settingsStore'
 import WeatherWidget from './WeatherWidget'
@@ -248,5 +248,30 @@ describe('WeatherWidget', () => {
       expect(screen.getByText('24°C')).toBeInTheDocument()
     })
     expect(weatherApi.get).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-COMP-WEATHERWIDGET-018: the stacked badge shows the icon over the temperature, without a tooltip when it has no place', async () => {
+    vi.mocked(weatherApi.get).mockResolvedValue(buildWeather({ temp: 21 }))
+    useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, temperature_unit: 'celsius' } })
+    const { container } = render(<WeatherWidget lat={48.86} lng={2.35} date="2025-06-01" stacked />)
+    await waitFor(() => {
+      expect(screen.getByText('21°')).toBeInTheDocument()
+    })
+    expect(container.querySelector('svg')).not.toBeNull()
+    fireEvent.mouseEnter(screen.getByText('21°').parentElement!)
+    await new Promise(r => setTimeout(r, 300))
+    expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+
+  it('FE-COMP-WEATHERWIDGET-019: without its icon the stacked badge names the sky and the place in its tooltip', async () => {
+    vi.mocked(weatherApi.get).mockResolvedValue(buildWeather({ temp: 18, type: 'climate' }))
+    useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, temperature_unit: 'celsius' } })
+    const { container } = render(<WeatherWidget lat={48.86} lng={2.35} date="2025-06-01" stacked hideIcon locationName="Rome" />)
+    await waitFor(() => {
+      expect(screen.getByText('Ø18°')).toBeInTheDocument()
+    })
+    expect(container.querySelector('svg')).toBeNull()
+    fireEvent.mouseEnter(screen.getByText('Ø18°').parentElement!)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('clear sky, Rome')
   })
 })

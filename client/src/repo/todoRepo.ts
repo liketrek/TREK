@@ -1,5 +1,5 @@
 import { todoApi } from '../api/client'
-import { offlineDb, upsertTodoItems } from '../db/offlineDb'
+import { offlineDb, replaceTripRows } from '../db/offlineDb'
 import { onlineThenCache } from './withOfflineFallback'
 import type { TodoItem } from '../types'
 
@@ -8,7 +8,7 @@ export const todoRepo = {
     return onlineThenCache(
       async () => {
         const result = await todoApi.list(tripId)
-        upsertTodoItems(result.items)
+        void replaceTripRows('todoItems', Number(tripId), result.items)
         return result
       },
       async () => ({

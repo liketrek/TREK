@@ -2,7 +2,8 @@ import { useRef, useState } from 'react'
 import { Check, Link2, Loader2, MapPin, Ticket, TrainFront } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
-import { filesApi } from '../../../../api/client'
+import { PHONE_FILE_LINK_RULES, toggleFileLink, type FileLinkField } from '../../../../components/Files/fileActions'
+import { linkedFileIds } from '../../../../components/Files/fileListRules'
 import type { TripFile } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 import { Eyebrow, TileHeader } from '../sheets/MTripSheetUi'
@@ -14,18 +15,12 @@ interface MFileLinkSheetProps {
   onClose: () => void
 }
 
-interface FileLinkRecord {
-  id: number
-  place_id?: number | string | null
-  reservation_id?: number | string | null
-}
-
 /**
  * Link picker for a file (spec 03 §5.3 "Verknüpfen", §7.3 m:n): toggles the
  * file's place_id/reservation_id (first link) or an addLink/removeLink file_link
- * record (further links) — the exact two-tier pattern FileManagerAssignModal.tsx
- * uses on desktop, flattened to a single list per section instead of grouping
- * places by day (v1 simplification, see report).
+ * record (further links) through toggleFileLink, the two-tier rule
+ * FileManagerAssignModal.tsx runs on desktop, flattened to a single list per
+ * section instead of grouping places by day (v1 simplification, see report).
  */
 export default function MFileLinkSheet({ planner, file, onClose }: MFileLinkSheetProps) {
   const { t, tripId, places, reservations, TRANSPORT_TYPES, tripActions, toast } = planner
@@ -39,34 +34,17 @@ export default function MFileLinkSheet({ planner, file, onClose }: MFileLinkShee
 
   if (!shown) return <MSheet open={false} onClose={onClose} variant="card" material="glass" />
 
-  const placeIds = new Set<number>()
-  if (shown.place_id != null) placeIds.add(shown.place_id)
-  for (const id of shown.linked_place_ids || []) if (id != null) placeIds.add(id)
-
-  const resIds = new Set<number>()
-  if (shown.reservation_id != null) resIds.add(shown.reservation_id)
-  for (const id of shown.linked_reservation_ids || []) if (id != null) resIds.add(id)
+  const placeIds = new Set(linkedFileIds(shown, 'place_id'))
+  const resIds = new Set(linkedFileIds(shown, 'reservation_id'))
 
   const refresh = () => tripActions.loadFiles(tripId)
 
-  const togglePlace = async (placeId: number) => {
+  const toggle = async (field: FileLinkField, targetId: number) => {
     if (busyKey) return
-    const key = `p${placeId}`
+    const key = `${field === 'place_id' ? 'p' : 'r'}${targetId}`
     setBusyKey(key)
     try {
-      if (placeIds.has(placeId)) {
-        if (shown.place_id === placeId) {
-          await filesApi.update(tripId, shown.id, { place_id: null })
-        } else {
-          const linksRes = (await filesApi.getLinks(tripId, shown.id)) as { links: FileLinkRecord[] }
-          const link = (linksRes.links || []).find(l => Number(l.place_id) === placeId)
-          if (link) await filesApi.removeLink(tripId, shown.id, link.id)
-        }
-      } else if (shown.place_id == null) {
-        await filesApi.update(tripId, shown.id, { place_id: placeId })
-      } else {
-        await filesApi.addLink(tripId, shown.id, { place_id: placeId })
-      }
+      await toggleFileLink(tripId, shown, field, targetId, PHONE_FILE_LINK_RULES)
       refresh()
     } catch {
       toast.error(t('files.toast.assignError'))
@@ -75,31 +53,8 @@ export default function MFileLinkSheet({ planner, file, onClose }: MFileLinkShee
     }
   }
 
-  const toggleReservation = async (resId: number) => {
-    if (busyKey) return
-    const key = `r${resId}`
-    setBusyKey(key)
-    try {
-      if (resIds.has(resId)) {
-        if (shown.reservation_id === resId) {
-          await filesApi.update(tripId, shown.id, { reservation_id: null })
-        } else {
-          const linksRes = (await filesApi.getLinks(tripId, shown.id)) as { links: FileLinkRecord[] }
-          const link = (linksRes.links || []).find(l => Number(l.reservation_id) === resId)
-          if (link) await filesApi.removeLink(tripId, shown.id, link.id)
-        }
-      } else if (shown.reservation_id == null) {
-        await filesApi.update(tripId, shown.id, { reservation_id: resId })
-      } else {
-        await filesApi.addLink(tripId, shown.id, { reservation_id: resId })
-      }
-      refresh()
-    } catch {
-      toast.error(t('files.toast.assignError'))
-    } finally {
-      setBusyKey(null)
-    }
-  }
+  const togglePlace = (placeId: number) => toggle('place_id', placeId)
+  const toggleReservation = (resId: number) => toggle('reservation_id', resId)
 
   const bookingReservations = reservations.filter(r => !TRANSPORT_TYPES.has(r.type))
   const transportReservations = reservations.filter(r => TRANSPORT_TYPES.has(r.type))
@@ -171,7 +126,7 @@ function LinkRow({ icon: Icon, label, active, busy, onClick }: {
       type="button"
       onClick={onClick}
       disabled={busy}
-      className={`flex w-full items-center gap-[10px] rounded-[13px] border px-3 py-[10px] text-left disabled:opacity-60 ${
+      className={`flex w-full items-center gap-[10px] rounded-[13px] border px-3 py-[10px] text-start disabled:opacity-60 ${
         active ? 'border-[color:var(--m-act)] bg-[color:var(--m-ic)]' : 'border-[color:var(--m-rowbr)] bg-m-card'
       }`}
     >

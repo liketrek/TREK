@@ -1,7 +1,22 @@
 import { readEnv } from '../../../app-config';
-import { DatabaseService } from '../../database/database.service';
-import { discoverPlugins } from '../install/discovery';
-import { bypassedRange, hostSatisfies, hostVersion, normalizedHost, trekRangeBypassed, warnRangeBypass } from '../install/host-compat';
+import { PluginActions } from '../../../db/entities/PluginActions.entity';
+import { PluginErrorLog } from '../../../db/entities/PluginErrorLog.entity';
+import { PluginSettingsFields } from '../../../db/entities/PluginSettingsFields.entity';
+import { Plugins } from '../../../db/entities/Plugins.entity';
+import type { PluginActionsRepository } from '../../../db/repositories/PluginActions.repository';
+import type { PluginErrorLogRepository } from '../../../db/repositories/PluginErrorLog.repository';
+import type { PluginSettingsFieldsRepository } from '../../../db/repositories/PluginSettingsFields.repository';
+import type { PluginsRepository } from '../../../db/repositories/Plugins.repository';
+import { UnitOfWork } from '../../database/unit-of-work';
+import { discoverPlugins, type DiscoveryRepos } from '../install/discovery';
+import {
+  bypassedRange,
+  hostSatisfies,
+  hostVersion,
+  normalizedHost,
+  trekRangeBypassed,
+  warnRangeBypass,
+} from '../install/host-compat';
 import type { TrekRangeBypass } from '../install/host-compat';
 import type { PluginDependency } from '../install/manifest';
 import { parseJsonText, parseManifest } from '../install/manifest';
@@ -9,15 +24,18 @@ import { scanForNativeBinaries } from '../install/native-scan';
 import { extractArchive } from '../install/safe-extract';
 import { safeDownload, sha256Matches } from '../install/safe-fetch';
 import { verifyAuthorSignature, SignatureError } from '../install/verify-signature';
+import { MCP_TOOLS_MAX, TOOL_DESCRIPTION_MAX, TOOL_TITLE_MAX } from '../mcp-tool-schema';
 import { pluginCodeDir, pluginsCodeRoot, pluginsDataRoot } from '../paths';
+import { poiCategoriesFrom } from '../poi-categories';
 import { clearUpdateBlock, isSignatureCode, setUpdateBlock, RETRUSTABLE_CODE } from '../signature-status';
-import { Injectable } from '@nestjs/common';
+import { sanitiseAssistantText } from '../text-sanitize';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable, Optional } from '@nestjs/common';
+import type { PluginPoiCategory } from '@trek/shared';
 
 import fs from 'node:fs';
 import path from 'node:path';
 import semver from 'semver';
-import { MCP_TOOLS_MAX, TOOL_DESCRIPTION_MAX, TOOL_TITLE_MAX } from '../mcp-tool-schema';
-import { sanitiseAssistantText } from '../text-sanitize';
 
 /**
  * TREK-side of the plugin registry (#plugins, M5). Fetches the single aggregated
@@ -135,6 +153,12 @@ export interface ManifestPreview {
      * approving the grant rather than meeting it later inside a chat.
      */
     mcpTools?: Array<{ name: string; title?: string; description: string }>;
+    /**
+     * The chips this plugin will add to every user's explore pill, and whose searches
+     * it will then be sent the viewport for (#1781). Shown before the install for the
+     * same reason as the tools above.
+     */
+    poiCategories?: PluginPoiCategory[];
   };
 }
 
@@ -165,10 +189,32 @@ export class RegistryError extends Error {
 
 @Injectable()
 export class PluginRegistryService {
-  constructor(private readonly dbs: DatabaseService) {}
+  constructor(
+    @InjectRepository(Plugins) private readonly plugins: PluginsRepository,
+    // The remaining three are needed only to compose `DiscoveryRepos` for the
+    // `discoverPlugins` calls below (install()'s post-download register, commitUpload's
+    // sideload register) — this service issues no statement of its own against any of
+    // these three tables.
+    @InjectRepository(PluginActions) private readonly pluginActions: PluginActionsRepository,
+    @InjectRepository(PluginSettingsFields) private readonly pluginSettingsFields: PluginSettingsFieldsRepository,
+    @InjectRepository(PluginErrorLog) private readonly pluginErrorLog: PluginErrorLogRepository,
+    // Plan 4 Task 8a: DiscoveryRepos now needs a `UnitOfWork` so `discoverPlugins`'s
+    // own upsert can wrap its delete-then-reinsert pairs atomically (DI5-DI8).
+    // `@Optional()` matches `PluginRuntimeService`'s own precedent for the same
+    // reason: a hand-built test instance that never exercises discovery need not
+    // construct one — `discoveryRepos` below throws if one is actually needed.
+    @Optional() private readonly uow?: UnitOfWork,
+  ) {}
 
-  private get db() {
-    return this.dbs.connection;
+  private get discoveryRepos(): DiscoveryRepos {
+    if (!this.uow) throw new Error('UnitOfWork not provided — tests that exercise plugin discovery must pass one');
+    return {
+      plugins: this.plugins,
+      actions: this.pluginActions,
+      settingsFields: this.pluginSettingsFields,
+      errorLog: this.pluginErrorLog,
+      uow: this.uow,
+    };
   }
 
   /**
@@ -187,7 +233,7 @@ export class PluginRegistryService {
         headers['Cache-Control'] = 'no-cache';
         headers.Pragma = 'no-cache';
       }
-      const resp = await fetch(url, { headers });
+      const resp = await fetch(url, { headers, signal: AbortSignal.timeout(15_000) });
       if (!resp.ok) throw new Error(`registry ${resp.status}`);
       const data = (await resp.json()) as Registry;
       if (!data || !Array.isArray(data.plugins)) throw new Error('malformed registry');
@@ -316,7 +362,8 @@ export class PluginRegistryService {
       publishedAt: latest?.publishedAt ?? null,
       requiredAddons: latest?.requiredAddons ?? [],
       pluginDependencies: latest?.pluginDependencies ?? [],
-      screenshotUrl: entry.screenshotUrl ?? (latest ? rawFileUrl(entry.repo, latest.commitSha, 'docs/screenshot.png') : null),
+      screenshotUrl:
+        entry.screenshotUrl ?? (latest ? rawFileUrl(entry.repo, latest.commitSha, 'docs/screenshot.png') : null),
       signed: !!entry.authorPublicKey && !!latest?.signature,
       authorPublicKey: entry.authorPublicKey ?? null,
       // The version picker's data: every published version with its OWN server-computed
@@ -446,9 +493,10 @@ export class PluginRegistryService {
     // A refusal is REMEMBERED (the plugin keeps running on its old code, so the
     // reason must outlive the toast) and re-thrown untouched.
     try {
-      this.verifySignatureAndTofu(id, bytes, entry, ver, opts?.retrustKey);
+      await this.verifySignatureAndTofu(id, bytes, entry, ver, opts?.retrustKey);
     } catch (e) {
-      if (e instanceof RegistryError && isSignatureCode(e.code)) setUpdateBlock(this.dbs.connection, id, e.code, e.message, ver.version);
+      if (e instanceof RegistryError && isSignatureCode(e.code))
+        await setUpdateBlock(this.plugins, id, e.code, e.message, ver.version);
       throw e;
     }
 
@@ -479,25 +527,23 @@ export class PluginRegistryService {
       fs.rmSync(dest, { recursive: true, force: true });
       fs.renameSync(pluginRoot, dest);
 
-      // 7. register INACTIVE (record provenance)
-      discoverPlugins(this.db);
-      this.db.prepare('UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ? WHERE id = ?').run(
-        entry.repo,
-        ver.commitSha,
-        ver.sha256,
-        entry.reviewedAt ?? null,
-        id,
-      );
-      // Pin the author key on first successful install of a signed plugin (TOFU) —
-      // and, after a re-trust, re-pin to the new key the admin blessed. Only ever set
-      // to a key the artifact just verified under; NEVER cleared to NULL, because a
-      // NULL pin re-opens the "was never signed" path that accepts an unsigned update.
-      if (entry.authorPublicKey) {
-        this.db.prepare('UPDATE plugins SET author_pubkey = ? WHERE id = ?').run(entry.authorPublicKey, id);
-      }
-      // The plugin is now on new code that passed every check — whatever refusal was
-      // recorded before no longer describes reality.
-      clearUpdateBlock(this.dbs.connection, id);
+      // 7. register INACTIVE (record provenance), the row and its provenance in one
+      // write, so a failure never leaves a registered plugin without its pinned key.
+      const repos = this.discoveryRepos;
+      await repos.uow.transactional(async () => {
+        await discoverPlugins(repos);
+        await this.plugins.setInstallProvenance(id, entry.repo, ver.commitSha, ver.sha256, entry.reviewedAt ?? null);
+        // Pin the author key on first successful install of a signed plugin (TOFU) —
+        // and, after a re-trust, re-pin to the new key the admin blessed. Only ever set
+        // to a key the artifact just verified under; NEVER cleared to NULL, because a
+        // NULL pin re-opens the "was never signed" path that accepts an unsigned update.
+        if (entry.authorPublicKey) {
+          await this.plugins.setAuthorPubkey(id, entry.authorPublicKey);
+        }
+        // The plugin is now on new code that passed every check — whatever refusal was
+        // recorded before no longer describes reality.
+        await clearUpdateBlock(this.plugins, id);
+      });
       return { id, version: ver.version, trekRangeBypassed };
     } finally {
       fs.rmSync(staging, { recursive: true, force: true });
@@ -516,9 +562,7 @@ export class PluginRegistryService {
     constraint?: string,
   ): Promise<{ installed: string[]; requiredAddons: string[]; trekRangeBypassed: TrekRangeBypass | null }> {
     let trekRangeBypassed: TrekRangeBypass | null = null;
-    const installedNow = new Set(
-      (this.db.prepare('SELECT id FROM plugins').all() as Array<{ id: string }>).map((r) => r.id),
-    );
+    const installedNow = new Set(await this.plugins.listAllIds());
     const done = new Set<string>();
     const installed: string[] = [];
     const requiredAddons = new Set<string>();
@@ -566,7 +610,7 @@ export class PluginRegistryService {
         hold = false;
       }
     }
-    this.db.prepare('UPDATE plugins SET update_hold = ? WHERE id = ?').run(hold ? 1 : 0, id);
+    await this.plugins.setUpdateHold(id, hold);
     return hold;
   }
 
@@ -578,7 +622,13 @@ export class PluginRegistryService {
    * binaries) — only the registry sha256/signature checks are absent, because a
    * sideload has no registry entry. Throws (and self-cleans staging) on failure.
    */
-  stageUpload(bytes: Buffer): { id: string; version: string; root: string; stagingDir: string; trekRangeBypassed: TrekRangeBypass | null } {
+  stageUpload(bytes: Buffer): {
+    id: string;
+    version: string;
+    root: string;
+    stagingDir: string;
+    trekRangeBypassed: TrekRangeBypass | null;
+  } {
     if (bytes.length > MAX_UPLOAD_BYTES) throw new RegistryError('archive exceeds the 50MB limit');
     const stagingDir = path.join(pluginsDataRoot(), '.staging', `upload-${Date.now()}`);
     try {
@@ -603,13 +653,13 @@ export class PluginRegistryService {
    * the UI flags it and offers no auto-update. The caller MUST have stopped any
    * running child of this id first (the code dir is replaced).
    */
-  commitUpload(staged: { id: string; root: string; stagingDir: string }): void {
+  async commitUpload(staged: { id: string; root: string; stagingDir: string }): Promise<void> {
     try {
       const dest = pluginCodeDir(staged.id);
       fs.mkdirSync(pluginsCodeRoot(), { recursive: true });
       fs.rmSync(dest, { recursive: true, force: true });
       fs.renameSync(staged.root, dest);
-      discoverPlugins(this.db);
+      await discoverPlugins(this.discoveryRepos);
       // Provenance for a sideload, plus a hard INACTIVE floor: discoverPlugins keeps
       // an existing row's status, so replacing a plugin that was active must not
       // leave the new code marked active — the admin re-activates (and re-consents
@@ -619,12 +669,7 @@ export class PluginRegistryService {
       // plugin has just left the registry trust model entirely — the code is now whatever
       // the admin uploaded. Leaving the block would have the row insist an update was
       // blocked over a signing key that no longer applies to the code that is running.
-      this.db.prepare(
-        `UPDATE plugins SET source_repo = ?, source_commit = ?, sha256 = ?, reviewed_at = ?, author_pubkey = NULL,
-                            update_block_code = NULL, update_block_detail = NULL, update_block_version = NULL,
-                            status = 'inactive', enabled = 0
-         WHERE id = ?`,
-      ).run('local:upload', null, null, null, staged.id);
+      await this.plugins.clearForSideload(staged.id, 'local:upload');
     } finally {
       fs.rmSync(staged.stagingDir, { recursive: true, force: true });
     }
@@ -650,16 +695,14 @@ export class PluginRegistryService {
    * key, over the artifact bytes. A key an admin blesses must still sign the code it
    * ships — a re-trust moves the pin from one VERIFIED key to another verified key.
    */
-  private verifySignatureAndTofu(
+  private async verifySignatureAndTofu(
     id: string,
     bytes: Buffer,
     entry: RegistryEntry,
     ver: RegistryVersion,
     retrustKey?: string,
-  ): void {
-    const pinned =
-      (this.db.prepare('SELECT author_pubkey FROM plugins WHERE id = ?').get(id) as { author_pubkey?: string } | undefined)
-        ?.author_pubkey ?? null;
+  ): Promise<void> {
+    const pinned = await this.plugins.findAuthorPubkey(id);
 
     if (!entry.authorPublicKey && !ver.signature) {
       if (pinned) {
@@ -710,9 +753,7 @@ export class PluginRegistryService {
    * rendered, the admin would be blessing a key they never saw.
    */
   async assertRetrustable(id: string, publicKey: string): Promise<RegistryEntry> {
-    const row = this.db.prepare('SELECT source_repo, author_pubkey FROM plugins WHERE id = ?').get(id) as
-      | { source_repo?: string | null; author_pubkey?: string | null }
-      | undefined;
+    const row = await this.plugins.findSourceRepoAndAuthorPubkey(id);
     if (!row) throw new RegistryError(`plugin ${id} not found`, 'NOT_FOUND');
     if (!row.source_repo || row.source_repo === 'local:upload' || row.source_repo === 'local:link') {
       throw new RegistryError('only a registry-installed plugin can be re-trusted', 'RETRUST_NOT_APPLICABLE');
@@ -878,6 +919,10 @@ export function previewManifest(raw: unknown): ManifestPreview {
       .map((t) => ({ name: t.name, ...(t.title ? { title: t.title } : {}), description: t.description }));
     if (tools.length) capabilities.mcpTools = tools;
   }
+  // Through the reader the feed uses, so the preview never shows a category the
+  // installed plugin would not get.
+  const poiCategories = poiCategoriesFrom(rawCaps.poiCategories);
+  if (poiCategories.length) capabilities.poiCategories = poiCategories;
 
   return {
     permissions: strings(m.permissions),

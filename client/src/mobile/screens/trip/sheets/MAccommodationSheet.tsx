@@ -5,12 +5,13 @@ import MIconBtn from '../../../components/MIconBtn'
 import CustomSelect from '../../../../components/shared/CustomSelect'
 import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
 import { BookingCodeInput } from '../../../../components/shared/BookingCode'
-import { accommodationsApi } from '../../../../api/client'
-import { applyStayStops } from '../../../../store/stayStops'
+import { writeStay } from '../../../../components/Planner/useDayDetail'
+import {
+  stayCheckoutDay, stayDayOptions, stayFormFrom, stayPlaceChoices, stayRangeFromEnd, stayRangeFromStart, stayRequestBody,
+} from '../../../../components/Planner/stayFormModel'
 import { useTranslation } from '../../../../i18n'
 import { Eyebrow } from './MTripSheetUi'
 import type { MTripSheetsProps } from '../MTripShell'
-import { stayPlaces } from '../../../../utils/stayPlaces'
 
 interface AccommodationPayload {
   dayId?: number
@@ -61,16 +62,9 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
     if (!open) return
     if (editing) {
       setRange({ start: editing.start_day_id, end: editing.end_day_id })
-      setForm({
-        check_in: editing.check_in || '',
-        check_in_end: editing.check_in_end || '',
-        check_out: editing.check_out || '',
-        confirmation: editing.confirmation || '',
-        place_id: editing.place_id ?? '',
-      })
+      setForm(stayFormFrom(editing, ''))
     } else {
-      const idx = days.findIndex(d => d.id === payload.dayId)
-      setRange({ start: payload.dayId ?? 0, end: (idx >= 0 && days[idx + 1]?.id) || payload.dayId || 0 })
+      setRange({ start: payload.dayId ?? 0, end: stayCheckoutDay(days, payload.dayId) || payload.dayId || 0 })
       setForm(EMPTY_FORM)
     }
     setCategoryFilter(null)
@@ -90,34 +84,17 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
   const lastId = days[days.length - 1]?.id
   const allDays = days.length > 0 && range.start === firstId && range.end === lastId
 
-  const dayOptions = days.map((d, i) => ({
-    value: d.id,
-    label: d.title || t('planner.dayN', { n: i + 1 }),
-    badge: d.date
-      ? new Date(d.date + 'T00:00:00Z').toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' })
-      : (d.title ? t('planner.dayN', { n: i + 1 }) : undefined),
-  }))
+  const dayOptions = stayDayOptions(days, t, locale)
 
-  const offeredPlaces = stayPlaces(places, form.place_id)
-  const filteredPlaces = categoryFilter != null ? offeredPlaces.filter(p => p.category_id === categoryFilter) : offeredPlaces
+  const filteredPlaces = stayPlaceChoices(places, form.place_id, categoryFilter)
 
   const save = async () => {
     setSaving(true)
-    const body = {
-      place_id: form.place_id,
-      start_day_id: range.start,
-      end_day_id: range.end,
-      check_in: form.check_in || null,
-      check_in_end: form.check_in_end || null,
-      check_out: form.check_out || null,
-      confirmation: form.confirmation || null,
-    }
+    const body = stayRequestBody(form, range)
     // Only the write itself decides whether the save failed — a refresh that
     // trips afterwards must not be reported as a failed save.
     try {
-      applyStayStops(editing
-        ? await accommodationsApi.update(tripId, editing.id, body)
-        : await accommodationsApi.create(tripId, body))
+      await writeStay(tripId, editing ? editing.id : null, body)
     } catch {
       planner.toast.error(t('common.error'))
       return
@@ -158,10 +135,7 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
           <div className="min-w-0 flex-1">
             <CustomSelect
               value={range.start}
-              onChange={v => setRange(prev => {
-                const id = Number(v)
-                return { start: id, end: days.findIndex(d => d.id === id) > days.findIndex(d => d.id === prev.end) ? id : prev.end }
-              })}
+              onChange={v => setRange(prev => stayRangeFromStart(days, prev, Number(v)))}
               options={dayOptions}
               size="sm"
             />
@@ -170,10 +144,7 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
           <div className="min-w-0 flex-1">
             <CustomSelect
               value={range.end}
-              onChange={v => setRange(prev => {
-                const id = Number(v)
-                return { start: days.findIndex(d => d.id === id) < days.findIndex(d => d.id === prev.start) ? id : prev.start, end: id }
-              })}
+              onChange={v => setRange(prev => stayRangeFromEnd(days, prev, Number(v)))}
               options={dayOptions}
               size="sm"
             />
@@ -245,7 +216,7 @@ export default function MAccommodationSheet({ planner, shell }: MTripSheetsProps
                   key={p.id}
                   type="button"
                   onClick={() => setForm(f => ({ ...f, place_id: p.id }))}
-                  className={`flex items-center gap-[10px] rounded-[14px] border px-3 py-[9px] text-left ${
+                  className={`flex items-center gap-[10px] rounded-[14px] border px-3 py-[9px] text-start ${
                     sel ? 'border-[color:var(--m-act)] bg-[color:var(--m-inner)]' : 'border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]'
                   }`}
                 >

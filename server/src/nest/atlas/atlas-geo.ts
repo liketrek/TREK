@@ -91,7 +91,10 @@ let admin1Building: Promise<Map<string, string>> | null = null;
 
 function getAdmin1Store(): Promise<Map<string, string>> {
   if (admin1Store) return Promise.resolve(admin1Store);
-  if (!admin1Building) {
+  // `=== null`, not `!admin1Building`: a Promise in a boolean condition is what
+  // no-misused-promises/checksConditionals exists to catch, and the distinction
+  // matters once every DB-touching method returns one.
+  if (admin1Building === null) {
     admin1Building = buildAdmin1Store().then((s) => {
       admin1Store = s;
       admin1Building = null;

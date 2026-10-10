@@ -22,7 +22,7 @@ export function useFiles() {
   const [isLoading, setIsLoading] = useState<boolean>(true)
 
   useEffect(() => {
-    loadData()
+    void loadData()
   }, [tripId])
 
   const loadData = async (): Promise<void> => {

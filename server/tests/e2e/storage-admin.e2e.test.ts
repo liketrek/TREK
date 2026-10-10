@@ -1,7 +1,7 @@
 /**
  * Storage admin e2e — exercises the migrated /api/admin/storage surface
  * (StorageAdminController) through the real JwtAuthGuard + AdminGuard +
- * ManagedGuard against a temp SQLite db. DI-native: no service mock, so the
+ * ManagedGuard against a migrated temp SQLite db. DI-native: no service mock, so the
  * registry's real boot/seed/reload pipeline and StorageAdminService run for
  * real. Covers auth (401), the admin gate (403), managed-mode refusal (403,
  * the first e2e to assert it — ManagedGuard is otherwise only wired in
@@ -9,56 +9,51 @@
  * semantic registry refusal and a Zod pipe rejection, and secret masking/
  * encryption/redaction (including without an explicit ENCRYPTION_KEY).
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import request from 'supertest';
-import cookieParser from 'cookie-parser';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import type { Server } from 'http';
-import { APP_GUARD } from '@nestjs/core';
-import { DatabaseModule } from '../../src/nest/database/database.module';
-import { StorageModule } from '../../src/nest/storage/storage.module';
+import { db } from '../../src/db/database';
+import { AppSettings } from '../../src/db/entities/AppSettings.entity';
+import { AuditLog } from '../../src/db/entities/AuditLog.entity';
 import { ManagedGuard } from '../../src/nest/common/managed.guard';
-import { Test } from '@nestjs/testing';
-import { seedUser, sessionCookie } from './harness';
-
-const { db } = vi.hoisted(() => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require('better-sqlite3');
-  const tmp = new Database(':memory:');
-  tmp.exec('PRAGMA journal_mode = WAL');
-  // `users` carries the columns listUsers/createUser/updateUser select, plus the
-  // is_guest flag the #1362 COALESCE guards read (admin.e2e.test.ts DDL).
-  tmp.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE, role TEXT NOT NULL DEFAULT 'user', password_version INTEGER NOT NULL DEFAULT 0,
-    password_hash TEXT, avatar TEXT, is_guest INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    last_login DATETIME);`);
-  tmp.exec('CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT);');
-  // Slim audit_log mirror (no FKs), same shape as admin.e2e.test.ts.
-  tmp.exec(`CREATE TABLE audit_log (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    user_id INTEGER, action TEXT NOT NULL, resource TEXT, details TEXT, ip TEXT);`);
-  return { db: tmp };
-});
-
-vi.mock('../../src/db/database', () => ({ db, closeDb: () => {}, reinitialize: () => {} }));
-// The audit domain is DI-native: writeAudit runs for real against the temp db's
-// audit_log table; only the file logger is silenced.
-vi.mock('../../src/nest/audit/audit-log.logger', () => ({ LOG_LEVEL: 'error', logInfo: vi.fn(), logDebug: vi.fn(), logError: vi.fn(), logWarn: vi.fn() }));
-// apiKeyCrypto imports ENCRYPTION_KEY from here for the cipher; the raw
-// process.env var is managed separately in beforeAll/afterAll for the
-// no-explicit-key case (STORE2E-007). JWT_SECRET must also be
-// supplied — jwt-verify.ts (JwtAuthGuard) and the harness's signSession both
-// import it from this same module, so mocking the module wholesale requires
-// keeping both consistent.
-vi.mock('../../src/config', () => ({ ENCRYPTION_KEY: 'e2e-storage-key', JWT_SECRET: 'e2e-storage-jwt-secret' }));
+// apiKeyCrypto reads ENCRYPTION_KEY for the cipher from src/config, which the
+// global test setup fixes (tests/helpers/test-config.ts); the raw process.env
+// var is managed separately in beforeAll/afterAll for the no-explicit-key case
+// (STORE2E-007).
 
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
+import { StorageModule } from '../../src/nest/storage/storage.module';
+import { countRows, deleteRows, findRow } from '../helpers/factories/rows';
+import { makeAdmin, makeUser } from '../helpers/factories/users';
+import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { sessionCookie } from './harness';
+import { APP_GUARD } from '@nestjs/core';
+import { Test } from '@nestjs/testing';
 
-describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLite)', () => {
+import cookieParser from 'cookie-parser';
+import type { Server } from 'http';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+
+vi.mock('../../src/db/database', async () => {
+  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
+  return buildDbMock(createSnapshotTestDb());
+});
+// The audit domain is DI-native: writeAudit runs for real against the temp db's
+// audit_log table; only the file logger is silenced.
+vi.mock('../../src/nest/audit/audit-log.logger', () => ({
+  LOG_LEVEL: 'error',
+  logInfo: vi.fn(),
+  logDebug: vi.fn(),
+  logError: vi.fn(),
+  logWarn: vi.fn(),
+}));
+
+let orm: TestOrm;
+
+describe('Storage admin e2e (real auth + admin guard + managed guard + migrated temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
   let adminCookie: string;
@@ -66,7 +61,7 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
 
   async function build() {
     const moduleRef = await Test.createTestingModule({
-      imports: [DatabaseModule, StorageModule],
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), StorageModule],
       providers: [{ provide: APP_GUARD, useClass: ManagedGuard }],
     }).compile();
     const nest = moduleRef.createNestApplication();
@@ -79,8 +74,10 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
 
   beforeAll(async () => {
     process.env.ENCRYPTION_KEY = 'e2e-storage-key';
-    seedUser(db as never, { id: 1 });
-    seedUser(db as never, { id: 2, role: 'admin', email: 'e2e-storage-admin@example.test' });
+    orm = await createTestOrm(db);
+    // Pinned ids: sessionCookie(1) and (2) sign for exactly these users.
+    await makeUser(orm, { id: 1, email: 'e2e@example.test' });
+    await makeAdmin(orm, { id: 2, email: 'e2e-storage-admin@example.test' });
     userCookie = sessionCookie(1);
     adminCookie = sessionCookie(2);
     app = await build();
@@ -93,13 +90,14 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
   // STORE2E-004 that expects to see fresh defaults must call GET (which
   // renders the registry's live snapshot) rather than assume the deleted rows
   // reset it — the registry only re-reads app_settings on `reload()`/init.
-  beforeEach(() => {
-    db.exec("DELETE FROM app_settings WHERE key LIKE 'storage.%'");
-    db.exec('DELETE FROM audit_log');
+  beforeEach(async () => {
+    await deleteRows(orm, AppSettings, { key: { $like: 'storage.%' } });
+    await deleteRows(orm, AuditLog);
   });
 
   afterAll(async () => {
     await app.close();
+    await orm.close();
     delete process.env.ENCRYPTION_KEY;
   });
 
@@ -110,7 +108,11 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     // per handler where a future handler could forget them.
     expect((await request(server).put('/api/admin/storage').send({ backends: [], categories: {} })).status).toBe(401);
     expect(
-      (await request(server).post('/api/admin/storage/test').send({ backend: { name: 'x', type: 'local', options: { root: '/tmp' } } })).status,
+      (
+        await request(server)
+          .post('/api/admin/storage/test')
+          .send({ backend: { name: 'x', type: 'local', options: { root: '/tmp' } } })
+      ).status,
     ).toBe(401);
   });
 
@@ -124,7 +126,12 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     const res = await request(server).get('/api/admin/storage').set('Cookie', adminCookie);
     expect(res.status).toBe(200);
     const names = (res.body.backends as Array<{ name: string; source: string }>).map((b) => [b.name, b.source]);
-    expect(names).toEqual(expect.arrayContaining([['uploads-local', 'built-in'], ['backups-local', 'built-in']]));
+    expect(names).toEqual(
+      expect.arrayContaining([
+        ['uploads-local', 'built-in'],
+        ['backups-local', 'built-in'],
+      ]),
+    );
     expect(Object.keys(res.body.categories)).toHaveLength(8);
     expect(res.body.seedFilePresent).toBe(false);
     expect(res.body.health).toEqual({ replicaFailures: [] });
@@ -146,20 +153,20 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     };
     const res = await request(server).put('/api/admin/storage').set('Cookie', adminCookie).send(body);
     expect(res.status).toBe(200);
-    const offBox = (res.body.backends as Array<{ name: string; source: string; options: Record<string, unknown> }>).find(
-      (b) => b.name === 'off-box',
-    )!;
+    const offBox = (
+      res.body.backends as Array<{ name: string; source: string; options: Record<string, unknown> }>
+    ).find((b) => b.name === 'off-box')!;
     expect(offBox.source).toBe('settings');
     expect(offBox.options.secretAccessKey).toBe('••••••••'); // masked, never echoed
     expect(res.body.categories.backups).toEqual({ backend: 'nas-backups', source: 'settings' });
 
-    const row = db.prepare("SELECT value FROM app_settings WHERE key = 'storage.backends'").get() as { value: string };
-    expect(row.value).toContain('enc:v1:');
-    expect(row.value).not.toContain('sk-e2e');
+    const row = await findRow(orm, AppSettings, { key: 'storage.backends' });
+    expect(row?.value).toContain('enc:v1:');
+    expect(row?.value).not.toContain('sk-e2e');
 
-    const audit = db.prepare("SELECT details FROM audit_log WHERE action = 'admin.storage_update'").get() as { details: string };
-    expect(audit.details).toContain('***');
-    expect(audit.details).not.toContain('sk-e2e');
+    const audit = await findRow(orm, AuditLog, { action: 'admin.storage_update' });
+    expect(audit?.details).toContain('***');
+    expect(audit?.details).not.toContain('sk-e2e');
   });
 
   it('STORE2E-005 PUT with a semantic violation → 400 with the registry message verbatim', async () => {
@@ -203,9 +210,9 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
         (b) => b.name === 'off-box',
       )!;
       expect(offBox.options.secretAccessKey).not.toBe('sk');
-      const row = db.prepare("SELECT value FROM app_settings WHERE key = 'storage.backends'").get() as { value: string };
-      expect(row.value).not.toContain('"sk"');
-      expect(row.value).toContain('enc:v1:');
+      const row = await findRow(orm, AppSettings, { key: 'storage.backends' });
+      expect(row?.value).not.toContain('"sk"');
+      expect(row?.value).toContain('enc:v1:');
     } finally {
       process.env.ENCRYPTION_KEY = 'e2e-storage-key';
     }
@@ -233,8 +240,8 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
       .send({ backend: { name: 'cand', type: 'local', options: { root } } });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true, targets: [{ name: 'cand', ok: true }] });
-    const audit = db.prepare("SELECT details FROM audit_log WHERE action = 'admin.storage_test'").get() as { details: string };
-    expect(JSON.parse(audit.details)).toMatchObject({ backend: 'cand', type: 'local', ok: true });
+    const audit = await findRow(orm, AuditLog, { action: 'admin.storage_test' });
+    expect(JSON.parse(String(audit?.details))).toMatchObject({ backend: 'cand', type: 'local', ok: true });
   });
 
   it('STORE2E-010 migration moves a category end to end', async () => {
@@ -266,13 +273,15 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     }
     expect(status).toMatchObject({ status: 'done' });
     expect(stateBody!.categories.journey).toEqual({ backend: 'dest', source: 'settings' });
-    const audit = db.prepare("SELECT details FROM audit_log WHERE action = 'admin.storage_migration'").get() as { details: string };
-    expect(JSON.parse(audit.details)).toEqual({ category: 'journey', to: 'dest' });
+    const audit = await findRow(orm, AuditLog, { action: 'admin.storage_migration' });
+    expect(JSON.parse(String(audit?.details))).toEqual({ category: 'journey', to: 'dest' });
   });
 
   it('STORE2E-011 backfill guards: 401 anon, 404 non-mirror, 409 while running is covered by unit — here the 404', async () => {
     expect((await request(server).post('/api/admin/storage/backends/x/backfill')).status).toBe(401);
-    const res = await request(server).post('/api/admin/storage/backends/uploads-local/backfill').set('Cookie', adminCookie);
+    const res = await request(server)
+      .post('/api/admin/storage/backends/uploads-local/backfill')
+      .set('Cookie', adminCookie);
     expect(res.status).toBe(404);
     expect(res.body.error).toContain('not a mirror');
   });
@@ -313,18 +322,19 @@ describe('Storage admin e2e (real auth + admin guard + managed guard + temp SQLi
     }
     expect(status).toMatchObject({ status: 'done' });
     expect(fs.existsSync(path.join(nasRoot, 'pre-mirror.zip'))).toBe(true);
-    const audit = db.prepare("SELECT details FROM audit_log WHERE action = 'admin.storage_backfill'").get() as { details: string };
-    expect(JSON.parse(audit.details)).toMatchObject({ backend: 'm' });
+    const audit = await findRow(orm, AuditLog, { action: 'admin.storage_backfill' });
+    expect(JSON.parse(String(audit?.details))).toMatchObject({ backend: 'm' });
   });
 
   it('STORE2E-013 cancel 404s with no active run; stats refresh returns real numbers and audits', async () => {
-    expect((await request(server).delete('/api/admin/storage/backends/m/backfill').set('Cookie', adminCookie)).status).toBe(404);
+    expect(
+      (await request(server).delete('/api/admin/storage/backends/m/backfill').set('Cookie', adminCookie)).status,
+    ).toBe(404);
     const res = await request(server).post('/api/admin/storage/stats/refresh').set('Cookie', adminCookie);
     expect(res.status).toBe(200);
     expect(res.body.computedAt).toBeGreaterThan(0);
     expect(res.body.categories.backups.objects).toBeGreaterThanOrEqual(1); // pre-mirror.zip at least
-    const audit = db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'admin.storage_stats_refresh'").get() as { n: number };
-    expect(audit.n).toBe(1);
+    expect(await countRows(orm, AuditLog, { action: 'admin.storage_stats_refresh' })).toBe(1);
   });
 
   it('STORE2E-014 regression (audit #7): a migration flip while the admin form is open makes the stale save 409, and the flip survives', async () => {

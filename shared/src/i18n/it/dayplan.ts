@@ -57,6 +57,8 @@ const dayplan: TranslationStrings = {
   'dayplan.exportMaps': 'Mappe e GPS',
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Esporta il programma del giorno come PDF',
+  'dayplan.pdfMine': 'Il mio programma in PDF',
+  'dayplan.pdfMineSub': 'Solo le attività e le prenotazioni a cui partecipi',
   'dayplan.gpxTooltip': 'Esporta in GPX per mappe offline e dispositivi GPS',
   'dayplan.gpxAll': 'Tutto il viaggio',
   'dayplan.gpxPlaces': 'Solo i luoghi',
@@ -79,8 +81,8 @@ const dayplan: TranslationStrings = {
   'dayplan.mobile.allAssigned': 'Tutti i luoghi assegnati',
   'dayplan.mobile.noMatch': 'Nessun risultato',
   'dayplan.mobile.createNew': 'Crea nuovo luogo',
-  'dayplan.expandAll': 'Expand all days', // en-fallback
-  'dayplan.collapseAll': 'Collapse all days', // en-fallback
+  'dayplan.expandAll': 'Espandi tutti i giorni', // en-fallback
+  'dayplan.collapseAll': 'Comprimi tutti i giorni', // en-fallback
   'dayplan.reorderDays': 'Riordina i giorni',
   'dayplan.reorderTitle': 'Riordina i giorni',
   'dayplan.reorderHint': 'I luoghi, le note e le prenotazioni di un giorno si spostano insieme a esso.',
@@ -93,13 +95,25 @@ const dayplan: TranslationStrings = {
   'dayplan.deleteDay': 'Elimina giorno',
   'dayplan.deleteDayTitle': 'Eliminare {day}?',
   'dayplan.deleteDayBody': 'Il giorno viene rimosso dal viaggio. Non si può annullare.',
+  'dayplan.excludeFromRoute': 'Escludi dal percorso',
+  'dayplan.includeInRoute': 'Riaggiungi al percorso',
+  'dayplan.offRoute': 'Fuori percorso',
+  'dayplan.offRouteHint': 'Resta nel giorno e sulla mappa, ma il percorso lo salta',
+  'dayplan.clearDay': 'Svuota giorno',
+  'dayplan.clearDayTitle': 'Svuotare {day}?',
+  'dayplan.clearDayBody':
+    'Tutti i luoghi vengono tolti da questo giorno. I luoghi restano nel viaggio e il giorno conserva note e prenotazioni.',
   'dayplan.deleteDayEmpty': "Non c'è nulla di pianificato in questo giorno.",
   'dayplan.impactPlaces': 'Luoghi pianificati: {count}',
+  'dayplan.impactPlaces.one': 'Luoghi pianificati: {count}',
   'dayplan.impactPlacesHint': "Restano nell'elenco dei luoghi.",
   'dayplan.impactNotes': 'Note: {count}',
+  'dayplan.impactNotes.one': 'Note: {count}',
   'dayplan.impactTexts': 'Titoli e descrizioni del giorno: {count}',
+  'dayplan.impactTexts.one': 'Titoli e descrizioni del giorno: {count}',
   'dayplan.impactDeletedHint': 'Vengono eliminati anche questi.',
   'dayplan.impactBookings': 'Prenotazioni: {count}',
+  'dayplan.impactBookings.one': 'Prenotazioni: {count}',
   'dayplan.impactStay': 'Soggiorno presso {name}',
   'dayplan.deleteDayBookingsHint': 'Restano in Prenotazioni, senza giorno.',
   'dayplan.deleteDayStayHint': 'Il check-in o il check-out cade in questo giorno, quindi il soggiorno viene annullato.',
@@ -110,8 +124,11 @@ const dayplan: TranslationStrings = {
   'dayplan.deleteDayStayPaidHint':
     'Il check-in o il check-out cade in questo giorno, quindi il soggiorno viene annullato insieme alla prenotazione «{booking}» e alla sua spesa di {amount}.',
   'dayplan.deleteDayShift': 'Giorni successivi: {count}',
+  'dayplan.deleteDayShift.one': 'Giorni successivi: {count}',
   'dayplan.deleteDayShiftHint': 'Ognuno passa alla data precedente.',
   'dayplan.deleteDayShiftBookingsHint':
+    'Ognuno passa alla data precedente. Prenotazioni che si spostano con loro: {count}',
+  'dayplan.deleteDayShiftBookingsHint.one':
     'Ognuno passa alla data precedente. Prenotazioni che si spostano con loro: {count}',
   'dayplan.deleteDayShrink': 'Il viaggio ora termina il {date}',
   'dayplan.deleteDayShrinkHint': "Non c'è alcun giorno senza data che possa prendere l'ultima data.",

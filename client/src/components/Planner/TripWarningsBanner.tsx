@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { AlertTriangle, Info, AlertCircle } from 'lucide-react'
 import { pluginsApi } from '../../api/client'
 import { usePluginStore } from '../../store/pluginStore'
+import { useIsPhone } from '../../mobile/useIsPhone'
 
 /**
  * Shows validation/warning contributions from `warningProvider` plugins (#1429).
@@ -25,9 +26,7 @@ const STYLE = {
 export default function TripWarningsBanner({ tripId, onOpenPluginTab }: { tripId: number; onOpenPluginTab?: (pluginId: string) => void }) {
   const [warnings, setWarnings] = useState<Warning[]>([])
   const [navSlot, setNavSlot] = useState<HTMLElement | null>(null)
-  const [isDesktop, setIsDesktop] = useState(
-    () => typeof window !== 'undefined' && (window.matchMedia?.('(min-width: 768px)')?.matches ?? true)
-  )
+  const isDesktop = !useIsPhone()
   const plugins = usePluginStore((s) => s.plugins)
 
   useEffect(() => {
@@ -42,13 +41,6 @@ export default function TripWarningsBanner({ tripId, onOpenPluginTab }: { tripId
   // The navbar renders in the same commit as the planner, so the slot exists by
   // the time effects run; it is display:none'd with the navbar below md.
   useEffect(() => { setNavSlot(document.getElementById('trek-nav-center-slot')) }, [])
-  useEffect(() => {
-    const mq = window.matchMedia?.('(min-width: 768px)')
-    if (!mq) return
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
 
   if (warnings.length === 0) return null
 
@@ -83,7 +75,7 @@ export default function TripWarningsBanner({ tripId, onOpenPluginTab }: { tripId
         navSlot
       )}
       {floating.length > 0 && (
-        <div style={{ position: 'absolute', bottom: 'calc(var(--bottom-nav-h, 0px) + 8px)', left: 0, right: 0, zIndex: 6, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: 6, padding: '0 16px' }}>
+        <div style={{ position: 'absolute', bottom: 'calc(var(--bottom-nav-h, 0px) + 8px)', insetInline: 0, zIndex: 6, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: 6, padding: '0 16px' }}>
           {floating.map((w, i) => {
             const s = STYLE[w.level] ?? STYLE.warning
             return (

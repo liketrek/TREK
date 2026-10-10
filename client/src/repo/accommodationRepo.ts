@@ -1,5 +1,5 @@
 import { accommodationsApi } from '../api/client'
-import { offlineDb, upsertAccommodations } from '../db/offlineDb'
+import { offlineDb, replaceTripRows } from '../db/offlineDb'
 import { onlineThenCache } from './withOfflineFallback'
 import type { Accommodation } from '../types'
 
@@ -8,7 +8,7 @@ export const accommodationRepo = {
     return onlineThenCache(
       async () => {
         const result = await accommodationsApi.list(tripId)
-        upsertAccommodations(result.accommodations || []).catch(() => {})
+        replaceTripRows('accommodations', Number(tripId), result.accommodations || []).catch(() => {})
         return result
       },
       async () => ({

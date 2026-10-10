@@ -244,7 +244,7 @@ export function ReceiptPreviewModal({ receipts, initialIndex = 0, onClose }: Rec
                     style={{
                       fontSize: 'calc(10px * var(--fs-scale-caption, 1))',
                       opacity: active ? 0.8 : 0.5,
-                      marginLeft: 2,
+                      marginInlineStart: 2,
                     }}
                   >
                     #{i + 1}

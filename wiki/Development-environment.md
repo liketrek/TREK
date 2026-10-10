@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-- Node.js 22+
+- Node.js 24, the version in `.nvmrc` and the one the Docker image and CI run (`nvm use` or `fnm use` picks it up). 22.22.2 or later still installs, but nothing tests it.
 - npm
 - Git
 - Python 3 and a C++ toolchain (`build-essential` on Debian/Ubuntu, the Xcode Command Line Tools on macOS, the Visual Studio Build Tools on Windows). better-sqlite3 ships prebuilt binaries, but a lockfile-driven `npm install` still runs node-gyp against them and stops without these (npm/cli#9837).
@@ -128,7 +128,8 @@ These commands run across all workspaces at once and are the recommended way to 
 | `npm test`           | Run tests in shared, server, and client                            |
 | `npm run test:cov`   | Run coverage for shared, server, client and plugin-sdk             |
 | `npm run test:e2e`   | Run end-to-end tests (server)                                      |
-| `npm run lint`       | Lint shared, server, and client                                    |
+| `npm run lint`       | Lint shared, server, and client (check-only)                       |
+| `npm run lint:fix`   | Apply ESLint's fixes in shared and server                          |
 | `npm run format`     | Format shared, server, and client                                  |
 | `npm run format:check` | Check formatting across all workspaces                           |
 
@@ -147,9 +148,12 @@ The `@trek/shared` package is the single source of truth for code shared between
 | `npm run typecheck`         | Type-check without emitting          |
 | `npm run i18n:parity`       | Check locale key parity              |
 | `npm run i18n:parity:strict`| Strict locale key parity (CI gate)   |
-| `npm run lint`              | Lint source                          |
+| `npm run lint`              | Lint source, check-only (CI gate)    |
+| `npm run lint:fix`          | Lint source and apply the fixes      |
+| `npm run lint:format`       | Every file outside the shrinking baseline is Prettier-formatted (CI gate) |
 | `npm run format`            | Format source                        |
 | `npm run format:check`   | Check formatting                  |
+| `npm run contracts:open`    | Open shapes in the request contracts may only shrink (CI gate) |
 
 ### Server (`/server`)
 
@@ -169,9 +173,22 @@ The `@trek/shared` package is the single source of truth for code shared between
 | `npm run test:e2e`           | Run end-to-end tests                     |
 | `npm run test:watch`         | Run tests in watch mode                  |
 | `npm run test:coverage`      | Run tests with coverage report           |
-| `npm run lint`               | Lint source                              |
-| `npm run lint:check`         | Lint everything, no `--fix` (CI gate)    |
+| `npm run lint`               | Lint everything, check-only              |
+| `npm run lint:fix`           | Lint everything and apply the fixes      |
+| `npm run lint:check`         | Same as `npm run lint`                   |
+| `npm run lint:warnings`      | ESLint, failing on any error and on warnings above the per-rule baseline (CI gate, replaces `lint:check`) |
 | `npm run check:plugin-facts` | Verify generated plugin facts (CI gate)  |
+| `npm run lint:size`          | No source file grows past its line limit or its baseline entry (CI gate) |
+| `npm run lint:boundaries`    | Import cycles and domain boundaries may not grow past their baseline (CI gate) |
+| `npm run lint:tx`            | Methods that write more than once outside one transaction may not grow past their baseline (CI gate) |
+| `npm run lint:test-sql`      | Raw SQL fixtures in `tests/` may not grow past their baseline (CI gate) |
+| `npm run lint:query-api`     | MikroORM QueryBuilder calls in the repositories may not grow past their baseline (CI gate) |
+| `npm run lint:dialect`       | SQLite-only SQL spellings under `src/` may not grow past their baseline (CI gate) |
+| `npm run gen:db-types`       | Regenerate the Kysely table types in `src/db/kysely/` from the migrated schema |
+| `npm run check:db-types`     | Verify the generated Kysely table types match the migrations (CI gate) |
+| `npm run probe:pg`           | Run the dialect helpers and repository statements against Postgres (CI job, needs `TREK_PG_PROBE_URL`) |
+| `npm run lint:format`        | Every file outside the shrinking baseline is Prettier-formatted (CI gate) |
+| `npm run lint:strict`        | Strict type errors per file may not grow past their baseline; a new file has none (CI gate) |
 | `npm run format`             | Format source                            |
 
 ### Client (`/client`)
@@ -188,9 +205,26 @@ The `@trek/shared` package is the single source of truth for code shared between
 | `npm run test:watch`       | Run tests in watch mode                              |
 | `npm run test:coverage`    | Run tests with coverage report                       |
 | `npm run lint`             | Lint source                                          |
-| `npm run lint:check`       | Same command as `npm run lint` — the name CI uses    |
+| `npm run lint:check`       | Same command as `npm run lint`, no longer run in CI  |
+| `npm run lint:warnings`    | ESLint, failing on any error and on warnings above the per-rule baseline (CI gate, replaces `lint:check`) |
 | `npm run lint:pages`       | Enforce the Page pattern (CI gate)                   |
-| `npm run theme:lint`       | Flag styling that bypasses the appearance tokens     |
+| `npm run lint:rtl`         | Physical left/right styling may not grow past its baseline, so the layout follows the reading direction (CI gate) |
+| `npm run lint:size`        | No file grows past its line limit or its baseline entry (CI gate) |
+| `npm run lint:format`      | Every file outside the shrinking baseline is Prettier-formatted (CI gate) |
+| `npm run lint:layers`      | Imports only go downwards through the layers (CI gate) |
+| `npm run lint:offline`     | Views reach `src/api/` only through the offline core; the baseline only shrinks (CI gate) |
+| `npm run lint:dup`         | Lines in copied code blocks may only shrink per file, at SonarCloud's thresholds (CI gate) |
+| `npm run lint:pairs`       | Desktop and phone views of a feature import its shared hook; every phone screen is listed (CI gate) |
+| `npm run lint:skips`       | No focused test, and skipped tests may only go away (CI gate) |
+| `npm run lint:i18n-keys`   | Every translation key the client names exists in `en` (CI gate) |
+| `npm run theme:lint`       | Styling that bypasses the appearance tokens may only shrink per file (CI gate) |
+| `npm run check:gl-split`   | Fail when one built chunk carries both map engines (MapLibre and Mapbox); run after a build |
+| `npm run build:analyze`    | Production build with the bundle analyzer            |
+| `npm run e2e`              | Playwright end-to-end tests; CI runs the public and app projects in Chromium and WebKit, the screenshot and help-media projects are local only |
+| `npm run shots`            | Capture the wiki screenshots with Playwright         |
+| `npm run shots:promote`    | Downscale the captured screenshots and move them into `wiki/assets/` |
+| `npm run help:media`       | Record the help-center pictures against the real app on its own ports, so `npm run dev` can keep running |
+| `npm run help:media:promote` | Convert the recorded help pictures to WebP and move them into `public/help-media/` |
 | `npm run format`           | Format source                                        |
 
 ---
@@ -215,5 +249,9 @@ Then open a Pull Request from your fork to `liketrek/TREK` targeting the `dev` b
 ## Tips
 
 - Always branch off from an up-to-date `dev` — run `git fetch upstream && git rebase upstream/dev` before starting new work.
-- Run tests before pushing: `npm test` at the repo root runs all workspaces. That alone is not the full CI gate — also run `npm run typecheck && npm run typecheck:tests && npm run lint:check && npm run check:plugin-facts` in `server/`, `npm run typecheck && npm run lint:check && npm run lint:pages` in `client/`, and `npm run i18n:parity:strict --workspace=shared` at the root if you touched translations.
+- Run tests before pushing: `npm test` at the repo root runs all workspaces. That alone is not the full CI gate. With `shared` built, these are the checks CI runs before any test (`.github/workflows/test.yml` is the source of truth):
+  - in `shared/`: `npm run typecheck && npm run contracts:open`
+  - in `server/`: `npm run build && npm run typecheck && npm run typecheck:tests && npm run typecheck:scripts && npm run check:entities && npm run check:db-types && npm run lint:check && npm run db:call-graph -- --sync --tx && npm run lint:size && npm run lint:boundaries && npm run lint:tx && npm run lint:test-sql && npm run lint:query-api && npm run lint:dialect && npm run check:plugin-facts`
+  - in `client/`: `npm run typecheck && npm run lint:warnings && npm run lint:pages && npm run lint:rtl && npm run lint:size && npm run lint:format && npm run lint:layers && npm run lint:offline && npm run lint:dup && npm run lint:pairs && npm run lint:skips && npm run lint:i18n-keys`
+  - at the root, if you touched translations: `npm run i18n:parity:strict --workspace=shared`
 - Follow the commit message conventions described in the [[Contributing]] guidelines.

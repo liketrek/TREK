@@ -74,7 +74,7 @@ describe('MBagsSheet', () => {
     setup()
     expect(screen.getByRole('dialog')).toHaveAttribute('aria-label', 'packing.bags')
     expect(within(rowFor('Backpack')).getByText('300 g')).toBeInTheDocument()
-    expect(within(rowFor('Backpack')).getByText('1 admin.packingTemplates.items')).toBeInTheDocument()
+    expect(within(rowFor('Backpack')).getByText('1 admin.packingTemplates.items:1')).toBeInTheDocument()
     expect(within(rowFor('Suitcase')).getByText('1.2 kg')).toBeInTheDocument()
   })
 
@@ -290,7 +290,7 @@ describe('MBagsSheet', () => {
     })
 
     expect(within(rowFor('Backpack')).getByText('200 g')).toBeInTheDocument()
-    expect(within(rowFor('Backpack')).getByText('1 admin.packingTemplates.items')).toBeInTheDocument()
+    expect(within(rowFor('Backpack')).getByText('1 admin.packingTemplates.items:1')).toBeInTheDocument()
   })
 
   it('FE-MOB-BAGS-024: common items still count for everyone', () => {

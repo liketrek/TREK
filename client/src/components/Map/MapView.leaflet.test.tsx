@@ -16,6 +16,8 @@ import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest
 import { render, waitFor, act } from '../../../tests/helpers/render'
 import { resetAllStores } from '../../../tests/helpers/store'
 import { buildPlace } from '../../../tests/helpers/factories'
+import { AMAP_ROAD } from '../../constants/mapDefaults'
+import { useSettingsStore } from '../../store/settingsStore'
 
 vi.mock('../../hooks/useGeolocation', () => ({
   useGeolocation: () => ({ position: null, mode: 'off', error: null, errorCode: null, cycleMode: vi.fn(), setMode: vi.fn() }),
@@ -112,6 +114,58 @@ async function renderMap() {
 }
 
 describe('MapView on a real Leaflet map', () => {
+  it('uses WGS-84 for Tours-local Topo over global Amap and preserves a Beijing click through layer switches', async () => {
+    useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, map_base_layer: 'default' } })
+    const beijing = { ...buildPlace({ id: 201, name: 'Beijing', lat: 39.9042, lng: 116.4074 }), category_name: null, category_color: null, category_icon: null }
+    const onMapClick = vi.fn()
+    const route: [number, number][][] = [[[39.9042, 116.4074], [39.9052, 116.4084]]]
+    const waypoints = [{ id: 'beijing', lat: 39.9042, lng: 116.4074, role: 'start' as const }]
+    const renderLayer = (viewBaseLayer: 'default' | 'topo' | 'satellite') => (
+      <MapView
+        places={[beijing]}
+        center={[39.9042, 116.4074]}
+        zoom={15}
+        tileUrl={AMAP_ROAD}
+        viewBaseLayer={viewBaseLayer}
+        onViewBaseLayerChange={vi.fn()}
+        route={route}
+        plannerWaypoints={waypoints}
+        onMapClick={onMapClick}
+      />
+    )
+    const view = render(renderLayer('default'))
+    await waitFor(() => expect(view.container.querySelector('.leaflet-container')).toBeInTheDocument())
+    let map = maps[maps.length - 1]
+    expect(map.options.crs).toBeTruthy()
+    expect(map.options.crs?.code).toBe('TREK:GCJ02')
+
+    const retainedCenter = L.latLng(39.91, 116.41)
+    act(() => map.setView(retainedCenter, 13))
+    view.rerender(renderLayer('topo'))
+    await waitFor(() => expect(maps[maps.length - 1]).not.toBe(map))
+    map = maps[maps.length - 1]
+    expect(map.options.crs).toBe(L.CRS.EPSG3857)
+    expect(map.getCenter().lat).toBeCloseTo(retainedCenter.lat, 5)
+    expect(map.getCenter().lng).toBeCloseTo(retainedCenter.lng, 5)
+
+    const expectedClick = L.latLng(39.9042, 116.4074)
+    const pixel = map.latLngToContainerPoint(expectedClick)
+    const roundTrip = map.containerPointToLatLng(pixel)
+    const pixelTolerance = map.distance(expectedClick, map.containerPointToLatLng(pixel.add([1, 1])))
+    map.fire('click', { latlng: roundTrip })
+    expect(onMapClick).toHaveBeenCalledOnce()
+    expect(map.distance(onMapClick.mock.calls[0][0].latlng, expectedClick)).toBeLessThanOrEqual(pixelTolerance)
+
+    view.rerender(renderLayer('satellite'))
+    await waitFor(() => expect(maps[maps.length - 1]).not.toBe(map))
+    map = maps[maps.length - 1]
+    expect(map.options.crs?.code).toBe('TREK:GCJ02')
+    expect(map.getCenter().lat).toBeCloseTo(retainedCenter.lat, 5)
+    expect(map.getCenter().lng).toBeCloseTo(retainedCenter.lng, 5)
+    expect(waypoints).toEqual([{ id: 'beijing', lat: 39.9042, lng: 116.4074, role: 'start' }])
+    expect(route).toEqual([[[39.9042, 116.4074], [39.9052, 116.4084]]])
+  })
+
   it('FE-MAPCLICK-001: a pin opens its place on a map nobody has dragged yet', async () => {
     const { pins, onMarkerClick, onMapClick } = await renderMap()
     clickOn(pins[0])

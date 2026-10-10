@@ -1,5 +1,5 @@
 import { daysApi } from '../api/client'
-import { offlineDb, upsertDays, upsertTrip } from '../db/offlineDb'
+import { offlineDb, replaceTripRows, upsertTrip } from '../db/offlineDb'
 import { isEffectivelyOffline } from '../sync/networkMode'
 import { onlineThenCache } from './withOfflineFallback'
 import type { Day, Trip } from '../types'
@@ -14,7 +14,7 @@ export const dayRepo = {
     return onlineThenCache(
       async () => {
         const result = await daysApi.list(tripId)
-        upsertDays(result.days)
+        void replaceTripRows('days', Number(tripId), result.days)
         return result
       },
       async () => ({

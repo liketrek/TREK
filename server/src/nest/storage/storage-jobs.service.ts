@@ -1,7 +1,7 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { randomUUID } from 'node:crypto';
-import { pipeline } from 'node:stream/promises';
+import { contentTypeFor } from './content-type';
+import { MirrorDriver } from './drivers/mirror.driver';
+import { StorageRegistryService } from './storage-registry.service';
+import type { StorageDriver } from './storage.types';
 import { Injectable, Logger } from '@nestjs/common';
 import {
   STORAGE_CATEGORIES,
@@ -9,11 +9,11 @@ import {
   type StorageCategory,
   type StorageMigrationStatus,
 } from '@trek/shared';
-import { contentTypeFor } from './content-type';
-import { MirrorDriver } from './drivers/mirror.driver';
-import { GLOBAL_TEMP_DIR } from './storage-paths';
-import { StorageRegistryService } from './storage-registry.service';
-import type { StorageDriver } from './storage.types';
+
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { pipeline } from 'node:stream/promises';
 
 export class BackfillTargetError extends Error {}
 export class BackfillBusyError extends Error {}
@@ -64,9 +64,7 @@ export class StorageJobsService {
     // even while a sync is running — the busy check only applies once we
     // know there's a real mirror to be busy about.
     const snapshot = this.registry.snapshot();
-    const categories = STORAGE_CATEGORIES.filter(
-      (category) => snapshot.categories[category]?.backend === mirrorName,
-    );
+    const categories = STORAGE_CATEGORIES.filter((category) => snapshot.categories[category]?.backend === mirrorName);
     if (categories.length === 0) {
       throw new BackfillTargetError(`'${mirrorName}' is not a mirror routed by any category`);
     }
@@ -147,7 +145,7 @@ export class StorageJobsService {
    * Throws MigrationRequestError (400) / MigrationTargetError (404) /
    * BackfillBusyError (409, shared with backfills — one storage job at a time).
    */
-  startMigration(category: StorageCategory, to: string): void {
+  async startMigration(category: StorageCategory, to: string): Promise<void> {
     if (!STORAGE_CATEGORIES.includes(category)) {
       throw new MigrationRequestError(`'${category}' is not a configurable category`);
     }
@@ -252,7 +250,7 @@ export class StorageJobsService {
     sourceKey: string,
     destKey: string,
   ): Promise<boolean> {
-    const file = path.join(GLOBAL_TEMP_DIR, randomUUID());
+    const file = path.join(this.registry.tempDir(), randomUUID());
     try {
       const { stream } = await source.getStream(sourceKey);
       await pipeline(stream, fs.createWriteStream(file)); // source errors RETHROW (abort → failed)
@@ -318,13 +316,16 @@ export class StorageJobsService {
     // last object's await (or an empty category, which never enters the loop
     // at all) would otherwise reach the flip unchecked. Everything from here
     // to assignCategory() below is one synchronous stretch, so this is the
-    // last point a cancel can still be honored before the flip.
+    // last point a cancel can still be honored before the flip. (The flip
+    // itself now awaits — assignCategory writes through UnitOfWork — but
+    // nothing between this check and that call yields, so the window is the
+    // same one it always was.)
     if (job.cancelled) {
       job.status = { ...s(), status: 'cancelled', finishedAt: Date.now() };
       return;
     }
     // Phase 2: flip — the job, not the save, owns this.
-    this.registry.assignCategory(s().category, s().to);
+    await this.registry.assignCategory(s().category, s().to);
     // Phase 3: delta sweep + reclaimable tally. Cancellation is ignored here
     // (bounded). Reclaimable stays SOURCE-keyed — it counts what's left to
     // reclaim on the old backend, not where it landed on the new one.

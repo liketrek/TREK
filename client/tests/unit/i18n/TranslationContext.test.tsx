@@ -1,4 +1,4 @@
-// FE-COMP-I18NCTX-001 to FE-COMP-I18NCTX-017 (plus -003b / -013b)
+// FE-COMP-I18NCTX-001 to FE-COMP-I18NCTX-018 (plus -003b / -013b)
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { SUPPORTED_LANGUAGES, TranslationProvider, useTranslation } from '../../../src/i18n/TranslationContext';
 import { TransHtml } from '../../../src/i18n/TransHtml';
@@ -138,6 +138,16 @@ describe('TranslationProvider', () => {
       expect(screen.getByTestId('value').textContent).not.toBe('common.save');
       view.unmount();
     }
+  });
+
+  it('FE-COMP-I18NCTX-018: plural forms follow the language of the strings on screen, not the one still loading', async () => {
+    withLanguage('ru');
+    render(<TranslationProvider><Probe tKey="places.count" params={{ count: 21 }} /></TranslationProvider>);
+
+    // English strings until the Russian chunk arrives, read with the English
+    // rule: 21 is "other" there, while Russian's rule would pick English's .one.
+    expect(screen.getByTestId('value').textContent).toBe('21 places');
+    await waitFor(() => expect(screen.getByTestId('value').textContent).toBe('21 место'));
   });
 
   it('FE-COMP-I18NCTX-012: the default context outside a provider echoes the key', () => {

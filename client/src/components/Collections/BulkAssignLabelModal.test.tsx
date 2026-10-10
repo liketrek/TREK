@@ -65,10 +65,10 @@ describe('BulkAssignLabelModal', () => {
     const berlinRow = screen.getByRole('button', { name: 'Berlin' });
 
     await user.click(berlinRow);
-    expect(berlinRow).toHaveClass('border-accent');
+    expect(berlinRow).toHaveAttribute('aria-pressed', 'true');
 
     await user.click(berlinRow);
-    expect(berlinRow).not.toHaveClass('border-accent');
+    expect(berlinRow).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: /^Assign label$/ })).toBeDisabled();
   });
 
@@ -83,7 +83,7 @@ describe('BulkAssignLabelModal', () => {
     await waitFor(() => expect(props.onAssign).toHaveBeenCalledWith([2, 1]));
     // Selection resets so the modal is ready for the next batch.
     await waitFor(() => expect(screen.getByRole('button', { name: /^Assign label$/ })).toBeDisabled());
-    expect(screen.getByRole('button', { name: 'Berlin' })).not.toHaveClass('border-accent');
+    expect(screen.getByRole('button', { name: 'Berlin' })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('FE-COMP-BULKLABEL-006: a second click while the assign is pending is ignored', async () => {

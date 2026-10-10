@@ -1,11 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { ExternalLink, Download, X, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import type { TripFile } from '../../types'
 import { getAuthUrl } from '../../api/authUrl'
 import { openFile as openFileUrl } from '../../utils/fileDownload'
 import { triggerDownload, isVideo } from './FileManager.helpers'
+import { useMediaLightbox } from './useMediaLightbox'
 import VideoPlayer from '../Journey/VideoPlayerLazy'
+import { Tooltip } from '../shared/Tooltip'
+
+/** The round buttons on the dark backdrop, the same as the note preview's. */
+const LIGHTBOX_BTN = 'grid h-9 w-9 place-items-center rounded-full bg-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.85)] hover:bg-[rgba(255,255,255,0.22)]' // theme-lint-disable: the lightbox is dark in every scheme
 
 // Image lightbox with gallery navigation
 interface ImageLightboxProps {
@@ -17,41 +23,15 @@ interface ImageLightboxProps {
 export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxProps) {
   const { t } = useTranslation()
   const [index, setIndex] = useState(initialIndex)
-  const [imgSrc, setImgSrc] = useState('')
-  const [touchStart, setTouchStart] = useState<number | null>(null)
-  const file = files[index]
-
-  const fileIsVideo = isVideo(file?.mime_type)
-
-  useEffect(() => {
-    setImgSrc('')
-    // Images use a one-shot signed URL; a video must use the plain same-origin
-    // URL (cookie auth) so its many Range requests all authenticate (#823).
-    if (!file || isVideo(file.mime_type)) return
-    // Arrowing through the gallery leaves several mints in flight; only the one for
-    // the file still on screen may paint.
-    let current = true
-    getAuthUrl(file.url, 'download').then(u => { if (current) setImgSrc(u) }).catch(() => {})
-    return () => { current = false }
-  }, [file?.url, file?.mime_type])
-
-  const goPrev = () => setIndex(i => Math.max(0, i - 1))
-  const goNext = () => setIndex(i => Math.min(files.length - 1, i + 1))
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-      if (e.key === 'ArrowLeft') goPrev()
-      if (e.key === 'ArrowRight') goNext()
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [onClose])
+  const { file, imgSrc, fileIsVideo, hasPrev, hasNext, goPrev, goNext, onTouchStart, onTouchEnd } = useMediaLightbox({
+    files,
+    index,
+    onIndexChange: setIndex,
+    onClose,
+  })
 
   if (!file) return null
 
-  const hasPrev = index > 0
-  const hasNext = index < files.length - 1
   const navBtn = (side: 'left' | 'right', onClick: () => void, show: boolean): React.ReactNode => show ? (
     <button type="button" onClick={e => { e.stopPropagation(); onClick() }}
       style={{
@@ -66,7 +46,10 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
     </button>
   ) : null
 
-  return (
+  // A portal, as the two document previews are. Rendered in place, the overlay
+  // sits inside the trip page's stacking context, below the navbar's z-[200],
+  // which then covered the header and its buttons.
+  return createPortal(
     <div
       // Backdrop only — Escape and the header's close button do the same job for
       // the keyboard. Closing on the backdrop's own clicks (rather than letting
@@ -74,37 +57,35 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
       role="presentation"
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 2000, display: 'flex', flexDirection: 'column', paddingBottom: 'var(--bottom-nav-h)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
-      onTouchStart={e => setTouchStart(e.touches[0].clientX)}
-      onTouchEnd={e => {
-        if (touchStart === null) return
-        const diff = e.changedTouches[0].clientX - touchStart
-        if (diff > 60) goPrev()
-        else if (diff < -60) goNext()
-        setTouchStart(null)
-      }}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
     >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', flexShrink: 0 }}>
         <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
           {file.original_name}
-          <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.4)' }}>{index + 1} / {files.length}</span>
+          <span style={{ marginInlineStart: 8, color: 'rgba(255,255,255,0.4)' }}>{index + 1} / {files.length}</span>
         </span>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          <button type="button"
-            onClick={() => openFileUrl(file.url, file.original_name).catch(() => {})}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}
-            title={t('files.openTab')}>
-            <ExternalLink size={16} />
-          </button>
-          <button type="button"
-            onClick={() => triggerDownload(file.url, file.original_name)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}
-            title={t('files.download') || 'Download'}>
-            <Download size={16} />
-          </button>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}>
-            <X size={18} />
-          </button>
+          <Tooltip label={t('files.openTab')}>
+            <button type="button"
+              onClick={() => openFileUrl(file.url, file.original_name).catch(() => {})}
+              aria-label={t('files.openTab')} className={LIGHTBOX_BTN}>
+              <ExternalLink size={16} />
+            </button>
+          </Tooltip>
+          <Tooltip label={t('files.download') || 'Download'}>
+            <button type="button"
+              onClick={() => triggerDownload(file.url, file.original_name)}
+              aria-label={t('files.download') || 'Download'} className={LIGHTBOX_BTN}>
+              <Download size={16} />
+            </button>
+          </Tooltip>
+          <Tooltip label={t('common.close')}>
+            <button type="button" onClick={onClose} aria-label={t('common.close')} className={LIGHTBOX_BTN}>
+              <X size={18} />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
@@ -130,7 +111,8 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
           ))}
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -155,7 +137,7 @@ function ThumbImg({ file, active, onClick }: { file: TripFile & { url: string };
   useEffect(() => {
     if (!visible || fileIsVideo) return
     let current = true
-    getAuthUrl(file.url, 'download').then(u => { if (current) setSrc(u) })
+    void getAuthUrl(file.url, 'download').then(u => { if (current) setSrc(u) })
     return () => { current = false }
   }, [file.url, fileIsVideo, visible])
 

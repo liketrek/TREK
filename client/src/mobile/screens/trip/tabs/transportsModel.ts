@@ -1,26 +1,12 @@
-import { splitReservationDateTime } from '../../../../utils/formatters'
-import type { Day, Reservation } from '../../../../types'
+import { formatTime, splitReservationDateTime } from '../../../../utils/formatters'
+import type { Day, Reservation, TranslationFn } from '../../../../types'
 
 /**
  * Transport view-model — the real-data counterpart to the demo's `trsSecs`
- * (spec 03 §1.4). Grouping and chronological order mirror the desktop
- * ReservationsPanel (Confirmed / Pending / Automated-Transit) so both surfaces
- * agree.
+ * (spec 03 §1.4). The sections, their order and the type colours come from the
+ * desktop bookings model (groupTransports, TRANSPORT_TYPE_COLOR) so both surfaces
+ * agree; what is left here is the phone cards' own reading of a booking.
  */
-
-/** Type-chip accent per transport type (from ReservationsPanel TYPE_OPTIONS). */
-export const TRANSPORT_TYPE_COLOR: Record<string, string> = {
-  flight: '#3b82f6',
-  train: '#06b6d4',
-  bus: '#059669',
-  car: '#6b7280',
-  taxi: '#ca8a04',
-  bicycle: '#84cc16',
-  cruise: '#0ea5e9',
-  ferry: '#0d9488',
-  transit: '#7c3aed',
-  transport_other: '#6b7280',
-}
 
 export interface TransitLeg {
   mode?: string
@@ -57,48 +43,31 @@ export function parseTransportMeta(res: Reservation): TransportMeta {
   }
 }
 
-/** Waypoints in travel order (from · stops · to). */
-export function orderedEndpoints(res: Reservation) {
-  return (res.endpoints || []).slice().sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
-}
-
-export interface TransportGroups {
-  confirmed: Reservation[]
-  pending: Reservation[]
-  transit: Reservation[]
-}
-
 /**
- * Chronological sort + split into the three demo sections. Undated entries sink
- * to the bottom; `transit` (automated public transport, #1065) is peeled off
- * into its own group regardless of status. Mirrors ReservationsPanel:683-711.
+ * The date and time cells of a phone booking or transport card: the day (or day
+ * range) the booking sits on, else its own date, and its time or time range. A
+ * dash stands in for whichever is missing.
  */
-export function groupTransports(list: Reservation[], days: Day[]): TransportGroups {
-  const dayDates = new Map(days.map(d => [d.id, d.date]))
-  const sortKey = (r: Reservation): string | null => {
-    const { date, time } = splitReservationDateTime(r.reservation_time)
-    const dayId = r.type === 'hotel' ? r.accommodation_start_day_id ?? r.day_id : r.day_id
-    const effectiveDate = date ?? (dayId != null ? dayDates.get(dayId) ?? null : null)
-    if (!effectiveDate) return null
-    return `${effectiveDate}T${time ?? '00:00'}`
-  }
-  const sorted = list
-    .map(r => ({ r, key: sortKey(r) }))
-    .sort((a, b) => {
-      if (a.key !== b.key) {
-        if (a.key === null) return 1
-        if (b.key === null) return -1
-        return a.key < b.key ? -1 : 1
-      }
-      return (a.r.created_at ?? '').localeCompare(b.r.created_at ?? '')
-    })
-    .map(({ r }) => r)
-
-  const transit = sorted.filter(r => r.type === 'transit')
-  const nonTransit = sorted.filter(r => r.type !== 'transit')
-  return {
-    confirmed: nonTransit.filter(r => r.status === 'confirmed'),
-    pending: nonTransit.filter(r => r.status !== 'confirmed'),
-    transit,
-  }
+export function cardWhen(
+  res: Reservation,
+  startDay: Day | undefined,
+  endDay: Day | undefined,
+  t: TranslationFn,
+  locale: string,
+  timeFormat: string,
+): { dayValue: string; timeValue: string } {
+  const startDt = splitReservationDateTime(res.reservation_time)
+  const endDt = splitReservationDateTime(res.reservation_end_time)
+  const fmtDate = (date: string) =>
+    new Date(`${date}T00:00:00Z`).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' })
+  const dayLabel = (day: Day) => day.title || t('dayplan.dayN', { n: day.day_number })
+  const timeValue = startDt.time
+    ? `${formatTime(startDt.time, locale, timeFormat)}${endDt.time ? ` – ${formatTime(endDt.time, locale, timeFormat)}` : ''}`
+    : '—'
+  const dayValue = startDay
+    ? `${dayLabel(startDay)}${endDay && endDay.id !== startDay.id ? ` – ${dayLabel(endDay)}` : ''}`
+    : startDt.date
+      ? fmtDate(startDt.date)
+      : '—'
+  return { dayValue, timeValue }
 }

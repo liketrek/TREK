@@ -43,7 +43,7 @@ Log in with what it shows; you will be asked to set a new password.
 docker exec -it trek node server/reset-admin.js
 ```
 
-This resets (or creates) `admin@trek.local` and prints a generated password. Override with `-e RESET_ADMIN_EMAIL=you@example.com -e RESET_ADMIN_PASSWORD=yourpass`. You will be asked to change it on first login.
+This resets (or creates) `admin@trek.local` and prints a generated password. Override with `-e RESET_ADMIN_EMAIL=you@example.com -e RESET_ADMIN_PASSWORD=yourpass`. You will be asked to change it on first login. Resetting an existing account also signs it out of every session it still had.
 
 **Start over with chosen credentials** (fresh install, no data to keep):
 
@@ -144,6 +144,21 @@ environment:
 ```
 
 Keep the proxy's `client_max_body_size` at or above `BACKUP_UPLOAD_LIMIT_MB`. Non-positive or invalid values for either variable abort startup.
+
+---
+
+## File upload refused: "File is too large"
+
+**Cause:** A file uploaded to a trip, a booking or a collab note is capped at 50 MB by default. The Files tab refuses a bigger file before the upload starts with `File is too large (max 50 MB)`, and the server answers the same check with `400 File is too large`. Videos have their own 500 MB cap, and trip covers and place images 20 MB. If the upload instead fails with a `413` or without any message, your reverse proxy refused the request body before TREK saw it.
+
+**Fix:** Raise the limit with `FILE_UPLOAD_LIMIT_MB` and restart:
+
+```yaml
+environment:
+  - FILE_UPLOAD_LIMIT_MB=200   # in MB (default: 50)
+```
+
+Keep the proxy's body limit (`client_max_body_size` on nginx) at or above that value. On Helm the chart does not pass this variable through, so patch it onto the Deployment. See [Environment Variables](Environment-Variables#storage--paths) and [Reverse Proxy](Reverse-Proxy).
 
 ---
 
@@ -334,7 +349,7 @@ docker logs <container> 2>&1 | grep -E "SMTP test email (sent|failed)|SMTP test 
 
 ## CORS error — API requests blocked in the browser
 
-**Cause:** If `ALLOWED_ORIGINS` is set, only those origins are permitted. Any request from a different origin is rejected with a CORS error visible in the browser console.
+**Cause:** If `ALLOWED_ORIGINS` is set, only those origins are permitted, plus the host the request was sent to (the address in the browser's address bar is never cross-origin to itself). A request from any other origin is refused with `403 Not allowed by CORS`, and the server logs a `CORS: refused origin ...` warning naming the origin to add.
 
 **Fix:** Add your origin to the comma-separated list:
 
@@ -353,7 +368,7 @@ If `ALLOWED_ORIGINS` is not set, the default is **same-origin only** — cross-o
 
 | Code | Reason |
 |------|--------|
-| `4001` | No token, expired/invalid token, or user not found — re-login required |
+| `4001` | No token, expired/invalid token, or user not found — re-login required; or an unexpected error during connection setup (reason `connection setup failed`) — reconnect; if it persists check the server log |
 | `4403` | MFA is required globally but the user has not enabled it |
 
 **Fix:**
@@ -367,13 +382,15 @@ If `ALLOWED_ORIGINS` is not set, the default is **same-origin only** — cross-o
 
 **Cause:** The browser Clipboard API (`navigator.clipboard`) is only available in a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts), so on plain HTTP at a non-localhost address it is undefined.
 
-TREK works around this where it matters most. The share-link and invite-link buttons in the trip **Members** dialog, the journey share link, and the calendar-subscribe URLs fall back to a hidden textarea plus the deprecated `document.execCommand('copy')`, which is not secure-context gated — **those keep working over plain HTTP**, on desktop and mobile alike.
+TREK works around this where it matters most. The share-link and invite-link buttons in the trip's **Share Trip** and **Members** dialogs, the journey share link, and the calendar-subscribe URLs fall back to a hidden textarea plus the deprecated `document.execCommand('copy')`, which is not secure-context gated, so **those keep working over plain HTTP**, on desktop and mobile alike.
 
 The remaining copy buttons call `navigator.clipboard` directly and have no fallback:
 
 - **Settings > Integrations (MCP)** — the MCP endpoint URL, the JSON client config, a newly created MCP token, and OAuth client IDs, client secrets and rotated secrets. These fail with no message at all, because the click handler throws before any toast is shown.
 - **Settings > Account** — the 2FA backup codes. This one shows a generic error toast. Use the **Download** button next to it as a workaround; it does not need a secure context.
-- **Admin Panel > Users & Invites** — the registration invite link, both on create ("create and copy") and via the copy button on an existing invite.
+- **Admin Panel > Users** (the **Invite Links** card): the registration invite link, both on create ("create and copy") and via the copy button on an existing invite.
+- The copy button next to a booking's confirmation code in the booking's detail popup. It shows `Could not copy`.
+- The webhook URL of a [Document-Sync](Document-Sync) connection in the Files tab.
 
 **Fix:** For those buttons, one of:
 

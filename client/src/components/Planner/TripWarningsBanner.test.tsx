@@ -5,6 +5,7 @@ import { server } from '../../../tests/helpers/msw/server';
 import { usePluginStore, type ActivePlugin } from '../../store/pluginStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import TripWarningsBanner from './TripWarningsBanner';
+import { PHONE_QUERY } from '../../mobile/useIsPhone';
 
 type Warning = { pluginId: string; level: 'info' | 'warning' | 'error'; message: string };
 
@@ -28,12 +29,15 @@ function mountNavSlot(): HTMLElement {
   return slot;
 }
 
-/** matchMedia is stubbed to matches:false globally — opt this component into desktop. */
-function stubDesktop(matches: boolean) {
+/**
+ * The banner asks the phone query, so a desktop viewport is one where it does
+ * not match. `fire(true)` means "now desktop", like the old min-width stub.
+ */
+function stubDesktop(desktop: boolean) {
   const listeners: Array<(e: MediaQueryListEvent) => void> = [];
   const mql = {
-    matches,
-    media: '(min-width: 768px)',
+    matches: !desktop,
+    media: PHONE_QUERY,
     onchange: null,
     addListener: vi.fn(),
     removeListener: vi.fn(),
@@ -42,7 +46,7 @@ function stubDesktop(matches: boolean) {
     dispatchEvent: vi.fn(() => true),
   };
   window.matchMedia = vi.fn(() => mql) as unknown as typeof window.matchMedia;
-  return { mql, fire: (m: boolean) => listeners.forEach(cb => cb({ matches: m } as MediaQueryListEvent)) };
+  return { mql, fire: (desktopNow: boolean) => listeners.forEach(cb => cb({ matches: !desktopNow } as MediaQueryListEvent)) };
 }
 
 const originalMatchMedia = window.matchMedia;

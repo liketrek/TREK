@@ -3,12 +3,17 @@
  * real JwtAuthGuard against a temp SQLite db (seeded via the shared harness).
  * The weather service is mocked so no real Open-Meteo calls happen.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
+import { WeatherModule } from '../../src/nest/weather/weather.module';
+import { createTestMikroOrmModule } from '../helpers/test-orm';
+import { TestUnitOfWorkModule } from '../helpers/test-uow';
+import { createTempDb, seedUser, sessionCookie } from './harness';
+import { Test } from '@nestjs/testing';
+
 import cookieParser from 'cookie-parser';
 import type { Server } from 'http';
-import { Test } from '@nestjs/testing';
-import { createTempDb, seedUser, sessionCookie } from './harness';
+import request from 'supertest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
 const { db } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -28,15 +33,19 @@ vi.mock('../../src/nest/weather/weather.impl', async (importActual) => {
   return { ...actual, getWeather: mockGet, getDetailedWeather: mockGetDetailed };
 });
 
-import { WeatherModule } from '../../src/nest/weather/weather.module';
-import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
-
 describe('Weather e2e (real auth guard + temp SQLite)', () => {
   let server: Server;
   let app: Awaited<ReturnType<typeof build>>;
 
   async function build() {
-    const moduleRef = await Test.createTestingModule({ imports: [WeatherModule] }).compile();
+    // JwtAuthGuard (Plan 3b Task 1) injects EntityManager — needs
+    // MikroOrmModule.forRoot in the graph, same as every other e2e harness
+    // guarding a route with it; this suite's minimal hand-rolled `users`
+    // table already carries the five columns
+    // `findByIdWithPasswordVersion` selects.
+    const moduleRef = await Test.createTestingModule({
+      imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), WeatherModule],
+    }).compile();
     const nest = moduleRef.createNestApplication();
     nest.use(cookieParser());
     nest.useGlobalFilters(new TrekExceptionFilter());
@@ -63,7 +72,10 @@ describe('Weather e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('401 with an invalid token', async () => {
-    const res = await request(server).get('/api/weather').set('Cookie', 'trek_session=not-a-jwt').query({ lat: '1', lng: '2' });
+    const res = await request(server)
+      .get('/api/weather')
+      .set('Cookie', 'trek_session=not-a-jwt')
+      .query({ lat: '1', lng: '2' });
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ error: 'Invalid or expired token', code: 'AUTH_REQUIRED' });
   });
@@ -75,13 +87,19 @@ describe('Weather e2e (real auth guard + temp SQLite)', () => {
   });
 
   it('200 with a valid session cookie', async () => {
-    const res = await request(server).get('/api/weather').set('Cookie', sessionCookie(1)).query({ lat: '52.5', lng: '13.4' });
+    const res = await request(server)
+      .get('/api/weather')
+      .set('Cookie', sessionCookie(1))
+      .query({ lat: '52.5', lng: '13.4' });
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ temp: 21, main: 'Clear', type: 'current' });
   });
 
   it('200 on /detailed with a valid session cookie', async () => {
-    const res = await request(server).get('/api/weather/detailed').set('Cookie', sessionCookie(1)).query({ lat: '1', lng: '2', date: '2026-07-01' });
+    const res = await request(server)
+      .get('/api/weather/detailed')
+      .set('Cookie', sessionCookie(1))
+      .query({ lat: '1', lng: '2', date: '2026-07-01' });
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ type: 'forecast' });
   });

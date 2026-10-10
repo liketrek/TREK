@@ -13,20 +13,28 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Musei e cultura',
   'poi.cat.nature': 'Natura e parchi',
   'poi.cat.activities': 'Attività',
+  'poi.pluginCategories': 'Categorie dai plugin',
   'map.showAllConnections': 'Mostra tutti i percorsi prenotati',
   'map.hideAllConnections': 'Nascondi tutti i percorsi prenotati',
   'map.baseLayer.default': 'Mappa',
   'map.baseLayer.satellite': 'Satellite',
   'map.baseLayer.switchToSatellite': 'Passa alla vista satellitare',
   'map.baseLayer.switchToDefault': 'Passa alla vista mappa',
-  'map.location.denied': 'L’accesso alla posizione è bloccato. Controlla le impostazioni del dispositivo; un’app installata ha un proprio permesso di localizzazione, separato dal browser.',
+  'map.location.denied':
+    'L’accesso alla posizione è bloccato. Controlla le impostazioni del dispositivo; un’app installata ha un proprio permesso di localizzazione, separato dal browser.',
   'map.location.unavailable': 'Impossibile determinare la tua posizione.',
   'map.location.timeout': 'La localizzazione ha richiesto troppo tempo. Riprova con una visuale più libera del cielo.',
   'map.overview.show': 'Mostra tutto il viaggio',
+  'map.lock.lock': 'Blocca la vista della mappa',
+  'map.lock.unlock': 'Lascia che la mappa segua la selezione',
   'map.overview.hide': 'Nascondi tutto il viaggio',
   'map.overview.total': 'Distanza totale',
   'map.attribution': 'Crediti della mappa',
-  'map.overview.unrouted': '{count} tratta/e non calcolabile/i, le distanze sono incomplete.',
-  'map.overview.dayUnrouted': '{count} tratta/e di questo giorno non calcolabile/i',
+  'map.overview.unrouted':
+    'Per {count} tratte non è stato possibile calcolare il percorso, quindi le distanze sono incomplete.',
+  'map.overview.unrouted.one':
+    'Per {count} tratta non è stato possibile calcolare il percorso, quindi le distanze sono incomplete.',
+  'map.overview.dayUnrouted': 'Per {count} tratte di questo giorno non è stato possibile calcolare il percorso',
+  'map.overview.dayUnrouted.one': 'Per {count} tratta di questo giorno non è stato possibile calcolare il percorso',
 };
 export default map;

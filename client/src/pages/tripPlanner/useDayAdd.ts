@@ -48,7 +48,7 @@ export function useDayAdd(options: DayAddOptions): DayAdd {
     if (inFlight.current) return
     inFlight.current = true
     setBusy(true)
-    add().finally(() => {
+    void add().finally(() => {
       inFlight.current = false
       setBusy(false)
     })

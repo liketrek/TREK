@@ -22,10 +22,12 @@ vi.mock('../../../src/sync/mutationQueue', () => ({
 vi.mock('../../../src/sync/tripSyncManager', () => ({
   tripSyncManager: { syncAll: () => syncAll() },
 }));
+let reconnects = 0;
 vi.mock('../../../src/api/websocket', () => ({
   setPreReconnectHook: (fn: (() => Promise<void>) | null) => { preReconnect = fn; },
   setRefetchCallback: (fn: ((tripId: string) => void) | null) => { refetchCb = fn; },
   getActiveTrips: () => ['7'],
+  reconnectNow: () => { reconnects++; },
 }));
 vi.mock('../../../src/store/tripStore', () => ({
   useTripStore: { getState: () => ({ hydrateActiveTrip: hydrate }) },
@@ -45,7 +47,7 @@ const flushMicrotasks = async () => {
 
 beforeEach(() => {
   flush.mockClear(); syncAll.mockClear(); hydrate.mockClear(); loadSettings.mockClear();
-  refetchCb = null; preReconnect = null;
+  refetchCb = null; preReconnect = null; reconnects = 0;
   settingsLoaded = false; authenticated = true;
   Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
 });
@@ -86,6 +88,18 @@ describe('syncTriggers', () => {
     // overwrite edits that have not been sent yet.
     expect(flush.mock.invocationCallOrder[0]).toBeLessThan(syncAll.mock.invocationCallOrder[0]);
     expect(flush.mock.invocationCallOrder[0]).toBeLessThan(hydrate.mock.invocationCallOrder[0]);
+  });
+
+  it('online event and a tab coming back reconnect the socket right away instead of waiting out its backoff', async () => {
+    registerSyncTriggers();
+    window.dispatchEvent(new Event('online'));
+    await flushMicrotasks();
+    expect(reconnects).toBe(1);
+
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    await flushMicrotasks();
+    expect(reconnects).toBe(2);
   });
 
   it('online event retries the settings load when it has not yet succeeded (#1618)', async () => {

@@ -1,7 +1,7 @@
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { logError, logInfo } from '../audit/audit-log.logger';
 import { CronRegistrarService } from '../scheduling/cron-registrar.service';
 import { PlaceShadowService } from './place-shadow.service';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
  * Nightly retention for the shadow corpus.
@@ -24,9 +24,9 @@ export class PlaceShadowRetentionJob implements OnApplicationBootstrap {
     this.registrar.register('place-shadow-retention', '40 3 * * *', () => this.tick());
   }
 
-  tick(): void {
+  async tick(): Promise<void> {
     try {
-      const removed = this.shadow.purgeExpired();
+      const removed = await this.shadow.purgeExpired();
       if (removed > 0) {
         logInfo(`Place shadow retention: removed ${removed} expired row(s)`);
       }

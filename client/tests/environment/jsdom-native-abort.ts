@@ -20,13 +20,13 @@
  * jsdom setup runs, so vitest copies jsdom's Storage across.
  */
 
-import { builtinEnvironments } from 'vitest/environments';
+import { builtinEnvironments } from 'vitest/runtime';
 
 const jsdomEnv = builtinEnvironments.jsdom;
 
 export default {
   name: 'jsdom-native-abort',
-  transformMode: 'web' as const,
+  viteEnvironment: 'client' as const,
 
   async setup(global: typeof globalThis, options: Record<string, unknown>) {
     // Capture native AbortController/AbortSignal BEFORE jsdom patches them

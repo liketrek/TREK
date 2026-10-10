@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
-import { MapPin, Clock, MoreHorizontal, Pencil, Trash2, Plus, RouteOff, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { MapPin, Clock, Pencil, Trash2, Plus, PencilLine, RouteOff, X } from 'lucide-react'
 import { formatLocationName } from '../../utils/formatters'
 import { useTranslation } from '../../i18n'
 import { pluginsApi } from '../../api/client'
@@ -9,6 +8,7 @@ import type { JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
 import { MOOD_CONFIG, WEATHER_CONFIG } from '../../pages/journeyDetail/JourneyDetailPage.constants'
 import { photoUrl } from '../../pages/journeyDetail/JourneyDetailPage.helpers'
 import { Tooltip } from '../shared/Tooltip'
+import { MoreButton, type MenuEntry } from '../Planner/planParts'
 import { PhotoGrid } from './JourneyDetailPagePhotoGrid'
 import { MoodChip, WeatherChip } from './JourneyDetailPageChips'
 import { ExpandableStory } from './JourneyDetailPageExpandableStory'
@@ -22,8 +22,10 @@ export function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
   onPhotoClick: (photos: JourneyPhoto[], index: number) => void
 }) {
   const { t } = useTranslation()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuBtnRef = useRef<HTMLButtonElement>(null)
+  const menuItems: MenuEntry[] = [
+    { label: t('common.edit'), icon: Pencil, onClick: onEdit },
+    { label: t('common.delete'), icon: Trash2, onClick: onDelete, danger: true },
+  ]
   // Extra rows contributed by journalEntryProvider plugins — same pattern as the
   // PlaceInspector provider details: fetched only when plugins are active at all,
   // fail-safe (the server drops slow/failing providers), only ever additive.
@@ -56,7 +58,7 @@ export function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
           <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)', height: '60%' }} />
 
           {/* Badges top-left */}
-          <div className="absolute top-3 left-4 right-14 flex items-center gap-1.5 z-[2]">
+          <div className="absolute top-3 start-4 end-14 flex items-center gap-1.5 z-[2]">
             {entry.location_name && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-black/40 backdrop-blur-sm rounded-full text-[10px] font-semibold text-white tracking-wide max-w-full overflow-hidden">
                 <MapPin size={10} className="flex-shrink-0" />
@@ -77,30 +79,25 @@ export function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
                 {t('journey.entry.offRoute')}
               </span>
             )}
+            {/* A draft (#696) is the contributors' own until it is published. */}
+            {entry.is_draft && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-black/40 backdrop-blur-sm rounded-full text-[10px] font-semibold text-white tracking-wide">
+                <PencilLine size={10} />
+                {t('journey.entry.draft')}
+              </span>
+            )}
           </div>
 
-          {/* Menu top-right */}
+          {/* Menu top-right, raised on the card colour so it reads on any photo */}
           {!readOnly && (
-            <div className="absolute top-2.5 right-3 z-[2]">
-              <button type="button" ref={menuBtnRef} onClick={() => setMenuOpen(!menuOpen)} className="w-8 h-8 rounded-[10px] bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/50">
-                <MoreHorizontal size={14} />
-              </button>
-              {menuOpen && createPortal(
-                <>
-                  <div className="fixed inset-0 z-[99]" role="presentation" onClick={() => setMenuOpen(false)} />
-                  <div className="fixed z-[100] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 min-w-[120px]" style={{ top: (menuBtnRef.current?.getBoundingClientRect().bottom || 0) + 4, right: window.innerWidth - (menuBtnRef.current?.getBoundingClientRect().right || 0) }}>
-                    <button type="button" onClick={() => { setMenuOpen(false); onEdit() }} className="w-full text-left px-3 py-1.5 text-[12px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 flex items-center gap-2"><Pencil size={12} /> {t('common.edit')}</button>
-                    <button type="button" onClick={() => { setMenuOpen(false); onDelete() }} className="w-full text-left px-3 py-1.5 text-[12px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"><Trash2 size={12} /> {t('common.delete')}</button>
-                  </div>
-                </>,
-                document.body,
-              )}
+            <div className="absolute top-2.5 end-3 z-[2]">
+              <MoreButton label={t('files.menu')} items={menuItems} size={32} alwaysVisible className="bg-surface-card shadow-sm" />
             </div>
           )}
 
           {/* Title on photo */}
           {entry.title && (
-            <div className="absolute bottom-4 left-5 right-5 z-[2] pointer-events-none">
+            <div className="absolute bottom-4 inset-x-5 z-[2] pointer-events-none">
               <h3 className="text-[22px] font-bold text-white tracking-[-0.02em] leading-tight drop-shadow-sm">{entry.title}</h3>
             </div>
           )}
@@ -108,7 +105,7 @@ export function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
       ) : (
         /* No photos: simple header */
         <div className="flex items-center justify-between px-4 pt-3">
-          <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1 me-2">
             {entry.location_name && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-[10px] font-semibold text-zinc-500 max-w-full overflow-hidden">
                 <MapPin size={10} className="flex-shrink-0" /> <span className="truncate">{formatLocationName(entry.location_name)}</span>
@@ -124,24 +121,13 @@ export function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
                 <RouteOff size={10} /> {t('journey.entry.offRoute')}
               </span>
             )}
+            {entry.is_draft && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-full text-[10px] font-semibold text-zinc-500">
+                <PencilLine size={10} /> {t('journey.entry.draft')}
+              </span>
+            )}
           </div>
-          {!readOnly && (
-            <div className="relative">
-              <button type="button" ref={menuBtnRef} onClick={() => setMenuOpen(!menuOpen)} className="w-7 h-7 rounded-md flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                <MoreHorizontal size={14} />
-              </button>
-              {menuOpen && createPortal(
-                <>
-                  <div className="fixed inset-0 z-[99]" role="presentation" onClick={() => setMenuOpen(false)} />
-                  <div className="fixed z-[100] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 min-w-[120px]" style={{ top: (menuBtnRef.current?.getBoundingClientRect().bottom || 0) + 4, right: window.innerWidth - (menuBtnRef.current?.getBoundingClientRect().right || 0) }}>
-                    <button type="button" onClick={() => { setMenuOpen(false); onEdit() }} className="w-full text-left px-3 py-1.5 text-[12px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 flex items-center gap-2"><Pencil size={12} /> {t('common.edit')}</button>
-                    <button type="button" onClick={() => { setMenuOpen(false); onDelete() }} className="w-full text-left px-3 py-1.5 text-[12px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"><Trash2 size={12} /> {t('common.delete')}</button>
-                  </div>
-                </>,
-                document.body,
-              )}
-            </div>
-          )}
+          {!readOnly && <MoreButton label={t('files.menu')} items={menuItems} size={28} alwaysVisible />}
         </div>
       )}
 
@@ -186,8 +172,8 @@ export function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
               <div key={`${p.pluginId}-${i}`} className="flex items-baseline justify-between gap-2 text-[12px]">
                 <span className="font-medium text-zinc-500 dark:text-zinc-400 flex-shrink-0">{it.label}</span>
                 {it.url
-                  ? <a href={it.url} target="_blank" rel="noreferrer noopener" className="text-indigo-600 dark:text-indigo-400 truncate text-right">{it.value ?? it.url}</a>
-                  : <span className="text-zinc-600 dark:text-zinc-300 truncate text-right">{it.value}</span>}
+                  ? <a href={it.url} target="_blank" rel="noreferrer noopener" className="text-indigo-600 dark:text-indigo-400 truncate text-end">{it.value ?? it.url}</a>
+                  : <span className="text-zinc-600 dark:text-zinc-300 truncate text-end">{it.value}</span>}
               </div>
             )))}
           </div>

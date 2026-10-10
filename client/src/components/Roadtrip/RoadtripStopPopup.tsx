@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { ParkingSquare, Hourglass, AlertTriangle, BedDouble } from 'lucide-react'
 import Modal from '../shared/Modal'
 import CustomTimePicker from '../shared/CustomTimePicker'
@@ -6,9 +6,9 @@ import StayPortals from './StayPortals'
 import ChargingInfo from './ChargingInfo'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { safeExternalHref } from '../../utils/safeUrl'
-import { STOP_KINDS, STOP_KIND_BY_KEY } from './stopKinds'
 import { StopKindChips, StopStayChips } from './StopChips'
 import type { CorridorPoi } from './useCorridorPois'
+import { useStopDraftForm } from './useStopDraftForm'
 import type { RoadtripStopType } from '@trek/shared'
 
 /**
@@ -69,6 +69,12 @@ interface RoadtripStopPopupProps {
  * which neither column shows. This asks the two questions that matter (what kind of stop,
  * how long) and says where it will land, with a way out to the full form for the rest.
  */
+const nightByDefault = (draft: RoadtripStopDraft | null): boolean =>
+  draft?.editing ? !!draft.editing.accommodationId : draft?.poi.category === 'hotel'
+
+const checkInByDefault = (draft: RoadtripStopDraft | null): string =>
+  draft?.editing?.checkIn || draft?.arrivalTime || ''
+
 export default function RoadtripStopPopup({
   draft, duplicateName, onClose, onSave, onSaveNight, onMoreDetails,
 }: RoadtripStopPopupProps): React.ReactElement | null {
@@ -80,21 +86,24 @@ export default function RoadtripStopPopup({
   // /trips/<id>/www.hotel.de instead of leaving the app. The helper adds the
   // scheme for a bare host and drops anything that is not http(s).
   const websiteHref = safeExternalHref(draft?.poi.website)
-  const suggested = STOP_KINDS.find(k => k.key === draft?.poi.category)
-  const [stopType, setStopType] = useState<RoadtripStopType | null>(draft?.editing ? draft.editing.stopType : suggested?.key ?? null)
-  const [dwell, setDwell] = useState<number>(draft?.editing?.dwellMinutes ?? suggested?.defaultMinutes ?? 30)
+  const { stopType, dwell, setDwell, saving, setSaving, kind, pickKind, seed } = useStopDraftForm(draft)
   // A hotel is a night by default and a campsite a pause, which is what each already
   // means everywhere else — but both offer the other, because a campsite is somewhere
   // people sleep and a hotel is somewhere people stop for lunch.
-  const [night, setNight] = useState<boolean>(draft?.editing ? !!draft.editing.accommodationId : draft?.poi.category === 'hotel')
-  const [checkIn, setCheckIn] = useState(draft?.editing?.checkIn || draft?.arrivalTime || '')
-  const [saving, setSaving] = useState(false)
+  const [night, setNight] = useState<boolean>(() => nightByDefault(draft))
+  const [checkIn, setCheckIn] = useState(() => checkInByDefault(draft))
+
+  // The popup stays mounted while the draft is swapped for another one, so every
+  // answer is seeded again from the new draft, the way the phone sheet does it.
+  useEffect(() => {
+    seed(draft)
+    setNight(nightByDefault(draft))
+    setCheckIn(checkInByDefault(draft))
+  }, [draft, seed])
 
   if (!draft) return null
   const overnight = draft.overnight
   const asNight = !!overnight && !!onSaveNight && night
-
-  const kind = STOP_KINDS.find(k => k.key === stopType)
 
   const submit = async (): Promise<void> => {
     setSaving(true)
@@ -213,16 +222,7 @@ export default function RoadtripStopPopup({
           <span className="text-caption font-medium uppercase tracking-wide text-content-faint">
             {t('roadtrip.stop.kind')}
           </span>
-          <StopKindChips
-            value={stopType}
-            onPick={(key, wasChosen) => {
-              setStopType(key)
-              // Picking a kind is also picking how long it takes, until the user says
-              // otherwise: a charge is not a fuel stop. Clicking the kind already on
-              // changes nothing, so a dwell set by hand survives it.
-              if (!wasChosen) setDwell(STOP_KIND_BY_KEY[key].defaultMinutes)
-            }}
-          />
+          <StopKindChips value={stopType} onPick={pickKind} />
         </div>
 
         <div>

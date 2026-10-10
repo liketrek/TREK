@@ -267,7 +267,7 @@ describe('offlineDb — clearTripData', () => {
     expect((await offlineDb.blobCache.toArray()).map(e => e.url)).toEqual(['/f2'])
   })
 
-  it('FE-DB-OFFLINE-019: keeps unsynced work and only purges dead failed mutations', async () => {
+  it('FE-DB-OFFLINE-019: keeps unsynced work, conflicts and parked failed changes', async () => {
     await offlineDb.mutationQueue.bulkPut([
       queued('m-pending', 1, 'pending'),
       queued('m-syncing', 1, 'syncing'),
@@ -279,7 +279,7 @@ describe('offlineDb — clearTripData', () => {
     await clearTripData(1)
 
     const left = (await offlineDb.mutationQueue.toArray()).map(m => m.id).sort()
-    expect(left).toEqual(['m-conflict', 'm-other-trip', 'm-pending', 'm-syncing'])
+    expect(left).toEqual(['m-conflict', 'm-failed', 'm-other-trip', 'm-pending', 'm-syncing'])
   })
 })
 

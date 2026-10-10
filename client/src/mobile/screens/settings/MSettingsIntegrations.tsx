@@ -1,11 +1,9 @@
-import { useEffect } from 'react'
-import { useAddonStore } from '../../../store/addonStore'
 import MPhotoProvidersSection from './MPhotoProvidersSection'
 import MAirTrailConnectionSection from './MAirTrailConnectionSection'
 import MDawarichConnectionSection from './MDawarichConnectionSection'
 import MLlmConnectionSection from './MLlmConnectionSection'
 import MSettingsMcp from './MSettingsMcp'
-import { useAuthStore } from '../../../store/authStore'
+import { useIntegrationGates } from '../../../components/Settings/useIntegrationGates'
 
 /**
  * "Integrations" section. The photo-provider / AirTrail / LLM connection forms
@@ -14,23 +12,15 @@ import { useAuthStore } from '../../../store/authStore'
  * function audit is rebuilt natively in the mobile design language.
  */
 export default function MSettingsIntegrations() {
-  const { isEnabled: addonEnabled, loadAddons } = useAddonStore()
-  const mcpEnabled = addonEnabled('mcp')
-  const airtrailEnabled = addonEnabled('airtrail')
-  const llmEnabled = addonEnabled('llm_parsing')
-  const dawarichEnabled = addonEnabled('dawarich')
-  const managed = useAuthStore((s) => s.managed)
-
-  useEffect(() => {
-    loadAddons()
-  }, [loadAddons])
+  const { mcpEnabled, airtrailEnabled, llmEnabled, dawarichEnabled, managed } = useIntegrationGates({ reloadAddons: true })
 
   return (
     <>
-      <MPhotoProvidersSection />
-      {airtrailEnabled && <MAirTrailConnectionSection />}
-      {/* Reaches a server the reader runs themselves, which a managed install has
-          no route to — the same gate the desktop shell puts on AirTrail. */}
+      {/* Immich, Synology Photos, AirTrail and Dawarich all reach a server the reader
+          runs themselves, which a managed install has no route to: the same gate the
+          desktop shell puts on them. */}
+      {!managed && <MPhotoProvidersSection />}
+      {airtrailEnabled && !managed && <MAirTrailConnectionSection />}
       {dawarichEnabled && !managed && <MDawarichConnectionSection />}
       {/* Which model reads a booking, and what that costs, comes with the instance on
        a managed install. The per-user fallback exists for people who supply their

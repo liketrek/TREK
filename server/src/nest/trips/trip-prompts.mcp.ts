@@ -1,5 +1,5 @@
-import { McpController, Prompt, type McpContext } from '../../nest-mcp';
 import { ADDON_IDS } from '../../addons';
+import { McpController, Prompt, type McpContext } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { tripIdPromptArg } from '../mcp-shared/prompt-args';
@@ -40,14 +40,18 @@ export class TripPromptsMcp {
     when: budgetAddonOn,
   })
   async budgetOverviewPrompt({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (!this.trips.canAccessTrip(tripId, ctx.userId)) {
-      return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found or access denied.' } }] };
+    if (!(await this.trips.canAccessTrip(tripId, ctx.userId))) {
+      return {
+        messages: [
+          { role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found or access denied.' } },
+        ],
+      };
     }
     const summary = await this.readModel.getTripSummary(tripId, ctx.userId);
     if (!summary) {
       return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found.' } }] };
     }
-    const { trip, budget } = summary;
+    const { trip, budget } = await summary;
     const currency = trip?.currency || 'EUR';
     // The summary's own totals, each row in the trip currency at the rate it was booked
     // at (#2525). Adding total_price up here printed a dollar bill as that many euros.
@@ -61,7 +65,10 @@ export class TripPromptsMcp {
       .sort(([, a], [, b]) => b - a)
       .map(([cat, amount]) => `- ${cat}: ${amount} ${currency}`)
       .join('\n');
-    const memberCount = Math.max(1, [summary.members?.owner, ...(summary.members?.collaborators || [])].filter(Boolean).length);
+    const memberCount = Math.max(
+      1,
+      [summary.members?.owner, ...(summary.members?.collaborators || [])].filter(Boolean).length,
+    );
     const perPerson = (total / memberCount).toFixed(2);
     // Rows no rate could convert are in none of the figures above; say so rather than
     // let the total pass for the whole trip.
@@ -69,7 +76,15 @@ export class TripPromptsMcp {
     const uncountedLine = uncounted > 0 ? `\n\n${uncounted} expense(s) not counted yet: no exchange rate.` : '';
     return {
       description: `Budget overview for "${trip?.title || tripId}"`,
-      messages: [{ role: 'user' as const, content: { type: 'text' as const, text: `# Budget: ${trip?.title || 'Trip'}\n\n**Total: ${total} ${currency}** (${perPerson} ${currency} per person)\n\n${lines || 'No expenses recorded.'}${uncountedLine}` } }],
+      messages: [
+        {
+          role: 'user' as const,
+          content: {
+            type: 'text' as const,
+            text: `# Budget: ${trip?.title || 'Trip'}\n\n**Total: ${total} ${currency}** (${perPerson} ${currency} per person)\n\n${lines || 'No expenses recorded.'}${uncountedLine}`,
+          },
+        },
+      ],
     };
   }
 
@@ -83,13 +98,21 @@ export class TripPromptsMcp {
     when: packingAddonOn,
   })
   async packingListPrompt({ tripId }: { tripId: number }, ctx: McpContext) {
-    if (!this.packing.verifyTripAccess(tripId, ctx.userId)) {
-      return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found or access denied.' } }] };
+    if (!(await this.packing.verifyTripAccess(tripId, ctx.userId))) {
+      return {
+        messages: [
+          { role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found or access denied.' } },
+        ],
+      };
     }
     // Hide other members' private items (#858) from the requesting user.
-    const items = this.packing.listItems(tripId, ctx.userId);
+    const items = await this.packing.listItems(tripId, ctx.userId);
     if (!items.length) {
-      return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'No packing items found for this trip.' } }] };
+      return {
+        messages: [
+          { role: 'user' as const, content: { type: 'text' as const, text: 'No packing items found for this trip.' } },
+        ],
+      };
     }
     const grouped = items.reduce((acc: Record<string, unknown[]>, item: { category?: string }) => {
       const cat = item.category || 'General';
@@ -97,15 +120,26 @@ export class TripPromptsMcp {
       acc[cat].push(item);
       return acc;
     }, {});
-    const lines = Object.entries(grouped).map(([cat, catItems]) =>
-      `## ${cat}\n${(catItems as { checked?: unknown; name?: string }[]).map((i) => `- [${i.checked ? 'x' : ' '}] ${i.name}`).join('\n')}`
-    ).join('\n\n');
+    const lines = Object.entries(grouped)
+      .map(
+        ([cat, catItems]) =>
+          `## ${cat}\n${(catItems as { checked?: unknown; name?: string }[]).map((i) => `- [${i.checked ? 'x' : ' '}] ${i.name}`).join('\n')}`,
+      )
+      .join('\n\n');
     // Only the title is needed. The whole summary also adds up the budget, which can
     // wait on a rates fetch for a row that never froze its rate.
-    const trip = this.trips.getRaw(tripId);
+    const trip = await this.trips.getRaw(tripId);
     return {
       description: `Packing list for "${trip?.title || tripId}"`,
-      messages: [{ role: 'user' as const, content: { type: 'text' as const, text: `# Packing List: ${trip?.title || 'Trip'}\n\n${lines}\n\n_${items.length} items across ${Object.keys(grouped).length} categories_` } }],
+      messages: [
+        {
+          role: 'user' as const,
+          content: {
+            type: 'text' as const,
+            text: `# Packing List: ${trip?.title || 'Trip'}\n\n${lines}\n\n_${items.length} items across ${Object.keys(grouped).length} categories_`,
+          },
+        },
+      ],
     };
   }
 }

@@ -22,7 +22,7 @@ export default function MToggle({ checked, onChange, ariaLabel, disabled = false
     >
       <span
         className={`block h-[18px] w-[18px] rounded-full bg-[color:var(--m-knob)] transition-transform duration-[180ms] ${
-          checked ? 'translate-x-[18px]' : 'translate-x-0'
+          checked ? 'translate-x-[18px] rtl:-translate-x-[18px]' : 'translate-x-0'
         }`}
       />
     </button>

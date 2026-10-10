@@ -31,5 +31,6 @@ const notifications: TranslationStrings = {
   'notifications.test.adminText': '{actor}이(가) 모든 관리자에게 테스트 알림을 보냈습니다.',
   'notifications.test.tripTitle': '{actor}이(가) 여행에 게시했습니다',
   'notifications.test.tripText': '여행 "{trip}"의 테스트 알림입니다.',
+  'notifications.countLabel': '개의 알림',
 };
 export default notifications;

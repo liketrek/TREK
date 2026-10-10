@@ -112,7 +112,7 @@ const storage: TranslationStrings = {
   'storage.sync.error': '同期に失敗しました: {error}',
   'storage.sync.prompt': '既存のオブジェクトはまだ複製されていません — 今すぐ同期しますか？',
   'storage.sync.dismiss': '閉じる',
-  'storage.usage.line': '{objects}個のオブジェクト · {size}',
+  'storage.usage.line': '{count}個のオブジェクト · {size}',
   'storage.usage.computed': '使用量計算済み: {age}',
   'storage.usage.never': '使用量はまだ計算されていません',
   'storage.usage.refresh': '更新',
@@ -121,7 +121,7 @@ const storage: TranslationStrings = {
 
   // Category migration (copy → flip → delta sweep)
   'storage.migrate.promptTitle': '既存のオブジェクトを新しいバックエンドに移動しますか？',
-  'storage.migrate.promptLine': '{category}: {from}から{to}へ {objects}件のオブジェクト（{size}）',
+  'storage.migrate.promptLine': '{category}: {from}から{to}へ {count}件のオブジェクト（{size}）',
   'storage.migrate.promptLineUnknown': '{category}: サイズ不明（使用量スキャン未実施）{from}から{to}へ',
   'storage.migrate.move': '既存のオブジェクトを移動',
   'storage.migrate.routeOnly': '新規書き込みのみ切り替える',
@@ -130,7 +130,7 @@ const storage: TranslationStrings = {
   'storage.migrate.doneFailures': '{failed}件失敗 — それらのオブジェクトは新しいバックエンドにコピーされませんでした',
   'storage.migrate.failed': '移動に失敗しました: {error} — カテゴリは切り替えられませんでした',
   'storage.migrate.cancelled': '移動をキャンセルしました — 何も切り替えられていません',
-  'storage.migrate.reclaimable': '{objects}件のオブジェクト（{size}）が{from}に残っています — 手動で回収してください',
+  'storage.migrate.reclaimable': '{count}件のオブジェクト（{size}）が{from}に残っています。手動で回収してください',
   'storage.migrate.cancel': '移動をキャンセル',
   'storage.migrate.promptCancel': 'キャンセル',
   'storage.migrate.queued': 'キュー待ち: {categories}',

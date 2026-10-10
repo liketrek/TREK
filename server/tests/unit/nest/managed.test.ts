@@ -7,10 +7,16 @@
  * mutate process.env mid-lifetime and a frozen value breaks all of them.
  * MANAGED-004 is the case that pins it.
  */
-import { describe, it, expect, afterEach } from 'vitest';
-import { isManagedBlocked, MANAGED_FORBIDDEN, MANAGED_FORBIDDEN_ERROR, ManagedForbidden } from '../../../src/nest/common/managed';
-import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { deriveManaged } from '../../../src/app-config/derive';
+import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
+import {
+  isManagedBlocked,
+  MANAGED_FORBIDDEN,
+  MANAGED_FORBIDDEN_ERROR,
+  ManagedForbidden,
+} from '../../../src/nest/common/managed';
+
+import { describe, it, expect, afterEach } from 'vitest';
 
 const env = new RuntimeEnvService();
 

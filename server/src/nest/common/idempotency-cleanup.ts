@@ -1,4 +1,5 @@
 import { readEnv } from '../../app-config';
+import type { IdempotencyKeysRepository } from '../../db/repositories/IdempotencyKeys.repository';
 
 /**
  * Idempotency-key TTL purge (moved from src/scheduler.ts; the interceptor that
@@ -9,21 +10,19 @@ import { readEnv } from '../../app-config';
  * GC'd before the device comes back online would let the replay create a
  * duplicate. 24h was far too short for a multi-day offline trip; default 30d,
  * overridable via IDEMPOTENCY_TTL_SECONDS (default lives in app-config).
+ *
+ * Plan 4 Task 1: the raw `DELETE FROM idempotency_keys WHERE created_at < ?`
+ * moved onto `IdempotencyKeysRepository.deleteExpired` — the repository is a
+ * required parameter now, matching this function's own pre-existing "no lazy
+ * default" convention (it used to be a `DatabaseService`).
  */
 
-export interface PurgeDb {
-  prepare(sql: string): { run(...args: unknown[]): { changes: number } };
-}
-
-/** Delete idempotency keys older than the configured TTL. Returns rows removed.
- *  The db is a required parameter now (DatabaseService satisfies PurgeDb
- *  structurally) — the old lazy-require default died with the scheduler. */
-export function purgeExpiredIdempotencyKeys(
+/** Delete idempotency keys older than the configured TTL. Returns rows removed. */
+export async function purgeExpiredIdempotencyKeys(
   now: number = Date.now(),
   ttlSeconds: number = readEnv().session.idempotencyTtlSeconds,
-  database: PurgeDb,
-): number {
+  repo: IdempotencyKeysRepository,
+): Promise<number> {
   const cutoff = Math.floor(now / 1000) - ttlSeconds;
-  const result = database.prepare('DELETE FROM idempotency_keys WHERE created_at < ?').run(cutoff);
-  return result.changes;
+  return await repo.deleteExpired(cutoff);
 }

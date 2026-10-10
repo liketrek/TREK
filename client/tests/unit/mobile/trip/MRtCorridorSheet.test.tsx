@@ -141,16 +141,16 @@ describe('MRtCorridorSheet', () => {
     expect(screen.getByText('roadtrip.poi.capped')).toBeInTheDocument()
     expect(screen.getByText('roadtrip.poi.partial:2')).toBeInTheDocument()
     // The phone's own wording: the desk's ends in "narrow the corridor", and the
-    // corridor width is a control this screen does not have. One stretch takes the
-    // singular key, because one key with {count} in it would read as "1 stretches".
-    expect(screen.getByText('mobileTrip.rtTruncated.one:1')).toBeInTheDocument()
+    // corridor width is a control this screen does not have. The count goes to t(),
+    // which picks the form the language needs, so one stretch never reads "1 stretches".
+    expect(screen.getByText('mobileTrip.rtTruncated:1')).toBeInTheDocument()
     expect(screen.queryByText('roadtrip.poi.truncated:1')).toBeNull()
   })
 
-  it('FE-MOB-RTSRCH-011b: more than one truncated stretch takes the plural key', () => {
+  it('FE-MOB-RTSRCH-011b: more than one truncated stretch passes its count to the same key', () => {
     renderSheet({ answered: true, hits: [hit()], truncatedAreas: 3 })
 
-    expect(screen.getByText('mobileTrip.rtTruncated.other:3')).toBeInTheDocument()
+    expect(screen.getByText('mobileTrip.rtTruncated:3')).toBeInTheDocument()
   })
 
   it('FE-MOB-RTSRCH-012: a hit says what it is and where on the drive it sits', () => {

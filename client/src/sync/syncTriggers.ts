@@ -15,7 +15,7 @@
 import { mutationQueue } from './mutationQueue'
 import { tripSyncManager } from './tripSyncManager'
 import { isEffectivelyOnline, onNetworkModeChange } from './networkMode'
-import { setPreReconnectHook, setRefetchCallback, getActiveTrips } from '../api/websocket'
+import { setPreReconnectHook, setRefetchCallback, getActiveTrips, reconnectNow } from '../api/websocket'
 import { useTripStore } from '../store/tripStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAuthStore } from '../store/authStore'
@@ -61,6 +61,7 @@ function onOnline() {
   // routes through onNetworkMode → here with the force flag already cleared).
   if (!isEffectivelyOnline()) return
   ensureSettingsLoaded()
+  reconnectNow()
   mutationQueue.flush()
     .catch(console.error)
     .finally(() => {
@@ -73,6 +74,7 @@ function onOnline() {
 function onVisibility() {
   if (!document.hidden && isEffectivelyOnline()) {
     ensureSettingsLoaded()
+    reconnectNow()
     mutationQueue.flush().catch(console.error)
   }
 }

@@ -4,7 +4,7 @@ import { useTranslation } from '../i18n'
 import { useForgotPassword } from './forgotPassword/useForgotPassword'
 
 const inputBase: React.CSSProperties = {
-  width: '100%', padding: '11px 12px 11px 38px', borderRadius: 12,
+  width: '100%', paddingBlock: 11, paddingInlineEnd: 12, paddingInlineStart: 38, borderRadius: 12,
   border: '1px solid #e5e7eb', fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontFamily: 'inherit',
   outline: 'none', transition: 'border-color 120ms',
   background: 'white', color: '#111827',
@@ -52,7 +52,7 @@ function ForgotPasswordPage() {
               <div style={{
                 marginTop: 18, padding: '12px 14px',
                 background: '#fffbeb', border: '1px solid #fde68a',
-                borderRadius: 10, textAlign: 'left',
+                borderRadius: 10, textAlign: 'start',
                 display: 'flex', alignItems: 'flex-start', gap: 10,
               }}>
                 <Terminal size={16} className="text-[#92400e]" style={{ marginTop: 1, flexShrink: 0 }} />
@@ -93,7 +93,7 @@ function ForgotPasswordPage() {
                   {t('common.email')}
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <Mail size={15} className="text-[#9ca3af]" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                  <Mail size={15} className="text-[#9ca3af]" style={{ position: 'absolute', insetInlineStart: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                   <input
                     type="email" value={email}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
