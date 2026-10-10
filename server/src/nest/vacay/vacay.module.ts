@@ -5,7 +5,7 @@ import { VacayService } from './vacay.service';
 import { VacayRpc } from './vacay.rpc';
 import { PluginGuardsModule } from '../../nest-rpc/plugin-guards.module';
 import { VacayMcp } from './vacay.mcp';
-import { AuthModule } from '../auth/auth.module';
+import { Users } from '../../db/entities/Users.entity';
 import { AddonsModule } from '../addons/addons.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { VacayPlans } from '../../db/entities/VacayPlans.entity';
@@ -37,13 +37,14 @@ import { SchoolHolidayRegions } from '../../db/entities/SchoolHolidayRegions.ent
 @Module({
   imports: [
     NotificationsModule,
-    AuthModule,
     PluginGuardsModule,
     AddonsModule,
     MikroOrmModule.forFeature([
       VacayPlans, VacayPlanMembers, VacayYears, VacayUserYears, VacayUserColors,
       VacayEntries, VacayCompanyHolidays, VacayHolidayCalendars, VacayShares, VacayUserSettings,
       SchoolHolidayRegions,
+      // VacayMcp's invite and share tools read the caller's username/email.
+      Users,
     ]),
   ],
   controllers: [VacayController],

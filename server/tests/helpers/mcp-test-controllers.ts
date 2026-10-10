@@ -7,7 +7,6 @@ import { AssignmentsMcp } from '../../src/nest/assignments/assignments.mcp';
 import { AssignmentsService } from '../../src/nest/assignments/assignments.service';
 import { AtlasMcp } from '../../src/nest/atlas/atlas.mcp';
 import { AtlasService } from '../../src/nest/atlas/atlas.service';
-import { AuthService } from '../../src/nest/auth/auth.service';
 import { BudgetMcp } from '../../src/nest/budget/budget.mcp';
 import { BudgetService } from '../../src/nest/budget/budget.service';
 import { ExchangeRatesService } from '../../src/nest/budget/exchange-rates.service';
@@ -73,9 +72,7 @@ import { TrekPhotoCacheMeta } from '../../src/db/entities/TrekPhotoCacheMeta.ent
 import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
 import { UnsplashService } from '../../src/nest/unsplash/unsplash.service';
 import { UserCleanupService } from '../../src/nest/auth/user-cleanup.service';
-import { WebauthnConfigService } from '../../src/nest/auth/webauthn-config.service';
 import { TripMembershipService } from '../../src/nest/trip-membership/trip-membership.service';
-import { MailerService } from '../../src/nest/notifications/mailer/mailer.service';
 import { CalendarService } from '../../src/nest/calendar/calendar.service';
 import { FeedsMcp } from '../../src/nest/feeds/feeds.mcp';
 import { FeedsService } from '../../src/nest/feeds/feeds.service';
@@ -182,18 +179,10 @@ import { createTestJourneyShareTokensRepo } from './journey-share-repos';
 import { AppSettings } from '../../src/db/entities/AppSettings.entity';
 import { AuditLog } from '../../src/db/entities/AuditLog.entity';
 import { Users } from '../../src/db/entities/Users.entity';
-import { Settings } from '../../src/db/entities/Settings.entity';
-import { InviteTokens } from '../../src/db/entities/InviteTokens.entity';
-import { McpTokens } from '../../src/db/entities/McpTokens.entity';
-import { OauthTokens } from '../../src/db/entities/OauthTokens.entity';
-import { WebauthnCredentials } from '../../src/db/entities/WebauthnCredentials.entity';
-import { PasswordResetTokens } from '../../src/db/entities/PasswordResetTokens.entity';
 import { noGoogleQuota } from './google-quota';
-import { createTestPushSubscriptionsRepo } from './notifications-repos';
 import { createTestToursRepo } from './tours-repos';
 import { createTestBudgetSettlementsRepo } from './budget-repos';
 import { MaintenanceRepository } from '../../src/db/repositories/MaintenanceRepository';
-import { createTestSessionsService } from './sessions';
 
 /**
  * Hand-wired counterpart of the boot-time discovery in McpRegistryService,
@@ -214,36 +203,13 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
   const appSettings = (await createTestOrm(db)).repo(AppSettings);
   const auditLogRepo = mcpOrm.repo(AuditLog);
   const usersRepo = mcpOrm.repo(Users);
-  const settingsRepo = mcpOrm.repo(Settings);
-  const inviteTokensRepo = mcpOrm.repo(InviteTokens);
-  const mcpTokensRepoForAuth = mcpOrm.repo(McpTokens);
-  const oauthTokensRepo = mcpOrm.repo(OauthTokens);
-  const webauthnCredentialsRepoForAuth = mcpOrm.repo(WebauthnCredentials);
-  const passwordResetTokensRepo = mcpOrm.repo(PasswordResetTokens);
   const permissionsService = new PermissionsService(await createTestAppSettingsRepo(db), await createTestUnitOfWork(db));
-  // Same argument list as auth.bridge.ts. AtlasService used to sit in third
-  // place; when getTravelStats moved onto AtlasService itself the edge was
-  // dropped and four collaborators took its place, but this call site kept the
-  // old shape, so `membership` and `webauthn` held the wrong objects and
-  // userCleanup/mailer/tokens were undefined.
   const realtimeService = new RealtimeService();
   // Plan 4 Task 1 constructor-ripple: the trip `user_id`/user `role` reads
   // moved off `DatabaseService` onto `TripsRepository`/`UsersRepository`.
   const guards = new McpToolGuardsService(mcpOrm.repo(Trips), usersRepo, permissionsService, realtimeService);
   const exchangeRatesService = new ExchangeRatesService();
   const budgetService = new BudgetService(permissionsService, exchangeRatesService, realtimeService, await createTestUnitOfWork(db), ...(await budgetRepoArgs(db)));
-  const authService = new AuthService(
-    permissionsService,
-    new TripMembershipService(await createTestTripsRepo(db), await createTestTripMembersRepo(db)),
-    new WebauthnConfigService(appSettings),
-    new UserCleanupService(new MaintenanceRepository(mcpOrm.em), budgetService, await createTestUnitOfWork(db), usersRepo, await createTestTripMembersRepo(db), await createTestBudgetItemsRepo(db), await createTestBudgetSettlementsRepo(db), await createTestJourneyShareTokensRepo(db), await createTestJourneysRepo(db), await createTestJourneyEntriesRepo(db), await createTestJourneyContributorsRepo(db), await createTestShareTokensRepo(db), await createTestPluginsRepo(db), await createTestPluginUserErasureQueueRepo(db)),
-    new MailerService(usersRepo, settingsRepo, appSettings),
-    new EphemeralTokenService(),
-    new AllowedFileTypesService(appSettings), await createTestUnitOfWork(db),
-    appSettings, usersRepo, inviteTokensRepo, mcpTokensRepoForAuth, oauthTokensRepo, webauthnCredentialsRepoForAuth, passwordResetTokensRepo,
-    await createTestPushSubscriptionsRepo(db),
-    await createTestSessionsService(db),
-  );
   const queryHelpersService = new QueryHelpersService(await createTestTagsRepo(db), await createTestPlaceRatingsRepo(db), await createTestAssignmentParticipantsRepo(db));
   const daysService = new DaysService(
     permissionsService,
@@ -453,7 +419,7 @@ export async function createMcpTestRegistry(): Promise<McpRegistry> {
       await createTestVacaySharesRepo(db), await createTestVacayUserSettingsRepo(db),
       await createTestSchoolHolidayRegionsRepo(db),
       realtimeService, notificationsStub(), await createTestUnitOfWork(db),
-    ), authService, addonsService),
+    ), usersRepo, addonsService),
       new SchoolHolidaysMcp(
         new SchoolHolidaysService(
           await createTestSchoolHolidayCountriesRepo(db),

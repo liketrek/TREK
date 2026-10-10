@@ -12,7 +12,9 @@ import {
   vacayUpdatePlanRequestSchema,
 } from '@trek/shared';
 import type { VacayUpdatePlanRequest } from '@trek/shared';
-import { AuthService } from '../auth/auth.service';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Users } from '../../db/entities/Users.entity';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { ADDON_IDS } from '../../addons';
 import { VacayService } from './vacay.service';
 import { addonGate } from '../addons/addon-gate';
@@ -79,7 +81,8 @@ function calendarRegionCodes(country: string, data: unknown): { region: string; 
 export class VacayMcp {
   constructor(
     private readonly vacay: VacayService,
-    private readonly auth: AuthService,
+    // The invite and share tools need the caller's username and email.
+    @InjectRepository(Users) private readonly users: UsersRepository,
     readonly addons: AddonsService,
   ) {}
 
@@ -180,7 +183,7 @@ export class VacayMcp {
   })
   async sendVacayInvite({ targetUserId }: { targetUserId: number }, ctx: McpContext) {
     const planId = await this.vacay.getActivePlanId(ctx.userId);
-    const me = await this.auth.getCurrentUser(ctx.userId);
+    const me = await this.users.findUsernameEmail(ctx.userId);
     if (!me) return errorResult('User not found.');
     const result = await this.vacay.sendInvite(planId, ctx.userId, me.username, me.email, targetUserId);
     if (result.error) return errorResult(result.error);
@@ -559,7 +562,7 @@ export class VacayMcp {
     access: { group: 'vacay', mode: 'write' },
   })
   async shareVacayCalendar({ targetUserId }: { targetUserId: number }, ctx: McpContext) {
-    const me = await this.auth.getCurrentUser(ctx.userId);
+    const me = await this.users.findUsernameEmail(ctx.userId);
     if (!me) return errorResult('User not found.');
     const result = await this.vacay.shareCalendar(ctx.userId, me.email, targetUserId);
     if (result.error) return errorResult(result.error);

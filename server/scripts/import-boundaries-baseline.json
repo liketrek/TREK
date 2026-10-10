@@ -16,16 +16,13 @@
     "places -> accommodations",
     "places -> assignments",
     "plugins -> trips",
-    "plugins -> vacay",
     "reservations -> integrations",
     "trip-members -> auth",
     "trip-members -> trips",
     "trip-read-model -> trip-members",
     "trip-read-model -> trips",
     "trips -> trip-members",
-    "trips -> trip-read-model",
-    "trips -> vacay",
-    "vacay -> auth"
+    "trips -> trip-read-model"
   ],
   "sharedImportsDomain": [
     "nest/common/idempotency-cleanup.job.ts -> nest/audit/audit-log.logger.ts",
